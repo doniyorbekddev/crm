@@ -152,6 +152,7 @@ demo ma’lumotlar (40 lead, qo‘ng‘iroqlar, follow-up, 18 o‘quvchi, to‘l
 | Rol | Email | Parol |
 |---|---|---|
 | Super Admin | admin@example.com | Admin123! |
+| Direktor (Owner) | owner@example.com | Owner123! |
 | Sales Manager | manager@example.com | Manager123! |
 | Sales Manager | manager2@example.com | Manager123! |
 | Call Center | callcenter@example.com | Callcenter123! |
@@ -159,6 +160,9 @@ demo ma’lumotlar (40 lead, qo‘ng‘iroqlar, follow-up, 18 o‘quvchi, to‘l
 | O‘qituvchi | teacher2@example.com | Teacher123! |
 | Buxgalter | accountant@example.com | Accountant123! |
 | Tasdiqlanmagan (PENDING) | pending@example.com | Pending123! |
+
+> ⚠️ **Bu hisoblar faqat lokal development uchun.** Productionga chiqarishdan oldin ularni o‘chiring
+> yoki parollarini almashtiring — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dagi xavfsizlik ro‘yxatiga qarang.
 
 Rollar permissionlarini koddagi standart holatga qaytarish: `SEED_RESET_PERMISSIONS=true npx prisma db seed`.
 
