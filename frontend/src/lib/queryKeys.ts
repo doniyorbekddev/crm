@@ -13,6 +13,7 @@ import type { ReportParams, ReportType } from '@/types/report';
 import type { StudentListParams, StudentSummaryParams } from '@/types/student';
 import type { SalaryPeriodParams, TeacherListParams } from '@/types/teacher';
 import type { CashFlowParams, FinanceRangeParams, MoneyListParams, TransactionListParams } from '@/types/finance';
+import type { ExamListParams, HomeworkListParams } from '@/types/homework';
 import type { UserListParams, UserSummaryParams } from '@/types/user';
 
 /** React Query kalitlari bir joyda — invalidatsiya aniq va xatosiz bo‘lishi uchun. */
@@ -129,6 +130,16 @@ export const queryKeys = {
     all: ['salaries'] as const,
     periods: (params: SalaryPeriodParams) => ['salaries', 'periods', params] as const,
     summary: (params: { year: number; month: number }) => ['salaries', 'summary', params] as const,
+  },
+  homework: {
+    all: ['homework'] as const,
+    list: (params: HomeworkListParams) => ['homework', 'list', params] as const,
+    detail: (id: string) => ['homework', 'detail', id] as const,
+  },
+  exams: {
+    all: ['exams'] as const,
+    list: (params: ExamListParams) => ['exams', 'list', params] as const,
+    detail: (id: string) => ['exams', 'detail', id] as const,
   },
   finance: {
     all: ['finance'] as const,

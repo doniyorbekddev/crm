@@ -9,6 +9,7 @@ import { expenseRouter, financeRouter, incomeRouter } from './finance.routes.js'
 import { followUpRouter } from './followUp.routes.js';
 import { gamificationRouter } from './gamification.routes.js';
 import { groupRouter } from './group.routes.js';
+import { examRouter, homeworkRouter } from './homework.routes.js';
 import { healthRouter } from './health.routes.js';
 import { leadRouter } from './lead.routes.js';
 import { lookupRouter } from './lookup.routes.js';
@@ -38,6 +39,8 @@ apiRouter.use('/groups', groupRouter);
 apiRouter.use('/students', studentRouter);
 apiRouter.use('/attendance', attendanceRouter);
 apiRouter.use('/attendance-sessions', attendanceSessionRouter);
+apiRouter.use('/homework', homeworkRouter);
+apiRouter.use('/exams', examRouter);
 apiRouter.use('/gamification', gamificationRouter);
 apiRouter.use('/teachers', teacherRouter);
 apiRouter.use('/salaries', salaryRouter);

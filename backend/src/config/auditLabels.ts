@@ -52,6 +52,16 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
   'attendance.marked': 'Davomat belgilandi',
 
+  'homework.created': 'Uy vazifasi berildi',
+  'homework.updated': 'Uy vazifasi tahrirlandi',
+  'homework.graded': 'Uy vazifasi baholandi',
+  'homework.deleted': 'Uy vazifasi o‘chirildi',
+
+  'exam.created': 'Imtihon yaratildi',
+  'exam.updated': 'Imtihon tahrirlandi',
+  'exam.graded': 'Imtihon natijalari kiritildi',
+  'exam.deleted': 'Imtihon o‘chirildi',
+
   'payment.created': 'To‘lov qabul qilindi',
   'payment.deleted': 'To‘lov bekor qilindi',
 
@@ -94,6 +104,8 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   payment: 'To‘lov',
   debt: 'Qarzdorlik',
   attendance: 'Davomat',
+  homework: 'Uy vazifasi',
+  exam: 'Imtihon',
   teacher: 'O‘qituvchi',
   salary: 'Maosh',
   account: 'Kassa',

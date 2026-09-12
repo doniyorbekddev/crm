@@ -254,6 +254,7 @@ crm/
 | Search | Global qidiruv (ism, telefon, telegram, email, Lead ID, Student ID) |
 | Notifications | Bildirishnoma markazi (yangi lead, to‘lov, follow-up, qarz, trial dars) |
 | Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
+| Homework & Exams | Uy vazifasi (qoralama → e’lon → yopish), topshiriqlar va baholash, butun guruhni bir bosishda belgilash; imtihon natijalari, foiz, A–F baho, o‘tish foizi; XP avtomatik |
 | Executive dashboard | Owner/Director paneli: 12 ta KPI (bosiladigan), bugungi va oylik bloklar, 6 oylik dinamika, diqqat talab qiladigan holatlar |
 | Finance | Moliyaviy daftar (Transaction), kassalar va qoldiqlar, kassalar o‘rtasida o‘tkazma, panel (tushum/xarajat/sof foyda), pul oqimi grafigi |
 | Income / Expense | Tushum va xarajat yozuvlari, kategoriyalar, sabab bilan bekor qilish (VOID), oylik budjet — reja vs fakt |
@@ -284,6 +285,8 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Attendance sessions | `GET /attendance-sessions` · `POST /attendance-sessions` · `GET /attendance-sessions/:id` · `PUT /attendance-sessions/:id` · `DELETE /attendance-sessions/:id` |
 | Gamification | `GET /gamification/leaderboard?period=week\|month\|year\|all` · `GET /gamification/students/:id` · `GET /gamification/rules\|levels\|badges` · `PUT /gamification/rules/:id` · `PUT /gamification/levels/:id` · `PUT /gamification/badges/:id` · `POST /gamification/xp` · `POST /gamification/badges/award` · `POST /gamification/recalculate` |
 | Teachers | `GET /teachers` · `GET /teachers/me` · `GET /teachers/candidates` · `POST /teachers` · `GET /teachers/:id` · `PUT /teachers/:id` · `GET /teachers/:id/salary-rules` · `POST /teachers/:id/salary-rules` · `GET /teachers/:id/salary-periods` |
+| Homework | `GET /homework` · `POST /homework` · `GET /homework/:id` · `PUT /homework/:id` · `DELETE /homework/:id` · `PUT /homework/:id/submissions` (guruh bo‘yicha) · `PATCH /homework/:id/submissions/:studentId` |
+| Exams | `GET /exams` · `POST /exams` · `GET /exams/:id` · `PUT /exams/:id` · `DELETE /exams/:id` · `PUT /exams/:id/results` |
 | Finance | `GET /finance/summary?from=&to=` · `GET /finance/cash-flow?period=day\|week\|month` · `GET /finance/accounts` · `POST /finance/accounts` · `PUT /finance/accounts/:id` · `GET /finance/transactions` · `POST /finance/transfers` · `POST /finance/transactions/:id/void` · `GET /finance/budget?year=&month=` · `PUT /finance/budget` |
 | Income / Expense | `GET /incomes` · `GET /incomes/stats` · `POST /incomes` · `POST /incomes/:id/void` · `GET /incomes/categories` · `POST /incomes/categories` · `PUT /incomes/categories/:id` — xarajatlar uchun `/expenses` ostida xuddi shunday |
 | Salaries | `GET /salaries/periods?year=&month=&teacherProfileId=&status=` · `GET /salaries/summary?year=&month=` · `GET /salaries/periods/:id` · `POST /salaries/calculate` · `PATCH /salaries/periods/:id` (bonus/jarima) · `POST /salaries/periods/:id/approve` · `POST /salaries/periods/:id/payments` |
@@ -365,3 +368,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 7 | Moliya | Yagona daftar: har bir pul harakati `Transaction`; kassalar va qoldiqlar, o‘tkazma, panel, pul oqimi; o‘quvchi to‘lovi daftarga ulandi | ✅ |
 | 8 | Tushum va xarajat | Tushum/xarajat yozuvlari va kategoriyalari, sabab bilan bekor qilish, oylik budjet (reja vs fakt) | ✅ |
 | 9 | Owner dashboard | Executive KPI, bugungi/oylik bloklar, 6 oylik tushum-xarajat dinamikasi, diqqat ro‘yxati | ✅ |
+| 11 | Uy vazifasi va imtihonlar | Vazifa berish, topshiriq va baholash, imtihon natijalari (foiz, baho, o‘tish), XP hooklari ulandi, o‘qituvchi faqat o‘z guruhlari bilan ishlaydi | ✅ |

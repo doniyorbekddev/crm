@@ -1,0 +1,106 @@
+import type { Request, Response } from 'express';
+import { examService } from '../services/exam.service.js';
+import { homeworkService } from '../services/homework.service.js';
+import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
+import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
+import { idParamSchema } from '../validators/common.validator.js';
+import {
+  bulkGradeSchema,
+  createExamSchema,
+  createHomeworkSchema,
+  examListQuerySchema,
+  gradeSubmissionSchema,
+  homeworkListQuerySchema,
+  saveExamResultsSchema,
+  updateExamSchema,
+  updateHomeworkSchema,
+} from '../validators/homework.validator.js';
+
+export const homeworkController = {
+  async list(req: Request, res: Response): Promise<void> {
+    const query = homeworkListQuerySchema.parse(req.query);
+    const { items, total } = await homeworkService.list(requireAuthUser(req), query);
+    sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
+  },
+
+  async getById(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await homeworkService.getById(requireAuthUser(req), id));
+  },
+
+  async create(req: Request, res: Response): Promise<void> {
+    const input = createHomeworkSchema.parse(req.body);
+    sendCreated(res, await homeworkService.create(requireAuthUser(req), input, getClientInfo(req)), 'Uy vazifasi yaratildi');
+  },
+
+  async update(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = updateHomeworkSchema.parse(req.body);
+    sendSuccess(res, await homeworkService.update(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Uy vazifasi saqlandi',
+    });
+  },
+
+  async remove(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    await homeworkService.remove(requireAuthUser(req), id, getClientInfo(req));
+    sendSuccess(res, { id }, { message: 'Uy vazifasi o‘chirildi' });
+  },
+
+  async grade(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
+    const input = gradeSubmissionSchema.parse(req.body);
+    sendSuccess(res, await homeworkService.grade(requireAuthUser(req), id, studentId, input, getClientInfo(req)), {
+      message: 'Topshiriq saqlandi',
+    });
+  },
+
+  async bulkGrade(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = bulkGradeSchema.parse(req.body);
+    sendSuccess(res, await homeworkService.bulkGrade(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Topshiriqlar saqlandi',
+    });
+  },
+};
+
+export const examController = {
+  async list(req: Request, res: Response): Promise<void> {
+    const query = examListQuerySchema.parse(req.query);
+    const { items, total } = await examService.list(requireAuthUser(req), query);
+    sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
+  },
+
+  async getById(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await examService.getById(requireAuthUser(req), id));
+  },
+
+  async create(req: Request, res: Response): Promise<void> {
+    const input = createExamSchema.parse(req.body);
+    sendCreated(res, await examService.create(requireAuthUser(req), input, getClientInfo(req)), 'Imtihon yaratildi');
+  },
+
+  async update(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = updateExamSchema.parse(req.body);
+    sendSuccess(res, await examService.update(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Imtihon saqlandi',
+    });
+  },
+
+  async remove(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    await examService.remove(requireAuthUser(req), id, getClientInfo(req));
+    sendSuccess(res, { id }, { message: 'Imtihon o‘chirildi' });
+  },
+
+  async saveResults(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = saveExamResultsSchema.parse(req.body);
+    sendSuccess(res, await examService.saveResults(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Natijalar saqlandi',
+    });
+  },
+};
