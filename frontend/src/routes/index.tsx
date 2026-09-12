@@ -94,6 +94,18 @@ export const router = createBrowserRouter([
                 children: [{ path: 'debts', lazy: lazyComponent(() => import('@/pages/debts/DebtsPage')) }],
               },
               {
+                element: <PermissionGate permission={PERMISSIONS.FINANCE_VIEW} />,
+                children: [{ path: 'finance', lazy: lazyComponent(() => import('@/pages/finance/FinancePage')) }],
+              },
+              {
+                element: <PermissionGate permission={PERMISSIONS.INCOME_VIEW} />,
+                children: [{ path: 'incomes', lazy: lazyComponent(() => import('@/pages/finance/IncomesPage')) }],
+              },
+              {
+                element: <PermissionGate permission={PERMISSIONS.EXPENSE_VIEW} />,
+                children: [{ path: 'expenses', lazy: lazyComponent(() => import('@/pages/finance/ExpensesPage')) }],
+              },
+              {
                 element: <PermissionGate permission={PERMISSIONS.REPORT_VIEW} />,
                 children: [{ path: 'reports', lazy: lazyComponent(() => import('@/pages/reports/ReportsPage')) }],
               },

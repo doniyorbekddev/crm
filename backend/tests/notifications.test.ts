@@ -9,6 +9,8 @@ import { createCourse, createLead, createSource } from './helpers/fixtures.js';
 const app = createApp();
 
 async function seedNotifications(userId: string, count: number, readCount = 0) {
+  // Har biriga alohida vaqt beriladi: bir xil millisekundda tartib tasodifiy bo'lib qolmasin
+  const base = Date.now() - count * 60_000;
   for (let index = 0; index < count; index += 1) {
     await prisma.notification.create({
       data: {
@@ -16,6 +18,7 @@ async function seedNotifications(userId: string, count: number, readCount = 0) {
         type: index % 2 === 0 ? 'SYSTEM' : 'NEW_LEAD',
         title: `Bildirishnoma ${index + 1}`,
         message: `Matn ${index + 1}`,
+        createdAt: new Date(base + index * 60_000),
         readAt: index < readCount ? new Date() : null,
       },
     });

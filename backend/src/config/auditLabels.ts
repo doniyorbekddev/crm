@@ -64,6 +64,21 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'salary.adjusted': 'Bonus/jarima o‘zgartirildi',
   'salary.approved': 'Maosh tasdiqlandi',
   'salary.paid': 'Maosh to‘landi',
+
+  'finance.account_created': 'Kassa qo‘shildi',
+  'finance.account_updated': 'Kassa tahrirlandi',
+  'finance.transfer': 'Kassalar o‘rtasida o‘tkazma',
+  'finance.transaction_voided': 'Moliyaviy yozuv bekor qilindi',
+  'finance.category_created': 'Kategoriya qo‘shildi',
+  'finance.category_updated': 'Kategoriya tahrirlandi',
+
+  'income.created': 'Tushum qayd etildi',
+  'income.voided': 'Tushum bekor qilindi',
+
+  'expense.created': 'Xarajat qayd etildi',
+  'expense.voided': 'Xarajat bekor qilindi',
+
+  'budget.saved': 'Budjet saqlandi',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -81,6 +96,11 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   attendance: 'Davomat',
   teacher: 'O‘qituvchi',
   salary: 'Maosh',
+  account: 'Kassa',
+  transaction: 'Moliyaviy yozuv',
+  income: 'Tushum',
+  expense: 'Xarajat',
+  budget: 'Budjet',
   settings: 'Sozlamalar',
 };
 
@@ -99,6 +119,9 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'user.password_reset_by_admin',
   'salary.approved',
   'salary.paid',
+  'finance.transaction_voided',
+  'income.voided',
+  'expense.voided',
 ];
 
 export function auditActionLabel(action: string): string {

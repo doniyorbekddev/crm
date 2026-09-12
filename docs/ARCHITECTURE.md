@@ -178,6 +178,10 @@ erDiagram
 - **ID:** `cuid()` — tartibsiz, URL’da xavfsiz. Qo‘shimcha `Lead.number`, `Student.number` (autoincrement)
   foydalanuvchiga “L-000123”, “ST-000045” ko‘rinishida chiqadi va qidiruvda ishlatiladi.
 - **Pul:** `Decimal(14,2)` — floating point xatolari bo‘lmaydi.
+- **Moliyaviy daftar:** har bir pul harakati (o‘quvchi to‘lovi, tushum, xarajat, maosh, o‘tkazma)
+  `Transaction` sifatida yoziladi va kassa qoldig‘i shu bilan birga o‘zgaradi. Yozuv o‘chirilmaydi —
+  sabab bilan `VOID` holatiga o‘tadi va qoldiq qaytariladi. Kassalar o‘rtasidagi o‘tkazma
+  foyda hisobiga kirmaydi.
 - **Narx snapshot:** Student yaratilganda kursning `finalPrice` qiymati `Student.contractPrice` ga ko‘chiriladi,
   to‘lovda `courseId` saqlanadi. Kurs narxi keyin o‘zgarsa ham eski shartnoma va to‘lovlar buzilmaydi.
 - **Soft delete:** `Lead`, `Payment` — moliyaviy va sotuv tarixi yo‘qolmasligi uchun. O‘chirilgan to‘lov qarzdan chiqariladi.
@@ -250,6 +254,8 @@ crm/
 | Search | Global qidiruv (ism, telefon, telegram, email, Lead ID, Student ID) |
 | Notifications | Bildirishnoma markazi (yangi lead, to‘lov, follow-up, qarz, trial dars) |
 | Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
+| Finance | Moliyaviy daftar (Transaction), kassalar va qoldiqlar, kassalar o‘rtasida o‘tkazma, panel (tushum/xarajat/sof foyda), pul oqimi grafigi |
+| Income / Expense | Tushum va xarajat yozuvlari, kategoriyalar, sabab bilan bekor qilish (VOID), oylik budjet — reja vs fakt |
 | Salaries | 5 xil maosh modeli, oylik hisob-kitob, bonus/jarima, tasdiqlash (lock), qismlab to‘lash, xarajat va kassa yozuvi |
 | Audit Log | Muhim harakatlar tarixi (kim, nima, qachon, IP) |
 | Settings | CRM sozlamalari, lead manbalari |
@@ -277,6 +283,8 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Attendance sessions | `GET /attendance-sessions` · `POST /attendance-sessions` · `GET /attendance-sessions/:id` · `PUT /attendance-sessions/:id` · `DELETE /attendance-sessions/:id` |
 | Gamification | `GET /gamification/leaderboard?period=week\|month\|year\|all` · `GET /gamification/students/:id` · `GET /gamification/rules\|levels\|badges` · `PUT /gamification/rules/:id` · `PUT /gamification/levels/:id` · `PUT /gamification/badges/:id` · `POST /gamification/xp` · `POST /gamification/badges/award` · `POST /gamification/recalculate` |
 | Teachers | `GET /teachers` · `GET /teachers/me` · `GET /teachers/candidates` · `POST /teachers` · `GET /teachers/:id` · `PUT /teachers/:id` · `GET /teachers/:id/salary-rules` · `POST /teachers/:id/salary-rules` · `GET /teachers/:id/salary-periods` |
+| Finance | `GET /finance/summary?from=&to=` · `GET /finance/cash-flow?period=day\|week\|month` · `GET /finance/accounts` · `POST /finance/accounts` · `PUT /finance/accounts/:id` · `GET /finance/transactions` · `POST /finance/transfers` · `POST /finance/transactions/:id/void` · `GET /finance/budget?year=&month=` · `PUT /finance/budget` |
+| Income / Expense | `GET /incomes` · `GET /incomes/stats` · `POST /incomes` · `POST /incomes/:id/void` · `GET /incomes/categories` · `POST /incomes/categories` · `PUT /incomes/categories/:id` — xarajatlar uchun `/expenses` ostida xuddi shunday |
 | Salaries | `GET /salaries/periods?year=&month=&teacherProfileId=&status=` · `GET /salaries/summary?year=&month=` · `GET /salaries/periods/:id` · `POST /salaries/calculate` · `PATCH /salaries/periods/:id` (bonus/jarima) · `POST /salaries/periods/:id/approve` · `POST /salaries/periods/:id/payments` |
 | Students | `GET /students` · `GET /students/summary` · `POST /students` · `GET /students/:id` · `PUT /students/:id` · `PATCH /students/:id/status` · `DELETE /students/:id` · `GET /students/:id/attendance` |
 | Payments | `GET /payments` · `GET /payments/stats` · `POST /payments` · `GET /payments/:id` · `DELETE /payments/:id` (sabab majburiy) |
@@ -352,3 +360,6 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 3 | Davomat | Dars seanslari, kalendar, statistika, reyting, o‘qituvchi paneli | ✅ |
 | 4 | Gamification | XP, darajalar, nishonlar, seriya, reyting | ✅ |
 | 5 | O‘qituvchi boshqaruvi | Profil va yuklama, 5 xil maosh modeli, oylik hisob-kitob, tasdiqlash va to‘lov (xarajat + kassa) | ✅ |
+| 6 | O‘qituvchi maoshi | 5-bosqich bilan birga yakunlandi | ✅ |
+| 7 | Moliya | Yagona daftar: har bir pul harakati `Transaction`; kassalar va qoldiqlar, o‘tkazma, panel, pul oqimi; o‘quvchi to‘lovi daftarga ulandi | ✅ |
+| 8 | Tushum va xarajat | Tushum/xarajat yozuvlari va kategoriyalari, sabab bilan bekor qilish, oylik budjet (reja vs fakt) | ✅ |

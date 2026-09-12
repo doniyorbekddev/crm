@@ -4,7 +4,7 @@ import { LEAD_STATUS_ORDER, formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { LeadStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
-import { addDays, startOfBusinessDay } from '../utils/dates.js';
+import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ChartPeriod, ChartQuery, ManagerStatsQuery } from '../validators/dashboard.validator.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { permissionService } from './permission.service.js';
@@ -118,26 +118,6 @@ async function getDashboardAccess(actor: AuthUser): Promise<DashboardAccess> {
     canViewFollowUps: permissions.has(PERMISSIONS.FOLLOWUP_VIEW),
     canViewReports: permissions.has(PERMISSIONS.REPORT_VIEW),
   };
-}
-
-function toDateOnly(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
-
-/**
- * Sanani o‘quv markaz vaqt mintaqasida qaytaradi. `startOfBusinessDay` mahalliy yarim tunning
- * UTC nuqtasini beradi (UTC+5 da — oldingi kun 19:00), shuning uchun sana shu yerda siljitiladi.
- */
-function businessDateString(value: Date): string {
-  return toDateOnly(new Date(value.getTime() + env.APP_UTC_OFFSET_MINUTES * 60_000));
-}
-
-/** Joriy oy boshlanishi (o‘quv markaz vaqti bo‘yicha) */
-function startOfBusinessMonth(now: Date, monthsAgo = 0): Date {
-  const offsetMs = env.APP_UTC_OFFSET_MINUTES * 60_000;
-  const shifted = new Date(now.getTime() + offsetMs);
-  const monthStart = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() - monthsAgo, 1, 0, 0, 0, 0);
-  return new Date(monthStart - offsetMs);
 }
 
 function growthPercent(current: number, previous: number): number {

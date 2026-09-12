@@ -1,0 +1,176 @@
+import type { PersonRef } from './lead';
+import type { PaymentMethod } from './payment';
+
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'REFUND';
+export type TransactionStatus = 'COMPLETED' | 'VOID' | 'REVERSED';
+export type AccountType = 'CASH' | 'BANK' | 'CARD' | 'CLICK' | 'PAYME' | 'UZUM' | 'OTHER';
+export type CashFlowPeriod = 'day' | 'week' | 'month';
+
+export interface FinanceAccount {
+  id: string;
+  key: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  isActive: boolean;
+  sortOrder: number;
+  description: string | null;
+  income: number;
+  expense: number;
+  transactions: number;
+}
+
+export interface Transaction {
+  id: string;
+  number: number;
+  type: TransactionType;
+  status: TransactionStatus;
+  amount: number;
+  occurredAt: string;
+  description: string | null;
+  categoryName: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  account: { id: string; name: string; type: AccountType } | null;
+  createdBy: PersonRef | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  voidedBy: PersonRef | null;
+}
+
+export interface FinanceSummary {
+  from: string;
+  to: string;
+  income: number;
+  expense: number;
+  netProfit: number;
+  margin: number;
+  teacherSalary: number;
+  marketing: number;
+  otherExpense: number;
+  studentPayments: number;
+  otherIncome: number;
+  totalBalance: number;
+  totalDebt: number;
+  incomeByCategory: Array<{ name: string; total: number; count: number }>;
+  expenseByCategory: Array<{ name: string; total: number; count: number }>;
+}
+
+export interface CashFlowPoint {
+  date: string;
+  label: string;
+  income: number;
+  expense: number;
+  net: number;
+  balance: number;
+}
+
+export interface MoneyEntry {
+  id: string;
+  number: number;
+  amount: number;
+  method: PaymentMethod;
+  date: string;
+  description: string | null;
+  attachmentPath: string | null;
+  isVoided: boolean;
+  voidReason: string | null;
+  category: { id: string; key: string; name: string };
+  account: { id: string; name: string } | null;
+  responsible: PersonRef | null;
+  student: { id: string; firstName: string; lastName: string } | null;
+  transactionId: string;
+  createdAt: string;
+}
+
+export interface MoneyStats {
+  total: number;
+  count: number;
+  byCategory: Array<{ id: string; name: string; total: number; count: number }>;
+}
+
+export interface FinanceCategory {
+  id: string;
+  key: string;
+  name: string;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  usage: number;
+}
+
+export interface BudgetLine {
+  categoryId: string;
+  categoryName: string;
+  planned: number;
+  actual: number;
+  usage: number;
+  remaining: number;
+}
+
+export interface Budget {
+  year: number;
+  month: number;
+  note: string | null;
+  totalPlanned: number;
+  totalActual: number;
+  lines: BudgetLine[];
+}
+
+export interface FinanceRangeParams {
+  from?: string;
+  to?: string;
+}
+
+export interface CashFlowParams extends FinanceRangeParams {
+  period: CashFlowPeriod;
+}
+
+export interface TransactionListParams extends FinanceRangeParams {
+  page: number;
+  limit: number;
+  search?: string;
+  type?: TransactionType;
+  status?: TransactionStatus;
+  accountId?: string;
+  entityType?: string;
+  sortBy?: 'occurredAt' | 'amount' | 'number';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface MoneyListParams extends FinanceRangeParams {
+  page: number;
+  limit: number;
+  search?: string;
+  categoryId?: string;
+  accountId?: string;
+  method?: PaymentMethod;
+  responsibleId?: string;
+  sortBy?: 'date' | 'amount' | 'number';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface MoneyPayload {
+  categoryId: string;
+  amount: number;
+  method: PaymentMethod;
+  accountId?: string;
+  date?: string;
+  description?: string;
+  studentId?: string;
+}
+
+export interface TransferPayload {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  occurredAt?: string;
+  description?: string;
+}
+
+export interface BudgetPayload {
+  year: number;
+  month: number;
+  note?: string;
+  lines: Array<{ categoryId: string; plannedAmount: number }>;
+}

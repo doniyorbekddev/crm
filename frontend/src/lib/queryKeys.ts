@@ -12,6 +12,7 @@ import type { NotificationListParams } from '@/types/notification';
 import type { ReportParams, ReportType } from '@/types/report';
 import type { StudentListParams, StudentSummaryParams } from '@/types/student';
 import type { SalaryPeriodParams, TeacherListParams } from '@/types/teacher';
+import type { CashFlowParams, FinanceRangeParams, MoneyListParams, TransactionListParams } from '@/types/finance';
 import type { UserListParams, UserSummaryParams } from '@/types/user';
 
 /** React Query kalitlari bir joyda — invalidatsiya aniq va xatosiz bo‘lishi uchun. */
@@ -127,6 +128,26 @@ export const queryKeys = {
     all: ['salaries'] as const,
     periods: (params: SalaryPeriodParams) => ['salaries', 'periods', params] as const,
     summary: (params: { year: number; month: number }) => ['salaries', 'summary', params] as const,
+  },
+  finance: {
+    all: ['finance'] as const,
+    summary: (params: FinanceRangeParams) => ['finance', 'summary', params] as const,
+    cashFlow: (params: CashFlowParams) => ['finance', 'cash-flow', params] as const,
+    accounts: (params: FinanceRangeParams) => ['finance', 'accounts', params] as const,
+    transactions: (params: TransactionListParams) => ['finance', 'transactions', params] as const,
+    budget: (params: { year: number; month: number }) => ['finance', 'budget', params] as const,
+  },
+  incomes: {
+    all: ['incomes'] as const,
+    list: (params: MoneyListParams) => ['incomes', 'list', params] as const,
+    stats: (params: Omit<MoneyListParams, 'page' | 'limit'>) => ['incomes', 'stats', params] as const,
+    categories: ['incomes', 'categories'] as const,
+  },
+  expenses: {
+    all: ['expenses'] as const,
+    list: (params: MoneyListParams) => ['expenses', 'list', params] as const,
+    stats: (params: Omit<MoneyListParams, 'page' | 'limit'>) => ['expenses', 'stats', params] as const,
+    categories: ['expenses', 'categories'] as const,
   },
   lookups: {
     leadForm: ['lookups', 'lead-form'] as const,

@@ -99,7 +99,8 @@ export const notificationService = {
     const items = await prisma.notification.findMany({
       where,
       select: notificationSelect,
-      orderBy: { createdAt: 'desc' },
+      // Bir vaqtda yaratilgan bildirishnomalarda ham sahifalash barqaror bo'lishi uchun ikkinchi kalit
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.notification.count({ where });

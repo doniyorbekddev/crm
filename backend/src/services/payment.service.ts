@@ -13,8 +13,12 @@ import type {
   PaymentStatsQuery,
 } from '../validators/payment.validator.js';
 import { auditService } from './audit.service.js';
+import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
 import { debtStatusOf } from './student.service.js';
+
+/** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
+const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
 
 const paymentSelect = {
   id: true,
@@ -274,6 +278,21 @@ export const paymentService = {
         select: { id: true, number: true },
       });
 
+      // Har bir to'lov moliyaviy daftarga tushadi: usulga mos kassa qoldig'i oshadi
+      const accountId = await accountIdForMethod(tx, input.method);
+      const transaction = await recordTransaction(tx, {
+        type: 'INCOME',
+        amount: input.amount,
+        accountId,
+        occurredAt: input.paidAt ?? new Date(),
+        description: `O‘quv to‘lovi — ${student.firstName} ${student.lastName}`,
+        categoryName: STUDENT_PAYMENT_CATEGORY,
+        entityType: 'payment',
+        entityId: payment.id,
+        createdById: actor.id,
+      });
+      await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
+
       const { remaining } = await recalculateDebt(tx, student.id);
 
       const managerId = student.lead?.assignedToId;
@@ -316,7 +335,7 @@ export const paymentService = {
   async remove(actor: AuthUser, id: string, input: DeletePaymentInput, client: ClientInfo): Promise<PaymentDto> {
     const payment = await prisma.payment.findUnique({
       where: { id },
-      select: { id: true, number: true, studentId: true, amount: true, deletedAt: true },
+      select: { id: true, number: true, studentId: true, amount: true, deletedAt: true, transactionId: true },
     });
     if (!payment) {
       throw AppError.notFound('To‘lov topilmadi');
@@ -330,6 +349,10 @@ export const paymentService = {
         where: { id },
         data: { deletedAt: new Date(), deletedById: actor.id, deleteReason: input.reason },
       });
+      // Daftardagi yozuv ham bekor qilinadi — kassa qoldig'i qaytariladi
+      if (payment.transactionId) {
+        await voidTransaction(tx, payment.transactionId, { userId: actor.id, reason: input.reason });
+      }
       const { remaining } = await recalculateDebt(tx, payment.studentId);
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
