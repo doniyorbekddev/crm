@@ -9,6 +9,13 @@ export const REPORT_TYPES = [
   'debts',
   'attendance',
   'sources',
+  'teachers',
+  'salaries',
+  'incomes',
+  'expenses',
+  'profit',
+  'retention',
+  'gamification',
 ] as const;
 
 export const GROUP_BY_OPTIONS = ['day', 'week', 'month'] as const;
@@ -28,7 +35,7 @@ export const reportQuerySchema = z
   .object({
     from: dateOnlySchema.optional(),
     to: dateOnlySchema.optional(),
-    /** Faqat vaqt kesimidagi hisobotlar uchun (sales, payments) */
+    /** Faqat vaqt kesimidagi hisobotlar uchun (sales, payments, profit, retention) */
     groupBy: z.enum(GROUP_BY_OPTIONS, 'Guruhlash noto‘g‘ri').default('day'),
     courseId: idSchema.optional(),
     groupId: idSchema.optional(),

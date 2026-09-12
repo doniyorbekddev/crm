@@ -3,6 +3,7 @@ import { formatSalaryPeriod } from '../config/salaryLabels.js';
 import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ExecutiveQuery } from '../validators/dashboard.validator.js';
+import { OPERATING_LEDGER_WHERE } from './ledger.js';
 
 /**
  * Owner/Director paneli: butun markaz holati bitta so‘rovda.
@@ -85,8 +86,8 @@ export interface ExecutiveSummaryDto {
 
 const MONTH_LABELS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
 
-/** Kassalar o‘rtasidagi o‘tkazma moliyaviy natijaga kirmaydi */
-const LEDGER_BASE: Prisma.TransactionWhereInput = { status: 'COMPLETED', NOT: { entityType: 'transfer' } };
+/** O‘tkazma va boshlang‘ich qoldiq moliyaviy natijaga kirmaydi */
+const LEDGER_BASE: Prisma.TransactionWhereInput = OPERATING_LEDGER_WHERE;
 
 /** Sanani @db.Date maydonlariga mos UTC yarim tuniga o‘tkazadi */
 function dateOnlyUtc(value: string): Date {

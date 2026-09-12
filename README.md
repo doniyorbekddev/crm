@@ -34,7 +34,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > diqqat talab qiladigan holatlar ro‘yxati), **PHASE 11 — uy vazifasi va imtihonlar** (vazifa berish,
 > topshiriq va baholash, imtihon natijalari — foiz, A–F baho, o‘tish foizi; XP avtomatik beriladi),
 > **PHASE 12 — o‘quvchi progressi** (profil sahifasi: daraja va XP, davomat, vazifa va imtihon ko‘rsatkichlari,
-> 6 oylik progress grafigi, o‘qituvchi izohlari va faollik tasmasi).
+> 6 oylik progress grafigi, o‘qituvchi izohlari va faollik tasmasi), **PHASE 10 — hisobotlar markazi**
+> (15 turdagi hisobot: yangi — o‘qituvchilar samaradorligi, maoshlar, tushumlar, xarajatlar va budjet, foyda,
+> retention, gamification; CSV eksport).
 
 | Qism | Texnologiyalar |
 |---|---|

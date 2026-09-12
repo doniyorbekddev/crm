@@ -8,6 +8,21 @@ import type { PaymentMethod, Prisma, TransactionType } from '../generated/prisma
  * balans har doim daftardagi yozuvlarga mos bo‘ladi.
  */
 
+/**
+ * Foyda-zarar hisobiga kirmaydigan yozuvlar: kassalar o‘rtasidagi o‘tkazma va
+ * boshlang‘ich qoldiq. Ular kassa qoldig‘ini o‘zgartiradi, lekin tushum ham, xarajat ham emas.
+ */
+export const NON_OPERATING_ENTITY_TYPES = ['transfer', 'opening-balance'] as const;
+
+/**
+ * Tushum/xarajat/foyda uchun daftar filtri. `entityType` NULL bo‘lgan yozuvlar ham
+ * hisobga olinadi — SQL'da `NOT IN` NULL qatorlarni jimgina tashlab yuborardi.
+ */
+export const OPERATING_LEDGER_WHERE: Prisma.TransactionWhereInput = {
+  status: 'COMPLETED',
+  OR: [{ entityType: null }, { entityType: { notIn: [...NON_OPERATING_ENTITY_TYPES] } }],
+};
+
 export interface LedgerEntry {
   type: TransactionType;
   amount: number;

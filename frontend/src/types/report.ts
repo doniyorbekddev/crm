@@ -6,7 +6,14 @@ export type ReportType =
   | 'payments'
   | 'debts'
   | 'attendance'
-  | 'sources';
+  | 'sources'
+  | 'teachers'
+  | 'salaries'
+  | 'incomes'
+  | 'expenses'
+  | 'profit'
+  | 'retention'
+  | 'gamification';
 
 export type ReportGroupBy = 'day' | 'week' | 'month';
 export type ReportColumnType = 'text' | 'number' | 'money' | 'percent' | 'date';

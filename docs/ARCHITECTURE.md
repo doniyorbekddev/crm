@@ -180,8 +180,9 @@ erDiagram
 - **Pul:** `Decimal(14,2)` — floating point xatolari bo‘lmaydi.
 - **Moliyaviy daftar:** har bir pul harakati (o‘quvchi to‘lovi, tushum, xarajat, maosh, o‘tkazma)
   `Transaction` sifatida yoziladi va kassa qoldig‘i shu bilan birga o‘zgaradi. Yozuv o‘chirilmaydi —
-  sabab bilan `VOID` holatiga o‘tadi va qoldiq qaytariladi. Kassalar o‘rtasidagi o‘tkazma
-  foyda hisobiga kirmaydi.
+  sabab bilan `VOID` holatiga o‘tadi va qoldiq qaytariladi. Kassalar o‘rtasidagi o‘tkazma va
+  boshlang‘ich qoldiq kassa qoldig‘ini o‘zgartiradi, lekin foyda-zarar hisobiga kirmaydi
+  (`OPERATING_LEDGER_WHERE` — moliya paneli, direktor paneli va hisobotlar uchun yagona filtr).
 - **Narx snapshot:** Student yaratilganda kursning `finalPrice` qiymati `Student.contractPrice` ga ko‘chiriladi,
   to‘lovda `courseId` saqlanadi. Kurs narxi keyin o‘zgarsa ham eski shartnoma va to‘lovlar buzilmaydi.
 - **Soft delete:** `Lead`, `Payment` — moliyaviy va sotuv tarixi yo‘qolmasligi uchun. O‘chirilgan to‘lov qarzdan chiqariladi.
@@ -250,7 +251,7 @@ crm/
 | Students | Lead → Student konvertatsiya, status, guruhga biriktirish, davomat |
 | Payments & Debts | To‘lovlar, usullar, avtomatik qarz hisoblash, qarz filtrlari |
 | Dashboard | KPI’lar, grafiklar, funnel, manager reytingi |
-| Reports | 8 turdagi hisobot (sotuv, managerlar, kurslar, guruhlar, to‘lovlar, qarzdorlik, davomat, manbalar), sana oralig‘i va CSV eksport |
+| Reports | 15 turdagi hisobot: sotuv, managerlar, to‘lovlar, qarzdorlik, foyda, tushumlar, xarajatlar (budjet bilan), maoshlar, kurslar, guruhlar, o‘qituvchilar samaradorligi, davomat, retention, gamification, manbalar; sana oralig‘i, filtrlar va CSV eksport. Moliyaviy va xodimlarga oid hisobotlar qo‘shimcha modul ruxsatini talab qiladi |
 | Search | Global qidiruv (ism, telefon, telegram, email, Lead ID, Student ID) |
 | Notifications | Bildirishnoma markazi (yangi lead, to‘lov, follow-up, qarz, trial dars) |
 | Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
@@ -295,7 +296,7 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Payments | `GET /payments` · `GET /payments/stats` · `POST /payments` · `GET /payments/:id` · `DELETE /payments/:id` (sabab majburiy) |
 | Debts | `GET /debts?range=all\|zero\|upto500k\|500k-1m\|1m-plus` · `GET /debts/summary` |
 | Dashboard | `GET /dashboard/executive` (analytics.view) · `GET /dashboard/summary` · `GET /dashboard/charts?period=day\|week\|month` · `GET /dashboard/follow-ups` · `GET /dashboard/funnel` · `GET /dashboard/managers?period=month\|quarter\|year` |
-| Reports | `GET /reports/:type?from=&to=&groupBy=day\|week\|month&courseId=&groupId=&managerId=` · `GET /reports/:type/export?format=csv` — turlar: sales, managers, courses, groups, payments, debts, attendance, sources |
+| Reports | `GET /reports/:type?from=&to=&groupBy=day\|week\|month&courseId=&groupId=&managerId=` · `GET /reports/:type/export?format=csv` — turlar: sales, managers, courses, groups, payments, debts, attendance, sources, teachers, salaries, incomes, expenses, profit, retention, gamification |
 | Search | `GET /search?q=` — leadlar, o‘quvchilar, kurslar, guruhlar, to‘lovlar (PM-raqam) va xodimlar; natijalar xodim ruxsatiga qarab filtrlanadi |
 | Notifications | `GET /notifications?type=&unreadOnly=` · `GET /notifications/summary` · `PATCH /notifications/:id/read` · `PATCH /notifications/read-all` · `DELETE /notifications/:id` · `DELETE /notifications/read` |
 | Audit | `GET /audit-logs?userId=&action=&entityType=&entityId=&from=&to=&criticalOnly=&search=` · `GET /audit-logs/filters` |
@@ -371,3 +372,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 9 | Owner dashboard | Executive KPI, bugungi/oylik bloklar, 6 oylik tushum-xarajat dinamikasi, diqqat ro‘yxati | ✅ |
 | 11 | Uy vazifasi va imtihonlar | Vazifa berish, topshiriq va baholash, imtihon natijalari (foiz, baho, o‘tish), XP hooklari ulandi, o‘qituvchi faqat o‘z guruhlari bilan ishlaydi | ✅ |
 | 12 | O‘quvchi progressi | Profil sahifasi (`/students/:id`): daraja va XP progressi, davomat/vazifa/imtihon ko‘rsatkichlari, 6 oylik progress grafigi, o‘qituvchi izohlari, faollik tasmasi; to‘lov bloki faqat ruxsat bo‘lsa | ✅ |
+| 10 | Hisobotlar markazi | 7 ta yangi hisobot (o‘qituvchilar, maoshlar, tushumlar, xarajatlar + budjet, foyda, retention, gamification), hisobot bo‘yicha ruxsat tekshiruvi; o‘tkazma va boshlang‘ich qoldiq foyda hisobidan chiqarildi | ✅ |

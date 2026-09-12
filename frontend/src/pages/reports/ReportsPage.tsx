@@ -18,16 +18,34 @@ import { paymentsService } from '@/services/payments.service';
 import { reportsService } from '@/services/reports.service';
 import type { ReportCell, ReportColumn, ReportColumnType, ReportGroupBy, ReportParams, ReportType } from '@/types/report';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
+import { useAuthStore } from '@/store/auth.store';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { hasPermission } from '@/utils/permissions';
 
-const REPORTS: ReadonlyArray<{ value: ReportType; label: string; timeSeries: boolean; filters: Array<'course' | 'group' | 'manager'> }> = [
+interface ReportConfig {
+  value: ReportType;
+  label: string;
+  timeSeries: boolean;
+  filters: Array<'course' | 'group' | 'manager'>;
+  /** report.view dan tashqari kerak bo‘ladigan ruxsat (backend bilan bir xil) */
+  permission?: string;
+}
+
+const REPORTS: readonly ReportConfig[] = [
   { value: 'sales', label: 'Sotuv', timeSeries: true, filters: ['manager'] },
   { value: 'managers', label: 'Managerlar', timeSeries: false, filters: ['manager'] },
   { value: 'payments', label: 'To‘lovlar', timeSeries: true, filters: ['course', 'group', 'manager'] },
   { value: 'debts', label: 'Qarzdorlik', timeSeries: false, filters: ['course', 'group'] },
+  { value: 'profit', label: 'Foyda', timeSeries: true, filters: [], permission: PERMISSIONS.FINANCE_VIEW },
+  { value: 'incomes', label: 'Tushumlar', timeSeries: false, filters: [], permission: PERMISSIONS.INCOME_VIEW },
+  { value: 'expenses', label: 'Xarajatlar', timeSeries: false, filters: [], permission: PERMISSIONS.EXPENSE_VIEW },
+  { value: 'salaries', label: 'Maoshlar', timeSeries: false, filters: [], permission: PERMISSIONS.SALARY_VIEW },
   { value: 'courses', label: 'Kurslar', timeSeries: false, filters: ['course'] },
   { value: 'groups', label: 'Guruhlar', timeSeries: false, filters: ['course', 'group'] },
+  { value: 'teachers', label: 'O‘qituvchilar', timeSeries: false, filters: ['course'], permission: PERMISSIONS.TEACHER_VIEW },
   { value: 'attendance', label: 'Davomat', timeSeries: false, filters: ['course', 'group'] },
+  { value: 'retention', label: 'Retention', timeSeries: true, filters: ['course', 'group'] },
+  { value: 'gamification', label: 'Gamification', timeSeries: false, filters: ['course', 'group'], permission: PERMISSIONS.GAMIFICATION_VIEW },
   { value: 'sources', label: 'Manbalar', timeSeries: false, filters: ['manager'] },
 ];
 
@@ -95,6 +113,8 @@ function TotalsRow({ columns, totals }: { columns: ReportColumn[]; totals: Recor
 
 export default function ReportsPage() {
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const user = useAuthStore((state) => state.user);
+  const availableReports = REPORTS.filter((report) => !report.permission || hasPermission(user, report.permission));
 
   const [type, setType] = useState<ReportType>('sales');
   const [from, setFrom] = useState(shiftDays(-29));
@@ -105,7 +125,7 @@ export default function ReportsPage() {
   const [managerId, setManagerId] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  const config = REPORTS.find((report) => report.value === type) ?? REPORTS[0]!;
+  const config = availableReports.find((report) => report.value === type) ?? availableReports[0] ?? REPORTS[0]!;
   const params: ReportParams = {
     from,
     to,
@@ -165,7 +185,7 @@ export default function ReportsPage() {
       <Card className="mb-4">
         <div className="flex flex-col gap-3 p-3">
           <div role="tablist" aria-label="Hisobot turi" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {REPORTS.map((item) => {
+            {availableReports.map((item) => {
               const active = type === item.value;
               return (
                 <button

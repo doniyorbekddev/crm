@@ -15,12 +15,10 @@ import type {
   VoidTransactionInput,
 } from '../validators/finance.validator.js';
 import { auditService } from './audit.service.js';
-import { recordTransaction, voidTransaction } from './ledger.js';
+import { OPERATING_LEDGER_WHERE, recordTransaction, voidTransaction } from './ledger.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
 const SALARY_CATEGORY = 'O‘qituvchi maoshi';
-/** Kassalar o'rtasidagi o'tkazma — moliyaviy natijaga kirmaydi */
-const TRANSFER_ENTITY = 'transfer';
 const MARKETING_CATEGORY_KEY = 'ADVERTISEMENT';
 
 // ---------------------------------------------------------------------
@@ -344,12 +342,8 @@ export const financeService = {
   /** Moliyaviy panel: tushum, xarajat, sof foyda va kesimlar */
   async summary(query: FinanceRangeQuery): Promise<FinanceSummaryDto> {
     const { start, end, from, to } = resolveRange(query);
-    // Kassalar o'rtasidagi o'tkazma tushum ham, xarajat ham emas — u faqat qoldiqni siljitadi
-    const where: Prisma.TransactionWhereInput = {
-      status: 'COMPLETED',
-      occurredAt: { gte: start, lt: end },
-      NOT: { entityType: TRANSFER_ENTITY },
-    };
+    // O'tkazma va boshlang'ich qoldiq tushum ham, xarajat ham emas — faqat qoldiqni siljitadi
+    const where: Prisma.TransactionWhereInput = { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } };
 
     const byType = await prisma.transaction.groupBy({ by: ['type'], where, _sum: { amount: true } });
     const sumOf = (type: TransactionType) => byType.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
@@ -408,7 +402,7 @@ export const financeService = {
   async cashFlow(query: CashFlowQuery): Promise<CashFlowPointDto[]> {
     const { start, end } = resolveRange(query);
     const transactions = await prisma.transaction.findMany({
-      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end }, NOT: { entityType: TRANSFER_ENTITY } },
+      where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
       select: { type: true, amount: true, occurredAt: true },
       orderBy: { occurredAt: 'asc' },
     });
