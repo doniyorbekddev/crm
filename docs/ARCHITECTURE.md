@@ -347,6 +347,34 @@ List endpointlari umumiy query parametrlarini qabul qiladi: `page`, `limit` (max
 - **Keraksiz yozuv yo‘q:** alert dvigateli matni va raqamlari o‘zgarmagan alertni yangilamaydi (JSONB
   kalit tartibi saralab solishtiriladi).
 
+### Xavfsizlik auditi (kengaytirish, PHASE 15)
+
+**Tekshirildi:**
+
+| Nima | Natija |
+|---|---|
+| Ruxsatsiz route’lar | Faqat ataylab ochiqlari: login/register/refresh/parol tiklash, health, o‘z bildirishnomalari, qidiruv (natija ruxsat bo‘yicha filtrlanadi), `/teachers/me` (faqat o‘z ma’lumoti) |
+| IDOR | Bildirishnoma o‘qish/o‘chirish `userId` bilan cheklangan; o‘qituvchi faqat o‘z guruhi o‘quvchisi, vazifasi va imtihonini ko‘radi |
+| Xom SQL | Faqat parametrli `$queryRaw` (tagged template); `$queryRawUnsafe` ishlatilmaydi |
+| Audit log | O‘chiradigan route yo‘q; spec’ning 51-bo‘limidagi barcha amallar yoziladi |
+| Kiritish | Barcha yangi endpointlar zod bilan tekshiriladi; noma’lum maydonlar tashlab yuboriladi |
+
+**Tuzatildi:**
+
+- **Maosh ma’lumoti sizishi:** o‘qituvchilar ro‘yxati/tafsiloti maosh modelini `salary.view` ruxsati yo‘q
+  `teacher.view` egasiga ham qaytarardi (frontend yashirardi, API bermasligi kerak). Endi server tomonda
+  yashiriladi (`salaryVisible: false`).
+- **CSV formula injection:** `=`, `+`, `-`, `@`, tab bilan boshlangan matn (ism, izoh) eksportda apostrof bilan
+  neytrallanadi — Excel’da formula ishga tushmaydi; raqamlar o‘zgarmaydi.
+- **Erkin fayl yo‘li:** xarajat va uy vazifasi `attachmentPath` ni mijozdan qabul qilmaydi (yuklash oqimi
+  hujjatlar moduli orqali qo‘shiladi) — kelajakdagi path traversal xavfi oldi olindi.
+- **Og‘ir operatsiyalar:** `POST /alerts/evaluate` va `POST /salaries/calculate` ga `heavyLimiter`.
+
+**Bog‘liqliklar (`npm audit`):** 4 ta high — barchasi `prisma` CLI zanjirida (`mysql2`, `deepmerge-ts`).
+Loyiha so‘nggi barqaror Prisma 7.10.0 da; `npm audit fix --force` Prisma’ni 6.x ga tushiradi (buzadi).
+`mysql2` ilova kodida ishlatilmaydi (PostgreSQL), `deepmerge-ts` faqat CLI konfiguratsiyasini o‘qishda —
+HTTP orqali erishib bo‘lmaydi. Prisma 8 barqaror chiqqanda yangilash tavsiya etiladi.
+
 ## 7. Development phases
 
 Barcha 17 bosqich yakunlandi (2026-09-12).
@@ -389,3 +417,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 10 | Hisobotlar markazi | 7 ta yangi hisobot (o‘qituvchilar, maoshlar, tushumlar, xarajatlar + budjet, foyda, retention, gamification), hisobot bo‘yicha ruxsat tekshiruvi; o‘tkazma va boshlang‘ich qoldiq foyda hisobidan chiqarildi | ✅ |
 | 13 | Alertlar | Avtomatik ogohlantirishlar dvigateli va job, qo‘lda yopish, kritik alert bildirishnomasi, sotuv rejalari sahifasi, direktor paneliga kritik alertlar | ✅ |
 | 14 | Unumdorlik | Katta hajmli sinov bazasi (`db:perf-seed`), hisobot/dashboard/alertlardagi N+1 so‘rovlar guruhlangan so‘rovlarga aylantirildi, chiqib ketish xavfi SQL window funksiyasi bilan, o‘zgarmagan alertga yozuv qilinmaydi | ✅ |
+| 15 | Xavfsizlik auditi | Yangi route’lar ruxsat bo‘yicha tekshirildi; maosh ma’lumoti server tomonda yashirildi, CSV formula injection neytrallandi, erkin fayl yo‘li olib tashlandi, og‘ir operatsiyalarga limiter; bog‘liqliklar auditi | ✅ |

@@ -1390,13 +1390,23 @@ export const reportService = {
 };
 
 /** CSV: Excel uchun BOM bilan, qiymatlar qo‘shtirnoq ichida */
+/**
+ * CSV formula injection himoyasi: foydalanuvchi kiritgan matn (ism, izoh) `=`, `+`, `-`, `@`,
+ * tab yoki CR bilan boshlansa Excel uni formula sifatida ishga tushiradi (masalan `=HYPERLINK(...)`).
+ * Bunday matn oldiga apostrof qo‘yiladi. Raqamlar (manfiy foyda ham) o‘zgarmaydi.
+ */
+export function neutralizeFormula(value: string | number): string {
+  if (typeof value !== 'string') return String(value);
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 /** Excel UTF-8 ni tanishi uchun fayl boshiga qo‘yiladigan BOM belgisi */
 const BOM = String.fromCharCode(0xfeff);
 
 export function toCsv(report: ReportDto): string {
   const escape = (value: ReportCell): string => {
     if (value === null || value === undefined) return '""';
-    return `"${String(value).replace(/"/g, '""')}"`;
+    return `"${neutralizeFormula(value).replace(/"/g, '""')}"`;
   };
 
   const lines: string[] = [];

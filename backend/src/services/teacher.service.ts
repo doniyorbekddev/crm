@@ -12,6 +12,7 @@ import type {
   UpdateTeacherProfileInput,
 } from '../validators/teacher.validator.js';
 import { auditService } from './audit.service.js';
+import { permissionService } from './permission.service.js';
 import type { SalaryPeriodDto, SalaryRuleDto } from './salary.service.js';
 import { monthRange, salaryService, toSalaryRuleDto } from './salary.service.js';
 
@@ -40,7 +41,9 @@ export interface TeacherDto {
   students: number;
   /** Joriy oyda o‘tkazilgan darslar */
   lessonsThisMonth: number;
+  /** salary.view ruxsati bo‘lmasa maosh modeli qaytarilmaydi */
   salaryRule: SalaryRuleDto | null;
+  salaryVisible: boolean;
   createdAt: string;
 }
 
@@ -77,8 +80,8 @@ export interface TeacherDetailDto extends TeacherDto {
   performance: TeacherPerformanceDto;
   salaryRules: SalaryRuleDto[];
   salaryPeriods: SalaryPeriodDto[];
-  /** Joriy yilda to‘langan va qolgan maosh */
-  salaryTotals: { year: number; paid: number; remaining: number };
+  /** Joriy yilda to‘langan va qolgan maosh (salary.view ruxsati bo‘lmasa null) */
+  salaryTotals: { year: number; paid: number; remaining: number } | null;
 }
 
 export interface TeacherCandidateDto {
@@ -221,7 +224,7 @@ function buildTeacherOrderBy(query: TeacherListQuery): Prisma.TeacherProfileOrde
 }
 
 /** Ro‘yxat uchun umumiy ko‘rsatkichlar bitta-bitta so‘rovda yig‘iladi (N+1 bo‘lmasligi uchun) */
-async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date): Promise<TeacherDto[]> {
+async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date, salaryVisible: boolean): Promise<TeacherDto[]> {
   const userIds = profiles.map((profile) => profile.userId);
   const profileIds = profiles.map((profile) => profile.id);
   const { start, end } = monthRange(reference.getUTCFullYear(), reference.getUTCMonth() + 1);
@@ -235,7 +238,7 @@ async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date): Pro
         });
 
   const rules =
-    profileIds.length === 0
+    profileIds.length === 0 || !salaryVisible
       ? []
       : await prisma.teacherSalaryRule.findMany({
           where: { teacherProfileId: { in: profileIds }, isActive: true },
@@ -295,7 +298,8 @@ async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date): Pro
       groups: counts.groups,
       students: counts.students,
       lessonsThisMonth: lessons.get(profile.userId) ?? 0,
-      salaryRule: ruleByProfile.get(profile.id) ?? null,
+      salaryRule: salaryVisible ? (ruleByProfile.get(profile.id) ?? null) : null,
+      salaryVisible,
       createdAt: profile.createdAt.toISOString(),
     };
   });
@@ -384,6 +388,11 @@ async function loadSalaryTotals(teacherProfileId: string, year: number): Promise
   };
 }
 
+async function canViewSalary(actor: AuthUser): Promise<boolean> {
+  const permissions = await permissionService.getRolePermissions(actor.roleId);
+  return permissions.has(PERMISSIONS.SALARY_VIEW);
+}
+
 async function findProfileOrFail(id: string): Promise<ProfileRecord> {
   const profile = await prisma.teacherProfile.findFirst({ where: { id, user: { deletedAt: null } }, select: profileSelect });
   if (!profile) {
@@ -397,7 +406,8 @@ async function findProfileOrFail(id: string): Promise<ProfileRecord> {
 // ---------------------------------------------------------------------
 
 export const teacherService = {
-  async list(query: TeacherListQuery): Promise<{ items: TeacherDto[]; total: number }> {
+  async list(actor: AuthUser, query: TeacherListQuery): Promise<{ items: TeacherDto[]; total: number }> {
+    const salaryVisible = await canViewSalary(actor);
     const where = buildTeacherWhere(query);
     const profiles = await prisma.teacherProfile.findMany({
       where,
@@ -406,12 +416,13 @@ export const teacherService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.teacherProfile.count({ where });
-    return { items: await buildTeacherDtos(profiles, new Date()), total };
+    return { items: await buildTeacherDtos(profiles, new Date(), salaryVisible), total };
   },
 
-  async getById(id: string): Promise<TeacherDetailDto> {
+  async getById(actor: AuthUser, id: string): Promise<TeacherDetailDto> {
     const profile = await findProfileOrFail(id);
-    const [base] = await buildTeacherDtos([profile], new Date());
+    const salaryVisible = await canViewSalary(actor);
+    const [base] = await buildTeacherDtos([profile], new Date(), salaryVisible);
     if (!base) {
       throw AppError.notFound('O‘qituvchi topilmadi');
     }
@@ -423,9 +434,9 @@ export const teacherService = {
       ...base,
       groupList: await loadGroups(profile.userId),
       performance: await loadPerformance(profile.userId, year, now.getUTCMonth() + 1),
-      salaryRules: await salaryService.rules(profile.id),
-      salaryPeriods: await salaryService.history(profile.id, { limit: 12 }),
-      salaryTotals: await loadSalaryTotals(profile.id, year),
+      salaryRules: salaryVisible ? await salaryService.rules(profile.id) : [],
+      salaryPeriods: salaryVisible ? await salaryService.history(profile.id, { limit: 12 }) : [],
+      salaryTotals: salaryVisible ? await loadSalaryTotals(profile.id, year) : null,
     };
   },
 
@@ -488,7 +499,7 @@ export const teacherService = {
       return created.id;
     });
 
-    return this.getById(profileId);
+    return this.getById(actor, profileId);
   },
 
   async update(
@@ -534,7 +545,7 @@ export const teacherService = {
       });
     });
 
-    return this.getById(id);
+    return this.getById(actor, id);
   },
 
   /** O‘qituvchining o‘z paneli: guruhlari, oylik ko‘rsatkichlari va maoshi */

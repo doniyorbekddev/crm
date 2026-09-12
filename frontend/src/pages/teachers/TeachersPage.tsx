@@ -244,7 +244,9 @@ export default function TeachersPage() {
                       <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.students)}</TD>
                       <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.lessonsThisMonth)}</TD>
                       <TD>
-                        {teacher.salaryRule ? (
+                        {!teacher.salaryVisible ? (
+                          <span className="text-xs text-fg-subtle">—</span>
+                        ) : teacher.salaryRule ? (
                           <>
                             <Badge tone="blue">{SALARY_TYPE_LABELS[teacher.salaryRule.type]}</Badge>
                             {canViewSalary && (

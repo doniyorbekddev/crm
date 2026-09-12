@@ -39,7 +39,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > retention, gamification; CSV eksport), **PHASE 13 — ogohlantirishlar** (8 turdagi avtomatik alert har
 > 30 daqiqada tekshiriladi, holat to‘g‘rilansa o‘zi yopiladi; kritik alert bildirishnomasi; sotuv rejalari),
 > **PHASE 14 — unumdorlik** (katta hajmli sinov bazasi; hisobotlar, dashboard va alertlardagi N+1 so‘rovlar
-> guruhlangan so‘rovlarga aylantirildi — og‘ir endpointlar 2–4 barobar tezlashdi).
+> guruhlangan so‘rovlarga aylantirildi — og‘ir endpointlar 2–4 barobar tezlashdi), **PHASE 15 — xavfsizlik
+> auditi** (maosh ma’lumoti server tomonda yashirildi, CSV formula injection himoyasi, og‘ir operatsiyalarga
+> limiter, route va bog‘liqliklar auditi).
 
 | Qism | Texnologiyalar |
 |---|---|

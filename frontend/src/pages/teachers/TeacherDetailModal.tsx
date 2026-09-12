@@ -59,7 +59,9 @@ function DetailBody({ teacher, canViewSalary }: { teacher: TeacherDetail; canVie
         </div>
         <div className="rounded-xl border border-border p-3">
           <p className="text-sm font-medium text-fg">Maosh modeli</p>
-          {teacher.salaryRule ? (
+          {!teacher.salaryVisible ? (
+            <p className="mt-1 text-sm text-fg-muted">Maosh ma’lumotlarini ko‘rish uchun ruxsat yo‘q</p>
+          ) : teacher.salaryRule ? (
             <>
               <p className="mt-1 flex items-center gap-2 text-sm text-fg">
                 <Badge tone="blue">{SALARY_TYPE_LABELS[teacher.salaryRule.type]}</Badge>
@@ -73,7 +75,7 @@ function DetailBody({ teacher, canViewSalary }: { teacher: TeacherDetail; canVie
           ) : (
             <p className="mt-1 text-sm text-fg-muted">Belgilanmagan — maosh hisoblanmaydi</p>
           )}
-          {canViewSalary && (
+          {canViewSalary && teacher.salaryTotals && (
             <p className="mt-2 text-xs text-fg-muted">
               {teacher.salaryTotals.year}-yil: to‘langan {formatMoney(teacher.salaryTotals.paid)} · qolgan{' '}
               {formatMoney(teacher.salaryTotals.remaining)}

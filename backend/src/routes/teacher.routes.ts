@@ -3,6 +3,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { salaryController } from '../controllers/salary.controller.js';
 import { teacherController } from '../controllers/teacher.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 
 export const teacherRouter = Router();
@@ -33,7 +34,7 @@ salaryRouter.use(authenticate);
 salaryRouter.get('/periods', salaryView, salaryController.periods);
 salaryRouter.get('/summary', salaryView, salaryController.summary);
 salaryRouter.get('/periods/:id', salaryView, salaryController.getById);
-salaryRouter.post('/calculate', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.calculate);
+salaryRouter.post('/calculate', heavyLimiter, requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.calculate);
 salaryRouter.patch('/periods/:id', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.adjust);
 salaryRouter.post('/periods/:id/approve', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.approve);
 salaryRouter.post('/periods/:id/payments', requirePermission(PERMISSIONS.SALARY_PAY), salaryController.pay);

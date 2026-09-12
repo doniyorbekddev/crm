@@ -15,7 +15,7 @@ import {
 export const teacherController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = teacherListQuerySchema.parse(req.query);
-    const { items, total } = await teacherService.list(query);
+    const { items, total } = await teacherService.list(requireAuthUser(req), query);
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
@@ -30,7 +30,7 @@ export const teacherController = {
 
   async getById(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    sendSuccess(res, await teacherService.getById(id));
+    sendSuccess(res, await teacherService.getById(requireAuthUser(req), id));
   },
 
   async create(req: Request, res: Response): Promise<void> {

@@ -42,7 +42,6 @@ const homeworkFieldsSchema = z.object({
     .max(1000, 'Ball 1000 dan oshmasligi kerak')
     .default(100),
   xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000).default(20),
-  attachmentPath: optionalField(z.string().trim().max(500)),
   status: z.enum(HOMEWORK_STATUSES, 'Holat noto‘g‘ri').default('PUBLISHED'),
 });
 

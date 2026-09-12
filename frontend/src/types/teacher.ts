@@ -42,6 +42,8 @@ export interface TeacherItem {
   students: number;
   lessonsThisMonth: number;
   salaryRule: SalaryRule | null;
+  /** false — xodimda salary.view ruxsati yo‘q, maosh ma’lumotlari qaytarilmagan */
+  salaryVisible: boolean;
   createdAt: string;
 }
 
@@ -121,7 +123,7 @@ export interface TeacherDetail extends TeacherItem {
   performance: TeacherPerformance;
   salaryRules: SalaryRule[];
   salaryPeriods: SalaryPeriod[];
-  salaryTotals: { year: number; paid: number; remaining: number };
+  salaryTotals: { year: number; paid: number; remaining: number } | null;
 }
 
 export interface MyTeaching {

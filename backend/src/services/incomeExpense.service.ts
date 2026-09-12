@@ -424,7 +424,6 @@ export const expenseService = {
           accountId,
           spentAt: occurredAt,
           description: input.description ?? null,
-          attachmentPath: input.attachmentPath ?? null,
           responsibleId: actor.id,
           transactionId: transaction.id,
         },

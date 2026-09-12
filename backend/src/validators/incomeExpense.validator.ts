@@ -39,9 +39,8 @@ export const createIncomeSchema = moneyFieldsSchema.extend({
   studentId: optionalField(idSchema),
 });
 
-export const createExpenseSchema = moneyFieldsSchema.extend({
-  attachmentPath: optionalField(z.string().trim().max(500)),
-});
+/** Ilova (chek) fayli keyingi bosqichda hujjatlar moduli orqali yuklanadi — mijozdan erkin yo‘l qabul qilinmaydi */
+export const createExpenseSchema = moneyFieldsSchema;
 
 export const voidMoneySchema = z.object({
   reason: z

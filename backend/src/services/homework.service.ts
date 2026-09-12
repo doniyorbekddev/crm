@@ -296,7 +296,6 @@ export const homeworkService = {
           deadline: input.deadline,
           maxPoints: input.maxPoints,
           xpReward: input.xpReward,
-          attachmentPath: input.attachmentPath ?? null,
           status: input.status,
         },
         select: { id: true },
@@ -331,7 +330,6 @@ export const homeworkService = {
           ...(input.deadline === undefined ? {} : { deadline: input.deadline }),
           ...(input.maxPoints === undefined ? {} : { maxPoints: input.maxPoints }),
           ...(input.xpReward === undefined ? {} : { xpReward: input.xpReward }),
-          ...(input.attachmentPath === undefined ? {} : { attachmentPath: input.attachmentPath }),
           ...(input.status === undefined ? {} : { status: input.status }),
         },
       });
