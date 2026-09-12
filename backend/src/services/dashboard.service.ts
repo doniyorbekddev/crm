@@ -2,11 +2,13 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { LEAD_STATUS_ORDER, formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
-import type { LeadStatus, Prisma } from '../generated/prisma/client.js';
+import type { LeadStatus, Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ChartPeriod, ChartQuery, ManagerStatsQuery } from '../validators/dashboard.validator.js';
+import { attendanceAnalyticsService } from './attendanceAnalytics.service.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
+import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { permissionService } from './permission.service.js';
 
 /** Sotuv jarayonidagi "ishlanayotgan" statuslar (yopilmagan leadlar) */
@@ -49,6 +51,31 @@ export interface DashboardTasksBlock {
   todayCalls: number;
 }
 
+/** O‘qituvchi uchun: o‘z guruhlari, bugungi darslar, davomat va baholash navbati */
+export interface DashboardTeachingBlock {
+  groups: number;
+  students: number;
+  todayLessons: number;
+  markedLessons: number;
+  todayAbsent: number;
+  monthAttendanceRate: number;
+  /** Topshirilgan, lekin hali ball qo‘yilmagan uy vazifalari */
+  pendingGrading: number;
+  /** Keyingi 7 kundagi rejalashtirilgan imtihonlar */
+  upcomingExams: number;
+}
+
+/** Buxgalter/moliya uchun: oylik natija, kassalar va maosh navbati */
+export interface DashboardMoneyBlock {
+  monthIncome: number;
+  monthExpense: number;
+  monthNetProfit: number;
+  cashBalance: number;
+  /** salary.view ruxsati bo‘lmasa null */
+  salaryDue: number | null;
+  salaryAwaitingApproval: number | null;
+}
+
 export interface DashboardSummaryDto {
   /** Hisob-kitob qilingan sana (o‘quv markaz vaqt mintaqasi bo‘yicha) */
   date: string;
@@ -57,6 +84,8 @@ export interface DashboardSummaryDto {
   finance: DashboardFinanceBlock | null;
   debts: DashboardDebtBlock | null;
   tasks: DashboardTasksBlock | null;
+  teaching: DashboardTeachingBlock | null;
+  money: DashboardMoneyBlock | null;
 }
 
 export interface ChartPointDto {
@@ -104,6 +133,11 @@ interface DashboardAccess {
   canViewDebts: boolean;
   canViewFollowUps: boolean;
   canViewReports: boolean;
+  /** Dars beradigan xodim (guruhlarni boshqaruvchi admin emas) */
+  canTeach: boolean;
+  canGradeHomework: boolean;
+  canViewFinance: boolean;
+  canViewSalary: boolean;
 }
 
 async function getDashboardAccess(actor: AuthUser): Promise<DashboardAccess> {
@@ -117,6 +151,70 @@ async function getDashboardAccess(actor: AuthUser): Promise<DashboardAccess> {
     canViewDebts: permissions.has(PERMISSIONS.DEBT_VIEW),
     canViewFollowUps: permissions.has(PERMISSIONS.FOLLOWUP_VIEW),
     canViewReports: permissions.has(PERMISSIONS.REPORT_VIEW),
+    canTeach: permissions.has(PERMISSIONS.ATTENDANCE_MARK) && !permissions.has(PERMISSIONS.GROUP_MANAGE),
+    canGradeHomework: permissions.has(PERMISSIONS.HOMEWORK_GRADE),
+    canViewFinance: permissions.has(PERMISSIONS.FINANCE_VIEW),
+    canViewSalary: permissions.has(PERMISSIONS.SALARY_VIEW),
+  };
+}
+
+async function teachingBlock(actor: AuthUser, access: DashboardAccess, now: Date): Promise<DashboardTeachingBlock | null> {
+  // Bugungi darslar va davomat — o'qituvchi panelidagi hisob bilan bir xil bo'lishi uchun o'sha servis
+  const overview = await attendanceAnalyticsService.teacherOverview(actor);
+  if (overview.groups.length === 0) return null;
+  const groupIds = overview.groups.map((group) => group.id);
+  const today = new Date(`${businessDateString(now)}T00:00:00.000Z`);
+
+  const pendingGrading = access.canGradeHomework
+    ? await prisma.homeworkSubmission.count({
+        where: { status: { in: ['SUBMITTED', 'LATE'] }, score: null, homework: { groupId: { in: groupIds }, status: { not: 'DRAFT' } } },
+      })
+    : 0;
+  const upcomingExams = await prisma.exam.count({
+    where: { groupId: { in: groupIds }, status: 'PLANNED', date: { gte: today, lte: addDays(today, 7) } },
+  });
+
+  return {
+    groups: overview.groups.length,
+    students: overview.groups.reduce((sum, group) => sum + group.students, 0),
+    todayLessons: overview.todayLessons,
+    markedLessons: overview.markedLessons,
+    todayAbsent: overview.todayAbsent.length,
+    monthAttendanceRate: overview.monthRate,
+    pendingGrading,
+    upcomingExams,
+  };
+}
+
+async function moneyBlock(access: DashboardAccess, now: Date): Promise<DashboardMoneyBlock> {
+  const rows = await prisma.transaction.groupBy({
+    by: ['type'],
+    where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: startOfBusinessMonth(now) } },
+    _sum: { amount: true },
+  });
+  const sumOf = (type: TransactionType) => rows.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
+  const monthIncome = sumOf('INCOME');
+  const monthExpense = sumOf('EXPENSE') + sumOf('REFUND');
+  const balance = await prisma.financialAccount.aggregate({ where: { isActive: true }, _sum: { balance: true } });
+
+  let salaryDue: number | null = null;
+  let salaryAwaitingApproval: number | null = null;
+  if (access.canViewSalary) {
+    const due = await prisma.teacherSalaryPeriod.aggregate({
+      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] } },
+      _sum: { remainingAmount: true },
+    });
+    salaryDue = due._sum.remainingAmount?.toNumber() ?? 0;
+    salaryAwaitingApproval = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED' } });
+  }
+
+  return {
+    monthIncome,
+    monthExpense,
+    monthNetProfit: monthIncome - monthExpense,
+    cashBalance: balance._sum.balance?.toNumber() ?? 0,
+    salaryDue,
+    salaryAwaitingApproval,
   };
 }
 
@@ -293,6 +391,8 @@ export const dashboardService = {
       finance: access.canViewPayments ? await financeBlock(now) : null,
       debts: access.canViewDebts ? await debtsBlock() : null,
       tasks: access.canViewFollowUps ? await tasksBlock(access, now) : null,
+      teaching: access.canTeach ? await teachingBlock(actor, access, now) : null,
+      money: access.canViewFinance ? await moneyBlock(access, now) : null,
     };
   },
 

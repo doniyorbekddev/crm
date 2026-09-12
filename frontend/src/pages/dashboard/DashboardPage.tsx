@@ -3,13 +3,20 @@ import {
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
+  CalendarCheck,
   CalendarClock,
+  ClipboardCheck,
+  FileCheck,
   GraduationCap,
   HandCoins,
+  Landmark,
   Phone,
+  PiggyBank,
   Target,
   TrendingUp,
+  UserX,
   Wallet,
+  Wallet2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -119,6 +126,44 @@ export default function DashboardPage() {
         <ErrorState error={summaryQuery.error} retrying={summaryQuery.isFetching} onRetry={() => void summaryQuery.refetch()} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {summary?.teaching && (
+            <>
+              <KpiCard
+                icon={CalendarCheck}
+                label="Bugungi darslar"
+                value={`${formatNumber(summary.teaching.markedLessons)} / ${formatNumber(summary.teaching.todayLessons)}`}
+                hint={
+                  summary.teaching.todayLessons > summary.teaching.markedLessons
+                    ? `${formatNumber(summary.teaching.todayLessons - summary.teaching.markedLessons)} ta darsda davomat belgilanmagan`
+                    : 'Davomat belgilangan'
+                }
+                tone={summary.teaching.todayLessons > summary.teaching.markedLessons ? 'danger' : 'success'}
+                to="/attendance"
+              />
+              <KpiCard
+                icon={UserX}
+                label="Bugun kelmaganlar"
+                value={formatNumber(summary.teaching.todayAbsent)}
+                hint={`Oylik davomat: ${summary.teaching.monthAttendanceRate}%`}
+                tone={summary.teaching.todayAbsent > 0 ? 'danger' : 'default'}
+                to="/attendance"
+              />
+              <KpiCard
+                icon={ClipboardCheck}
+                label="Baholash kutmoqda"
+                value={formatNumber(summary.teaching.pendingGrading)}
+                hint="Topshirilgan, ball qo‘yilmagan vazifalar"
+                to="/homework"
+              />
+              <KpiCard
+                icon={FileCheck}
+                label="Yaqin imtihonlar"
+                value={formatNumber(summary.teaching.upcomingExams)}
+                hint={`${formatNumber(summary.teaching.groups)} guruh · ${formatNumber(summary.teaching.students)} o‘quvchi`}
+                to="/exams"
+              />
+            </>
+          )}
           {summary?.leads && (
             <>
               <KpiCard
@@ -173,6 +218,28 @@ export default function DashboardPage() {
               to="/debts"
             />
           )}
+          {summary?.money && (
+            <>
+              <KpiCard
+                icon={PiggyBank}
+                label="Oylik sof foyda"
+                value={formatMoney(summary.money.monthNetProfit)}
+                hint={`Tushum ${formatMoney(summary.money.monthIncome)} · xarajat ${formatMoney(summary.money.monthExpense)}`}
+                tone={summary.money.monthNetProfit >= 0 ? 'success' : 'danger'}
+                to="/finance"
+              />
+              <KpiCard icon={Landmark} label="Kassalardagi qoldiq" value={formatMoney(summary.money.cashBalance)} to="/finance" />
+              {summary.money.salaryDue !== null && (
+                <KpiCard
+                  icon={Wallet2}
+                  label="To‘lanishi kerak maosh"
+                  value={formatMoney(summary.money.salaryDue)}
+                  hint={`Tasdiq kutmoqda: ${formatNumber(summary.money.salaryAwaitingApproval ?? 0)}`}
+                  to="/salaries"
+                />
+              )}
+            </>
+          )}
           {summary?.students && (
             <KpiCard
               icon={GraduationCap}
@@ -213,7 +280,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <DashboardCharts showRevenue={Boolean(summary?.finance)} />
         </div>
@@ -264,7 +331,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {canViewLeads && (
           <Card className="lg:col-span-1">
             <CardHeader>

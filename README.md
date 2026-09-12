@@ -42,7 +42,10 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > guruhlangan so‘rovlarga aylantirildi — og‘ir endpointlar 2–4 barobar tezlashdi), **PHASE 15 — xavfsizlik
 > auditi** (maosh ma’lumoti server tomonda yashirildi, CSV formula injection himoyasi, og‘ir operatsiyalarga
 > limiter, route va bog‘liqliklar auditi), **PHASE 16 — testlar** (moliya servislari uchun chekka holatlar, yangi
-> modullar utils testlari; backend qamrovi 88.6% statements / 90.5% lines).
+> modullar utils testlari; backend qamrovi 88.6% statements / 90.5% lines), **PHASE 17 — yakuniy UI/UX**
+> (telefonda gorizontal skroll tuzatildi — barcha 23 sahifa 390px da; rol bo‘yicha dashboard: o‘qituvchiga
+> darslar, davomat va baholash navbati, buxgalterga oylik foyda, kassalar va maosh navbati; qorong‘i rejim
+> tekshirildi). **Kengaytirishning barcha 17 bosqichi yakunlandi.**
 
 | Qism | Texnologiyalar |
 |---|---|

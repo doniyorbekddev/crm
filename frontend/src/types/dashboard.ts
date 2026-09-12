@@ -36,6 +36,26 @@ export interface DashboardTasksBlock {
   todayCalls: number;
 }
 
+export interface DashboardTeachingBlock {
+  groups: number;
+  students: number;
+  todayLessons: number;
+  markedLessons: number;
+  todayAbsent: number;
+  monthAttendanceRate: number;
+  pendingGrading: number;
+  upcomingExams: number;
+}
+
+export interface DashboardMoneyBlock {
+  monthIncome: number;
+  monthExpense: number;
+  monthNetProfit: number;
+  cashBalance: number;
+  salaryDue: number | null;
+  salaryAwaitingApproval: number | null;
+}
+
 export interface DashboardSummary {
   date: string;
   leads: DashboardLeadsBlock | null;
@@ -43,6 +63,10 @@ export interface DashboardSummary {
   finance: DashboardFinanceBlock | null;
   debts: DashboardDebtBlock | null;
   tasks: DashboardTasksBlock | null;
+  /** O‘qituvchi uchun (dars beradigan xodim) */
+  teaching: DashboardTeachingBlock | null;
+  /** Moliya ruxsati bo‘lsa */
+  money: DashboardMoneyBlock | null;
 }
 
 export interface ChartPoint {

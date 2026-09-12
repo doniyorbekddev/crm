@@ -2,9 +2,13 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 import { Skeleton } from './Skeleton';
 
-/** Kichik ekranlarda jadval gorizontal aylantiriladi — sahifaning o‘zi emas. */
+/**
+ * Kichik ekranlarda jadval gorizontal aylantiriladi — sahifaning o‘zi emas.
+ * `relative` shart: ichidagi `position: absolute` elementlar (masalan, sarlavhadagi `sr-only`)
+ * aks holda konteyner kesimidan chiqib, butun sahifani telefonda kengaytirib yuboradi.
+ */
 export function TableContainer({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('overflow-x-auto', className)} {...props} />;
+  return <div className={cn('relative overflow-x-auto', className)} {...props} />;
 }
 
 export function Table({ className, ...props }: ComponentProps<'table'>) {
