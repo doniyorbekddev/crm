@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Environment (faqat *.example fayllar git'ga kiradi)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Prisma generated client
+backend/src/generated/
+
+# Yuklangan fayllar (hujjatlar)
+backend/uploads/
+
+# Baza zaxira nusxalari
+backups/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

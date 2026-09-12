@@ -1,0 +1,25 @@
+# Development uchun PostgreSQL.  Ishga tushirish:  docker compose up -d postgres
+name: sales-crm
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: sales-crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crm_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-crm}
+    ports:
+      # Faqat lokal kompyuterdan ulanish mumkin (tarmoqqa ochilmaydi)
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - crm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  crm_postgres_data:

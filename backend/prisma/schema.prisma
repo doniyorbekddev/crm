@@ -1,0 +1,1542 @@
+// =====================================================================
+// Sales CRM — PostgreSQL sxemasi
+// Hujjat: docs/ARCHITECTURE.md (2-bo‘lim, ERD)
+// =====================================================================
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  BLOCKED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  TRIAL_BOOKED
+  TRIAL_ATTENDED
+  NEGOTIATION
+  WON
+  LOST
+  CALLBACK
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  NOTE_ADDED
+  CALL_LOGGED
+  FOLLOW_UP_CREATED
+  FOLLOW_UP_COMPLETED
+  DOCUMENT_UPLOADED
+  CONVERTED_TO_STUDENT
+}
+
+enum CallDirection {
+  OUTGOING
+  INCOMING
+}
+
+enum CallStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
+enum CallResult {
+  ANSWERED
+  NO_ANSWER
+  BUSY
+  WRONG_NUMBER
+  INTERESTED
+  NOT_INTERESTED
+  CALLBACK
+}
+
+/// OVERDUE saqlanmaydi: PENDING va dueAt < hozir bo‘lsa, API uni OVERDUE deb qaytaradi.
+enum FollowUpStatus {
+  PENDING
+  DONE
+  CANCELLED
+}
+
+enum CourseCategory {
+  PROGRAMMING
+  LANGUAGE
+  DESIGN
+  COMPUTER_LITERACY
+  SCHOOL_PREPARATION
+  OTHER
+}
+
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum GroupStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum StudentStatus {
+  ACTIVE
+  FROZEN
+  COMPLETED
+  DROPPED
+  GRADUATED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  CLICK
+  PAYME
+  UZUM
+  BANK
+  OTHER
+}
+
+enum DebtStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum NotificationType {
+  NEW_LEAD
+  LEAD_ASSIGNED
+  NEW_PAYMENT
+  FOLLOW_UP_REMINDER
+  FOLLOW_UP_OVERDUE
+  NEW_STUDENT
+  DEBT_REMINDER
+  TRIAL_LESSON_REMINDER
+  SYSTEM
+}
+
+// ---------------------------------------------------------------------
+// USERS, ROLES, PERMISSIONS, SESSIONS
+// ---------------------------------------------------------------------
+
+model User {
+  id                String     @id @default(cuid())
+  firstName         String     @db.VarChar(100)
+  lastName          String     @db.VarChar(100)
+  email             String     @unique @db.VarChar(255)
+  phone             String?    @db.VarChar(32)
+  passwordHash      String
+  status            UserStatus @default(PENDING)
+  roleId            String
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+
+  role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  assignedLeads       Lead[]               @relation("LeadAssignee")
+  createdLeads        Lead[]               @relation("LeadCreator")
+  leadActivities      LeadActivity[]
+  leadNotes           LeadNote[]
+  calls               Call[]
+  assignedFollowUps   FollowUp[]           @relation("FollowUpAssignee")
+  createdFollowUps    FollowUp[]           @relation("FollowUpCreator")
+  taughtCourses       Course[]
+  taughtGroups        Group[]
+  createdStudents     Student[]
+  managedPayments     Payment[]            @relation("PaymentManager")
+  acceptedPayments    Payment[]            @relation("PaymentAccountant")
+  deletedPayments     Payment[]            @relation("PaymentDeletedBy")
+  markedAttendances   Attendance[]
+  uploadedDocuments   Document[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  updatedSettings     Setting[]
+
+  // O'quv markaz modullari
+  teacherProfile        TeacherProfile?
+  taughtSessions        AttendanceSession[]    @relation("SessionTeacher")
+  markedSessions        AttendanceSession[]    @relation("SessionMarkedBy")
+  xpAwards              XpTransaction[]        @relation("XpAwardedBy")
+  createdSalaryRules    TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
+  approvedSalaries      TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
+  salaryPaymentsCreated TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
+  createdTransactions   Transaction[]          @relation("TransactionCreatedBy")
+  voidedTransactions    Transaction[]          @relation("TransactionVoidedBy")
+  incomesResponsible    Income[]               @relation("IncomeResponsible")
+  expensesResponsible   Expense[]              @relation("ExpenseResponsible")
+  createdBudgets        Budget[]               @relation("BudgetCreatedBy")
+  createdHomework       Homework[]             @relation("HomeworkTeacher")
+  gradedSubmissions     HomeworkSubmission[]   @relation("SubmissionGradedBy")
+  createdExams          Exam[]                 @relation("ExamTeacher")
+  gradedExamResults     ExamResult[]           @relation("ExamResultGradedBy")
+  salesTargets          SalesTarget[]          @relation("SalesTargetUser")
+  createdSalesTargets   SalesTarget[]          @relation("SalesTargetCreatedBy")
+  resolvedAlerts        Alert[]                @relation("AlertResolvedBy")
+
+  @@index([roleId])
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  /// SUPER_ADMIN, ADMIN, SALES_MANAGER, CALL_CENTER, TEACHER, ACCOUNTANT
+  key         String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  /// Tizim rollarini o‘chirib bo‘lmaydi
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  /// Masalan: lead.update
+  key         String   @unique @db.VarChar(100)
+  module      String   @db.VarChar(50)
+  description String   @db.VarChar(255)
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  /// Token o‘zi emas, faqat SHA-256 hash saqlanadi
+  tokenHash    String    @unique @db.VarChar(128)
+  /// Bitta login sessiyasidan kelib chiqqan tokenlar oilasi (reuse detection uchun)
+  familyId     String    @db.VarChar(50)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?   @db.VarChar(50)
+  ip           String?   @db.VarChar(64)
+  userAgent    String?   @db.VarChar(500)
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique @db.VarChar(128)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------
+// LEADS
+// ---------------------------------------------------------------------
+
+model Source {
+  id        String   @id @default(cuid())
+  /// INSTAGRAM, TELEGRAM, ...
+  key       String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads Lead[]
+
+  @@map("sources")
+}
+
+model Lead {
+  id              String       @id @default(cuid())
+  /// Foydalanuvchiga ko‘rinadigan raqam: L-000123
+  number          Int          @unique @default(autoincrement())
+  firstName       String       @db.VarChar(100)
+  lastName        String?      @db.VarChar(100)
+  phone           String       @db.VarChar(32)
+  telegram        String?      @db.VarChar(64)
+  email           String?      @db.VarChar(255)
+  age             Int?         @db.SmallInt
+  gender          Gender?
+  address         String?      @db.VarChar(255)
+  status          LeadStatus   @default(NEW)
+  priority        LeadPriority @default(MEDIUM)
+  notes           String?
+  lostReason      String?      @db.VarChar(255)
+  nextFollowUpAt  DateTime?
+  lastContactedAt DateTime?
+  convertedAt     DateTime?
+  sourceId        String
+  courseId        String?
+  assignedToId    String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  source     Source         @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  course     Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  assignedTo User?          @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User?          @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  student    Student?
+  activities LeadActivity[]
+  leadNotes  LeadNote[]
+  calls      Call[]
+  followUps  FollowUp[]
+  documents  Document[]
+
+  @@index([status])
+  @@index([assignedToId, status])
+  @@index([assignedToId, createdAt])
+  @@index([status, convertedAt])
+  @@index([sourceId])
+  @@index([courseId])
+  @@index([createdAt])
+  @@index([nextFollowUpAt])
+  @@index([deletedAt])
+  @@index([phone])
+  // Qidiruv (ILIKE '%...%') uchun trigram indekslar — 100 000+ leadda ham tez
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_first_name_trgm_idx")
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_last_name_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_phone_trgm_idx")
+  @@index([telegram(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_telegram_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_email_trgm_idx")
+  @@map("leads")
+}
+
+model LeadActivity {
+  id          String           @id @default(cuid())
+  leadId      String
+  userId      String?
+  type        LeadActivityType
+  description String           @db.VarChar(500)
+  /// Masalan: { "from": "NEW", "to": "CONTACTED" }
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@index([userId])
+  @@map("lead_activities")
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  authorId  String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@map("lead_notes")
+}
+
+model Call {
+  id          String        @id @default(cuid())
+  leadId      String
+  managerId   String?
+  direction   CallDirection @default(OUTGOING)
+  status      CallStatus    @default(COMPLETED)
+  result      CallResult?
+  calledAt    DateTime      @default(now())
+  durationSec Int           @default(0)
+  notes       String?
+  nextCallAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  manager User? @relation(fields: [managerId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, calledAt])
+  @@index([managerId, calledAt])
+  @@index([calledAt])
+  @@map("calls")
+}
+
+model FollowUp {
+  id                String         @id @default(cuid())
+  leadId            String
+  assignedToId      String?
+  createdById       String?
+  title             String         @db.VarChar(200)
+  notes             String?
+  dueAt             DateTime
+  remindAt          DateTime?
+  reminderSentAt    DateTime?
+  overdueNotifiedAt DateTime?
+  status            FollowUpStatus @default(PENDING)
+  completedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  lead       Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedTo User? @relation("FollowUpAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User? @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([assignedToId, status, dueAt])
+  @@index([status, dueAt])
+  @@index([status, remindAt])
+  @@index([leadId])
+  @@map("follow_ups")
+}
+
+// ---------------------------------------------------------------------
+// COURSES, GROUPS, STUDENTS
+// ---------------------------------------------------------------------
+
+model Course {
+  id             String         @id @default(cuid())
+  name           String         @unique @db.VarChar(150)
+  category       CourseCategory @default(OTHER)
+  description    String?
+  durationMonths Int            @db.SmallInt
+  /// Kursning to‘liq narxi (so‘m)
+  price          Decimal        @db.Decimal(14, 2)
+  discountAmount Decimal        @default(0) @db.Decimal(14, 2)
+  /// price - discountAmount (service tomonidan hisoblanadi)
+  finalPrice     Decimal        @db.Decimal(14, 2)
+  status         CourseStatus   @default(ACTIVE)
+  teacherId      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  teacher  User?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  leads    Lead[]
+  groups   Group[]
+  students Student[]
+  payments Payment[]
+  homework Homework[]
+  exams    Exam[]
+
+  @@index([status])
+  @@index([category])
+  @@map("courses")
+}
+
+model Group {
+  id           String      @id @default(cuid())
+  name         String      @unique @db.VarChar(100)
+  courseId     String
+  teacherId    String?
+  room         String?     @db.VarChar(50)
+  startDate    DateTime    @db.Date
+  endDate      DateTime?   @db.Date
+  scheduleDays WeekDay[]
+  /// "HH:mm"
+  startTime    String      @db.VarChar(5)
+  /// "HH:mm"
+  endTime      String      @db.VarChar(5)
+  capacity     Int         @default(15) @db.SmallInt
+  status       GroupStatus @default(PLANNED)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  course      Course              @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  teacher     User?               @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  students    Student[]
+  attendances Attendance[]
+  sessions    AttendanceSession[]
+  homework    Homework[]
+  exams       Exam[]
+
+  @@index([courseId])
+  @@index([teacherId])
+  @@index([status])
+  @@map("groups")
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  /// Foydalanuvchiga ko‘rinadigan raqam: ST-000045
+  number          Int           @unique @default(autoincrement())
+  leadId          String?       @unique
+  firstName       String        @db.VarChar(100)
+  lastName        String        @db.VarChar(100)
+  phone           String        @db.VarChar(32)
+  parentPhone     String?       @db.VarChar(32)
+  telegram        String?       @db.VarChar(64)
+  email           String?       @db.VarChar(255)
+  birthDate       DateTime?     @db.Date
+  gender          Gender?
+  address         String?       @db.VarChar(255)
+  courseId        String
+  groupId         String?
+  contractNumber  String?       @unique @db.VarChar(50)
+  /// Shartnoma tuzilgan paytdagi narx (kurs narxi keyin o‘zgarsa ham saqlanib qoladi)
+  contractPrice   Decimal       @db.Decimal(14, 2)
+  startDate       DateTime      @db.Date
+  status          StudentStatus @default(ACTIVE)
+  statusChangedAt DateTime?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  group       Group?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  debt        Debt?
+  payments    Payment[]
+  attendances Attendance[]
+  documents   Document[]
+
+  // O'quv markaz modullari
+  gamification      GamificationProfile?
+  streak            Streak?
+  xpTransactions    XpTransaction[]
+  badges            StudentBadge[]
+  parents           StudentParent[]
+  submissions       HomeworkSubmission[]
+  examResults       ExamResult[]
+  progressSnapshots StudentProgressSnapshot[]
+  incomes           Income[]
+
+  @@index([courseId])
+  @@index([groupId])
+  @@index([groupId, status, deletedAt])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, map: "students_first_name_trgm_idx")
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, map: "students_last_name_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "students_phone_trgm_idx")
+  @@index([telegram(ops: raw("gin_trgm_ops"))], type: Gin, map: "students_telegram_trgm_idx")
+  @@map("students")
+}
+
+// ---------------------------------------------------------------------
+// PAYMENTS, DEBTS, ATTENDANCE
+// ---------------------------------------------------------------------
+
+/// Har bir o‘quvchining balansi. To‘lov qo‘shilganda/o‘chirilganda tranzaksiya ichida qayta hisoblanadi.
+model Debt {
+  id              String     @id @default(cuid())
+  studentId       String     @unique
+  totalAmount     Decimal    @db.Decimal(14, 2)
+  paidAmount      Decimal    @default(0) @db.Decimal(14, 2)
+  remainingAmount Decimal    @db.Decimal(14, 2)
+  status          DebtStatus @default(UNPAID)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([remainingAmount])
+  @@index([status])
+  @@map("debts")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  /// Kvitansiya raqami
+  number        Int           @unique @default(autoincrement())
+  studentId     String
+  /// To‘lov paytidagi kurs (snapshot)
+  courseId      String
+  amount        Decimal       @db.Decimal(14, 2)
+  method        PaymentMethod
+  paidAt        DateTime      @default(now())
+  comment       String?
+  /// Sotuvni amalga oshirgan manager (manager performance hisobotlari uchun)
+  managerId     String?
+  /// To‘lovni qabul qilgan xodim
+  accountantId  String?
+  deletedAt     DateTime?
+  deletedById   String?
+  deleteReason  String?       @db.VarChar(255)
+  /// Moliyaviy daftardagi yozuv (tushum ikki marta hisoblanmasligi uchun)
+  transactionId String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  manager     User?        @relation("PaymentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  accountant  User?        @relation("PaymentAccountant", fields: [accountantId], references: [id], onDelete: SetNull)
+  deletedBy   User?        @relation("PaymentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([studentId, deletedAt])
+  @@index([courseId])
+  @@index([paidAt])
+  @@index([method, paidAt])
+  @@index([managerId, paidAt])
+  @@index([deletedAt])
+  @@map("payments")
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  studentId  String
+  groupId    String
+  sessionId  String?
+  date       DateTime         @db.Date
+  status     AttendanceStatus
+  note       String?          @db.VarChar(255)
+  markedById String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  student  Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group    Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  session  AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  markedBy User?              @relation(fields: [markedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, groupId, date])
+  @@index([groupId, date])
+  @@index([studentId, date])
+  @@index([sessionId])
+  @@map("attendances")
+}
+
+// ---------------------------------------------------------------------
+// DOCUMENTS, NOTIFICATIONS, AUDIT, SETTINGS
+// ---------------------------------------------------------------------
+
+model Document {
+  id           String   @id @default(cuid())
+  leadId       String?
+  studentId    String?
+  originalName String   @db.VarChar(255)
+  mimeType     String   @db.VarChar(100)
+  size         Int
+  storagePath  String   @unique @db.VarChar(500)
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  lead       Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  student    Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@index([studentId])
+  @@map("documents")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String           @db.VarChar(200)
+  message    String
+  entityType String?          @db.VarChar(50)
+  entityId   String?          @db.VarChar(50)
+  /// Bir xil eslatma ikki marta yuborilmasligi uchun (masalan: followup-overdue:<id>)
+  dedupeKey  String?          @unique @db.VarChar(150)
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  /// Masalan: lead.status_changed, payment.created, user.created
+  action     String   @db.VarChar(100)
+  entityType String   @db.VarChar(50)
+  entityId   String?  @db.VarChar(50)
+  ip         String?  @db.VarChar(64)
+  userAgent  String?  @db.VarChar(500)
+  /// O‘zgarishdan oldingi va keyingi qiymatlar
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model Setting {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  description String?  @db.VarChar(255)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("settings")
+}
+
+// =====================================================================
+// O‘QUV MARKAZ MODULLARI
+// Davomat seanslari, gamification, o‘qituvchi va maosh, moliya,
+// uy vazifasi, imtihon, progress, ota-ona, target va alertlar.
+// =====================================================================
+
+enum AttendanceSessionStatus {
+  PLANNED
+  HELD
+  CANCELLED
+}
+
+enum XpSource {
+  ATTENDANCE
+  HOMEWORK
+  EXAM
+  STREAK
+  REFERRAL
+  COURSE_COMPLETED
+  BADGE
+  MANUAL
+}
+
+/// Badge qanday qoida bo‘yicha beriladi
+enum BadgeRule {
+  MANUAL
+  STREAK_DAYS
+  ATTENDANCE_RATE
+  HOMEWORK_COUNT
+  EXAM_SCORE
+  XP_TOTAL
+  COURSE_COMPLETED
+}
+
+enum SalaryType {
+  FIXED
+  PER_LESSON
+  PER_STUDENT
+  PERCENTAGE
+  MIXED
+}
+
+enum SalaryPeriodStatus {
+  PENDING
+  CALCULATED
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+}
+
+enum AccountType {
+  CASH
+  BANK
+  CARD
+  CLICK
+  PAYME
+  UZUM
+  OTHER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+  REFUND
+}
+
+/// Moliyaviy yozuv o‘chirilmaydi — VOID yoki REVERSED holatiga o‘tadi
+enum TransactionStatus {
+  COMPLETED
+  VOID
+  REVERSED
+}
+
+enum HomeworkStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  LATE
+  GRADED
+  MISSED
+}
+
+enum ExamStatus {
+  PLANNED
+  HELD
+  GRADED
+  CANCELLED
+}
+
+enum ParentRelation {
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
+}
+
+enum AlertType {
+  HIGH_DEBT
+  LOW_ATTENDANCE
+  HIGH_DROPOUT
+  OVERDUE_FOLLOWUPS
+  UNPAID_SALARY
+  BUDGET_EXCEEDED
+  LOW_GROUP_CAPACITY
+  SALES_TARGET_ACHIEVED
+}
+
+enum AlertSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+enum TargetType {
+  LEADS
+  SALES
+  REVENUE
+}
+
+// ---------------------------------------------------------------------
+// DAVOMAT SEANSLARI (dars)
+// ---------------------------------------------------------------------
+
+/// Bitta o‘tilgan dars. Davomat yozuvlari shu seansga bog‘lanadi —
+/// o‘qituvchi maoshi (per lesson) va uy vazifasi shu orqali hisoblanadi.
+model AttendanceSession {
+  id         String                  @id @default(cuid())
+  groupId    String
+  teacherId  String?
+  date       DateTime                @db.Date
+  /// "HH:mm"
+  startTime  String?                 @db.VarChar(5)
+  endTime    String?                 @db.VarChar(5)
+  topic      String?                 @db.VarChar(200)
+  note       String?                 @db.VarChar(500)
+  status     AttendanceSessionStatus @default(HELD)
+  markedById String?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher     User?        @relation("SessionTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  markedBy    User?        @relation("SessionMarkedBy", fields: [markedById], references: [id], onDelete: SetNull)
+  attendances Attendance[]
+
+  @@unique([groupId, date])
+  @@index([teacherId, date])
+  @@index([date])
+  @@index([status, date])
+  @@map("attendance_sessions")
+}
+
+// ---------------------------------------------------------------------
+// GAMIFICATION
+// ---------------------------------------------------------------------
+
+/// O‘quvchining XP va darajasi (keshlangan holat — XpTransaction'lardan hisoblanadi)
+model GamificationProfile {
+  id          String    @id @default(cuid())
+  studentId   String    @unique
+  totalXp     Int       @default(0)
+  levelNumber Int       @default(1)
+  lastXpAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([totalXp])
+  @@map("gamification_profiles")
+}
+
+/// XP berish qoidalari — admin o‘zgartira oladi
+model XpRule {
+  id          String   @id @default(cuid())
+  key         String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  description String?  @db.VarChar(255)
+  source      XpSource
+  points      Int
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("xp_rules")
+}
+
+model XpTransaction {
+  id          String   @id @default(cuid())
+  studentId   String
+  points      Int
+  source      XpSource
+  ruleKey     String?  @db.VarChar(50)
+  description String   @db.VarChar(255)
+  entityType  String?  @db.VarChar(50)
+  entityId    String?  @db.VarChar(50)
+  awardedById String?
+  /// Bir hodisa uchun XP ikki marta berilmasligi uchun: "attendance:<id>"
+  dedupeKey   String?  @unique @db.VarChar(150)
+  createdAt   DateTime @default(now())
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  awardedBy User?   @relation("XpAwardedBy", fields: [awardedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([source, createdAt])
+  @@index([createdAt])
+  @@map("xp_transactions")
+}
+
+/// Daraja chegaralari — admin sozlaydi
+model Level {
+  id        String   @id @default(cuid())
+  number    Int      @unique
+  name      String   @db.VarChar(100)
+  minXp     Int      @unique
+  icon      String?  @db.VarChar(16)
+  color     String?  @db.VarChar(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("levels")
+}
+
+model Badge {
+  id          String    @id @default(cuid())
+  key         String    @unique @db.VarChar(50)
+  name        String    @db.VarChar(100)
+  description String    @db.VarChar(255)
+  icon        String    @db.VarChar(16)
+  rule        BadgeRule @default(MANUAL)
+  /// Qoida uchun chegara: streak kunlari, davomat foizi, XP va h.k.
+  threshold   Int?
+  xpReward    Int       @default(0)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  students StudentBadge[]
+
+  @@map("badges")
+}
+
+model StudentBadge {
+  id        String   @id @default(cuid())
+  studentId String
+  badgeId   String
+  note      String?  @db.VarChar(255)
+  awardedAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badge   Badge   @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, badgeId])
+  @@index([awardedAt])
+  @@map("student_badges")
+}
+
+/// Ketma-ket qatnashish. Davomat belgilanganda avtomatik yangilanadi.
+model Streak {
+  id                 String    @id @default(cuid())
+  studentId          String    @unique
+  current            Int       @default(0)
+  longest            Int       @default(0)
+  lastAttendanceDate DateTime? @db.Date
+  updatedAt          DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([current])
+  @@map("streaks")
+}
+
+// ---------------------------------------------------------------------
+// O‘QITUVCHI VA MAOSH
+// ---------------------------------------------------------------------
+
+/// O‘qituvchi ma'lumotlari. Shaxs va kirish ma'lumotlari `User` da qoladi —
+/// bu yerda faqat o‘qituvchilik profili saqlanadi.
+model TeacherProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  specialization  String?   @db.VarChar(150)
+  experienceYears Int?      @db.SmallInt
+  hireDate        DateTime? @db.Date
+  bio             String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salaryRules   TeacherSalaryRule[]
+  salaryPeriods TeacherSalaryPeriod[]
+
+  @@index([isActive])
+  @@map("teacher_profiles")
+}
+
+/// Maosh modeli. Yangi qoida qo‘shilganda eskisi tarix uchun saqlanadi.
+model TeacherSalaryRule {
+  id               String     @id @default(cuid())
+  teacherProfileId String
+  type             SalaryType
+  baseSalary       Decimal    @default(0) @db.Decimal(14, 2)
+  perLessonRate    Decimal    @default(0) @db.Decimal(14, 2)
+  perStudentRate   Decimal    @default(0) @db.Decimal(14, 2)
+  /// Guruh tushumidan ulush (%)
+  percentage       Decimal    @default(0) @db.Decimal(5, 2)
+  bonus            Decimal    @default(0) @db.Decimal(14, 2)
+  effectiveFrom    DateTime   @db.Date
+  effectiveTo      DateTime?  @db.Date
+  isActive         Boolean    @default(true)
+  note             String?    @db.VarChar(255)
+  createdById      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  createdBy      User?          @relation("SalaryRuleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([teacherProfileId, effectiveFrom])
+  @@index([isActive])
+  @@map("teacher_salary_rules")
+}
+
+/// Bir oylik maosh hisobi. Approve qilingandan keyin o‘zgarmaydi (lockedAt).
+model TeacherSalaryPeriod {
+  id               String             @id @default(cuid())
+  teacherProfileId String
+  year             Int
+  month            Int                @db.SmallInt
+  salaryType       SalaryType
+  lessonsCount     Int                @default(0)
+  studentsCount    Int                @default(0)
+  groupRevenue     Decimal            @default(0) @db.Decimal(14, 2)
+  baseAmount       Decimal            @default(0) @db.Decimal(14, 2)
+  lessonAmount     Decimal            @default(0) @db.Decimal(14, 2)
+  studentAmount    Decimal            @default(0) @db.Decimal(14, 2)
+  percentageAmount Decimal            @default(0) @db.Decimal(14, 2)
+  bonus            Decimal            @default(0) @db.Decimal(14, 2)
+  penalty          Decimal            @default(0) @db.Decimal(14, 2)
+  totalAmount      Decimal            @default(0) @db.Decimal(14, 2)
+  paidAmount       Decimal            @default(0) @db.Decimal(14, 2)
+  remainingAmount  Decimal            @default(0) @db.Decimal(14, 2)
+  status           SalaryPeriodStatus @default(PENDING)
+  note             String?            @db.VarChar(255)
+  calculatedAt     DateTime?
+  approvedAt       DateTime?
+  approvedById     String?
+  lockedAt         DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  teacherProfile TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  approvedBy     User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  payments       TeacherSalaryPayment[]
+
+  @@unique([teacherProfileId, year, month])
+  @@index([year, month])
+  @@index([status])
+  @@map("teacher_salary_periods")
+}
+
+model TeacherSalaryPayment {
+  id          String        @id @default(cuid())
+  periodId    String
+  amount      Decimal       @db.Decimal(14, 2)
+  method      PaymentMethod @default(CASH)
+  accountId   String?
+  paidAt      DateTime      @default(now())
+  note        String?       @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime      @default(now())
+
+  period    TeacherSalaryPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  account   FinancialAccount?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy User?               @relation("SalaryPaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  expense   Expense?
+
+  @@index([periodId])
+  @@index([paidAt])
+  @@map("teacher_salary_payments")
+}
+
+// ---------------------------------------------------------------------
+// MOLIYA
+// ---------------------------------------------------------------------
+
+/// Kassa/hisob: naqd, bank, karta, Click, Payme, Uzum
+model FinancialAccount {
+  id          String      @id @default(cuid())
+  key         String      @unique @db.VarChar(50)
+  name        String      @db.VarChar(100)
+  type        AccountType
+  /// Joriy qoldiq — tranzaksiyalar bilan birga yangilanadi
+  balance     Decimal     @default(0) @db.Decimal(14, 2)
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  description String?     @db.VarChar(255)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  transactions   Transaction[]
+  incomes        Income[]
+  expenses       Expense[]
+  salaryPayments TeacherSalaryPayment[]
+
+  @@map("financial_accounts")
+}
+
+/// Yagona moliyaviy daftar (ledger). Har bir to‘lov, tushum va xarajat shu yerga tushadi.
+model Transaction {
+  id           String            @id @default(cuid())
+  number       Int               @unique @default(autoincrement())
+  type         TransactionType
+  status       TransactionStatus @default(COMPLETED)
+  amount       Decimal           @db.Decimal(14, 2)
+  accountId    String?
+  occurredAt   DateTime          @default(now())
+  description  String?           @db.VarChar(255)
+  categoryName String?           @db.VarChar(100)
+  entityType   String?           @db.VarChar(50)
+  entityId     String?           @db.VarChar(50)
+  createdById  String?
+  voidedAt     DateTime?
+  voidedById   String?
+  voidReason   String?           @db.VarChar(255)
+  reversalOfId String?           @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  account    FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy  User?             @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  voidedBy   User?             @relation("TransactionVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  reversalOf Transaction?      @relation("TransactionReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversedBy Transaction?      @relation("TransactionReversal")
+  payment    Payment?
+  income     Income?
+  expense    Expense?
+
+  @@index([occurredAt])
+  @@index([type, occurredAt])
+  @@index([status, occurredAt])
+  @@index([entityType, entityId])
+  @@map("transactions")
+}
+
+model IncomeCategory {
+  id        String   @id @default(cuid())
+  key       String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  isSystem  Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incomes Income[]
+
+  @@map("income_categories")
+}
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  key       String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  isSystem  Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expenses    Expense[]
+  budgetLines BudgetLine[]
+
+  @@map("expense_categories")
+}
+
+/// O‘quv to‘lovidan tashqari tushumlar (ro‘yxatga olish, kitob, forma va h.k.)
+model Income {
+  id            String        @id @default(cuid())
+  number        Int           @unique @default(autoincrement())
+  categoryId    String
+  amount        Decimal       @db.Decimal(14, 2)
+  method        PaymentMethod @default(CASH)
+  accountId     String?
+  receivedAt    DateTime      @default(now())
+  description   String?       @db.VarChar(255)
+  studentId     String?
+  responsibleId String?
+  transactionId String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  category    IncomeCategory    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account     FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  student     Student?          @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  responsible User?             @relation("IncomeResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+  transaction Transaction       @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+
+  @@index([receivedAt])
+  @@index([categoryId, receivedAt])
+  @@map("incomes")
+}
+
+model Expense {
+  id              String        @id @default(cuid())
+  number          Int           @unique @default(autoincrement())
+  categoryId      String
+  amount          Decimal       @db.Decimal(14, 2)
+  method          PaymentMethod @default(CASH)
+  accountId       String?
+  spentAt         DateTime      @default(now())
+  description     String?       @db.VarChar(255)
+  attachmentPath  String?       @db.VarChar(500)
+  responsibleId   String?
+  transactionId   String        @unique
+  /// Maosh to‘lovi xarajat sifatida yozilganda
+  salaryPaymentId String?       @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  category      ExpenseCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account       FinancialAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  responsible   User?                 @relation("ExpenseResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+  transaction   Transaction           @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  salaryPayment TeacherSalaryPayment? @relation(fields: [salaryPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([spentAt])
+  @@index([categoryId, spentAt])
+  @@map("expenses")
+}
+
+/// Oylik budjet
+model Budget {
+  id          String   @id @default(cuid())
+  year        Int
+  month       Int      @db.SmallInt
+  note        String?  @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User?        @relation("BudgetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  lines     BudgetLine[]
+
+  @@unique([year, month])
+  @@map("budgets")
+}
+
+model BudgetLine {
+  id            String  @id @default(cuid())
+  budgetId      String
+  categoryId    String
+  plannedAmount Decimal @db.Decimal(14, 2)
+  note          String? @db.VarChar(255)
+
+  budget   Budget          @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([budgetId, categoryId])
+  @@map("budget_lines")
+}
+
+// ---------------------------------------------------------------------
+// OTA-ONA
+// ---------------------------------------------------------------------
+
+model Parent {
+  id        String   @id @default(cuid())
+  firstName String   @db.VarChar(100)
+  lastName  String   @db.VarChar(100)
+  phone     String   @db.VarChar(32)
+  telegram  String?  @db.VarChar(64)
+  email     String?  @db.VarChar(255)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students StudentParent[]
+
+  @@index([phone])
+  @@map("parents")
+}
+
+model StudentParent {
+  id        String         @id @default(cuid())
+  studentId String
+  parentId  String
+  relation  ParentRelation @default(GUARDIAN)
+  isPrimary Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, parentId])
+  @@map("student_parents")
+}
+
+// ---------------------------------------------------------------------
+// UY VAZIFASI VA IMTIHON
+// ---------------------------------------------------------------------
+
+model Homework {
+  id             String         @id @default(cuid())
+  title          String         @db.VarChar(200)
+  description    String?
+  courseId       String?
+  groupId        String
+  teacherId      String?
+  assignedAt     DateTime       @default(now())
+  deadline       DateTime
+  maxPoints      Int            @default(100) @db.SmallInt
+  xpReward       Int            @default(20)
+  attachmentPath String?        @db.VarChar(500)
+  status         HomeworkStatus @default(PUBLISHED)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  course      Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher     User?                @relation("HomeworkTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  submissions HomeworkSubmission[]
+
+  @@index([groupId, deadline])
+  @@index([status, deadline])
+  @@map("homework")
+}
+
+model HomeworkSubmission {
+  id             String           @id @default(cuid())
+  homeworkId     String
+  studentId      String
+  status         SubmissionStatus @default(PENDING)
+  submittedAt    DateTime?
+  score          Int?             @db.SmallInt
+  feedback       String?          @db.VarChar(500)
+  attachmentPath String?          @db.VarChar(500)
+  gradedById     String?
+  gradedAt       DateTime?
+  xpAwarded      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy User?    @relation("SubmissionGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([homeworkId, studentId])
+  @@index([studentId, status])
+  @@map("homework_submissions")
+}
+
+model Exam {
+  id          String     @id @default(cuid())
+  title       String     @db.VarChar(200)
+  description String?
+  courseId    String?
+  groupId     String
+  teacherId   String?
+  date        DateTime   @db.Date
+  maxScore    Int        @default(100) @db.SmallInt
+  passScore   Int?       @db.SmallInt
+  xpReward    Int        @default(50)
+  status      ExamStatus @default(PLANNED)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  course  Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher User?        @relation("ExamTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  results ExamResult[]
+
+  @@index([groupId, date])
+  @@index([status, date])
+  @@map("exams")
+}
+
+model ExamResult {
+  id         String   @id @default(cuid())
+  examId     String
+  studentId  String
+  score      Int      @db.SmallInt
+  /// score / maxScore * 100
+  percentage Int      @db.SmallInt
+  grade      String?  @db.VarChar(4)
+  comment    String?  @db.VarChar(500)
+  gradedById String?
+  gradedAt   DateTime @default(now())
+  xpAwarded  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  exam     Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy User?   @relation("ExamResultGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+  @@map("exam_results")
+}
+
+/// O‘quvchining oylik kesimdagi holati (progress grafigi uchun)
+model StudentProgressSnapshot {
+  id             String   @id @default(cuid())
+  studentId      String
+  year           Int
+  month          Int      @db.SmallInt
+  attendanceRate Int      @default(0) @db.SmallInt
+  homeworkRate   Int      @default(0) @db.SmallInt
+  averageScore   Int      @default(0) @db.SmallInt
+  totalXp        Int      @default(0)
+  levelNumber    Int      @default(1) @db.SmallInt
+  debtRemaining  Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, year, month])
+  @@index([year, month])
+  @@map("student_progress_snapshots")
+}
+
+// ---------------------------------------------------------------------
+// TARGET VA ALERTLAR
+// ---------------------------------------------------------------------
+
+model SalesTarget {
+  id          String     @id @default(cuid())
+  userId      String?
+  year        Int
+  month       Int        @db.SmallInt
+  type        TargetType
+  targetValue Decimal    @db.Decimal(14, 2)
+  note        String?    @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user      User? @relation("SalesTargetUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("SalesTargetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, year, month, type])
+  @@index([year, month])
+  @@map("sales_targets")
+}
+
+/// Owner/Admin uchun ogohlantirishlar (yuqori qarz, past davomat va h.k.)
+model Alert {
+  id           String        @id @default(cuid())
+  type         AlertType
+  severity     AlertSeverity @default(WARNING)
+  title        String        @db.VarChar(200)
+  message      String
+  entityType   String?       @db.VarChar(50)
+  entityId     String?       @db.VarChar(50)
+  metadata     Json?
+  /// Bir xil ogohlantirish takrorlanmasligi uchun: "high-debt:2026-09"
+  dedupeKey    String?       @unique @db.VarChar(150)
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime      @default(now())
+
+  resolvedBy User? @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([resolvedAt, createdAt])
+  @@index([type, createdAt])
+  @@index([severity])
+  @@map("alerts")
+}

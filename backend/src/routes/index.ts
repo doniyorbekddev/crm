@@ -1,0 +1,44 @@
+import { Router } from 'express';
+import { attendanceRouter, attendanceSessionRouter } from './attendance.routes.js';
+import { auditRouter } from './audit.routes.js';
+import { authRouter } from './auth.routes.js';
+import { callRouter } from './call.routes.js';
+import { courseRouter } from './course.routes.js';
+import { dashboardRouter } from './dashboard.routes.js';
+import { followUpRouter } from './followUp.routes.js';
+import { groupRouter } from './group.routes.js';
+import { healthRouter } from './health.routes.js';
+import { leadRouter } from './lead.routes.js';
+import { lookupRouter } from './lookup.routes.js';
+import { debtRouter, paymentRouter } from './payment.routes.js';
+import { notificationRouter } from './notification.routes.js';
+import { permissionRouter, roleRouter } from './role.routes.js';
+import { reportRouter } from './report.routes.js';
+import { searchRouter } from './search.routes.js';
+import { studentRouter } from './student.routes.js';
+import { userRouter } from './user.routes.js';
+
+/** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
+export const apiRouter = Router();
+
+apiRouter.use('/health', healthRouter);
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/users', userRouter);
+apiRouter.use('/roles', roleRouter);
+apiRouter.use('/permissions', permissionRouter);
+apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/leads', leadRouter);
+apiRouter.use('/calls', callRouter);
+apiRouter.use('/follow-ups', followUpRouter);
+apiRouter.use('/courses', courseRouter);
+apiRouter.use('/groups', groupRouter);
+apiRouter.use('/students', studentRouter);
+apiRouter.use('/attendance', attendanceRouter);
+apiRouter.use('/attendance-sessions', attendanceSessionRouter);
+apiRouter.use('/payments', paymentRouter);
+apiRouter.use('/debts', debtRouter);
+apiRouter.use('/reports', reportRouter);
+apiRouter.use('/search', searchRouter);
+apiRouter.use('/notifications', notificationRouter);
+apiRouter.use('/audit-logs', auditRouter);
+apiRouter.use('/lookups', lookupRouter);

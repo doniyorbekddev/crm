@@ -1,0 +1,15 @@
+import { Router } from 'express';
+import { PERMISSIONS } from '../config/permissions.js';
+import { dashboardController } from '../controllers/dashboard.controller.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { requirePermission } from '../middleware/requirePermission.js';
+
+export const dashboardRouter = Router();
+
+dashboardRouter.use(authenticate, requirePermission(PERMISSIONS.DASHBOARD_VIEW));
+
+dashboardRouter.get('/summary', dashboardController.summary);
+dashboardRouter.get('/charts', dashboardController.charts);
+dashboardRouter.get('/funnel', requirePermission(PERMISSIONS.LEAD_VIEW), dashboardController.funnel);
+dashboardRouter.get('/follow-ups', requirePermission(PERMISSIONS.FOLLOWUP_VIEW), dashboardController.followUps);
+dashboardRouter.get('/managers', requirePermission(PERMISSIONS.REPORT_VIEW), dashboardController.managers);

@@ -1,0 +1,36 @@
+{
+  "name": "sales-crm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "O‘quv markaz uchun Sales CRM — React + Express + PostgreSQL",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm run dev -w @crm/backend\" \"npm run dev -w @crm/frontend\"",
+    "dev:backend": "npm run dev -w @crm/backend",
+    "dev:frontend": "npm run dev -w @crm/frontend",
+    "build": "npm run build -w @crm/backend && npm run build -w @crm/frontend",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:local": "npm run db:local -w @crm/backend",
+    "db:migrate": "npm run db:migrate -w @crm/backend",
+    "db:deploy": "npm run db:deploy -w @crm/backend",
+    "db:seed": "npm run db:seed -w @crm/backend",
+    "db:reset": "npm run db:reset -w @crm/backend",
+    "db:studio": "npm run db:studio -w @crm/backend",
+    "test:unit": "npm run test:unit -w @crm/backend",
+    "test:coverage": "npm run test:coverage --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

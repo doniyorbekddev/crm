@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3354ec" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Sales CRM</title>
+    <script>
+      // Sahifa chizilishidan oldin mavzuni qo'llaydi (oq "miltillash" bo'lmasligi uchun).
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('crm-theme') || 'null');
+          var theme = (stored && stored.state && stored.state.theme) || 'system';
+          var dark =
+            theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (error) {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

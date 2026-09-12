@@ -1,0 +1,73 @@
+import type { Request, Response } from 'express';
+import { attendanceService } from '../services/attendance.service.js';
+import { studentService } from '../services/student.service.js';
+import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
+import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
+import { idParamSchema } from '../validators/common.validator.js';
+import {
+  convertLeadSchema,
+  createStudentSchema,
+  studentListQuerySchema,
+  updateStudentSchema,
+  updateStudentStatusSchema,
+} from '../validators/student.validator.js';
+
+export const studentController = {
+  async list(req: Request, res: Response): Promise<void> {
+    const query = studentListQuerySchema.parse(req.query);
+    const { items, total } = await studentService.list(requireAuthUser(req), query);
+    sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
+  },
+
+  async summary(req: Request, res: Response): Promise<void> {
+    const query = studentListQuerySchema.parse(req.query);
+    sendSuccess(res, await studentService.summary(requireAuthUser(req), query));
+  },
+
+  async getById(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentService.getById(requireAuthUser(req), id));
+  },
+
+  async create(req: Request, res: Response): Promise<void> {
+    const input = createStudentSchema.parse(req.body);
+    sendCreated(res, await studentService.create(requireAuthUser(req), input, getClientInfo(req)), 'O‘quvchi qo‘shildi');
+  },
+
+  async update(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = updateStudentSchema.parse(req.body);
+    sendSuccess(res, await studentService.update(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'O‘quvchi saqlandi',
+    });
+  },
+
+  async setStatus(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = updateStudentStatusSchema.parse(req.body);
+    sendSuccess(res, await studentService.setStatus(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Holat yangilandi',
+    });
+  },
+
+  async remove(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    await studentService.remove(requireAuthUser(req), id, getClientInfo(req));
+    sendSuccess(res, null, { message: 'O‘quvchi o‘chirildi' });
+  },
+
+  async convertLead(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = convertLeadSchema.parse(req.body);
+    sendCreated(
+      res,
+      await studentService.convertFromLead(requireAuthUser(req), id, input, getClientInfo(req)),
+      'Lead o‘quvchiga aylantirildi',
+    );
+  },
+
+  async attendanceHistory(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await attendanceService.studentHistory(requireAuthUser(req), id));
+  },
+};
