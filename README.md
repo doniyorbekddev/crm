@@ -5,6 +5,8 @@ kurslar, guruhlar, o‘quvchilar, to‘lovlar, qarzdorlik, hisobotlar, bildirish
 
 Arxitektura, ERD, API va rejalar: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
+Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs/TZ.html) · [docs/TZ.pdf](docs/TZ.pdf)
+
 > **Holat:** loyiha bosqichma-bosqich ishlab chiqilmoqda. Tayyor: **PHASE 1** (arxitektura va poydevor),
 > **PHASE 2** (PostgreSQL + Prisma sxema, migratsiya, seed), **PHASE 3** (autentifikatsiya: login, register,
 > refresh token rotatsiyasi, parolni tiklash, profil), **PHASE 4** (rollar va ruxsatlar: permission middleware,
@@ -236,7 +238,7 @@ zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va
 crm/
 ├── backend/     Express API (src/config, controllers, routes, services, middleware, validators, utils, types) + Dockerfile
 ├── frontend/    React SPA (src/components, pages, layouts, hooks, services, store, types, utils, lib, routes) + Dockerfile, nginx/
-├── docs/        ARCHITECTURE.md, DEPLOYMENT.md
+├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, TZ.html/TZ.pdf
 ├── scripts/     backup-db.sh, restore-db.sh
 ├── .github/     CI (typecheck, lint, test, build)
 ├── docker-compose.yml        development uchun PostgreSQL

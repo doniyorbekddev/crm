@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="uz" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="O'quv markaz boshqaruv tizimi — texnik topshiriq">
+<style>
+  html { color-scheme: light; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<title>Academy CRM Texnik Topshirig'i</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap">
+
+<style>
+  :root {
+    --paper: #fbfaf8;
+    --paper-2: #f3f1ec;
+    --ink: #16181d;
+    --ink-2: #4a4e58;
+    --ink-3: #7c8290;
+    --rule: #ddd8cf;
+    --blue: #2545c9;
+    --blue-soft: #e7ebfb;
+    --green: #1c7a4c;
+    --green-soft: #e0f0e7;
+    --ochre: #a9650b;
+    --ochre-soft: #f6ecda;
+    --shadow: 0 1px 2px rgba(22, 24, 29, .06);
+
+    --display: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+    --body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+    --mono-ascii: Consolas, 'Cascadia Mono', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14161b;
+      --paper-2: #1c1f26;
+      --ink: #e9e7e2;
+      --ink-2: #b3b7c0;
+      --ink-3: #848a97;
+      --rule: #2e323b;
+      --blue: #8ea6ff;
+      --blue-soft: #1d2540;
+      --green: #6fca9b;
+      --green-soft: #15291f;
+      --ochre: #e0a755;
+      --ochre-soft: #2c2317;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14161b;
+    --paper-2: #1c1f26;
+    --ink: #e9e7e2;
+    --ink-2: #b3b7c0;
+    --ink-3: #848a97;
+    --rule: #2e323b;
+    --blue: #8ea6ff;
+    --blue-soft: #1d2540;
+    --green: #6fca9b;
+    --green-soft: #15291f;
+    --ochre: #e0a755;
+    --ochre-soft: #2c2317;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 940px;
+    margin-inline: auto;
+    padding-inline: 20px;
+    padding-block: 40px 80px;
+  }
+
+  /* ---------- Sarlavha ---------- */
+  .masthead { border-bottom: 3px solid var(--ink); padding-bottom: 22px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 6vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    margin: 14px 0 10px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+
+  /* ---------- Raqamlar ---------- */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-block: 26px 0;
+  }
+  .figure { background: var(--paper); padding: 14px 16px; }
+  .figure b {
+    display: block;
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .figure span { font-size: 13px; color: var(--ink-3); }
+
+  /* ---------- Mundarija ---------- */
+  nav.toc {
+    margin-block: 34px;
+    padding: 18px 20px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+  nav.toc p {
+    margin: 0 0 10px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  nav.toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 2;
+    column-gap: 28px;
+    font-size: 15.5px;
+  }
+  nav.toc li { break-inside: avoid; margin-bottom: 3px; }
+  nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--blue); color: var(--blue); }
+  nav.toc .num { font-family: var(--mono); font-size: 13px; color: var(--ink-3); margin-right: 7px; }
+
+  /* ---------- Bo'limlar ---------- */
+  section { margin-top: 52px; scroll-margin-top: 20px; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(22px, 3.4vw, 28px);
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue);
+    flex: none;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18px;
+    margin: 30px 0 8px;
+    letter-spacing: -.005em;
+  }
+  p { max-width: 68ch; }
+  p, ul, ol { margin-block: 0 14px; }
+  ul, ol { padding-left: 22px; max-width: 68ch; }
+  li { margin-bottom: 5px; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ---------- ASCII sxemalar ---------- */
+  figure.scheme { margin: 22px 0 26px; }
+  figure.scheme figcaption {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .scheme-box {
+    overflow-x: auto;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 18px;
+  }
+  pre {
+    margin: 0;
+    font-family: var(--mono-ascii);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink);
+    white-space: pre;
+  }
+  @media (max-width: 640px) { pre { font-size: 11px; } }
+
+  /* ---------- Jadvallar ---------- */
+  .table-box { overflow-x: auto; margin: 18px 0 26px; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 560px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--paper-2);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+  /* ---------- Rol bloklari ---------- */
+  .role { border: 1px solid var(--rule); margin-bottom: 18px; background: var(--paper); }
+  .role > header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    padding: 12px 16px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+  }
+  .role h3 { margin: 0; font-size: 17px; }
+  .role .who { font-size: 14px; color: var(--ink-3); }
+  .role .login { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-left: auto; }
+  .role .body { padding: 14px 16px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .role .body h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 6px;
+    font-weight: 400;
+  }
+  .role .body ul { margin: 0; padding-left: 18px; font-size: 15px; }
+  .say {
+    margin: 0;
+    padding: 11px 16px;
+    border-top: 1px solid var(--rule);
+    background: var(--blue-soft);
+    font-size: 15.5px;
+    max-width: none;
+  }
+  .say b { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--blue); display: block; margin-bottom: 3px; font-weight: 700; }
+
+  /* ---------- Holat belgilari ---------- */
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .tag.done { color: var(--green); background: var(--green-soft); }
+  .tag.plan { color: var(--ochre); background: var(--ochre-soft); }
+
+  /* ---------- Eslatma ---------- */
+  .note {
+    border-left: 3px solid var(--blue);
+    background: var(--paper-2);
+    padding: 12px 16px;
+    margin: 20px 0;
+    font-size: 15.5px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 8px; }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+
+  a { color: var(--blue); }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  @media print {
+    body { font-size: 11pt; }
+    .scheme-box, .table-box { break-inside: avoid; }
+    nav.toc { display: none; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Texnik topshiriq</span>
+      <span>Versiya 1.0 · 12.09.2026</span>
+      <span>Ichki hujjat</span>
+    </div>
+    <h1>O‘quv markaz boshqaruv tizimi</h1>
+    <p class="lede">
+      Bitta tizimda: sotuv (lead), o‘quvchilar, davomat, reyting, moliya va hisobotlar.
+      Bu hujjat rahbar uchun — har bir bo‘limni xodimga aynan shu tartibda tushuntirish mumkin.
+    </p>
+  </header>
+
+  <div class="figures">
+    <div class="figure"><b>19</b><span>modul</span></div>
+    <div class="figure"><b>7</b><span>rol</span></div>
+    <div class="figure"><b>62</b><span>ruxsat</span></div>
+    <div class="figure"><b>51</b><span>baza jadvali</span></div>
+    <div class="figure"><b>252</b><span>avtotest</span></div>
+  </div>
+
+  <nav class="toc">
+    <p>Mundarija</p>
+    <ol>
+      <li><a href="#s1"><span class="num">01</span>Tizim nima qiladi</a></li>
+      <li><a href="#s2"><span class="num">02</span>Tizim xaritasi</a></li>
+      <li><a href="#s3"><span class="num">03</span>Texnik tuzilma</a></li>
+      <li><a href="#s4"><span class="num">04</span>Asosiy oqim: leaddan pulgacha</a></li>
+      <li><a href="#s5"><span class="num">05</span>Rollar va ular nima qiladi</a></li>
+      <li><a href="#s6"><span class="num">06</span>Davomat qanday ishlaydi</a></li>
+      <li><a href="#s7"><span class="num">07</span>Reyting va XP</a></li>
+      <li><a href="#s8"><span class="num">08</span>Pul qanday hisoblanadi</a></li>
+      <li><a href="#s9"><span class="num">09</span>Ruxsat tizimi</a></li>
+      <li><a href="#s10"><span class="num">10</span>Tayyor va rejadagi ishlar</a></li>
+      <li><a href="#s11"><span class="num">11</span>Ishga tushirish va hisoblar</a></li>
+      <li><a href="#s12"><span class="num">12</span>Qoidalar: xavfsizlik va ma’lumot</a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="s1">
+    <h2><span class="num">01</span>Tizim nima qiladi</h2>
+    <p>
+      Hozir o‘quv markazda ma’lumot bir necha joyda turadi: leadlar telefon daftarida yoki Excelda,
+      to‘lovlar alohida jadvalda, davomat qog‘ozda, maosh kalkulyatorda. Bu tizim shularning hammasini
+      <strong>bitta joyga</strong> yig‘adi va ularni bir-biriga bog‘laydi.
+    </p>
+    <p>Amalda bu quyidagini beradi:</p>
+    <ul>
+      <li><strong>Rahbar</strong> — bugungi tushum, qarzdorlik, davomat va sotuvni bir sahifada ko‘radi.</li>
+      <li><strong>Sotuvchi</strong> — bironta ham lead unutilmaydi: kim bilan qachon bog‘lanish kerakligi tizim eslatadi.</li>
+      <li><strong>O‘qituvchi</strong> — davomatni telefondan bir bosishda qo‘yadi, kelmaganlar avtomatik qayd etiladi.</li>
+      <li><strong>Buxgalter</strong> — to‘lov kiritilganda qarz o‘zi kamayadi, kvitansiya raqami avtomatik beriladi.</li>
+      <li><strong>O‘quvchi</strong> — davomat va natijalari uchun XP, daraja va nishon oladi (raqobat, motivatsiya).</li>
+    </ul>
+    <div class="note">
+      <p><strong>Asosiy qoida:</strong> hech qanday ma’lumot ikki marta kiritilmaydi. Lead o‘quvchiga aylantirilganda
+      ismi, telefoni va kursi o‘zi ko‘chadi; to‘lov kiritilganda qarz o‘zi qayta hisoblanadi; davomat qo‘yilganda XP o‘zi beriladi.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="s2">
+    <h2><span class="num">02</span>Tizim xaritasi</h2>
+    <p>Tizim uchta katta blokdan iborat: <strong>sotuv</strong>, <strong>ta’lim</strong> va <strong>moliya</strong>.
+    Ular ustida umumiy xizmatlar turadi — dashboard, hisobotlar, bildirishnoma, audit va qidiruv.</p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 1 — modullar xaritasi</figcaption>
+      <div class="scheme-box"><pre>
+┌──────────────────────── O'QUV MARKAZ CRM ────────────────────────┐
+│                                                                  │
+│   SOTUV               TA'LIM                MOLIYA               │
+│   ┌────────────┐      ┌────────────┐        ┌─────────────┐      │
+│   │ Leadlar    │      │ Kurslar    │        │ To'lovlar   │      │
+│   │ Qo'ng'iroq │ ───→ │ Guruhlar   │  ───→  │ Qarzdorlik  │      │
+│   │ Follow-up  │      │ O'quvchi   │        │ Tushum      │      │
+│   └────────────┘      │ Davomat    │        │ Xarajat     │      │
+│                       └─────┬──────┘        │ Kassa/bank  │      │
+│                             │               └─────────────┘      │
+│                             ↓                                    │
+│   ┌────────────┐      ┌────────────┐        ┌─────────────┐      │
+│   │ Reyting    │      │ Uy vazifa  │        │ O'qituvchi  │      │
+│   │ XP/Daraja  │ ←─── │ Imtihon    │        │ Maosh       │      │
+│   │ Nishonlar  │      │ Progress   │        │ Samaradorl. │      │
+│   └────────────┘      └────────────┘        └─────────────┘      │
+│                                                                  │
+│   ┌──────────────────────────────────────────────────────────┐   │
+│   │ DASHBOARD · HISOBOT · BILDIRISHNOMA · AUDIT · QIDIRUV    │   │
+│   └──────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
+      </pre></div>
+    </figure>
+
+    <p>
+      Strelkalar ma’lumot yo‘nalishini ko‘rsatadi: lead o‘quvchiga aylanadi, o‘quvchi to‘lov qiladi,
+      davomat va natijalar reytingni to‘ldiradi, o‘tkazilgan darslar o‘qituvchi maoshiga kiradi.
+    </p>
+  </section>
+
+  <!-- 03 -->
+  <section id="s3">
+    <h2><span class="num">03</span>Texnik tuzilma</h2>
+    <p>Texnik tomondan tizim uch qatlamdan iborat. Xodim faqat birinchi qatorni ko‘radi — brauzerdagi sahifani.</p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 2 — qatlamlar</figcaption>
+      <div class="scheme-box"><pre>
+  XODIM                        SERVER                       BAZA
+  ┌───────────┐   HTTPS   ┌──────────────────────┐   ┌──────────────┐
+  │  Brauzer  │ ────────→ │  Nginx → Node.js     │──→│  PostgreSQL  │
+  │  (React)  │ ←──────── │  Express API         │←──│  51 jadval   │
+  └───────────┘   JSON    └──────────────────────┘   └──────────────┘
+       │                            │                       │
+  sahifalar,                 ruxsat tekshiruvi,       o'quvchi, to'lov,
+  dark/light,                biznes qoidalar,         davomat, XP,
+  telefon/kompyuter          eslatma jobi             audit yozuvlari
+
+  Xavfsizlik: 15 daqiqalik kirish kaliti + yangilanuvchi sessiya cookie'si
+  Har bir muhim amal audit jurnaliga yoziladi: kim, nima, qachon, qaysi IP
+      </pre></div>
+    </figure>
+
+    <p>
+      Butun tizim bitta serverda Docker konteynerlarida ishlaydi: baza, API va sahifalar.
+      Zaxira nusxa har kuni avtomatik olinadi.
+    </p>
+  </section>
+
+  <!-- 04 -->
+  <section id="s4">
+    <h2><span class="num">04</span>Asosiy oqim: leaddan pulgacha</h2>
+    <p>Bu tizimning yuragi. Har bir mijoz shu yo‘ldan o‘tadi va har bir bosqichda ma’lumot o‘zidan keyingisiga uzatiladi.</p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 3 — mijoz yo‘li</figcaption>
+      <div class="scheme-box"><pre>
+   1. LEAD                2. O'QUVCHI              3. KUNDALIK ISH
+   ┌─────────────┐        ┌──────────────┐         ┌────────────────────┐
+   │ Yangi       │        │ Shartnoma    │    ┌───→│ Davomat   → XP     │
+   │ Bog'lanildi │        │ narxi qotadi │    │    │ Uy vazifa → XP     │
+   │ Sinov darsi │ ─────→ │ Qarz ochiladi│ ───┼───→│ Imtihon   → XP     │
+   │ Muzokara    │  WON   │ Guruhga      │    │    │ To'lov  → qarz ↓   │
+   │ SOTILDI     │        │ biriktiriladi│    └───→│ Nishon, daraja     │
+   └──────┬──────┘        └──────────────┘         └─────────┬──────────┘
+          │                                                  │
+          │ L-000123                ST-000045                │ PM-000007
+          ↓                                                  ↓
+   ┌──────────────────────────────────────────────────────────────────┐
+   │  HISOBOT VA DASHBOARD: konversiya, tushum, qarz, davomat, reyting │
+   └──────────────────────────────────────────────────────────────────┘
+      </pre></div>
+    </figure>
+
+    <p>
+      Har bir yozuvning <strong>ko‘rinadigan raqami</strong> bor: lead — <code>L-000123</code>,
+      o‘quvchi — <code>ST-000045</code>, to‘lov kvitansiyasi — <code>PM-000007</code>.
+      Telefonda gaplashayotganda shu raqamni aytish kifoya — xodim bir soniyada topadi (Ctrl+K global qidiruv).
+    </p>
+
+    <div class="note">
+      <p><strong>Muhim:</strong> lead o‘quvchiga aylantirilganda shartnoma narxi <em>o‘sha kundagi kurs narxi</em> bo‘yicha
+      qotib qoladi. Ertaga kurs narxi oshsa ham, bu o‘quvchining shartnomasi o‘zgarmaydi.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="s5">
+    <h2><span class="num">05</span>Rollar va ular nima qiladi</h2>
+    <p>
+      Har bir xodim o‘z ishiga keraklisini ko‘radi — ortiqchasini emas. Quyidagi jadval — umumiy manzara,
+      keyin har bir rol alohida ochib berilgan.
+    </p>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Kim</th>
+            <th>Asosiy sahifalari</th>
+            <th>Ko‘rmaydi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Direktor</strong></td>
+            <td>Markaz egasi</td>
+            <td>Hamma narsa: moliya, analitika, hisobotlar</td>
+            <td>Rollarni tahrirlash</td>
+          </tr>
+          <tr>
+            <td><strong>Super Admin</strong></td>
+            <td>Tizim ma’muri</td>
+            <td>Hamma narsa + xodimlar va rollar</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Admin</strong></td>
+            <td>Filial boshqaruvchisi</td>
+            <td>Leadlar, o‘quvchilar, guruhlar, moliya, hisobot</td>
+            <td>Xodim qo‘shish, rol berish, sozlamalar</td>
+          </tr>
+          <tr>
+            <td><strong>Sotuv manageri</strong></td>
+            <td>Sales</td>
+            <td>Leadlar, qo‘ng‘iroq, follow-up, konversiya</td>
+            <td>Moliya, maosh, boshqa managerning leadlari</td>
+          </tr>
+          <tr>
+            <td><strong>Call center</strong></td>
+            <td>Operator</td>
+            <td>Leadlar, qo‘ng‘iroqlar, follow-up</td>
+            <td>O‘quvchilar, moliya, hisobotlar</td>
+          </tr>
+          <tr>
+            <td><strong>O‘qituvchi</strong></td>
+            <td>Ustoz</td>
+            <td>O‘z guruhlari, davomat, uy vazifa, imtihon</td>
+            <td>Leadlar, moliya, boshqa guruhlar</td>
+          </tr>
+          <tr>
+            <td><strong>Buxgalter</strong></td>
+            <td>Hisobchi</td>
+            <td>To‘lovlar, qarzdorlik, xarajat, maosh</td>
+            <td>Leadlar, davomat belgilash</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>Direktor / Owner</h3>
+        <span class="who">markaz egasi</span>
+        <span class="login">owner@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Kundalik ish</h4>
+          <ul>
+            <li>Ertalab dashboardni ochadi: bugungi tushum, yangi leadlar, davomat</li>
+            <li>Oy oxirida maoshni tasdiqlaydi</li>
+            <li>Hisobotlarni Excel’ga yuklab oladi</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Nima ko‘radi</h4>
+          <ul>
+            <li>Sof foyda: tushum − xarajat</li>
+            <li>Qarzdorlik va qarzdorlar ro‘yxati</li>
+            <li>Managerlar va o‘qituvchilar reytingi</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>Siz butun markazni bitta ekranda ko‘rasiz — pul, o‘quvchi, sotuv va davomat.</p>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>Sotuv manageri</h3>
+        <span class="who">leadlar bilan ishlaydi</span>
+        <span class="login">manager@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Kundalik ish</h4>
+          <ul>
+            <li>Yangi leadni kiritadi yoki o‘ziga oladi</li>
+            <li>Qo‘ng‘iroq natijasini yozadi</li>
+            <li>Keyingi aloqa sanasini belgilaydi (follow-up)</li>
+            <li>Sotilgan leadni bir bosishda o‘quvchiga aylantiradi</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Muhim qoidalar</h4>
+          <ul>
+            <li>Faqat <strong>o‘ziga biriktirilgan</strong> va biriktirilmagan leadlarni ko‘radi</li>
+            <li>Kechikkan follow-up qizil rangda va bildirishnoma keladi</li>
+            <li>To‘lov qabul qila olmaydi</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>Sizning ekraningizda faqat sizning mijozlaringiz turadi va tizim kim bilan bugun bog‘lanish kerakligini o‘zi eslatadi.</p>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>O‘qituvchi</h3>
+        <span class="who">dars beradi</span>
+        <span class="login">teacher@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Kundalik ish</h4>
+          <ul>
+            <li>“Mening darslarim” — bugun qaysi guruhga dars borligini ko‘radi</li>
+            <li>Davomatni belgilaydi: keldi / kelmadi / kechikdi / sababli</li>
+            <li>Uy vazifa beradi va baholaydi</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Muhim qoidalar</h4>
+          <ul>
+            <li>Faqat <strong>o‘z guruhlarini</strong> ko‘radi</li>
+            <li>Dars seansi avtomatik ochiladi — alohida tugma bosish shart emas</li>
+            <li>Telefondan ham qulay ishlaydi</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>Guruhni ochasiz, har bir o‘quvchi yoniga bir marta bosasiz va “Saqlash” — tamom, qolganini tizim o‘zi qiladi.</p>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>Buxgalter</h3>
+        <span class="who">pulni yuritadi</span>
+        <span class="login">accountant@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Kundalik ish</h4>
+          <ul>
+            <li>To‘lovni qabul qiladi: o‘quvchini qidiradi, summa va usulni tanlaydi</li>
+            <li>Qarzdorlar ro‘yxati bilan ishlaydi</li>
+            <li>Xarajatlarni kiritadi (ijara, reklama, kommunal)</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Muhim qoidalar</h4>
+          <ul>
+            <li>Qarzdan ortiq to‘lov qabul qilinmaydi — tizim to‘xtatadi</li>
+            <li>To‘lovni <strong>o‘chirib bo‘lmaydi</strong>, faqat sabab bilan bekor qilinadi</li>
+            <li>Har bir bekor qilish audit jurnaliga tushadi</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>To‘lovni kiritsangiz, qarz o‘zi kamayadi va kvitansiya raqami o‘zi beriladi — hech narsani qo‘lda hisoblamaysiz.</p>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>Call center operatori</h3>
+        <span class="who">qo‘ng‘iroq qiladi</span>
+        <span class="login">callcenter@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Kundalik ish</h4>
+          <ul>
+            <li>Yangi leadlarni qayd etadi</li>
+            <li>Qo‘ng‘iroq natijasini kiritadi: javob berdi, band, qiziqdi…</li>
+            <li>Qayta qo‘ng‘iroq vaqtini belgilaydi</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Muhim qoidalar</h4>
+          <ul>
+            <li>O‘quvchilar va moliyani ko‘rmaydi</li>
+            <li>Ish natijasi hisobotda ko‘rinadi: nechta qo‘ng‘iroq, nechta qiziqqan</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>Har bir qo‘ng‘iroqni yozib qo‘ying — tizim keyingi safar kimga qachon qo‘ng‘iroq qilishni o‘zi chiqaradi.</p>
+    </div>
+
+    <div class="role">
+      <header>
+        <h3>Admin va Super Admin</h3>
+        <span class="who">tizimni boshqaradi</span>
+        <span class="login">admin@example.com</span>
+      </header>
+      <div class="body">
+        <div>
+          <h4>Admin</h4>
+          <ul>
+            <li>Kurs, guruh, o‘quvchi, to‘lov — hammasini boshqaradi</li>
+            <li>Hisobotlarni ko‘radi va yuklab oladi</li>
+            <li>Audit jurnalini ko‘radi</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Faqat Super Admin</h4>
+          <ul>
+            <li>Xodim qo‘shadi va rol beradi</li>
+            <li>Rol ruxsatlarini o‘zgartiradi</li>
+            <li>Tizim sozlamalarini boshqaradi</li>
+          </ul>
+        </div>
+      </div>
+      <p class="say"><b>Xodimga bir jumlada</b>Admin kundalik ishni boshqaradi, Super Admin esa kim nimani ko‘rishini belgilaydi.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="s6">
+    <h2><span class="num">06</span>Davomat qanday ishlaydi</h2>
+    <p>Davomat — tizimning eng ko‘p ishlatiladigan qismi. Shuning uchun u eng tez ishlaydigan qilib qilingan: <strong>guruh → sana → bir necha bosish → saqlash</strong>.</p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 4 — bir dars davomati</figcaption>
+      <div class="scheme-box"><pre>
+  O'QITUVCHI                TIZIM                      NATIJA
+  ┌────────────────┐   ┌──────────────────┐   ┌────────────────────────┐
+  │ Guruh + sana   │──→│ Dars seansi      │──→│ Davomat saqlandi       │
+  │ Keldi/kelmadi  │   │ avtomatik ochildi│   │ XP berildi (+10 / +5)  │
+  │ Kechikdi/sabab │   │ Mavzu yozilishi  │   │ Seriya (streak) oshdi  │
+  │                │   │ mumkin           │   │ Nishon tekshirildi     │
+  └────────────────┘   └──────────────────┘   │ Kelmaganga xabar ketdi │
+                                              └────────────────────────┘
+
+  Davomat jurnali:
+  ┌──────────────────────┬──────────────────────────────────────────┐
+  │ Aliyev Aziz          │  [Keldi] [Kelmadi] [Kechikdi] [Sababli]  │
+  │ Valiyeva Madina      │  [Keldi] [Kelmadi] [Kechikdi] [Sababli]  │
+  │ Karimov Anvar        │  [Keldi] [Kelmadi] [Kechikdi] [Sababli]  │
+  └──────────────────────┴──────────────────────────────────────────┘
+   "Hammasi keldi" tugmasi — bitta bosishda butun guruh belgilanadi
+      </pre></div>
+    </figure>
+
+    <h3>Davomatdan nima chiqadi</h3>
+    <ul>
+      <li><strong>O‘quvchi kalendari</strong> — oy bo‘yicha rangli jadval: yashil (keldi), qizil (kelmadi), sariq (kechikdi), ko‘k (sababli).</li>
+      <li><strong>Statistika</strong> — bugun / hafta / oy foizi va o‘quvchilarning 95–100%, 90–95%, 80–90%, 70–80%, 0–70% guruhlariga taqsimoti.</li>
+      <li><strong>Reyting</strong> — eng yuqori davomatli o‘quvchilar.</li>
+      <li><strong>Bildirishnoma</strong> — o‘quvchi kelmasa, admin va managerga darhol xabar boradi.</li>
+    </ul>
+  </section>
+
+  <!-- 07 -->
+  <section id="s7">
+    <h2><span class="num">07</span>Reyting va XP</h2>
+    <p>
+      O‘quvchilarni rag‘batlantirish uchun o‘yin mexanikasi: har bir foydali harakat uchun <strong>XP</strong> (ball),
+      XP yig‘ilgach <strong>daraja</strong>, alohida yutuqlar uchun <strong>nishon</strong>.
+    </p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 5 — XP qanday to‘planadi</figcaption>
+      <div class="scheme-box"><pre>
+  HARAKAT                        XP        IZOH
+  ─────────────────────────────────────────────────────────────────
+  Darsga keldi                  +10        har bir dars uchun
+  Kechikib keldi                 +5        yarim ball
+  Uy vazifasini topshirdi       +20        vaqtida topshirsa
+  Testdan 75%+                  +30
+  Imtihondan 90%+               +50
+  7 dars ketma-ket              +100       seriya bonusi
+  Do'st olib keldi              +100
+  Kursni tugatdi                +500
+  ─────────────────────────────────────────────────────────────────
+  Ballarni rahbar o'zi o'zgartira oladi — sozlamalarda
+
+  DARAJALAR:  1 → 0 XP     4 → 500 XP     7 → 2500 XP    10 → 5000 XP
+              2 → 100 XP   5 → 1000 XP    8 → 3500 XP
+              3 → 250 XP   6 → 1750 XP    9 → 4500 XP
+
+  NISHONLAR:  🔥 7 va 30 kunlik seriya    🏆 Mukammal davomat
+              📚 Uy vazifasi qahramoni    💯 Test ustasi
+              🚀 Tez o'rganuvchi          👑 Oy chempioni
+      </pre></div>
+    </figure>
+
+    <div class="note">
+      <p><strong>Adolat qoidasi:</strong> davomat keyinchalik o‘zgartirilsa (masalan “keldi” → “kelmadi”),
+      berilgan XP ham avtomatik qaytarib olinadi. Ball ikki marta ham berilmaydi.</p>
+      <p>Sababsiz qoldirilgan dars seriyani uzadi; kechikish va sababli qoldirish uzmaydi.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="s8">
+    <h2><span class="num">08</span>Pul qanday hisoblanadi</h2>
+
+    <h3>O‘quvchi to‘lovi va qarz</h3>
+    <figure class="scheme">
+      <figcaption>Sxema 6 — to‘lov oqimi</figcaption>
+      <div class="scheme-box"><pre>
+  Shartnoma: 3 000 000 so'm          Qarz yozuvi ochiladi
+        │                            ┌──────────────────────────┐
+        ↓                            │ Jami:     3 000 000      │
+  1-to'lov 1 000 000  ────────────→  │ To'landi: 1 000 000      │
+        │                            │ Qolgan:   2 000 000      │
+        ↓                            │ Holat:    Qisman         │
+  2-to'lov 2 000 000  ────────────→  │ Holat:    To'langan OK   │
+                                     └──────────────────────────┘
+
+  Har bir to'lov bir vaqtda:
+   · kvitansiya raqamini oladi (PM-000007)
+   · qarzni qayta hisoblaydi
+   · moliyaviy daftarga (kassa/bank) tushadi
+   · leadni olib kelgan managerga bildirishnoma yuboradi
+      </pre></div>
+    </figure>
+
+    <h3>Markaz moliyasi</h3>
+    <p>Barcha pul harakati bitta daftarda: o‘quv to‘lovlari, qo‘shimcha tushumlar (kitob, forma) va xarajatlar (ijara, reklama, maosh, kommunal).</p>
+    <figure class="scheme">
+      <figcaption>Sxema 7 — sof foyda</figcaption>
+      <div class="scheme-box"><pre>
+  TUSHUM                      XARAJAT                  NATIJA
+  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────┐
+  │ O'quv to'lovlari │    │ O'qituvchi maoshi│    │              │
+  │ Ro'yxatga olish  │ ─  │ Ijara            │ =  │  SOF FOYDA   │
+  │ Kitob, forma     │    │ Reklama          │    │              │
+  │ Boshqa           │    │ Kommunal, soliq  │    └──────────────┘
+  └──────────────────┘    └──────────────────┘
+        │                        │
+        └────────→ KASSA / BANK / KARTA / CLICK / PAYME ←───────┘
+                     (har birining qoldig'i alohida ko'rinadi)
+      </pre></div>
+    </figure>
+
+    <h3>O‘qituvchi maoshi <span class="tag plan">keyingi bosqich</span></h3>
+    <p>Beshta model qo‘yilgan — har bir o‘qituvchiga alohida tanlanadi:</p>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Qanday hisoblanadi</th><th>Misol</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Fiksirovanniy</strong></td><td>Oylik qat’iy summa</td><td class="num">5 000 000</td></tr>
+          <tr><td><strong>Dars uchun</strong></td><td>O‘tkazilgan dars × narx</td><td class="num">24 × 100 000 = 2 400 000</td></tr>
+          <tr><td><strong>O‘quvchi uchun</strong></td><td>O‘quvchi soni × narx</td><td class="num">30 × 50 000 = 1 500 000</td></tr>
+          <tr><td><strong>Foiz</strong></td><td>Guruh tushumidan ulush</td><td class="num">30% × 10 000 000 = 3 000 000</td></tr>
+          <tr><td><strong>Aralash</strong></td><td>Baza + o‘quvchi + bonus</td><td class="num">2 000 000 + 900 000 + 500 000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Maosh oy oxirida avtomatik hisoblanadi, rahbar <strong>tasdiqlaydi</strong>, shundan keyin o‘zgarmaydi (qulflanadi).</p>
+  </section>
+
+  <!-- 09 -->
+  <section id="s9">
+    <h2><span class="num">09</span>Ruxsat tizimi</h2>
+    <p>
+      Tizimda <strong>62 ta ruxsat</strong> bor — masalan <code>lead.view</code> (leadni ko‘rish),
+      <code>attendance.mark</code> (davomat belgilash), <code>payment.create</code> (to‘lov qabul qilish).
+      Rol — shu ruxsatlar to‘plami. Xodimga rol beriladi, ruxsat emas.
+    </p>
+
+    <figure class="scheme">
+      <figcaption>Sxema 8 — ruxsat qanday tekshiriladi</figcaption>
+      <div class="scheme-box"><pre>
+  Xodim tugmani bosdi
+        │
+        ↓
+  ┌─────────────────┐   yo'q    ┌──────────────────────────────┐
+  │ Kirish kaliti   │ ────────→ │ 401 — qaytadan kirish kerak  │
+  │ amal qiladimi?  │           └──────────────────────────────┘
+  └────────┬────────┘
+           │ ha
+           ↓
+  ┌─────────────────┐   yo'q    ┌──────────────────────────────┐
+  │ Rolda shu       │ ────────→ │ 403 — ruxsat yo'q            │
+  │ ruxsat bormi?   │           │ (tugma umuman ko'rinmaydi)   │
+  └────────┬────────┘           └──────────────────────────────┘
+           │ ha
+           ↓
+  ┌─────────────────────────────────────────────────────────────┐
+  │ Amal bajarildi → audit jurnaliga yozildi (kim/nima/qachon)   │
+  └─────────────────────────────────────────────────────────────┘
+      </pre></div>
+    </figure>
+
+    <p>
+      Bundan tashqari <strong>ko‘rish doirasi</strong> ham bor: sotuv manageri boshqa managerning leadini,
+      o‘qituvchi esa boshqa guruhning o‘quvchisini umuman ko‘rmaydi — ro‘yxatga ham chiqmaydi.
+    </p>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <h2><span class="num">10</span>Tayyor va rejadagi ishlar</h2>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>Modul</th><th>Holat</th><th>Nima bor / nima qilinadi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Kirish, rollar, ruxsatlar</td><td><span class="tag done">TAYYOR</span></td><td>7 rol, 62 ruxsat, xodimlar boshqaruvi</td></tr>
+          <tr><td>Leadlar va sotuv</td><td><span class="tag done">TAYYOR</span></td><td>Jadval, Kanban, profil, tarix, izohlar</td></tr>
+          <tr><td>Qo‘ng‘iroq va follow-up</td><td><span class="tag done">TAYYOR</span></td><td>Natijalar, eslatmalar, kechikkanlar</td></tr>
+          <tr><td>Kurslar va guruhlar</td><td><span class="tag done">TAYYOR</span></td><td>Narx, chegirma, jadval, sig‘im</td></tr>
+          <tr><td>O‘quvchilar</td><td><span class="tag done">TAYYOR</span></td><td>Konversiya, shartnoma, holat, guruh</td></tr>
+          <tr><td>Davomat</td><td><span class="tag done">TAYYOR</span></td><td>Jurnal, kalendar, statistika, reyting, o‘qituvchi paneli</td></tr>
+          <tr><td>Reyting va XP</td><td><span class="tag done">TAYYOR</span></td><td>XP, daraja, nishon, seriya, leaderboard</td></tr>
+          <tr><td>To‘lov va qarzdorlik</td><td><span class="tag done">TAYYOR</span></td><td>Kvitansiya, avtomatik qarz, bekor qilish</td></tr>
+          <tr><td>Hisobotlar</td><td><span class="tag done">TAYYOR</span></td><td>8 turdagi hisobot + Excel/CSV</td></tr>
+          <tr><td>Dashboard</td><td><span class="tag done">TAYYOR</span></td><td>KPI, grafik, voronka, managerlar reytingi</td></tr>
+          <tr><td>Bildirishnoma va audit</td><td><span class="tag done">TAYYOR</span></td><td>Qo‘ng‘iroqcha, jurnal, filtrlar</td></tr>
+          <tr><td>O‘qituvchi profili</td><td><span class="tag plan">REJADA</span></td><td>Mutaxassislik, tajriba, samaradorlik</td></tr>
+          <tr><td>Maosh</td><td><span class="tag plan">REJADA</span></td><td>5 model, avtomatik hisob, tasdiqlash</td></tr>
+          <tr><td>Moliya (tushum/xarajat UI)</td><td><span class="tag plan">REJADA</span></td><td>Kassa, budjet, sof foyda paneli</td></tr>
+          <tr><td>Direktor paneli</td><td><span class="tag plan">REJADA</span></td><td>Business Overview, ogohlantirishlar</td></tr>
+          <tr><td>Uy vazifa va imtihon</td><td><span class="tag plan">REJADA</span></td><td>Topshirish, baholash, progress</td></tr>
+          <tr><td>Ota-onalar</td><td><span class="tag plan">REJADA</span></td><td>Aloqa, kelajakda ota-ona kabineti</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Baza barcha rejadagi modullar uchun <strong>allaqachon tayyor</strong> — 51 jadval yaratilgan.
+      Ya’ni qolgan ish faqat ekranlar va hisob-kitoblarni yozishdan iborat.
+    </p>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <h2><span class="num">11</span>Ishga tushirish va hisoblar</h2>
+
+    <h3>Sinov uchun hisoblar</h3>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Rol</th><th>Email</th><th>Parol</th></tr></thead>
+        <tbody>
+          <tr><td>Direktor</td><td><code>owner@example.com</code></td><td><code>Owner123!</code></td></tr>
+          <tr><td>Super Admin</td><td><code>admin@example.com</code></td><td><code>Admin123!</code></td></tr>
+          <tr><td>Sotuv manageri</td><td><code>manager@example.com</code></td><td><code>Manager123!</code></td></tr>
+          <tr><td>Call center</td><td><code>callcenter@example.com</code></td><td><code>Callcenter123!</code></td></tr>
+          <tr><td>O‘qituvchi</td><td><code>teacher@example.com</code></td><td><code>Teacher123!</code></td></tr>
+          <tr><td>Buxgalter</td><td><code>accountant@example.com</code></td><td><code>Accountant123!</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p><strong>Diqqat:</strong> bu hisoblar faqat sinov uchun. Markazda ishga tushirishdan oldin ular
+      o‘chiriladi va har bir xodimga o‘z hisobi ochiladi.</p>
+    </div>
+
+    <h3>Xodimni tizimga qanday kiritamiz</h3>
+    <ol>
+      <li>Super Admin “Xodimlar” bo‘limidan yangi xodim qo‘shadi va rol beradi.</li>
+      <li>Xodim o‘z emaili va parolini oladi.</li>
+      <li>Birinchi kirishda parolni o‘zgartiradi.</li>
+      <li>O‘qituvchiga guruh biriktiriladi — shundan keyin u faqat shu guruhlarni ko‘radi.</li>
+    </ol>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <h2><span class="num">12</span>Qoidalar: xavfsizlik va ma’lumot</h2>
+
+    <h3>Pul bilan bog‘liq qat’iy qoidalar</h3>
+    <ul>
+      <li>To‘lov va xarajat <strong>hech qachon o‘chirilmaydi</strong> — faqat sabab ko‘rsatib bekor qilinadi.</li>
+      <li>Qarz qo‘lda yozilmaydi — u har doim to‘lovlar yig‘indisidan qayta hisoblanadi.</li>
+      <li>Qarzdan ortiq to‘lov qabul qilinmaydi.</li>
+      <li>Maosh tasdiqlangandan keyin qulflanadi.</li>
+      <li>Barcha summalar butun so‘mda saqlanadi — yaxlitlash xatosi bo‘lmaydi.</li>
+    </ul>
+
+    <h3>Ma’lumot xavfsizligi</h3>
+    <ul>
+      <li>Parollar shifrlangan holda saqlanadi — hech kim, hatto admin ham ko‘ra olmaydi.</li>
+      <li>Kirish kaliti 15 daqiqada eskiradi; xodim bloklansa, seansi darhol uziladi.</li>
+      <li>Har bir muhim amal audit jurnaliga yoziladi: kim, nima, qachon, qaysi IP dan.</li>
+      <li>Audit jurnalini oddiy xodim o‘chira olmaydi.</li>
+      <li>Baza zaxirasi har kuni avtomatik olinadi va 30 kun saqlanadi.</li>
+    </ul>
+
+    <h3>Sifat</h3>
+    <p>
+      Tizimda <strong>252 ta avtomatik test</strong> ishlaydi: qarz hisoblash, davomat, XP, ruxsatlar va boshqa
+      muhim qoidalar har o‘zgarishdan keyin qayta tekshiriladi. Ya’ni bir joyni tuzatganda boshqa joy buzilmaydi.
+    </p>
+  </section>
+
+  <footer>
+    Texnik topshiriq · O‘quv markaz boshqaruv tizimi · Versiya 1.0 (12.09.2026).
+    Hujjat tizim rivojlangani sayin yangilanadi.
+  </footer>
+
+</div>
+
+<style>
+  /* Chop etish / PDF uchun */
+  @page { size: A4; margin: 14mm 13mm 15mm; }
+  @media print {
+    html, body { background: #ffffff !important; }
+    .wrap { max-width: none; padding-block: 0 0; padding-inline: 0; }
+    h1 { font-size: 30px; }
+    h2 { break-after: avoid; font-size: 21px; }
+    h3 { break-after: avoid; }
+    section { break-inside: auto; margin-top: 30px; }
+    .role, .scheme-box, .table-box, .figures, .note, figure.scheme { break-inside: avoid; }
+    pre { font-size: 9.4px; line-height: 1.45; }
+    table { font-size: 11px; min-width: 0; }
+    .scheme-box, .table-box { overflow: visible; }
+    a { color: inherit; text-decoration: none; }
+    footer { break-inside: avoid; }
+  }
+</style>
+</body>
+</html>
