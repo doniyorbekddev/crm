@@ -28,7 +28,8 @@
     "db:reset": "npm run db:reset -w @crm/backend",
     "db:studio": "npm run db:studio -w @crm/backend",
     "test:unit": "npm run test:unit -w @crm/backend",
-    "test:coverage": "npm run test:coverage --workspaces --if-present"
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "db:perf-seed": "npm run db:perf-seed -w @crm/backend"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

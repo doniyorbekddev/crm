@@ -64,10 +64,15 @@ describe.skipIf(!hasTestDatabase)('Ogohlantirishlar (integratsion)', () => {
       const notification = await prisma.notification.findFirst({ where: { entityType: 'alert', entityId: alert!.id, userId: admin.id } });
       expect(notification).not.toBeNull();
 
-      // Takroriy tekshiruv yangi alert yaratmaydi
+      // Takroriy tekshiruv yangi alert yaratmaydi va o'zgarmagan alertga yozuv qilmaydi
       const second = await alertService.evaluate(new Date());
       expect(await prisma.alert.count({ where: { type: 'HIGH_DEBT' } })).toBe(1);
-      expect(second.updated).toBeGreaterThanOrEqual(1);
+      expect(second).toMatchObject({ created: 0, updated: 0 });
+
+      // Qarz miqdori o'zgarsa — ochiq alert matni yangilanadi
+      await prisma.debt.update({ where: { studentId: student.id }, data: { remainingAmount: 950_000, paidAmount: 50_000 } });
+      const changed = await alertService.evaluate(new Date());
+      expect(changed.updated).toBe(1);
 
       // Qarz to'landi — alert avtomatik yopiladi, kalit arxivlanadi
       await prisma.debt.update({ where: { studentId: student.id }, data: { remainingAmount: 200_000, paidAmount: 800_000 } });

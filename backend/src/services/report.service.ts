@@ -261,36 +261,42 @@ async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
     orderBy: [{ firstName: 'asc' }],
     select: { id: true, firstName: true, lastName: true, role: { select: { name: true } } },
   });
+  const ids = users.map((user) => user.id);
+  const range = { gte: start, lt: end };
+
+  // Har bir ko'rsatkich uchun bitta guruhlangan so'rov — managerlar soniga bog'liq emas
+  const [leads, won, lost, calls, revenue] = await Promise.all([
+    prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, assignedToId: { in: ids }, createdAt: range }, _count: { _all: true } }),
+    prisma.lead.groupBy({
+      by: ['assignedToId'],
+      where: { deletedAt: null, assignedToId: { in: ids }, status: 'WON', convertedAt: range },
+      _count: { _all: true },
+    }),
+    prisma.lead.groupBy({
+      by: ['assignedToId'],
+      where: { deletedAt: null, assignedToId: { in: ids }, status: 'LOST', updatedAt: range },
+      _count: { _all: true },
+    }),
+    prisma.call.groupBy({ by: ['managerId'], where: { managerId: { in: ids }, status: 'COMPLETED', calledAt: range }, _count: { _all: true } }),
+    prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: range }, _sum: { amount: true } }),
+  ]);
 
   const rows: Array<Record<string, ReportCell>> = [];
   for (const user of users) {
-    const leads = await prisma.lead.count({
-      where: { deletedAt: null, assignedToId: user.id, createdAt: { gte: start, lt: end } },
-    });
-    const won = await prisma.lead.count({
-      where: { deletedAt: null, assignedToId: user.id, status: 'WON', convertedAt: { gte: start, lt: end } },
-    });
-    const lost = await prisma.lead.count({
-      where: { deletedAt: null, assignedToId: user.id, status: 'LOST', updatedAt: { gte: start, lt: end } },
-    });
-    const calls = await prisma.call.count({
-      where: { managerId: user.id, status: 'COMPLETED', calledAt: { gte: start, lt: end } },
-    });
-    const revenue = await prisma.payment.aggregate({
-      where: { deletedAt: null, managerId: user.id, paidAt: { gte: start, lt: end } },
-      _sum: { amount: true },
-    });
-
-    if (leads === 0 && won === 0 && calls === 0) continue;
+    const leadCount = leads.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
+    const wonCount = won.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
+    const lostCount = lost.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
+    const callCount = calls.find((row) => row.managerId === user.id)?._count._all ?? 0;
+    if (leadCount === 0 && wonCount === 0 && callCount === 0) continue;
     rows.push({
       manager: `${user.firstName} ${user.lastName}`,
       role: user.role.name,
-      leads,
-      calls,
-      won,
-      lost,
-      conversion: percent(won, won + lost),
-      revenue: revenue._sum.amount?.toNumber() ?? 0,
+      leads: leadCount,
+      calls: callCount,
+      won: wonCount,
+      lost: lostCount,
+      conversion: percent(wonCount, wonCount + lostCount),
+      revenue: revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0,
     });
   }
 
@@ -326,36 +332,47 @@ async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     orderBy: { name: 'asc' },
     select: { id: true, name: true, finalPrice: true, status: true },
   });
+  const ids = courses.map((course) => course.id);
 
-  const rows: Array<Record<string, ReportCell>> = [];
-  for (const course of courses) {
-    const students = await prisma.student.count({ where: { courseId: course.id, deletedAt: null } });
-    const activeStudents = await prisma.student.count({ where: { courseId: course.id, deletedAt: null, status: 'ACTIVE' } });
-    const newStudents = await prisma.student.count({
-      where: { courseId: course.id, deletedAt: null, createdAt: { gte: start, lt: end } },
-    });
-    const groups = await prisma.group.count({ where: { courseId: course.id } });
-    const revenue = await prisma.payment.aggregate({
-      where: { deletedAt: null, courseId: course.id, paidAt: { gte: start, lt: end } },
+  const [students, active, fresh, groups, revenue, debts] = await Promise.all([
+    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null }, _count: { _all: true } }),
+    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.student.groupBy({
+      by: ['courseId'],
+      where: { courseId: { in: ids }, deletedAt: null, createdAt: { gte: start, lt: end } },
+      _count: { _all: true },
+    }),
+    prisma.group.groupBy({ by: ['courseId'], where: { courseId: { in: ids } }, _count: { _all: true } }),
+    prisma.payment.groupBy({
+      by: ['courseId'],
+      where: { courseId: { in: ids }, deletedAt: null, paidAt: { gte: start, lt: end } },
       _sum: { amount: true },
-    });
-    const debt = await prisma.debt.aggregate({
-      where: { student: { courseId: course.id, deletedAt: null } },
-      _sum: { remainingAmount: true },
-    });
+    }),
+    // Qarz o'quvchi orqali kursga bog'lanadi — bitta so'rovda olib, shu yerda jamlanadi
+    prisma.debt.findMany({
+      where: { student: { courseId: { in: ids }, deletedAt: null } },
+      select: { remainingAmount: true, student: { select: { courseId: true } } },
+    }),
+  ]);
 
-    rows.push({
-      course: course.name,
-      status: course.status,
-      price: course.finalPrice.toNumber(),
-      groups,
-      students,
-      activeStudents,
-      newStudents,
-      revenue: revenue._sum.amount?.toNumber() ?? 0,
-      debt: debt._sum.remainingAmount?.toNumber() ?? 0,
-    });
+  const countOf = (list: ReadonlyArray<{ courseId: string; _count: { _all: number } }>, id: string) =>
+    list.find((row) => row.courseId === id)?._count._all ?? 0;
+  const debtByCourse = new Map<string, number>();
+  for (const debt of debts) {
+    debtByCourse.set(debt.student.courseId, (debtByCourse.get(debt.student.courseId) ?? 0) + debt.remainingAmount.toNumber());
   }
+
+  const rows: Array<Record<string, ReportCell>> = courses.map((course) => ({
+    course: course.name,
+    status: course.status,
+    price: course.finalPrice.toNumber(),
+    groups: countOf(groups, course.id),
+    students: countOf(students, course.id),
+    activeStudents: countOf(active, course.id),
+    newStudents: countOf(fresh, course.id),
+    revenue: revenue.find((row) => row.courseId === course.id)?._sum.amount?.toNumber() ?? 0,
+    debt: debtByCourse.get(course.id) ?? 0,
+  }));
 
   rows.sort((a, b) => (b.revenue as number) - (a.revenue as number));
 
@@ -398,32 +415,33 @@ async function groupsReport(query: ReportQuery): Promise<Pick<ReportDto, 'column
     },
   });
 
-  const rows: Array<Record<string, ReportCell>> = [];
-  for (const group of groups) {
-    const students = await prisma.student.count({ where: { groupId: group.id, deletedAt: null, status: 'ACTIVE' } });
-    const attendance = await prisma.attendance.groupBy({
-      by: ['status'],
-      where: { groupId: group.id, date: { gte: start, lt: end } },
+  const ids = groups.map((group) => group.id);
+  const [students, attendance] = await Promise.all([
+    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: ids }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.attendance.groupBy({
+      by: ['groupId', 'status'],
+      where: { groupId: { in: ids }, date: { gte: start, lt: end } },
       _count: { _all: true },
-    });
+    }),
+  ]);
 
-    const marks = attendance.reduce((sum, row) => sum + row._count._all, 0);
-    const present = attendance
-      .filter((row) => row.status !== 'ABSENT')
-      .reduce((sum, row) => sum + row._count._all, 0);
-
-    rows.push({
+  const rows: Array<Record<string, ReportCell>> = groups.map((group) => {
+    const studentCount = students.find((row) => row.groupId === group.id)?._count._all ?? 0;
+    const marks = attendance.filter((row) => row.groupId === group.id);
+    const total = marks.reduce((sum, row) => sum + row._count._all, 0);
+    const present = marks.filter((row) => row.status !== 'ABSENT').reduce((sum, row) => sum + row._count._all, 0);
+    return {
       group: group.name,
       course: group.course.name,
       teacher: group.teacher ? `${group.teacher.firstName} ${group.teacher.lastName}` : '—',
       status: group.status,
       capacity: group.capacity,
-      students,
-      fill: percent(students, group.capacity),
-      marks,
-      attendance: percent(present, marks),
-    });
-  }
+      students: studentCount,
+      fill: percent(studentCount, group.capacity),
+      marks: total,
+      attendance: percent(present, total),
+    };
+  });
 
   return {
     columns: [
@@ -598,14 +616,23 @@ async function attendanceReport(query: ReportQuery): Promise<Pick<ReportDto, 'co
     },
   });
 
+  // Barcha o'quvchilar uchun bitta guruhlangan so'rov (avval har bir o'quvchiga alohida edi)
+  const grouped = await prisma.attendance.groupBy({
+    by: ['studentId', 'status'],
+    where: { studentId: { in: students.map((student) => student.id) }, date: { gte: start, lt: end } },
+    _count: { _all: true },
+  });
+  const countsByStudent = new Map<string, Map<string, number>>();
+  for (const row of grouped) {
+    const counts = countsByStudent.get(row.studentId) ?? new Map<string, number>();
+    counts.set(row.status, row._count._all);
+    countsByStudent.set(row.studentId, counts);
+  }
+
   const rows: Array<Record<string, ReportCell>> = [];
   for (const student of students) {
-    const grouped = await prisma.attendance.groupBy({
-      by: ['status'],
-      where: { studentId: student.id, date: { gte: start, lt: end } },
-      _count: { _all: true },
-    });
-    const counts = new Map(grouped.map((row) => [row.status, row._count._all]));
+    const counts = countsByStudent.get(student.id);
+    if (!counts) continue;
     const present = counts.get('PRESENT') ?? 0;
     const late = counts.get('LATE') ?? 0;
     const excused = counts.get('EXCUSED') ?? 0;
@@ -658,29 +685,43 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
   const { start, end } = resolveRange(query);
   const sources = await prisma.source.findMany({ orderBy: [{ sortOrder: 'asc' }], select: { id: true, name: true } });
 
+  const ids = sources.map((source) => source.id);
+  const base: Prisma.LeadWhereInput = {
+    deletedAt: null,
+    sourceId: { in: ids },
+    ...(query.managerId ? { assignedToId: query.managerId } : {}),
+  };
+  const range = { gte: start, lt: end };
+  const [leads, won, lost, payments] = await Promise.all([
+    prisma.lead.groupBy({ by: ['sourceId'], where: { ...base, createdAt: range }, _count: { _all: true } }),
+    prisma.lead.groupBy({ by: ['sourceId'], where: { ...base, status: 'WON', convertedAt: range }, _count: { _all: true } }),
+    prisma.lead.groupBy({ by: ['sourceId'], where: { ...base, status: 'LOST', updatedAt: range }, _count: { _all: true } }),
+    // To'lov manbaga o'quvchining leadi orqali bog'lanadi — yig'indi bazada hisoblanadi
+    // (Prisma relation maydoni bo'yicha groupBy qila olmaydi; qatorlarni JS'ga yuklash sekinroq edi)
+    prisma.$queryRaw<Array<{ sourceId: string; total: unknown }>>`
+      SELECT l."sourceId" AS "sourceId", SUM(p."amount") AS "total"
+      FROM "payments" p
+      JOIN "students" s ON s."id" = p."studentId"
+      JOIN "leads" l ON l."id" = s."leadId"
+      WHERE p."deletedAt" IS NULL AND p."paidAt" >= ${start} AND p."paidAt" < ${end}
+      GROUP BY l."sourceId"
+    `,
+  ]);
+  const revenueBySource = new Map(payments.map((row) => [row.sourceId, Number(row.total ?? 0)]));
+
   const rows: Array<Record<string, ReportCell>> = [];
   for (const source of sources) {
-    const base: Prisma.LeadWhereInput = {
-      deletedAt: null,
-      sourceId: source.id,
-      ...(query.managerId ? { assignedToId: query.managerId } : {}),
-    };
-    const leads = await prisma.lead.count({ where: { ...base, createdAt: { gte: start, lt: end } } });
-    const won = await prisma.lead.count({ where: { ...base, status: 'WON', convertedAt: { gte: start, lt: end } } });
-    const lost = await prisma.lead.count({ where: { ...base, status: 'LOST', updatedAt: { gte: start, lt: end } } });
-    const revenue = await prisma.payment.aggregate({
-      where: { deletedAt: null, paidAt: { gte: start, lt: end }, student: { lead: { sourceId: source.id } } },
-      _sum: { amount: true },
-    });
-
-    if (leads === 0 && won === 0) continue;
+    const leadCount = leads.find((row) => row.sourceId === source.id)?._count._all ?? 0;
+    const wonCount = won.find((row) => row.sourceId === source.id)?._count._all ?? 0;
+    const lostCount = lost.find((row) => row.sourceId === source.id)?._count._all ?? 0;
+    if (leadCount === 0 && wonCount === 0) continue;
     rows.push({
       source: source.name,
-      leads,
-      won,
-      lost,
-      conversion: percent(won, won + lost),
-      revenue: revenue._sum.amount?.toNumber() ?? 0,
+      leads: leadCount,
+      won: wonCount,
+      lost: lostCount,
+      conversion: percent(wonCount, wonCount + lostCount),
+      revenue: revenueBySource.get(source.id) ?? 0,
     });
   }
 
@@ -751,84 +792,169 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
   const { from, to, start, end } = resolveRange(query);
   const sessionFrom = dateOnlyUtc(from);
   const sessionTo = dateOnlyUtc(to);
-  const months = monthsInRange(from, to);
 
   const profiles = await prisma.teacherProfile.findMany({
     where: { user: { deletedAt: null } },
     select: { id: true, userId: true, specialization: true, user: { select: { firstName: true, lastName: true } } },
     orderBy: [{ user: { firstName: 'asc' } }, { user: { lastName: 'asc' } }],
   });
+  const userIds = profiles.map((profile) => profile.userId);
 
-  const rows: Array<Record<string, ReportCell>> = [];
-  for (const profile of profiles) {
-    const groups = await prisma.group.findMany({
-      where: { teacherId: profile.userId, ...(query.courseId ? { courseId: query.courseId } : {}) },
-      select: { id: true },
-    });
-    if (query.courseId && groups.length === 0) continue;
-    const groupIds = groups.map((group) => group.id);
+  const groups = await prisma.group.findMany({
+    where: { teacherId: { in: userIds }, ...(query.courseId ? { courseId: query.courseId } : {}) },
+    select: { id: true, teacherId: true },
+  });
+  const teacherOfGroup = new Map(groups.map((group) => [group.id, group.teacherId]));
+  const groupIds = groups.map((group) => group.id);
 
-    const activeStudents = await prisma.student.count({
-      where: { groupId: { in: groupIds }, deletedAt: null, status: 'ACTIVE' },
-    });
-    const dropped = await prisma.student.count({
+  // Barcha o'qituvchilar uchun ~10 ta so'rov (avval har bir o'qituvchiga ~11 ta edi)
+  const [active, dropped, sessions, attendance, exams, homework, revenueByStudent, salaries] = await Promise.all([
+    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.student.groupBy({
+      by: ['groupId'],
       where: { groupId: { in: groupIds }, deletedAt: null, status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
-    });
-    const lessons = await prisma.attendanceSession.count({
+      _count: { _all: true },
+    }),
+    prisma.attendanceSession.groupBy({
+      by: ['teacherId', 'groupId'],
       where: {
         status: 'HELD',
         date: { gte: sessionFrom, lte: sessionTo },
-        OR: [
-          { teacherId: profile.userId, ...(query.courseId ? { groupId: { in: groupIds } } : {}) },
-          { teacherId: null, groupId: { in: groupIds } },
-        ],
+        OR: [{ teacherId: { in: userIds } }, { teacherId: null, groupId: { in: groupIds } }],
       },
-    });
-    const attendance = await prisma.attendance.groupBy({
-      by: ['status'],
+      _count: { _all: true },
+    }),
+    prisma.attendance.groupBy({
+      by: ['groupId', 'status'],
       where: { groupId: { in: groupIds }, date: { gte: sessionFrom, lte: sessionTo } },
       _count: { _all: true },
-    });
-    const marks = attendance.reduce((sum, row) => sum + row._count._all, 0);
-    const attended = attendance
-      .filter((row) => row.status === 'PRESENT' || row.status === 'LATE')
-      .reduce((sum, row) => sum + row._count._all, 0);
-
-    const exams = await prisma.examResult.aggregate({
-      where: { exam: { groupId: { in: groupIds }, date: { gte: sessionFrom, lte: sessionTo }, status: { not: 'CANCELLED' } } },
-      _avg: { percentage: true },
-      _count: { _all: true },
-    });
-    const homeworkTotal = await prisma.homeworkSubmission.count({
-      where: { homework: { groupId: { in: groupIds }, status: { not: 'DRAFT' }, deadline: { gte: start, lt: end } } },
-    });
-    const homeworkDone = await prisma.homeworkSubmission.count({
-      where: {
-        status: { in: ['SUBMITTED', 'LATE', 'GRADED'] },
-        homework: { groupId: { in: groupIds }, status: { not: 'DRAFT' }, deadline: { gte: start, lt: end } },
-      },
-    });
-    const revenue = await prisma.payment.aggregate({
+    }),
+    prisma.exam.findMany({
+      where: { groupId: { in: groupIds }, date: { gte: sessionFrom, lte: sessionTo }, status: { not: 'CANCELLED' } },
+      select: { id: true, groupId: true },
+    }),
+    prisma.homework.findMany({
+      where: { groupId: { in: groupIds }, status: { not: 'DRAFT' }, deadline: { gte: start, lt: end } },
+      select: { id: true, groupId: true },
+    }),
+    prisma.payment.groupBy({
+      by: ['studentId'],
       where: { deletedAt: null, paidAt: { gte: start, lt: end }, student: { groupId: { in: groupIds } } },
       _sum: { amount: true },
-    });
-    const salary = await prisma.teacherSalaryPeriod.aggregate({
-      where: { teacherProfileId: profile.id, OR: months },
+    }),
+    prisma.teacherSalaryPeriod.groupBy({
+      by: ['teacherProfileId'],
+      where: { teacherProfileId: { in: profiles.map((profile) => profile.id) }, OR: monthsInRange(from, to) },
       _sum: { totalAmount: true },
-    });
+    }),
+  ]);
 
+  const [examResults, submissions, paidStudents] = await Promise.all([
+    prisma.examResult.groupBy({
+      by: ['examId'],
+      where: { examId: { in: exams.map((exam) => exam.id) } },
+      _sum: { percentage: true },
+      _count: { _all: true },
+    }),
+    prisma.homeworkSubmission.groupBy({
+      by: ['homeworkId', 'status'],
+      where: { homeworkId: { in: homework.map((item) => item.id) } },
+      _count: { _all: true },
+    }),
+    prisma.student.findMany({
+      where: { id: { in: revenueByStudent.map((row) => row.studentId) } },
+      select: { id: true, groupId: true },
+    }),
+  ]);
+
+  // Guruh bo'yicha natijalarni o'qituvchiga yig'ish
+  interface TeacherTotals {
+    groups: number;
+    students: number;
+    dropped: number;
+    lessons: number;
+    marks: number;
+    attended: number;
+    examSum: number;
+    examCount: number;
+    homeworkTotal: number;
+    homeworkDone: number;
+    revenue: number;
+  }
+  const totals = new Map<string, TeacherTotals>();
+  const bucket = (teacherId: string | null | undefined): TeacherTotals | null => {
+    if (!teacherId) return null;
+    let entry = totals.get(teacherId);
+    if (!entry) {
+      entry = { groups: 0, students: 0, dropped: 0, lessons: 0, marks: 0, attended: 0, examSum: 0, examCount: 0, homeworkTotal: 0, homeworkDone: 0, revenue: 0 };
+      totals.set(teacherId, entry);
+    }
+    return entry;
+  };
+
+  for (const group of groups) {
+    const entry = bucket(group.teacherId);
+    if (entry) entry.groups += 1;
+  }
+  for (const row of active) {
+    const entry = bucket(row.groupId ? teacherOfGroup.get(row.groupId) : null);
+    if (entry) entry.students += row._count._all;
+  }
+  for (const row of dropped) {
+    const entry = bucket(row.groupId ? teacherOfGroup.get(row.groupId) : null);
+    if (entry) entry.dropped += row._count._all;
+  }
+  for (const row of sessions) {
+    // Seansda o'qituvchi ko'rsatilgan bo'lsa — o'sha; kurs filtri bo'lsa, faqat filtrdagi guruhlar
+    const inScope = teacherOfGroup.has(row.groupId);
+    const owner = row.teacherId ? (query.courseId && !inScope ? null : row.teacherId) : teacherOfGroup.get(row.groupId);
+    const entry = bucket(owner);
+    if (entry) entry.lessons += row._count._all;
+  }
+  for (const row of attendance) {
+    const entry = bucket(teacherOfGroup.get(row.groupId));
+    if (!entry) continue;
+    entry.marks += row._count._all;
+    if (row.status === 'PRESENT' || row.status === 'LATE') entry.attended += row._count._all;
+  }
+  const examGroup = new Map(exams.map((exam) => [exam.id, exam.groupId]));
+  for (const row of examResults) {
+    const entry = bucket(teacherOfGroup.get(examGroup.get(row.examId) ?? ''));
+    if (!entry) continue;
+    entry.examSum += row._sum.percentage ?? 0;
+    entry.examCount += row._count._all;
+  }
+  const homeworkGroup = new Map(homework.map((item) => [item.id, item.groupId]));
+  for (const row of submissions) {
+    const entry = bucket(teacherOfGroup.get(homeworkGroup.get(row.homeworkId) ?? ''));
+    if (!entry) continue;
+    entry.homeworkTotal += row._count._all;
+    if (row.status === 'SUBMITTED' || row.status === 'LATE' || row.status === 'GRADED') entry.homeworkDone += row._count._all;
+  }
+  const studentGroup = new Map(paidStudents.map((student) => [student.id, student.groupId]));
+  for (const row of revenueByStudent) {
+    const groupId = studentGroup.get(row.studentId);
+    const entry = bucket(groupId ? teacherOfGroup.get(groupId) : null);
+    if (entry) entry.revenue += row._sum.amount?.toNumber() ?? 0;
+  }
+
+  const rows: Array<Record<string, ReportCell>> = [];
+  for (const profile of profiles) {
+    const entry = totals.get(profile.userId);
+    if (query.courseId && (!entry || entry.groups === 0)) continue;
+    const value = entry ?? bucket(profile.userId)!;
     rows.push({
       teacher: `${profile.user.firstName} ${profile.user.lastName}`,
       specialization: profile.specialization ?? '—',
-      groups: groups.length,
-      students: activeStudents,
-      lessons,
-      attendance: marks === 0 ? null : percent(attended, marks),
-      examAverage: exams._count._all === 0 ? null : Math.round(exams._avg.percentage ?? 0),
-      homeworkRate: homeworkTotal === 0 ? null : percent(homeworkDone, homeworkTotal),
-      retention: activeStudents + dropped === 0 ? null : percent(activeStudents, activeStudents + dropped),
-      revenue: revenue._sum.amount?.toNumber() ?? 0,
-      salary: salary._sum.totalAmount?.toNumber() ?? 0,
+      groups: value.groups,
+      students: value.students,
+      lessons: value.lessons,
+      attendance: value.marks === 0 ? null : percent(value.attended, value.marks),
+      examAverage: value.examCount === 0 ? null : Math.round(value.examSum / value.examCount),
+      homeworkRate: value.homeworkTotal === 0 ? null : percent(value.homeworkDone, value.homeworkTotal),
+      retention: value.students + value.dropped === 0 ? null : percent(value.students, value.students + value.dropped),
+      revenue: value.revenue,
+      salary: salaries.find((row) => row.teacherProfileId === profile.id)?._sum.totalAmount?.toNumber() ?? 0,
     });
   }
 

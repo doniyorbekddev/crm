@@ -143,6 +143,19 @@ function toDto(alert: AlertRecord): AlertDto {
   };
 }
 
+/** JSONB kalitlar tartibini o'zgartiradi — solishtirish uchun kalitlar saralanadi */
+function stableJson(value: unknown): string {
+  if (value === null || value === undefined) return 'null';
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (typeof value === 'object') {
+    return `{${Object.keys(value as Record<string, unknown>)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function money(value: number): string {
   return `${value.toLocaleString('uz-UZ')} so‘m`;
 }
@@ -187,42 +200,38 @@ async function highDebtRule(now: Date): Promise<AlertCandidate[]> {
 }
 
 async function dropoutRule(now: Date): Promise<AlertCandidate[]> {
-  const marks = await prisma.attendance.findMany({
-    where: { date: { gte: addDays(now, -60) }, student: { deletedAt: null, status: 'ACTIVE' } },
-    select: {
-      status: true,
-      studentId: true,
-      student: { select: { number: true, firstName: true, lastName: true } },
-      group: { select: { name: true } },
-    },
-    orderBy: [{ date: 'desc' }],
+  // Har bir faol o'quvchining oxirgi N ta belgisi (window funksiya) — hammasi ABSENT bo'lsa xavf.
+  // Avval 60 kunlik barcha davomat qatorlari yuklanardi (katta markazda o'n minglab qator).
+  const since = addDays(now, -60);
+  const risky = await prisma.$queryRaw<Array<{ studentId: string }>>`
+    SELECT "studentId"
+    FROM (
+      SELECT a."studentId", a."status",
+             ROW_NUMBER() OVER (PARTITION BY a."studentId" ORDER BY a."date" DESC) AS rn
+      FROM "attendances" a
+      JOIN "students" s ON s."id" = a."studentId"
+      WHERE a."date" >= ${since} AND s."deletedAt" IS NULL AND s."status" = 'ACTIVE'
+    ) latest
+    WHERE rn <= ${DROPOUT_ABSENCES}
+    GROUP BY "studentId"
+    HAVING COUNT(*) = ${DROPOUT_ABSENCES} AND BOOL_AND("status" = 'ABSENT')
+  `;
+  if (risky.length === 0) return [];
+
+  const students = await prisma.student.findMany({
+    where: { id: { in: risky.map((row) => row.studentId) } },
+    select: { id: true, number: true, firstName: true, lastName: true, group: { select: { name: true } } },
   });
 
-  const latest = new Map<string, typeof marks>();
-  for (const mark of marks) {
-    const list = latest.get(mark.studentId) ?? [];
-    if (list.length < DROPOUT_ABSENCES) {
-      list.push(mark);
-      latest.set(mark.studentId, list);
-    }
-  }
-
-  return [...latest.entries()].flatMap(([studentId, list]) => {
-    if (list.length < DROPOUT_ABSENCES || !list.every((mark) => mark.status === 'ABSENT')) return [];
-    const first = list[0]!;
-    const name = `${first.student.firstName} ${first.student.lastName}`;
-    return [
-      {
-        type: 'HIGH_DROPOUT' as const,
-        severity: 'CRITICAL' as const,
-        title: `Chiqib ketish xavfi: ${name}`,
-        message: `${formatStudentNumber(first.student.number)} (${first.group.name}) oxirgi ${DROPOUT_ABSENCES} ta darsga sababsiz kelmadi. O‘quvchi yoki ota-onasi bilan bog‘laning.`,
-        entityType: 'student',
-        entityId: studentId,
-        dedupeKey: `dropout:${studentId}`,
-      },
-    ];
-  });
+  return students.map((student) => ({
+    type: 'HIGH_DROPOUT' as const,
+    severity: 'CRITICAL' as const,
+    title: `Chiqib ketish xavfi: ${student.firstName} ${student.lastName}`,
+    message: `${formatStudentNumber(student.number)}${student.group ? ` (${student.group.name})` : ''} oxirgi ${DROPOUT_ABSENCES} ta darsga sababsiz kelmadi. O‘quvchi yoki ota-onasi bilan bog‘laning.`,
+    entityType: 'student',
+    entityId: student.id,
+    dedupeKey: `dropout:${student.id}`,
+  }));
 }
 
 async function lowAttendanceRule(now: Date): Promise<AlertCandidate[]> {
@@ -466,7 +475,7 @@ export const alertService = {
 
     const existing = await prisma.alert.findMany({
       where: { dedupeKey: { in: [...byKey.keys()] } },
-      select: { id: true, dedupeKey: true, resolvedAt: true, resolvedById: true },
+      select: { id: true, dedupeKey: true, resolvedAt: true, severity: true, title: true, message: true, metadata: true },
     });
     const existingByKey = new Map(existing.map((alert) => [alert.dedupeKey, alert]));
 
@@ -495,8 +504,16 @@ export const alertService = {
         created += 1;
         await notifyNewAlert(alert.id, candidate);
       } else if (!current.resolvedAt) {
-        await prisma.alert.update({ where: { id: current.id }, data: content });
-        updated += 1;
+        // Matn yoki raqamlar o'zgarmagan bo'lsa — yozuv qilinmaydi (har 30 daqiqada yuzlab UPDATE bo'lmasin)
+        const changed =
+          current.severity !== content.severity ||
+          current.title !== content.title ||
+          current.message !== content.message ||
+          stableJson(current.metadata) !== stableJson(candidate.metadata ?? null);
+        if (changed) {
+          await prisma.alert.update({ where: { id: current.id }, data: content });
+          updated += 1;
+        }
       }
       // Qo'lda yopilgan va muammo davom etayotgan alert — qayta ochilmaydi
     }

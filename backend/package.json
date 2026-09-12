@@ -24,7 +24,8 @@
     "db:studio": "prisma studio",
     "test:unit": "vitest run tests/unit",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:perf-seed": "tsx prisma/perfSeed.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

@@ -336,6 +336,17 @@ List endpointlari umumiy query parametrlarini qabul qiladi: `page`, `limit` (max
 
 ---
 
+### Unumdorlik qoidalari (kengaytirish, PHASE 14)
+
+- **Siklda so‘rov yo‘q:** hisobot va panellar har bir ko‘rsatkich uchun bitta `groupBy` so‘rovi yuboradi
+  (managerlar, kurslar, guruhlar, o‘qituvchilar soniga bog‘liq emas) va natija JS’da birlashtiriladi.
+- **Relation bo‘yicha yig‘indi bazada:** Prisma relation maydoni bo‘yicha `groupBy` qila olmaydi — bunday
+  joylarda (manba bo‘yicha tushum) qatorlarni yuklash o‘rniga parametrli `$queryRaw` + `GROUP BY` ishlatiladi.
+- **"Oxirgi N ta" SQL’da:** chiqib ketish xavfi `ROW_NUMBER() OVER (PARTITION BY ...)` bilan hisoblanadi —
+  o‘n minglab davomat qatori ilovaga yuklanmaydi.
+- **Keraksiz yozuv yo‘q:** alert dvigateli matni va raqamlari o‘zgarmagan alertni yangilamaydi (JSONB
+  kalit tartibi saralab solishtiriladi).
+
 ## 7. Development phases
 
 Barcha 17 bosqich yakunlandi (2026-09-12).
@@ -377,3 +388,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 12 | O‘quvchi progressi | Profil sahifasi (`/students/:id`): daraja va XP progressi, davomat/vazifa/imtihon ko‘rsatkichlari, 6 oylik progress grafigi, o‘qituvchi izohlari, faollik tasmasi; to‘lov bloki faqat ruxsat bo‘lsa | ✅ |
 | 10 | Hisobotlar markazi | 7 ta yangi hisobot (o‘qituvchilar, maoshlar, tushumlar, xarajatlar + budjet, foyda, retention, gamification), hisobot bo‘yicha ruxsat tekshiruvi; o‘tkazma va boshlang‘ich qoldiq foyda hisobidan chiqarildi | ✅ |
 | 13 | Alertlar | Avtomatik ogohlantirishlar dvigateli va job, qo‘lda yopish, kritik alert bildirishnomasi, sotuv rejalari sahifasi, direktor paneliga kritik alertlar | ✅ |
+| 14 | Unumdorlik | Katta hajmli sinov bazasi (`db:perf-seed`), hisobot/dashboard/alertlardagi N+1 so‘rovlar guruhlangan so‘rovlarga aylantirildi, chiqib ketish xavfi SQL window funksiyasi bilan, o‘zgarmagan alertga yozuv qilinmaydi | ✅ |

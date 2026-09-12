@@ -383,30 +383,31 @@ export const dashboardService = {
       select: { id: true, firstName: true, lastName: true, role: { select: { name: true } } },
     });
 
-    const stats: ManagerStatsDto[] = [];
-    for (const user of users) {
-      const leads = await prisma.lead.count({
-        where: { deletedAt: null, assignedToId: user.id, createdAt: { gte: periodStart } },
-      });
-      const won = await prisma.lead.count({
-        where: { deletedAt: null, assignedToId: user.id, status: 'WON', convertedAt: { gte: periodStart } },
-      });
-      const revenue = await prisma.payment.aggregate({
-        where: { deletedAt: null, managerId: user.id, paidAt: { gte: periodStart } },
-        _sum: { amount: true },
-      });
+    const ids = users.map((user) => user.id);
+    const [leads, won, revenue] = await Promise.all([
+      prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, assignedToId: { in: ids }, createdAt: { gte: periodStart } }, _count: { _all: true } }),
+      prisma.lead.groupBy({
+        by: ['assignedToId'],
+        where: { deletedAt: null, assignedToId: { in: ids }, status: 'WON', convertedAt: { gte: periodStart } },
+        _count: { _all: true },
+      }),
+      prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: { gte: periodStart } }, _sum: { amount: true } }),
+    ]);
 
-      stats.push({
+    const stats: ManagerStatsDto[] = users.map((user) => {
+      const leadCount = leads.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
+      const wonCount = won.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
+      return {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         roleName: user.role.name,
-        leads,
-        won,
-        conversionRate: leads === 0 ? 0 : Math.round((won / leads) * 100),
-        revenue: revenue._sum.amount?.toNumber() ?? 0,
-      });
-    }
+        leads: leadCount,
+        won: wonCount,
+        conversionRate: leadCount === 0 ? 0 : Math.round((wonCount / leadCount) * 100),
+        revenue: revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0,
+      };
+    });
 
     return stats
       .filter((row) => row.leads > 0 || row.revenue > 0)

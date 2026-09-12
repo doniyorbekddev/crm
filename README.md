@@ -37,7 +37,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > 6 oylik progress grafigi, o‘qituvchi izohlari va faollik tasmasi), **PHASE 10 — hisobotlar markazi**
 > (15 turdagi hisobot: yangi — o‘qituvchilar samaradorligi, maoshlar, tushumlar, xarajatlar va budjet, foyda,
 > retention, gamification; CSV eksport), **PHASE 13 — ogohlantirishlar** (8 turdagi avtomatik alert har
-> 30 daqiqada tekshiriladi, holat to‘g‘rilansa o‘zi yopiladi; kritik alert bildirishnomasi; sotuv rejalari).
+> 30 daqiqada tekshiriladi, holat to‘g‘rilansa o‘zi yopiladi; kritik alert bildirishnomasi; sotuv rejalari),
+> **PHASE 14 — unumdorlik** (katta hajmli sinov bazasi; hisobotlar, dashboard va alertlardagi N+1 so‘rovlar
+> guruhlangan so‘rovlarga aylantirildi — og‘ir endpointlar 2–4 barobar tezlashdi).
 
 | Qism | Texnologiyalar |
 |---|---|
@@ -220,6 +222,36 @@ TEST_DATABASE_URL="postgresql://crm:crm_dev_password@localhost:5432/crm_test?sch
 
 (Docker’siz variantda: `cd backend && npx prisma dev --name crm-test --detach`, chiqqan `postgres://...` manzilni yozing.)
 `TEST_DATABASE_URL` bo‘lmasa, integratsion testlar o‘tkazib yuboriladi va unit testlar ishlaydi.
+
+### Unumdorlik sinovi (katta hajmdagi ma'lumot)
+
+Real o‘quv markaz hajmida tekshirish uchun **alohida** baza ishlatiladi (development bazasiga tegilmaydi):
+
+```bash
+createdb -O crm crm_perf && psql -d crm_perf -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+cd backend
+export PERF_URL="postgresql://crm:crm_dev_password@localhost:5432/crm_perf?schema=public"
+DATABASE_URL="$PERF_URL" npx prisma migrate deploy
+DATABASE_URL="$PERF_URL" npx prisma db seed           # rollar, kassalar, kategoriyalar
+PERF_DATABASE_URL="$PERF_URL" npm run db:perf-seed    # ~40 soniya
+DATABASE_URL="$PERF_URL" PORT=4100 npm start          # yoki: node --import tsx src/server.ts
+```
+
+Hajm: 2 400 o‘quvchi, 60 guruh, 20 o‘qituvchi, ~124 000 davomat, ~7 100 to‘lov, 6 000 lead, 8 000 follow-up,
+60 000 XP, 48 000 uy vazifasi topshirig‘i, 9 600 imtihon natijasi. Skript faqat nomida `perf` bo‘lgan va
+`DATABASE_URL` dan farqli bazada ishlaydi.
+
+PHASE 14 natijalari (shu hajmda, iliq so‘rov, median):
+
+| Endpoint | Oldin | Keyin |
+|---|---|---|
+| `GET /reports/teachers` | 484 ms | 117 ms |
+| `POST /alerts/evaluate` | 415 ms | 149 ms |
+| `GET /reports/attendance` | 359 ms (eng sekini 3,5 s) | 106 ms |
+| `GET /reports/groups` | 221 ms | 55 ms |
+| `GET /reports/courses` | 105 ms | 45 ms |
+| `GET /reports/managers` | 54 ms | 28 ms |
+| `GET /dashboard/managers` | 32 ms | 20 ms |
 
 ## 10–12. Production, build, deployment
 
