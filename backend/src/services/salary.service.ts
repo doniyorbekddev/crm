@@ -527,8 +527,8 @@ export const salaryService = {
 
   /**
    * Maoshni hisoblaydi (bitta o‘qituvchi yoki barcha faol o‘qituvchilar uchun).
-   * Qo‘lda kiritilgan bonus va jarima qayta hisoblashda saqlanadi;
-   * tasdiqlangan (locked) davr qayta hisoblanmaydi.
+   * Qo‘lda kiritilgan (adjust) bonus va jarima qayta hisoblashda saqlanadi, qo‘l tegmagan
+   * bo‘lsa model bonusi qo‘llanadi; tasdiqlangan (locked) davr qayta hisoblanmaydi.
    */
   async calculate(actor: AuthUser, input: CalculateSalaryInput, client: ClientInfo): Promise<CalculateResultDto> {
     const profiles = await prisma.teacherProfile.findMany({
@@ -550,7 +550,15 @@ export const salaryService = {
       const result = await prisma.$transaction(async (tx) => {
         const existing = await tx.teacherSalaryPeriod.findUnique({
           where: { teacherProfileId_year_month: { teacherProfileId: profile.id, year: input.year, month: input.month } },
-          select: { id: true, lockedAt: true, bonus: true, penalty: true, paidAmount: true, note: true },
+          select: {
+            id: true,
+            lockedAt: true,
+            bonus: true,
+            penalty: true,
+            paidAmount: true,
+            calculatedAt: true,
+            updatedAt: true,
+          },
         });
         if (existing?.lockedAt) {
           return { ok: false, reason: 'Maosh tasdiqlangan — qayta hisoblanmaydi' } as const;
@@ -563,8 +571,11 @@ export const salaryService = {
 
         const workload = await loadWorkload(tx, profile.userId, input.year, input.month);
         const parts = computeSalaryParts(toSalaryRates(rule), workload);
-        const bonus = existing ? existing.bonus.toNumber() : rule.bonus.toNumber();
-        const penalty = existing ? existing.penalty.toNumber() : 0;
+        // Hisoblashdan keyin qo'lda o'zgartirilgan bo'lsa (adjust) — bonus va jarima saqlanadi,
+        // aks holda model bonusi qo'llanadi. Hisoblashda updatedAt = calculatedAt qilib yoziladi.
+        const adjusted = Boolean(existing?.calculatedAt && existing.updatedAt > existing.calculatedAt);
+        const bonus = adjusted && existing ? existing.bonus.toNumber() : rule.bonus.toNumber();
+        const penalty = adjusted && existing ? existing.penalty.toNumber() : 0;
         const totalAmount = Math.max(
           parts.baseAmount + parts.lessonAmount + parts.studentAmount + parts.percentageAmount + bonus - penalty,
           0,
@@ -572,6 +583,7 @@ export const salaryService = {
         const paidAmount = existing?.paidAmount.toNumber() ?? 0;
         const remainingAmount = Math.max(totalAmount - paidAmount, 0);
 
+        const calculatedAt = new Date();
         const data = {
           salaryType: rule.type,
           lessonsCount: workload.lessonsCount,
@@ -587,7 +599,8 @@ export const salaryService = {
           paidAmount,
           remainingAmount,
           status: paidAmount > 0 ? statusAfterPayment(totalAmount, paidAmount) : ('CALCULATED' as const),
-          calculatedAt: new Date(),
+          calculatedAt: calculatedAt,
+          updatedAt: calculatedAt,
         };
 
         const period = existing
@@ -734,13 +747,12 @@ export const salaryService = {
    */
   async pay(actor: AuthUser, id: string, input: PaySalaryInput, client: ClientInfo): Promise<SalaryPeriodDto> {
     const period = await findPeriodOrFail(id);
+    const remaining = period.remainingAmount.toNumber();
+    if (period.status === 'PAID' || (period.lockedAt && remaining <= 0)) {
+      throw AppError.conflict('Bu maosh to‘liq to‘langan');
+    }
     if (period.status !== 'APPROVED' && period.status !== 'PARTIALLY_PAID') {
       throw AppError.unprocessable('Maosh tasdiqlanmagan — to‘lov qabul qilinmaydi');
-    }
-
-    const remaining = period.remainingAmount.toNumber();
-    if (remaining <= 0) {
-      throw AppError.conflict('Bu maosh to‘liq to‘langan');
     }
     if (input.amount > remaining) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [

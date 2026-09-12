@@ -31,7 +31,7 @@ describe('maosh hisobi', () => {
     expect(
       computeSalaryParts(rates({ type: 'PERCENTAGE', percentage: 33.33 }), { ...WORKLOAD, groupRevenue: 1_000_001 })
         .percentageAmount,
-    ).toBe(333_334);
+    ).toBe(333_300);
   });
 
   it('aralash modelda barcha tarkibiy qismlar qo‘shiladi', () => {
