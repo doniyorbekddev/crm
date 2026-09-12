@@ -41,7 +41,8 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > **PHASE 14 — unumdorlik** (katta hajmli sinov bazasi; hisobotlar, dashboard va alertlardagi N+1 so‘rovlar
 > guruhlangan so‘rovlarga aylantirildi — og‘ir endpointlar 2–4 barobar tezlashdi), **PHASE 15 — xavfsizlik
 > auditi** (maosh ma’lumoti server tomonda yashirildi, CSV formula injection himoyasi, og‘ir operatsiyalarga
-> limiter, route va bog‘liqliklar auditi).
+> limiter, route va bog‘liqliklar auditi), **PHASE 16 — testlar** (moliya servislari uchun chekka holatlar, yangi
+> modullar utils testlari; backend qamrovi 88.6% statements / 90.5% lines).
 
 | Qism | Texnologiyalar |
 |---|---|
@@ -212,8 +213,9 @@ npm run test:unit      # Faqat backend unit testlari (bazasiz, ~6 soniya)
 npm run test:coverage  # Qamrov hisoboti (backend + frontend)
 ```
 
-Testlar tarkibi: **209 ta backend testi** (23 fayl — 49 unit + 160 integratsion) va **24 ta frontend unit testi**.
-Backend qamrovi: statements 87.9%, branches 75.6%, functions 89.3%.
+Testlar tarkibi: **314 ta backend testi** (36 fayl — unit va integratsion) va **31 ta frontend unit testi** (3 fayl).
+Backend qamrovi: statements 88.6%, branches 73.3%, functions 89.7%, lines 90.5%. Moliya servislari (tushum,
+xarajat, kassalar, daftar) ~95% qator bilan qoplangan; fon joblari (timer) testlanmaydi.
 
 **Integratsion testlar** alohida bazani talab qiladi — testlar uni har safar tozalaydi, shuning uchun
 development bazasini hech qachon ko‘rsatmang. `backend/.env` ga qo‘shing:

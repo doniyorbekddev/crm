@@ -418,3 +418,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 13 | Alertlar | Avtomatik ogohlantirishlar dvigateli va job, qo‘lda yopish, kritik alert bildirishnomasi, sotuv rejalari sahifasi, direktor paneliga kritik alertlar | ✅ |
 | 14 | Unumdorlik | Katta hajmli sinov bazasi (`db:perf-seed`), hisobot/dashboard/alertlardagi N+1 so‘rovlar guruhlangan so‘rovlarga aylantirildi, chiqib ketish xavfi SQL window funksiyasi bilan, o‘zgarmagan alertga yozuv qilinmaydi | ✅ |
 | 15 | Xavfsizlik auditi | Yangi route’lar ruxsat bo‘yicha tekshirildi; maosh ma’lumoti server tomonda yashirildi, CSV formula injection neytrallandi, erkin fayl yo‘li olib tashlandi, og‘ir operatsiyalarga limiter; bog‘liqliklar auditi | ✅ |
+| 16 | Testlar | Moliya servislari chekka holatlari (kassa, daftar filtrlari, bekor qilish, kategoriyalar, budjet, pul oqimi davrlari); frontend yorliq/utils testlari; jami 314 backend + 31 frontend testi, backend 88.6% statements | ✅ |
