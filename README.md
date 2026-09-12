@@ -29,7 +29,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > nishonlar, seriya, reyting), **PHASE 5 — o‘qituvchi boshqaruvi** (profil va yuklama, 5 xil maosh
 > modeli, oylik hisob-kitob, bonus/jarima, tasdiqlash va to‘lov — xarajat va kassa yozuvi bilan),
 > **PHASE 7–8 — moliya** (yagona moliyaviy daftar, kassalar va qoldiqlar, o‘tkazma, tushum va xarajat
-> yozuvlari, kategoriyalar, sabab bilan bekor qilish, oylik budjet va pul oqimi grafigi).
+> yozuvlari, kategoriyalar, sabab bilan bekor qilish, oylik budjet va pul oqimi grafigi),
+> **PHASE 9 — direktor paneli** (12 ta bosiladigan KPI, bugungi va oylik yakunlar, 6 oylik dinamika,
+> diqqat talab qiladigan holatlar ro‘yxati).
 
 | Qism | Texnologiyalar |
 |---|---|

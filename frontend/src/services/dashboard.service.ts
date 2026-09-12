@@ -5,12 +5,18 @@ import type {
   ChartPoint,
   DashboardFollowUp,
   DashboardSummary,
+  ExecutiveSummary,
   FunnelStage,
   ManagerPeriod,
   ManagerStats,
 } from '@/types/dashboard';
 
 export const dashboardService = {
+  async executive(): Promise<ExecutiveSummary> {
+    const response = await api.get<ApiSuccessResponse<ExecutiveSummary>>('/dashboard/executive');
+    return response.data.data;
+  },
+
   async summary(): Promise<DashboardSummary> {
     const response = await api.get<ApiSuccessResponse<DashboardSummary>>('/dashboard/summary');
     return response.data.data;

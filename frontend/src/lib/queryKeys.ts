@@ -23,6 +23,7 @@ export const queryKeys = {
   dashboard: {
     all: ['dashboard'] as const,
     summary: ['dashboard', 'summary'] as const,
+    executive: ['dashboard', 'executive'] as const,
     charts: (period: ChartPeriod) => ['dashboard', 'charts', period] as const,
     funnel: ['dashboard', 'funnel'] as const,
     followUps: ['dashboard', 'follow-ups'] as const,

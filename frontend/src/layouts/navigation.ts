@@ -6,6 +6,7 @@ import {
   BookOpen,
   CalendarCheck,
   CalendarClock,
+  Gauge,
   GraduationCap,
   HandCoins,
   Layers,
@@ -42,7 +43,10 @@ export interface NavSection {
 export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'Umumiy',
-    items: [{ to: '/dashboard', label: 'Dashboard', icon: BarChart3, permission: PERMISSIONS.DASHBOARD_VIEW }],
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: BarChart3, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { to: '/executive', label: 'Direktor paneli', icon: Gauge, permission: PERMISSIONS.ANALYTICS_VIEW },
+    ],
   },
   {
     title: 'Sotuv',

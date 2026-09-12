@@ -78,3 +78,71 @@ export interface DashboardFollowUp {
   overdue: boolean;
   lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string };
 }
+
+export interface ExecutiveKpi {
+  totalStudents: number;
+  activeStudents: number;
+  newStudents: number;
+  droppedStudents: number;
+  totalGroups: number;
+  activeGroups: number;
+  totalTeachers: number;
+  monthRevenue: number;
+  monthExpense: number;
+  netProfit: number;
+  totalDebt: number;
+  attendanceRate: number;
+  salesConversion: number;
+}
+
+export interface ExecutiveToday {
+  date: string;
+  newLeads: number;
+  newStudents: number;
+  trialLessons: number;
+  lessons: number;
+  markedLessons: number;
+  attendanceRate: number;
+  absentStudents: number;
+  payments: number;
+  expenses: number;
+  netRevenue: number;
+  activeGroups: number;
+  activeTeachers: number;
+}
+
+export interface ExecutiveMonth {
+  year: number;
+  month: number;
+  label: string;
+  revenue: number;
+  expense: number;
+  netProfit: number;
+  margin: number;
+  newLeads: number;
+  wonLeads: number;
+  conversionRate: number;
+  newStudents: number;
+  droppedStudents: number;
+  activeStudents: number;
+  totalDebt: number;
+  salaryAccrued: number;
+  salaryPaid: number;
+  attendanceRate: number;
+}
+
+export interface ExecutiveTrendPoint {
+  date: string;
+  label: string;
+  revenue: number;
+  expense: number;
+  profit: number;
+}
+
+export interface ExecutiveSummary {
+  kpi: ExecutiveKpi;
+  today: ExecutiveToday;
+  month: ExecutiveMonth;
+  trend: ExecutiveTrendPoint[];
+  attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger' }>;
+}

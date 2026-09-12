@@ -1,10 +1,17 @@
 import type { Request, Response } from 'express';
 import { dashboardService } from '../services/dashboard.service.js';
+import { executiveService } from '../services/executive.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
-import { chartQuerySchema, managerStatsQuerySchema } from '../validators/dashboard.validator.js';
+import { chartQuerySchema, executiveQuerySchema, managerStatsQuerySchema } from '../validators/dashboard.validator.js';
 
 export const dashboardController = {
+  /** Owner/Director paneli — butun markaz holati */
+  async executive(req: Request, res: Response): Promise<void> {
+    const query = executiveQuerySchema.parse(req.query);
+    sendSuccess(res, await executiveService.summary(query));
+  },
+
   async summary(req: Request, res: Response): Promise<void> {
     sendSuccess(res, await dashboardService.summary(requireAuthUser(req)));
   },
