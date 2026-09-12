@@ -1,4 +1,5 @@
 import type { AuditListParams } from '@/types/audit';
+import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ManagerPeriod } from '@/types/dashboard';
@@ -104,6 +105,14 @@ export const queryKeys = {
   search: {
     all: ['search'] as const,
     query: (term: string) => ['search', term] as const,
+  },
+  gamification: {
+    all: ['gamification'] as const,
+    leaderboard: (params: LeaderboardParams) => ['gamification', 'leaderboard', params] as const,
+    profile: (studentId: string) => ['gamification', 'profile', studentId] as const,
+    rules: ['gamification', 'rules'] as const,
+    levels: ['gamification', 'levels'] as const,
+    badges: ['gamification', 'badges'] as const,
   },
   lookups: {
     leadForm: ['lookups', 'lead-form'] as const,

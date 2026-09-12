@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Trash2, Wallet } from 'lucide-react';
+import { CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -30,6 +30,7 @@ import {
   STUDENT_STATUS_ORDER,
   STUDENT_STATUS_TONES,
 } from '@/utils/studentLabels';
+import { StudentXpModal } from '../gamification/StudentXpModal';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
@@ -47,7 +48,7 @@ const SORT_OPTIONS = [
 
 type Dialog =
   | { type: 'create' }
-  | { type: 'edit' | 'status' | 'delete' | 'attendance' | 'payment'; student: StudentItem }
+  | { type: 'edit' | 'status' | 'delete' | 'attendance' | 'payment' | 'xp'; student: StudentItem }
   | null;
 
 export default function StudentsPage() {
@@ -55,6 +56,7 @@ export default function StudentsPage() {
   const canManage = usePermission(PERMISSIONS.STUDENT_MANAGE);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
   const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
+  const canViewGamification = usePermission(PERMISSIONS.GAMIFICATION_VIEW);
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -271,6 +273,9 @@ export default function StudentsPage() {
                             ...(canCreatePayment && (student.debt?.remaining ?? 0) > 0
                               ? [{ label: 'To‘lov qabul qilish', icon: Wallet, onSelect: () => setDialog({ type: 'payment', student }) }]
                               : []),
+                            ...(canViewGamification
+                              ? [{ label: 'XP va yutuqlar', icon: Sparkles, onSelect: () => setDialog({ type: 'xp', student }) }]
+                              : []),
                             ...(canViewAttendance
                               ? [
                                   {
@@ -342,6 +347,7 @@ export default function StudentsPage() {
         />
       )}
       {dialog?.type === 'attendance' && <StudentAttendanceModal student={dialog.student} onClose={() => setDialog(null)} />}
+      {dialog?.type === 'xp' && <StudentXpModal studentId={dialog.student.id} onClose={() => setDialog(null)} />}
       {dialog?.type === 'payment' && (
         <PaymentFormModal
           student={dialog.student}

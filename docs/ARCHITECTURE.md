@@ -273,6 +273,7 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Groups | `GET /groups` · `POST /groups` · `GET /groups/:id` · `PUT /groups/:id` · `DELETE /groups/:id` · `GET /groups/:id/attendance?date=` · `POST /groups/:id/attendance` |
 | Attendance | `GET /attendance/stats` · `GET /attendance/ranking` · `GET /attendance/teacher-overview` · `GET /students/:id/attendance/calendar?year=&month=` |
 | Attendance sessions | `GET /attendance-sessions` · `POST /attendance-sessions` · `GET /attendance-sessions/:id` · `PUT /attendance-sessions/:id` · `DELETE /attendance-sessions/:id` |
+| Gamification | `GET /gamification/leaderboard?period=week\|month\|year\|all` · `GET /gamification/students/:id` · `GET /gamification/rules\|levels\|badges` · `PUT /gamification/rules/:id` · `PUT /gamification/levels/:id` · `PUT /gamification/badges/:id` · `POST /gamification/xp` · `POST /gamification/badges/award` · `POST /gamification/recalculate` |
 | Students | `GET /students` · `GET /students/summary` · `POST /students` · `GET /students/:id` · `PUT /students/:id` · `PATCH /students/:id/status` · `DELETE /students/:id` · `GET /students/:id/attendance` |
 | Payments | `GET /payments` · `GET /payments/stats` · `POST /payments` · `GET /payments/:id` · `DELETE /payments/:id` (sabab majburiy) |
 | Debts | `GET /debts?range=all\|zero\|upto500k\|500k-1m\|1m-plus` · `GET /debts/summary` |

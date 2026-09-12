@@ -74,6 +74,10 @@ export const router = createBrowserRouter([
                 children: [{ path: 'attendance', lazy: lazyComponent(() => import('@/pages/attendance/AttendancePage')) }],
               },
               {
+                element: <PermissionGate permission={PERMISSIONS.GAMIFICATION_VIEW} />,
+                children: [{ path: 'gamification', lazy: lazyComponent(() => import('@/pages/gamification/GamificationPage')) }],
+              },
+              {
                 element: <PermissionGate permission={PERMISSIONS.PAYMENT_VIEW} />,
                 children: [{ path: 'payments', lazy: lazyComponent(() => import('@/pages/payments/PaymentsPage')) }],
               },

@@ -8,6 +8,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type { MarkAttendanceInput } from '../validators/attendance.validator.js';
 import { auditService } from './audit.service.js';
 import { attendanceSessionService } from './attendanceSession.service.js';
+import { gamificationHooks } from './gamification.service.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 
@@ -242,6 +243,14 @@ export const attendanceService = {
           },
           update: { status: record.status, note: record.note ?? null, markedById: actor.id, sessionId },
           select: { id: true, status: true },
+        });
+
+        // XP, ketma-ketlik va nishonlar (qayta belgilansa qayta hisoblanadi)
+        await gamificationHooks.onAttendanceMarked(tx, {
+          studentId: record.studentId,
+          attendanceId: saved.id,
+          status: saved.status,
+          date: input.date,
         });
 
         // Darsga kelmagan o‘quvchi haqida ogohlantirish (Telegram integratsiyasi shu yerga ulanadi)

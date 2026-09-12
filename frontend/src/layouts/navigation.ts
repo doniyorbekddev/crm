@@ -12,6 +12,7 @@ import {
   ScrollText,
   ShieldCheck,
   Target,
+  Trophy,
   Wallet,
   UserRound,
   Users,
@@ -52,6 +53,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/students', label: 'O‘quvchilar', icon: GraduationCap, permission: PERMISSIONS.STUDENT_VIEW },
       { to: '/attendance', label: 'Davomat', icon: CalendarCheck, permission: PERMISSIONS.ATTENDANCE_VIEW },
+      { to: '/gamification', label: 'Reyting', icon: Trophy, permission: PERMISSIONS.GAMIFICATION_VIEW },
     ],
   },
   {
