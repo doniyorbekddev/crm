@@ -263,8 +263,10 @@ async function attentionBlock(now: Date): Promise<ExecutiveSummaryDto['attention
   const overdueFollowUps = await prisma.followUp.count({ where: { status: 'PENDING', dueAt: { lt: dayStart } } });
   const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED' } });
   const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING' } });
+  const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL' } });
 
   const rows: ExecutiveSummaryDto['attention'] = [
+    { key: 'criticalAlerts', label: 'Kritik ogohlantirishlar', value: criticalAlerts, tone: 'danger' },
     { key: 'debtors', label: 'Qarzdor o‘quvchilar', value: debtors, tone: 'danger' },
     { key: 'unmarkedLessons', label: 'Davomati belgilanmagan darslar', value: unmarkedLessons, tone: 'warning' },
     { key: 'overdueFollowUps', label: 'Kechikkan follow-up', value: overdueFollowUps, tone: 'warning' },

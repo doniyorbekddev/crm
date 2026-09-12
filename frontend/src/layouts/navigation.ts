@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CalendarClock,
   ClipboardList,
+  Crosshair,
   FileCheck,
   Gauge,
   GraduationCap,
@@ -14,6 +15,7 @@ import {
   Layers,
   ScrollText,
   ShieldCheck,
+  Siren,
   Target,
   PiggyBank,
   TrendingDown,
@@ -48,6 +50,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: BarChart3, permission: PERMISSIONS.DASHBOARD_VIEW },
       { to: '/executive', label: 'Direktor paneli', icon: Gauge, permission: PERMISSIONS.ANALYTICS_VIEW },
+      { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
     ],
   },
   {
@@ -55,6 +58,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/leads', label: 'Leadlar', icon: Target, permission: PERMISSIONS.LEAD_VIEW },
       { to: '/follow-ups', label: 'Follow-up', icon: CalendarClock, permission: PERMISSIONS.FOLLOWUP_VIEW },
+      { to: '/targets', label: 'Sotuv rejalari', icon: Crosshair, permission: PERMISSIONS.TARGET_VIEW },
     ],
   },
   {

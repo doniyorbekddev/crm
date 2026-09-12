@@ -257,6 +257,7 @@ crm/
 | Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
 | Student profile & progress | O‘quvchi profili: daraja, XP, reyting, seriya, davomat; oylik progress grafigi (davomat, uy vazifasi, imtihon), o‘qituvchi izohlari, faollik tasmasi, uy vazifasi/imtihon/to‘lov/yutuqlar tablari |
 | Homework & Exams | Uy vazifasi (qoralama → e’lon → yopish), topshiriqlar va baholash, butun guruhni bir bosishda belgilash; imtihon natijalari, foiz, A–F baho, o‘tish foizi; XP avtomatik |
+| Alerts & Targets | 8 turdagi avtomatik ogohlantirish (katta qarz, chiqib ketish xavfi, past davomat, kechikkan follow-up, to‘lanmagan maosh, budjetdan oshish, to‘lmagan guruh, reja bajarildi) — har 30 daqiqada job; holat to‘g‘rilansa avtomatik yopiladi; managerlar bo‘yicha oylik lead/sotuv/tushum rejalari |
 | Executive dashboard | Owner/Director paneli: 12 ta KPI (bosiladigan), bugungi va oylik bloklar, 6 oylik dinamika, diqqat talab qiladigan holatlar |
 | Finance | Moliyaviy daftar (Transaction), kassalar va qoldiqlar, kassalar o‘rtasida o‘tkazma, panel (tushum/xarajat/sof foyda), pul oqimi grafigi |
 | Income / Expense | Tushum va xarajat yozuvlari, kategoriyalar, sabab bilan bekor qilish (VOID), oylik budjet — reja vs fakt |
@@ -287,6 +288,8 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Attendance sessions | `GET /attendance-sessions` · `POST /attendance-sessions` · `GET /attendance-sessions/:id` · `PUT /attendance-sessions/:id` · `DELETE /attendance-sessions/:id` |
 | Gamification | `GET /gamification/leaderboard?period=week\|month\|year\|all` · `GET /gamification/students/:id` · `GET /gamification/rules\|levels\|badges` · `PUT /gamification/rules/:id` · `PUT /gamification/levels/:id` · `PUT /gamification/badges/:id` · `POST /gamification/xp` · `POST /gamification/badges/award` · `POST /gamification/recalculate` |
 | Teachers | `GET /teachers` · `GET /teachers/me` · `GET /teachers/candidates` · `POST /teachers` · `GET /teachers/:id` · `PUT /teachers/:id` · `GET /teachers/:id/salary-rules` · `POST /teachers/:id/salary-rules` · `GET /teachers/:id/salary-periods` |
+| Alerts | `GET /alerts?status=open\|resolved\|all&type=&severity=` · `GET /alerts/summary` · `POST /alerts/evaluate` · `PATCH /alerts/:id/resolve` |
+| Targets | `GET /targets?year=&month=` · `PUT /targets` (0 — rejani olib tashlash) |
 | Homework | `GET /homework` · `POST /homework` · `GET /homework/:id` · `PUT /homework/:id` · `DELETE /homework/:id` · `PUT /homework/:id/submissions` (guruh bo‘yicha) · `PATCH /homework/:id/submissions/:studentId` |
 | Exams | `GET /exams` · `POST /exams` · `GET /exams/:id` · `PUT /exams/:id` · `DELETE /exams/:id` · `PUT /exams/:id/results` |
 | Finance | `GET /finance/summary?from=&to=` · `GET /finance/cash-flow?period=day\|week\|month` · `GET /finance/accounts` · `POST /finance/accounts` · `PUT /finance/accounts/:id` · `GET /finance/transactions` · `POST /finance/transfers` · `POST /finance/transactions/:id/void` · `GET /finance/budget?year=&month=` · `PUT /finance/budget` |
@@ -373,3 +376,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 11 | Uy vazifasi va imtihonlar | Vazifa berish, topshiriq va baholash, imtihon natijalari (foiz, baho, o‘tish), XP hooklari ulandi, o‘qituvchi faqat o‘z guruhlari bilan ishlaydi | ✅ |
 | 12 | O‘quvchi progressi | Profil sahifasi (`/students/:id`): daraja va XP progressi, davomat/vazifa/imtihon ko‘rsatkichlari, 6 oylik progress grafigi, o‘qituvchi izohlari, faollik tasmasi; to‘lov bloki faqat ruxsat bo‘lsa | ✅ |
 | 10 | Hisobotlar markazi | 7 ta yangi hisobot (o‘qituvchilar, maoshlar, tushumlar, xarajatlar + budjet, foyda, retention, gamification), hisobot bo‘yicha ruxsat tekshiruvi; o‘tkazma va boshlang‘ich qoldiq foyda hisobidan chiqarildi | ✅ |
+| 13 | Alertlar | Avtomatik ogohlantirishlar dvigateli va job, qo‘lda yopish, kritik alert bildirishnomasi, sotuv rejalari sahifasi, direktor paneliga kritik alertlar | ✅ |

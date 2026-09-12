@@ -89,6 +89,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'expense.voided': 'Xarajat bekor qilindi',
 
   'budget.saved': 'Budjet saqlandi',
+
+  'alert.resolved': 'Ogohlantirish yopildi',
+  'target.updated': 'Sotuv rejasi belgilandi',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -113,6 +116,8 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   income: 'Tushum',
   expense: 'Xarajat',
   budget: 'Budjet',
+  alert: 'Ogohlantirish',
+  target: 'Sotuv rejasi',
   settings: 'Sozlamalar',
 };
 

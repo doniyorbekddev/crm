@@ -1,6 +1,7 @@
 import { createApp } from './app.js';
 import { disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
+import { startAlertsJob } from './jobs/alerts.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { logger } from './utils/logger.js';
@@ -12,6 +13,8 @@ const app = createApp();
 // Follow-up eslatmalari va kechikish ogohlantirishlari (har daqiqada tekshiriladi)
 const stopFollowUpReminders = startFollowUpReminderJob();
 const stopDebtReminders = startDebtReminderJob();
+// Avtomatik ogohlantirishlar (har 30 daqiqada)
+const stopAlerts = startAlertsJob();
 
 const server = app.listen(env.PORT, (error?: Error) => {
   if (error) {
@@ -29,6 +32,7 @@ function shutdown(signal: NodeJS.Signals): void {
   logger.info({ signal }, 'Server to‘xtatilmoqda...');
   stopFollowUpReminders();
   stopDebtReminders();
+  stopAlerts();
 
   const forceExitTimer = setTimeout(() => {
     logger.error('Server belgilangan vaqtda to‘xtamadi, majburan yopilmoqda');

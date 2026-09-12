@@ -49,6 +49,14 @@ export const router = createBrowserRouter([
                 children: [{ path: 'executive', lazy: lazyComponent(() => import('@/pages/dashboard/ExecutivePage')) }],
               },
               {
+                element: <PermissionGate permission={PERMISSIONS.ALERT_VIEW} />,
+                children: [{ path: 'alerts', lazy: lazyComponent(() => import('@/pages/alerts/AlertsPage')) }],
+              },
+              {
+                element: <PermissionGate permission={PERMISSIONS.TARGET_VIEW} />,
+                children: [{ path: 'targets', lazy: lazyComponent(() => import('@/pages/alerts/TargetsPage')) }],
+              },
+              {
                 element: <PermissionGate permission={PERMISSIONS.LEAD_VIEW} />,
                 children: [
                   { path: 'leads', lazy: lazyComponent(() => import('@/pages/leads/LeadsPage')) },

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { alertRouter, targetRouter } from './alert.routes.js';
 import { attendanceRouter, attendanceSessionRouter } from './attendance.routes.js';
 import { auditRouter } from './audit.routes.js';
 import { authRouter } from './auth.routes.js';
@@ -31,6 +32,8 @@ apiRouter.use('/users', userRouter);
 apiRouter.use('/roles', roleRouter);
 apiRouter.use('/permissions', permissionRouter);
 apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/alerts', alertRouter);
+apiRouter.use('/targets', targetRouter);
 apiRouter.use('/leads', leadRouter);
 apiRouter.use('/calls', callRouter);
 apiRouter.use('/follow-ups', followUpRouter);

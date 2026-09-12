@@ -28,3 +28,17 @@ export function startOfBusinessMonth(now: Date = new Date(), monthsAgo = 0): Dat
   const monthStart = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() - monthsAgo, 1, 0, 0, 0, 0);
   return new Date(monthStart - OFFSET_MS);
 }
+
+/** Tanlangan oy chegaralari (o‘quv markaz vaqti bo‘yicha): [boshlanish, keyingi oy boshlanishi) */
+export function businessMonthRange(year: number, month: number): { start: Date; end: Date } {
+  return {
+    start: new Date(Date.UTC(year, month - 1, 1) - OFFSET_MS),
+    end: new Date(Date.UTC(year, month, 1) - OFFSET_MS),
+  };
+}
+
+/** Joriy oy (o‘quv markaz vaqti bo‘yicha) */
+export function currentBusinessMonth(now: Date = new Date()): { year: number; month: number } {
+  const value = businessDateString(now);
+  return { year: Number(value.slice(0, 4)), month: Number(value.slice(5, 7)) };
+}

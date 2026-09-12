@@ -1,3 +1,4 @@
+import type { AlertListParams } from '@/types/alert';
 import type { AuditListParams } from '@/types/audit';
 import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
@@ -133,6 +134,15 @@ export const queryKeys = {
     all: ['salaries'] as const,
     periods: (params: SalaryPeriodParams) => ['salaries', 'periods', params] as const,
     summary: (params: { year: number; month: number }) => ['salaries', 'summary', params] as const,
+  },
+  alerts: {
+    all: ['alerts'] as const,
+    list: (params: AlertListParams) => ['alerts', 'list', params] as const,
+    summary: ['alerts', 'summary'] as const,
+  },
+  targets: {
+    all: ['targets'] as const,
+    overview: (year: number, month: number) => ['targets', year, month] as const,
   },
   homework: {
     all: ['homework'] as const,

@@ -36,7 +36,8 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > **PHASE 12 — o‘quvchi progressi** (profil sahifasi: daraja va XP, davomat, vazifa va imtihon ko‘rsatkichlari,
 > 6 oylik progress grafigi, o‘qituvchi izohlari va faollik tasmasi), **PHASE 10 — hisobotlar markazi**
 > (15 turdagi hisobot: yangi — o‘qituvchilar samaradorligi, maoshlar, tushumlar, xarajatlar va budjet, foyda,
-> retention, gamification; CSV eksport).
+> retention, gamification; CSV eksport), **PHASE 13 — ogohlantirishlar** (8 turdagi avtomatik alert har
+> 30 daqiqada tekshiriladi, holat to‘g‘rilansa o‘zi yopiladi; kritik alert bildirishnomasi; sotuv rejalari).
 
 | Qism | Texnologiyalar |
 |---|---|
