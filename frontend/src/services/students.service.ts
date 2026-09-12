@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { StudentExamRow, StudentHomeworkRow, StudentProfile } from '@/types/studentProfile';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type { StudentAttendanceHistory } from '@/types/attendance';
@@ -60,6 +61,21 @@ export const studentsService = {
 
   async attendanceHistory(id: string): Promise<StudentAttendanceHistory> {
     const response = await api.get<ApiSuccessResponse<StudentAttendanceHistory>>(`/students/${id}/attendance`);
+    return response.data.data;
+  },
+
+  async profile(id: string): Promise<StudentProfile> {
+    const response = await api.get<ApiSuccessResponse<StudentProfile>>(`/students/${id}/profile`);
+    return response.data.data;
+  },
+
+  async homework(id: string): Promise<StudentHomeworkRow[]> {
+    const response = await api.get<ApiSuccessResponse<StudentHomeworkRow[]>>(`/students/${id}/homework`);
+    return response.data.data;
+  },
+
+  async exams(id: string): Promise<StudentExamRow[]> {
+    const response = await api.get<ApiSuccessResponse<StudentExamRow[]>>(`/students/${id}/exams`);
     return response.data.data;
   },
 

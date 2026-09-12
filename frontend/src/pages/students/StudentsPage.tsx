@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, Wallet } from 'lucide-react';
+import { CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -52,6 +53,7 @@ type Dialog =
   | null;
 
 export default function StudentsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.STUDENT_MANAGE);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
@@ -235,9 +237,9 @@ export default function StudentsPage() {
                   {studentsQuery.data.items.map((student) => (
                     <TR key={student.id}>
                       <TD>
-                        <p className="font-medium text-fg">
+                        <Link to={`/students/${student.id}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
                           {student.firstName} {student.lastName}
-                        </p>
+                        </Link>
                         <p className="text-xs text-fg-muted">
                           {student.code} · {formatPhone(student.phone)}
                         </p>
@@ -270,6 +272,7 @@ export default function StudentsPage() {
                         <ActionMenu
                           label={`${student.firstName} ${student.lastName} amallari`}
                           items={[
+                            { label: 'Profil', icon: UserRound, onSelect: () => navigate(`/students/${student.id}`) },
                             ...(canCreatePayment && (student.debt?.remaining ?? 0) > 0
                               ? [{ label: 'To‘lov qabul qilish', icon: Wallet, onSelect: () => setDialog({ type: 'payment', student }) }]
                               : []),

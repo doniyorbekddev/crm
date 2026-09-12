@@ -32,7 +32,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > yozuvlari, kategoriyalar, sabab bilan bekor qilish, oylik budjet va pul oqimi grafigi),
 > **PHASE 9 — direktor paneli** (12 ta bosiladigan KPI, bugungi va oylik yakunlar, 6 oylik dinamika,
 > diqqat talab qiladigan holatlar ro‘yxati), **PHASE 11 — uy vazifasi va imtihonlar** (vazifa berish,
-> topshiriq va baholash, imtihon natijalari — foiz, A–F baho, o‘tish foizi; XP avtomatik beriladi).
+> topshiriq va baholash, imtihon natijalari — foiz, A–F baho, o‘tish foizi; XP avtomatik beriladi),
+> **PHASE 12 — o‘quvchi progressi** (profil sahifasi: daraja va XP, davomat, vazifa va imtihon ko‘rsatkichlari,
+> 6 oylik progress grafigi, o‘qituvchi izohlari va faollik tasmasi).
 
 | Qism | Texnologiyalar |
 |---|---|

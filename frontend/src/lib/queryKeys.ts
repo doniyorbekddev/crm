@@ -72,6 +72,9 @@ export const queryKeys = {
     summary: (params: StudentSummaryParams) => ['students', 'summary', params] as const,
     detail: (id: string) => ['students', 'detail', id] as const,
     attendance: (id: string) => ['students', 'attendance', id] as const,
+    profile: (id: string) => ['students', 'profile', id] as const,
+    homework: (id: string) => ['students', 'homework', id] as const,
+    exams: (id: string) => ['students', 'exams', id] as const,
   },
   attendance: {
     all: ['attendance'] as const,

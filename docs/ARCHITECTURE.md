@@ -254,6 +254,7 @@ crm/
 | Search | Global qidiruv (ism, telefon, telegram, email, Lead ID, Student ID) |
 | Notifications | Bildirishnoma markazi (yangi lead, to‘lov, follow-up, qarz, trial dars) |
 | Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
+| Student profile & progress | O‘quvchi profili: daraja, XP, reyting, seriya, davomat; oylik progress grafigi (davomat, uy vazifasi, imtihon), o‘qituvchi izohlari, faollik tasmasi, uy vazifasi/imtihon/to‘lov/yutuqlar tablari |
 | Homework & Exams | Uy vazifasi (qoralama → e’lon → yopish), topshiriqlar va baholash, butun guruhni bir bosishda belgilash; imtihon natijalari, foiz, A–F baho, o‘tish foizi; XP avtomatik |
 | Executive dashboard | Owner/Director paneli: 12 ta KPI (bosiladigan), bugungi va oylik bloklar, 6 oylik dinamika, diqqat talab qiladigan holatlar |
 | Finance | Moliyaviy daftar (Transaction), kassalar va qoldiqlar, kassalar o‘rtasida o‘tkazma, panel (tushum/xarajat/sof foyda), pul oqimi grafigi |
@@ -290,7 +291,7 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Finance | `GET /finance/summary?from=&to=` · `GET /finance/cash-flow?period=day\|week\|month` · `GET /finance/accounts` · `POST /finance/accounts` · `PUT /finance/accounts/:id` · `GET /finance/transactions` · `POST /finance/transfers` · `POST /finance/transactions/:id/void` · `GET /finance/budget?year=&month=` · `PUT /finance/budget` |
 | Income / Expense | `GET /incomes` · `GET /incomes/stats` · `POST /incomes` · `POST /incomes/:id/void` · `GET /incomes/categories` · `POST /incomes/categories` · `PUT /incomes/categories/:id` — xarajatlar uchun `/expenses` ostida xuddi shunday |
 | Salaries | `GET /salaries/periods?year=&month=&teacherProfileId=&status=` · `GET /salaries/summary?year=&month=` · `GET /salaries/periods/:id` · `POST /salaries/calculate` · `PATCH /salaries/periods/:id` (bonus/jarima) · `POST /salaries/periods/:id/approve` · `POST /salaries/periods/:id/payments` |
-| Students | `GET /students` · `GET /students/summary` · `POST /students` · `GET /students/:id` · `PUT /students/:id` · `PATCH /students/:id/status` · `DELETE /students/:id` · `GET /students/:id/attendance` |
+| Students | `GET /students` · `GET /students/summary` · `POST /students` · `GET /students/:id` · `GET /students/:id/profile` · `GET /students/:id/homework` · `GET /students/:id/exams` · `PUT /students/:id` · `PATCH /students/:id/status` · `DELETE /students/:id` · `GET /students/:id/attendance` |
 | Payments | `GET /payments` · `GET /payments/stats` · `POST /payments` · `GET /payments/:id` · `DELETE /payments/:id` (sabab majburiy) |
 | Debts | `GET /debts?range=all\|zero\|upto500k\|500k-1m\|1m-plus` · `GET /debts/summary` |
 | Dashboard | `GET /dashboard/executive` (analytics.view) · `GET /dashboard/summary` · `GET /dashboard/charts?period=day\|week\|month` · `GET /dashboard/follow-ups` · `GET /dashboard/funnel` · `GET /dashboard/managers?period=month\|quarter\|year` |
@@ -369,3 +370,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 8 | Tushum va xarajat | Tushum/xarajat yozuvlari va kategoriyalari, sabab bilan bekor qilish, oylik budjet (reja vs fakt) | ✅ |
 | 9 | Owner dashboard | Executive KPI, bugungi/oylik bloklar, 6 oylik tushum-xarajat dinamikasi, diqqat ro‘yxati | ✅ |
 | 11 | Uy vazifasi va imtihonlar | Vazifa berish, topshiriq va baholash, imtihon natijalari (foiz, baho, o‘tish), XP hooklari ulandi, o‘qituvchi faqat o‘z guruhlari bilan ishlaydi | ✅ |
+| 12 | O‘quvchi progressi | Profil sahifasi (`/students/:id`): daraja va XP progressi, davomat/vazifa/imtihon ko‘rsatkichlari, 6 oylik progress grafigi, o‘qituvchi izohlari, faollik tasmasi; to‘lov bloki faqat ruxsat bo‘lsa | ✅ |

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { attendanceService } from '../services/attendance.service.js';
 import { studentService } from '../services/student.service.js';
+import { studentProgressService } from '../services/studentProgress.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
@@ -13,6 +14,22 @@ import {
 } from '../validators/student.validator.js';
 
 export const studentController = {
+  /** Profil: davomat, uy vazifasi, imtihon, XP, izohlar va progress grafigi */
+  async profile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentProgressService.profile(requireAuthUser(req), id));
+  },
+
+  async homework(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentProgressService.homework(requireAuthUser(req), id));
+  },
+
+  async exams(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentProgressService.exams(requireAuthUser(req), id));
+  },
+
   async list(req: Request, res: Response): Promise<void> {
     const query = studentListQuerySchema.parse(req.query);
     const { items, total } = await studentService.list(requireAuthUser(req), query);
