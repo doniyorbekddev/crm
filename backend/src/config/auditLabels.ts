@@ -54,6 +54,16 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
   'payment.created': 'To‘lov qabul qilindi',
   'payment.deleted': 'To‘lov bekor qilindi',
+
+  'teacher.profile_created': 'O‘qituvchi profili yaratildi',
+  'teacher.profile_updated': 'O‘qituvchi profili tahrirlandi',
+  'teacher.deactivated': 'O‘qituvchi faolsizlantirildi',
+
+  'salary.rule_created': 'Maosh modeli belgilandi',
+  'salary.calculated': 'Maosh hisoblandi',
+  'salary.adjusted': 'Bonus/jarima o‘zgartirildi',
+  'salary.approved': 'Maosh tasdiqlandi',
+  'salary.paid': 'Maosh to‘landi',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -69,6 +79,8 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   payment: 'To‘lov',
   debt: 'Qarzdorlik',
   attendance: 'Davomat',
+  teacher: 'O‘qituvchi',
+  salary: 'Maosh',
   settings: 'Sozlamalar',
 };
 
@@ -85,6 +97,8 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'student.deleted',
   'payment.deleted',
   'user.password_reset_by_admin',
+  'salary.approved',
+  'salary.paid',
 ];
 
 export function auditActionLabel(action: string): string {

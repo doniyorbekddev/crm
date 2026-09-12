@@ -249,6 +249,8 @@ crm/
 | Reports | 8 turdagi hisobot (sotuv, managerlar, kurslar, guruhlar, to‘lovlar, qarzdorlik, davomat, manbalar), sana oralig‘i va CSV eksport |
 | Search | Global qidiruv (ism, telefon, telegram, email, Lead ID, Student ID) |
 | Notifications | Bildirishnoma markazi (yangi lead, to‘lov, follow-up, qarz, trial dars) |
+| Teachers | O‘qituvchi profillari, yuklama (guruh, o‘quvchi, dars), oylik ko‘rsatkichlar, o‘qituvchining o‘z paneli |
+| Salaries | 5 xil maosh modeli, oylik hisob-kitob, bonus/jarima, tasdiqlash (lock), qismlab to‘lash, xarajat va kassa yozuvi |
 | Audit Log | Muhim harakatlar tarixi (kim, nima, qachon, IP) |
 | Settings | CRM sozlamalari, lead manbalari |
 
@@ -274,6 +276,8 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Attendance | `GET /attendance/stats` · `GET /attendance/ranking` · `GET /attendance/teacher-overview` · `GET /students/:id/attendance/calendar?year=&month=` |
 | Attendance sessions | `GET /attendance-sessions` · `POST /attendance-sessions` · `GET /attendance-sessions/:id` · `PUT /attendance-sessions/:id` · `DELETE /attendance-sessions/:id` |
 | Gamification | `GET /gamification/leaderboard?period=week\|month\|year\|all` · `GET /gamification/students/:id` · `GET /gamification/rules\|levels\|badges` · `PUT /gamification/rules/:id` · `PUT /gamification/levels/:id` · `PUT /gamification/badges/:id` · `POST /gamification/xp` · `POST /gamification/badges/award` · `POST /gamification/recalculate` |
+| Teachers | `GET /teachers` · `GET /teachers/me` · `GET /teachers/candidates` · `POST /teachers` · `GET /teachers/:id` · `PUT /teachers/:id` · `GET /teachers/:id/salary-rules` · `POST /teachers/:id/salary-rules` · `GET /teachers/:id/salary-periods` |
+| Salaries | `GET /salaries/periods?year=&month=&teacherProfileId=&status=` · `GET /salaries/summary?year=&month=` · `GET /salaries/periods/:id` · `POST /salaries/calculate` · `PATCH /salaries/periods/:id` (bonus/jarima) · `POST /salaries/periods/:id/approve` · `POST /salaries/periods/:id/payments` |
 | Students | `GET /students` · `GET /students/summary` · `POST /students` · `GET /students/:id` · `PUT /students/:id` · `PATCH /students/:id/status` · `DELETE /students/:id` · `GET /students/:id/attendance` |
 | Payments | `GET /payments` · `GET /payments/stats` · `POST /payments` · `GET /payments/:id` · `DELETE /payments/:id` (sabab majburiy) |
 | Debts | `GET /debts?range=all\|zero\|upto500k\|500k-1m\|1m-plus` · `GET /debts/summary` |
@@ -283,7 +287,7 @@ Barcha endpointlar `/api` prefiksi bilan. Himoyalangan endpointlar `Authorizatio
 | Notifications | `GET /notifications?type=&unreadOnly=` · `GET /notifications/summary` · `PATCH /notifications/:id/read` · `PATCH /notifications/read-all` · `DELETE /notifications/:id` · `DELETE /notifications/read` |
 | Audit | `GET /audit-logs?userId=&action=&entityType=&entityId=&from=&to=&criticalOnly=&search=` · `GET /audit-logs/filters` |
 | Settings | `GET /settings` · `PUT /settings` |
-| Lookups | `GET /lookups/lead-form` · `GET /lookups/group-form` · `GET /lookups/student-form` · `GET /lookups/payment-form` |
+| Lookups | `GET /lookups/lead-form` · `GET /lookups/group-form` · `GET /lookups/student-form` · `GET /lookups/payment-form` · `GET /lookups/salary-form` |
 
 List endpointlari umumiy query parametrlarini qabul qiladi: `page`, `limit` (max 100), `search`, `sortBy`, `sortOrder`.
 
@@ -338,3 +342,13 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 15 | Security + performance | Indekslar, trigram qidiruv, xavfsizlik auditi | ✅ |
 | 16 | Testing | Vitest + Supertest integratsion testlar | ✅ |
 | 17 | Production deployment | Dockerfile’lar, Nginx, deploy qo‘llanma | ✅ |
+
+### Kengaytirish: o‘quv markaz boshqaruv tizimi
+
+| # | Phase | Natija | Holat |
+|---|---|---|---|
+| 1 | Audit | Mavjud tizim tahlili, kamchiliklar ro‘yxati | ✅ |
+| 2 | Baza sxemasi | 29 yangi model (davomat seanslari, gamification, o‘qituvchi va maosh, moliya, uy vazifasi, imtihon, ota-ona, target va alertlar), 62 ruxsat, 7 rol | ✅ |
+| 3 | Davomat | Dars seanslari, kalendar, statistika, reyting, o‘qituvchi paneli | ✅ |
+| 4 | Gamification | XP, darajalar, nishonlar, seriya, reyting | ✅ |
+| 5 | O‘qituvchi boshqaruvi | Profil va yuklama, 5 xil maosh modeli, oylik hisob-kitob, tasdiqlash va to‘lov (xarajat + kassa) | ✅ |

@@ -24,7 +24,10 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 >
 > **Kengaytirish (o‘quv markaz boshqaruv tizimi):** PHASE 1 — audit, PHASE 2 — baza sxemasi
 > (29 yangi model: davomat seanslari, gamification, o‘qituvchi va maosh, moliya, uy vazifasi,
-> imtihon, ota-ona, target va alertlar; 62 ruxsat, 7 rol — `OWNER` qo‘shildi).
+> imtihon, ota-ona, target va alertlar; 62 ruxsat, 7 rol — `OWNER` qo‘shildi), PHASE 3 — davomat
+> (dars seanslari, kalendar, statistika, o‘qituvchi paneli), PHASE 4 — gamification (XP, darajalar,
+> nishonlar, seriya, reyting), **PHASE 5 — o‘qituvchi boshqaruvi** (profil va yuklama, 5 xil maosh
+> modeli, oylik hisob-kitob, bonus/jarima, tasdiqlash va to‘lov — xarajat va kassa yozuvi bilan).
 
 | Qism | Texnologiyalar |
 |---|---|

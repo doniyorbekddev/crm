@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import type { AccountType } from '../generated/prisma/client.js';
 
 export interface LeadFormLookups {
   sources: Array<{ id: string; key: string; name: string }>;
@@ -39,6 +40,11 @@ export interface PaymentFormLookups {
   groups: Array<{ id: string; name: string; courseId: string }>;
   /** To‘lovni lead egasi (manager) kesimida filtrlash uchun */
   managers: Array<{ id: string; firstName: string; lastName: string; roleName: string }>;
+}
+
+export interface SalaryFormLookups {
+  /** Maosh to‘lovi qaysi kassadan chiqqanini belgilash uchun */
+  accounts: Array<{ id: string; key: string; name: string; type: AccountType; balance: number }>;
 }
 
 export const lookupService = {
@@ -104,6 +110,24 @@ export const lookupService = {
         capacity: group.capacity,
         studentCount: group._count.students,
         freeSeats: Math.max(group.capacity - group._count.students, 0),
+      })),
+    };
+  },
+
+  async salaryForm(): Promise<SalaryFormLookups> {
+    const accounts = await prisma.financialAccount.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, key: true, name: true, type: true, balance: true },
+    });
+
+    return {
+      accounts: accounts.map((account) => ({
+        id: account.id,
+        key: account.key,
+        name: account.name,
+        type: account.type,
+        balance: account.balance.toNumber(),
       })),
     };
   },

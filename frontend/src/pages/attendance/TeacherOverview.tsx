@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService } from '@/services/attendance.service';
+import { MyTeachingCard } from '@/pages/teachers/MyTeachingCard';
 import { formatDate, formatNumber, formatPhone } from '@/utils/format';
 
 interface TeacherOverviewProps {
@@ -155,6 +156,8 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
           </CardContent>
         </Card>
       </div>
+
+      <MyTeachingCard />
     </div>
   );
 }

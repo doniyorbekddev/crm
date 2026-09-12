@@ -42,3 +42,11 @@ lookupRouter.get(
     sendSuccess(res, await lookupService.paymentForm());
   },
 );
+
+lookupRouter.get(
+  '/salary-form',
+  requireAnyPermission(PERMISSIONS.SALARY_VIEW, PERMISSIONS.SALARY_PAY),
+  async (_req: Request, res: Response) => {
+    sendSuccess(res, await lookupService.salaryForm());
+  },
+);

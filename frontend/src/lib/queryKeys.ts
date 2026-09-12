@@ -11,6 +11,7 @@ import type { DebtListParams, DebtSummaryParams, PaymentListParams, PaymentStats
 import type { NotificationListParams } from '@/types/notification';
 import type { ReportParams, ReportType } from '@/types/report';
 import type { StudentListParams, StudentSummaryParams } from '@/types/student';
+import type { SalaryPeriodParams, TeacherListParams } from '@/types/teacher';
 import type { UserListParams, UserSummaryParams } from '@/types/user';
 
 /** React Query kalitlari bir joyda — invalidatsiya aniq va xatosiz bo‘lishi uchun. */
@@ -114,10 +115,24 @@ export const queryKeys = {
     levels: ['gamification', 'levels'] as const,
     badges: ['gamification', 'badges'] as const,
   },
+  teachers: {
+    all: ['teachers'] as const,
+    list: (params: TeacherListParams) => ['teachers', 'list', params] as const,
+    detail: (id: string) => ['teachers', 'detail', id] as const,
+    candidates: ['teachers', 'candidates'] as const,
+    me: ['teachers', 'me'] as const,
+    salaryRules: (id: string) => ['teachers', 'salary-rules', id] as const,
+  },
+  salaries: {
+    all: ['salaries'] as const,
+    periods: (params: SalaryPeriodParams) => ['salaries', 'periods', params] as const,
+    summary: (params: { year: number; month: number }) => ['salaries', 'summary', params] as const,
+  },
   lookups: {
     leadForm: ['lookups', 'lead-form'] as const,
     groupForm: ['lookups', 'group-form'] as const,
     studentForm: ['lookups', 'student-form'] as const,
     paymentForm: ['lookups', 'payment-form'] as const,
+    salaryForm: ['lookups', 'salary-form'] as const,
   },
 };
