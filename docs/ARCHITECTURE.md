@@ -377,7 +377,7 @@ HTTP orqali erishib bo‘lmaydi. Prisma 8 barqaror chiqqanda yangilash tavsiya e
 
 ### Spec bo‘yicha qolgan bo‘shliqlar
 
-Kengaytirishning 17 bosqichi yakunlangan, lekin `promt.md` dagi quyidagi talablar hali to‘liq bajarilmagan:
+Kengaytirishning 17 bosqichi va ota-ona moduli yakunlangan, lekin `promt.md` dagi quyidagi talablar hali to‘liq bajarilmagan:
 
 | Bo‘lim | Holat |
 |---|---|
@@ -385,7 +385,6 @@ Kengaytirishning 17 bosqichi yakunlangan, lekin `promt.md` dagi quyidagi talabla
 | 46 — Excel eksport | Faqat CSV (BOM bilan, Excel’da ochiladi); `.xlsx` uchun kutubxona qo‘shilmagan |
 | 44 — global qidiruvda o‘qituvchi va tranzaksiya | Qidiruv lead, o‘quvchi, kurs, guruh, to‘lov va xodimlarni qamraydi |
 | 29 — xarajatga ilova (chek) fayli | Maydon bor, yuklash oqimi hujjatlar moduli orqali qo‘shilishi kerak |
-| 35 — ota-ona profillari | Model va seed bor, API/UI yo‘q |
 | 50 — sozlamalar (akademiya ma’lumoti, logo, ish vaqti, qoidalar) | XP/daraja/maosh qoidalari o‘z modullarida; umumiy sozlamalar sahifasi kengaytirilmagan |
 | 71 — Telegram/SMS/onlayn to‘lov | Arxitektura tayyor (bildirishnomalar, `dedupeKey`), integratsiya yo‘q |
 | Bog‘liqliklar | Prisma 8 barqaror chiqqanda yangilash (CLI’dagi `mysql2`, `deepmerge-ts` zaifliklari) |
@@ -435,3 +434,4 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 15 | Xavfsizlik auditi | Yangi route’lar ruxsat bo‘yicha tekshirildi; maosh ma’lumoti server tomonda yashirildi, CSV formula injection neytrallandi, erkin fayl yo‘li olib tashlandi, og‘ir operatsiyalarga limiter; bog‘liqliklar auditi | ✅ |
 | 16 | Testlar | Moliya servislari chekka holatlari (kassa, daftar filtrlari, bekor qilish, kategoriyalar, budjet, pul oqimi davrlari); frontend yorliq/utils testlari; jami 314 backend + 31 frontend testi, backend 88.6% statements | ✅ |
 | 17 | Yakuniy UI/UX | Mobil: jadval sarlavhasidagi `sr-only` element va dashboard grid’i sahifani kengaytirardi — 23 sahifa 390px da skrollsiz; rol bo‘yicha dashboard bloklari (o‘qituvchi, moliya); qorong‘i rejim tekshiruvi | ✅ |
+| 18 | Ota-onalar (spec 35) | `/parents` sahifasi va o‘quvchi profilidagi «Ota-ona» tabi: qo‘shish, tahrirlash, bir nechta farzand biriktirish, qarindoshlik, bitta asosiy vakil (telefoni `student.parentPhone` ga sinxronlanadi), takroriy telefon rad etiladi; o‘qituvchi faqat o‘z guruhi o‘quvchilarining ota-onasini ko‘radi | ✅ |

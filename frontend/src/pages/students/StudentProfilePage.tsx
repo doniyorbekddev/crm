@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Award, BookOpenCheck, CalendarCheck, FileCheck, Flame, History, LayoutDashboard, Wallet } from 'lucide-react';
+import { ArrowLeft, Award, BookOpenCheck, CalendarCheck, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -18,15 +18,17 @@ import { formatDate, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { STUDENT_STATUS_LABELS, STUDENT_STATUS_TONES } from '@/utils/studentLabels';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { ParentsTab } from './profile/ParentsTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type Tab = 'overview' | 'homework' | 'exams' | 'payments' | 'achievements' | 'activity';
+type Tab = 'overview' | 'parents' | 'homework' | 'exams' | 'payments' | 'achievements' | 'activity';
 
 export default function StudentProfilePage() {
   const { id = '' } = useParams();
   const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
   const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
+  const canViewParents = usePermission(PERMISSIONS.PARENT_VIEW);
   const [tab, setTab] = useState<Tab>('overview');
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -71,6 +73,7 @@ export default function StudentProfilePage() {
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: LucideIcon }> = [
     { value: 'overview', label: 'Umumiy', icon: LayoutDashboard },
+    ...(canViewParents ? [{ value: 'parents' as const, label: 'Ota-ona', icon: UsersRound }] : []),
     ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifasi', icon: BookOpenCheck }] : []),
     ...(canViewExams ? [{ value: 'exams' as const, label: 'Imtihonlar', icon: FileCheck }] : []),
     ...(profile.payments ? [{ value: 'payments' as const, label: 'To‘lovlar', icon: Wallet }] : []),
@@ -172,6 +175,7 @@ export default function StudentProfilePage() {
       </div>
 
       {tab === 'overview' && <OverviewTab profile={profile} onOpenCalendar={() => canViewAttendance && setCalendarOpen(true)} />}
+      {tab === 'parents' && <ParentsTab student={{ id: student.id, name: `${student.firstName} ${student.lastName}` }} />}
       {tab === 'homework' && <HomeworkTab studentId={student.id} />}
       {tab === 'exams' && <ExamsTab studentId={student.id} />}
       {tab === 'payments' && <PaymentsTab studentId={student.id} />}

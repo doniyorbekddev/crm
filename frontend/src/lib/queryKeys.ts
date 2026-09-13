@@ -10,6 +10,7 @@ import type { FollowUpListParams } from '@/types/followUp';
 import type { LeadFilters, LeadListParams } from '@/types/lead';
 import type { DebtListParams, DebtSummaryParams, PaymentListParams, PaymentStatsParams } from '@/types/payment';
 import type { NotificationListParams } from '@/types/notification';
+import type { ParentListParams } from '@/types/parent';
 import type { ReportParams, ReportType } from '@/types/report';
 import type { StudentListParams, StudentSummaryParams } from '@/types/student';
 import type { SalaryPeriodParams, TeacherListParams } from '@/types/teacher';
@@ -76,6 +77,11 @@ export const queryKeys = {
     profile: (id: string) => ['students', 'profile', id] as const,
     homework: (id: string) => ['students', 'homework', id] as const,
     exams: (id: string) => ['students', 'exams', id] as const,
+    parents: (id: string) => ['students', 'parents', id] as const,
+  },
+  parents: {
+    all: ['parents'] as const,
+    list: (params: ParentListParams) => ['parents', 'list', params] as const,
   },
   attendance: {
     all: ['attendance'] as const,

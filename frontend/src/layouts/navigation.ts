@@ -25,6 +25,7 @@ import {
   Wallet,
   UserRound,
   Users,
+  UsersRound,
   Wallet2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -67,6 +68,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
       { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/students', label: 'O‘quvchilar', icon: GraduationCap, permission: PERMISSIONS.STUDENT_VIEW },
+      { to: '/parents', label: 'Ota-onalar', icon: UsersRound, permission: PERMISSIONS.PARENT_VIEW },
       { to: '/attendance', label: 'Davomat', icon: CalendarCheck, permission: PERMISSIONS.ATTENDANCE_VIEW },
       { to: '/homework', label: 'Uy vazifasi', icon: ClipboardList, permission: PERMISSIONS.HOMEWORK_VIEW },
       { to: '/exams', label: 'Imtihonlar', icon: FileCheck, permission: PERMISSIONS.EXAM_VIEW },

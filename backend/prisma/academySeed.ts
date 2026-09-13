@@ -430,14 +430,19 @@ async function seedParents(prisma: PrismaClient, log: Log): Promise<void> {
     if (random() > 0.6) continue;
 
     const firstName = PARENT_FIRST_NAMES[Math.floor(random() * PARENT_FIRST_NAMES.length)] ?? 'Dilshod';
+    const phone = student.parentPhone ?? `+99890${String(2_000_000 + student.number).slice(0, 7)}`;
     const parent = await prisma.parent.create({
       data: {
         firstName,
         lastName: student.lastName || (PARENT_LAST_NAMES[Math.floor(random() * PARENT_LAST_NAMES.length)] ?? 'Karimov'),
-        phone: student.parentPhone ?? `+99890${String(2_000_000 + student.number).slice(0, 7)}`,
+        phone,
       },
       select: { id: true },
     });
+    // Asosiy vakil telefoni o'quvchida ham bo'lishi kerak (qarzdorlik, qidiruv shu maydondan foydalanadi)
+    if (!student.parentPhone) {
+      await prisma.student.update({ where: { id: student.id }, data: { parentPhone: phone } });
+    }
     await prisma.studentParent.create({
       data: {
         studentId: student.id,

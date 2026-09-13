@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceAnalyticsController } from '../controllers/attendanceSession.controller.js';
+import { parentController } from '../controllers/parent.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
@@ -15,6 +16,7 @@ studentRouter.get('/:id', requirePermission(PERMISSIONS.STUDENT_VIEW), studentCo
 studentRouter.get('/:id/profile', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.profile);
 studentRouter.get('/:id/homework', requirePermission(PERMISSIONS.HOMEWORK_VIEW), studentController.homework);
 studentRouter.get('/:id/exams', requirePermission(PERMISSIONS.EXAM_VIEW), studentController.exams);
+studentRouter.get('/:id/parents', requirePermission(PERMISSIONS.PARENT_VIEW), parentController.forStudent);
 studentRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), studentController.attendanceHistory);
 studentRouter.get('/:id/attendance/calendar', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceAnalyticsController.calendar);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);

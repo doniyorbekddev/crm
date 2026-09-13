@@ -50,6 +50,13 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'student.deleted': 'O‘quvchi o‘chirildi',
   'student.converted_from_lead': 'Lead o‘quvchiga aylantirildi',
 
+  'parent.created': 'Ota-ona qo‘shildi',
+  'parent.updated': 'Ota-ona tahrirlandi',
+  'parent.deleted': 'Ota-ona o‘chirildi',
+  'parent.linked': 'Farzand biriktirildi',
+  'parent.link_updated': 'Ota-ona bog‘lanishi o‘zgardi',
+  'parent.unlinked': 'Farzand ajratildi',
+
   'attendance.marked': 'Davomat belgilandi',
 
   'homework.created': 'Uy vazifasi berildi',
@@ -104,6 +111,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   course: 'Kurs',
   group: 'Guruh',
   student: 'O‘quvchi',
+  parent: 'Ota-ona',
   payment: 'To‘lov',
   debt: 'Qarzdorlik',
   attendance: 'Davomat',
