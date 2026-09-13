@@ -152,6 +152,7 @@ erDiagram
 | **FollowUp** | Keyingi aloqa | `dueAt`, `remindAt`, `status` (PENDING/DONE/CANCELLED), `assignedToId` — muddati o‘tgan PENDING avtomatik **OVERDUE** hisoblanadi |
 | **Course** | Kurslar | `name` (unique), `category`, `durationMonths`, `price`, `discountAmount`, `finalPrice`, `teacherId`, `status` |
 | **Group** | Guruhlar | `name` (unique), `courseId`, `teacherId`, `room`, `startDate`, `endDate`, `scheduleDays[]`, `startTime`, `endTime`, `capacity`, `status` |
+| **PayrollAdjustment** | Maoshga bonus/jarima | `type` (BONUS/PENALTY), `category`, `amount`, `reason`, `date`, `createdBy`, `approvedBy`, `voidedAt/voidReason` |
 | **CommissionEntry** | O‘qituvchi foizi tarixi | `sourceKey` (takrorlanmaslik), `kind` (ACCRUAL / REVERSAL / CARRY_OVER), `baseAmount`, `percentage`, `amount`, `year/month`, `salaryPeriodId` — yozuvlar o‘chirilmaydi |
 | **Student** | O‘quvchilar | `number`, `leadId` (unique), ism, telefon, ota-ona telefoni, telegram, `courseId`, `groupId`, `contractNumber` (unique), `contractPrice` (narx snapshot), `startDate`, `status` |
 | **Debt** | Qarzdorlik (1:1 Student) | `totalAmount`, `paidAmount`, `remainingAmount`, `status` — har to‘lovda tranzaksiya ichida qayta hisoblanadi |
@@ -445,3 +446,4 @@ Audit natijasi va roadmap: o‘qituvchi foizi → payroll → moliya → P&L →
 | 1 | Audit | 84 talab mavjud kod bilan solishtirildi: ~50% bor; foiz hisobida 3 ta pulga ta’sir qiluvchi xato topildi | ✅ |
 | 2 | Migratsiya | `payments.groupId/teacherId` (to‘lov paytidagi o‘qituvchi, mavjud to‘lovlar backfill), `CommissionEntry` jadvali, `commission.view_own` ruxsati — faqat qo‘shimcha o‘zgarishlar, migratsiyadan oldin `pg_dump` | ✅ |
 | 3 | O‘qituvchi foizi | Har bir real to‘lov uchun + yozuv, bekor qilinganda − yozuv (tasdiqlangan oy o‘zgarmaydi — keyingi ochiq oyga), manfiy qoldiq keyingi oyga ko‘chiriladi, hisoblangandan keyin to‘lov o‘zgarsa tasdiqlash bloklanadi; `/teacher-commissions`, `/teacher-commissions/me`; "Mening daromadim" sahifasi va maoshlarda "Foiz tafsiloti" | ✅ |
+| 4a | Payroll: bonus, jarima, avans, qayta ochish | `PayrollAdjustment` (turi, toifasi, summa, sabab, sana, kim kiritgani/tasdiqlagani; o‘chirilmaydi — sabab bilan bekor qilinadi), bonus = model bonusi + faol yozuvlar; avans — hisoblangan, tasdiqlanmagan maoshdan (`kind: ADVANCE`), avans maoshdan oshsa tasdiqlanmaydi; tasdiqlangan maoshni faqat `salary.unlock` (Owner/Super Admin) sabab bilan qayta ochadi, maosh to‘lovi bo‘lsa ochilmaydi; `/api/payroll` yo‘llari; migratsiyada eski qo‘lda kiritilgan bonus/jarima yozuvga ko‘chirildi | ✅ |

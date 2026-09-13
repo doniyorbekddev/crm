@@ -35,23 +35,70 @@ export const calculateSalarySchema = z.object({
   teacherProfileId: optionalField(idSchema),
 });
 
-/** Bonus va jarima faqat tasdiqlashdan oldin o‘zgartiriladi */
-export const adjustSalarySchema = z
+/** Izoh — tasdiqlashdan oldin. Bonus va jarima alohida yozuv sifatida qo‘shiladi (POST /salaries/adjustments) */
+export const adjustSalarySchema = z.object({
+  note: z.string('Izoh kiriting').trim().max(255, 'Izoh juda uzun'),
+  bonus: z.undefined('Bonus alohida yozuv sifatida qo‘shiladi — “Bonus / jarima” bo‘limidan foydalaning').optional(),
+  penalty: z.undefined('Jarima alohida yozuv sifatida qo‘shiladi — “Bonus / jarima” bo‘limidan foydalaning').optional(),
+});
+
+export const PAYROLL_ADJUSTMENT_TYPES = ['BONUS', 'PENALTY'] as const;
+export const PAYROLL_ADJUSTMENT_CATEGORIES = [
+  'ATTENDANCE',
+  'RETENTION',
+  'PERFORMANCE',
+  'MONTHLY',
+  'SPECIAL',
+  'LATENESS',
+  'ABSENCE',
+  'DISCIPLINE',
+  'OTHER',
+] as const;
+export const BONUS_CATEGORIES: readonly string[] = ['ATTENDANCE', 'RETENTION', 'PERFORMANCE', 'MONTHLY', 'SPECIAL', 'OTHER'];
+export const PENALTY_CATEGORIES: readonly string[] = ['LATENESS', 'ABSENCE', 'DISCIPLINE', 'OTHER'];
+export const SALARY_PAYMENT_KINDS = ['SALARY', 'ADVANCE'] as const;
+
+const reasonField = z
+  .string('Sababni kiriting')
+  .trim()
+  .min(3, 'Sabab kamida 3 belgidan iborat bo‘lsin')
+  .max(255, 'Sabab juda uzun');
+
+export const createAdjustmentSchema = z
   .object({
-    bonus: optionalField(
-      z.coerce.number('Bonus raqam bo‘lishi kerak').int('Bonus butun son bo‘lishi kerak').min(0, 'Bonus manfiy bo‘lmasligi kerak').max(999_999_999, 'Bonus juda katta'),
-    ),
-    penalty: optionalField(
-      z.coerce.number('Jarima raqam bo‘lishi kerak').int('Jarima butun son bo‘lishi kerak').min(0, 'Jarima manfiy bo‘lmasligi kerak').max(999_999_999, 'Jarima juda katta'),
-    ),
-    note: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
+    teacherProfileId: idSchema,
+    year: yearSchema,
+    month: monthSchema,
+    type: z.enum(PAYROLL_ADJUSTMENT_TYPES, 'Turini tanlang'),
+    category: z.enum(PAYROLL_ADJUSTMENT_CATEGORIES, 'Toifani tanlang'),
+    amount: z.coerce
+      .number('Summa raqam bo‘lishi kerak')
+      .int('Summa butun son bo‘lishi kerak')
+      .min(1000, 'Eng kam summa — 1 000 so‘m')
+      .max(999_999_999, 'Summa juda katta'),
+    reason: reasonField,
+    date: z
+      .string('Sanani kiriting')
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Sana formati: 2026-09-15')
+      .transform((value) => new Date(`${value}T00:00:00.000Z`)),
   })
-  .refine(
-    (values) => values.bonus !== undefined || values.penalty !== undefined || values.note !== undefined,
-    'Kamida bitta maydonni o‘zgartiring',
-  );
+  .superRefine((values, context) => {
+    const allowed = values.type === 'BONUS' ? BONUS_CATEGORIES : PENALTY_CATEGORIES;
+    if (!allowed.includes(values.category)) {
+      context.addIssue({ code: 'custom', path: ['category'], message: 'Toifa tanlangan turga mos emas' });
+    }
+    if (values.date.getUTCFullYear() !== values.year || values.date.getUTCMonth() + 1 !== values.month) {
+      context.addIssue({ code: 'custom', path: ['date'], message: 'Sana maosh oyi ichida bo‘lishi kerak' });
+    }
+  });
+
+/** Bekor qilish va qayta ochish — sabab majburiy (auditda saqlanadi) */
+export const reasonSchema = z.object({ reason: reasonField });
 
 export const paySalarySchema = z.object({
+  /** ADVANCE — hisoblangan, lekin tasdiqlanmagan maoshdan avans */
+  kind: z.enum(SALARY_PAYMENT_KINDS, 'To‘lov turi noto‘g‘ri').default('SALARY'),
   amount: z.coerce
     .number('Summa raqam bo‘lishi kerak')
     .int('Summa butun son bo‘lishi kerak')
@@ -78,4 +125,6 @@ export type SalaryPeriodListQuery = z.infer<typeof salaryPeriodListQuerySchema>;
 export type CalculateSalaryInput = z.infer<typeof calculateSalarySchema>;
 export type AdjustSalaryInput = z.infer<typeof adjustSalarySchema>;
 export type PaySalaryInput = z.infer<typeof paySalarySchema>;
+export type CreateAdjustmentInput = z.infer<typeof createAdjustmentSchema>;
+export type ReasonInput = z.infer<typeof reasonSchema>;
 export type SalaryHistoryQuery = z.infer<typeof salaryHistoryQuerySchema>;

@@ -344,22 +344,30 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       expect(response.body.data.skipped[0]).toMatchObject({ reason: 'Maosh modeli belgilanmagan' });
     });
 
-    it('bonus va jarima qayta hisoblashda saqlanadi', async () => {
+    it('bonus va jarima yozuvlari qayta hisoblashda saqlanadi', async () => {
       const fixture = await setupTeacher();
       await setRule(fixture.adminToken, fixture.profileId, { type: 'PER_LESSON', perLessonRate: 100_000 });
       await calculate(fixture.adminToken, fixture.profileId);
-      const period = await loadPeriod(fixture.adminToken, fixture.profileId);
 
-      const adjusted = await request(app)
-        .patch(`/api/salaries/periods/${period.id}`)
+      const adjustment = (body: Record<string, unknown>) =>
+        request(app)
+          .post('/api/salaries/adjustments')
+          .set(bearer(fixture.adminToken))
+          .send({ teacherProfileId: fixture.profileId, year: YEAR, month: MONTH, date: '2026-09-15', ...body });
+      const bonus = await adjustment({ type: 'BONUS', category: 'PERFORMANCE', amount: 200_000, reason: 'Ochiq dars uchun bonus' });
+      expect(bonus.status).toBe(201);
+      const penalty = await adjustment({ type: 'PENALTY', category: 'LATENESS', amount: 50_000, reason: 'Darsga kechikish' });
+      expect(penalty.body.data.totalAmount).toBe(550_000);
+
+      // Eski usul (raqamni to'g'ridan-to'g'ri yozish) endi qabul qilinmaydi
+      const legacy = await request(app)
+        .patch(`/api/salaries/periods/${bonus.body.data.id}`)
         .set(bearer(fixture.adminToken))
-        .send({ bonus: 200_000, penalty: 50_000, note: 'Ochiq dars uchun bonus' });
-      expect(adjusted.status).toBe(200);
-      expect(adjusted.body.data.totalAmount).toBe(550_000);
+        .send({ bonus: 999_000, note: 'Eski usul' });
+      expect(legacy.status).toBe(422);
 
       await calculate(fixture.adminToken, fixture.profileId);
-      const recalculated = await loadPeriod(fixture.adminToken, fixture.profileId);
-      expect(recalculated).toMatchObject({ bonus: 200_000, penalty: 50_000, totalAmount: 550_000 });
+      expect(await loadPeriod(fixture.adminToken, fixture.profileId)).toMatchObject({ bonus: 200_000, penalty: 50_000, totalAmount: 550_000 });
     });
   });
 
@@ -389,9 +397,9 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       expect(recalculated.body.data.skipped[0].reason).toBe('Maosh tasdiqlangan — qayta hisoblanmaydi');
 
       const adjust = await request(app)
-        .patch(`/api/salaries/periods/${periodId}`)
+        .post('/api/salaries/adjustments')
         .set(bearer(fixture.adminToken))
-        .send({ bonus: 100_000 });
+        .send({ teacherProfileId: fixture.profileId, year: YEAR, month: MONTH, type: 'BONUS', category: 'SPECIAL', amount: 100_000, reason: 'Kech qo‘shilgan bonus', date: '2026-09-20' });
       expect(adjust.status).toBe(409);
     });
 

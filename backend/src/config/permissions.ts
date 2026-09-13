@@ -60,6 +60,7 @@ export const PERMISSIONS = {
   SALARY_CALCULATE: 'salary.calculate',
   SALARY_APPROVE: 'salary.approve',
   SALARY_PAY: 'salary.pay',
+  SALARY_UNLOCK: 'salary.unlock',
   COMMISSION_VIEW_OWN: 'commission.view_own',
 
   FINANCE_VIEW: 'finance.view',
@@ -155,6 +156,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.SALARY_CALCULATE, module: 'salary', description: 'Maoshni hisoblash' },
   { key: PERMISSIONS.SALARY_APPROVE, module: 'salary', description: 'Maoshni tasdiqlash (locked)' },
   { key: PERMISSIONS.SALARY_PAY, module: 'salary', description: 'Maoshni to‘lash' },
+  { key: PERMISSIONS.SALARY_UNLOCK, module: 'salary', description: 'Tasdiqlangan maoshni qayta ochish (sabab bilan)' },
   { key: PERMISSIONS.COMMISSION_VIEW_OWN, module: 'salary', description: 'O‘z foiz daromadini ko‘rish (o‘qituvchi)' },
 
   { key: PERMISSIONS.FINANCE_VIEW, module: 'finance', description: 'Moliyaviy panel va tranzaksiyalarni ko‘rish' },
@@ -214,6 +216,8 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.USER_MANAGE,
   PERMISSIONS.ROLE_MANAGE,
   PERMISSIONS.SETTINGS_MANAGE,
+  // Tasdiqlangan maoshni ochish — faqat Owner / Super Admin
+  PERMISSIONS.SALARY_UNLOCK,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */

@@ -34,9 +34,28 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
   const menuRef = useRef<HTMLDivElement>(null);
   const open = position !== null;
 
+  /** Tugma joylashuviga qarab menyu o‘rni (pastga sig‘masa — tepaga ochiladi) */
+  const positionFor = (rect: DOMRect) => {
+    const menuHeight = items.length * ITEM_HEIGHT + 8;
+    const opensUp = rect.bottom + menuHeight + 8 > window.innerHeight && rect.top > menuHeight;
+    return {
+      top: opensUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
+      left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
+    };
+  };
+
   useEffect(() => {
     if (!open) return undefined;
     const close = () => setPosition(null);
+    // Jadval yoki sahifa aylantirilsa menyu tugmaga ergashadi; tugma ekrandan chiqsa — yopiladi
+    const follow = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) {
+        close();
+        return;
+      }
+      setPosition(positionFor(rect));
+    };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!menuRef.current?.contains(target) && !buttonRef.current?.contains(target)) close();
@@ -49,14 +68,16 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
     };
+    // positionFor faqat items.length ga bog'liq — menyu ochiq turganda o'zgarmaydi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (items.length === 0) return null;
@@ -68,12 +89,7 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
     }
     const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const menuHeight = items.length * ITEM_HEIGHT + 8;
-    const opensUp = rect.bottom + menuHeight + 8 > window.innerHeight && rect.top > menuHeight;
-    setPosition({
-      top: opensUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
-      left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
-    });
+    setPosition(positionFor(rect));
   };
 
   return (

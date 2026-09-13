@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Calculator, HandCoins, Pencil, Percent, Wallet2 } from 'lucide-react';
+import { BadgeCheck, Calculator, Coins, HandCoins, Lock, LockOpen, Pencil, Percent, Wallet2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -28,8 +28,9 @@ import {
   SALARY_TYPE_LABELS,
 } from '@/utils/teacherLabels';
 import { CommissionDetailModal } from './CommissionDetailModal';
-import { SalaryAdjustModal } from './SalaryAdjustModal';
+import { PayrollAdjustmentsModal } from './PayrollAdjustmentsModal';
 import { SalaryPaymentModal } from './SalaryPaymentModal';
+import { UnlockSalaryModal } from './UnlockSalaryModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 
@@ -42,6 +43,8 @@ type Dialog =
   | { type: 'commission'; period: SalaryPeriod }
   | { type: 'adjust'; period: SalaryPeriod }
   | { type: 'pay'; period: SalaryPeriod }
+  | { type: 'advance'; period: SalaryPeriod }
+  | { type: 'unlock'; period: SalaryPeriod }
   | { type: 'approve'; period: SalaryPeriod }
   | null;
 
@@ -50,6 +53,7 @@ export default function SalariesPage() {
   const canCalculate = usePermission(PERMISSIONS.SALARY_CALCULATE);
   const canApprove = usePermission(PERMISSIONS.SALARY_APPROVE);
   const canPay = usePermission(PERMISSIONS.SALARY_PAY);
+  const canUnlock = usePermission(PERMISSIONS.SALARY_UNLOCK);
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -104,25 +108,33 @@ export default function SalariesPage() {
   const summary = summaryQuery.data;
   const periods = periodsQuery.data ?? [];
 
-  const rowActions = (period: SalaryPeriod) => [
-    { label: 'Foiz tafsiloti', icon: Percent, onSelect: () => setDialog({ type: 'commission', period }) },
-    ...(canCalculate && !period.lockedAt
-      ? [
-          {
-            label: 'Qayta hisoblash',
-            icon: Calculator,
-            onSelect: () => calculate.mutate(period.teacher.profileId),
-          },
-          { label: 'Bonus / jarima', icon: Pencil, onSelect: () => setDialog({ type: 'adjust', period }) },
-        ]
-      : []),
-    ...(canApprove && period.status === 'CALCULATED'
-      ? [{ label: 'Tasdiqlash', icon: BadgeCheck, onSelect: () => setDialog({ type: 'approve', period }) }]
-      : []),
-    ...(canPay && (period.status === 'APPROVED' || period.status === 'PARTIALLY_PAID')
-      ? [{ label: 'To‘lov qilish', icon: HandCoins, onSelect: () => setDialog({ type: 'pay', period }) }]
-      : []),
-  ];
+  const rowActions = (period: SalaryPeriod) => {
+    const locked = period.lockedAt !== null;
+    const salaryPaid = period.payments.some((payment) => payment.kind === 'SALARY');
+    return [
+      { label: 'Foiz tafsiloti', icon: Percent, onSelect: () => setDialog({ type: 'commission', period }) },
+      {
+        label: canCalculate && !locked ? 'Bonus / jarima' : 'Bonus va jarimalar',
+        icon: Pencil,
+        onSelect: () => setDialog({ type: 'adjust', period }),
+      },
+      ...(canCalculate && !locked
+        ? [{ label: 'Qayta hisoblash', icon: Calculator, onSelect: () => calculate.mutate(period.teacher.profileId) }]
+        : []),
+      ...(canPay && !locked && period.status === 'CALCULATED' && period.remainingAmount > 0
+        ? [{ label: 'Avans berish', icon: Coins, onSelect: () => setDialog({ type: 'advance', period }) }]
+        : []),
+      ...(canApprove && period.status === 'CALCULATED'
+        ? [{ label: 'Tasdiqlash', icon: BadgeCheck, onSelect: () => setDialog({ type: 'approve', period }) }]
+        : []),
+      ...(canPay && (period.status === 'APPROVED' || period.status === 'PARTIALLY_PAID')
+        ? [{ label: 'To‘lov qilish', icon: HandCoins, onSelect: () => setDialog({ type: 'pay', period }) }]
+        : []),
+      ...(canUnlock && locked && !salaryPaid
+        ? [{ label: 'Qayta ochish', icon: LockOpen, tone: 'danger' as const, onSelect: () => setDialog({ type: 'unlock', period }) }]
+        : []),
+    ];
+  };
 
   return (
     <>
@@ -215,7 +227,7 @@ export default function SalariesPage() {
         </div>
 
         {periodsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
+          <TableSkeleton rows={6} columns={8} />
         ) : periodsQuery.isError ? (
           <ErrorState
             error={periodsQuery.error}
@@ -238,10 +250,11 @@ export default function SalariesPage() {
               <THead>
                 <tr>
                   <TH>O‘qituvchi</TH>
-                  <TH>Model</TH>
-                  <TH className="text-right">Yuklama</TH>
-                  <TH className="text-right">Hisoblangan</TH>
-                  <TH className="text-right">To‘langan</TH>
+                  <TH className="text-right">Tushum</TH>
+                  <TH className="text-right">Foiz</TH>
+                  <TH className="text-right">Bonus / jarima</TH>
+                  <TH className="text-right">Jami</TH>
+                  <TH className="text-right">To‘langan / qolgan</TH>
                   <TH>Holat</TH>
                   <TH className="w-12">
                     <span className="sr-only">Amallar</span>
@@ -251,54 +264,58 @@ export default function SalariesPage() {
               <TBody>
                 {periods.map((period) => {
                   const actions = rowActions(period);
+                  const advance = period.payments
+                    .filter((payment) => payment.kind === 'ADVANCE')
+                    .reduce((sum, payment) => sum + payment.amount, 0);
                   return (
                     <TR key={period.id}>
                       <TD>
-                        <p className="font-medium text-fg">
+                        <p className="font-medium whitespace-nowrap text-fg">
                           {period.teacher.firstName} {period.teacher.lastName}
                         </p>
-                        <p className="text-xs text-fg-muted">{period.teacher.specialization ?? '—'}</p>
+                        <p className="text-xs text-fg-muted">
+                          {SALARY_TYPE_LABELS[period.salaryType]} · {formatNumber(period.studentsCount)} o‘quvchi
+                          {period.lessonsCount > 0 && ` · ${formatNumber(period.lessonsCount)} dars`}
+                        </p>
                       </TD>
-                      <TD>
-                        <Badge tone="blue">{SALARY_TYPE_LABELS[period.salaryType]}</Badge>
-                        {(period.bonus > 0 || period.penalty > 0) && (
-                          <p className="mt-1 text-xs text-fg-muted">
-                            {period.bonus > 0 && `+${formatMoney(period.bonus)}`}
-                            {period.bonus > 0 && period.penalty > 0 && ' · '}
-                            {period.penalty > 0 && `−${formatMoney(period.penalty)}`}
-                          </p>
-                        )}
-                      </TD>
-                      <TD className="text-right text-xs whitespace-nowrap text-fg-muted">
-                        {formatNumber(period.lessonsCount)} dars · {formatNumber(period.studentsCount)} o‘quvchi
-                        {(period.percentageAmount !== 0 || period.groupRevenue > 0) && (
-                          <p className="text-fg-subtle">
-                            tushum {formatMoney(period.groupRevenue)}
-                            {period.percentageAmount !== 0 && ` · foiz ${formatMoney(period.percentageAmount)}`}
-                          </p>
-                        )}
-                      </TD>
-                      <TD className="text-right font-medium whitespace-nowrap text-fg">{formatMoney(period.totalAmount)}</TD>
+                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(period.groupRevenue)}</TD>
                       <TD className="text-right whitespace-nowrap">
-                        <span className="text-fg-muted">{formatMoney(period.paidAmount)}</span>
-                        {period.remainingAmount > 0 && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
-                            qolgan {formatMoney(period.remainingAmount)}
-                          </p>
+                        <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                          {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
+                        </span>
+                        {period.commissionRate > 0 && <p className="text-xs text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
+                      </TD>
+                      <TD className="text-right whitespace-nowrap tabular-nums">
+                        {period.bonus === 0 && period.penalty === 0 ? (
+                          <span className="text-fg-subtle">—</span>
+                        ) : (
+                          <>
+                            {period.bonus > 0 && <p className="text-emerald-600 dark:text-emerald-400">+{formatMoney(period.bonus)}</p>}
+                            {period.penalty > 0 && <p className="text-red-600 dark:text-red-400">−{formatMoney(period.penalty)}</p>}
+                          </>
                         )}
                       </TD>
+                      <TD className="text-right font-semibold whitespace-nowrap tabular-nums text-fg">{formatMoney(period.totalAmount)}</TD>
+                      <TD className="text-right whitespace-nowrap tabular-nums">
+                        <p className="text-fg-muted">
+                          {formatMoney(period.paidAmount)}
+                          {advance > 0 && <span className="text-xs text-fg-subtle"> (avans {formatMoney(advance)})</span>}
+                        </p>
+                        <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-fg-subtle')}>
+                          qolgan {formatMoney(period.remainingAmount)}
+                        </p>
+                      </TD>
                       <TD>
-                        <Badge tone={SALARY_STATUS_TONES[period.status]}>{SALARY_STATUS_LABELS[period.status]}</Badge>
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <Badge tone={SALARY_STATUS_TONES[period.status]}>{SALARY_STATUS_LABELS[period.status]}</Badge>
+                          {period.lockedAt && <Lock className="size-3.5 text-fg-subtle" aria-label="Qotirilgan" />}
+                        </span>
+                        {!period.lockedAt && period.unlockedAt && (
+                          <p className="mt-1 text-xs whitespace-nowrap text-amber-600 dark:text-amber-400">qayta ochilgan</p>
+                        )}
                       </TD>
                       <TD className="text-right">
-                        {actions.length > 0 ? (
-                          <ActionMenu
-                            label={`${period.teacher.firstName} ${period.teacher.lastName} maoshi amallari`}
-                            items={actions}
-                          />
-                        ) : (
-                          <span className="text-xs text-fg-subtle">—</span>
-                        )}
+                        <ActionMenu label={`${period.teacher.firstName} ${period.teacher.lastName} maoshi amallari`} items={actions} />
                       </TD>
                     </TR>
                   );
@@ -320,7 +337,16 @@ export default function SalariesPage() {
       )}
 
       {dialog?.type === 'adjust' && (
-        <SalaryAdjustModal
+        <PayrollAdjustmentsModal
+          period={dialog.period}
+          canEdit={canCalculate}
+          onClose={() => setDialog(null)}
+          onChanged={refresh}
+        />
+      )}
+
+      {dialog?.type === 'pay' && (
+        <SalaryPaymentModal
           period={dialog.period}
           onClose={() => setDialog(null)}
           onSaved={() => {
@@ -330,8 +356,20 @@ export default function SalariesPage() {
         />
       )}
 
-      {dialog?.type === 'pay' && (
+      {dialog?.type === 'advance' && (
         <SalaryPaymentModal
+          period={dialog.period}
+          kind="ADVANCE"
+          onClose={() => setDialog(null)}
+          onSaved={() => {
+            setDialog(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {dialog?.type === 'unlock' && (
+        <UnlockSalaryModal
           period={dialog.period}
           onClose={() => setDialog(null)}
           onSaved={() => {
@@ -349,7 +387,7 @@ export default function SalariesPage() {
             <>
               {dialog.period.teacher.firstName} {dialog.period.teacher.lastName} uchun {dialog.period.label} maoshi{' '}
               <strong>{formatMoney(dialog.period.totalAmount)}</strong>. Tasdiqlangandan keyin hisob qotiriladi — bonus,
-              jarima va qayta hisoblash mumkin bo‘lmaydi.
+              jarima va qayta hisoblash faqat “Qayta ochish” ruxsati bilan mumkin bo‘ladi.
             </>
           ) : (
             ''

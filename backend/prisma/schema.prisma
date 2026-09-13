@@ -228,6 +228,10 @@ model User {
   taughtPayments        Payment[]              @relation("PaymentTeacher")
   commissionEntries     CommissionEntry[]      @relation("CommissionTeacher")
   createdCommissions    CommissionEntry[]      @relation("CommissionCreatedBy")
+  unlockedSalaries      TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
+  createdAdjustments    PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
+  approvedAdjustments   PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
+  voidedAdjustments     PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
 
   @@index([roleId])
   @@index([status])
@@ -1118,6 +1122,10 @@ model TeacherSalaryPeriod {
   lessonAmount     Decimal            @default(0) @db.Decimal(14, 2)
   studentAmount    Decimal            @default(0) @db.Decimal(14, 2)
   percentageAmount Decimal            @default(0) @db.Decimal(14, 2)
+  /// Hisoblashda qo‘llangan foiz (tarix uchun)
+  commissionRate   Decimal            @default(0) @db.Decimal(5, 2)
+  /// Maosh modelidagi oylik bonus; qolgan bonus va jarimalar — PayrollAdjustment yozuvlari
+  modelBonus       Decimal            @default(0) @db.Decimal(14, 2)
   bonus            Decimal            @default(0) @db.Decimal(14, 2)
   penalty          Decimal            @default(0) @db.Decimal(14, 2)
   totalAmount      Decimal            @default(0) @db.Decimal(14, 2)
@@ -1129,13 +1137,18 @@ model TeacherSalaryPeriod {
   approvedAt       DateTime?
   approvedById     String?
   lockedAt         DateTime?
+  unlockedAt       DateTime?
+  unlockedById     String?
+  unlockReason     String?            @db.VarChar(255)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
   teacherProfile    TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   approvedBy        User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  unlockedBy        User?                  @relation("SalaryUnlockedBy", fields: [unlockedById], references: [id], onDelete: SetNull)
   payments          TeacherSalaryPayment[]
   commissionEntries CommissionEntry[]
+  adjustments       PayrollAdjustment[]
 
   @@unique([teacherProfileId, year, month])
   @@index([year, month])
@@ -1144,15 +1157,16 @@ model TeacherSalaryPeriod {
 }
 
 model TeacherSalaryPayment {
-  id          String        @id @default(cuid())
+  id          String            @id @default(cuid())
   periodId    String
-  amount      Decimal       @db.Decimal(14, 2)
-  method      PaymentMethod @default(CASH)
+  amount      Decimal           @db.Decimal(14, 2)
+  kind        SalaryPaymentKind @default(SALARY)
+  method      PaymentMethod     @default(CASH)
   accountId   String?
-  paidAt      DateTime      @default(now())
-  note        String?       @db.VarChar(255)
+  paidAt      DateTime          @default(now())
+  note        String?           @db.VarChar(255)
   createdById String?
-  createdAt   DateTime      @default(now())
+  createdAt   DateTime          @default(now())
 
   period    TeacherSalaryPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
   account   FinancialAccount?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -1592,4 +1606,55 @@ model CommissionEntry {
   @@index([paymentId])
   @@index([salaryPeriodId])
   @@map("commission_entries")
+}
+
+enum PayrollAdjustmentType {
+  BONUS
+  PENALTY
+}
+
+enum PayrollAdjustmentCategory {
+  ATTENDANCE
+  RETENTION
+  PERFORMANCE
+  MONTHLY
+  SPECIAL
+  LATENESS
+  ABSENCE
+  DISCIPLINE
+  OTHER
+}
+
+enum SalaryPaymentKind {
+  SALARY
+  ADVANCE
+}
+
+/// Maoshga bonus yoki jarima: summa, sabab, sana, kim kiritgani va kim tasdiqlagani.
+/// O‘chirilmaydi — bekor qilinganda voidedAt va sabab yoziladi.
+model PayrollAdjustment {
+  id             String                    @id @default(cuid())
+  salaryPeriodId String
+  type           PayrollAdjustmentType
+  category       PayrollAdjustmentCategory
+  amount         Decimal                   @db.Decimal(14, 2)
+  reason         String                    @db.VarChar(255)
+  date           DateTime                  @db.Date
+  createdById    String?
+  approvedById   String?
+  approvedAt     DateTime?
+  voidedAt       DateTime?
+  voidedById     String?
+  voidReason     String?                   @db.VarChar(255)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  salaryPeriod TeacherSalaryPeriod @relation(fields: [salaryPeriodId], references: [id], onDelete: Restrict)
+  createdBy    User?               @relation("AdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy   User?               @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  voidedBy     User?               @relation("AdjustmentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+
+  @@index([salaryPeriodId])
+  @@index([type, date])
+  @@map("payroll_adjustments")
 }

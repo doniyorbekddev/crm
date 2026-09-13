@@ -38,3 +38,24 @@ salaryRouter.post('/calculate', heavyLimiter, requirePermission(PERMISSIONS.SALA
 salaryRouter.patch('/periods/:id', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.adjust);
 salaryRouter.post('/periods/:id/approve', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.approve);
 salaryRouter.post('/periods/:id/payments', requirePermission(PERMISSIONS.SALARY_PAY), salaryController.pay);
+salaryRouter.post('/periods/:id/unlock', requirePermission(PERMISSIONS.SALARY_UNLOCK), salaryController.unlock);
+salaryRouter.post('/adjustments', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.addAdjustment);
+salaryRouter.post('/adjustments/:id/void', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.voidAdjustment);
+
+/**
+ * Spec bo‘yicha payroll yo‘llari (promt 72-bo‘lim) — /salaries bilan bir xil servis.
+ * GET /payroll, GET /payroll/:id, POST /payroll/calculate, /:id/approve, /:id/pay, /:id/unlock
+ */
+export const payrollRouter = Router();
+
+payrollRouter.use(authenticate);
+
+payrollRouter.get('/', salaryView, salaryController.periods);
+payrollRouter.get('/summary', salaryView, salaryController.summary);
+payrollRouter.post('/calculate', heavyLimiter, requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.calculate);
+payrollRouter.post('/adjustments', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.addAdjustment);
+payrollRouter.post('/adjustments/:id/void', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.voidAdjustment);
+payrollRouter.get('/:id', salaryView, salaryController.getById);
+payrollRouter.post('/:id/approve', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.approve);
+payrollRouter.post('/:id/pay', requirePermission(PERMISSIONS.SALARY_PAY), salaryController.pay);
+payrollRouter.post('/:id/unlock', requirePermission(PERMISSIONS.SALARY_UNLOCK), salaryController.unlock);

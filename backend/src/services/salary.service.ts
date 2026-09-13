@@ -1,6 +1,15 @@
 import { prisma } from '../config/database.js';
 import { formatSalaryAmount, formatSalaryPeriod } from '../config/salaryLabels.js';
-import type { PaymentMethod, Prisma, SalaryPeriodStatus, SalaryType } from '../generated/prisma/client.js';
+import { PERMISSIONS } from '../config/permissions.js';
+import type {
+  PaymentMethod,
+  PayrollAdjustmentCategory,
+  PayrollAdjustmentType,
+  Prisma,
+  SalaryPaymentKind,
+  SalaryPeriodStatus,
+  SalaryType,
+} from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { businessMonthRange } from '../utils/dates.js';
@@ -8,14 +17,17 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type {
   AdjustSalaryInput,
   CalculateSalaryInput,
+  CreateAdjustmentInput,
   PaySalaryInput,
+  ReasonInput,
   SalaryHistoryQuery,
   SalaryPeriodListQuery,
 } from '../validators/salary.validator.js';
 import type { CreateSalaryRuleInput } from '../validators/teacher.validator.js';
 import { auditService } from './audit.service.js';
-import { commissionService } from './commission.service.js';
+import { COMMISSION_SALARY_TYPES, commissionService } from './commission.service.js';
 import { notificationService } from './notification.service.js';
+import { permissionService } from './permission.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
 const SALARY_EXPENSE_CATEGORY = 'TEACHER_SALARY';
@@ -40,8 +52,29 @@ export interface SalaryRuleDto {
   createdBy: { id: string; firstName: string; lastName: string } | null;
 }
 
+type PersonRefDto = { id: string; firstName: string; lastName: string };
+
+export interface PayrollAdjustmentDto {
+  id: string;
+  type: PayrollAdjustmentType;
+  category: PayrollAdjustmentCategory;
+  amount: number;
+  reason: string;
+  /** "2026-09-15" */
+  date: string;
+  createdAt: string;
+  createdBy: PersonRefDto | null;
+  /** Kiritgan xodimda tasdiqlash ruxsati bo‘lsa darhol, aks holda maosh tasdiqlanganda */
+  approvedBy: PersonRefDto | null;
+  approvedAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  voidedBy: PersonRefDto | null;
+}
+
 export interface SalaryPaymentDto {
   id: string;
+  kind: SalaryPaymentKind;
   amount: number;
   method: PaymentMethod;
   paidAt: string;
@@ -71,6 +104,10 @@ export interface SalaryPeriodDto {
   lessonAmount: number;
   studentAmount: number;
   percentageAmount: number;
+  /** Hisoblashda qo‘llangan foiz */
+  commissionRate: number;
+  /** Maosh modelidagi bonus; bonus = modelBonus + faol bonus yozuvlari */
+  modelBonus: number;
   bonus: number;
   penalty: number;
   totalAmount: number;
@@ -82,6 +119,10 @@ export interface SalaryPeriodDto {
   approvedAt: string | null;
   approvedBy: { id: string; firstName: string; lastName: string } | null;
   lockedAt: string | null;
+  unlockedAt: string | null;
+  unlockedBy: PersonRefDto | null;
+  unlockReason: string | null;
+  adjustments: PayrollAdjustmentDto[];
   payments: SalaryPaymentDto[];
 }
 
@@ -123,6 +164,8 @@ const periodSelect = {
   lessonAmount: true,
   studentAmount: true,
   percentageAmount: true,
+  commissionRate: true,
+  modelBonus: true,
   bonus: true,
   penalty: true,
   totalAmount: true,
@@ -133,7 +176,28 @@ const periodSelect = {
   calculatedAt: true,
   approvedAt: true,
   lockedAt: true,
+  unlockedAt: true,
+  unlockReason: true,
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
+  unlockedBy: { select: { id: true, firstName: true, lastName: true } },
+  adjustments: {
+    orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+    select: {
+      id: true,
+      type: true,
+      category: true,
+      amount: true,
+      reason: true,
+      date: true,
+      createdAt: true,
+      approvedAt: true,
+      voidedAt: true,
+      voidReason: true,
+      createdBy: { select: { id: true, firstName: true, lastName: true } },
+      approvedBy: { select: { id: true, firstName: true, lastName: true } },
+      voidedBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+  },
   teacherProfile: {
     select: {
       id: true,
@@ -145,6 +209,7 @@ const periodSelect = {
     orderBy: { paidAt: 'desc' },
     select: {
       id: true,
+      kind: true,
       amount: true,
       method: true,
       paidAt: true,
@@ -218,6 +283,8 @@ export function toSalaryPeriodDto(period: PeriodRecord): SalaryPeriodDto {
     lessonAmount: period.lessonAmount.toNumber(),
     studentAmount: period.studentAmount.toNumber(),
     percentageAmount: period.percentageAmount.toNumber(),
+    commissionRate: period.commissionRate.toNumber(),
+    modelBonus: period.modelBonus.toNumber(),
     bonus: period.bonus.toNumber(),
     penalty: period.penalty.toNumber(),
     totalAmount: period.totalAmount.toNumber(),
@@ -229,12 +296,31 @@ export function toSalaryPeriodDto(period: PeriodRecord): SalaryPeriodDto {
     approvedAt: period.approvedAt?.toISOString() ?? null,
     approvedBy: period.approvedBy,
     lockedAt: period.lockedAt?.toISOString() ?? null,
+    unlockedAt: period.unlockedAt?.toISOString() ?? null,
+    unlockedBy: period.unlockedBy,
+    unlockReason: period.unlockReason,
+    adjustments: period.adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      type: adjustment.type,
+      category: adjustment.category,
+      amount: adjustment.amount.toNumber(),
+      reason: adjustment.reason,
+      date: toDateOnly(adjustment.date),
+      createdAt: adjustment.createdAt.toISOString(),
+      createdBy: adjustment.createdBy,
+      approvedBy: adjustment.approvedBy,
+      approvedAt: adjustment.approvedAt?.toISOString() ?? null,
+      voidedAt: adjustment.voidedAt?.toISOString() ?? null,
+      voidReason: adjustment.voidReason,
+      voidedBy: adjustment.voidedBy,
+    })),
     payments: period.payments.map((payment) => ({
       id: payment.id,
       amount: payment.amount.toNumber(),
       method: payment.method,
       paidAt: payment.paidAt.toISOString(),
       note: payment.note,
+      kind: payment.kind,
       account: payment.account,
       createdBy: payment.createdBy,
     })),
@@ -364,6 +450,52 @@ export function computeSalaryParts(rates: SalaryRates, workload: WorkloadDto): S
 function statusAfterPayment(total: number, paid: number): SalaryPeriodStatus {
   if (paid <= 0) return 'APPROVED';
   return paid >= total ? 'PAID' : 'PARTIALLY_PAID';
+}
+
+async function sumAdjustments(tx: Prisma.TransactionClient, salaryPeriodId: string): Promise<{ bonus: number; penalty: number }> {
+  const rows = await tx.payrollAdjustment.groupBy({
+    by: ['type'],
+    where: { salaryPeriodId, voidedAt: null },
+    _sum: { amount: true },
+  });
+  const sum = (type: PayrollAdjustmentType) => rows.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
+  return { bonus: sum('BONUS'), penalty: sum('PENALTY') };
+}
+
+/** Bonus/jarima o‘zgarganda (tasdiqlanmagan davr) jami va qoldiq qayta yig‘iladi */
+async function recomputeTotals(tx: Prisma.TransactionClient, salaryPeriodId: string): Promise<number> {
+  const period = await tx.teacherSalaryPeriod.findUniqueOrThrow({
+    where: { id: salaryPeriodId },
+    select: {
+      baseAmount: true,
+      lessonAmount: true,
+      studentAmount: true,
+      percentageAmount: true,
+      modelBonus: true,
+      paidAmount: true,
+    },
+  });
+  const adjustments = await sumAdjustments(tx, salaryPeriodId);
+  const bonus = period.modelBonus.toNumber() + adjustments.bonus;
+  const totalAmount = Math.max(
+    period.baseAmount.toNumber() +
+      period.lessonAmount.toNumber() +
+      period.studentAmount.toNumber() +
+      period.percentageAmount.toNumber() +
+      bonus -
+      adjustments.penalty,
+    0,
+  );
+  await tx.teacherSalaryPeriod.update({
+    where: { id: salaryPeriodId },
+    data: {
+      bonus,
+      penalty: adjustments.penalty,
+      totalAmount,
+      remainingAmount: Math.max(totalAmount - period.paidAmount.toNumber(), 0),
+    },
+  });
+  return totalAmount;
 }
 
 async function findPeriodOrFail(id: string): Promise<PeriodRecord> {
@@ -553,15 +685,7 @@ export const salaryService = {
       const result = await prisma.$transaction(async (tx) => {
         const existing = await tx.teacherSalaryPeriod.findUnique({
           where: { teacherProfileId_year_month: { teacherProfileId: profile.id, year: input.year, month: input.month } },
-          select: {
-            id: true,
-            lockedAt: true,
-            bonus: true,
-            penalty: true,
-            paidAmount: true,
-            calculatedAt: true,
-            updatedAt: true,
-          },
+          select: { id: true, lockedAt: true, paidAmount: true },
         });
         if (existing?.lockedAt) {
           return { ok: false, reason: 'Maosh tasdiqlangan — qayta hisoblanmaydi' } as const;
@@ -579,11 +703,11 @@ export const salaryService = {
           commissionAmount: commission.commission,
         };
         const parts = computeSalaryParts(toSalaryRates(rule), workload);
-        // Hisoblashdan keyin qo'lda o'zgartirilgan bo'lsa (adjust) — bonus va jarima saqlanadi,
-        // aks holda model bonusi qo'llanadi. Hisoblashda updatedAt = calculatedAt qilib yoziladi.
-        const adjusted = Boolean(existing?.calculatedAt && existing.updatedAt > existing.calculatedAt);
-        const bonus = adjusted && existing ? existing.bonus.toNumber() : rule.bonus.toNumber();
-        const penalty = adjusted && existing ? existing.penalty.toNumber() : 0;
+        // Bonus = model bonusi + faol bonus yozuvlari, jarima = faol jarima yozuvlari (qayta hisoblashda saqlanadi)
+        const modelBonus = rule.bonus.toNumber();
+        const adjustments = existing ? await sumAdjustments(tx, existing.id) : { bonus: 0, penalty: 0 };
+        const bonus = modelBonus + adjustments.bonus;
+        const penalty = adjustments.penalty;
         const totalAmount = Math.max(
           parts.baseAmount + parts.lessonAmount + parts.studentAmount + parts.percentageAmount + bonus - penalty,
           0,
@@ -601,14 +725,16 @@ export const salaryService = {
           lessonAmount: parts.lessonAmount,
           studentAmount: parts.studentAmount,
           percentageAmount: parts.percentageAmount,
+          commissionRate: COMMISSION_SALARY_TYPES.includes(rule.type) ? rule.percentage.toNumber() : 0,
+          modelBonus,
           bonus,
           penalty,
           totalAmount,
           paidAmount,
           remainingAmount,
-          status: paidAmount > 0 ? statusAfterPayment(totalAmount, paidAmount) : ('CALCULATED' as const),
-          calculatedAt: calculatedAt,
-          updatedAt: calculatedAt,
+          // Avans berilgan bo'lsa ham tasdiqlanmaguncha holat CALCULATED
+          status: 'CALCULATED' as const,
+          calculatedAt,
         };
 
         const period = existing
@@ -655,45 +781,229 @@ export const salaryService = {
     return { year: input.year, month: input.month, calculated, skipped, total };
   },
 
-  /** Bonus/jarima — faqat tasdiqlashdan oldin */
+  /** Maosh izohi — faqat tasdiqlashdan oldin. Bonus va jarima alohida yozuv (addAdjustment) */
   async adjust(actor: AuthUser, id: string, input: AdjustSalaryInput, client: ClientInfo): Promise<SalaryPeriodDto> {
     const period = await findPeriodOrFail(id);
     if (period.lockedAt) {
-      throw AppError.conflict('Maosh tasdiqlangan — bonus va jarima o‘zgartirilmaydi');
+      throw AppError.conflict('Maosh tasdiqlangan — o‘zgartirilmaydi');
     }
 
-    const bonus = input.bonus ?? period.bonus.toNumber();
-    const penalty = input.penalty ?? period.penalty.toNumber();
-    const accrued =
-      period.baseAmount.toNumber() +
-      period.lessonAmount.toNumber() +
-      period.studentAmount.toNumber() +
-      period.percentageAmount.toNumber();
-    const totalAmount = Math.max(accrued + bonus - penalty, 0);
-    const paidAmount = period.paidAmount.toNumber();
-
     await prisma.$transaction(async (tx) => {
-      await tx.teacherSalaryPeriod.update({
-        where: { id },
-        data: {
-          bonus,
-          penalty,
-          totalAmount,
-          remainingAmount: Math.max(totalAmount - paidAmount, 0),
-          ...(input.note === undefined ? {} : { note: input.note }),
-        },
-      });
+      await tx.teacherSalaryPeriod.update({ where: { id }, data: { note: input.note || null } });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
-        action: 'salary.adjusted',
+        action: 'salary.note_updated',
         entityType: 'salary',
         entityId: id,
         metadata: {
           teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
           period: formatSalaryPeriod(period.year, period.month),
-          before: { bonus: period.bonus.toNumber(), penalty: period.penalty.toNumber() },
-          after: { bonus, penalty },
+          before: period.note,
+          after: input.note || null,
+        },
+        ...client,
+      });
+    });
+
+    return this.periodById(id);
+  },
+
+  /**
+   * Bonus yoki jarima yozuvi (tasdiqlanmagan oyga). Oy uchun davr hali bo‘lmasa — ochiladi,
+   * hisoblashda summalar saqlanadi. Kiritgan xodimda tasdiqlash ruxsati bo‘lsa, yozuv darhol tasdiqlanadi.
+   */
+  async addAdjustment(actor: AuthUser, input: CreateAdjustmentInput, client: ClientInfo): Promise<SalaryPeriodDto> {
+    const profile = await prisma.teacherProfile.findUnique({
+      where: { id: input.teacherProfileId },
+      select: { id: true, user: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    if (!profile) {
+      throw AppError.notFound('O‘qituvchi topilmadi');
+    }
+    const permissions = await permissionService.getRolePermissions(actor.roleId);
+    const canApprove = permissions.has(PERMISSIONS.SALARY_APPROVE);
+    const label = formatSalaryPeriod(input.year, input.month);
+
+    const periodId = await prisma.$transaction(async (tx) => {
+      let period = await tx.teacherSalaryPeriod.findUnique({
+        where: { teacherProfileId_year_month: { teacherProfileId: profile.id, year: input.year, month: input.month } },
+        select: { id: true, lockedAt: true },
+      });
+      if (period?.lockedAt) {
+        throw AppError.conflict('Maosh tasdiqlangan — bonus va jarima qo‘shilmaydi');
+      }
+      if (!period) {
+        const rule = await findRuleForMonth(tx, profile.id, input.year, input.month);
+        if (!rule) {
+          throw AppError.unprocessable('Avval o‘qituvchiga maosh modelini belgilang');
+        }
+        period = await tx.teacherSalaryPeriod.create({
+          data: { teacherProfileId: profile.id, year: input.year, month: input.month, salaryType: rule.type },
+          select: { id: true, lockedAt: true },
+        });
+      }
+
+      const now = new Date();
+      const adjustment = await tx.payrollAdjustment.create({
+        data: {
+          salaryPeriodId: period.id,
+          type: input.type,
+          category: input.category,
+          amount: input.amount,
+          reason: input.reason,
+          date: input.date,
+          createdById: actor.id,
+          approvedById: canApprove ? actor.id : null,
+          approvedAt: canApprove ? now : null,
+        },
+        select: { id: true },
+      });
+      const totalAmount = await recomputeTotals(tx, period.id);
+
+      await notificationService.createInTransaction(tx, {
+        userId: profile.user.id,
+        type: 'SYSTEM',
+        title: input.type === 'BONUS' ? 'Bonus qo‘shildi' : 'Jarima qo‘shildi',
+        message: `${label}: ${formatSalaryAmount(input.amount)} — ${input.reason}`,
+        entityType: 'salary',
+        entityId: period.id,
+        dedupeKey: `salary:adjustment:${adjustment.id}`,
+      });
+
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'salary.adjustment_added',
+        entityType: 'salary',
+        entityId: period.id,
+        metadata: {
+          teacher: `${profile.user.firstName} ${profile.user.lastName}`,
+          period: label,
+          type: input.type,
+          category: input.category,
+          amount: input.amount,
+          reason: input.reason,
+          date: toDateOnly(input.date),
+          approved: canApprove,
           totalAmount,
+        },
+        ...client,
+      });
+
+      return period.id;
+    });
+
+    return this.periodById(periodId);
+  },
+
+  /** Bonus/jarimani bekor qilish — yozuv o‘chirilmaydi, sabab saqlanadi */
+  async voidAdjustment(actor: AuthUser, id: string, input: ReasonInput, client: ClientInfo): Promise<SalaryPeriodDto> {
+    const adjustment = await prisma.payrollAdjustment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        reason: true,
+        voidedAt: true,
+        salaryPeriodId: true,
+        salaryPeriod: {
+          select: {
+            lockedAt: true,
+            year: true,
+            month: true,
+            teacherProfile: { select: { user: { select: { firstName: true, lastName: true } } } },
+          },
+        },
+      },
+    });
+    if (!adjustment) {
+      throw AppError.notFound('Bonus yoki jarima yozuvi topilmadi');
+    }
+    if (adjustment.voidedAt) {
+      throw AppError.conflict('Bu yozuv allaqachon bekor qilingan');
+    }
+    if (adjustment.salaryPeriod.lockedAt) {
+      throw AppError.conflict('Maosh tasdiqlangan — yozuvni bekor qilib bo‘lmaydi');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.payrollAdjustment.update({
+        where: { id },
+        data: { voidedAt: new Date(), voidedById: actor.id, voidReason: input.reason },
+      });
+      const totalAmount = await recomputeTotals(tx, adjustment.salaryPeriodId);
+      const teacher = adjustment.salaryPeriod.teacherProfile.user;
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'salary.adjustment_voided',
+        entityType: 'salary',
+        entityId: adjustment.salaryPeriodId,
+        metadata: {
+          teacher: `${teacher.firstName} ${teacher.lastName}`,
+          period: formatSalaryPeriod(adjustment.salaryPeriod.year, adjustment.salaryPeriod.month),
+          type: adjustment.type,
+          amount: adjustment.amount.toNumber(),
+          originalReason: adjustment.reason,
+          reason: input.reason,
+          totalAmount,
+        },
+        ...client,
+      });
+    });
+
+    return this.periodById(adjustment.salaryPeriodId);
+  },
+
+  /**
+   * Tasdiqlangan maoshni qayta ochish (salary.unlock). Maosh to‘lovi qilingan davr ochilmaydi —
+   * tuzatish keyingi oyda bonus/jarima orqali kiritiladi. Sabab auditda saqlanadi.
+   */
+  async unlock(actor: AuthUser, id: string, input: ReasonInput, client: ClientInfo): Promise<SalaryPeriodDto> {
+    const period = await findPeriodOrFail(id);
+    if (!period.lockedAt) {
+      throw AppError.conflict('Maosh tasdiqlanmagan — qayta ochish shart emas');
+    }
+    if (period.payments.some((payment) => payment.kind === 'SALARY')) {
+      throw AppError.conflict('Maosh to‘lovi qilingan — qayta ochib bo‘lmaydi. Tuzatishni keyingi oyda bonus yoki jarima orqali kiriting');
+    }
+
+    const now = new Date();
+    const label = formatSalaryPeriod(period.year, period.month);
+    await prisma.$transaction(async (tx) => {
+      await tx.teacherSalaryPeriod.update({
+        where: { id },
+        data: {
+          status: 'CALCULATED',
+          lockedAt: null,
+          approvedAt: null,
+          approvedById: null,
+          unlockedAt: now,
+          unlockedById: actor.id,
+          unlockReason: input.reason,
+        },
+      });
+
+      await notificationService.createInTransaction(tx, {
+        userId: period.teacherProfile.user.id,
+        type: 'SYSTEM',
+        title: 'Maosh qayta ochildi',
+        message: `${label} maoshi qayta ko‘rib chiqish uchun ochildi: ${input.reason}`,
+        entityType: 'salary',
+        entityId: id,
+        dedupeKey: `salary:${id}:unlocked:${now.getTime()}`,
+      });
+
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'salary.unlocked',
+        entityType: 'salary',
+        entityId: id,
+        metadata: {
+          teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
+          period: label,
+          reason: input.reason,
+          totalAmount: period.totalAmount.toNumber(),
+          approvedAt: period.approvedAt?.toISOString() ?? null,
         },
         ...client,
       });
@@ -732,10 +1042,22 @@ export const salaryService = {
       throw AppError.unprocessable('Maosh summasi nol — tasdiqlash mumkin emas');
     }
     const finalTotal = Math.max(rawTotal + carry, 0);
+    const paidAmount = period.paidAmount.toNumber();
+    // Berilgan avans yakuniy maoshdan oshmasligi kerak
+    if (paidAmount > finalTotal) {
+      throw AppError.unprocessable(
+        `Berilgan avans (${formatSalaryAmount(paidAmount)}) maoshdan (${formatSalaryAmount(finalTotal)}) katta — jarimani qayta ko‘rib chiqing`,
+      );
+    }
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
       await commissionService.linkToPeriod(tx, teacherId, period, id);
+      // Tasdiqlanmagan bonus/jarima yozuvlari maosh bilan birga tasdiqlanadi
+      await tx.payrollAdjustment.updateMany({
+        where: { salaryPeriodId: id, voidedAt: null, approvedById: null },
+        data: { approvedById: actor.id, approvedAt: now },
+      });
       if (carry > 0) {
         await commissionService.carryOver(tx, {
           period: {
@@ -755,17 +1077,14 @@ export const salaryService = {
       await tx.teacherSalaryPeriod.update({
         where: { id },
         data: {
-          status: 'APPROVED',
+          // Avans berilgan bo'lsa — darhol qisman to'langan
+          status: paidAmount > 0 ? statusAfterPayment(finalTotal, paidAmount) : 'APPROVED',
           approvedAt: now,
           approvedById: actor.id,
           lockedAt: now,
-          ...(carry > 0
-            ? {
-                percentageAmount: percentageAmount + carry,
-                totalAmount: finalTotal,
-                remainingAmount: Math.max(finalTotal - period.paidAmount.toNumber(), 0),
-              }
-            : {}),
+          totalAmount: finalTotal,
+          remainingAmount: Math.max(finalTotal - paidAmount, 0),
+          ...(carry > 0 ? { percentageAmount: percentageAmount + carry } : {}),
         },
       });
 
@@ -805,11 +1124,16 @@ export const salaryService = {
   async pay(actor: AuthUser, id: string, input: PaySalaryInput, client: ClientInfo): Promise<SalaryPeriodDto> {
     const period = await findPeriodOrFail(id);
     const remaining = period.remainingAmount.toNumber();
+    const isAdvance = input.kind === 'ADVANCE';
     if (period.status === 'PAID' || (period.lockedAt && remaining <= 0)) {
       throw AppError.conflict('Bu maosh to‘liq to‘langan');
     }
-    if (period.status !== 'APPROVED' && period.status !== 'PARTIALLY_PAID') {
-      throw AppError.unprocessable('Maosh tasdiqlanmagan — to‘lov qabul qilinmaydi');
+    if (isAdvance) {
+      if (period.lockedAt || period.status !== 'CALCULATED') {
+        throw AppError.unprocessable('Avans faqat hisoblangan va hali tasdiqlanmagan maoshdan beriladi');
+      }
+    } else if (period.status !== 'APPROVED' && period.status !== 'PARTIALLY_PAID') {
+      throw AppError.unprocessable('Maosh tasdiqlanmagan — to‘lov qabul qilinmaydi (avans sifatida berish mumkin)');
     }
     if (input.amount > remaining) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
@@ -832,12 +1156,13 @@ export const salaryService = {
     const paidAt = input.paidAt ?? new Date();
     const teacherName = `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`;
     const label = formatSalaryPeriod(period.year, period.month);
-    const description = `${teacherName} — ${label} maoshi`;
+    const description = `${teacherName} — ${label} ${isAdvance ? 'avansi' : 'maoshi'}`;
 
     await prisma.$transaction(async (tx) => {
       const payment = await tx.teacherSalaryPayment.create({
         data: {
           periodId: id,
+          kind: input.kind,
           amount: input.amount,
           method: input.method,
           accountId: input.accountId ?? null,
@@ -904,14 +1229,15 @@ export const salaryService = {
         data: {
           paidAmount,
           remainingAmount: Math.max(totalAmount - paidAmount, 0),
-          status: statusAfterPayment(totalAmount, paidAmount),
+          // Avans holatni o'zgartirmaydi — maosh hali tasdiqlanmagan
+          status: isAdvance ? period.status : statusAfterPayment(totalAmount, paidAmount),
         },
       });
 
       await notificationService.createInTransaction(tx, {
         userId: period.teacherProfile.user.id,
         type: 'SYSTEM',
-        title: 'Maosh to‘landi',
+        title: isAdvance ? 'Avans berildi' : 'Maosh to‘landi',
         message: `${label} maoshi uchun ${formatSalaryAmount(input.amount)} to‘landi. Qolgan: ${formatSalaryAmount(Math.max(totalAmount - paidAmount, 0))}.`,
         entityType: 'salary',
         entityId: id,
@@ -920,7 +1246,7 @@ export const salaryService = {
 
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
-        action: 'salary.paid',
+        action: isAdvance ? 'salary.advance_paid' : 'salary.paid',
         entityType: 'salary',
         entityId: id,
         metadata: {

@@ -22,7 +22,7 @@ import { permissionRouter, roleRouter } from './role.routes.js';
 import { reportRouter } from './report.routes.js';
 import { searchRouter } from './search.routes.js';
 import { studentRouter } from './student.routes.js';
-import { salaryRouter, teacherRouter } from './teacher.routes.js';
+import { payrollRouter, salaryRouter, teacherRouter } from './teacher.routes.js';
 import { userRouter } from './user.routes.js';
 
 /** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
@@ -51,6 +51,7 @@ apiRouter.use('/gamification', gamificationRouter);
 apiRouter.use('/teachers', teacherRouter);
 apiRouter.use('/salaries', salaryRouter);
 apiRouter.use('/teacher-commissions', commissionRouter);
+apiRouter.use('/payroll', payrollRouter);
 apiRouter.use('/finance', financeRouter);
 apiRouter.use('/incomes', incomeRouter);
 apiRouter.use('/expenses', expenseRouter);

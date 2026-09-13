@@ -14,9 +14,10 @@ import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { salaryService } from '@/services/salary.service';
-import type { SalaryPeriod } from '@/types/teacher';
+import type { SalaryPaymentKind, SalaryPeriod } from '@/types/teacher';
 import { formatDate, formatMoney } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
+import { SALARY_PAYMENT_KIND_LABELS } from '@/utils/teacherLabels';
 
 const schema = z.object({
   amount: z.string().refine((value) => /^\d{4,9}$/.test(value) && Number(value) >= 1000, 'Eng kam to‘lov — 1 000 so‘m'),
@@ -30,11 +31,14 @@ type FormValues = z.infer<typeof schema>;
 
 interface SalaryPaymentModalProps {
   period: SalaryPeriod;
+  /** ADVANCE — hisoblangan, lekin tasdiqlanmagan maoshdan avans */
+  kind?: SalaryPaymentKind;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentModalProps) {
+export function SalaryPaymentModal({ period, kind = 'SALARY', onClose, onSaved }: SalaryPaymentModalProps) {
+  const isAdvance = kind === 'ADVANCE';
   const [formError, setFormError] = useState<string | null>(null);
 
   const lookupsQuery = useQuery({
@@ -66,6 +70,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
   const save = useMutation({
     mutationFn: (values: FormValues) =>
       salaryService.pay(period.id, {
+        kind,
         amount: Number(values.amount),
         method: values.method,
         ...(values.accountId ? { accountId: values.accountId } : {}),
@@ -91,7 +96,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
   return (
     <Modal
       open
-      title="Maosh to‘lovi"
+      title={isAdvance ? 'Avans berish' : 'Maosh to‘lovi'}
       description={`${period.teacher.firstName} ${period.teacher.lastName} · ${period.label}`}
       onClose={onClose}
       closeDisabled={save.isPending}
@@ -101,7 +106,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
             Bekor qilish
           </Button>
           <Button type="submit" form="salary-payment-form" loading={save.isPending}>
-            To‘lovni saqlash
+            {isAdvance ? 'Avansni saqlash' : 'To‘lovni saqlash'}
           </Button>
         </>
       }
@@ -115,7 +120,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
       <form id="salary-payment-form" onSubmit={onSubmit} noValidate className="space-y-4">
         <div className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-fg-muted">Tasdiqlangan maosh</span>
+            <span className="text-fg-muted">{isAdvance ? 'Hisoblangan maosh (tasdiqlanmagan)' : 'Tasdiqlangan maosh'}</span>
             <span className="font-medium text-fg">{formatMoney(period.totalAmount)}</span>
           </div>
           <div className="mt-1 flex justify-between">
@@ -172,7 +177,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
           </FormField>
         </div>
 
-        <FormField label="Izoh" htmlFor="salary-note" error={errors.note?.message} hint="Ixtiyoriy — masalan, avans">
+        <FormField label="Izoh" htmlFor="salary-note" error={errors.note?.message} hint="Ixtiyoriy">
           <Input id="salary-note" {...register('note')} />
         </FormField>
 
@@ -190,7 +195,7 @@ export function SalaryPaymentModal({ period, onClose, onSaved }: SalaryPaymentMo
               {period.payments.map((payment) => (
                 <li key={payment.id} className="flex items-center justify-between gap-2 px-3 py-2">
                   <span className="text-fg-muted">
-                    {formatDate(payment.paidAt)} · {PAYMENT_METHOD_LABELS[payment.method]}
+                    {SALARY_PAYMENT_KIND_LABELS[payment.kind]} · {formatDate(payment.paidAt)} · {PAYMENT_METHOD_LABELS[payment.method]}
                     {payment.account && ` · ${payment.account.name}`}
                   </span>
                   <span className="font-medium text-fg">{formatMoney(payment.amount)}</span>

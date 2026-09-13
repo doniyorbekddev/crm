@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { SalaryPeriodStatus, SalaryType } from '@/types/teacher';
+import type { PayrollAdjustmentCategory, PayrollAdjustmentType, SalaryPaymentKind, SalaryPeriodStatus, SalaryType } from '@/types/teacher';
 
 export const SALARY_TYPE_ORDER: readonly SalaryType[] = ['FIXED', 'PER_LESSON', 'PER_STUDENT', 'PERCENTAGE', 'MIXED'];
 
@@ -87,3 +87,28 @@ export function salaryRuleSummary(rule: {
         .join(' + ');
   }
 }
+
+export const ADJUSTMENT_TYPE_LABELS: Record<PayrollAdjustmentType, string> = {
+  BONUS: 'Bonus',
+  PENALTY: 'Jarima',
+};
+
+export const BONUS_CATEGORY_ORDER: readonly PayrollAdjustmentCategory[] = ['PERFORMANCE', 'ATTENDANCE', 'RETENTION', 'MONTHLY', 'SPECIAL', 'OTHER'];
+export const PENALTY_CATEGORY_ORDER: readonly PayrollAdjustmentCategory[] = ['LATENESS', 'ABSENCE', 'DISCIPLINE', 'OTHER'];
+
+export const ADJUSTMENT_CATEGORY_LABELS: Record<PayrollAdjustmentCategory, string> = {
+  ATTENDANCE: 'Davomat bonusi',
+  RETENTION: 'O‘quvchilarni saqlab qolish',
+  PERFORMANCE: 'Natija bonusi',
+  MONTHLY: 'Oylik bonus',
+  SPECIAL: 'Maxsus bonus',
+  LATENESS: 'Kechikish',
+  ABSENCE: 'Darsni qoldirish',
+  DISCIPLINE: 'Intizom',
+  OTHER: 'Boshqa',
+};
+
+export const SALARY_PAYMENT_KIND_LABELS: Record<SalaryPaymentKind, string> = {
+  SALARY: 'Maosh',
+  ADVANCE: 'Avans',
+};

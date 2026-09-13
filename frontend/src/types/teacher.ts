@@ -5,6 +5,18 @@ import type { UserStatus } from './auth';
 
 export type SalaryType = 'FIXED' | 'PER_LESSON' | 'PER_STUDENT' | 'PERCENTAGE' | 'MIXED';
 export type SalaryPeriodStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PARTIALLY_PAID' | 'PAID';
+export type SalaryPaymentKind = 'SALARY' | 'ADVANCE';
+export type PayrollAdjustmentType = 'BONUS' | 'PENALTY';
+export type PayrollAdjustmentCategory =
+  | 'ATTENDANCE'
+  | 'RETENTION'
+  | 'PERFORMANCE'
+  | 'MONTHLY'
+  | 'SPECIAL'
+  | 'LATENESS'
+  | 'ABSENCE'
+  | 'DISCIPLINE'
+  | 'OTHER';
 
 export interface SalaryRule {
   id: string;
@@ -75,6 +87,7 @@ export interface TeacherPerformance {
 
 export interface SalaryPayment {
   id: string;
+  kind: SalaryPaymentKind;
   amount: number;
   method: PaymentMethod;
   paidAt: string;
@@ -104,6 +117,8 @@ export interface SalaryPeriod {
   lessonAmount: number;
   studentAmount: number;
   percentageAmount: number;
+  commissionRate: number;
+  modelBonus: number;
   bonus: number;
   penalty: number;
   totalAmount: number;
@@ -115,7 +130,38 @@ export interface SalaryPeriod {
   approvedAt: string | null;
   approvedBy: PersonRef | null;
   lockedAt: string | null;
+  unlockedAt: string | null;
+  unlockedBy: PersonRef | null;
+  unlockReason: string | null;
+  adjustments: PayrollAdjustment[];
   payments: SalaryPayment[];
+}
+
+export interface PayrollAdjustment {
+  id: string;
+  type: PayrollAdjustmentType;
+  category: PayrollAdjustmentCategory;
+  amount: number;
+  reason: string;
+  date: string;
+  createdAt: string;
+  createdBy: PersonRef | null;
+  approvedBy: PersonRef | null;
+  approvedAt: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  voidedBy: PersonRef | null;
+}
+
+export interface PayrollAdjustmentPayload {
+  teacherProfileId: string;
+  year: number;
+  month: number;
+  type: PayrollAdjustmentType;
+  category: PayrollAdjustmentCategory;
+  amount: number;
+  reason: string;
+  date: string;
 }
 
 export interface TeacherDetail extends TeacherItem {
@@ -210,6 +256,7 @@ export interface CalculateSalaryResult {
 }
 
 export interface SalaryPaymentPayload {
+  kind?: SalaryPaymentKind;
   amount: number;
   method: PaymentMethod;
   accountId?: string;
@@ -218,9 +265,7 @@ export interface SalaryPaymentPayload {
 }
 
 export interface SalaryAdjustPayload {
-  bonus?: number;
-  penalty?: number;
-  note?: string;
+  note: string;
 }
 
 export interface SalaryFormLookups {

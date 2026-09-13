@@ -3,6 +3,7 @@ import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
 import type {
   CalculateSalaryResult,
+  PayrollAdjustmentPayload,
   SalaryAdjustPayload,
   SalaryFormLookups,
   SalaryPaymentPayload,
@@ -39,6 +40,21 @@ export const salaryService = {
 
   async pay(id: string, payload: SalaryPaymentPayload): Promise<MessageResult<SalaryPeriod>> {
     const response = await api.post<ApiSuccessResponse<SalaryPeriod>>(`/salaries/periods/${id}/payments`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async addAdjustment(payload: PayrollAdjustmentPayload): Promise<MessageResult<SalaryPeriod>> {
+    const response = await api.post<ApiSuccessResponse<SalaryPeriod>>('/salaries/adjustments', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async voidAdjustment(id: string, reason: string): Promise<MessageResult<SalaryPeriod>> {
+    const response = await api.post<ApiSuccessResponse<SalaryPeriod>>(`/salaries/adjustments/${id}/void`, { reason });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async unlock(id: string, reason: string): Promise<MessageResult<SalaryPeriod>> {
+    const response = await api.post<ApiSuccessResponse<SalaryPeriod>>(`/salaries/periods/${id}/unlock`, { reason });
     return { data: response.data.data, message: response.data.message };
   },
 

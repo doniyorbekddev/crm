@@ -614,6 +614,9 @@ export const commissionService = {
       client: ClientInfo;
     },
   ): Promise<YearMonth> {
+    if (await db.commissionEntry.findUnique({ where: { sourceKey: `period:${input.period.id}:carry-out` }, select: { id: true } })) {
+      throw AppError.conflict('Bu oyning manfiy qoldig‘i avval ko‘chirilgan — qo‘shimcha tuzatishni keyingi oyda kiriting');
+    }
     const target = await resolveOpenMonth(db, input.period.teacherProfileId, nextMonth(input.period));
     const now = new Date();
     const reason = `${input.period.label} maoshidan ko‘chirilgan manfiy qoldiq`;

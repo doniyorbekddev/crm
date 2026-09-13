@@ -1,12 +1,14 @@
 import type { Request, Response } from 'express';
 import { salaryService } from '../services/salary.service.js';
-import { sendSuccess } from '../utils/apiResponse.js';
+import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import {
   adjustSalarySchema,
   calculateSalarySchema,
+  createAdjustmentSchema,
   paySalarySchema,
+  reasonSchema,
   salaryPeriodListQuerySchema,
 } from '../validators/salary.validator.js';
 
@@ -41,7 +43,7 @@ export const salaryController = {
     const { id } = idParamSchema.parse(req.params);
     const input = adjustSalarySchema.parse(req.body);
     sendSuccess(res, await salaryService.adjust(requireAuthUser(req), id, input, getClientInfo(req)), {
-      message: 'Bonus va jarima saqlandi',
+      message: 'Izoh saqlandi',
     });
   },
 
@@ -56,7 +58,32 @@ export const salaryController = {
     const { id } = idParamSchema.parse(req.params);
     const input = paySalarySchema.parse(req.body);
     sendSuccess(res, await salaryService.pay(requireAuthUser(req), id, input, getClientInfo(req)), {
-      message: 'Maosh to‘lovi qayd etildi',
+      message: input.kind === 'ADVANCE' ? 'Avans qayd etildi' : 'Maosh to‘lovi qayd etildi',
+    });
+  },
+
+  async addAdjustment(req: Request, res: Response): Promise<void> {
+    const input = createAdjustmentSchema.parse(req.body);
+    sendCreated(
+      res,
+      await salaryService.addAdjustment(requireAuthUser(req), input, getClientInfo(req)),
+      input.type === 'BONUS' ? 'Bonus qo‘shildi' : 'Jarima qo‘shildi',
+    );
+  },
+
+  async voidAdjustment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = reasonSchema.parse(req.body);
+    sendSuccess(res, await salaryService.voidAdjustment(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Yozuv bekor qilindi',
+    });
+  },
+
+  async unlock(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = reasonSchema.parse(req.body);
+    sendSuccess(res, await salaryService.unlock(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Maosh qayta ochildi',
     });
   },
 };
