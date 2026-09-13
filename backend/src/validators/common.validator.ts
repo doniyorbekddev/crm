@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EXPORT_FORMATS } from '../utils/tableExport.js';
 
 /** "+998 90 123-45-67", "901234567", "998901234567" → "+998901234567" */
 export function normalizePhone(value: string): string {
@@ -51,3 +52,6 @@ export const paginationQuerySchema = z.object({
 export function optionalField<T extends z.ZodType>(schema: T) {
   return z.preprocess((value) => (value === '' || value === null ? undefined : value), schema.optional());
 }
+
+/** Eksport formati: `?format=csv` (standart) yoki `?format=xlsx` */
+export const exportFormatSchema = z.enum(EXPORT_FORMATS, 'Format: csv yoki xlsx').default('csv');

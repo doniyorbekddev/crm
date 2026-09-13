@@ -3,14 +3,14 @@ import { formatLeadNumber } from '../config/leadLabels.js';
 import { formatPaymentNumber } from '../config/paymentLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { STUDENT_STATUS_LABELS, formatStudentNumber } from '../config/studentLabels.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { permissionService } from './permission.service.js';
 
 /** Har bir bo‘limdan ko‘rsatiladigan natijalar soni */
 const PER_GROUP = 5;
 
-export type SearchGroupKey = 'leads' | 'students' | 'courses' | 'groups' | 'users' | 'payments';
+export type SearchGroupKey = 'leads' | 'students' | 'parents' | 'teachers' | 'courses' | 'groups' | 'users' | 'payments' | 'transactions';
 
 export interface SearchHit {
   id: string;
@@ -33,6 +33,19 @@ export interface SearchResultDto {
   query: string;
   total: number;
   groups: SearchGroupDto[];
+}
+
+const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  INCOME: 'Kirim',
+  EXPENSE: 'Chiqim',
+  TRANSFER: 'O‘tkazma',
+  REFUND: 'Qaytarish',
+};
+
+/** "TX-12", "#12", "№12" yoki "12" — tranzaksiya raqami */
+function transactionNumberFrom(term: string): number | null {
+  const match = /^(?:tx[-\s]?|#|№\s?)?0*(\d{1,9})$/i.exec(term.trim());
+  return match?.[1] ? Number(match[1]) : null;
 }
 
 function digitsOf(value: string): string {
@@ -59,8 +72,8 @@ export const searchService = {
       return { query, total: 0, groups };
     }
 
-    // "L-000012", "ST-000006", "PM-000008" — bu kodlar telefon raqami sifatida qidirilmaydi
-    const isPrefixedCode = /^(?:l|st|pm)[-\s]?\d+$/i.test(query);
+    // "L-000012", "ST-000006", "PM-000008", "TX-12" — bu kodlar telefon raqami sifatida qidirilmaydi
+    const isPrefixedCode = /^(?:l|st|pm|tx)[-\s]?\d+$|^[#№]\s?\d+$/i.test(query);
     const digits = isPrefixedCode ? '' : digitsOf(query);
     const phoneCondition = digits.length >= 3 ? [{ phone: { contains: digits } }] : [];
 
@@ -155,7 +168,84 @@ export const searchService = {
               .filter(Boolean)
               .join(' · '),
             code: formatStudentNumber(student.number),
-            url: '/students',
+            url: `/students/${student.id}`,
+          })),
+        });
+      }
+    }
+
+    // --- Ota-onalar ---
+    if (permissions.has(PERMISSIONS.PARENT_VIEW)) {
+      const onlyOwnGroups = !permissions.has(PERMISSIONS.STUDENT_MANAGE) && permissions.has(PERMISSIONS.ATTENDANCE_MARK);
+      const childFilter: Prisma.StudentParentWhereInput = {
+        student: { deletedAt: null, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) },
+      };
+      const parents = await prisma.parent.findMany({
+        where: {
+          ...(onlyOwnGroups ? { students: { some: childFilter } } : {}),
+          OR: [
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { telegram: { contains: query, mode: 'insensitive' } },
+            ...phoneCondition,
+          ],
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          students: { where: childFilter, select: { student: { select: { firstName: true } } }, take: 3 },
+        },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        take: PER_GROUP,
+      });
+
+      if (parents.length > 0) {
+        groups.push({
+          key: 'parents',
+          label: 'Ota-onalar',
+          hits: parents.map((parent) => ({
+            id: parent.id,
+            title: `${parent.firstName} ${parent.lastName}`,
+            subtitle: [parent.phone, parent.students.length ? `farzandi: ${parent.students.map((link) => link.student.firstName).join(', ')}` : null]
+              .filter(Boolean)
+              .join(' · '),
+            code: null,
+            url: '/parents',
+          })),
+        });
+      }
+    }
+
+    // --- O‘qituvchilar ---
+    if (permissions.has(PERMISSIONS.TEACHER_VIEW)) {
+      const teachers = await prisma.teacherProfile.findMany({
+        where: {
+          user: { deletedAt: null },
+          OR: [
+            { specialization: { contains: query, mode: 'insensitive' } },
+            { user: { firstName: { contains: query, mode: 'insensitive' } } },
+            { user: { lastName: { contains: query, mode: 'insensitive' } } },
+            { user: { email: { contains: query, mode: 'insensitive' } } },
+            ...(digits.length >= 3 ? [{ user: { phone: { contains: digits } } }] : []),
+          ],
+        },
+        select: { id: true, specialization: true, isActive: true, user: { select: { firstName: true, lastName: true, phone: true } } },
+        orderBy: [{ isActive: 'desc' }, { user: { firstName: 'asc' } }],
+        take: PER_GROUP,
+      });
+
+      if (teachers.length > 0) {
+        groups.push({
+          key: 'teachers',
+          label: 'O‘qituvchilar',
+          hits: teachers.map((teacher) => ({
+            id: teacher.id,
+            title: `${teacher.user.firstName} ${teacher.user.lastName}`,
+            subtitle: [teacher.specialization, teacher.user.phone, teacher.isActive ? null : 'faolsiz'].filter(Boolean).join(' · '),
+            code: null,
+            url: '/teachers',
           })),
         });
       }
@@ -246,6 +336,56 @@ export const searchService = {
               subtitle: `${payment.amount.toNumber().toLocaleString('uz-UZ')} so‘m · ${payment.paidAt.toISOString().slice(0, 10)}${payment.deletedAt ? ' · bekor qilingan' : ''}`,
               code: formatPaymentNumber(payment.number),
               url: '/payments',
+            })),
+          });
+        }
+      }
+    }
+
+    // --- Tranzaksiyalar (moliyaviy daftar): raqam, izoh yoki kategoriya bo‘yicha ---
+    if (permissions.has(PERMISSIONS.FINANCE_VIEW)) {
+      const or: Prisma.TransactionWhereInput[] = [];
+      const transactionNumber = transactionNumberFrom(query);
+      if (transactionNumber !== null) or.push({ number: transactionNumber });
+      if (!isPrefixedCode && query.length >= 3) {
+        or.push({ description: { contains: query, mode: 'insensitive' } }, { categoryName: { contains: query, mode: 'insensitive' } });
+      }
+
+      if (or.length > 0) {
+        const transactions = await prisma.transaction.findMany({
+          where: { OR: or },
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            status: true,
+            amount: true,
+            occurredAt: true,
+            description: true,
+            categoryName: true,
+            account: { select: { name: true } },
+          },
+          orderBy: { occurredAt: 'desc' },
+          take: PER_GROUP,
+        });
+
+        if (transactions.length > 0) {
+          groups.push({
+            key: 'transactions',
+            label: 'Tranzaksiyalar',
+            hits: transactions.map((transaction) => ({
+              id: transaction.id,
+              title: `${TRANSACTION_TYPE_LABELS[transaction.type]} · ${transaction.amount.toNumber().toLocaleString('uz-UZ')} so‘m`,
+              subtitle: [
+                transaction.occurredAt.toISOString().slice(0, 10),
+                transaction.categoryName ?? transaction.description,
+                transaction.account?.name,
+                transaction.status === 'COMPLETED' ? null : 'bekor qilingan',
+              ]
+                .filter(Boolean)
+                .join(' · '),
+              code: `№${transaction.number}`,
+              url: '/finance',
             })),
           });
         }

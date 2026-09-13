@@ -18,6 +18,9 @@ import { auditService } from './audit.service.js';
 import { getLeadAccess, visibleLeadFilter } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
+import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExport.js';
+import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
+import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
 
 const studentSelect = {
   id: true,
@@ -244,6 +247,47 @@ export const studentService = {
     });
     const total = await prisma.student.count({ where });
     return { items: items.map(toStudentDto), total };
+  },
+
+  /** Filtrga mos o‘quvchilar — eksport uchun (sahifalashsiz, EXPORT_ROW_LIMIT gacha) */
+  async exportTable(actor: AuthUser, query: StudentListQuery): Promise<ExportTable> {
+    const access = await getStudentAccess(actor);
+    const where = buildWhere(access, query);
+    const records = await prisma.student.findMany({
+      where,
+      select: studentSelect,
+      orderBy: buildOrderBy(query.sortBy, query.sortOrder),
+      take: EXPORT_ROW_LIMIT,
+    });
+    const total = await prisma.student.count({ where });
+
+    const columns: ExportColumn[] = [
+      { key: 'code', label: 'ID', type: 'text' },
+      { key: 'name', label: 'O‘quvchi', type: 'text' },
+      { key: 'phone', label: 'Telefon', type: 'text' },
+      { key: 'parentPhone', label: 'Ota-ona telefoni', type: 'text' },
+      { key: 'course', label: 'Kurs', type: 'text' },
+      { key: 'group', label: 'Guruh', type: 'text' },
+      { key: 'status', label: 'Holat', type: 'text' },
+      { key: 'startDate', label: 'Boshlagan sana', type: 'date' },
+      { key: 'contractPrice', label: 'Shartnoma summasi', type: 'money' },
+      { key: 'paid', label: 'To‘langan', type: 'money' },
+      { key: 'remaining', label: 'Qarz', type: 'money' },
+    ];
+    const rows = records.map(toStudentDto).map((student) => ({
+      code: student.code,
+      name: `${student.firstName} ${student.lastName}`,
+      phone: student.phone,
+      parentPhone: student.parentPhone,
+      course: student.course.name,
+      group: student.group?.name ?? null,
+      status: STUDENT_STATUS_LABELS[student.status],
+      startDate: student.startDate,
+      contractPrice: student.contractPrice,
+      paid: student.debt?.paid ?? 0,
+      remaining: student.debt?.remaining ?? 0,
+    }));
+    return { title: 'O‘quvchilar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: sumColumns(columns, rows) };
   },
 
   /** Holatlar bo‘yicha sonlar (tablar uchun) — status filtridan tashqari barcha filtrlarni hisobga oladi. */

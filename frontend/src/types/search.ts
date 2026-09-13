@@ -1,10 +1,10 @@
-export type SearchGroupKey = 'leads' | 'students' | 'courses' | 'groups' | 'users' | 'payments';
+export type SearchGroupKey = 'leads' | 'students' | 'parents' | 'teachers' | 'courses' | 'groups' | 'users' | 'payments' | 'transactions';
 
 export interface SearchHit {
   id: string;
   title: string;
   subtitle: string;
-  /** L-000123, ST-000045, PM-000007 yoki null */
+  /** L-000123, ST-000045, PM-000007, №12 yoki null */
   code: string | null;
   url: string;
 }

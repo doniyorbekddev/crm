@@ -3,7 +3,7 @@ import { debtService } from '../services/debt.service.js';
 import { paymentService } from '../services/payment.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
-import { idParamSchema } from '../validators/common.validator.js';
+import { exportFormatSchema, idParamSchema } from '../validators/common.validator.js';
 import {
   createPaymentSchema,
   debtListQuerySchema,
@@ -11,8 +11,17 @@ import {
   paymentListQuerySchema,
   paymentStatsQuerySchema,
 } from '../validators/payment.validator.js';
+import { businessDateString } from '../utils/dates.js';
+import { sendTable } from '../utils/tableExport.js';
 
 export const paymentController = {
+  /** Filtrlangan ro‘yxatni CSV yoki XLSX ga eksport qilish */
+  async export(req: Request, res: Response): Promise<void> {
+    const query = paymentListQuerySchema.parse(req.query);
+    const format = exportFormatSchema.parse(req.query.format);
+    sendTable(res, await paymentService.exportTable(query), `tolovlar-${businessDateString(new Date())}`, format);
+  },
+
   async list(req: Request, res: Response): Promise<void> {
     const query = paymentListQuerySchema.parse(req.query);
     const { items, total } = await paymentService.list(query);

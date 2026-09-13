@@ -16,6 +16,9 @@ interface ActionMenuProps {
   items: ActionMenuItem[];
   /** Ekran o‘quvchilar uchun tugma nomi */
   label?: string;
+  /** Berilsa — "…" o‘rniga matnli tugma (masalan, "Eksport") */
+  trigger?: { label: string; icon: LucideIcon };
+  disabled?: boolean;
 }
 
 const MENU_WIDTH = 208;
@@ -25,7 +28,7 @@ const ITEM_HEIGHT = 40;
  * Jadval qatorlari uchun "…" menyusi. Menyu `document.body` ga chiziladi —
  * jadvalning `overflow` konteyneri uni kesib qo‘ymasligi uchun.
  */
-export function ActionMenu({ items, label = 'Amallar' }: ActionMenuProps) {
+export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false }: ActionMenuProps) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -81,10 +84,23 @@ export function ActionMenu({ items, label = 'Amallar' }: ActionMenuProps) {
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={label}
-        className="grid size-8 place-items-center rounded-md text-fg-muted outline-none transition-colors hover:bg-surface-muted hover:text-fg focus-visible:ring-2 focus-visible:ring-brand-500"
+        aria-label={trigger ? undefined : label}
+        disabled={disabled}
+        className={cn(
+          'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-60',
+          trigger
+            ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg shadow-xs hover:bg-surface-muted'
+            : 'grid size-8 place-items-center rounded-md text-fg-muted hover:bg-surface-muted hover:text-fg',
+        )}
       >
-        <MoreHorizontal className="size-4" aria-hidden />
+        {trigger ? (
+          <>
+            <trigger.icon className="size-4" aria-hidden />
+            {trigger.label}
+          </>
+        ) : (
+          <MoreHorizontal className="size-4" aria-hidden />
+        )}
       </button>
       {position &&
         createPortal(

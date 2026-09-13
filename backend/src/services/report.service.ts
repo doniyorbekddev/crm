@@ -9,6 +9,8 @@ import type { Prisma, SalaryType, StudentStatus } from '../generated/prisma/clie
 import { addDays, startOfBusinessDay } from '../utils/dates.js';
 import type { ReportGroupBy, ReportQuery, ReportType } from '../validators/report.validator.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
+import { tableToCsv } from '../utils/tableExport.js';
+import type { ExportTable } from '../utils/tableExport.js';
 
 export type ReportColumnType = 'text' | 'number' | 'money' | 'percent' | 'date';
 
@@ -1389,41 +1391,20 @@ export const reportService = {
   },
 };
 
-/** CSV: Excel uchun BOM bilan, qiymatlar qo‘shtirnoq ichida */
-/**
- * CSV formula injection himoyasi: foydalanuvchi kiritgan matn (ism, izoh) `=`, `+`, `-`, `@`,
- * tab yoki CR bilan boshlansa Excel uni formula sifatida ishga tushiradi (masalan `=HYPERLINK(...)`).
- * Bunday matn oldiga apostrof qo‘yiladi. Raqamlar (manfiy foyda ham) o‘zgarmaydi.
- */
-export function neutralizeFormula(value: string | number): string {
-  if (typeof value !== 'string') return String(value);
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+export { neutralizeFormula } from '../utils/tableExport.js';
+
+/** Hisobotni eksport jadvaliga aylantiradi — CSV va XLSX uchun umumiy */
+export function reportToTable(report: ReportDto): ExportTable {
+  return {
+    title: `${report.title} (${report.from} — ${report.to})`,
+    ...(report.truncatedFrom ? { subtitle: `Birinchi ${report.rows.length} ta qator (jami ${report.truncatedFrom})` } : {}),
+    columns: report.columns,
+    rows: report.rows,
+    totals: report.totals,
+  };
 }
 
-/** Excel UTF-8 ni tanishi uchun fayl boshiga qo‘yiladigan BOM belgisi */
-const BOM = String.fromCharCode(0xfeff);
-
+/** CSV: Excel uchun BOM bilan, qiymatlar qo‘shtirnoq ichida */
 export function toCsv(report: ReportDto): string {
-  const escape = (value: ReportCell): string => {
-    if (value === null || value === undefined) return '""';
-    return `"${neutralizeFormula(value).replace(/"/g, '""')}"`;
-  };
-
-  const lines: string[] = [];
-  lines.push(escape(`${report.title} (${report.from} — ${report.to})`));
-  lines.push('');
-  lines.push(report.columns.map((column) => escape(column.label)).join(','));
-  for (const row of report.rows) {
-    lines.push(report.columns.map((column) => escape(row[column.key] ?? '')).join(','));
-  }
-
-  if (report.totals) {
-    lines.push(
-      report.columns
-        .map((column, index) => (index === 0 ? escape('Jami') : escape(report.totals?.[column.key] ?? '')))
-        .join(','),
-    );
-  }
-
-  return `${BOM}${lines.join('\r\n')}\r\n`;
+  return tableToCsv(reportToTable(report));
 }

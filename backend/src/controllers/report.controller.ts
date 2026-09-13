@@ -2,11 +2,12 @@ import type { Request, Response } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { PermissionKey } from '../config/permissions.js';
 import { permissionService } from '../services/permission.service.js';
-import { reportService, toCsv } from '../services/report.service.js';
+import { reportService, reportToTable } from '../services/report.service.js';
 import { AppError } from '../utils/AppError.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
-import { reportQuerySchema, reportTypeParamSchema } from '../validators/report.validator.js';
+import { sendTable } from '../utils/tableExport.js';
+import { reportExportQuerySchema, reportQuerySchema, reportTypeParamSchema } from '../validators/report.validator.js';
 import type { ReportType } from '../validators/report.validator.js';
 
 /**
@@ -39,16 +40,13 @@ export const reportController = {
     sendSuccess(res, await reportService.build(type, query));
   },
 
-  /** CSV yuklab olish — Excel’da to‘g‘ri ochilishi uchun BOM qo‘shiladi */
+  /** CSV (Excel uchun BOM bilan) yoki XLSX yuklab olish */
   async export(req: Request, res: Response): Promise<void> {
     const { type } = reportTypeParamSchema.parse(req.params);
     await assertReportAccess(req, type);
     const query = reportQuerySchema.parse(req.query);
+    const { format } = reportExportQuerySchema.parse({ format: req.query.format });
     const report = await reportService.build(type, query);
-    const fileName = `${type}-${report.from}_${report.to}.csv`;
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.send(toCsv(report));
+    sendTable(res, reportToTable(report), `${type}-${report.from}_${report.to}`, format);
   },
 };

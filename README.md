@@ -46,7 +46,9 @@ Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs
 > (telefonda gorizontal skroll tuzatildi — barcha 23 sahifa 390px da; rol bo‘yicha dashboard: o‘qituvchiga
 > darslar, davomat va baholash navbati, buxgalterga oylik foyda, kassalar va maosh navbati; qorong‘i rejim
 > tekshirildi). **Kengaytirishning barcha 17 bosqichi yakunlandi.** Keyin: **ota-onalar moduli** (spec 35 — `/parents`
-> sahifasi, o‘quvchi profilida «Ota-ona» tabi, bir nechta farzand, asosiy vakil telefoni o‘quvchiga sinxronlanadi).
+> sahifasi, o‘quvchi profilida «Ota-ona» tabi, bir nechta farzand, asosiy vakil telefoni o‘quvchiga sinxronlanadi),
+> **global qidiruv** (o‘qituvchi, ota-ona, tranzaksiya) va **Excel eksport** (o‘quvchilar, leadlar, to‘lovlar,
+> tushum/xarajat, maoshlar va barcha hisobotlar — `.xlsx` yoki CSV).
 
 | Qism | Texnologiyalar |
 |---|---|

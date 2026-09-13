@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, GraduationCap, Layers, Search, Target, Users, Wallet, X } from 'lucide-react';
+import { BookOpen, GraduationCap, Layers, ScrollText, Search, Target, UserCog, Users, UsersRound, Wallet, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,9 @@ import type { SearchGroupKey, SearchHit } from '@/types/search';
 const GROUP_ICONS: Record<SearchGroupKey, LucideIcon> = {
   leads: Target,
   students: GraduationCap,
+  parents: UsersRound,
+  teachers: UserCog,
+  transactions: ScrollText,
   courses: BookOpen,
   groups: Layers,
   payments: Wallet,

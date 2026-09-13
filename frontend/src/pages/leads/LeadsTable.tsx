@@ -17,6 +17,10 @@ import { leadsService } from '@/services/leads.service';
 import type { LeadFilters, LeadListParams, LeadSortBy, LeadStatus } from '@/types/lead';
 import { formatDate, formatDateTime, formatPhone } from '@/utils/format';
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, leadFullName } from '@/utils/leadLabels';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +39,8 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
   const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('createdAt:desc');
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
 
   const [sortBy, sortOrder] = sort.split(':') as [LeadSortBy, 'asc' | 'desc'];
   const params: LeadListParams = {
@@ -92,21 +98,36 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
             );
           })}
         </div>
-        <Select
-          value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as typeof sort);
-            setPage(1);
-          }}
-          aria-label="Saralash"
-          wrapperClassName="lg:w-56 shrink-0"
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+        <div className="flex shrink-0 gap-2">
+          <Select
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value as typeof sort);
+              setPage(1);
+            }}
+            aria-label="Saralash"
+            wrapperClassName="min-w-0 flex-1 lg:w-56"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          {canExport && (
+            <ExportMenu
+              loading={exporting}
+              onExport={(format) =>
+                void runExport(
+                  '/leads/export',
+                  { ...filters, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) },
+                  'leadlar',
+                  format,
+                )
+              }
+            />
+          )}
+        </div>
       </div>
 
       {listQuery.isPending ? (

@@ -4,6 +4,7 @@ import { leadController } from '../controllers/lead.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 
 export const leadRouter = Router();
 
@@ -11,6 +12,7 @@ leadRouter.use(authenticate);
 
 leadRouter.get('/', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.list);
 leadRouter.get('/summary', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.summary);
+leadRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.LEAD_VIEW), requirePermission(PERMISSIONS.REPORT_EXPORT), leadController.export);
 leadRouter.get('/kanban', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.kanban);
 leadRouter.post('/', requirePermission(PERMISSIONS.LEAD_CREATE), leadController.create);
 leadRouter.get('/:id', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.getById);

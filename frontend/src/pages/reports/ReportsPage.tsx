@@ -1,9 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { BarChart3, Download, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -11,7 +9,6 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
-import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { paymentsService } from '@/services/payments.service';
@@ -21,6 +18,8 @@ import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { useAuthStore } from '@/store/auth.store';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { hasPermission } from '@/utils/permissions';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
 
 interface ReportConfig {
   value: ReportType;
@@ -123,7 +122,7 @@ export default function ReportsPage() {
   const [courseId, setCourseId] = useState('');
   const [groupId, setGroupId] = useState('');
   const [managerId, setManagerId] = useState('');
-  const [exporting, setExporting] = useState(false);
+  const { exporting, run: runExport } = useExport();
 
   const config = availableReports.find((report) => report.value === type) ?? availableReports[0] ?? REPORTS[0]!;
   const params: ReportParams = {
@@ -148,18 +147,6 @@ export default function ReportsPage() {
 
   const groupsForCourse = (lookupsQuery.data?.groups ?? []).filter((group) => !courseId || group.courseId === courseId);
 
-  const exportCsv = async () => {
-    setExporting(true);
-    try {
-      await reportsService.exportCsv(type, params);
-      toast.success('CSV fayl yuklab olindi');
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const report = reportQuery.data;
 
   return (
@@ -169,15 +156,11 @@ export default function ReportsPage() {
         description={report?.description ?? 'Sana oralig‘ini tanlab, kerakli hisobotni oling'}
         actions={
           canExport ? (
-            <Button
-              variant="secondary"
-              leftIcon={<Download className="size-4" aria-hidden />}
+            <ExportMenu
               loading={exporting}
               disabled={!report || report.rows.length === 0}
-              onClick={() => void exportCsv()}
-            >
-              CSV yuklab olish
-            </Button>
+              onExport={(format) => void runExport(`/reports/${type}/export`, params, type, format)}
+            />
           ) : undefined
         }
       />

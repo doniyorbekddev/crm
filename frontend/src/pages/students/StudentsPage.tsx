@@ -36,6 +36,8 @@ import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentStatusModal } from './StudentStatusModal';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
 
 const PAGE_SIZE = 20;
 
@@ -56,6 +58,8 @@ export default function StudentsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.STUDENT_MANAGE);
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
   const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
   const canViewGamification = usePermission(PERMISSIONS.GAMIFICATION_VIEW);
@@ -133,11 +137,21 @@ export default function StudentsPage() {
         title="O‘quvchilar"
         description="Shartnoma, guruh, holat va qarzdorlik"
         actions={
-          canManage ? (
-            <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
-              O‘quvchi qo‘shish
-            </Button>
-          ) : undefined
+          <>
+            {canExport && (
+              <ExportMenu
+                loading={exporting}
+                onExport={(format) =>
+                  void runExport('/students/export', { ...summaryParams, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) }, 'oquvchilar', format)
+                }
+              />
+            )}
+            {canManage && (
+              <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                O‘quvchi qo‘shish
+              </Button>
+            )}
+          </>
         }
       />
 

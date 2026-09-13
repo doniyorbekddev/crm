@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, formatLeadNumber } from '../config/leadLabels.js';
+import { LEAD_PRIORITY_LABELS, LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { Gender, LeadActivityType, LeadPriority, LeadStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -22,6 +22,9 @@ import { auditService } from './audit.service.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import type { LeadAccess } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
+import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
+import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
+import { businessDateString } from '../utils/dates.js';
 
 // ---------------------------------------------------------------------
 // Select va DTO
@@ -424,6 +427,45 @@ export const leadService = {
       prisma.lead.count({ where }),
     ]);
     return { items: items.map(toListItem), total };
+  },
+
+  /** Filtrga mos leadlar — eksport uchun (sahifalashsiz, EXPORT_ROW_LIMIT gacha) */
+  async exportTable(actor: AuthUser, query: LeadListQuery): Promise<ExportTable> {
+    const access = await getLeadAccess(actor);
+    const where = buildLeadWhere(access, query);
+    const records = await prisma.lead.findMany({
+      where,
+      select: leadListSelect,
+      orderBy: buildLeadOrderBy(query.sortBy, query.sortOrder),
+      take: EXPORT_ROW_LIMIT,
+    });
+    const total = await prisma.lead.count({ where });
+
+    const columns: ExportColumn[] = [
+      { key: 'code', label: 'ID', type: 'text' },
+      { key: 'name', label: 'Lead', type: 'text' },
+      { key: 'phone', label: 'Telefon', type: 'text' },
+      { key: 'status', label: 'Status', type: 'text' },
+      { key: 'priority', label: 'Muhimlik', type: 'text' },
+      { key: 'source', label: 'Manba', type: 'text' },
+      { key: 'course', label: 'Kurs', type: 'text' },
+      { key: 'assignedTo', label: 'Mas’ul', type: 'text' },
+      { key: 'nextFollowUpAt', label: 'Keyingi aloqa', type: 'date' },
+      { key: 'createdAt', label: 'Qo‘shilgan', type: 'date' },
+    ];
+    const rows = records.map(toListItem).map((lead) => ({
+      code: lead.code,
+      name: [lead.firstName, lead.lastName].filter(Boolean).join(' '),
+      phone: lead.phone,
+      status: LEAD_STATUS_LABELS[lead.status],
+      priority: LEAD_PRIORITY_LABELS[lead.priority],
+      source: lead.source.name,
+      course: lead.course?.name ?? null,
+      assignedTo: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : null,
+      nextFollowUpAt: lead.nextFollowUpAt ? businessDateString(new Date(lead.nextFollowUpAt)) : null,
+      createdAt: businessDateString(new Date(lead.createdAt)),
+    }));
+    return { title: 'Leadlar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: null };
   },
 
   /** Statuslar bo‘yicha sonlar (tablar uchun) — status filtridan tashqari barcha filtrlarni hisobga oladi. */

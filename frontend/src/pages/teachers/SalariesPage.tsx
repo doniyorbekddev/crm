@@ -29,6 +29,8 @@ import {
 } from '@/utils/teacherLabels';
 import { SalaryAdjustModal } from './SalaryAdjustModal';
 import { SalaryPaymentModal } from './SalaryPaymentModal';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
 
 const now = new Date();
 
@@ -51,8 +53,12 @@ export default function SalariesPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [status, setStatus] = useState<SalaryPeriodStatus | ''>('');
   const [dialog, setDialog] = useState<Dialog>(null);
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
 
   const params: SalaryPeriodParams = { year, month, ...(status ? { status } : {}) };
+  const monthLabel = `${year}-${String(month).padStart(2, '0')}`;
+  const monthRange = { from: `${monthLabel}-01`, to: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10) };
 
   const periodsQuery = useQuery({
     queryKey: queryKeys.salaries.periods(params),
@@ -121,15 +127,20 @@ export default function SalariesPage() {
         description="Oylik hisob-kitob, tasdiqlash va to‘lovlar"
         documentTitle="Maoshlar"
         actions={
-          canCalculate ? (
-            <Button
-              leftIcon={<Calculator className="size-4" aria-hidden />}
-              loading={calculate.isPending}
-              onClick={() => calculate.mutate(undefined)}
-            >
-              Oyni hisoblash
-            </Button>
-          ) : undefined
+          <>
+            {canExport && (
+              <ExportMenu loading={exporting} onExport={(format) => void runExport('/reports/salaries/export', monthRange, `maoshlar-${monthLabel}`, format)} />
+            )}
+            {canCalculate && (
+              <Button
+                leftIcon={<Calculator className="size-4" aria-hidden />}
+                loading={calculate.isPending}
+                onClick={() => calculate.mutate(undefined)}
+              >
+                Oyni hisoblash
+              </Button>
+            )}
+          </>
         }
       />
 

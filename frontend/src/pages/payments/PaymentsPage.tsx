@@ -24,6 +24,8 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER, PAYMENT_METHOD_TONES } fro
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { CancelPaymentModal } from './CancelPaymentModal';
 import { PaymentFormModal } from './PaymentFormModal';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
 
 const PAGE_SIZE = 20;
 
@@ -52,6 +54,8 @@ export default function PaymentsPage() {
   const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('paidAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
 
   const [sortBy, sortOrder] = sort.split(':') as [PaymentListParams['sortBy'], PaymentListParams['sortOrder']];
   const filters: PaymentStatsParams = {
@@ -105,11 +109,19 @@ export default function PaymentsPage() {
         title="To‘lovlar"
         description="Kvitansiyalar, to‘lov usullari va bekor qilingan to‘lovlar"
         actions={
-          canCreate ? (
-            <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
-              To‘lov qabul qilish
-            </Button>
-          ) : undefined
+          <>
+            {canExport && (
+              <ExportMenu
+                loading={exporting}
+                onExport={(format) => void runExport('/payments/export', { ...params, page: undefined, limit: undefined }, 'tolovlar', format)}
+              />
+            )}
+            {canCreate && (
+              <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                To‘lov qabul qilish
+              </Button>
+            )}
+          </>
         }
       />
 

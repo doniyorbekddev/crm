@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { formatPaymentNumber } from '../config/paymentLabels.js';
+import { PAYMENT_METHOD_LABELS, formatPaymentNumber } from '../config/paymentLabels.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import type { PaymentMethod, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -16,6 +16,9 @@ import { auditService } from './audit.service.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
 import { debtStatusOf } from './student.service.js';
+import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
+import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
+import { businessDateString } from '../utils/dates.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
@@ -194,6 +197,48 @@ export const paymentService = {
     });
     const total = await prisma.payment.count({ where });
     return { items: items.map(toPaymentDto), total };
+  },
+
+  /** Filtrga mos to‘lovlar — eksport uchun; "Jami" faqat bekor qilinmaganlarni qo‘shadi */
+  async exportTable(query: PaymentListQuery): Promise<ExportTable> {
+    const where = buildPaymentWhere(query);
+    const records = await prisma.payment.findMany({
+      where,
+      select: paymentSelect,
+      orderBy: buildOrderBy(query.sortBy, query.sortOrder),
+      take: EXPORT_ROW_LIMIT,
+    });
+    const total = await prisma.payment.count({ where });
+
+    const columns: ExportColumn[] = [
+      { key: 'code', label: 'Kvitansiya', type: 'text' },
+      { key: 'paidAt', label: 'Sana', type: 'date' },
+      { key: 'student', label: 'O‘quvchi', type: 'text' },
+      { key: 'studentCode', label: 'O‘quvchi ID', type: 'text' },
+      { key: 'course', label: 'Kurs', type: 'text' },
+      { key: 'group', label: 'Guruh', type: 'text' },
+      { key: 'method', label: 'Usul', type: 'text' },
+      { key: 'amount', label: 'Summa', type: 'money' },
+      { key: 'manager', label: 'Menejer', type: 'text' },
+      { key: 'status', label: 'Holat', type: 'text' },
+      { key: 'comment', label: 'Izoh', type: 'text' },
+    ];
+    const payments = records.map(toPaymentDto);
+    const rows = payments.map((payment) => ({
+      code: payment.code,
+      paidAt: businessDateString(new Date(payment.paidAt)),
+      student: `${payment.student.firstName} ${payment.student.lastName}`,
+      studentCode: payment.student.code,
+      course: payment.course.name,
+      group: payment.student.group?.name ?? null,
+      method: PAYMENT_METHOD_LABELS[payment.method],
+      amount: payment.amount,
+      manager: payment.manager ? `${payment.manager.firstName} ${payment.manager.lastName}` : null,
+      status: payment.isDeleted ? 'Bekor qilingan' : 'Faol',
+      comment: payment.isDeleted ? (payment.deleteReason ?? payment.comment) : payment.comment,
+    }));
+    const activeSum = payments.reduce((sum, payment) => sum + (payment.isDeleted ? 0 : payment.amount), 0);
+    return { title: 'To‘lovlar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: { amount: activeSum } };
   },
 
   /** Filtrga mos to‘lovlar yig‘indisi va usullar kesimi (sahifalashdan qat’i nazar) */

@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { leadService } from '../services/lead.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
-import { idParamSchema } from '../validators/common.validator.js';
+import { exportFormatSchema, idParamSchema } from '../validators/common.validator.js';
 import {
   assignLeadSchema,
   createLeadNoteSchema,
@@ -15,8 +15,17 @@ import {
   updateLeadSchema,
   updateLeadStatusSchema,
 } from '../validators/lead.validator.js';
+import { businessDateString } from '../utils/dates.js';
+import { sendTable } from '../utils/tableExport.js';
 
 export const leadController = {
+  /** Filtrlangan ro‘yxatni CSV yoki XLSX ga eksport qilish */
+  async export(req: Request, res: Response): Promise<void> {
+    const query = leadListQuerySchema.parse(req.query);
+    const format = exportFormatSchema.parse(req.query.format);
+    sendTable(res, await leadService.exportTable(requireAuthUser(req), query), `leadlar-${businessDateString(new Date())}`, format);
+  },
+
   async list(req: Request, res: Response): Promise<void> {
     const query = leadListQuerySchema.parse(req.query);
     const { items, total } = await leadService.list(requireAuthUser(req), query);

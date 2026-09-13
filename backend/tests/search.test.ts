@@ -55,7 +55,7 @@ describe.skipIf(!hasTestDatabase)('Search API (integratsion)', () => {
     expect(groupOf(response.body, 'students')?.hits).toHaveLength(1);
     expect(groupOf(response.body, 'leads')?.hits[0]).toMatchObject({ title: 'Nodira Karimova' });
     expect((groupOf(response.body, 'leads')?.hits[0] as { code: string }).code).toMatch(/^L-\d{6}$/);
-    expect((groupOf(response.body, 'students')?.hits[0] as { url: string }).url).toBe('/students');
+    expect((groupOf(response.body, 'students')?.hits[0] as { url: string }).url).toMatch(/^\/students\/\w+$/);
   });
 
   it('L- va ST- raqamlari hamda telefon bo‘yicha topadi', async () => {
@@ -153,5 +153,29 @@ describe.skipIf(!hasTestDatabase)('Search API (integratsion)', () => {
     expect(empty.status).toBe(200);
     expect(empty.body.data).toMatchObject({ total: 0, groups: [] });
     expect(anonymous.status).toBe(401);
+  });
+  it('o‘qituvchi, ota-ona va tranzaksiyalarni topadi, ruxsatga qarab', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const { user: teacherUser, token: teacherToken } = await createUserWithToken(app, { role: 'TEACHER' });
+    await prisma.teacherProfile.create({ data: { userId: teacherUser.id, specialization: 'Robototexnika' } });
+    await prisma.parent.create({ data: { firstName: 'Gulchehra', lastName: 'Onayeva', phone: '+998901112233' } });
+    const transaction = await prisma.transaction.create({
+      data: { type: 'EXPENSE', amount: 350_000, description: 'Ofis ijarasi sentabr', categoryName: 'Ijara' },
+    });
+
+    const teachers = await request(app).get('/api/search?q=Robototexnika').set(bearer(token));
+    expect(groupOf(teachers.body, 'teachers')?.hits[0]).toMatchObject({ subtitle: expect.stringContaining('Robototexnika'), url: '/teachers' });
+
+    const parents = await request(app).get('/api/search?q=Gulchehra').set(bearer(token));
+    expect(groupOf(parents.body, 'parents')?.hits[0]).toMatchObject({ title: 'Gulchehra Onayeva', url: '/parents' });
+
+    const byText = await request(app).get('/api/search?q=ijarasi').set(bearer(token));
+    expect(groupOf(byText.body, 'transactions')?.hits[0]).toMatchObject({ code: `№${transaction.number}`, url: '/finance' });
+    const byNumber = await request(app).get('/api/search').query({ q: `TX-${transaction.number}` }).set(bearer(token));
+    expect(groupOf(byNumber.body, 'transactions')?.hits).toHaveLength(1);
+
+    // O'qituvchida moliya ruxsati yo'q — tranzaksiya ko'rinmaydi
+    const asTeacher = await request(app).get('/api/search?q=ijarasi').set(bearer(teacherToken));
+    expect(groupOf(asTeacher.body, 'transactions')).toBeUndefined();
   });
 });

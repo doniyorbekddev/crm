@@ -4,7 +4,7 @@ import { studentService } from '../services/student.service.js';
 import { studentProgressService } from '../services/studentProgress.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
-import { idParamSchema } from '../validators/common.validator.js';
+import { exportFormatSchema, idParamSchema } from '../validators/common.validator.js';
 import {
   convertLeadSchema,
   createStudentSchema,
@@ -12,6 +12,8 @@ import {
   updateStudentSchema,
   updateStudentStatusSchema,
 } from '../validators/student.validator.js';
+import { businessDateString } from '../utils/dates.js';
+import { sendTable } from '../utils/tableExport.js';
 
 export const studentController = {
   /** Profil: davomat, uy vazifasi, imtihon, XP, izohlar va progress grafigi */
@@ -28,6 +30,13 @@ export const studentController = {
   async exams(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await studentProgressService.exams(requireAuthUser(req), id));
+  },
+
+  /** Filtrlangan ro‘yxatni CSV yoki XLSX ga eksport qilish */
+  async export(req: Request, res: Response): Promise<void> {
+    const query = studentListQuerySchema.parse(req.query);
+    const format = exportFormatSchema.parse(req.query.format);
+    sendTable(res, await studentService.exportTable(requireAuthUser(req), query), `oquvchilar-${businessDateString(new Date())}`, format);
   },
 
   async list(req: Request, res: Response): Promise<void> {

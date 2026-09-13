@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { exportFormatSchema } from './common.validator.js';
 
 export const REPORT_TYPES = [
   'sales',
@@ -46,7 +47,7 @@ export const reportQuerySchema = z
     message: 'Tugash sanasi boshlanish sanasidan oldin bo‘lmasligi kerak',
   });
 
-export const reportExportQuerySchema = z.object({ format: z.enum(['csv'], 'Faqat CSV formati qo‘llab-quvvatlanadi').default('csv') });
+export const reportExportQuerySchema = z.object({ format: exportFormatSchema });
 
 export type ReportType = (typeof REPORT_TYPES)[number];
 export type ReportGroupBy = (typeof GROUP_BY_OPTIONS)[number];

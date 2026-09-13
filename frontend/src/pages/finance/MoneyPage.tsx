@@ -26,6 +26,8 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_TONES } from '@/utils/paymentLabe
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { MoneyFormModal } from './MoneyFormModal';
 import { VoidReasonModal } from './VoidReasonModal';
+import { ExportMenu } from '@/components/ExportMenu';
+import { useExport } from '@/hooks/useExport';
 
 const PAGE_SIZE = 20;
 
@@ -47,6 +49,8 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<{ type: 'create' } | { type: 'void'; entry: MoneyEntry } | null>(null);
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
   const [voidError, setVoidError] = useState<string | null>(null);
 
   const filters = {
@@ -99,11 +103,21 @@ export function MoneyPage({ kind }: MoneyPageProps) {
             : 'Ijara, reklama, kommunal va boshqa xarajatlar'
         }
         actions={
-          canManage ? (
-            <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
-              {isIncome ? 'Tushum qo‘shish' : 'Xarajat qo‘shish'}
-            </Button>
-          ) : undefined
+          <>
+            {canExport && (
+              <ExportMenu
+                loading={exporting}
+                onExport={(format) =>
+                  void runExport(`/reports/${isIncome ? 'incomes' : 'expenses'}/export`, { ...(from ? { from } : {}), ...(to ? { to } : {}) }, isIncome ? 'tushumlar' : 'xarajatlar', format)
+                }
+              />
+            )}
+            {canManage && (
+              <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                {isIncome ? 'Tushum qo‘shish' : 'Xarajat qo‘shish'}
+              </Button>
+            )}
+          </>
         }
       />
 

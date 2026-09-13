@@ -5,6 +5,7 @@ import { parentController } from '../controllers/parent.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 
 export const studentRouter = Router();
 
@@ -12,6 +13,7 @@ studentRouter.use(authenticate);
 
 studentRouter.get('/', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.list);
 studentRouter.get('/summary', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.summary);
+studentRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.STUDENT_VIEW), requirePermission(PERMISSIONS.REPORT_EXPORT), studentController.export);
 studentRouter.get('/:id', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.getById);
 studentRouter.get('/:id/profile', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.profile);
 studentRouter.get('/:id/homework', requirePermission(PERMISSIONS.HOMEWORK_VIEW), studentController.homework);
