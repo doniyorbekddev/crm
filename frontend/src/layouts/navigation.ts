@@ -12,6 +12,7 @@ import {
   FileCheck,
   Gauge,
   GraduationCap,
+  IdCard,
   HandCoins,
   Layers,
   ScrollText,
@@ -93,7 +94,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'Boshqaruv',
     items: [
-      { to: '/users', label: 'Xodimlar', icon: Users, permission: PERMISSIONS.USER_VIEW },
+      { to: '/employees', label: 'Xodimlar', icon: IdCard, permission: PERMISSIONS.EMPLOYEE_VIEW },
+      { to: '/users', label: 'Foydalanuvchilar', icon: Users, permission: PERMISSIONS.USER_VIEW },
       { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
       { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
     ],

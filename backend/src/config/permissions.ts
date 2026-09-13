@@ -47,6 +47,8 @@ export const PERMISSIONS = {
 
   USER_VIEW: 'user.view',
   USER_MANAGE: 'user.manage',
+  EMPLOYEE_VIEW: 'employee.view',
+  EMPLOYEE_MANAGE: 'employee.manage',
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
@@ -144,6 +146,8 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
 
   { key: PERMISSIONS.USER_VIEW, module: 'users', description: 'Xodimlar ro‘yxatini ko‘rish' },
   { key: PERMISSIONS.USER_MANAGE, module: 'users', description: 'Xodim yaratish, o‘chirish, role berish' },
+  { key: PERMISSIONS.EMPLOYEE_VIEW, module: 'employees', description: 'Xodimlar (HR) ro‘yxatini ko‘rish' },
+  { key: PERMISSIONS.EMPLOYEE_MANAGE, module: 'employees', description: 'Xodim qo‘shish, tahrirlash, holatini o‘zgartirish' },
 
   { key: PERMISSIONS.ROLE_MANAGE, module: 'roles', description: 'Rollar va permissionlarni boshqarish' },
   { key: PERMISSIONS.SETTINGS_MANAGE, module: 'settings', description: 'CRM sozlamalarini boshqarish' },
@@ -314,6 +318,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     description: 'To‘lovlar, qarzdorlik va moliyaviy hisobotlar',
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
+      PERMISSIONS.EMPLOYEE_VIEW,
       PERMISSIONS.COURSE_VIEW,
       PERMISSIONS.GROUP_VIEW,
       PERMISSIONS.STUDENT_VIEW,

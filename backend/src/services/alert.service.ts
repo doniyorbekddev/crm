@@ -308,6 +308,7 @@ async function unpaidSalaryRule(now: Date): Promise<AlertCandidate[]> {
       month: true,
       remainingAmount: true,
       teacherProfile: { select: { user: { select: { firstName: true, lastName: true } } } },
+      employee: { select: { firstName: true, lastName: true } },
     },
   });
 
@@ -315,7 +316,8 @@ async function unpaidSalaryRule(now: Date): Promise<AlertCandidate[]> {
     const due = addDays(businessMonthRange(period.year, period.month).end, SALARY_GRACE_DAYS);
     if (now < due) return [];
     const overdueDays = Math.floor((now.getTime() - due.getTime()) / 86_400_000);
-    const name = `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`;
+    const person = period.teacherProfile?.user ?? period.employee;
+    const name = person ? `${person.firstName} ${person.lastName}` : 'Noma’lum';
     return [
       {
         type: 'UNPAID_SALARY' as const,

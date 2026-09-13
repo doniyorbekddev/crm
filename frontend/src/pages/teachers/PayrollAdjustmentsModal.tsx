@@ -67,7 +67,7 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
   const add = useMutation({
     mutationFn: () =>
       salaryService.addAdjustment({
-        teacherProfileId: current.teacher.profileId,
+        ...(current.payee.type === 'TEACHER' ? { teacherProfileId: current.payee.id } : { employeeId: current.payee.id }),
         year: current.year,
         month: current.month,
         type,
@@ -121,7 +121,7 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
       open
       size="lg"
       title="Bonus va jarimalar"
-      description={`${current.teacher.firstName} ${current.teacher.lastName} · ${current.label}`}
+      description={`${current.payee.firstName} ${current.payee.lastName} · ${current.label}`}
       onClose={onClose}
       closeDisabled={add.isPending || voidMutation.isPending}
     >

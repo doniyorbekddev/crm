@@ -17,7 +17,7 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { salaryService } from '@/services/salary.service';
-import type { SalaryPeriod, SalaryPeriodParams, SalaryPeriodStatus } from '@/types/teacher';
+import type { PayeeType, SalaryPeriod, SalaryPeriodParams, SalaryPeriodStatus } from '@/types/teacher';
 import { formatMoney, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import {
@@ -58,11 +58,12 @@ export default function SalariesPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [status, setStatus] = useState<SalaryPeriodStatus | ''>('');
+  const [payeeType, setPayeeType] = useState<PayeeType | ''>('');
   const [dialog, setDialog] = useState<Dialog>(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
 
-  const params: SalaryPeriodParams = { year, month, ...(status ? { status } : {}) };
+  const params: SalaryPeriodParams = { year, month, ...(status ? { status } : {}), ...(payeeType ? { payeeType } : {}) };
   const monthLabel = `${year}-${String(month).padStart(2, '0')}`;
   const monthRange = { from: `${monthLabel}-01`, to: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10) };
 
@@ -83,8 +84,7 @@ export default function SalariesPage() {
   };
 
   const calculate = useMutation({
-    mutationFn: (teacherProfileId?: string) =>
-      salaryService.calculate({ year, month, ...(teacherProfileId ? { teacherProfileId } : {}) }),
+    mutationFn: (payee?: { teacherProfileId?: string; employeeId?: string }) => salaryService.calculate({ year, month, ...payee }),
     onSuccess: (result) => {
       toast.success(result.message);
       for (const skipped of result.data.skipped) {
@@ -112,14 +112,16 @@ export default function SalariesPage() {
     const locked = period.lockedAt !== null;
     const salaryPaid = period.payments.some((payment) => payment.kind === 'SALARY');
     return [
-      { label: 'Foiz tafsiloti', icon: Percent, onSelect: () => setDialog({ type: 'commission', period }) },
+      ...(period.payee.type === 'TEACHER'
+        ? [{ label: 'Foiz tafsiloti', icon: Percent, onSelect: () => setDialog({ type: 'commission', period }) }]
+        : []),
       {
         label: canCalculate && !locked ? 'Bonus / jarima' : 'Bonus va jarimalar',
         icon: Pencil,
         onSelect: () => setDialog({ type: 'adjust', period }),
       },
       ...(canCalculate && !locked
-        ? [{ label: 'Qayta hisoblash', icon: Calculator, onSelect: () => calculate.mutate(period.teacher.profileId) }]
+        ? [{ label: 'Qayta hisoblash', icon: Calculator, onSelect: () => calculate.mutate(period.payee.type === 'TEACHER' ? { teacherProfileId: period.payee.id } : { employeeId: period.payee.id }) }]
         : []),
       ...(canPay && !locked && period.status === 'CALCULATED' && period.remainingAmount > 0
         ? [{ label: 'Avans berish', icon: Coins, onSelect: () => setDialog({ type: 'advance', period }) }]
@@ -139,8 +141,8 @@ export default function SalariesPage() {
   return (
     <>
       <PageHeader
-        title="O‘qituvchi maoshlari"
-        description="Oylik hisob-kitob, tasdiqlash va to‘lovlar"
+        title="Maoshlar"
+        description="O‘qituvchi va xodimlar: oylik hisob-kitob, tasdiqlash va to‘lovlar"
         documentTitle="Maoshlar"
         actions={
           <>
@@ -211,6 +213,26 @@ export default function SalariesPage() {
               </option>
             ))}
           </Select>
+          <div role="group" aria-label="To‘lov oluvchi" className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-lg border border-border bg-surface-muted p-0.5">
+            {([
+              ['', 'Hammasi'],
+              ['TEACHER', 'O‘qituvchilar'],
+              ['EMPLOYEE', 'Xodimlar'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value || 'all'}
+                type="button"
+                aria-pressed={payeeType === value}
+                onClick={() => setPayeeType(value)}
+                className={cn(
+                  'h-9 rounded-md px-3 text-sm font-medium whitespace-nowrap text-fg-muted transition-colors hover:text-fg',
+                  payeeType === value && 'bg-surface text-fg shadow-sm',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <Select
             value={status}
             onChange={(event) => setStatus(event.target.value as SalaryPeriodStatus | '')}
@@ -271,14 +293,19 @@ export default function SalariesPage() {
                     <TR key={period.id}>
                       <TD>
                         <p className="font-medium whitespace-nowrap text-fg">
-                          {period.teacher.firstName} {period.teacher.lastName}
+                          {period.payee.firstName} {period.payee.lastName}
                         </p>
                         <p className="text-xs text-fg-muted">
-                          {SALARY_TYPE_LABELS[period.salaryType]} · {formatNumber(period.studentsCount)} o‘quvchi
-                          {period.lessonsCount > 0 && ` · ${formatNumber(period.lessonsCount)} dars`}
+                          {period.payee.type === 'EMPLOYEE'
+                            ? `Xodim · ${period.payee.subtitle ?? ''}`
+                            : `${SALARY_TYPE_LABELS[period.salaryType]} · ${formatNumber(period.studentsCount)} o‘quvchi${
+                                period.lessonsCount > 0 ? ` · ${formatNumber(period.lessonsCount)} dars` : ''
+                              }`}
                         </p>
                       </TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(period.groupRevenue)}</TD>
+                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">
+                        {period.payee.type === 'EMPLOYEE' ? <span className="text-fg-subtle">—</span> : formatMoney(period.groupRevenue)}
+                      </TD>
                       <TD className="text-right whitespace-nowrap">
                         <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
                           {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
@@ -315,7 +342,7 @@ export default function SalariesPage() {
                         )}
                       </TD>
                       <TD className="text-right">
-                        <ActionMenu label={`${period.teacher.firstName} ${period.teacher.lastName} maoshi amallari`} items={actions} />
+                        <ActionMenu label={`${period.payee.firstName} ${period.payee.lastName} maoshi amallari`} items={actions} />
                       </TD>
                     </TR>
                   );
@@ -328,8 +355,8 @@ export default function SalariesPage() {
 
       {dialog?.type === 'commission' && (
         <CommissionDetailModal
-          teacherProfileId={dialog.period.teacher.profileId}
-          teacherName={`${dialog.period.teacher.firstName} ${dialog.period.teacher.lastName}`}
+          teacherProfileId={dialog.period.payee.id}
+          teacherName={`${dialog.period.payee.firstName} ${dialog.period.payee.lastName}`}
           year={dialog.period.year}
           month={dialog.period.month}
           onClose={() => setDialog(null)}
@@ -385,7 +412,7 @@ export default function SalariesPage() {
         description={
           dialog?.type === 'approve' ? (
             <>
-              {dialog.period.teacher.firstName} {dialog.period.teacher.lastName} uchun {dialog.period.label} maoshi{' '}
+              {dialog.period.payee.firstName} {dialog.period.payee.lastName} uchun {dialog.period.label} maoshi{' '}
               <strong>{formatMoney(dialog.period.totalAmount)}</strong>. Tasdiqlangandan keyin hisob qotiriladi — bonus,
               jarima va qayta hisoblash faqat “Qayta ochish” ruxsati bilan mumkin bo‘ladi.
             </>

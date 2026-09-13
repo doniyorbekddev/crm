@@ -34,8 +34,8 @@ export const salaryController = {
     sendSuccess(res, result, {
       message:
         result.calculated === 0
-          ? 'Hisoblash uchun mos o‘qituvchi topilmadi'
-          : `${result.calculated} ta o‘qituvchi maoshi hisoblandi`,
+          ? 'Hisoblash uchun mos o‘qituvchi yoki xodim topilmadi'
+          : `${result.calculated} ta maosh hisoblandi`,
     });
   },
 

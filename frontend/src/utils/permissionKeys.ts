@@ -55,6 +55,8 @@ export const PERMISSIONS = {
   SALARY_VIEW: 'salary.view',
   COMMISSION_VIEW_OWN: 'commission.view_own',
   SALARY_UNLOCK: 'salary.unlock',
+  EMPLOYEE_VIEW: 'employee.view',
+  EMPLOYEE_MANAGE: 'employee.manage',
   SALARY_CALCULATE: 'salary.calculate',
   SALARY_APPROVE: 'salary.approve',
   SALARY_PAY: 'salary.pay',

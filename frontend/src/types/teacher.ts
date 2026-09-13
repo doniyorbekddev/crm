@@ -6,6 +6,18 @@ import type { UserStatus } from './auth';
 export type SalaryType = 'FIXED' | 'PER_LESSON' | 'PER_STUDENT' | 'PERCENTAGE' | 'MIXED';
 export type SalaryPeriodStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PARTIALLY_PAID' | 'PAID';
 export type SalaryPaymentKind = 'SALARY' | 'ADVANCE';
+export type PayeeType = 'TEACHER' | 'EMPLOYEE';
+
+export interface PayeeRef {
+  type: PayeeType;
+  /** teacherProfileId yoki employeeId */
+  id: string;
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+  /** Mutaxassislik yoki lavozim */
+  subtitle: string | null;
+}
 export type PayrollAdjustmentType = 'BONUS' | 'PENALTY';
 export type PayrollAdjustmentCategory =
   | 'ATTENDANCE'
@@ -102,13 +114,15 @@ export interface SalaryPeriod {
   month: number;
   /** "2026-yil sentabr" */
   label: string;
+  payee: PayeeRef;
   teacher: {
     profileId: string;
     userId: string;
     firstName: string;
     lastName: string;
     specialization: string | null;
-  };
+  } | null;
+  employee: { id: string; firstName: string; lastName: string; position: string } | null;
   salaryType: SalaryType;
   lessonsCount: number;
   studentsCount: number;
@@ -154,7 +168,8 @@ export interface PayrollAdjustment {
 }
 
 export interface PayrollAdjustmentPayload {
-  teacherProfileId: string;
+  teacherProfileId?: string;
+  employeeId?: string;
   year: number;
   month: number;
   type: PayrollAdjustmentType;
@@ -229,6 +244,7 @@ export interface SalaryRulePayload {
 }
 
 export interface SalaryPeriodParams {
+  payeeType?: PayeeType;
   year: number;
   month: number;
   teacherProfileId?: string;

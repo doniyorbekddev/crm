@@ -232,6 +232,8 @@ model User {
   createdAdjustments    PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
   approvedAdjustments   PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
   voidedAdjustments     PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
+  employee              Employee?              @relation("EmployeeUser")
+  createdEmployees      Employee[]             @relation("EmployeeCreatedBy")
 
   @@index([roleId])
   @@index([status])
@@ -1111,7 +1113,9 @@ model TeacherSalaryRule {
 /// Bir oylik maosh hisobi. Approve qilingandan keyin o‘zgarmaydi (lockedAt).
 model TeacherSalaryPeriod {
   id               String             @id @default(cuid())
-  teacherProfileId String
+  /// To‘lov oluvchi: o‘qituvchi yoki xodim (aynan bittasi — bazada CHECK cheklovi)
+  teacherProfileId String?
+  employeeId       String?
   year             Int
   month            Int                @db.SmallInt
   salaryType       SalaryType
@@ -1143,14 +1147,16 @@ model TeacherSalaryPeriod {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  teacherProfile    TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  teacherProfile    TeacherProfile?        @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   approvedBy        User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   unlockedBy        User?                  @relation("SalaryUnlockedBy", fields: [unlockedById], references: [id], onDelete: SetNull)
+  employee          Employee?              @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   payments          TeacherSalaryPayment[]
   commissionEntries CommissionEntry[]
   adjustments       PayrollAdjustment[]
 
   @@unique([teacherProfileId, year, month])
+  @@unique([employeeId, year, month])
   @@index([year, month])
   @@index([status])
   @@map("teacher_salary_periods")
@@ -1657,4 +1663,50 @@ model PayrollAdjustment {
   @@index([salaryPeriodId])
   @@index([type, date])
   @@map("payroll_adjustments")
+}
+
+enum EmployeePosition {
+  ADMINISTRATOR
+  MANAGER
+  SALES_MANAGER
+  CALL_CENTER
+  ACCOUNTANT
+  CLEANER
+  SECURITY
+  OTHER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  RESIGNED
+}
+
+/// O‘qituvchidan tashqari xodimlar (administrator, buxgalter, farrosh...). Tizim akkaunti ixtiyoriy.
+/// Maoshi TeacherSalaryPeriod (umumiy payroll davri) orqali hisoblanadi.
+model Employee {
+  id              String           @id @default(cuid())
+  userId          String?          @unique
+  firstName       String           @db.VarChar(100)
+  lastName        String           @db.VarChar(100)
+  phone           String?          @db.VarChar(32)
+  position        EmployeePosition
+  /// Oylik belgilangan maosh (oy o‘rtasida kirgan/ketganda kunlarga proporsional)
+  baseSalary      Decimal          @default(0) @db.Decimal(14, 2)
+  status          EmployeeStatus   @default(ACTIVE)
+  hireDate        DateTime         @db.Date
+  terminationDate DateTime?        @db.Date
+  note            String?          @db.VarChar(500)
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user          User?                 @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  salaryPeriods TeacherSalaryPeriod[]
+
+  @@index([status])
+  @@index([position])
+  @@map("employees")
 }

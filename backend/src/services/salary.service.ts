@@ -1,7 +1,9 @@
 import { prisma } from '../config/database.js';
 import { formatSalaryAmount, formatSalaryPeriod } from '../config/salaryLabels.js';
+import { EMPLOYEE_POSITION_LABELS } from '../config/employeeLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type {
+  EmployeePosition,
   PaymentMethod,
   PayrollAdjustmentCategory,
   PayrollAdjustmentType,
@@ -31,6 +33,8 @@ import { permissionService } from './permission.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
 const SALARY_EXPENSE_CATEGORY = 'TEACHER_SALARY';
+/** Xodim (o‘qituvchi emas) maoshi xarajati */
+const EMPLOYEE_SALARY_EXPENSE_CATEGORY = 'EMPLOYEE_SALARY';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -53,6 +57,16 @@ export interface SalaryRuleDto {
 }
 
 type PersonRefDto = { id: string; firstName: string; lastName: string };
+
+export interface PayeeRefDto {
+  type: 'TEACHER' | 'EMPLOYEE';
+  /** teacherProfileId yoki employeeId */
+  id: string;
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+  subtitle: string | null;
+}
 
 export interface PayrollAdjustmentDto {
   id: string;
@@ -89,13 +103,16 @@ export interface SalaryPeriodDto {
   month: number;
   /** "2026-yil sentabr" */
   label: string;
+  /** To‘lov oluvchi — o‘qituvchi yoki xodim (subtitle: mutaxassislik yoki lavozim) */
+  payee: PayeeRefDto;
   teacher: {
     profileId: string;
     userId: string;
     firstName: string;
     lastName: string;
     specialization: string | null;
-  };
+  } | null;
+  employee: { id: string; firstName: string; lastName: string; position: EmployeePosition } | null;
   salaryType: SalaryType;
   lessonsCount: number;
   studentsCount: number;
@@ -144,7 +161,14 @@ export interface CalculateResultDto {
   month: number;
   calculated: number;
   /** Maosh modeli yo‘q yoki tasdiqlangani uchun o‘tkazib yuborilganlar */
-  skipped: Array<{ teacherProfileId: string; firstName: string; lastName: string; reason: string }>;
+  skipped: Array<{
+    payeeType: 'TEACHER' | 'EMPLOYEE';
+    teacherProfileId: string | null;
+    employeeId: string | null;
+    firstName: string;
+    lastName: string;
+    reason: string;
+  }>;
   total: number;
 }
 
@@ -180,6 +204,7 @@ const periodSelect = {
   unlockReason: true,
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
   unlockedBy: { select: { id: true, firstName: true, lastName: true } },
+  employee: { select: { id: true, firstName: true, lastName: true, position: true, userId: true } },
   adjustments: {
     orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
     select: {
@@ -221,6 +246,59 @@ const periodSelect = {
 } satisfies Prisma.TeacherSalaryPeriodSelect;
 
 type PeriodRecord = Prisma.TeacherSalaryPeriodGetPayload<{ select: typeof periodSelect }>;
+
+function payeeOf(period: Pick<PeriodRecord, 'teacherProfile' | 'employee'>): PayeeRefDto {
+  if (period.teacherProfile) {
+    return {
+      type: 'TEACHER',
+      id: period.teacherProfile.id,
+      userId: period.teacherProfile.user.id,
+      firstName: period.teacherProfile.user.firstName,
+      lastName: period.teacherProfile.user.lastName,
+      subtitle: period.teacherProfile.specialization,
+    };
+  }
+  if (period.employee) {
+    return {
+      type: 'EMPLOYEE',
+      id: period.employee.id,
+      userId: period.employee.userId,
+      firstName: period.employee.firstName,
+      lastName: period.employee.lastName,
+      subtitle: EMPLOYEE_POSITION_LABELS[period.employee.position],
+    };
+  }
+  throw new Error('Maosh davrida to‘lov oluvchi yo‘q');
+}
+
+function payeeName(period: Pick<PeriodRecord, 'teacherProfile' | 'employee'>): string {
+  const payee = payeeOf(period);
+  return `${payee.firstName} ${payee.lastName}`;
+}
+
+/** Bonus/jarima yoki hisoblash so‘ralgan to‘lov oluvchi */
+async function resolvePayee(input: {
+  teacherProfileId?: string | null;
+  employeeId?: string | null;
+}): Promise<{ type: 'TEACHER' | 'EMPLOYEE'; id: string; userId: string | null; name: string }> {
+  if (input.teacherProfileId) {
+    const profile = await prisma.teacherProfile.findUnique({
+      where: { id: input.teacherProfileId },
+      select: { id: true, user: { select: { id: true, firstName: true, lastName: true } } },
+    });
+    if (!profile) {
+      throw AppError.notFound('O‘qituvchi topilmadi');
+    }
+    return { type: 'TEACHER', id: profile.id, userId: profile.user.id, name: `${profile.user.firstName} ${profile.user.lastName}` };
+  }
+  const employee = input.employeeId
+    ? await prisma.employee.findUnique({ where: { id: input.employeeId }, select: { id: true, userId: true, firstName: true, lastName: true } })
+    : null;
+  if (!employee) {
+    throw AppError.notFound('Xodim topilmadi');
+  }
+  return { type: 'EMPLOYEE', id: employee.id, userId: employee.userId, name: `${employee.firstName} ${employee.lastName}` };
+}
 
 const ruleSelect = {
   id: true,
@@ -268,13 +346,19 @@ export function toSalaryPeriodDto(period: PeriodRecord): SalaryPeriodDto {
     year: period.year,
     month: period.month,
     label: formatSalaryPeriod(period.year, period.month),
-    teacher: {
-      profileId: period.teacherProfile.id,
-      userId: period.teacherProfile.user.id,
-      firstName: period.teacherProfile.user.firstName,
-      lastName: period.teacherProfile.user.lastName,
-      specialization: period.teacherProfile.specialization,
-    },
+    payee: payeeOf(period),
+    teacher: period.teacherProfile
+      ? {
+          profileId: period.teacherProfile.id,
+          userId: period.teacherProfile.user.id,
+          firstName: period.teacherProfile.user.firstName,
+          lastName: period.teacherProfile.user.lastName,
+          specialization: period.teacherProfile.specialization,
+        }
+      : null,
+    employee: period.employee
+      ? { id: period.employee.id, firstName: period.employee.firstName, lastName: period.employee.lastName, position: period.employee.position }
+      : null,
     salaryType: period.salaryType,
     lessonsCount: period.lessonsCount,
     studentsCount: period.studentsCount,
@@ -581,7 +665,7 @@ export const salaryService = {
         entityType: 'teacher',
         entityId: teacherProfileId,
         metadata: {
-          teacher: `${profile.user.firstName} ${profile.user.lastName}`,
+          payee: `${profile.user.firstName} ${profile.user.lastName}`,
           type: input.type,
           baseSalary: input.baseSalary,
           perLessonRate: input.perLessonRate,
@@ -606,7 +690,10 @@ export const salaryService = {
       where: {
         year: query.year,
         month: query.month,
+        ...(query.payeeType === 'TEACHER' ? { teacherProfileId: { not: null } } : {}),
+        ...(query.payeeType === 'EMPLOYEE' ? { employeeId: { not: null } } : {}),
         ...(query.teacherProfileId ? { teacherProfileId: query.teacherProfileId } : {}),
+        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
         ...(query.status ? { status: query.status } : {}),
       },
       orderBy: [{ totalAmount: 'desc' }, { createdAt: 'asc' }],
@@ -634,7 +721,12 @@ export const salaryService = {
   async summary(query: SalaryPeriodListQuery): Promise<SalarySummaryDto> {
     const grouped = await prisma.teacherSalaryPeriod.groupBy({
       by: ['status'],
-      where: { year: query.year, month: query.month },
+      where: {
+        year: query.year,
+        month: query.month,
+        ...(query.payeeType === 'TEACHER' ? { teacherProfileId: { not: null } } : {}),
+        ...(query.payeeType === 'EMPLOYEE' ? { employeeId: { not: null } } : {}),
+      },
       _count: { _all: true },
       _sum: { totalAmount: true, paidAmount: true, remainingAmount: true },
     });
@@ -666,15 +758,41 @@ export const salaryService = {
    * bo‘lsa model bonusi qo‘llanadi; tasdiqlangan (locked) davr qayta hisoblanmaydi.
    */
   async calculate(actor: AuthUser, input: CalculateSalaryInput, client: ClientInfo): Promise<CalculateResultDto> {
-    const profiles = await prisma.teacherProfile.findMany({
-      where: input.teacherProfileId ? { id: input.teacherProfileId } : { isActive: true },
-      select: { id: true, userId: true, user: { select: { firstName: true, lastName: true } } },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (profiles.length === 0) {
-      throw input.teacherProfileId
-        ? AppError.notFound('O‘qituvchi topilmadi')
-        : AppError.unprocessable('Faol o‘qituvchi topilmadi');
+    const { start: monthStart, end: monthEnd } = monthRange(input.year, input.month);
+    const profiles = input.employeeId
+      ? []
+      : await prisma.teacherProfile.findMany({
+          where: input.teacherProfileId ? { id: input.teacherProfileId } : { isActive: true },
+          select: { id: true, userId: true, user: { select: { firstName: true, lastName: true } } },
+          orderBy: { createdAt: 'asc' },
+        });
+    // Xodimlar: oyda kamida bir kun ishlaganlar (ishdan ketgan bo'lsa ham, shu oyda ketgan bo'lsa)
+    const employees = input.teacherProfileId
+      ? []
+      : await prisma.employee.findMany({
+          where: input.employeeId
+            ? { id: input.employeeId }
+            : { hireDate: { lt: monthEnd }, OR: [{ terminationDate: null }, { terminationDate: { gte: monthStart } }] },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            position: true,
+            baseSalary: true,
+            status: true,
+            hireDate: true,
+            terminationDate: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+    if (input.teacherProfileId && profiles.length === 0) {
+      throw AppError.notFound('O‘qituvchi topilmadi');
+    }
+    if (input.employeeId && employees.length === 0) {
+      throw AppError.notFound('Xodim topilmadi');
+    }
+    if (profiles.length === 0 && employees.length === 0) {
+      throw AppError.unprocessable('Faol o‘qituvchi yoki xodim topilmadi');
     }
 
     const skipped: CalculateResultDto['skipped'] = [];
@@ -767,9 +885,106 @@ export const salaryService = {
 
       if (!result.ok) {
         skipped.push({
+          payeeType: 'TEACHER',
+          employeeId: null,
           teacherProfileId: profile.id,
           firstName: profile.user.firstName,
           lastName: profile.user.lastName,
+          reason: result.reason,
+        });
+      } else {
+        calculated += 1;
+        total += result.totalAmount;
+      }
+    }
+
+    const DAY_MS = 86_400_000;
+    for (const employee of employees) {
+      const name = `${employee.firstName} ${employee.lastName}`;
+      const result = await prisma.$transaction(async (tx) => {
+        const existing = await tx.teacherSalaryPeriod.findUnique({
+          where: { employeeId_year_month: { employeeId: employee.id, year: input.year, month: input.month } },
+          select: { id: true, lockedAt: true, paidAmount: true },
+        });
+        if (existing?.lockedAt) {
+          return { ok: false, reason: 'Maosh tasdiqlangan — qayta hisoblanmaydi' } as const;
+        }
+        if (employee.status === 'SUSPENDED') {
+          return { ok: false, reason: 'Faoliyati to‘xtatilgan' } as const;
+        }
+        const baseSalary = employee.baseSalary.toNumber();
+        if (baseSalary <= 0) {
+          return { ok: false, reason: 'Maosh belgilanmagan' } as const;
+        }
+        if (employee.hireDate >= monthEnd || (employee.terminationDate && employee.terminationDate < monthStart)) {
+          return { ok: false, reason: 'Bu oyda ishlamagan' } as const;
+        }
+
+        // Oy o'rtasida ishga kirgan yoki ketgan bo'lsa — ishlagan kunlarga proporsional
+        const activeFrom = Math.max(employee.hireDate.getTime(), monthStart.getTime());
+        const activeTo = Math.min(
+          employee.terminationDate ? employee.terminationDate.getTime() + DAY_MS : monthEnd.getTime(),
+          monthEnd.getTime(),
+        );
+        const monthDays = Math.round((monthEnd.getTime() - monthStart.getTime()) / DAY_MS);
+        const activeDays = Math.max(Math.round((activeTo - activeFrom) / DAY_MS), 0);
+        const baseAmount = Math.round((baseSalary * activeDays) / monthDays);
+        const adjustments = existing ? await sumAdjustments(tx, existing.id) : { bonus: 0, penalty: 0 };
+        const totalAmount = Math.max(baseAmount + adjustments.bonus - adjustments.penalty, 0);
+        const paidAmount = existing?.paidAmount.toNumber() ?? 0;
+
+        const data = {
+          salaryType: 'FIXED' as const,
+          lessonsCount: 0,
+          studentsCount: 0,
+          groupRevenue: 0,
+          baseAmount,
+          lessonAmount: 0,
+          studentAmount: 0,
+          percentageAmount: 0,
+          commissionRate: 0,
+          modelBonus: 0,
+          bonus: adjustments.bonus,
+          penalty: adjustments.penalty,
+          totalAmount,
+          paidAmount,
+          remainingAmount: Math.max(totalAmount - paidAmount, 0),
+          status: 'CALCULATED' as const,
+          calculatedAt: new Date(),
+        };
+        const period = existing
+          ? await tx.teacherSalaryPeriod.update({ where: { id: existing.id }, data, select: { id: true } })
+          : await tx.teacherSalaryPeriod.create({
+              data: { employeeId: employee.id, year: input.year, month: input.month, ...data },
+              select: { id: true },
+            });
+
+        await auditService.recordInTransaction(tx, {
+          userId: actor.id,
+          action: 'salary.calculated',
+          entityType: 'salary',
+          entityId: period.id,
+          metadata: {
+            payee: name,
+            position: employee.position,
+            period: formatSalaryPeriod(input.year, input.month),
+            activeDays,
+            monthDays,
+            baseAmount,
+            totalAmount,
+          },
+          ...client,
+        });
+        return { ok: true, totalAmount } as const;
+      });
+
+      if (!result.ok) {
+        skipped.push({
+          payeeType: 'EMPLOYEE',
+          teacherProfileId: null,
+          employeeId: employee.id,
+          firstName: employee.firstName,
+          lastName: employee.lastName,
           reason: result.reason,
         });
       } else {
@@ -796,7 +1011,7 @@ export const salaryService = {
         entityType: 'salary',
         entityId: id,
         metadata: {
-          teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
+          payee: payeeName(period),
           period: formatSalaryPeriod(period.year, period.month),
           before: period.note,
           after: input.note || null,
@@ -813,32 +1028,34 @@ export const salaryService = {
    * hisoblashda summalar saqlanadi. Kiritgan xodimda tasdiqlash ruxsati bo‘lsa, yozuv darhol tasdiqlanadi.
    */
   async addAdjustment(actor: AuthUser, input: CreateAdjustmentInput, client: ClientInfo): Promise<SalaryPeriodDto> {
-    const profile = await prisma.teacherProfile.findUnique({
-      where: { id: input.teacherProfileId },
-      select: { id: true, user: { select: { id: true, firstName: true, lastName: true } } },
-    });
-    if (!profile) {
-      throw AppError.notFound('O‘qituvchi topilmadi');
-    }
+    const payee = await resolvePayee(input);
     const permissions = await permissionService.getRolePermissions(actor.roleId);
     const canApprove = permissions.has(PERMISSIONS.SALARY_APPROVE);
     const label = formatSalaryPeriod(input.year, input.month);
 
     const periodId = await prisma.$transaction(async (tx) => {
       let period = await tx.teacherSalaryPeriod.findUnique({
-        where: { teacherProfileId_year_month: { teacherProfileId: profile.id, year: input.year, month: input.month } },
+        where:
+          payee.type === 'TEACHER'
+            ? { teacherProfileId_year_month: { teacherProfileId: payee.id, year: input.year, month: input.month } }
+            : { employeeId_year_month: { employeeId: payee.id, year: input.year, month: input.month } },
         select: { id: true, lockedAt: true },
       });
       if (period?.lockedAt) {
         throw AppError.conflict('Maosh tasdiqlangan — bonus va jarima qo‘shilmaydi');
       }
-      if (!period) {
-        const rule = await findRuleForMonth(tx, profile.id, input.year, input.month);
+      if (!period && payee.type === 'TEACHER') {
+        const rule = await findRuleForMonth(tx, payee.id, input.year, input.month);
         if (!rule) {
           throw AppError.unprocessable('Avval o‘qituvchiga maosh modelini belgilang');
         }
         period = await tx.teacherSalaryPeriod.create({
-          data: { teacherProfileId: profile.id, year: input.year, month: input.month, salaryType: rule.type },
+          data: { teacherProfileId: payee.id, year: input.year, month: input.month, salaryType: rule.type },
+          select: { id: true, lockedAt: true },
+        });
+      } else if (!period) {
+        period = await tx.teacherSalaryPeriod.create({
+          data: { employeeId: payee.id, year: input.year, month: input.month, salaryType: 'FIXED' },
           select: { id: true, lockedAt: true },
         });
       }
@@ -860,8 +1077,8 @@ export const salaryService = {
       });
       const totalAmount = await recomputeTotals(tx, period.id);
 
-      await notificationService.createInTransaction(tx, {
-        userId: profile.user.id,
+      if (payee.userId) await notificationService.createInTransaction(tx, {
+        userId: payee.userId,
         type: 'SYSTEM',
         title: input.type === 'BONUS' ? 'Bonus qo‘shildi' : 'Jarima qo‘shildi',
         message: `${label}: ${formatSalaryAmount(input.amount)} — ${input.reason}`,
@@ -876,7 +1093,7 @@ export const salaryService = {
         entityType: 'salary',
         entityId: period.id,
         metadata: {
-          teacher: `${profile.user.firstName} ${profile.user.lastName}`,
+          payee: payee.name,
           period: label,
           type: input.type,
           category: input.category,
@@ -912,6 +1129,7 @@ export const salaryService = {
             year: true,
             month: true,
             teacherProfile: { select: { user: { select: { firstName: true, lastName: true } } } },
+            employee: { select: { firstName: true, lastName: true } },
           },
         },
       },
@@ -932,14 +1150,14 @@ export const salaryService = {
         data: { voidedAt: new Date(), voidedById: actor.id, voidReason: input.reason },
       });
       const totalAmount = await recomputeTotals(tx, adjustment.salaryPeriodId);
-      const teacher = adjustment.salaryPeriod.teacherProfile.user;
+      const teacher = adjustment.salaryPeriod.teacherProfile?.user ?? adjustment.salaryPeriod.employee!;
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'salary.adjustment_voided',
         entityType: 'salary',
         entityId: adjustment.salaryPeriodId,
         metadata: {
-          teacher: `${teacher.firstName} ${teacher.lastName}`,
+          payee: `${teacher.firstName} ${teacher.lastName}`,
           period: formatSalaryPeriod(adjustment.salaryPeriod.year, adjustment.salaryPeriod.month),
           type: adjustment.type,
           amount: adjustment.amount.toNumber(),
@@ -983,8 +1201,9 @@ export const salaryService = {
         },
       });
 
-      await notificationService.createInTransaction(tx, {
-        userId: period.teacherProfile.user.id,
+      const payeeUserId = payeeOf(period).userId;
+      if (payeeUserId) await notificationService.createInTransaction(tx, {
+        userId: payeeUserId,
         type: 'SYSTEM',
         title: 'Maosh qayta ochildi',
         message: `${label} maoshi qayta ko‘rib chiqish uchun ochildi: ${input.reason}`,
@@ -999,7 +1218,7 @@ export const salaryService = {
         entityType: 'salary',
         entityId: id,
         metadata: {
-          teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
+          payee: payeeName(period),
           period: label,
           reason: input.reason,
           totalAmount: period.totalAmount.toNumber(),
@@ -1022,10 +1241,10 @@ export const salaryService = {
       throw AppError.unprocessable('Avval maoshni hisoblang');
     }
 
-    const teacherId = period.teacherProfile.user.id;
+    const teacherId = period.teacherProfile?.user.id ?? null;
     const percentageAmount = period.percentageAmount.toNumber();
     // Hisoblangandan keyin to'lov kelgan yoki bekor qilingan bo'lsa — eski raqam qotirilmasin
-    if ((await commissionService.monthTotal(prisma, teacherId, period)) !== percentageAmount) {
+    if (teacherId && (await commissionService.monthTotal(prisma, teacherId, period)) !== percentageAmount) {
       throw AppError.conflict('Hisoblangandan keyin to‘lovlar o‘zgargan — maoshni qayta hisoblang');
     }
 
@@ -1052,13 +1271,13 @@ export const salaryService = {
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
-      await commissionService.linkToPeriod(tx, teacherId, period, id);
+      if (teacherId) await commissionService.linkToPeriod(tx, teacherId, period, id);
       // Tasdiqlanmagan bonus/jarima yozuvlari maosh bilan birga tasdiqlanadi
       await tx.payrollAdjustment.updateMany({
         where: { salaryPeriodId: id, voidedAt: null, approvedById: null },
         data: { approvedById: actor.id, approvedAt: now },
       });
-      if (carry > 0) {
+      if (carry > 0 && teacherId && period.teacherProfile) {
         await commissionService.carryOver(tx, {
           period: {
             id,
@@ -1088,8 +1307,9 @@ export const salaryService = {
         },
       });
 
-      await notificationService.createInTransaction(tx, {
-        userId: period.teacherProfile.user.id,
+      const payeeUserId = payeeOf(period).userId;
+      if (payeeUserId) await notificationService.createInTransaction(tx, {
+        userId: payeeUserId,
         type: 'SYSTEM',
         title: 'Maosh tasdiqlandi',
         message: `${formatSalaryPeriod(period.year, period.month)} maoshi tasdiqlandi: ${formatSalaryAmount(finalTotal)}.`,
@@ -1104,7 +1324,7 @@ export const salaryService = {
         entityType: 'salary',
         entityId: id,
         metadata: {
-          teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
+          payee: payeeName(period),
           period: formatSalaryPeriod(period.year, period.month),
           totalAmount: finalTotal,
           ...(carry > 0 ? { carriedOver: carry } : {}),
@@ -1154,7 +1374,10 @@ export const salaryService = {
     }
 
     const paidAt = input.paidAt ?? new Date();
-    const teacherName = `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`;
+    const teacherName = payeeName(period);
+    const isEmployee = period.employee !== null;
+    const expenseCategoryKey = isEmployee ? EMPLOYEE_SALARY_EXPENSE_CATEGORY : SALARY_EXPENSE_CATEGORY;
+    const expenseCategoryName = isEmployee ? 'Xodim maoshi' : 'O‘qituvchi maoshi';
     const label = formatSalaryPeriod(period.year, period.month);
     const description = `${teacherName} — ${label} ${isAdvance ? 'avansi' : 'maoshi'}`;
 
@@ -1180,7 +1403,7 @@ export const salaryService = {
           accountId: input.accountId ?? null,
           occurredAt: paidAt,
           description,
-          categoryName: 'O‘qituvchi maoshi',
+          categoryName: expenseCategoryName,
           entityType: 'teacherSalaryPayment',
           entityId: payment.id,
           createdById: actor.id,
@@ -1189,9 +1412,9 @@ export const salaryService = {
       });
 
       const category = await tx.expenseCategory.upsert({
-        where: { key: SALARY_EXPENSE_CATEGORY },
+        where: { key: expenseCategoryKey },
         update: {},
-        create: { key: SALARY_EXPENSE_CATEGORY, name: 'O‘qituvchi maoshi', isSystem: true, sortOrder: 1 },
+        create: { key: expenseCategoryKey, name: expenseCategoryName, isSystem: true, sortOrder: isEmployee ? 2 : 1 },
         select: { id: true },
       });
 
@@ -1234,8 +1457,9 @@ export const salaryService = {
         },
       });
 
-      await notificationService.createInTransaction(tx, {
-        userId: period.teacherProfile.user.id,
+      const payeeUserId = payeeOf(period).userId;
+      if (payeeUserId) await notificationService.createInTransaction(tx, {
+        userId: payeeUserId,
         type: 'SYSTEM',
         title: isAdvance ? 'Avans berildi' : 'Maosh to‘landi',
         message: `${label} maoshi uchun ${formatSalaryAmount(input.amount)} to‘landi. Qolgan: ${formatSalaryAmount(Math.max(totalAmount - paidAmount, 0))}.`,

@@ -145,7 +145,7 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Xodimlar"
+        title="Foydalanuvchilar"
         description="Xodimlar, ularning rollari va hisob holati"
         actions={
           canManage ? (

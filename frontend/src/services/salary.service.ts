@@ -23,7 +23,7 @@ export const salaryService = {
     return response.data.data;
   },
 
-  async calculate(payload: { year: number; month: number; teacherProfileId?: string }): Promise<MessageResult<CalculateSalaryResult>> {
+  async calculate(payload: { year: number; month: number; teacherProfileId?: string; employeeId?: string }): Promise<MessageResult<CalculateSalaryResult>> {
     const response = await api.post<ApiSuccessResponse<CalculateSalaryResult>>('/salaries/calculate', payload);
     return { data: response.data.data, message: response.data.message };
   },

@@ -35,7 +35,7 @@ export function UnlockSalaryModal({ period, onClose, onSaved }: UnlockSalaryModa
     <Modal
       open
       title="Maoshni qayta ochish"
-      description={`${period.teacher.firstName} ${period.teacher.lastName} · ${period.label} · ${formatMoney(period.totalAmount)}`}
+      description={`${period.payee.firstName} ${period.payee.lastName} · ${period.label} · ${formatMoney(period.totalAmount)}`}
       onClose={onClose}
       closeDisabled={unlock.isPending}
       footer={

@@ -25,15 +25,24 @@ export const salaryPeriodListQuerySchema = z.object({
   year: yearSchema.default(() => now().getUTCFullYear()),
   month: monthSchema.default(() => now().getUTCMonth() + 1),
   teacherProfileId: idSchema.optional(),
+  employeeId: idSchema.optional(),
+  /** TEACHER — faqat o‘qituvchilar, EMPLOYEE — faqat xodimlar */
+  payeeType: z.enum(['TEACHER', 'EMPLOYEE'], 'To‘lov oluvchi turi noto‘g‘ri').optional(),
   status: z.enum(SALARY_PERIOD_STATUSES, 'Holat noto‘g‘ri').optional(),
 });
 
-export const calculateSalarySchema = z.object({
-  year: yearSchema,
-  month: monthSchema,
-  /** Bo‘sh bo‘lsa — barcha faol o‘qituvchilar uchun hisoblanadi */
-  teacherProfileId: optionalField(idSchema),
-});
+export const calculateSalarySchema = z
+  .object({
+    year: yearSchema,
+    month: monthSchema,
+    /** Ikkalasi ham bo‘sh bo‘lsa — barcha faol o‘qituvchi va xodimlar uchun hisoblanadi */
+    teacherProfileId: optionalField(idSchema),
+    employeeId: optionalField(idSchema),
+  })
+  .refine((values) => !(values.teacherProfileId && values.employeeId), {
+    path: ['employeeId'],
+    message: 'O‘qituvchi yoki xodimdan bittasini tanlang',
+  });
 
 /** Izoh — tasdiqlashdan oldin. Bonus va jarima alohida yozuv sifatida qo‘shiladi (POST /salaries/adjustments) */
 export const adjustSalarySchema = z.object({
@@ -66,7 +75,8 @@ const reasonField = z
 
 export const createAdjustmentSchema = z
   .object({
-    teacherProfileId: idSchema,
+    teacherProfileId: optionalField(idSchema),
+    employeeId: optionalField(idSchema),
     year: yearSchema,
     month: monthSchema,
     type: z.enum(PAYROLL_ADJUSTMENT_TYPES, 'Turini tanlang'),
@@ -84,6 +94,9 @@ export const createAdjustmentSchema = z
       .transform((value) => new Date(`${value}T00:00:00.000Z`)),
   })
   .superRefine((values, context) => {
+    if (Boolean(values.teacherProfileId) === Boolean(values.employeeId)) {
+      context.addIssue({ code: 'custom', path: ['employeeId'], message: 'O‘qituvchi yoki xodimdan aynan bittasini tanlang' });
+    }
     const allowed = values.type === 'BONUS' ? BONUS_CATEGORIES : PENALTY_CATEGORIES;
     if (!allowed.includes(values.category)) {
       context.addIssue({ code: 'custom', path: ['category'], message: 'Toifa tanlangan turga mos emas' });

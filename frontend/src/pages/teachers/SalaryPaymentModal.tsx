@@ -97,7 +97,7 @@ export function SalaryPaymentModal({ period, kind = 'SALARY', onClose, onSaved }
     <Modal
       open
       title={isAdvance ? 'Avans berish' : 'Maosh to‘lovi'}
-      description={`${period.teacher.firstName} ${period.teacher.lastName} · ${period.label}`}
+      description={`${period.payee.firstName} ${period.payee.lastName} · ${period.label}`}
       onClose={onClose}
       closeDisabled={save.isPending}
       footer={

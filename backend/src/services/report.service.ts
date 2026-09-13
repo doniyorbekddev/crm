@@ -1,3 +1,4 @@
+import { EMPLOYEE_POSITION_LABELS } from '../config/employeeLabels.js';
 import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { LEAD_STATUS_LABELS } from '../config/leadLabels.js';
@@ -1003,13 +1004,17 @@ async function salariesReport(query: ReportQuery): Promise<BuilderResult> {
       remainingAmount: true,
       status: true,
       teacherProfile: { select: { user: { select: { firstName: true, lastName: true } } } },
+      employee: { select: { firstName: true, lastName: true, position: true } },
     },
   });
 
   const rows = periods.map((period) => ({
     period: formatSalaryPeriod(period.year, period.month),
-    teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
-    salaryType: SALARY_TYPE_TITLES[period.salaryType],
+    payee: period.teacherProfile
+      ? `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`
+      : `${period.employee?.firstName ?? ''} ${period.employee?.lastName ?? ''}`.trim(),
+    // O'qituvchi — maosh modeli, xodim — lavozimi
+    salaryType: period.employee ? EMPLOYEE_POSITION_LABELS[period.employee.position] : SALARY_TYPE_TITLES[period.salaryType],
     lessons: period.lessonsCount,
     students: period.studentsCount,
     total: period.totalAmount.toNumber(),
@@ -1024,8 +1029,8 @@ async function salariesReport(query: ReportQuery): Promise<BuilderResult> {
   return {
     columns: [
       { key: 'period', label: 'Oy', type: 'text' },
-      { key: 'teacher', label: 'O‘qituvchi', type: 'text' },
-      { key: 'salaryType', label: 'Model', type: 'text' },
+      { key: 'payee', label: 'O‘qituvchi / xodim', type: 'text' },
+      { key: 'salaryType', label: 'Model / lavozim', type: 'text' },
       { key: 'lessons', label: 'Darslar', type: 'number' },
       { key: 'students', label: 'O‘quvchilar', type: 'number' },
       { key: 'total', label: 'Hisoblangan', type: 'money' },

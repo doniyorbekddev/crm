@@ -6,6 +6,7 @@ import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ManagerPeriod } from '@/types/dashboard';
 import type { CommissionParams } from '@/types/commission';
 import type { CourseListParams } from '@/types/course';
+import type { EmployeeListParams } from '@/types/employee';
 import type { GroupListParams } from '@/types/group';
 import type { FollowUpListParams } from '@/types/followUp';
 import type { LeadFilters, LeadListParams } from '@/types/lead';
@@ -136,6 +137,11 @@ export const queryKeys = {
     candidates: ['teachers', 'candidates'] as const,
     me: ['teachers', 'me'] as const,
     salaryRules: (id: string) => ['teachers', 'salary-rules', id] as const,
+  },
+  employees: {
+    all: ['employees'] as const,
+    list: (params: EmployeeListParams) => ['employees', 'list', params] as const,
+    candidates: ['employees', 'candidates'] as const,
   },
   commissions: {
     all: ['commissions'] as const,
