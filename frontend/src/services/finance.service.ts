@@ -1,23 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type {
-  Budget,
-  BudgetPayload,
-  CashFlowParams,
-  CashFlowPoint,
-  FinanceAccount,
-  FinanceCategory,
-  FinanceRangeParams,
-  FinanceSummary,
-  MoneyEntry,
-  MoneyListParams,
-  MoneyPayload,
-  MoneyStats,
-  Transaction,
-  TransactionListParams,
-  TransferPayload,
-} from '@/types/finance';
+import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, MoneyListParams, MoneyPayload, MoneyStats, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
 
 /** Tushum va xarajat API'lari bir xil — bitta fabrikadan ikkita servis */
 function moneyService(resource: 'incomes' | 'expenses') {
@@ -114,6 +98,21 @@ export const financeService = {
 
   async saveBudget(payload: BudgetPayload): Promise<MessageResult<Budget>> {
     const response = await api.put<ApiSuccessResponse<Budget>>('/finance/budget', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async periods(year: number): Promise<FinancialPeriod[]> {
+    const response = await api.get<ApiSuccessResponse<FinancialPeriod[]>>('/finance/periods', { params: { year } });
+    return response.data.data;
+  },
+
+  async closePeriod(payload: { year: number; month: number }): Promise<MessageResult<FinancialPeriod>> {
+    const response = await api.post<ApiSuccessResponse<FinancialPeriod>>('/finance/periods/close', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async reopenPeriod(payload: { year: number; month: number; reason: string }): Promise<MessageResult<FinancialPeriod>> {
+    const response = await api.post<ApiSuccessResponse<FinancialPeriod>>('/finance/periods/reopen', payload);
     return { data: response.data.data, message: response.data.message };
   },
 };

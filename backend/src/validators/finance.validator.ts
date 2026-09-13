@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { currentBusinessMonth } from '../utils/dates.js';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
 
 export const TRANSACTION_TYPES = ['INCOME', 'EXPENSE', 'TRANSFER', 'REFUND'] as const;
 export const TRANSACTION_STATUSES = ['COMPLETED', 'VOID', 'REVERSED'] as const;
-export const ACCOUNT_TYPES = ['CASH', 'BANK', 'CARD', 'CLICK', 'PAYME', 'UZUM', 'OTHER'] as const;
+export const ACCOUNT_TYPES = ['CASH', 'BANK', 'CARD', 'UZCARD', 'HUMO', 'CLICK', 'PAYME', 'UZUM', 'OTHER'] as const;
 export const CASH_FLOW_PERIODS = ['day', 'week', 'month'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
@@ -89,3 +90,30 @@ export type AccountInput = z.infer<typeof accountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
 export type CashFlowPeriod = (typeof CASH_FLOW_PERIODS)[number];
+
+// ---------------------------------------------------------------------
+// Moliyaviy oylar
+// ---------------------------------------------------------------------
+
+const periodYearSchema = z.coerce.number('Yil raqam bo‘lishi kerak').int().min(2020, 'Yil noto‘g‘ri').max(2100, 'Yil noto‘g‘ri');
+
+export const periodListQuerySchema = z.object({
+  year: periodYearSchema.default(() => currentBusinessMonth().year),
+});
+
+export const closePeriodSchema = z.object({
+  year: periodYearSchema,
+  month: z.coerce.number('Oy raqam bo‘lishi kerak').int().min(1, 'Oy 1 dan 12 gacha').max(12, 'Oy 1 dan 12 gacha'),
+});
+
+export const reopenPeriodSchema = closePeriodSchema.extend({
+  reason: z
+    .string('Qayta ochish sababini yozing')
+    .trim()
+    .min(5, 'Sabab kamida 5 belgidan iborat bo‘lsin')
+    .max(255, 'Sabab 255 belgidan oshmasligi kerak'),
+});
+
+export type PeriodListQuery = z.infer<typeof periodListQuerySchema>;
+export type ClosePeriodInput = z.infer<typeof closePeriodSchema>;
+export type ReopenPeriodInput = z.infer<typeof reopenPeriodSchema>;

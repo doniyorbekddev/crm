@@ -11,8 +11,7 @@ import type {
   PaymentListParams,
   PaymentPayload,
   PaymentStats,
-  PaymentStatsParams,
-} from '@/types/payment';
+  PaymentStatsParams, RefundPayload } from '@/types/payment';
 
 export const paymentsService = {
   async list(params: PaymentListParams): Promise<Paginated<PaymentItem>> {
@@ -31,6 +30,11 @@ export const paymentsService = {
 
   async create(payload: PaymentPayload): Promise<MessageResult<PaymentItem>> {
     const response = await api.post<ApiSuccessResponse<PaymentItem>>('/payments', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async refund(id: string, payload: RefundPayload): Promise<MessageResult<PaymentItem>> {
+    const response = await api.post<ApiSuccessResponse<PaymentItem>>(`/payments/${id}/refunds`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 

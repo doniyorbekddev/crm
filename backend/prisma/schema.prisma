@@ -206,34 +206,37 @@ model User {
   updatedSettings     Setting[]
 
   // O'quv markaz modullari
-  teacherProfile        TeacherProfile?
-  taughtSessions        AttendanceSession[]    @relation("SessionTeacher")
-  markedSessions        AttendanceSession[]    @relation("SessionMarkedBy")
-  xpAwards              XpTransaction[]        @relation("XpAwardedBy")
-  createdSalaryRules    TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
-  approvedSalaries      TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
-  salaryPaymentsCreated TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
-  createdTransactions   Transaction[]          @relation("TransactionCreatedBy")
-  voidedTransactions    Transaction[]          @relation("TransactionVoidedBy")
-  incomesResponsible    Income[]               @relation("IncomeResponsible")
-  expensesResponsible   Expense[]              @relation("ExpenseResponsible")
-  createdBudgets        Budget[]               @relation("BudgetCreatedBy")
-  createdHomework       Homework[]             @relation("HomeworkTeacher")
-  gradedSubmissions     HomeworkSubmission[]   @relation("SubmissionGradedBy")
-  createdExams          Exam[]                 @relation("ExamTeacher")
-  gradedExamResults     ExamResult[]           @relation("ExamResultGradedBy")
-  salesTargets          SalesTarget[]          @relation("SalesTargetUser")
-  createdSalesTargets   SalesTarget[]          @relation("SalesTargetCreatedBy")
-  resolvedAlerts        Alert[]                @relation("AlertResolvedBy")
-  taughtPayments        Payment[]              @relation("PaymentTeacher")
-  commissionEntries     CommissionEntry[]      @relation("CommissionTeacher")
-  createdCommissions    CommissionEntry[]      @relation("CommissionCreatedBy")
-  unlockedSalaries      TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
-  createdAdjustments    PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
-  approvedAdjustments   PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
-  voidedAdjustments     PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
-  employee              Employee?              @relation("EmployeeUser")
-  createdEmployees      Employee[]             @relation("EmployeeCreatedBy")
+  teacherProfile           TeacherProfile?
+  taughtSessions           AttendanceSession[]    @relation("SessionTeacher")
+  markedSessions           AttendanceSession[]    @relation("SessionMarkedBy")
+  xpAwards                 XpTransaction[]        @relation("XpAwardedBy")
+  createdSalaryRules       TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
+  approvedSalaries         TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
+  salaryPaymentsCreated    TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
+  createdTransactions      Transaction[]          @relation("TransactionCreatedBy")
+  voidedTransactions       Transaction[]          @relation("TransactionVoidedBy")
+  incomesResponsible       Income[]               @relation("IncomeResponsible")
+  expensesResponsible      Expense[]              @relation("ExpenseResponsible")
+  createdBudgets           Budget[]               @relation("BudgetCreatedBy")
+  createdHomework          Homework[]             @relation("HomeworkTeacher")
+  gradedSubmissions        HomeworkSubmission[]   @relation("SubmissionGradedBy")
+  createdExams             Exam[]                 @relation("ExamTeacher")
+  gradedExamResults        ExamResult[]           @relation("ExamResultGradedBy")
+  salesTargets             SalesTarget[]          @relation("SalesTargetUser")
+  createdSalesTargets      SalesTarget[]          @relation("SalesTargetCreatedBy")
+  resolvedAlerts           Alert[]                @relation("AlertResolvedBy")
+  taughtPayments           Payment[]              @relation("PaymentTeacher")
+  commissionEntries        CommissionEntry[]      @relation("CommissionTeacher")
+  createdCommissions       CommissionEntry[]      @relation("CommissionCreatedBy")
+  unlockedSalaries         TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
+  createdAdjustments       PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
+  approvedAdjustments      PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
+  voidedAdjustments        PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
+  employee                 Employee?              @relation("EmployeeUser")
+  createdEmployees         Employee[]             @relation("EmployeeCreatedBy")
+  createdRefunds           PaymentRefund[]        @relation("PaymentRefundCreatedBy")
+  closedFinancialPeriods   FinancialPeriod[]      @relation("FinancialPeriodClosedBy")
+  reopenedFinancialPeriods FinancialPeriod[]      @relation("FinancialPeriodReopenedBy")
 
   @@index([roleId])
   @@index([status])
@@ -663,6 +666,7 @@ model Payment {
   group             Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
   teacher           User?             @relation("PaymentTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   commissionEntries CommissionEntry[]
+  refunds           PaymentRefund[]
 
   @@index([studentId])
   @@index([studentId, deletedAt])
@@ -830,6 +834,8 @@ enum AccountType {
   CASH
   BANK
   CARD
+  UZCARD
+  HUMO
   CLICK
   PAYME
   UZUM
@@ -1206,6 +1212,7 @@ model FinancialAccount {
   incomes        Income[]
   expenses       Expense[]
   salaryPayments TeacherSalaryPayment[]
+  refunds        PaymentRefund[]
 
   @@map("financial_accounts")
 }
@@ -1231,14 +1238,15 @@ model Transaction {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  account    FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  createdBy  User?             @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  voidedBy   User?             @relation("TransactionVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
-  reversalOf Transaction?      @relation("TransactionReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
-  reversedBy Transaction?      @relation("TransactionReversal")
-  payment    Payment?
-  income     Income?
-  expense    Expense?
+  account       FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy     User?             @relation("TransactionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  voidedBy      User?             @relation("TransactionVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  reversalOf    Transaction?      @relation("TransactionReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversedBy    Transaction?      @relation("TransactionReversal")
+  payment       Payment?
+  income        Income?
+  expense       Expense?
+  paymentRefund PaymentRefund?
 
   @@index([occurredAt])
   @@index([type, occurredAt])
@@ -1709,4 +1717,58 @@ model Employee {
   @@index([status])
   @@index([position])
   @@map("employees")
+}
+
+enum FinancialPeriodStatus {
+  OPEN
+  CLOSED
+}
+
+/// To‘lovni (qisman) qaytarish. Kvitansiya o‘chirilmaydi: qaytarilgan pul alohida yozuv,
+/// daftarda REFUND tranzaksiyasi (kassadan chiqim).
+model PaymentRefund {
+  id            String        @id @default(cuid())
+  number        Int           @unique @default(autoincrement())
+  paymentId     String
+  amount        Decimal       @db.Decimal(14, 2)
+  method        PaymentMethod
+  accountId     String?
+  refundedAt    DateTime      @default(now())
+  reason        String        @db.VarChar(255)
+  transactionId String        @unique
+  createdById   String?
+  createdAt     DateTime      @default(now())
+
+  payment     Payment           @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  account     FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  transaction Transaction       @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  createdBy   User?             @relation("PaymentRefundCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([paymentId])
+  @@index([refundedAt])
+  @@map("payment_refunds")
+}
+
+/// Moliyaviy oy. Yopilgandan keyin shu oy sanasi bilan pul yozuvi qo‘shilmaydi va bekor qilinmaydi —
+/// tuzatish ochiq oyda teskari yozuv bilan kiritiladi.
+model FinancialPeriod {
+  id           String                @id @default(cuid())
+  year         Int
+  month        Int                   @db.SmallInt
+  status       FinancialPeriodStatus @default(OPEN)
+  /// Yopilgan paytdagi yakunlar: tushum, xarajat, qaytarishlar, kassa qoldiqlari
+  summary      Json?
+  closedAt     DateTime?
+  closedById   String?
+  reopenedAt   DateTime?
+  reopenedById String?
+  reopenReason String?               @db.VarChar(255)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  closedBy   User? @relation("FinancialPeriodClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  reopenedBy User? @relation("FinancialPeriodReopenedBy", fields: [reopenedById], references: [id], onDelete: SetNull)
+
+  @@unique([year, month])
+  @@map("financial_periods")
 }

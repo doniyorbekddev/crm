@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Plus, Wallet } from 'lucide-react';
+import { Ban, Plus, Undo2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -24,6 +24,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER, PAYMENT_METHOD_TONES } fro
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { CancelPaymentModal } from './CancelPaymentModal';
 import { PaymentFormModal } from './PaymentFormModal';
+import { RefundPaymentModal } from './RefundPaymentModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 
@@ -36,12 +37,13 @@ const SORT_OPTIONS = [
   { value: 'number:desc', label: 'Kvitansiya raqami' },
 ] as const;
 
-type Dialog = { type: 'create' } | { type: 'cancel'; payment: PaymentItem } | null;
+type Dialog = { type: 'create' } | { type: 'cancel'; payment: PaymentItem } | { type: 'refund'; payment: PaymentItem } | null;
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
   const canCreate = usePermission(PERMISSIONS.PAYMENT_CREATE);
   const canDelete = usePermission(PERMISSIONS.PAYMENT_DELETE);
+  const canRefund = usePermission(PERMISSIONS.PAYMENT_REFUND);
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -253,7 +255,7 @@ export default function PaymentsPage() {
                     <TH>Usul</TH>
                     <TH>Sana</TH>
                     <TH>Qabul qildi</TH>
-                    {canDelete && (
+                    {(canDelete || canRefund) && (
                       <TH className="w-12">
                         <span className="sr-only">Amallar</span>
                       </TH>
@@ -281,6 +283,9 @@ export default function PaymentsPage() {
                       </TD>
                       <TD className={cn('font-medium whitespace-nowrap', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg')}>
                         {formatMoney(payment.amount)}
+                        {payment.refundedAmount > 0 && (
+                          <p className="text-xs font-normal text-amber-600 dark:text-amber-400">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
+                        )}
                       </TD>
                       <TD>
                         <Badge tone={PAYMENT_METHOD_TONES[payment.method]}>{PAYMENT_METHOD_LABELS[payment.method]}</Badge>
@@ -292,7 +297,7 @@ export default function PaymentsPage() {
                           <p className="max-w-[16rem] truncate text-xs text-red-600 dark:text-red-400">{payment.deleteReason}</p>
                         )}
                       </TD>
-                      {canDelete && (
+                      {(canDelete || canRefund) && (
                         <TD className="text-right">
                           {payment.isDeleted ? (
                             <span className="text-xs text-fg-subtle">—</span>
@@ -300,12 +305,19 @@ export default function PaymentsPage() {
                             <ActionMenu
                               label={`${payment.code} amallari`}
                               items={[
-                                {
-                                  label: 'To‘lovni bekor qilish',
-                                  icon: Ban,
-                                  tone: 'danger',
-                                  onSelect: () => setDialog({ type: 'cancel', payment }),
-                                },
+                                ...(canRefund && payment.amount - payment.refundedAmount > 0
+                                  ? [{ label: 'Pulni qaytarish', icon: Undo2, onSelect: () => setDialog({ type: 'refund', payment }) }]
+                                  : []),
+                                ...(canDelete && payment.refundedAmount === 0
+                                  ? [
+                                      {
+                                        label: 'To‘lovni bekor qilish',
+                                        icon: Ban,
+                                        tone: 'danger' as const,
+                                        onSelect: () => setDialog({ type: 'cancel', payment }),
+                                      },
+                                    ]
+                                  : []),
                               ]}
                             />
                           )}
@@ -342,6 +354,17 @@ export default function PaymentsPage() {
           payment={dialog.payment}
           onClose={() => setDialog(null)}
           onCancelled={() => {
+            setDialog(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {dialog?.type === 'refund' && (
+        <RefundPaymentModal
+          payment={dialog.payment}
+          onClose={() => setDialog(null)}
+          onRefunded={() => {
             setDialog(null);
             refresh();
           }}

@@ -180,6 +180,7 @@ export const queryKeys = {
     accounts: (params: FinanceRangeParams) => ['finance', 'accounts', params] as const,
     transactions: (params: TransactionListParams) => ['finance', 'transactions', params] as const,
     budget: (params: { year: number; month: number }) => ['finance', 'budget', params] as const,
+    periods: (year: number) => ['finance', 'periods', year] as const,
   },
   incomes: {
     all: ['incomes'] as const,

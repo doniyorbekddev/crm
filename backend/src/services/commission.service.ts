@@ -375,6 +375,105 @@ async function summarizeMonths(profiles: ProfileRef[], months: YearMonth[]): Pro
   return result;
 }
 
+interface PaymentRef {
+  id: string;
+  number: number;
+  amount: number;
+  paidAt: Date;
+  teacherId: string | null;
+}
+
+/**
+ * + yozuvning teskarisi (to‘liq yoki qisman). Asl yozuv o‘chirilmaydi.
+ * Asl oy maoshi tasdiqlangan bo‘lsa — teskari yozuv keyingi ochiq oyga tushadi.
+ */
+async function reverseAccrual(
+  db: Db,
+  payment: PaymentRef,
+  options: { sourceKey: string; baseAmount: number; actorId: string; reason: string; client: ClientInfo },
+): Promise<void> {
+  if (!payment.teacherId) return;
+  const profile = await db.teacherProfile.findUnique({ where: { userId: payment.teacherId }, select: { id: true } });
+  if (!profile) return;
+  if (await db.commissionEntry.findUnique({ where: { sourceKey: options.sourceKey }, select: { id: true } })) return;
+
+  let accrual = await db.commissionEntry.findUnique({
+    where: { sourceKey: accrualKey(payment.id) },
+    select: { id: true, year: true, month: true, baseAmount: true, percentage: true, amount: true },
+  });
+
+  if (!accrual) {
+    // Funksiya qo'shilishidan oldingi to'lov: oy maoshi tasdiqlangan va foiz umumiy tushumdan
+    // hisoblangan bo'lsa — tarixiy + yozuv tiklanadi, aks holda qaytariladigan foiz yo'q.
+    const paidMonth = currentBusinessMonth(payment.paidAt);
+    const period = await lockedPeriod(db, profile.id, paidMonth);
+    if (!period || period.percentageAmount.toNumber() <= 0) return;
+    const percentage = await percentageForMonth(db, profile.id, paidMonth);
+    if (percentage <= 0) return;
+    accrual = await db.commissionEntry.create({
+      data: {
+        sourceKey: accrualKey(payment.id),
+        teacherId: payment.teacherId,
+        paymentId: payment.id,
+        kind: 'ACCRUAL',
+        baseAmount: payment.amount,
+        percentage,
+        amount: commissionAmount(payment.amount, percentage),
+        year: paidMonth.year,
+        month: paidMonth.month,
+        occurredAt: payment.paidAt,
+        salaryPeriodId: period.id,
+        reason: 'Tarixiy yozuv: foiz tasdiqlangan maoshda hisoblangan',
+        createdById: options.actorId,
+      },
+      select: { id: true, year: true, month: true, baseAmount: true, percentage: true, amount: true },
+    });
+  }
+
+  const accrualLocked = await lockedPeriod(db, profile.id, accrual);
+  const target = accrualLocked
+    ? await resolveOpenMonth(db, profile.id, currentBusinessMonth())
+    : { year: accrual.year, month: accrual.month };
+  const percentage = accrual.percentage.toNumber();
+  // To'liq bekor qilishda aynan + yozuv qoplanadi, qisman qaytarishda summaga proporsional
+  const amount =
+    options.baseAmount === accrual.baseAmount.toNumber() ? -accrual.amount.toNumber() : -commissionAmount(options.baseAmount, percentage);
+
+  const reversal = await db.commissionEntry.create({
+    data: {
+      sourceKey: options.sourceKey,
+      teacherId: payment.teacherId,
+      paymentId: payment.id,
+      kind: 'REVERSAL',
+      baseAmount: -options.baseAmount,
+      percentage,
+      amount,
+      year: target.year,
+      month: target.month,
+      occurredAt: new Date(),
+      reason: options.reason,
+      createdById: options.actorId,
+    },
+    select: { id: true },
+  });
+
+  await auditService.recordInTransaction(db, {
+    userId: options.actorId,
+    action: 'commission.reversed',
+    entityType: 'commission',
+    entityId: reversal.id,
+    metadata: {
+      receipt: formatPaymentNumber(payment.number),
+      amount,
+      base: -options.baseAmount,
+      period: formatSalaryPeriod(target.year, target.month),
+      movedToOpenPeriod: Boolean(accrualLocked),
+      reason: options.reason,
+    },
+    ...options.client,
+  });
+}
+
 // ---------------------------------------------------------------------
 // Servis
 // ---------------------------------------------------------------------
@@ -412,91 +511,22 @@ export const commissionService = {
     });
   },
 
-  /**
-   * To‘lov bekor qilinganda: + yozuvning teskarisi. Asl yozuv o‘chirilmaydi.
-   * Asl oy maoshi tasdiqlangan bo‘lsa — teskari yozuv keyingi ochiq oyga tushadi.
-   */
+  /** To‘lov bekor qilinganda: + yozuvning to‘liq teskarisi */
   async reverseForPayment(
     db: Db,
-    payment: { id: string; number: number; amount: number; paidAt: Date; teacherId: string | null },
+    payment: PaymentRef,
     options: { actorId: string; reason: string; client: ClientInfo },
   ): Promise<void> {
-    if (!payment.teacherId) return;
-    const profile = await db.teacherProfile.findUnique({ where: { userId: payment.teacherId }, select: { id: true } });
-    if (!profile) return;
-    if (await db.commissionEntry.findUnique({ where: { sourceKey: reversalKey(payment.id) }, select: { id: true } })) return;
+    await reverseAccrual(db, payment, { ...options, sourceKey: reversalKey(payment.id), baseAmount: payment.amount });
+  },
 
-    let accrual = await db.commissionEntry.findUnique({
-      where: { sourceKey: accrualKey(payment.id) },
-      select: { id: true, year: true, month: true, baseAmount: true, percentage: true, amount: true },
-    });
-
-    if (!accrual) {
-      // Funksiya qo'shilishidan oldingi to'lov: oy maoshi tasdiqlangan va foiz umumiy tushumdan
-      // hisoblangan bo'lsa — tarixiy + yozuv tiklanadi, aks holda qaytariladigan foiz yo'q.
-      const paidMonth = currentBusinessMonth(payment.paidAt);
-      const period = await lockedPeriod(db, profile.id, paidMonth);
-      if (!period || period.percentageAmount.toNumber() <= 0) return;
-      const percentage = await percentageForMonth(db, profile.id, paidMonth);
-      if (percentage <= 0) return;
-      accrual = await db.commissionEntry.create({
-        data: {
-          sourceKey: accrualKey(payment.id),
-          teacherId: payment.teacherId,
-          paymentId: payment.id,
-          kind: 'ACCRUAL',
-          baseAmount: payment.amount,
-          percentage,
-          amount: commissionAmount(payment.amount, percentage),
-          year: paidMonth.year,
-          month: paidMonth.month,
-          occurredAt: payment.paidAt,
-          salaryPeriodId: period.id,
-          reason: 'Tarixiy yozuv: foiz tasdiqlangan maoshda hisoblangan',
-          createdById: options.actorId,
-        },
-        select: { id: true, year: true, month: true, baseAmount: true, percentage: true, amount: true },
-      });
-    }
-
-    const accrualLocked = await lockedPeriod(db, profile.id, accrual);
-    const target = accrualLocked
-      ? await resolveOpenMonth(db, profile.id, currentBusinessMonth())
-      : { year: accrual.year, month: accrual.month };
-    const amount = -accrual.amount.toNumber();
-
-    const reversal = await db.commissionEntry.create({
-      data: {
-        sourceKey: reversalKey(payment.id),
-        teacherId: payment.teacherId,
-        paymentId: payment.id,
-        kind: 'REVERSAL',
-        baseAmount: -accrual.baseAmount.toNumber(),
-        percentage: accrual.percentage,
-        amount,
-        year: target.year,
-        month: target.month,
-        occurredAt: new Date(),
-        reason: options.reason,
-        createdById: options.actorId,
-      },
-      select: { id: true },
-    });
-
-    await auditService.recordInTransaction(db, {
-      userId: options.actorId,
-      action: 'commission.reversed',
-      entityType: 'commission',
-      entityId: reversal.id,
-      metadata: {
-        receipt: formatPaymentNumber(payment.number),
-        amount,
-        period: formatSalaryPeriod(target.year, target.month),
-        movedToOpenPeriod: Boolean(accrualLocked),
-        reason: options.reason,
-      },
-      ...options.client,
-    });
+  /** To‘lovning bir qismi qaytarilganda: qaytarilgan summaga proporsional teskari yozuv */
+  async reverseForRefund(
+    db: Db,
+    input: { payment: PaymentRef; refund: { id: string; amount: number } },
+    options: { actorId: string; reason: string; client: ClientInfo },
+  ): Promise<void> {
+    await reverseAccrual(db, input.payment, { ...options, sourceKey: `refund:${input.refund.id}`, baseAmount: input.refund.amount });
   },
 
   /**
@@ -547,6 +577,7 @@ export const commissionService = {
       select: { id: true, kind: true, paymentId: true, baseAmount: true, percentage: true, amount: true },
     });
     const accrualByPayment = new Map<string, { amount: number; percentage: number }>();
+    const accrualBase = new Map<string, number>();
     for (const entry of monthEntries) {
       if (entry.kind !== 'ACCRUAL') continue;
       const base = entry.baseAmount.toNumber();
@@ -554,17 +585,22 @@ export const commissionService = {
       if (entry.percentage.toNumber() !== percentage || entry.amount.toNumber() !== amount) {
         await db.commissionEntry.update({ where: { id: entry.id }, data: { percentage, amount } });
       }
-      if (entry.paymentId) accrualByPayment.set(entry.paymentId, { amount, percentage });
+      if (entry.paymentId) {
+        accrualByPayment.set(entry.paymentId, { amount, percentage });
+        accrualBase.set(entry.paymentId, base);
+      }
     }
     // Shu oyning o'zida bekor qilingan to'lovlar — teskari yozuv + yozuvni aynan qoplaydi
     for (const entry of monthEntries) {
       if (entry.kind !== 'REVERSAL' || !entry.paymentId) continue;
       const accrual = accrualByPayment.get(entry.paymentId);
       if (!accrual) continue;
-      if (entry.amount.toNumber() !== -accrual.amount || entry.percentage.toNumber() !== accrual.percentage) {
+      const base = Math.abs(entry.baseAmount.toNumber());
+      const mirrored = base === accrualBase.get(entry.paymentId) ? -accrual.amount : -commissionAmount(base, accrual.percentage);
+      if (entry.amount.toNumber() !== mirrored || entry.percentage.toNumber() !== accrual.percentage) {
         await db.commissionEntry.update({
           where: { id: entry.id },
-          data: { percentage: accrual.percentage, amount: -accrual.amount },
+          data: { percentage: accrual.percentage, amount: mirrored },
         });
       }
     }

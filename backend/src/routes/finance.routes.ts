@@ -6,6 +6,7 @@ import {
   financeController,
   incomeController,
 } from '../controllers/finance.controller.js';
+import { financialPeriodController } from '../controllers/financialPeriod.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 
@@ -24,6 +25,10 @@ financeRouter.put('/accounts/:id', financeManage, financeController.updateAccoun
 financeRouter.get('/transactions', financeView, financeController.transactions);
 financeRouter.post('/transfers', financeManage, financeController.transfer);
 financeRouter.post('/transactions/:id/void', financeManage, financeController.voidTransaction);
+
+financeRouter.get('/periods', financeView, financialPeriodController.list);
+financeRouter.post('/periods/close', requirePermission(PERMISSIONS.FINANCE_CLOSE), financialPeriodController.close);
+financeRouter.post('/periods/reopen', requirePermission(PERMISSIONS.FINANCE_REOPEN), financialPeriodController.reopen);
 
 financeRouter.get('/budget', financeView, budgetController.get);
 financeRouter.put('/budget', requirePermission(PERMISSIONS.BUDGET_MANAGE), budgetController.save);

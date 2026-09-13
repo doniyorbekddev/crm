@@ -27,6 +27,8 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   CASH: 'Naqd',
   BANK: 'Bank',
   CARD: 'Karta',
+  UZCARD: 'Uzcard',
+  HUMO: 'Humo',
   CLICK: 'Click',
   PAYME: 'Payme',
   UZUM: 'Uzum',
@@ -40,6 +42,7 @@ export const TRANSACTION_SOURCE_LABELS: Record<string, string> = {
   expense: 'Xarajat',
   teacherSalaryPayment: 'Maosh to‘lovi',
   transfer: 'Kassa o‘tkazmasi',
+  paymentRefund: 'To‘lov qaytarildi',
 };
 
 export const CASH_FLOW_PERIODS = [

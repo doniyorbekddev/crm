@@ -27,6 +27,27 @@ export interface PaymentItem {
   course: { id: string; name: string };
   manager: PersonRef | null;
   accountant: PersonRef | null;
+  /** Qaytarilgan jami summa */
+  refundedAmount: number;
+  refunds: PaymentRefund[];
+}
+
+export interface PaymentRefund {
+  id: string;
+  /** "QT-000012" */
+  code: string;
+  amount: number;
+  method: PaymentMethod;
+  refundedAt: string;
+  reason: string;
+  createdBy: PersonRef | null;
+}
+
+export interface RefundPayload {
+  amount: number;
+  method: PaymentMethod;
+  accountId?: string;
+  reason: string;
 }
 
 export interface PaymentListParams {

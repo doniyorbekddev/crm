@@ -54,6 +54,22 @@ export const deletePaymentSchema = z.object({
     .max(255, 'Sabab 255 belgidan oshmasligi kerak'),
 });
 
+/** To‘lovni to‘liq yoki qisman qaytarish */
+export const refundPaymentSchema = z.object({
+  amount: z.coerce
+    .number('Summa raqam bo‘lishi kerak')
+    .int('Summa butun son bo‘lishi kerak')
+    .min(1000, 'Eng kam qaytarish — 1 000 so‘m')
+    .max(999_999_999, 'Summa juda katta'),
+  method: z.enum(PAYMENT_METHODS, 'Qaytarish usulini tanlang'),
+  accountId: optionalField(z.string().trim().min(1).max(50)),
+  reason: z
+    .string('Qaytarish sababini yozing')
+    .trim()
+    .min(5, 'Sabab kamida 5 belgidan iborat bo‘lsin')
+    .max(255, 'Sabab 255 belgidan oshmasligi kerak'),
+});
+
 export const debtListQuerySchema = paginationQuerySchema.extend({
   range: z.enum(DEBT_RANGES, 'Qarz oralig‘i noto‘g‘ri').default('all'),
   courseId: idSchema.optional(),
@@ -74,6 +90,7 @@ export const paymentStatsQuerySchema = z.object({
 export type PaymentListQuery = z.infer<typeof paymentListQuerySchema>;
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type DeletePaymentInput = z.infer<typeof deletePaymentSchema>;
+export type RefundPaymentInput = z.infer<typeof refundPaymentSchema>;
 export type DebtListQuery = z.infer<typeof debtListQuerySchema>;
 export type PaymentStatsQuery = z.infer<typeof paymentStatsQuerySchema>;
 export type DebtRange = (typeof DEBT_RANGES)[number];

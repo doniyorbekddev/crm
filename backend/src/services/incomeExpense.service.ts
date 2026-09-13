@@ -16,6 +16,7 @@ import type {
 } from '../validators/incomeExpense.validator.js';
 import { auditService } from './audit.service.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
+import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -275,6 +276,7 @@ export const incomeService = {
     }
 
     const occurredAt = toOccurredAt(input.date);
+    await assertFinancialPeriodOpen(prisma, occurredAt);
     const id = await prisma.$transaction(async (tx) => {
       const accountId = await resolveAccountId(tx, input.accountId, input.method);
       const transaction = await recordTransaction(tx, {
@@ -322,7 +324,7 @@ export const incomeService = {
   async void(actor: AuthUser, id: string, input: VoidMoneyInput, client: ClientInfo): Promise<MoneyEntryDto> {
     const income = await prisma.income.findUnique({
       where: { id },
-      select: { id: true, number: true, amount: true, transactionId: true, transaction: { select: { status: true } } },
+      select: { id: true, number: true, amount: true, transactionId: true, transaction: { select: { status: true, occurredAt: true } } },
     });
     if (!income) {
       throw AppError.notFound('Tushum topilmadi');
@@ -331,6 +333,7 @@ export const incomeService = {
       throw AppError.conflict('Bu tushum allaqachon bekor qilingan');
     }
 
+    await assertFinancialPeriodOpen(prisma, income.transaction.occurredAt);
     await prisma.$transaction(async (tx) => {
       await voidTransaction(tx, income.transactionId, { userId: actor.id, reason: input.reason });
       await auditService.recordInTransaction(tx, {
@@ -403,6 +406,7 @@ export const expenseService = {
     }
 
     const occurredAt = toOccurredAt(input.date);
+    await assertFinancialPeriodOpen(prisma, occurredAt);
     const id = await prisma.$transaction(async (tx) => {
       const accountId = await resolveAccountId(tx, input.accountId, input.method);
       const transaction = await recordTransaction(tx, {
@@ -454,7 +458,7 @@ export const expenseService = {
         amount: true,
         transactionId: true,
         salaryPaymentId: true,
-        transaction: { select: { status: true } },
+        transaction: { select: { status: true, occurredAt: true } },
       },
     });
     if (!expense) {
@@ -467,6 +471,7 @@ export const expenseService = {
       throw AppError.conflict('Bu xarajat allaqachon bekor qilingan');
     }
 
+    await assertFinancialPeriodOpen(prisma, expense.transaction.occurredAt);
     await prisma.$transaction(async (tx) => {
       await voidTransaction(tx, expense.transactionId, { userId: actor.id, reason: input.reason });
       await auditService.recordInTransaction(tx, {

@@ -30,6 +30,7 @@ import { auditService } from './audit.service.js';
 import { COMMISSION_SALARY_TYPES, commissionService } from './commission.service.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
+import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
 const SALARY_EXPENSE_CATEGORY = 'TEACHER_SALARY';
@@ -1374,6 +1375,7 @@ export const salaryService = {
     }
 
     const paidAt = input.paidAt ?? new Date();
+    await assertFinancialPeriodOpen(prisma, paidAt);
     const teacherName = payeeName(period);
     const isEmployee = period.employee !== null;
     const expenseCategoryKey = isEmployee ? EMPLOYEE_SALARY_EXPENSE_CATEGORY : SALARY_EXPENSE_CATEGORY;

@@ -9,6 +9,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type {
   CreatePaymentInput,
   DeletePaymentInput,
+  RefundPaymentInput,
   PaymentListQuery,
   PaymentStatsQuery,
 } from '../validators/payment.validator.js';
@@ -20,6 +21,7 @@ import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { businessDateString } from '../utils/dates.js';
 import { commissionService } from './commission.service.js';
+import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
@@ -48,7 +50,23 @@ const paymentSelect = {
   manager: { select: { id: true, firstName: true, lastName: true } },
   accountant: { select: { id: true, firstName: true, lastName: true } },
   deletedBy: { select: { id: true, firstName: true, lastName: true } },
+  refunds: {
+    orderBy: { refundedAt: 'asc' },
+    select: {
+      id: true,
+      number: true,
+      amount: true,
+      method: true,
+      refundedAt: true,
+      reason: true,
+      createdBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+  },
 } satisfies Prisma.PaymentSelect;
+
+export function formatRefundNumber(value: number): string {
+  return `QT-${String(value).padStart(6, '0')}`;
+}
 
 type PaymentRecord = Prisma.PaymentGetPayload<{ select: typeof paymentSelect }>;
 
@@ -75,6 +93,18 @@ export interface PaymentDto {
   course: { id: string; name: string };
   manager: { id: string; firstName: string; lastName: string } | null;
   accountant: { id: string; firstName: string; lastName: string } | null;
+  /** Qaytarilgan jami summa (qisman qaytarishlar yig‘indisi) */
+  refundedAmount: number;
+  refunds: Array<{
+    id: string;
+    /** "QT-000012" */
+    code: string;
+    amount: number;
+    method: PaymentMethod;
+    refundedAt: string;
+    reason: string;
+    createdBy: { id: string; firstName: string; lastName: string } | null;
+  }>;
 }
 
 export interface PaymentStatsDto {
@@ -107,6 +137,16 @@ function toPaymentDto(payment: PaymentRecord): PaymentDto {
     course: payment.course,
     manager: payment.manager,
     accountant: payment.accountant,
+    refundedAmount: payment.refunds.reduce((sum, refund) => sum + refund.amount.toNumber(), 0),
+    refunds: payment.refunds.map((refund) => ({
+      id: refund.id,
+      code: formatRefundNumber(refund.number),
+      amount: refund.amount.toNumber(),
+      method: refund.method,
+      refundedAt: refund.refundedAt.toISOString(),
+      reason: refund.reason,
+      createdBy: refund.createdBy,
+    })),
   };
 }
 
@@ -177,8 +217,13 @@ async function recalculateDebt(tx: Prisma.TransactionClient, studentId: string):
     where: { studentId, deletedAt: null },
     _sum: { amount: true },
   });
+  // Qaytarilgan pul to'langan summadan ayiriladi
+  const refunded = await tx.paymentRefund.aggregate({
+    where: { payment: { studentId, deletedAt: null } },
+    _sum: { amount: true },
+  });
   const total = debt.totalAmount.toNumber();
-  const paid = aggregate._sum.amount?.toNumber() ?? 0;
+  const paid = (aggregate._sum.amount?.toNumber() ?? 0) - (refunded._sum.amount?.toNumber() ?? 0);
   const remaining = Math.max(total - paid, 0);
   await tx.debt.update({
     where: { studentId },
@@ -220,6 +265,7 @@ export const paymentService = {
       { key: 'group', label: 'Guruh', type: 'text' },
       { key: 'method', label: 'Usul', type: 'text' },
       { key: 'amount', label: 'Summa', type: 'money' },
+      { key: 'refunded', label: 'Qaytarilgan', type: 'money' },
       { key: 'manager', label: 'Menejer', type: 'text' },
       { key: 'status', label: 'Holat', type: 'text' },
       { key: 'comment', label: 'Izoh', type: 'text' },
@@ -234,12 +280,14 @@ export const paymentService = {
       group: payment.student.group?.name ?? null,
       method: PAYMENT_METHOD_LABELS[payment.method],
       amount: payment.amount,
+      refunded: payment.refundedAmount,
       manager: payment.manager ? `${payment.manager.firstName} ${payment.manager.lastName}` : null,
       status: payment.isDeleted ? 'Bekor qilingan' : 'Faol',
       comment: payment.isDeleted ? (payment.deleteReason ?? payment.comment) : payment.comment,
     }));
     const activeSum = payments.reduce((sum, payment) => sum + (payment.isDeleted ? 0 : payment.amount), 0);
-    return { title: 'To‘lovlar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: { amount: activeSum } };
+    const refundedSum = payments.reduce((sum, payment) => sum + (payment.isDeleted ? 0 : payment.refundedAmount), 0);
+    return { title: 'To‘lovlar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: { amount: activeSum, refunded: refundedSum } };
   },
 
   /** Filtrga mos to‘lovlar yig‘indisi va usullar kesimi (sahifalashdan qat’i nazar) */
@@ -310,6 +358,8 @@ export const paymentService = {
         },
       ]);
     }
+
+    await assertFinancialPeriodOpen(prisma, input.paidAt ?? new Date());
 
     const paymentId = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({
@@ -399,6 +449,10 @@ export const paymentService = {
     if (payment.deletedAt) {
       throw AppError.conflict('Bu to‘lov allaqachon bekor qilingan');
     }
+    if ((await prisma.paymentRefund.count({ where: { paymentId: id } })) > 0) {
+      throw AppError.conflict('To‘lovning bir qismi qaytarilgan — bekor qilib bo‘lmaydi. Qolgan summani “Pulni qaytarish” orqali qaytaring');
+    }
+    await assertFinancialPeriodOpen(prisma, payment.paidAt);
 
     await prisma.$transaction(async (tx) => {
       await tx.payment.update({
@@ -433,4 +487,117 @@ export const paymentService = {
 
     return this.getById(id);
   },
+
+  /**
+   * To‘lovni to‘liq yoki qisman qaytarish. Kvitansiya o‘chirilmaydi: qaytarish alohida yozuv,
+   * daftarga REFUND (kassadan chiqim); o‘quvchi qarzi va o‘qituvchi foizi mos ravishda kamayadi.
+   */
+  async refund(actor: AuthUser, id: string, input: RefundPaymentInput, client: ClientInfo): Promise<PaymentDto> {
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        number: true,
+        studentId: true,
+        amount: true,
+        paidAt: true,
+        teacherId: true,
+        deletedAt: true,
+        student: { select: { firstName: true, lastName: true } },
+        refunds: { select: { amount: true } },
+      },
+    });
+    if (!payment) {
+      throw AppError.notFound('To‘lov topilmadi');
+    }
+    if (payment.deletedAt) {
+      throw AppError.conflict('Bekor qilingan to‘lovni qaytarib bo‘lmaydi');
+    }
+    const refunded = payment.refunds.reduce((sum, refund) => sum + refund.amount.toNumber(), 0);
+    const refundable = payment.amount.toNumber() - refunded;
+    if (refundable <= 0) {
+      throw AppError.conflict('To‘lov to‘liq qaytarilgan');
+    }
+    if (input.amount > refundable) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+        { field: 'amount', message: `Eng ko‘pi ${refundable.toLocaleString('uz-UZ')} so‘m qaytarish mumkin` },
+      ]);
+    }
+    const refundedAt = new Date();
+    await assertFinancialPeriodOpen(prisma, refundedAt);
+
+    await prisma.$transaction(async (tx) => {
+      const accountId = input.accountId
+        ? (await tx.financialAccount.findFirst({ where: { id: input.accountId, isActive: true }, select: { id: true } }))?.id
+        : await accountIdForMethod(tx, input.method);
+      if (input.accountId && !accountId) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'accountId', message: 'Hisob topilmadi' }]);
+      }
+      if (accountId) {
+        const account = await tx.financialAccount.findUniqueOrThrow({ where: { id: accountId }, select: { name: true, balance: true } });
+        if (account.balance.toNumber() < input.amount) {
+          throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+            { field: 'amount', message: `${account.name} hisobida yetarli mablag‘ yo‘q` },
+          ]);
+        }
+      }
+
+      const studentName = `${payment.student.firstName} ${payment.student.lastName}`;
+      const transaction = await recordTransaction(tx, {
+        type: 'REFUND',
+        amount: input.amount,
+        accountId: accountId ?? null,
+        occurredAt: refundedAt,
+        description: `To‘lov qaytarildi — ${studentName} (${formatPaymentNumber(payment.number)})`,
+        categoryName: 'O‘quvchi to‘lovi qaytarildi',
+        entityType: 'paymentRefund',
+        createdById: actor.id,
+      });
+      const refund = await tx.paymentRefund.create({
+        data: {
+          paymentId: id,
+          amount: input.amount,
+          method: input.method,
+          accountId: accountId ?? null,
+          refundedAt,
+          reason: input.reason,
+          transactionId: transaction.id,
+          createdById: actor.id,
+        },
+        select: { id: true, number: true },
+      });
+      await tx.transaction.update({ where: { id: transaction.id }, data: { entityId: refund.id } });
+
+      const { remaining } = await recalculateDebt(tx, payment.studentId);
+      await commissionService.reverseForRefund(
+        tx,
+        {
+          payment: { id, number: payment.number, amount: payment.amount.toNumber(), paidAt: payment.paidAt, teacherId: payment.teacherId },
+          refund: { id: refund.id, amount: input.amount },
+        },
+        { actorId: actor.id, reason: input.reason, client },
+      );
+
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'payment.refunded',
+        entityType: 'payment',
+        entityId: id,
+        metadata: {
+          receipt: formatPaymentNumber(payment.number),
+          refund: formatRefundNumber(refund.number),
+          student: studentName,
+          amount: input.amount,
+          method: input.method,
+          reason: input.reason,
+          refundedTotal: refunded + input.amount,
+          remaining,
+        },
+        ...client,
+      });
+    });
+
+    return this.getById(id);
+  },
+
 };

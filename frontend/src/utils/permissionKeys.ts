@@ -35,6 +35,7 @@ export const PERMISSIONS = {
   PAYMENT_VIEW: 'payment.view',
   PAYMENT_CREATE: 'payment.create',
   PAYMENT_DELETE: 'payment.delete',
+  PAYMENT_REFUND: 'payment.refund',
 
   DEBT_VIEW: 'debt.view',
 
@@ -63,6 +64,8 @@ export const PERMISSIONS = {
 
   FINANCE_VIEW: 'finance.view',
   FINANCE_MANAGE: 'finance.manage',
+  FINANCE_CLOSE: 'finance.close',
+  FINANCE_REOPEN: 'finance.reopen',
   INCOME_VIEW: 'income.view',
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',

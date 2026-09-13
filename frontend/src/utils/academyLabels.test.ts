@@ -87,12 +87,12 @@ describe('moliya yorliqlari', () => {
     expectComplete(TRANSACTION_TYPE_ORDER, TRANSACTION_TYPE_LABELS);
     expect(Object.keys(TRANSACTION_TYPE_TONES).sort()).toEqual([...TRANSACTION_TYPE_ORDER].sort());
     expect(Object.keys(TRANSACTION_STATUS_LABELS).sort()).toEqual(['COMPLETED', 'REVERSED', 'VOID']);
-    expect(Object.keys(ACCOUNT_TYPE_LABELS).sort()).toEqual(['BANK', 'CARD', 'CASH', 'CLICK', 'OTHER', 'PAYME', 'UZUM']);
+    expect(Object.keys(ACCOUNT_TYPE_LABELS).sort()).toEqual(['BANK', 'CARD', 'CASH', 'CLICK', 'HUMO', 'OTHER', 'PAYME', 'UZCARD', 'UZUM']);
     expect(CASH_FLOW_PERIODS.map((period) => period.value)).toEqual(['day', 'week', 'month']);
   });
 
   it('daftar manbalari backenddagi entityType qiymatlarini qamraydi', () => {
-    for (const entityType of ['payment', 'income', 'expense', 'teacherSalaryPayment', 'transfer']) {
+    for (const entityType of ['payment', 'income', 'expense', 'teacherSalaryPayment', 'transfer', 'paymentRefund']) {
       expect(TRANSACTION_SOURCE_LABELS[entityType]).toBeTruthy();
     }
   });

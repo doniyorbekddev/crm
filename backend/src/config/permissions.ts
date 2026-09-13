@@ -39,6 +39,7 @@ export const PERMISSIONS = {
   PAYMENT_VIEW: 'payment.view',
   PAYMENT_CREATE: 'payment.create',
   PAYMENT_DELETE: 'payment.delete',
+  PAYMENT_REFUND: 'payment.refund',
 
   DEBT_VIEW: 'debt.view',
 
@@ -67,6 +68,8 @@ export const PERMISSIONS = {
 
   FINANCE_VIEW: 'finance.view',
   FINANCE_MANAGE: 'finance.manage',
+  FINANCE_CLOSE: 'finance.close',
+  FINANCE_REOPEN: 'finance.reopen',
   INCOME_VIEW: 'income.view',
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',
@@ -138,6 +141,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.PAYMENT_VIEW, module: 'payments', description: 'To‘lovlarni ko‘rish' },
   { key: PERMISSIONS.PAYMENT_CREATE, module: 'payments', description: 'To‘lov qabul qilish' },
   { key: PERMISSIONS.PAYMENT_DELETE, module: 'payments', description: 'To‘lovni bekor qilish' },
+  { key: PERMISSIONS.PAYMENT_REFUND, module: 'payments', description: 'To‘lovni (qisman) qaytarish' },
 
   { key: PERMISSIONS.DEBT_VIEW, module: 'debts', description: 'Qarzdorlikni ko‘rish' },
 
@@ -165,6 +169,8 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
 
   { key: PERMISSIONS.FINANCE_VIEW, module: 'finance', description: 'Moliyaviy panel va tranzaksiyalarni ko‘rish' },
   { key: PERMISSIONS.FINANCE_MANAGE, module: 'finance', description: 'Hisoblar va tranzaksiyalarni boshqarish' },
+  { key: PERMISSIONS.FINANCE_CLOSE, module: 'finance', description: 'Moliyaviy oyni yopish' },
+  { key: PERMISSIONS.FINANCE_REOPEN, module: 'finance', description: 'Yopilgan moliyaviy oyni qayta ochish (sabab bilan)' },
   { key: PERMISSIONS.INCOME_VIEW, module: 'finance', description: 'Tushumlarni ko‘rish' },
   { key: PERMISSIONS.INCOME_MANAGE, module: 'finance', description: 'Tushum qo‘shish va bekor qilish' },
   { key: PERMISSIONS.EXPENSE_VIEW, module: 'finance', description: 'Xarajatlarni ko‘rish' },
@@ -222,6 +228,8 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.SETTINGS_MANAGE,
   // Tasdiqlangan maoshni ochish — faqat Owner / Super Admin
   PERMISSIONS.SALARY_UNLOCK,
+  // Yopilgan moliyaviy oyni ochish — faqat Owner / Super Admin
+  PERMISSIONS.FINANCE_REOPEN,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */
@@ -325,6 +333,8 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.PAYMENT_VIEW,
       PERMISSIONS.PAYMENT_CREATE,
       PERMISSIONS.PAYMENT_DELETE,
+      PERMISSIONS.PAYMENT_REFUND,
+      PERMISSIONS.FINANCE_CLOSE,
       PERMISSIONS.DEBT_VIEW,
       PERMISSIONS.REPORT_VIEW,
       PERMISSIONS.REPORT_EXPORT,

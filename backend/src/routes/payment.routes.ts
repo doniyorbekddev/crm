@@ -15,6 +15,7 @@ paymentRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.PAYMENT
 paymentRouter.get('/:id', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentController.getById);
 paymentRouter.post('/', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentController.create);
 paymentRouter.delete('/:id', requirePermission(PERMISSIONS.PAYMENT_DELETE), paymentController.remove);
+paymentRouter.post('/:id/refunds', requirePermission(PERMISSIONS.PAYMENT_REFUND), paymentController.refund);
 
 export const debtRouter = Router();
 

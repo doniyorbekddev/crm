@@ -71,6 +71,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
   'payment.created': 'To‘lov qabul qilindi',
   'payment.deleted': 'To‘lov bekor qilindi',
+  'payment.refunded': 'To‘lov qaytarildi',
+  'finance.period_closed': 'Moliyaviy oy yopildi',
+  'finance.period_reopened': 'Moliyaviy oy qayta ochildi',
 
   'teacher.profile_created': 'O‘qituvchi profili yaratildi',
   'teacher.profile_updated': 'O‘qituvchi profili tahrirlandi',
@@ -129,6 +132,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   teacher: 'O‘qituvchi',
   salary: 'Maosh',
   commission: 'O‘qituvchi foizi',
+  financialPeriod: 'Moliyaviy oy',
   employee: 'Xodim (HR)',
   account: 'Kassa',
   transaction: 'Moliyaviy yozuv',
@@ -152,6 +156,9 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'group.deleted',
   'student.deleted',
   'payment.deleted',
+  'payment.refunded',
+  'finance.period_closed',
+  'finance.period_reopened',
   'user.password_reset_by_admin',
   'salary.approved',
   'salary.paid',

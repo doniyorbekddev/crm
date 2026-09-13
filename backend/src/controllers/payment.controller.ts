@@ -8,6 +8,7 @@ import {
   createPaymentSchema,
   debtListQuerySchema,
   deletePaymentSchema,
+  refundPaymentSchema,
   paymentListQuerySchema,
   paymentStatsQuerySchema,
 } from '../validators/payment.validator.js';
@@ -41,6 +42,14 @@ export const paymentController = {
   async create(req: Request, res: Response): Promise<void> {
     const input = createPaymentSchema.parse(req.body);
     sendCreated(res, await paymentService.create(requireAuthUser(req), input, getClientInfo(req)), 'To‘lov qabul qilindi');
+  },
+
+  async refund(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = refundPaymentSchema.parse(req.body);
+    sendSuccess(res, await paymentService.refund(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Pul qaytarildi',
+    });
   },
 
   async remove(req: Request, res: Response): Promise<void> {

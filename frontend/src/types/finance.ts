@@ -3,7 +3,7 @@ import type { PaymentMethod } from './payment';
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'REFUND';
 export type TransactionStatus = 'COMPLETED' | 'VOID' | 'REVERSED';
-export type AccountType = 'CASH' | 'BANK' | 'CARD' | 'CLICK' | 'PAYME' | 'UZUM' | 'OTHER';
+export type AccountType = 'CASH' | 'BANK' | 'CARD' | 'UZCARD' | 'HUMO' | 'CLICK' | 'PAYME' | 'UZUM' | 'OTHER';
 export type CashFlowPeriod = 'day' | 'week' | 'month';
 
 export interface FinanceAccount {
@@ -173,4 +173,21 @@ export interface BudgetPayload {
   month: number;
   note?: string;
   lines: Array<{ categoryId: string; plannedAmount: number }>;
+}
+
+export type FinancialPeriodStatus = 'OPEN' | 'CLOSED';
+
+export interface FinancialPeriod {
+  year: number;
+  month: number;
+  label: string;
+  status: FinancialPeriodStatus;
+  isCurrent: boolean;
+  canClose: boolean;
+  totals: { income: number; expense: number; refunds: number; net: number; transactions: number };
+  closedAt: string | null;
+  closedBy: { id: string; firstName: string; lastName: string } | null;
+  reopenedAt: string | null;
+  reopenedBy: { id: string; firstName: string; lastName: string } | null;
+  reopenReason: string | null;
 }

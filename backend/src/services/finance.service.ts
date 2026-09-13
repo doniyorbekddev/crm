@@ -16,6 +16,7 @@ import type {
 } from '../validators/finance.validator.js';
 import { auditService } from './audit.service.js';
 import { OPERATING_LEDGER_WHERE, recordTransaction, voidTransaction } from './ledger.js';
+import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
 const SALARY_CATEGORY = 'O‘qituvchi maoshi';
@@ -466,6 +467,7 @@ export const financeService = {
     }
 
     const occurredAt = input.occurredAt ? dayStart(input.occurredAt) : new Date();
+    await assertFinancialPeriodOpen(prisma, occurredAt);
     const description = input.description ?? `${from.name} → ${to.name}`;
 
     const ids = await prisma.$transaction(async (tx) => {
@@ -520,7 +522,7 @@ export const financeService = {
   ): Promise<TransactionDto> {
     const transaction = await prisma.transaction.findUnique({
       where: { id },
-      select: { id: true, number: true, status: true, entityType: true, amount: true, type: true },
+      select: { id: true, number: true, status: true, entityType: true, amount: true, type: true, occurredAt: true },
     });
     if (!transaction) {
       throw AppError.notFound('Moliyaviy yozuv topilmadi');
@@ -534,6 +536,10 @@ export const financeService = {
     if (transaction.entityType === 'teacherSalaryPayment') {
       throw AppError.unprocessable('Maosh to‘lovi maoshlar bo‘limida bekor qilinadi');
     }
+    if (transaction.entityType === 'paymentRefund') {
+      throw AppError.unprocessable('Qaytarilgan pul bekor qilinmaydi — kerak bo‘lsa o‘quvchidan yangi to‘lov qabul qiling');
+    }
+    await assertFinancialPeriodOpen(prisma, transaction.occurredAt);
 
     await prisma.$transaction(async (tx) => {
       await voidTransaction(tx, id, { userId: actor.id, reason: input.reason });

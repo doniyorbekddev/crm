@@ -1,4 +1,4 @@
-import { BarChart3, ScrollText, Target } from 'lucide-react';
+import { BarChart3, Lock, ScrollText, Target } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -8,10 +8,11 @@ import { cn } from '@/lib/cn';
 import type { FinanceRangeParams } from '@/types/finance';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { BudgetTab } from './BudgetTab';
+import { FinancialPeriodsTab } from './FinancialPeriodsTab';
 import { FinanceOverview } from './FinanceOverview';
 import { TransactionsTab } from './TransactionsTab';
 
-type Tab = 'overview' | 'transactions' | 'budget';
+type Tab = 'overview' | 'transactions' | 'budget' | 'periods';
 
 export default function FinancePage() {
   const canViewBudget = usePermission(PERMISSIONS.FINANCE_VIEW);
@@ -25,6 +26,7 @@ export default function FinancePage() {
     { value: 'overview', label: 'Panel', icon: BarChart3 },
     { value: 'transactions', label: 'Moliyaviy daftar', icon: ScrollText },
     ...(canViewBudget ? ([{ value: 'budget', label: 'Budjet', icon: Target }] as const) : []),
+    ...(canViewBudget ? ([{ value: 'periods', label: 'Oylarni yopish', icon: Lock }] as const) : []),
   ];
 
   return (
@@ -61,7 +63,7 @@ export default function FinancePage() {
           })}
         </div>
 
-        {tab !== 'budget' && (
+        {tab !== 'budget' && tab !== 'periods' && (
           <Card className="flex items-center gap-2 p-2 sm:ml-auto">
             <Input
               type="date"
@@ -85,6 +87,7 @@ export default function FinancePage() {
       {tab === 'overview' && <FinanceOverview range={range} />}
       {tab === 'transactions' && <TransactionsTab range={range} />}
       {tab === 'budget' && <BudgetTab />}
+      {tab === 'periods' && <FinancialPeriodsTab />}
     </>
   );
 }
