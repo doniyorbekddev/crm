@@ -36,7 +36,9 @@ describe('ruxsatlar konfiguratsiyasi', () => {
     const superAdmin = SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.SUPER_ADMIN);
     const admin = SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.ADMIN);
 
-    expect(superAdmin?.permissions).toHaveLength(ALL_PERMISSION_KEYS.length);
+    // O‘qituvchining shaxsiy sahifasi (commission.view_own) rahbar rollariga berilmaydi
+    expect(superAdmin?.permissions).toHaveLength(ALL_PERMISSION_KEYS.length - 1);
+    expect(superAdmin?.permissions).not.toContain(PERMISSIONS.COMMISSION_VIEW_OWN);
     expect(admin?.permissions).not.toContain(PERMISSIONS.USER_MANAGE);
     expect(admin?.permissions).not.toContain(PERMISSIONS.ROLE_MANAGE);
     expect(admin?.permissions).not.toContain(PERMISSIONS.SETTINGS_MANAGE);

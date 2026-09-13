@@ -4,6 +4,7 @@ import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ManagerPeriod } from '@/types/dashboard';
+import type { CommissionParams } from '@/types/commission';
 import type { CourseListParams } from '@/types/course';
 import type { GroupListParams } from '@/types/group';
 import type { FollowUpListParams } from '@/types/followUp';
@@ -135,6 +136,12 @@ export const queryKeys = {
     candidates: ['teachers', 'candidates'] as const,
     me: ['teachers', 'me'] as const,
     salaryRules: (id: string) => ['teachers', 'salary-rules', id] as const,
+  },
+  commissions: {
+    all: ['commissions'] as const,
+    list: (params: CommissionParams) => ['commissions', 'list', params] as const,
+    detail: (id: string, params: CommissionParams) => ['commissions', 'detail', id, params] as const,
+    mine: (params: CommissionParams) => ['commissions', 'mine', params] as const,
   },
   salaries: {
     all: ['salaries'] as const,

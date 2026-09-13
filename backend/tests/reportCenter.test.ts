@@ -183,7 +183,16 @@ describe.skipIf(!hasTestDatabase)('Hisobotlar markazi — yangi hisobotlar (inte
         ],
       });
       await prisma.payment.create({
-        data: { studentId: present.id, courseId: course.id, amount: 700_000, method: 'CASH', paidAt: new Date('2026-08-11T09:00:00.000Z') },
+        data: {
+          studentId: present.id,
+          courseId: course.id,
+          amount: 700_000,
+          method: 'CASH',
+          paidAt: new Date('2026-08-11T09:00:00.000Z'),
+          // To'lov paytidagi guruh va o'qituvchi (payment.service shunday yozadi)
+          groupId: present.groupId,
+          teacherId: present.groupId ? (await prisma.group.findUniqueOrThrow({ where: { id: present.groupId } })).teacherId : null,
+        },
       });
       await prisma.teacherSalaryPeriod.create({
         data: { teacherProfileId: profile.id, year: 2026, month: 8, salaryType: 'FIXED', totalAmount: 1_200_000 },

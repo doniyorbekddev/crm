@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Calculator, HandCoins, Pencil, Wallet2 } from 'lucide-react';
+import { BadgeCheck, Calculator, HandCoins, Pencil, Percent, Wallet2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -27,6 +27,7 @@ import {
   SALARY_STATUS_TONES,
   SALARY_TYPE_LABELS,
 } from '@/utils/teacherLabels';
+import { CommissionDetailModal } from './CommissionDetailModal';
 import { SalaryAdjustModal } from './SalaryAdjustModal';
 import { SalaryPaymentModal } from './SalaryPaymentModal';
 import { ExportMenu } from '@/components/ExportMenu';
@@ -38,6 +39,7 @@ const now = new Date();
 const YEAR_OPTIONS = Array.from({ length: 4 }, (_, index) => now.getFullYear() - index);
 
 type Dialog =
+  | { type: 'commission'; period: SalaryPeriod }
   | { type: 'adjust'; period: SalaryPeriod }
   | { type: 'pay'; period: SalaryPeriod }
   | { type: 'approve'; period: SalaryPeriod }
@@ -73,6 +75,7 @@ export default function SalariesPage() {
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.salaries.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.teachers.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.commissions.all });
   };
 
   const calculate = useMutation({
@@ -102,6 +105,7 @@ export default function SalariesPage() {
   const periods = periodsQuery.data ?? [];
 
   const rowActions = (period: SalaryPeriod) => [
+    { label: 'Foiz tafsiloti', icon: Percent, onSelect: () => setDialog({ type: 'commission', period }) },
     ...(canCalculate && !period.lockedAt
       ? [
           {
@@ -267,8 +271,11 @@ export default function SalariesPage() {
                       </TD>
                       <TD className="text-right text-xs whitespace-nowrap text-fg-muted">
                         {formatNumber(period.lessonsCount)} dars · {formatNumber(period.studentsCount)} o‘quvchi
-                        {period.percentageAmount > 0 && (
-                          <p className="text-fg-subtle">tushum {formatMoney(period.groupRevenue)}</p>
+                        {(period.percentageAmount !== 0 || period.groupRevenue > 0) && (
+                          <p className="text-fg-subtle">
+                            tushum {formatMoney(period.groupRevenue)}
+                            {period.percentageAmount !== 0 && ` · foiz ${formatMoney(period.percentageAmount)}`}
+                          </p>
                         )}
                       </TD>
                       <TD className="text-right font-medium whitespace-nowrap text-fg">{formatMoney(period.totalAmount)}</TD>
@@ -301,6 +308,16 @@ export default function SalariesPage() {
           </TableContainer>
         )}
       </Card>
+
+      {dialog?.type === 'commission' && (
+        <CommissionDetailModal
+          teacherProfileId={dialog.period.teacher.profileId}
+          teacherName={`${dialog.period.teacher.firstName} ${dialog.period.teacher.lastName}`}
+          year={dialog.period.year}
+          month={dialog.period.month}
+          onClose={() => setDialog(null)}
+        />
+      )}
 
       {dialog?.type === 'adjust' && (
         <SalaryAdjustModal

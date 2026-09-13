@@ -225,6 +225,9 @@ model User {
   salesTargets          SalesTarget[]          @relation("SalesTargetUser")
   createdSalesTargets   SalesTarget[]          @relation("SalesTargetCreatedBy")
   resolvedAlerts        Alert[]                @relation("AlertResolvedBy")
+  taughtPayments        Payment[]              @relation("PaymentTeacher")
+  commissionEntries     CommissionEntry[]      @relation("CommissionTeacher")
+  createdCommissions    CommissionEntry[]      @relation("CommissionCreatedBy")
 
   @@index([roleId])
   @@index([status])
@@ -528,6 +531,7 @@ model Group {
   sessions    AttendanceSession[]
   homework    Homework[]
   exams       Exam[]
+  payments    Payment[]
 
   @@index([courseId])
   @@index([teacherId])
@@ -638,15 +642,21 @@ model Payment {
   deleteReason  String?       @db.VarChar(255)
   /// Moliyaviy daftardagi yozuv (tushum ikki marta hisoblanmasligi uchun)
   transactionId String?       @unique
+  /// To‘lov paytidagi guruh va o‘qituvchi — o‘quvchi keyin boshqa guruhga o‘tsa ham foiz shu o‘qituvchiga qoladi
+  groupId       String?
+  teacherId     String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  student     Student      @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  manager     User?        @relation("PaymentManager", fields: [managerId], references: [id], onDelete: SetNull)
-  accountant  User?        @relation("PaymentAccountant", fields: [accountantId], references: [id], onDelete: SetNull)
-  deletedBy   User?        @relation("PaymentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  transaction       Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  student           Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course            Course            @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  manager           User?             @relation("PaymentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  accountant        User?             @relation("PaymentAccountant", fields: [accountantId], references: [id], onDelete: SetNull)
+  deletedBy         User?             @relation("PaymentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  group             Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  teacher           User?             @relation("PaymentTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  commissionEntries CommissionEntry[]
 
   @@index([studentId])
   @@index([studentId, deletedAt])
@@ -655,6 +665,7 @@ model Payment {
   @@index([method, paidAt])
   @@index([managerId, paidAt])
   @@index([deletedAt])
+  @@index([teacherId, paidAt])
   @@map("payments")
 }
 
@@ -1121,9 +1132,10 @@ model TeacherSalaryPeriod {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  teacherProfile TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  approvedBy     User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  payments       TeacherSalaryPayment[]
+  teacherProfile    TeacherProfile         @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  approvedBy        User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  payments          TeacherSalaryPayment[]
+  commissionEntries CommissionEntry[]
 
   @@unique([teacherProfileId, year, month])
   @@index([year, month])
@@ -1539,4 +1551,45 @@ model Alert {
   @@index([type, createdAt])
   @@index([severity])
   @@map("alerts")
+}
+
+enum CommissionEntryKind {
+  ACCRUAL
+  REVERSAL
+  CARRY_OVER
+}
+
+/// O‘qituvchi foizining tarixi: har bir to‘lovdan (+), bekor qilingan to‘lovdan (−) va salbiy
+/// qoldiqni keyingi oyga ko‘chirishdan yozuv. Yozuvlar o‘chirilmaydi — tuzatish teskari yozuv bilan.
+model CommissionEntry {
+  id             String              @id @default(cuid())
+  /// Takrorlanmaslik kaliti: payment:<id>:accrual, payment:<id>:reversal, period:<id>:carry-out
+  sourceKey      String              @unique @db.VarChar(120)
+  teacherId      String
+  paymentId      String?
+  kind           CommissionEntryKind
+  /// Hisob asosi: to‘lov summasi (bekor qilinganda manfiy)
+  baseAmount     Decimal             @db.Decimal(14, 2)
+  percentage     Decimal             @default(0) @db.Decimal(5, 2)
+  amount         Decimal             @db.Decimal(14, 2)
+  currency       String              @default("UZS") @db.VarChar(3)
+  /// Qaysi oy maoshiga kiradi
+  year           Int
+  month          Int                 @db.SmallInt
+  occurredAt     DateTime
+  salaryPeriodId String?
+  reason         String?             @db.VarChar(255)
+  createdById    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  teacher      User                 @relation("CommissionTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  payment      Payment?             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  salaryPeriod TeacherSalaryPeriod? @relation(fields: [salaryPeriodId], references: [id], onDelete: SetNull)
+  createdBy    User?                @relation("CommissionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([teacherId, year, month])
+  @@index([paymentId])
+  @@index([salaryPeriodId])
+  @@map("commission_entries")
 }

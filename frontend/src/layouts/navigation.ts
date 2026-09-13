@@ -4,6 +4,7 @@ import {
   Bell,
   FileSpreadsheet,
   BookOpen,
+  Coins,
   CalendarCheck,
   CalendarClock,
   ClipboardList,
@@ -74,6 +75,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/exams', label: 'Imtihonlar', icon: FileCheck, permission: PERMISSIONS.EXAM_VIEW },
       { to: '/gamification', label: 'Reyting', icon: Trophy, permission: PERMISSIONS.GAMIFICATION_VIEW },
       { to: '/teachers', label: 'O‘qituvchilar', icon: UserCog, permission: PERMISSIONS.TEACHER_VIEW },
+      { to: '/my-earnings', label: 'Mening daromadim', icon: Coins, permission: PERMISSIONS.COMMISSION_VIEW_OWN },
     ],
   },
   {

@@ -347,7 +347,7 @@ async function loadPerformance(userId: string, year: number, month: number): Pro
     },
   });
   const revenue = await prisma.payment.aggregate({
-    where: { deletedAt: null, paidAt: { gte: start, lt: end }, student: { group: { teacherId: userId } } },
+    where: { deletedAt: null, paidAt: { gte: start, lt: end }, teacherId: userId },
     _sum: { amount: true },
   });
 

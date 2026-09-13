@@ -190,6 +190,8 @@ async function main(): Promise<void> {
   const transactions: Array<Record<string, unknown>> = [];
   const payments: Array<Record<string, unknown>> = [];
   const debts: Array<{ studentId: string; totalAmount: number; paidAmount: number; remainingAmount: number; status: DebtStatus }> = [];
+  // To'lov paytidagi o'qituvchi — foiz shu o'qituvchiga yoziladi
+  const teacherByGroup = new Map(groups.map((group) => [group.id, group.teacherId]));
   for (const student of students) {
     const count = between(1, SCALE.paymentsPerStudent);
     let paid = 0;
@@ -214,6 +216,8 @@ async function main(): Promise<void> {
         id: paymentId,
         studentId: student.id,
         courseId: student.courseId,
+        groupId: student.groupId,
+        teacherId: teacherByGroup.get(student.groupId) ?? null,
         amount,
         method: pick(methods),
         paidAt,

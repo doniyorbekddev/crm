@@ -4,6 +4,7 @@ import { attendanceRouter, attendanceSessionRouter } from './attendance.routes.j
 import { auditRouter } from './audit.routes.js';
 import { authRouter } from './auth.routes.js';
 import { callRouter } from './call.routes.js';
+import { commissionRouter } from './commission.routes.js';
 import { courseRouter } from './course.routes.js';
 import { dashboardRouter } from './dashboard.routes.js';
 import { expenseRouter, financeRouter, incomeRouter } from './finance.routes.js';
@@ -49,6 +50,7 @@ apiRouter.use('/exams', examRouter);
 apiRouter.use('/gamification', gamificationRouter);
 apiRouter.use('/teachers', teacherRouter);
 apiRouter.use('/salaries', salaryRouter);
+apiRouter.use('/teacher-commissions', commissionRouter);
 apiRouter.use('/finance', financeRouter);
 apiRouter.use('/incomes', incomeRouter);
 apiRouter.use('/expenses', expenseRouter);

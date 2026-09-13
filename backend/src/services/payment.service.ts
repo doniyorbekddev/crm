@@ -19,6 +19,7 @@ import { debtStatusOf } from './student.service.js';
 import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { businessDateString } from '../utils/dates.js';
+import { commissionService } from './commission.service.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
@@ -283,6 +284,8 @@ export const paymentService = {
         firstName: true,
         lastName: true,
         courseId: true,
+        groupId: true,
+        group: { select: { teacherId: true } },
         status: true,
         debt: { select: { totalAmount: true, paidAmount: true } },
         lead: { select: { assignedToId: true } },
@@ -319,8 +322,11 @@ export const paymentService = {
           comment: input.comment ?? null,
           managerId: student.lead?.assignedToId ?? null,
           accountantId: actor.id,
+          // O'qituvchi foizi to'lov paytidagi guruhga bog'lanadi
+          groupId: student.groupId,
+          teacherId: student.group?.teacherId ?? null,
         },
-        select: { id: true, number: true },
+        select: { id: true, number: true, paidAt: true, teacherId: true },
       });
 
       // Har bir to'lov moliyaviy daftarga tushadi: usulga mos kassa qoldig'i oshadi
@@ -337,6 +343,11 @@ export const paymentService = {
         createdById: actor.id,
       });
       await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
+      await commissionService.accrueForPayment(
+        tx,
+        { id: payment.id, amount: input.amount, paidAt: payment.paidAt, teacherId: payment.teacherId },
+        actor.id,
+      );
 
       const { remaining } = await recalculateDebt(tx, student.id);
 
@@ -380,7 +391,7 @@ export const paymentService = {
   async remove(actor: AuthUser, id: string, input: DeletePaymentInput, client: ClientInfo): Promise<PaymentDto> {
     const payment = await prisma.payment.findUnique({
       where: { id },
-      select: { id: true, number: true, studentId: true, amount: true, deletedAt: true, transactionId: true },
+      select: { id: true, number: true, studentId: true, amount: true, paidAt: true, teacherId: true, deletedAt: true, transactionId: true },
     });
     if (!payment) {
       throw AppError.notFound('To‘lov topilmadi');
@@ -398,6 +409,12 @@ export const paymentService = {
       if (payment.transactionId) {
         await voidTransaction(tx, payment.transactionId, { userId: actor.id, reason: input.reason });
       }
+      // O'qituvchi foizi teskari yozuv bilan qaytariladi (tasdiqlangan oy o'zgarmaydi)
+      await commissionService.reverseForPayment(
+        tx,
+        { id, number: payment.number, amount: payment.amount.toNumber(), paidAt: payment.paidAt, teacherId: payment.teacherId },
+        { actorId: actor.id, reason: input.reason, client },
+      );
       const { remaining } = await recalculateDebt(tx, payment.studentId);
       await auditService.recordInTransaction(tx, {
         userId: actor.id,

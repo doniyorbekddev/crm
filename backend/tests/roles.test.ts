@@ -35,7 +35,8 @@ describe.skipIf(!hasTestDatabase)('Roles API (integratsion)', () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(SYSTEM_ROLES.length);
     expect(response.body.data[0]).toMatchObject({ key: 'SUPER_ADMIN', isSystem: true, userCount: 1 });
-    expect(response.body.data[0].permissions).toHaveLength(PERMISSION_DEFINITIONS.length);
+    // Super Admin — o‘qituvchining shaxsiy "Mening daromadim" ruxsatidan tashqari hammasi
+    expect(response.body.data[0].permissions).toHaveLength(PERMISSION_DEFINITIONS.length - 1);
     expect((await request(app).get('/api/roles').set(bearer(admin))).status).toBe(200);
     expect((await request(app).get('/api/roles').set(bearer(sales))).status).toBe(403);
   });

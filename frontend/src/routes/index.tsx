@@ -113,6 +113,10 @@ export const router = createBrowserRouter([
                 children: [{ path: 'salaries', lazy: lazyComponent(() => import('@/pages/teachers/SalariesPage')) }],
               },
               {
+                element: <PermissionGate permission={PERMISSIONS.COMMISSION_VIEW_OWN} />,
+                children: [{ path: 'my-earnings', lazy: lazyComponent(() => import('@/pages/teachers/MyEarningsPage')) }],
+              },
+              {
                 element: <PermissionGate permission={PERMISSIONS.PAYMENT_VIEW} />,
                 children: [{ path: 'payments', lazy: lazyComponent(() => import('@/pages/payments/PaymentsPage')) }],
               },

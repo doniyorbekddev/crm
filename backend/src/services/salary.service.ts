@@ -3,6 +3,7 @@ import { formatSalaryAmount, formatSalaryPeriod } from '../config/salaryLabels.j
 import type { PaymentMethod, Prisma, SalaryPeriodStatus, SalaryType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
+import { businessMonthRange } from '../utils/dates.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type {
   AdjustSalaryInput,
@@ -13,6 +14,7 @@ import type {
 } from '../validators/salary.validator.js';
 import type { CreateSalaryRuleInput } from '../validators/teacher.validator.js';
 import { auditService } from './audit.service.js';
+import { commissionService } from './commission.service.js';
 import { notificationService } from './notification.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
@@ -270,6 +272,8 @@ export interface WorkloadDto {
   lessonsCount: number;
   studentsCount: number;
   groupRevenue: number;
+  /** Oy foiz yozuvlari yig‘indisi (teskari yozuvlar bilan). Berilmasa — tushum × foiz */
+  commissionAmount?: number;
 }
 
 /**
@@ -298,12 +302,10 @@ export async function loadWorkload(
     where: { deletedAt: null, status: 'ACTIVE', group: { teacherId: teacherUserId } },
   });
 
+  // Tushum to'lov paytida yozilgan o'qituvchi bo'yicha (o'quvchining hozirgi guruhi emas)
+  const paymentRange = businessMonthRange(year, month);
   const revenue = await tx.payment.aggregate({
-    where: {
-      deletedAt: null,
-      paidAt: { gte: start, lt: end },
-      student: { group: { teacherId: teacherUserId } },
-    },
+    where: { deletedAt: null, teacherId: teacherUserId, paidAt: { gte: paymentRange.start, lt: paymentRange.end } },
     _sum: { amount: true },
   });
 
@@ -354,7 +356,8 @@ export function computeSalaryParts(rates: SalaryRates, workload: WorkloadDto): S
     baseAmount: mixed || rates.type === 'FIXED' ? round(rates.baseSalary) : 0,
     lessonAmount: mixed || rates.type === 'PER_LESSON' ? round(rates.perLessonRate * workload.lessonsCount) : 0,
     studentAmount: mixed || rates.type === 'PER_STUDENT' ? round(rates.perStudentRate * workload.studentsCount) : 0,
-    percentageAmount: mixed || rates.type === 'PERCENTAGE' ? round((workload.groupRevenue * rates.percentage) / 100) : 0,
+    percentageAmount:
+      workload.commissionAmount ?? (mixed || rates.type === 'PERCENTAGE' ? round((workload.groupRevenue * rates.percentage) / 100) : 0),
   };
 }
 
@@ -569,7 +572,12 @@ export const salaryService = {
           return { ok: false, reason: 'Maosh modeli belgilanmagan' } as const;
         }
 
-        const workload = await loadWorkload(tx, profile.userId, input.year, input.month);
+        // Foiz real to'lov yozuvlaridan: yozuvi yo'q to'lovlar qo'shiladi, stavka joriy modelga moslanadi
+        const commission = await commissionService.syncMonth(tx, profile, input, actor.id);
+        const workload = {
+          ...(await loadWorkload(tx, profile.userId, input.year, input.month)),
+          commissionAmount: commission.commission,
+        };
         const parts = computeSalaryParts(toSalaryRates(rule), workload);
         // Hisoblashdan keyin qo'lda o'zgartirilgan bo'lsa (adjust) — bonus va jarima saqlanadi,
         // aks holda model bonusi qo'llanadi. Hisoblashda updatedAt = calculatedAt qilib yoziladi.
@@ -609,6 +617,7 @@ export const salaryService = {
               data: { teacherProfileId: profile.id, year: input.year, month: input.month, ...data },
               select: { id: true },
             });
+        await commissionService.linkToPeriod(tx, profile.userId, input, period.id);
 
         await auditService.recordInTransaction(tx, {
           userId: actor.id,
@@ -702,22 +711,69 @@ export const salaryService = {
     if (period.status !== 'CALCULATED') {
       throw AppError.unprocessable('Avval maoshni hisoblang');
     }
-    if (period.totalAmount.toNumber() <= 0) {
+
+    const teacherId = period.teacherProfile.user.id;
+    const percentageAmount = period.percentageAmount.toNumber();
+    // Hisoblangandan keyin to'lov kelgan yoki bekor qilingan bo'lsa — eski raqam qotirilmasin
+    if ((await commissionService.monthTotal(prisma, teacherId, period)) !== percentageAmount) {
+      throw AppError.conflict('Hisoblangandan keyin to‘lovlar o‘zgargan — maoshni qayta hisoblang');
+    }
+
+    const rawTotal =
+      period.baseAmount.toNumber() +
+      period.lessonAmount.toNumber() +
+      period.studentAmount.toNumber() +
+      percentageAmount +
+      period.bonus.toNumber() -
+      period.penalty.toNumber();
+    // Qaytarilgan to'lovlar foizi maoshdan katta — manfiy qoldiq keyingi oyga ko'chiriladi
+    const carry = rawTotal < 0 && percentageAmount < 0 ? Math.min(-rawTotal, -percentageAmount) : 0;
+    if (period.totalAmount.toNumber() <= 0 && carry === 0) {
       throw AppError.unprocessable('Maosh summasi nol — tasdiqlash mumkin emas');
     }
+    const finalTotal = Math.max(rawTotal + carry, 0);
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
+      await commissionService.linkToPeriod(tx, teacherId, period, id);
+      if (carry > 0) {
+        await commissionService.carryOver(tx, {
+          period: {
+            id,
+            teacherProfileId: period.teacherProfile.id,
+            year: period.year,
+            month: period.month,
+            label: formatSalaryPeriod(period.year, period.month),
+          },
+          teacherId,
+          amount: carry,
+          actorId: actor.id,
+          client,
+        });
+      }
+
       await tx.teacherSalaryPeriod.update({
         where: { id },
-        data: { status: 'APPROVED', approvedAt: now, approvedById: actor.id, lockedAt: now },
+        data: {
+          status: 'APPROVED',
+          approvedAt: now,
+          approvedById: actor.id,
+          lockedAt: now,
+          ...(carry > 0
+            ? {
+                percentageAmount: percentageAmount + carry,
+                totalAmount: finalTotal,
+                remainingAmount: Math.max(finalTotal - period.paidAmount.toNumber(), 0),
+              }
+            : {}),
+        },
       });
 
       await notificationService.createInTransaction(tx, {
         userId: period.teacherProfile.user.id,
         type: 'SYSTEM',
         title: 'Maosh tasdiqlandi',
-        message: `${formatSalaryPeriod(period.year, period.month)} maoshi tasdiqlandi: ${formatSalaryAmount(period.totalAmount.toNumber())}.`,
+        message: `${formatSalaryPeriod(period.year, period.month)} maoshi tasdiqlandi: ${formatSalaryAmount(finalTotal)}.`,
         entityType: 'salary',
         entityId: id,
         dedupeKey: `salary:${id}:approved`,
@@ -731,7 +787,8 @@ export const salaryService = {
         metadata: {
           teacher: `${period.teacherProfile.user.firstName} ${period.teacherProfile.user.lastName}`,
           period: formatSalaryPeriod(period.year, period.month),
-          totalAmount: period.totalAmount.toNumber(),
+          totalAmount: finalTotal,
+          ...(carry > 0 ? { carriedOver: carry } : {}),
         },
         ...client,
       });

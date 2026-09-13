@@ -6,13 +6,13 @@ export const SALARY_PERIOD_STATUSES = ['PENDING', 'CALCULATED', 'APPROVED', 'PAR
 
 const idSchema = z.string().trim().min(1).max(50);
 
-const yearSchema = z.coerce
+export const yearSchema = z.coerce
   .number('Yil raqam bo‘lishi kerak')
   .int('Yil butun son bo‘lishi kerak')
   .min(2020, 'Yil 2020 dan kichik bo‘lmasligi kerak')
   .max(2100, 'Yil 2100 dan katta bo‘lmasligi kerak');
 
-const monthSchema = z.coerce
+export const monthSchema = z.coerce
   .number('Oy raqam bo‘lishi kerak')
   .int('Oy butun son bo‘lishi kerak')
   .min(1, 'Oy 1 dan 12 gacha bo‘lishi kerak')

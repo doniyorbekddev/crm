@@ -60,6 +60,7 @@ export const PERMISSIONS = {
   SALARY_CALCULATE: 'salary.calculate',
   SALARY_APPROVE: 'salary.approve',
   SALARY_PAY: 'salary.pay',
+  COMMISSION_VIEW_OWN: 'commission.view_own',
 
   FINANCE_VIEW: 'finance.view',
   FINANCE_MANAGE: 'finance.manage',
@@ -154,6 +155,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.SALARY_CALCULATE, module: 'salary', description: 'Maoshni hisoblash' },
   { key: PERMISSIONS.SALARY_APPROVE, module: 'salary', description: 'Maoshni tasdiqlash (locked)' },
   { key: PERMISSIONS.SALARY_PAY, module: 'salary', description: 'Maoshni to‘lash' },
+  { key: PERMISSIONS.COMMISSION_VIEW_OWN, module: 'salary', description: 'O‘z foiz daromadini ko‘rish (o‘qituvchi)' },
 
   { key: PERMISSIONS.FINANCE_VIEW, module: 'finance', description: 'Moliyaviy panel va tranzaksiyalarni ko‘rish' },
   { key: PERMISSIONS.FINANCE_MANAGE, module: 'finance', description: 'Hisoblar va tranzaksiyalarni boshqarish' },
@@ -203,7 +205,10 @@ export interface SystemRoleDefinition {
   permissions: readonly PermissionKey[];
 }
 
-const ALL_PERMISSIONS: readonly PermissionKey[] = PERMISSION_DEFINITIONS.map((permission) => permission.key);
+/** Rahbar rollari uchun — o‘qituvchining shaxsiy "Mening daromadim" sahifasi ularga kerak emas */
+const ALL_PERMISSIONS: readonly PermissionKey[] = PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
+  (key) => key !== PERMISSIONS.COMMISSION_VIEW_OWN,
+);
 
 const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.USER_MANAGE,
@@ -296,6 +301,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.EXAM_GRADE,
       PERMISSIONS.GAMIFICATION_VIEW,
       PERMISSIONS.PARENT_VIEW,
+      PERMISSIONS.COMMISSION_VIEW_OWN,
     ],
   },
   {

@@ -46,10 +46,16 @@ async function holdLessons(groupId: string, teacherId: string, days: number[]) {
 }
 
 async function addPayment(studentId: string, courseId: string, amount: number, day = 10) {
+  const student = await prisma.student.findUniqueOrThrow({
+    where: { id: studentId },
+    select: { groupId: true, group: { select: { teacherId: true } } },
+  });
   return prisma.payment.create({
     data: {
       studentId,
       courseId,
+      groupId: student.groupId,
+      teacherId: student.group?.teacherId ?? null,
       amount,
       method: 'CASH',
       paidAt: new Date(Date.UTC(YEAR, MONTH - 1, day, 9)),

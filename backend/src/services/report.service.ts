@@ -810,7 +810,7 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
   const groupIds = groups.map((group) => group.id);
 
   // Barcha o'qituvchilar uchun ~10 ta so'rov (avval har bir o'qituvchiga ~11 ta edi)
-  const [active, dropped, sessions, attendance, exams, homework, revenueByStudent, salaries] = await Promise.all([
+  const [active, dropped, sessions, attendance, exams, homework, revenueByTeacher, salaries] = await Promise.all([
     prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
     prisma.student.groupBy({
       by: ['groupId'],
@@ -839,9 +839,15 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
       where: { groupId: { in: groupIds }, status: { not: 'DRAFT' }, deadline: { gte: start, lt: end } },
       select: { id: true, groupId: true },
     }),
+    // Tushum to'lov paytida yozilgan o'qituvchi bo'yicha — o'quvchi guruhini almashtirsa ham tarix o'zgarmaydi
     prisma.payment.groupBy({
-      by: ['studentId'],
-      where: { deletedAt: null, paidAt: { gte: start, lt: end }, student: { groupId: { in: groupIds } } },
+      by: ['teacherId'],
+      where: {
+        deletedAt: null,
+        paidAt: { gte: start, lt: end },
+        teacherId: { in: userIds },
+        ...(query.courseId ? { courseId: query.courseId } : {}),
+      },
       _sum: { amount: true },
     }),
     prisma.teacherSalaryPeriod.groupBy({
@@ -851,7 +857,7 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
     }),
   ]);
 
-  const [examResults, submissions, paidStudents] = await Promise.all([
+  const [examResults, submissions] = await Promise.all([
     prisma.examResult.groupBy({
       by: ['examId'],
       where: { examId: { in: exams.map((exam) => exam.id) } },
@@ -862,10 +868,6 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
       by: ['homeworkId', 'status'],
       where: { homeworkId: { in: homework.map((item) => item.id) } },
       _count: { _all: true },
-    }),
-    prisma.student.findMany({
-      where: { id: { in: revenueByStudent.map((row) => row.studentId) } },
-      select: { id: true, groupId: true },
     }),
   ]);
 
@@ -933,10 +935,8 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
     entry.homeworkTotal += row._count._all;
     if (row.status === 'SUBMITTED' || row.status === 'LATE' || row.status === 'GRADED') entry.homeworkDone += row._count._all;
   }
-  const studentGroup = new Map(paidStudents.map((student) => [student.id, student.groupId]));
-  for (const row of revenueByStudent) {
-    const groupId = studentGroup.get(row.studentId);
-    const entry = bucket(groupId ? teacherOfGroup.get(groupId) : null);
+  for (const row of revenueByTeacher) {
+    const entry = bucket(row.teacherId);
     if (entry) entry.revenue += row._sum.amount?.toNumber() ?? 0;
   }
 

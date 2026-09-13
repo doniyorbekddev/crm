@@ -152,6 +152,7 @@ erDiagram
 | **FollowUp** | Keyingi aloqa | `dueAt`, `remindAt`, `status` (PENDING/DONE/CANCELLED), `assignedToId` — muddati o‘tgan PENDING avtomatik **OVERDUE** hisoblanadi |
 | **Course** | Kurslar | `name` (unique), `category`, `durationMonths`, `price`, `discountAmount`, `finalPrice`, `teacherId`, `status` |
 | **Group** | Guruhlar | `name` (unique), `courseId`, `teacherId`, `room`, `startDate`, `endDate`, `scheduleDays[]`, `startTime`, `endTime`, `capacity`, `status` |
+| **CommissionEntry** | O‘qituvchi foizi tarixi | `sourceKey` (takrorlanmaslik), `kind` (ACCRUAL / REVERSAL / CARRY_OVER), `baseAmount`, `percentage`, `amount`, `year/month`, `salaryPeriodId` — yozuvlar o‘chirilmaydi |
 | **Student** | O‘quvchilar | `number`, `leadId` (unique), ism, telefon, ota-ona telefoni, telegram, `courseId`, `groupId`, `contractNumber` (unique), `contractPrice` (narx snapshot), `startDate`, `status` |
 | **Debt** | Qarzdorlik (1:1 Student) | `totalAmount`, `paidAmount`, `remainingAmount`, `status` — har to‘lovda tranzaksiya ichida qayta hisoblanadi |
 | **Payment** | To‘lovlar | `amount`, `method`, `paidAt`, `courseId` (snapshot), `managerId`, `accountantId`, `comment`, `deletedAt` (soft delete) |
@@ -434,3 +435,13 @@ Barcha 17 bosqich yakunlandi (2026-09-12).
 | 17 | Yakuniy UI/UX | Mobil: jadval sarlavhasidagi `sr-only` element va dashboard grid’i sahifani kengaytirardi — 23 sahifa 390px da skrollsiz; rol bo‘yicha dashboard bloklari (o‘qituvchi, moliya); qorong‘i rejim tekshiruvi | ✅ |
 | 18 | Ota-onalar (spec 35) | `/parents` sahifasi va o‘quvchi profilidagi «Ota-ona» tabi: qo‘shish, tahrirlash, bir nechta farzand biriktirish, qarindoshlik, bitta asosiy vakil (telefoni `student.parentPhone` ga sinxronlanadi), takroriy telefon rad etiladi; o‘qituvchi faqat o‘z guruhi o‘quvchilarining ota-onasini ko‘radi | ✅ |
 | 19 | Global qidiruv va eksport (spec 44, 46) | Qidiruvga o‘qituvchi, ota-ona va tranzaksiya (raqam `TX-12`/`#12`, izoh, kategoriya) qo‘shildi, o‘quvchi natijasi profilga olib boradi. CSV va **Excel (.xlsx)** eksport — kutubxonasiz yozuvchi (`utils/tableExport.ts`: ZIP + SpreadsheetML, pul formati, muzlatilgan sarlavha, avtofiltr, «Jami»). Ro‘yxat eksportlari: `GET /students/export`, `/leads/export`, `/payments/export` (joriy filtrlar, 5 000 qatorgacha, `report.export` ruxsati); tushum, xarajat va maosh sahifalari hisobot eksportidan foydalanadi; hisobotlar markazida `?format=xlsx` | ✅ |
+
+### Moliya va boshqaruv tizimi (ikkinchi kengaytirish)
+
+Audit natijasi va roadmap: o‘qituvchi foizi → payroll → moliya → P&L → direktor paneli → analitika → HR.
+
+| # | Phase | Natija | Holat |
+|---|---|---|---|
+| 1 | Audit | 84 talab mavjud kod bilan solishtirildi: ~50% bor; foiz hisobida 3 ta pulga ta’sir qiluvchi xato topildi | ✅ |
+| 2 | Migratsiya | `payments.groupId/teacherId` (to‘lov paytidagi o‘qituvchi, mavjud to‘lovlar backfill), `CommissionEntry` jadvali, `commission.view_own` ruxsati — faqat qo‘shimcha o‘zgarishlar, migratsiyadan oldin `pg_dump` | ✅ |
+| 3 | O‘qituvchi foizi | Har bir real to‘lov uchun + yozuv, bekor qilinganda − yozuv (tasdiqlangan oy o‘zgarmaydi — keyingi ochiq oyga), manfiy qoldiq keyingi oyga ko‘chiriladi, hisoblangandan keyin to‘lov o‘zgarsa tasdiqlash bloklanadi; `/teacher-commissions`, `/teacher-commissions/me`; "Mening daromadim" sahifasi va maoshlarda "Foiz tafsiloti" | ✅ |
