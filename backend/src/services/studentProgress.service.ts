@@ -8,6 +8,7 @@ import { gamificationService } from './gamification.service.js';
 import { permissionService } from './permission.service.js';
 import type { StudentDto } from './student.service.js';
 import { studentService } from './student.service.js';
+import { refundTotal } from './revenue.js';
 
 /**
  * O‘quvchi profili va progressi: davomat, uy vazifasi, imtihon, XP va o‘qituvchi
@@ -231,7 +232,7 @@ export const studentProgressService = {
         _max: { paidAt: true },
       });
       payments = {
-        total: aggregate._sum.amount?.toNumber() ?? 0,
+        total: (aggregate._sum.amount?.toNumber() ?? 0) - (await refundTotal(undefined, { studentId })),
         count: aggregate._count._all,
         lastPaidAt: aggregate._max.paidAt?.toISOString() ?? null,
       };

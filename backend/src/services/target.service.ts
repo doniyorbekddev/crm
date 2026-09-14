@@ -9,6 +9,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type { SaveTargetInput, TargetQuery } from '../validators/alert.validator.js';
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
+import { refundsBy } from './revenue.js';
 
 export const TARGET_TYPE_LIST: readonly TargetType[] = ['LEADS', 'SALES', 'REVENUE'];
 
@@ -85,10 +86,12 @@ export async function computeTargetProgress(year: number, month: number, onlyUse
     _sum: { amount: true },
   });
 
+  const refunds = await refundsBy('managerId', { gte: start, lt: end }, { managerId: { in: ids } });
+
   const actualOf = (userId: string, type: TargetType): number => {
     if (type === 'LEADS') return leads.find((row) => row.assignedToId === userId)?._count._all ?? 0;
     if (type === 'SALES') return sales.find((row) => row.assignedToId === userId)?._count._all ?? 0;
-    return revenue.find((row) => row.managerId === userId)?._sum.amount?.toNumber() ?? 0;
+    return (revenue.find((row) => row.managerId === userId)?._sum.amount?.toNumber() ?? 0) - (refunds.get(userId) ?? 0);
   };
 
   return users.map((user) => {

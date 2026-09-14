@@ -12,6 +12,7 @@ import type { ReportGroupBy, ReportQuery, ReportType } from '../validators/repor
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { tableToCsv } from '../utils/tableExport.js';
 import type { ExportTable } from '../utils/tableExport.js';
+import { refundRows, refundTotal, refundsBy } from './revenue.js';
 
 export type ReportColumnType = 'text' | 'number' | 'money' | 'percent' | 'date';
 
@@ -202,6 +203,7 @@ async function salesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns
     },
     select: { paidAt: true, amount: true },
   });
+  const refunds = await refundRows({ gte: start, lt: end }, query.managerId ? { managerId: query.managerId } : {});
 
   const rows: Array<Record<string, ReportCell>> = buckets.map((bucket) => ({
     period: bucket.label,
@@ -223,6 +225,9 @@ async function salesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns
   });
   bucketize(buckets, payments, (payment) => payment.paidAt, (index, payment) => {
     rows[index]!.revenue = (rows[index]!.revenue as number) + payment.amount.toNumber();
+  });
+  bucketize(buckets, refunds, (refund) => refund.refundedAt, (index, refund) => {
+    rows[index]!.revenue = (rows[index]!.revenue as number) - refund.amount;
   });
 
   for (const row of rows) {
@@ -284,6 +289,8 @@ async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
     prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: range }, _sum: { amount: true } }),
   ]);
 
+  const managerRefunds = await refundsBy('managerId', range, { managerId: { in: ids } });
+
   const rows: Array<Record<string, ReportCell>> = [];
   for (const user of users) {
     const leadCount = leads.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
@@ -299,7 +306,7 @@ async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
       won: wonCount,
       lost: lostCount,
       conversion: percent(wonCount, wonCount + lostCount),
-      revenue: revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0,
+      revenue: (revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0) - (managerRefunds.get(user.id) ?? 0),
     });
   }
 
@@ -358,6 +365,8 @@ async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     }),
   ]);
 
+  const courseRefunds = await refundsBy('courseId', { gte: start, lt: end }, { courseId: { in: ids } });
+
   const countOf = (list: ReadonlyArray<{ courseId: string; _count: { _all: number } }>, id: string) =>
     list.find((row) => row.courseId === id)?._count._all ?? 0;
   const debtByCourse = new Map<string, number>();
@@ -373,7 +382,7 @@ async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     students: countOf(students, course.id),
     activeStudents: countOf(active, course.id),
     newStudents: countOf(fresh, course.id),
-    revenue: revenue.find((row) => row.courseId === course.id)?._sum.amount?.toNumber() ?? 0,
+    revenue: (revenue.find((row) => row.courseId === course.id)?._sum.amount?.toNumber() ?? 0) - (courseRefunds.get(course.id) ?? 0),
     debt: debtByCourse.get(course.id) ?? 0,
   }));
 
@@ -480,6 +489,14 @@ async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
     ...(query.groupId ? { student: { groupId: query.groupId } } : {}),
   };
 
+  const refunded = await refundTotal(
+    { gte: start, lt: end },
+    {
+      ...(query.courseId ? { courseId: query.courseId } : {}),
+      ...(query.managerId ? { managerId: query.managerId } : {}),
+      ...(query.groupId ? { student: { groupId: query.groupId } } : {}),
+    },
+  );
   const buckets = buildBuckets(start, end, query.groupBy);
   const methods = await prisma.payment.groupBy({ by: ['method'], where, _sum: { amount: true }, _count: { _all: true } });
   const methodKeys = methods.map((row) => row.method);
@@ -515,6 +532,12 @@ async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
     kpis: [
       { label: 'Jami tushum', value: methods.reduce((sum, row) => sum + (row._sum.amount?.toNumber() ?? 0), 0), type: 'money' },
       { label: 'To‘lovlar soni', value: methods.reduce((sum, row) => sum + row._count._all, 0), type: 'number' },
+      ...(refunded > 0
+        ? [
+            { label: 'Qaytarilgan', value: refunded, type: 'money' as const },
+            { label: 'Sof tushum', value: methods.reduce((sum, row) => sum + (row._sum.amount?.toNumber() ?? 0), 0) - refunded, type: 'money' as const },
+          ]
+        : []),
       ...methods
         .map((row) => ({
           label: PAYMENT_METHOD_LABELS[row.method],
@@ -711,6 +734,19 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     `,
   ]);
   const revenueBySource = new Map(payments.map((row) => [row.sourceId, Number(row.total ?? 0)]));
+  // Qaytarilgan pul manba tushumidan qaytarish sanasi bo'yicha ayriladi
+  const sourceRefunds = await prisma.$queryRaw<Array<{ sourceId: string; total: unknown }>>`
+    SELECT l."sourceId" AS "sourceId", SUM(r."amount") AS "total"
+    FROM "payment_refunds" r
+    JOIN "payments" p ON p."id" = r."paymentId"
+    JOIN "students" s ON s."id" = p."studentId"
+    JOIN "leads" l ON l."id" = s."leadId"
+    WHERE p."deletedAt" IS NULL AND r."refundedAt" >= ${start} AND r."refundedAt" < ${end}
+    GROUP BY l."sourceId"
+  `;
+  for (const row of sourceRefunds) {
+    revenueBySource.set(row.sourceId, (revenueBySource.get(row.sourceId) ?? 0) - Number(row.total ?? 0));
+  }
 
   const rows: Array<Record<string, ReportCell>> = [];
   for (const source of sources) {
@@ -940,6 +976,14 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
     const entry = bucket(row.teacherId);
     if (entry) entry.revenue += row._sum.amount?.toNumber() ?? 0;
   }
+  const teacherRefunds = await refundsBy('teacherId', { gte: start, lt: end }, {
+    teacherId: { in: userIds },
+    ...(query.courseId ? { courseId: query.courseId } : {}),
+  });
+  for (const [teacherId, amount] of teacherRefunds) {
+    const entry = bucket(teacherId);
+    if (entry) entry.revenue -= amount;
+  }
 
   const rows: Array<Record<string, ReportCell>> = [];
   for (const profile of profiles) {
@@ -1145,7 +1189,15 @@ async function expensesReport(query: ReportQuery): Promise<BuilderResult> {
 async function profitReport(query: ReportQuery): Promise<BuilderResult> {
   const { start, end } = resolveRange(query);
   const buckets = buildBuckets(start, end, query.groupBy);
-  const rows = buckets.map((bucket) => ({ period: bucket.label, income: 0, expense: 0, profit: 0, margin: null as number | null }));
+  const rows = buckets.map((bucket) => ({
+    period: bucket.label,
+    grossIncome: 0,
+    refunds: 0,
+    income: 0,
+    expense: 0,
+    profit: 0,
+    margin: null as number | null,
+  }));
 
   const transactions = await prisma.transaction.findMany({
     where: { ...LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
@@ -1153,21 +1205,27 @@ async function profitReport(query: ReportQuery): Promise<BuilderResult> {
   });
   bucketize(buckets, transactions, (item) => item.occurredAt, (index, item) => {
     const row = rows[index]!;
-    if (item.type === 'INCOME') row.income += item.amount.toNumber();
-    else if (item.type === 'EXPENSE' || item.type === 'REFUND') row.expense += item.amount.toNumber();
+    if (item.type === 'INCOME') row.grossIncome += item.amount.toNumber();
+    else if (item.type === 'REFUND') row.refunds += item.amount.toNumber();
+    else if (item.type === 'EXPENSE') row.expense += item.amount.toNumber();
   });
+  // Qaytarilgan to'lov tushumdan ayriladi — xarajat sifatida emas
   for (const row of rows) {
+    row.income = row.grossIncome - row.refunds;
     row.profit = row.income - row.expense;
     row.margin = row.income === 0 ? null : Math.round((row.profit / row.income) * 100);
   }
 
   const income = rows.reduce((sum, row) => sum + row.income, 0);
   const expense = rows.reduce((sum, row) => sum + row.expense, 0);
+  const refunds = rows.reduce((sum, row) => sum + row.refunds, 0);
 
   return {
     columns: [
       { key: 'period', label: 'Davr', type: 'text' },
-      { key: 'income', label: 'Tushum', type: 'money' },
+      { key: 'grossIncome', label: 'Yalpi tushum', type: 'money' },
+      { key: 'refunds', label: 'Qaytarilgan', type: 'money' },
+      { key: 'income', label: 'Sof tushum', type: 'money' },
       { key: 'expense', label: 'Xarajat', type: 'money' },
       { key: 'profit', label: 'Sof foyda', type: 'money' },
       { key: 'margin', label: 'Marja', type: 'percent' },
@@ -1178,6 +1236,7 @@ async function profitReport(query: ReportQuery): Promise<BuilderResult> {
       { label: 'Xarajat', value: expense, type: 'money' },
       { label: 'Sof foyda', value: income - expense, type: 'money' },
       { label: 'Marja', value: income === 0 ? 0 : Math.round(((income - expense) / income) * 100), type: 'percent' },
+      ...(refunds > 0 ? [{ label: 'Qaytarilgan', value: refunds, type: 'money' as const }] : []),
     ],
   };
 }

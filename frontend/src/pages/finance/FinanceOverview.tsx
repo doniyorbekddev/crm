@@ -115,7 +115,7 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
             <KpiCard
               label="Tushum"
               value={formatMoney(summary.income)}
-              hint={`O‘quv to‘lovi: ${formatMoney(summary.studentPayments)}`}
+              hint={`O‘quv to‘lovi: ${formatMoney(summary.studentPayments)}${summary.refunds > 0 ? ` · qaytarilgan: ${formatMoney(summary.refunds)}` : ''}`}
               tone="positive"
             />
             <KpiCard

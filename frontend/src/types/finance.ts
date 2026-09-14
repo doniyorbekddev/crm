@@ -51,6 +51,8 @@ export interface FinanceSummary {
   otherExpense: number;
   studentPayments: number;
   otherIncome: number;
+  /** Qaytarilgan to‘lovlar — tushumdan ayrilgan */
+  refunds: number;
   totalBalance: number;
   totalDebt: number;
   incomeByCategory: Array<{ name: string; total: number; count: number }>;
@@ -283,4 +285,34 @@ export interface RecurringExpensePayload {
   vendor?: string;
   endDate?: string;
   note?: string;
+}
+
+export interface ProfitLossLine {
+  name: string;
+  amount: number;
+  /** Sof tushumga nisbatan ulushi (%) */
+  share: number;
+}
+
+export interface ProfitLoss {
+  from: string;
+  to: string;
+  revenue: {
+    studentPayments: number;
+    refunds: number;
+    netStudentRevenue: number;
+    otherIncome: ProfitLossLine[];
+    otherIncomeTotal: number;
+    netRevenue: number;
+  };
+  directCosts: { teacherSalaries: number; total: number };
+  grossProfit: number;
+  grossMargin: number;
+  operatingExpenses: { lines: ProfitLossLine[]; total: number };
+  netProfit: number;
+  netMargin: number;
+  previous: { from: string; to: string; netRevenue: number; grossProfit: number; operatingExpenses: number; netProfit: number; netMargin: number };
+  /** Oldingi davrga nisbatan o‘zgarish (%); oldingi davr nol bo‘lsa null */
+  change: { netRevenue: number | null; grossProfit: number | null; netProfit: number | null };
+  months: Array<{ key: string; label: string; netRevenue: number; directCosts: number; operatingExpenses: number; netProfit: number }>;
 }

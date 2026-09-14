@@ -1,9 +1,10 @@
 import { prisma } from '../config/database.js';
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
 import type { Prisma, TransactionType } from '../generated/prisma/client.js';
-import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
+import { addDays, businessDateString, businessMonthRange, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ExecutiveQuery } from '../validators/dashboard.validator.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
+import { refundTotal } from './revenue.js';
 
 /**
  * Owner/Director paneli: butun markaz holati bitta so‘rovda.
@@ -101,7 +102,8 @@ async function ledgerTotals(start: Date, end: Date): Promise<{ income: number; e
     _sum: { amount: true },
   });
   const sumOf = (type: TransactionType) => rows.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
-  return { income: sumOf('INCOME'), expense: sumOf('EXPENSE') + sumOf('REFUND') };
+  // Qaytarilgan to'lov xarajat emas — tushumdan ayriladi (sof tushum)
+  return { income: sumOf('INCOME') - sumOf('REFUND'), expense: sumOf('EXPENSE') };
 }
 
 /** Davomat foizi: kelgan va kechikkanlar umumiy belgilar soniga nisbatan */
@@ -155,7 +157,7 @@ async function todayBlock(now: Date): Promise<ExecutiveTodayDto> {
     markedLessons,
     attendanceRate: attendance.rate,
     absentStudents: attendance.absent,
-    payments: payments._sum.amount?.toNumber() ?? 0,
+    payments: (payments._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart, lt: dayEnd })),
     expenses: money.expense,
     netRevenue: money.income - money.expense,
     activeGroups,
@@ -165,10 +167,10 @@ async function todayBlock(now: Date): Promise<ExecutiveTodayDto> {
 
 async function monthBlock(now: Date, query: ExecutiveQuery): Promise<ExecutiveMonthDto> {
   const selected = query.year && query.month ? { year: query.year, month: query.month } : null;
-  const start = selected
-    ? new Date(Date.UTC(selected.year, selected.month - 1, 1))
-    : startOfBusinessMonth(now);
-  const end = selected ? new Date(Date.UTC(selected.year, selected.month, 1)) : addDays(startOfBusinessDay(now), 1);
+  // Tanlangan oy chegarasi o'quv markaz vaqti bo'yicha
+  const selectedRange = selected ? businessMonthRange(selected.year, selected.month) : null;
+  const start = selectedRange?.start ?? startOfBusinessMonth(now);
+  const end = selectedRange?.end ?? addDays(startOfBusinessDay(now), 1);
   const year = selected?.year ?? Number(businessDateString(start).slice(0, 4));
   const month = selected?.month ?? Number(businessDateString(start).slice(5, 7));
 

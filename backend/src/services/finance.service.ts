@@ -72,6 +72,8 @@ export interface FinanceSummaryDto {
   otherExpense: number;
   studentPayments: number;
   otherIncome: number;
+  /** Qaytarilgan to‘lovlar — tushumdan ayrilgan */
+  refunds: number;
   /** Barcha kassalardagi joriy qoldiq */
   totalBalance: number;
   totalDebt: number;
@@ -130,6 +132,88 @@ export interface CashFlowStatementDto {
 }
 
 const FORECAST_DAYS = 30;
+
+export interface ProfitLossLineDto {
+  name: string;
+  amount: number;
+  /** Sof tushumga nisbatan ulushi (%) */
+  share: number;
+}
+
+export interface ProfitLossDto {
+  from: string;
+  to: string;
+  revenue: {
+    studentPayments: number;
+    refunds: number;
+    netStudentRevenue: number;
+    otherIncome: ProfitLossLineDto[];
+    otherIncomeTotal: number;
+    netRevenue: number;
+  };
+  /** Bevosita xarajat — o‘qituvchi maoshi */
+  directCosts: { teacherSalaries: number; total: number };
+  grossProfit: number;
+  grossMargin: number;
+  operatingExpenses: { lines: ProfitLossLineDto[]; total: number };
+  netProfit: number;
+  netMargin: number;
+  /** Shu uzunlikdagi oldingi davr */
+  previous: { from: string; to: string; netRevenue: number; grossProfit: number; operatingExpenses: number; netProfit: number; netMargin: number };
+  /** Oldingi davrga nisbatan o‘zgarish (%); oldingi davr nol bo‘lsa null */
+  change: { netRevenue: number | null; grossProfit: number | null; netProfit: number | null };
+  months: Array<{ key: string; label: string; netRevenue: number; directCosts: number; operatingExpenses: number; netProfit: number }>;
+}
+
+interface ProfitLossAccumulator {
+  studentPayments: number;
+  refunds: number;
+  otherIncome: Map<string, number>;
+  teacherSalaries: number;
+  operating: Map<string, number>;
+}
+
+const MONTH_SHORT_LABELS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+
+const percentOf = (part: number, whole: number) => (whole === 0 ? 0 : Math.round((part / whole) * 100));
+const changeOf = (current: number, previous: number) =>
+  previous === 0 ? null : Math.round(((current - previous) / Math.abs(previous)) * 100);
+
+function emptyProfitLoss(): ProfitLossAccumulator {
+  return { studentPayments: 0, refunds: 0, otherIncome: new Map(), teacherSalaries: 0, operating: new Map() };
+}
+
+/** Daftar yozuvini foyda-zarar moddasiga joylaydi (kassa usuli) */
+function addToProfitLoss(
+  acc: ProfitLossAccumulator,
+  row: { type: TransactionType; entityType: string | null; categoryName: string | null; amount: number },
+): void {
+  const add = (map: Map<string, number>, name: string) => map.set(name, (map.get(name) ?? 0) + row.amount);
+  if (row.type === 'REFUND') acc.refunds += row.amount;
+  else if (row.type === 'INCOME' || row.type === 'TRANSFER') {
+    if (row.entityType === 'payment') acc.studentPayments += row.amount;
+    else add(acc.otherIncome, row.categoryName ?? 'Boshqa tushum');
+  } else if (row.categoryName === SALARY_CATEGORY) acc.teacherSalaries += row.amount;
+  else add(acc.operating, row.categoryName ?? 'Boshqa xarajat');
+}
+
+function profitLossTotals(acc: ProfitLossAccumulator) {
+  const sumOf = (map: Map<string, number>) => [...map.values()].reduce((sum, value) => sum + value, 0);
+  const otherIncomeTotal = sumOf(acc.otherIncome);
+  const netRevenue = acc.studentPayments - acc.refunds + otherIncomeTotal;
+  const operatingExpenses = sumOf(acc.operating);
+  const grossProfit = netRevenue - acc.teacherSalaries;
+  const netProfit = grossProfit - operatingExpenses;
+  return { otherIncomeTotal, netRevenue, operatingExpenses, grossProfit, netProfit };
+}
+
+async function loadProfitLossRows(start: Date, end: Date) {
+  const rows = await prisma.transaction.findMany({
+    where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
+    select: { type: true, entityType: true, categoryName: true, amount: true, occurredAt: true },
+  });
+  return rows.map((row) => ({ ...row, amount: row.amount.toNumber() }));
+}
 
 // ---------------------------------------------------------------------
 // Yordamchilar
@@ -403,8 +487,10 @@ export const financeService = {
 
     const byType = await prisma.transaction.groupBy({ by: ['type'], where, _sum: { amount: true } });
     const sumOf = (type: TransactionType) => byType.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
-    const income = sumOf('INCOME');
-    const expense = sumOf('EXPENSE') + sumOf('REFUND');
+    // Qaytarilgan to'lov xarajat emas — tushumdan ayriladi (sof tushum)
+    const refunds = sumOf('REFUND');
+    const income = sumOf('INCOME') - refunds;
+    const expense = sumOf('EXPENSE');
 
     const incomeRows = await prisma.transaction.groupBy({
       by: ['categoryName'],
@@ -414,7 +500,7 @@ export const financeService = {
     });
     const expenseRows = await prisma.transaction.groupBy({
       by: ['categoryName'],
-      where: { ...where, type: { in: ['EXPENSE', 'REFUND'] } },
+      where: { ...where, type: 'EXPENSE' },
       _sum: { amount: true },
       _count: { _all: true },
     });
@@ -431,7 +517,7 @@ export const financeService = {
       ? (expenseByCategory.find((row) => row.name === marketingCategory.name)?.total ?? 0)
       : 0;
 
-    const studentPayments = incomeByCategory.find((row) => row.name === 'O‘quvchi to‘lovi')?.total ?? 0;
+    const studentPayments = (incomeByCategory.find((row) => row.name === 'O‘quvchi to‘lovi')?.total ?? 0) - refunds;
     const accounts = await prisma.financialAccount.aggregate({ where: { isActive: true }, _sum: { balance: true } });
     const debt = await prisma.debt.aggregate({ _sum: { remainingAmount: true } });
 
@@ -446,6 +532,7 @@ export const financeService = {
       marketing,
       otherExpense: Math.max(expense - teacherSalary - marketing, 0),
       studentPayments,
+      refunds,
       otherIncome: Math.max(income - studentPayments, 0),
       totalBalance: accounts._sum.balance?.toNumber() ?? 0,
       totalDebt: debt._sum.remainingAmount?.toNumber() ?? 0,
@@ -647,6 +734,81 @@ export const financeService = {
         receivables: debts._sum.remainingAmount?.toNumber() ?? 0,
         projectedBalance: currentBalance - upcomingExpenses - unpaidSalaries,
       },
+    };
+  },
+
+  /** Foyda va zarar hisoboti: sof tushum → yalpi foyda → operatsion xarajatlar → sof foyda, oldingi davr bilan */
+  async profitLoss(query: FinanceRangeQuery): Promise<ProfitLossDto> {
+    const { start, end, from, to } = resolveRange(query);
+    const length = end.getTime() - start.getTime();
+    const previousStart = new Date(start.getTime() - length);
+
+    const current = emptyProfitLoss();
+    const monthly = new Map<string, ProfitLossAccumulator>();
+    // Oylar tartibi davr boshidan oxirigacha — harakat bo'lmagan oy ham ko'rinadi
+    for (let cursor = businessDateString(start).slice(0, 7); cursor <= businessDateString(addDays(end, -1)).slice(0, 7); ) {
+      monthly.set(cursor, emptyProfitLoss());
+      const [year, month] = cursor.split('-').map(Number) as [number, number];
+      cursor = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
+    }
+    for (const row of await loadProfitLossRows(start, end)) {
+      addToProfitLoss(current, row);
+      const bucket = monthly.get(businessDateString(row.occurredAt).slice(0, 7));
+      if (bucket) addToProfitLoss(bucket, row);
+    }
+    const previous = emptyProfitLoss();
+    for (const row of await loadProfitLossRows(previousStart, start)) addToProfitLoss(previous, row);
+
+    const totals = profitLossTotals(current);
+    const previousTotals = profitLossTotals(previous);
+    const lines = (map: Map<string, number>) =>
+      [...map.entries()]
+        .filter(([, amount]) => amount !== 0)
+        .map(([name, amount]) => ({ name, amount, share: percentOf(amount, totals.netRevenue) }))
+        .sort((a, b) => b.amount - a.amount);
+
+    return {
+      from,
+      to,
+      revenue: {
+        studentPayments: current.studentPayments,
+        refunds: current.refunds,
+        netStudentRevenue: current.studentPayments - current.refunds,
+        otherIncome: lines(current.otherIncome),
+        otherIncomeTotal: totals.otherIncomeTotal,
+        netRevenue: totals.netRevenue,
+      },
+      directCosts: { teacherSalaries: current.teacherSalaries, total: current.teacherSalaries },
+      grossProfit: totals.grossProfit,
+      grossMargin: percentOf(totals.grossProfit, totals.netRevenue),
+      operatingExpenses: { lines: lines(current.operating), total: totals.operatingExpenses },
+      netProfit: totals.netProfit,
+      netMargin: percentOf(totals.netProfit, totals.netRevenue),
+      previous: {
+        from: businessDateString(previousStart),
+        to: businessDateString(addDays(start, -1)),
+        netRevenue: previousTotals.netRevenue,
+        grossProfit: previousTotals.grossProfit,
+        operatingExpenses: previousTotals.operatingExpenses,
+        netProfit: previousTotals.netProfit,
+        netMargin: percentOf(previousTotals.netProfit, previousTotals.netRevenue),
+      },
+      change: {
+        netRevenue: changeOf(totals.netRevenue, previousTotals.netRevenue),
+        grossProfit: changeOf(totals.grossProfit, previousTotals.grossProfit),
+        netProfit: changeOf(totals.netProfit, previousTotals.netProfit),
+      },
+      months: [...monthly.entries()].map(([key, acc]) => {
+        const monthTotals = profitLossTotals(acc);
+        return {
+          key,
+          label: `${MONTH_SHORT_LABELS[Number(key.slice(5, 7)) - 1] ?? key} ${key.slice(0, 4)}`,
+          netRevenue: monthTotals.netRevenue,
+          directCosts: acc.teacherSalaries,
+          operatingExpenses: monthTotals.operatingExpenses,
+          netProfit: monthTotals.netProfit,
+        };
+      }),
     };
   },
 

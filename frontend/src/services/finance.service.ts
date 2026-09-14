@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, CashFlowStatement, ExpenseApprovalSettings, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, MoneyListParams, MoneyPayload, MoneyStats, RecurringExpense, RecurringExpensePayload, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
+import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, CashFlowStatement, ExpenseApprovalSettings, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, ProfitLoss, MoneyListParams, MoneyPayload, MoneyStats, RecurringExpense, RecurringExpensePayload, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
 
 /** Tushum va xarajat API'lari bir xil — bitta fabrikadan ikkita servis */
 function moneyService(resource: 'incomes' | 'expenses') {
@@ -109,6 +109,11 @@ export const financeService = {
 
   async cashFlow(params: CashFlowParams): Promise<CashFlowPoint[]> {
     const response = await api.get<ApiSuccessResponse<CashFlowPoint[]>>('/finance/cash-flow', { params });
+    return response.data.data;
+  },
+
+  async profitLoss(params: FinanceRangeParams): Promise<ProfitLoss> {
+    const response = await api.get<ApiSuccessResponse<ProfitLoss>>('/finance/profit-loss', { params });
     return response.data.data;
   },
 

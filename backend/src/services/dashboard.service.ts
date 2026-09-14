@@ -10,6 +10,7 @@ import { attendanceAnalyticsService } from './attendanceAnalytics.service.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { permissionService } from './permission.service.js';
+import { refundTotal, refundsBy } from './revenue.js';
 
 /** Sotuv jarayonidagi "ishlanayotgan" statuslar (yopilmagan leadlar) */
 const OPEN_LEAD_STATUSES: readonly LeadStatus[] = LEAD_STATUS_ORDER.filter(
@@ -276,10 +277,12 @@ async function financeBlock(now: Date): Promise<DashboardFinanceBlock> {
     _sum: { amount: true },
   });
 
-  const monthRevenue = month._sum.amount?.toNumber() ?? 0;
-  const prevMonthRevenue = prevMonth._sum.amount?.toNumber() ?? 0;
+  // Sof tushum: qaytarilgan to'lovlar qaytarish sanasi bo'yicha ayriladi
+  const monthRevenue = (month._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: monthStart }));
+  const prevMonthRevenue =
+    (prevMonth._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: prevMonthStart, lt: prevMonthSamePoint }));
   return {
-    todayRevenue: today._sum.amount?.toNumber() ?? 0,
+    todayRevenue: (today._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart })),
     monthRevenue,
     prevMonthRevenue,
     monthGrowth: growthPercent(monthRevenue, prevMonthRevenue),
@@ -494,6 +497,8 @@ export const dashboardService = {
       prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: { gte: periodStart } }, _sum: { amount: true } }),
     ]);
 
+    const refunds = await refundsBy('managerId', { gte: periodStart }, { managerId: { in: ids } });
+
     const stats: ManagerStatsDto[] = users.map((user) => {
       const leadCount = leads.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
       const wonCount = won.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
@@ -505,7 +510,7 @@ export const dashboardService = {
         leads: leadCount,
         won: wonCount,
         conversionRate: leadCount === 0 ? 0 : Math.round((wonCount / leadCount) * 100),
-        revenue: revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0,
+        revenue: (revenue.find((row) => row.managerId === user.id)?._sum.amount?.toNumber() ?? 0) - (refunds.get(user.id) ?? 0),
       };
     });
 

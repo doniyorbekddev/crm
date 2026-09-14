@@ -178,6 +178,7 @@ export const queryKeys = {
     summary: (params: FinanceRangeParams) => ['finance', 'summary', params] as const,
     cashFlow: (params: CashFlowParams) => ['finance', 'cash-flow', params] as const,
     cashFlowStatement: (params: FinanceRangeParams) => ['finance', 'cash-flow-statement', params] as const,
+    profitLoss: (params: FinanceRangeParams) => ['finance', 'profit-loss', params] as const,
     accounts: (params: FinanceRangeParams) => ['finance', 'accounts', params] as const,
     transactions: (params: TransactionListParams) => ['finance', 'transactions', params] as const,
     budget: (params: { year: number; month: number }) => ['finance', 'budget', params] as const,

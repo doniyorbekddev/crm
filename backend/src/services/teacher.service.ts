@@ -15,6 +15,7 @@ import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 import type { SalaryPeriodDto, SalaryRuleDto } from './salary.service.js';
 import { monthRange, salaryService, toSalaryRuleDto } from './salary.service.js';
+import { refundTotal } from './revenue.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -363,7 +364,7 @@ async function loadPerformance(userId: string, year: number, month: number): Pro
       attendance.total === 0 ? 0 : Math.round(((attendance.present + attendance.late) / attendance.total) * 100),
     homework,
     exams,
-    revenue: revenue._sum.amount?.toNumber() ?? 0,
+    revenue: (revenue._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: start, lt: end }, { teacherId: userId })),
   };
 }
 

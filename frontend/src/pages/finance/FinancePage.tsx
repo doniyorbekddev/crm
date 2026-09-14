@@ -1,4 +1,4 @@
-import { BarChart3, Lock, ScrollText, Target } from 'lucide-react';
+import { BarChart3, Lock, ScrollText, Target, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,9 +10,10 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { BudgetTab } from './BudgetTab';
 import { FinancialPeriodsTab } from './FinancialPeriodsTab';
 import { FinanceOverview } from './FinanceOverview';
+import { ProfitLossTab } from './ProfitLossTab';
 import { TransactionsTab } from './TransactionsTab';
 
-type Tab = 'overview' | 'transactions' | 'budget' | 'periods';
+type Tab = 'overview' | 'pnl' | 'transactions' | 'budget' | 'periods';
 
 export default function FinancePage() {
   const canViewBudget = usePermission(PERMISSIONS.FINANCE_VIEW);
@@ -24,6 +25,7 @@ export default function FinancePage() {
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: typeof BarChart3 }> = [
     { value: 'overview', label: 'Panel', icon: BarChart3 },
+    ...(canViewBudget ? ([{ value: 'pnl', label: 'Foyda va zarar', icon: TrendingUp }] as const) : []),
     { value: 'transactions', label: 'Moliyaviy daftar', icon: ScrollText },
     ...(canViewBudget ? ([{ value: 'budget', label: 'Budjet', icon: Target }] as const) : []),
     ...(canViewBudget ? ([{ value: 'periods', label: 'Oylarni yopish', icon: Lock }] as const) : []),
@@ -85,6 +87,7 @@ export default function FinancePage() {
       </div>
 
       {tab === 'overview' && <FinanceOverview range={range} />}
+      {tab === 'pnl' && <ProfitLossTab range={range} />}
       {tab === 'transactions' && <TransactionsTab range={range} />}
       {tab === 'budget' && <BudgetTab />}
       {tab === 'periods' && <FinancialPeriodsTab />}
