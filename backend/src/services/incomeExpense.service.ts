@@ -18,6 +18,7 @@ import { auditService } from './audit.service.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
+import { businessMonthRange } from '../utils/dates.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -70,14 +71,22 @@ export interface CategoryDto {
   usage: number;
 }
 
+/** NONE — reja va xarajat yo‘q; UNPLANNED — rejasiz xarajat; OK < 90%; WARNING 90–100%; OVER > 100% */
+export type BudgetLineStatus = 'NONE' | 'UNPLANNED' | 'OK' | 'WARNING' | 'OVER';
+
 export interface BudgetLineDto {
   categoryId: string;
   categoryName: string;
   planned: number;
   actual: number;
+  /** Tasdiq kutayotgan, tasdiqlangan va kutilayotgan (to‘lanmagan) xarajatlar */
+  committed: number;
+  /** actual − planned: musbat — rejadan oshgan */
+  difference: number;
   /** Rejaga nisbatan bajarilish (%) */
   usage: number;
   remaining: number;
+  status: BudgetLineStatus;
 }
 
 export interface BudgetDto {
@@ -86,6 +95,8 @@ export interface BudgetDto {
   note: string | null;
   totalPlanned: number;
   totalActual: number;
+  totalCommitted: number;
+  totalDifference: number;
   lines: BudgetLineDto[];
 }
 
@@ -714,14 +725,20 @@ export const budgetService = {
       },
     });
 
-    const start = new Date(Date.UTC(query.year, query.month - 1, 1));
-    const end = new Date(Date.UTC(query.year, query.month, 1));
+    // Oy chegarasi o'quv markaz vaqti bo'yicha (alert qoidasi bilan bir xil)
+    const { start, end } = businessMonthRange(query.year, query.month);
     const actuals = await prisma.expense.groupBy({
       by: ['categoryId'],
       where: { spentAt: { gte: start, lt: end }, transaction: { status: 'COMPLETED' } },
       _sum: { amount: true },
     });
     const actualById = new Map(actuals.map((row) => [row.categoryId, row._sum.amount?.toNumber() ?? 0]));
+    const commitments = await prisma.expense.groupBy({
+      by: ['categoryId'],
+      where: { spentAt: { gte: start, lt: end }, status: { in: ['PENDING', 'APPROVED', 'UPCOMING'] } },
+      _sum: { amount: true },
+    });
+    const committedById = new Map(commitments.map((row) => [row.categoryId, row._sum.amount?.toNumber() ?? 0]));
 
     const categories = await prisma.expenseCategory.findMany({
       where: { isActive: true },
@@ -733,13 +750,19 @@ export const budgetService = {
     const lines: BudgetLineDto[] = categories.map((category) => {
       const planned = plannedById.get(category.id) ?? 0;
       const actual = actualById.get(category.id) ?? 0;
+      const usage = planned === 0 ? 0 : Math.round((actual / planned) * 100);
+      const status: BudgetLineStatus =
+        planned === 0 ? (actual > 0 ? 'UNPLANNED' : 'NONE') : usage > 100 ? 'OVER' : usage >= 90 ? 'WARNING' : 'OK';
       return {
         categoryId: category.id,
         categoryName: category.name,
         planned,
         actual,
-        usage: planned === 0 ? 0 : Math.round((actual / planned) * 100),
+        committed: committedById.get(category.id) ?? 0,
+        difference: actual - planned,
+        usage,
         remaining: planned - actual,
+        status,
       };
     });
 
@@ -749,6 +772,8 @@ export const budgetService = {
       note: budget?.note ?? null,
       totalPlanned: lines.reduce((sum, line) => sum + line.planned, 0),
       totalActual: lines.reduce((sum, line) => sum + line.actual, 0),
+      totalCommitted: lines.reduce((sum, line) => sum + line.committed, 0),
+      totalDifference: lines.reduce((sum, line) => sum + line.actual - line.planned, 0),
       lines,
     };
   },
@@ -800,5 +825,51 @@ export const budgetService = {
     });
 
     return this.get({ year: input.year, month: input.month });
+  },
+
+  /** O‘tgan oy rejasini nusxalaydi — faqat bo‘sh oyga (to‘ldirilgan reja qayta yozilmaydi) */
+  async copyFromPrevious(actor: AuthUser, input: BudgetQuery, client: ClientInfo): Promise<BudgetDto> {
+    const previous = input.month === 1 ? { year: input.year - 1, month: 12 } : { year: input.year, month: input.month - 1 };
+    const target = await prisma.budget.findUnique({
+      where: { year_month: { year: input.year, month: input.month } },
+      select: { _count: { select: { lines: true } } },
+    });
+    if (target && target._count.lines > 0) {
+      throw AppError.conflict('Bu oy budjeti allaqachon to‘ldirilgan');
+    }
+    const source = await prisma.budget.findUnique({
+      where: { year_month: previous },
+      select: { lines: { select: { categoryId: true, plannedAmount: true } } },
+    });
+    if (!source || source.lines.length === 0) {
+      throw AppError.unprocessable('O‘tgan oyda budjet belgilanmagan');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const budget = await tx.budget.upsert({
+        where: { year_month: { year: input.year, month: input.month } },
+        update: {},
+        create: { year: input.year, month: input.month, createdById: actor.id },
+        select: { id: true },
+      });
+      await tx.budgetLine.createMany({
+        data: source.lines.map((line) => ({ budgetId: budget.id, categoryId: line.categoryId, plannedAmount: line.plannedAmount })),
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'budget.copied',
+        entityType: 'budget',
+        entityId: budget.id,
+        metadata: {
+          from: `${previous.year}-${String(previous.month).padStart(2, '0')}`,
+          to: `${input.year}-${String(input.month).padStart(2, '0')}`,
+          lines: source.lines.length,
+          total: source.lines.reduce((sum, line) => sum + line.plannedAmount.toNumber(), 0),
+        },
+        ...client,
+      });
+    });
+
+    return this.get(input);
   },
 };

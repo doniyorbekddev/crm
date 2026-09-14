@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { AccountType, ExpenseStatus, TransactionStatus, TransactionType } from '@/types/finance';
+import type { AccountType, BudgetLineStatus, ExpenseStatus, TransactionStatus, TransactionType } from '@/types/finance';
 
 export const TRANSACTION_TYPE_ORDER: readonly TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER', 'REFUND'];
 
@@ -67,4 +67,20 @@ export const EXPENSE_STATUS_TONES: Record<ExpenseStatus, BadgeTone> = {
   APPROVED: 'purple',
   REJECTED: 'gray',
   PAID: 'green',
+};
+
+export const BUDGET_STATUS_LABELS: Record<BudgetLineStatus, string> = {
+  NONE: 'Reja yo‘q',
+  UNPLANNED: 'Rejasiz xarajat',
+  OK: 'Me’yorda',
+  WARNING: 'Rejaga yaqin',
+  OVER: 'Rejadan oshdi',
+};
+
+export const BUDGET_STATUS_TONES: Record<BudgetLineStatus, 'gray' | 'red' | 'green' | 'yellow'> = {
+  NONE: 'gray',
+  UNPLANNED: 'red',
+  OK: 'green',
+  WARNING: 'yellow',
+  OVER: 'red',
 };

@@ -110,13 +110,21 @@ export interface FinanceCategory {
   usage: number;
 }
 
+/** NONE — reja va xarajat yo‘q; UNPLANNED — rejasiz xarajat; OK < 90%; WARNING 90–100%; OVER > 100% */
+export type BudgetLineStatus = 'NONE' | 'UNPLANNED' | 'OK' | 'WARNING' | 'OVER';
+
 export interface BudgetLine {
   categoryId: string;
   categoryName: string;
   planned: number;
   actual: number;
+  /** Tasdiq kutayotgan / to‘lanmagan xarajatlar */
+  committed: number;
+  /** actual − planned */
+  difference: number;
   usage: number;
   remaining: number;
+  status: BudgetLineStatus;
 }
 
 export interface Budget {
@@ -125,6 +133,8 @@ export interface Budget {
   note: string | null;
   totalPlanned: number;
   totalActual: number;
+  totalCommitted: number;
+  totalDifference: number;
   lines: BudgetLine[];
 }
 

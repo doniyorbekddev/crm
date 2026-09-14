@@ -188,4 +188,11 @@ export const budgetController = {
       message: 'Budjet saqlandi',
     });
   },
+
+  async copy(req: Request, res: Response): Promise<void> {
+    const input = budgetQuerySchema.parse(req.body);
+    sendSuccess(res, await budgetService.copyFromPrevious(requireAuthUser(req), input, getClientInfo(req)), {
+      message: 'O‘tgan oy budjetidan nusxa olindi',
+    });
+  },
 };

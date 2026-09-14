@@ -144,6 +144,11 @@ export const financeService = {
     return response.data.data;
   },
 
+  async copyBudget(payload: { year: number; month: number }): Promise<MessageResult<Budget>> {
+    const response = await api.post<ApiSuccessResponse<Budget>>('/finance/budget/copy', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async saveBudget(payload: BudgetPayload): Promise<MessageResult<Budget>> {
     const response = await api.put<ApiSuccessResponse<Budget>>('/finance/budget', payload);
     return { data: response.data.data, message: response.data.message };

@@ -36,6 +36,7 @@ financeRouter.post('/periods/reopen', requirePermission(PERMISSIONS.FINANCE_REOP
 
 financeRouter.get('/budget', financeView, budgetController.get);
 financeRouter.put('/budget', requirePermission(PERMISSIONS.BUDGET_MANAGE), budgetController.save);
+financeRouter.post('/budget/copy', requirePermission(PERMISSIONS.BUDGET_MANAGE), budgetController.copy);
 
 export const incomeRouter = Router();
 
