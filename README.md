@@ -263,6 +263,26 @@ PHASE 14 natijalari (shu hajmda, iliq so‘rov, median):
 | `GET /reports/managers` | 54 ms | 28 ms |
 | `GET /dashboard/managers` | 32 ms | 20 ms |
 
+Moliya va kadrlar hajmi (PHASE 16) — shu bazaga qo‘shimcha:
+
+```bash
+PERF_DATABASE_URL="$PERF_URL" npm run db:perf-seed:finance   # ~1 daqiqa
+DATABASE_URL="$PERF_URL" PERF_OUT=natija.json npm run perf:bench
+```
+
+Qo‘shimcha hajm (24 oy): 60 000 to‘lov, 12 400 xarajat, 3 000 tushum, 600 qaytarish, 400 o‘tkazma, 25 xodim va
+600 maosh davri, 150 000 audit yozuvi, 3 000 alert, 600 hujjat — daftarda jami ~85 000 yozuv. `perf:bench`
+servislarni to‘g‘ridan-to‘g‘ri chaqiradi (qizdirish + 5 takror, median) va `alerts.evaluate` yozuv qilgani uchun
+faqat nomida `perf` bo‘lgan bazada ishlaydi.
+
+| Servis (12 oylik davr) | Oldin | Keyin |
+|---|---|---|
+| `finance.cashFlow` (oylik grafik) | 282 ms | 67 ms |
+| `finance.profitLoss` | 276 ms | 62 ms |
+| `activity.feed` (1-sahifa) | 11 ms | 6 ms |
+| `auditLog.list` (1-sahifa) | 18 ms | 7 ms |
+| Qolganlari (dashboard, direktor paneli, analitika, hisobotlar, alertlar, budjet, kunlik xulosa) | 4–104 ms | o‘zgarishsiz |
+
 ## 10–12. Production, build, deployment
 
 Lokal build:

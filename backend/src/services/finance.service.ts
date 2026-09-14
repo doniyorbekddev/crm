@@ -1,5 +1,7 @@
 import { prisma } from '../config/database.js';
-import type { AccountType, Prisma, TransactionStatus, TransactionType } from '../generated/prisma/client.js';
+import { env } from '../config/env.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { AccountType, TransactionStatus, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
@@ -15,7 +17,7 @@ import type {
   VoidTransactionInput,
 } from '../validators/finance.validator.js';
 import { auditService } from './audit.service.js';
-import { OPERATING_LEDGER_WHERE, balanceDelta, recordTransaction, voidTransaction } from './ledger.js';
+import { OPERATING_LEDGER_SQL, OPERATING_LEDGER_WHERE, balanceDelta, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
@@ -207,12 +209,30 @@ function profitLossTotals(acc: ProfitLossAccumulator) {
   return { otherIncomeTotal, netRevenue, operatingExpenses, grossProfit, netProfit };
 }
 
+/**
+ * Yozuvning o‘quv markaz vaqti bo‘yicha kuni yoki oyi (`date`). Guruhlash `date` kalit bilan qilinadi,
+ * matnga faqat natija aylantiriladi — matn kalit bo‘yicha saralash ikki barobar sekin va diskka tushardi.
+ */
+function businessDateSql(unit: 'day' | 'month'): Prisma.Sql {
+  const local = Prisma.sql`t."occurredAt" + ${env.APP_UTC_OFFSET_MINUTES}::int * interval '1 minute'`;
+  return unit === 'day' ? Prisma.sql`(${local})::date` : Prisma.sql`date_trunc('month', ${local})::date`;
+}
+
+/**
+ * Foyda-zarar uchun daftar oy × tur × modda bo‘yicha bazada yig‘iladi —
+ * yil davomidagi o‘n minglab yozuvni JS'ga yuklash o‘rniga bir necha o‘nta qator qaytadi.
+ */
 async function loadProfitLossRows(start: Date, end: Date) {
-  const rows = await prisma.transaction.findMany({
-    where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
-    select: { type: true, entityType: true, categoryName: true, amount: true, occurredAt: true },
-  });
-  return rows.map((row) => ({ ...row, amount: row.amount.toNumber() }));
+  const rows = await prisma.$queryRaw<Array<{ month: string; type: TransactionType; entityType: string | null; categoryName: string | null; amount: unknown }>>`
+    SELECT to_char(g."month", 'YYYY-MM') AS "month", g."type", g."entityType", g."categoryName", g."amount"
+    FROM (
+      SELECT ${businessDateSql('month')} AS "month", t."type"::text AS "type", t."entityType", t."categoryName", SUM(t."amount") AS "amount"
+      FROM "transactions" t
+      WHERE ${OPERATING_LEDGER_SQL} AND t."occurredAt" >= ${start} AND t."occurredAt" < ${end}
+      GROUP BY 1, 2, 3, 4
+    ) g
+  `;
+  return rows.map((row) => ({ ...row, amount: Number(row.amount ?? 0) }));
 }
 
 // ---------------------------------------------------------------------
@@ -544,24 +564,27 @@ export const financeService = {
   /** Kunlik / haftalik / oylik pul oqimi (davr boshidan yig‘iladigan qoldiq va haqiqiy kassa qoldig‘i bilan) */
   async cashFlow(query: CashFlowQuery): Promise<CashFlowPointDto[]> {
     const { start, end } = resolveRange(query);
-    const transactions = await prisma.transaction.findMany({
-      where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
-      select: { type: true, amount: true, occurredAt: true },
-      orderBy: { occurredAt: 'asc' },
-    });
-    // Kassa qoldig'i barcha yozuvlardan (o'tkazma va boshlang'ich qoldiq ham) hisoblanadi
-    const movements = await prisma.transaction.findMany({
-      where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: start, lt: end } },
-      select: { type: true, amount: true, occurredAt: true },
-    });
+    // Kun bo'yicha yig'indi bazada hisoblanadi. Tushum/xarajat — faqat operatsion yozuvlar;
+    // kassa qoldig'i barcha yozuvlardan (o'tkazma va boshlang'ich qoldiq ham), balanceDelta qoidasi bilan
+    const days = await prisma.$queryRaw<Array<{ day: string; income: unknown; expense: unknown; cashDelta: unknown }>>`
+      SELECT to_char(g."day", 'YYYY-MM-DD') AS "day", g."income", g."expense", g."cashDelta"
+      FROM (
+        SELECT ${businessDateSql('day')} AS "day",
+          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" IN ('INCOME', 'TRANSFER')) AS "income",
+          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" NOT IN ('INCOME', 'TRANSFER')) AS "expense",
+          SUM(CASE WHEN t."type" IN ('INCOME', 'TRANSFER') THEN t."amount" ELSE -t."amount" END) FILTER (WHERE t."accountId" IS NOT NULL) AS "cashDelta"
+        FROM "transactions" t
+        WHERE t."status" = 'COMPLETED' AND t."occurredAt" >= ${start} AND t."occurredAt" < ${end}
+        GROUP BY 1
+      ) g
+    `;
     const openingCash = await cashBalanceAt(start);
 
     const monthLabels = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
     const buckets = new Map<string, CashFlowPointDto & { cashDelta: number }>();
 
     // Guruhlash o'quv markaz sanasi bo'yicha: 31-avgust 20:00 UTC — bu 1-sentabr
-    const keyOf = (date: Date): { key: string; label: string } => {
-      const local = businessDateString(date);
+    const keyOf = (local: string): { key: string; label: string } => {
       if (query.period === 'month') {
         const month = Number(local.slice(5, 7));
         return { key: `${local.slice(0, 7)}-01`, label: monthLabels[month - 1] ?? local.slice(0, 7) };
@@ -575,25 +598,19 @@ export const financeService = {
       }
       return { key: local, label: local.slice(5) };
     };
-    const bucketOf = (date: Date) => {
-      const { key, label } = keyOf(date);
+    const bucketOf = (local: string) => {
+      const { key, label } = keyOf(local);
       const point = buckets.get(key) ?? { date: key, label, income: 0, expense: 0, net: 0, balance: 0, cashBalance: 0, cashDelta: 0 };
       buckets.set(key, point);
       return point;
     };
 
-    for (const transaction of transactions) {
-      const point = bucketOf(transaction.occurredAt);
-      const amount = transaction.amount.toNumber();
-      if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER') {
-        point.income += amount;
-      } else {
-        point.expense += amount;
-      }
+    for (const day of days) {
+      const point = bucketOf(day.day);
+      point.income += Number(day.income ?? 0);
+      point.expense += Number(day.expense ?? 0);
       point.net = point.income - point.expense;
-    }
-    for (const movement of movements) {
-      bucketOf(movement.occurredAt).cashDelta += balanceDelta(movement.type, movement.amount.toNumber());
+      point.cashDelta += Number(day.cashDelta ?? 0);
     }
 
     let running = 0;
@@ -753,7 +770,7 @@ export const financeService = {
     }
     for (const row of await loadProfitLossRows(start, end)) {
       addToProfitLoss(current, row);
-      const bucket = monthly.get(businessDateString(row.occurredAt).slice(0, 7));
+      const bucket = monthly.get(row.month);
       if (bucket) addToProfitLoss(bucket, row);
     }
     const previous = emptyProfitLoss();

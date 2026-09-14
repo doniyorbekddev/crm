@@ -1,4 +1,5 @@
-import type { PaymentMethod, Prisma, TransactionType } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { PaymentMethod, TransactionType } from '../generated/prisma/client.js';
 
 /**
  * Moliyaviy daftar (ledger) yordamchilari.
@@ -22,6 +23,9 @@ export const OPERATING_LEDGER_WHERE: Prisma.TransactionWhereInput = {
   status: 'COMPLETED',
   OR: [{ entityType: null }, { entityType: { notIn: [...NON_OPERATING_ENTITY_TYPES] } }],
 };
+
+/** `OPERATING_LEDGER_WHERE` ning xom SQL ko‘rinishi — `transactions` jadvali `t` taxallusi bilan */
+export const OPERATING_LEDGER_SQL = Prisma.sql`t."status" = 'COMPLETED' AND (t."entityType" IS NULL OR t."entityType" NOT IN (${Prisma.join([...NON_OPERATING_ENTITY_TYPES])}))`;
 
 export interface LedgerEntry {
   type: TransactionType;

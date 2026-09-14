@@ -997,6 +997,7 @@ model AttendanceSession {
   @@index([teacherId, date])
   @@index([date])
   @@index([status, date])
+  @@index([createdAt])
   @@map("attendance_sessions")
 }
 
@@ -1425,6 +1426,7 @@ model Expense {
   @@index([status])
   @@index([spentAt])
   @@index([categoryId, spentAt])
+  @@index([createdAt])
   @@map("expenses")
 }
 
@@ -1522,6 +1524,7 @@ model Homework {
 
   @@index([groupId, deadline])
   @@index([status, deadline])
+  @@index([createdAt])
   @@map("homework")
 }
 
@@ -1571,6 +1574,7 @@ model Exam {
 
   @@index([groupId, date])
   @@index([status, date])
+  @@index([createdAt])
   @@map("exams")
 }
 
