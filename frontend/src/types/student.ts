@@ -83,3 +83,24 @@ export interface StudentFormLookups {
   courses: Array<{ id: string; name: string; finalPrice: number }>;
   groups: Array<{ id: string; name: string; courseId: string; capacity: number; studentCount: number; freeSeats: number }>;
 }
+
+/** Yangi guruhga qo‘shildi / boshqa guruhga o‘tkazildi / guruhdan chiqarildi */
+export type GroupChangeKind = 'ENROLLED' | 'TRANSFERRED' | 'REMOVED';
+
+export interface StudentGroupChange {
+  id: string;
+  kind: GroupChangeKind;
+  /** Nom o‘sha paytdagi holatda; guruh o‘chirilgan bo‘lsa id null */
+  from: { id: string | null; name: string } | null;
+  to: { id: string | null; name: string } | null;
+  reason: string | null;
+  changedAt: string;
+  changedBy: { id: string; firstName: string; lastName: string } | null;
+  daysInPreviousGroup: number | null;
+}
+
+/** `groupId: null` — o‘quvchi guruhdan chiqariladi */
+export interface TransferGroupPayload {
+  groupId: string | null;
+  reason: string;
+}

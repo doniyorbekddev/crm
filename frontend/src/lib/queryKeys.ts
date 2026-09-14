@@ -84,6 +84,7 @@ export const queryKeys = {
     exams: (id: string) => ['students', 'exams', id] as const,
     parents: (id: string) => ['students', 'parents', id] as const,
     paymentSchedule: (id: string) => ['students', 'payment-schedule', id] as const,
+    groupHistory: (id: string) => ['students', 'group-history', id] as const,
   },
   parents: {
     all: ['parents'] as const,

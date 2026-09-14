@@ -22,7 +22,7 @@ export interface StudentFeedback {
 }
 
 export interface StudentActivity {
-  type: 'attendance' | 'payment' | 'homework' | 'exam' | 'xp' | 'badge';
+  type: 'attendance' | 'payment' | 'homework' | 'exam' | 'xp' | 'badge' | 'group';
   title: string;
   description: string;
   date: string;

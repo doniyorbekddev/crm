@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Award, BookOpenCheck, CalendarCheck, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -347,6 +347,7 @@ const ACTIVITY_ICONS: Record<StudentActivity['type'], LucideIcon> = {
   exam: FileCheck,
   xp: Sparkles,
   badge: Award,
+  group: ArrowLeftRight,
 };
 
 export function ActivityTab({ profile }: { profile: StudentProfile }) {

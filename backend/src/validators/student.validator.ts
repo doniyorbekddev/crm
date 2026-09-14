@@ -66,3 +66,17 @@ export type CreateStudentInput = z.infer<typeof createStudentSchema>;
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
 export type UpdateStudentStatusInput = z.infer<typeof updateStudentStatusSchema>;
 export type ConvertLeadInput = z.infer<typeof convertLeadSchema>;
+
+/** Guruhga o‘tkazish; `groupId` bo‘sh bo‘lsa — o‘quvchi guruhdan chiqariladi */
+export const transferStudentGroupSchema = z.object({
+  groupId: z
+    .string()
+    .trim()
+    .max(50)
+    .nullable()
+    .optional()
+    .transform((value) => (value ? value : null)),
+  reason: z.string('Sababni kiriting').trim().min(3, 'Sabab kamida 3 belgidan iborat bo‘lsin').max(255, 'Sabab juda uzun'),
+});
+
+export type TransferStudentGroupInput = z.infer<typeof transferStudentGroupSchema>;

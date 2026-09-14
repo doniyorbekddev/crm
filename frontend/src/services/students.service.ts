@@ -6,10 +6,12 @@ import type { StudentAttendanceHistory } from '@/types/attendance';
 import type {
   ConvertLeadPayload,
   StudentFormLookups,
+  StudentGroupChange,
   StudentItem,
   StudentListParams,
   StudentPayload,
   StudentStatus,
+  TransferGroupPayload,
   StudentStatusSummary,
   StudentSummaryParams,
 } from '@/types/student';
@@ -62,6 +64,16 @@ export const studentsService = {
   async attendanceHistory(id: string): Promise<StudentAttendanceHistory> {
     const response = await api.get<ApiSuccessResponse<StudentAttendanceHistory>>(`/students/${id}/attendance`);
     return response.data.data;
+  },
+
+  async groupHistory(id: string): Promise<StudentGroupChange[]> {
+    const response = await api.get<ApiSuccessResponse<StudentGroupChange[]>>(`/students/${id}/group-history`);
+    return response.data.data;
+  },
+
+  async transferGroup(id: string, payload: TransferGroupPayload): Promise<MessageResult<StudentItem>> {
+    const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/transfer`, payload);
+    return { data: response.data.data, message: response.data.message };
   },
 
   async profile(id: string): Promise<StudentProfile> {

@@ -25,6 +25,8 @@ studentRouter.get('/:id/attendance/calendar', requirePermission(PERMISSIONS.ATTE
 studentRouter.get('/:id/payment-schedule', requireAnyPermission(PERMISSIONS.DEBT_VIEW, PERMISSIONS.PAYMENT_VIEW), paymentScheduleController.get);
 studentRouter.post('/:id/payment-schedule/generate', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.generate);
 studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.replace);
+studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.groupHistory);
+studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);
 studentRouter.patch('/:id/status', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.setStatus);

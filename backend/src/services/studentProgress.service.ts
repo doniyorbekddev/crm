@@ -41,7 +41,7 @@ export interface FeedbackDto {
 }
 
 export interface ActivityDto {
-  type: 'attendance' | 'payment' | 'homework' | 'exam' | 'xp' | 'badge';
+  type: 'attendance' | 'payment' | 'homework' | 'exam' | 'xp' | 'badge' | 'group';
   title: string;
   description: string;
   date: string;
@@ -354,6 +354,23 @@ export const studentProgressService = {
           tone: 'positive',
         });
       }
+    }
+
+    const groupChanges = await prisma.studentGroupChange.findMany({
+      where: { studentId },
+      orderBy: { changedAt: 'desc' },
+      take: 10,
+      select: { fromGroupName: true, toGroupName: true, reason: true, changedAt: true },
+    });
+    for (const change of groupChanges) {
+      const { fromGroupName: from, toGroupName: to } = change;
+      activity.push({
+        type: 'group',
+        title: from && to ? `Guruh almashtirildi: ${from} → ${to}` : to ? `Guruhga qo‘shildi: ${to}` : `Guruhdan chiqarildi: ${from ?? '—'}`,
+        description: change.reason ?? '',
+        date: change.changedAt.toISOString(),
+        tone: from && !to ? 'negative' : 'neutral',
+      });
     }
 
     activity.sort((a, b) => b.date.localeCompare(a.date));

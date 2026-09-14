@@ -9,6 +9,7 @@ import {
   convertLeadSchema,
   createStudentSchema,
   studentListQuerySchema,
+  transferStudentGroupSchema,
   updateStudentSchema,
   updateStudentStatusSchema,
 } from '../validators/student.validator.js';
@@ -65,6 +66,19 @@ export const studentController = {
     const input = updateStudentSchema.parse(req.body);
     sendSuccess(res, await studentService.update(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: 'O‘quvchi saqlandi',
+    });
+  },
+
+  async groupHistory(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentService.groupHistory(requireAuthUser(req), id));
+  },
+
+  async transferGroup(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = transferStudentGroupSchema.parse(req.body);
+    sendSuccess(res, await studentService.transferGroup(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: input.groupId ? 'O‘quvchi guruhga o‘tkazildi' : 'O‘quvchi guruhdan chiqarildi',
     });
   },
 

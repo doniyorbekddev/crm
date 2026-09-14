@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -18,11 +18,12 @@ import { formatDate, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { STUDENT_STATUS_LABELS, STUDENT_STATUS_TONES } from '@/utils/studentLabels';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { GroupHistoryTab } from './profile/GroupHistoryTab';
 import { ParentsTab } from './profile/ParentsTab';
 import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type Tab = 'overview' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
+type Tab = 'overview' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
 
 export default function StudentProfilePage() {
   const { id = '' } = useParams();
@@ -32,6 +33,7 @@ export default function StudentProfilePage() {
   const canViewParents = usePermission(PERMISSIONS.PARENT_VIEW);
   const canViewDebts = usePermission(PERMISSIONS.DEBT_VIEW);
   const canViewPayments = usePermission(PERMISSIONS.PAYMENT_VIEW);
+  const canManageStudents = usePermission(PERMISSIONS.STUDENT_MANAGE);
   const [tab, setTab] = useState<Tab>('overview');
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -76,6 +78,7 @@ export default function StudentProfilePage() {
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: LucideIcon }> = [
     { value: 'overview', label: 'Umumiy', icon: LayoutDashboard },
+    { value: 'groups', label: 'Guruh tarixi', icon: ArrowLeftRight },
     ...(canViewParents ? [{ value: 'parents' as const, label: 'Ota-ona', icon: UsersRound }] : []),
     ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifasi', icon: BookOpenCheck }] : []),
     ...(canViewExams ? [{ value: 'exams' as const, label: 'Imtihonlar', icon: FileCheck }] : []),
@@ -179,6 +182,7 @@ export default function StudentProfilePage() {
       </div>
 
       {tab === 'overview' && <OverviewTab profile={profile} onOpenCalendar={() => canViewAttendance && setCalendarOpen(true)} />}
+      {tab === 'groups' && <GroupHistoryTab student={student} canManage={canManageStudents} />}
       {tab === 'parents' && <ParentsTab student={{ id: student.id, name: `${student.firstName} ${student.lastName}` }} />}
       {tab === 'homework' && <HomeworkTab studentId={student.id} />}
       {tab === 'exams' && <ExamsTab studentId={student.id} />}

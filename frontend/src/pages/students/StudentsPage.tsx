@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
+import { ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import { StudentFormModal } from './StudentFormModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
+import { TransferGroupModal } from './TransferGroupModal';
 
 const PAGE_SIZE = 20;
 
@@ -51,7 +52,7 @@ const SORT_OPTIONS = [
 
 type Dialog =
   | { type: 'create' }
-  | { type: 'edit' | 'status' | 'delete' | 'attendance' | 'payment' | 'xp'; student: StudentItem }
+  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp'; student: StudentItem }
   | null;
 
 export default function StudentsPage() {
@@ -305,6 +306,7 @@ export default function StudentsPage() {
                             ...(canManage
                               ? [
                                   { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', student }) },
+                                  { label: 'Guruhga o‘tkazish', icon: ArrowLeftRight, onSelect: () => setDialog({ type: 'transfer', student }) },
                                   { label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog({ type: 'status', student }) },
                                   {
                                     label: 'O‘chirish',
@@ -355,6 +357,16 @@ export default function StudentsPage() {
       )}
       {dialog?.type === 'status' && (
         <StudentStatusModal
+          student={dialog.student}
+          onClose={() => setDialog(null)}
+          onSaved={() => {
+            setDialog(null);
+            refresh();
+          }}
+        />
+      )}
+      {dialog?.type === 'transfer' && (
+        <TransferGroupModal
           student={dialog.student}
           onClose={() => setDialog(null)}
           onSaved={() => {

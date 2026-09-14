@@ -74,7 +74,35 @@ const SOURCES: Record<ActivityType, (range: Range, take: number) => Promise<RawI
       take,
       select: { id: true, number: true, firstName: true, lastName: true, createdAt: true, createdById: true, course: { select: { name: true } } },
     });
-    return rows.map((row) => ({
+    // Guruh almashtirish va guruhdan chiqarish (birinchi qo'shilish "yangi o'quvchi" sifatida ko'rinadi)
+    const changes = await prisma.studentGroupChange.findMany({
+      where: { changedAt: range, fromGroupName: { not: null }, student: { deletedAt: null } },
+      orderBy: [{ changedAt: 'desc' }, { id: 'desc' }],
+      take,
+      select: {
+        id: true,
+        studentId: true,
+        fromGroupName: true,
+        toGroupName: true,
+        reason: true,
+        changedAt: true,
+        changedById: true,
+        student: { select: { number: true, firstName: true, lastName: true } },
+      },
+    });
+    const moves: RawItem[] = changes.map((change) => ({
+      id: `group-change:${change.id}`,
+      type: 'student',
+      occurredAt: change.changedAt,
+      title: change.toGroupName ? `Guruh almashtirildi: ${fullName(change.student)}` : `Guruhdan chiqarildi: ${fullName(change.student)}`,
+      description: `${formatStudentNumber(change.student.number)} · ${change.fromGroupName ?? '—'} → ${change.toGroupName ?? 'guruhsiz'}${change.reason ? ` · ${change.reason}` : ''}`,
+      amount: null,
+      tone: change.toGroupName ? 'neutral' : 'negative',
+      actorId: change.changedById,
+      link: `/students/${change.studentId}`,
+    }));
+
+    return [...moves, ...rows.map((row): RawItem => ({
       id: `student:${row.id}`,
       type: 'student',
       occurredAt: row.createdAt,
@@ -84,7 +112,7 @@ const SOURCES: Record<ActivityType, (range: Range, take: number) => Promise<RawI
       tone: 'positive',
       actorId: row.createdById,
       link: `/students/${row.id}`,
-    }));
+    }))];
   },
 
   async payment(range, take) {

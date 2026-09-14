@@ -30,6 +30,7 @@ import type {
 
 import { seedAcademyModules } from './academySeed.js';
 import { backfillPaymentSchedules } from './paymentScheduleBackfill.js';
+import { backfillGroupHistory } from './studentGroupHistoryBackfill.js';
 
 config({ quiet: true });
 
@@ -1146,6 +1147,7 @@ async function main(): Promise<void> {
   await seedSettings(users.admin.id);
   await seedDemoData({ users, sourceIdByKey, courses, groups });
   log(`✔ ${await backfillPaymentSchedules(prisma)} ta o‘quvchiga to‘lov jadvali`);
+  log(`✔ ${await backfillGroupHistory(prisma)} ta o‘quvchiga guruh tarixi`);
   await seedAcademyModules(prisma, log);
 
   log('\nSeed yakunlandi. Kirish ma’lumotlari:');

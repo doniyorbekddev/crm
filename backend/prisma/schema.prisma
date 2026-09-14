@@ -245,6 +245,7 @@ model User {
   approvedExpenses         Expense[]              @relation("ExpenseApprovedBy")
   rejectedExpenses         Expense[]              @relation("ExpenseRejectedBy")
   createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
+  groupChanges             StudentGroupChange[]   @relation("GroupChangeBy")
 
   @@index([roleId])
   @@index([status])
@@ -541,14 +542,16 @@ model Group {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  course      Course              @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  teacher     User?               @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  course      Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  teacher     User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   students    Student[]
   attendances Attendance[]
   sessions    AttendanceSession[]
   homework    Homework[]
   exams       Exam[]
   payments    Payment[]
+  changesFrom StudentGroupChange[] @relation("GroupChangeFrom")
+  changesTo   StudentGroupChange[] @relation("GroupChangeTo")
 
   @@index([courseId])
   @@index([teacherId])
@@ -604,6 +607,7 @@ model Student {
   progressSnapshots StudentProgressSnapshot[]
   incomes           Income[]
   installments      PaymentInstallment[]
+  groupChanges      StudentGroupChange[]
 
   @@index([courseId])
   @@index([groupId])
@@ -658,6 +662,31 @@ model PaymentInstallment {
   @@index([studentId, dueDate])
   @@index([dueDate])
   @@map("payment_installments")
+}
+
+/// O‘quvchining guruh almashtirish tarixi. Guruh nomlari o‘sha paytdagi holatda saqlanadi —
+/// guruh keyin qayta nomlansa yoki o‘chirilsa ham tarix o‘qiladi.
+model StudentGroupChange {
+  id            String   @id @default(cuid())
+  studentId     String
+  fromGroupId   String?
+  toGroupId     String?
+  fromGroupName String?  @db.VarChar(100)
+  toGroupName   String?  @db.VarChar(100)
+  reason        String?  @db.VarChar(255)
+  changedById   String?
+  changedAt     DateTime @default(now())
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fromGroup Group?  @relation("GroupChangeFrom", fields: [fromGroupId], references: [id], onDelete: SetNull)
+  toGroup   Group?  @relation("GroupChangeTo", fields: [toGroupId], references: [id], onDelete: SetNull)
+  changedBy User?   @relation("GroupChangeBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, changedAt])
+  @@index([fromGroupId, changedAt])
+  @@index([toGroupId, changedAt])
+  @@index([changedAt])
+  @@map("student_group_changes")
 }
 
 model Payment {
