@@ -29,9 +29,13 @@
     "db:studio": "npm run db:studio -w @crm/backend",
     "test:unit": "npm run test:unit -w @crm/backend",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "test:e2e": "tsx e2e/prepare.ts && playwright test",
+    "test:e2e:report": "playwright show-report e2e/.report",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
     "db:perf-seed": "npm run db:perf-seed -w @crm/backend"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^9.2.1"
   }
 }

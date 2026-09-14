@@ -5,6 +5,10 @@ node_modules/
 dist/
 build/
 coverage/
+
+# Playwright (E2E) natijalari
+e2e/.results/
+e2e/.report/
 *.tsbuildinfo
 
 # Environment (faqat *.example fayllar git'ga kiradi)

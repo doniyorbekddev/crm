@@ -14,7 +14,7 @@ function businessDateString(value: Date): string {
  * Qarzdorlik bo‘yicha kunlik xulosa: `debt.view` ruxsati bor xodimlarga
  * (buxgalter, admin) kuniga bitta umumiy bildirishnoma yuboriladi.
  */
-async function sendDailyDebtSummary(now: Date): Promise<number> {
+export async function sendDailyDebtSummary(now: Date): Promise<number> {
   const aggregate = await prisma.debt.aggregate({
     where: { student: { deletedAt: null, status: { in: ['ACTIVE', 'FROZEN'] } }, remainingAmount: { gt: 0 } },
     _sum: { remainingAmount: true },

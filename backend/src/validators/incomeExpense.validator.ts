@@ -124,7 +124,7 @@ const recurringFields = {
   name: z.string('Nomini kiriting').trim().min(2, 'Kamida 2 belgi').max(150, 'Nom juda uzun'),
   categoryId: z.string('Kategoriyani tanlang').trim().min(1, 'Kategoriyani tanlang').max(50),
   amount: amountSchema,
-  method: z.enum(PAYMENT_METHODS, 'To‘lov usulini tanlang').default('CASH'),
+  method: z.enum(PAYMENT_METHODS, 'To‘lov usulini tanlang'),
   accountId: optionalField(idSchema),
   vendor: optionalField(z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun')),
   dayOfMonth: z.coerce.number('Kun raqam bo‘lishi kerak').int().min(1, 'Kun 1 dan 28 gacha').max(28, 'Kun 1 dan 28 gacha (har oyda bor bo‘lishi uchun)'),
@@ -133,8 +133,9 @@ const recurringFields = {
   note: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
 };
 
-export const recurringExpenseSchema = z.object(recurringFields);
+export const recurringExpenseSchema = z.object({ ...recurringFields, method: recurringFields.method.default('CASH') });
 
+// Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
 export const updateRecurringExpenseSchema = z
   .object({ ...recurringFields, isActive: z.boolean() })
   .partial()

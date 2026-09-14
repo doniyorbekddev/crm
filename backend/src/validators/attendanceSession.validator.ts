@@ -30,7 +30,7 @@ export const sessionListQuerySchema = z
     message: 'Tugash sanasi boshlanish sanasidan oldin bo‘lmasligi kerak',
   });
 
-export const createSessionSchema = z.object({
+const sessionFieldsSchema = z.object({
   groupId: z.string('Guruhni tanlang').trim().min(1, 'Guruhni tanlang').max(50),
   date: dateOnlySchema,
   startTime: optionalTime,
@@ -43,10 +43,12 @@ export const createSessionSchema = z.object({
     (value) => (value === '' || value === null ? undefined : value),
     z.string().trim().max(500, 'Izoh juda uzun').optional(),
   ),
-  status: z.enum(SESSION_STATUSES, 'Holat noto‘g‘ri').default('HELD'),
+  status: z.enum(SESSION_STATUSES, 'Holat noto‘g‘ri'),
 });
 
-export const updateSessionSchema = createSessionSchema.omit({ groupId: true, date: true }).partial();
+export const createSessionSchema = sessionFieldsSchema.extend({ status: sessionFieldsSchema.shape.status.default('HELD') });
+// Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
+export const updateSessionSchema = sessionFieldsSchema.omit({ groupId: true, date: true }).partial();
 
 export const attendanceStatsQuerySchema = z
   .object({

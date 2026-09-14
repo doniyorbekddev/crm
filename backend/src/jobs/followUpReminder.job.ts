@@ -18,7 +18,7 @@ function leadLabel(lead: { number: number; firstName: string; lastName: string |
 }
 
 /** Eslatma vaqti kelgan follow-uplar bo‘yicha bildirishnoma yuboradi. */
-async function sendDueReminders(now: Date): Promise<number> {
+export async function sendDueReminders(now: Date): Promise<number> {
   const items = await prisma.followUp.findMany({
     where: { status: 'PENDING', reminderSentAt: null, remindAt: { lte: now }, assignedToId: { not: null } },
     select: followUpSelect,
@@ -51,7 +51,7 @@ async function sendDueReminders(now: Date): Promise<number> {
 }
 
 /** Muddati o‘tib ketgan follow-uplar bo‘yicha bir marta ogohlantiradi. */
-async function sendOverdueAlerts(now: Date): Promise<number> {
+export async function sendOverdueAlerts(now: Date): Promise<number> {
   const items = await prisma.followUp.findMany({
     where: { status: 'PENDING', overdueNotifiedAt: null, dueAt: { lt: now }, assignedToId: { not: null } },
     select: followUpSelect,

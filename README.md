@@ -219,9 +219,11 @@ npm run test:unit      # Faqat backend unit testlari (bazasiz, ~6 soniya)
 npm run test:coverage  # Qamrov hisoboti (backend + frontend)
 ```
 
-Testlar tarkibi: **314 ta backend testi** (36 fayl — unit va integratsion) va **31 ta frontend unit testi** (3 fayl).
-Backend qamrovi: statements 88.6%, branches 73.3%, functions 89.7%, lines 90.5%. Moliya servislari (tushum,
-xarajat, kassalar, daftar) ~95% qator bilan qoplangan; fon joblari (timer) testlanmaydi.
+Testlar tarkibi: **393 ta backend testi** (62 fayl — unit va integratsion), **35 ta frontend unit testi** (5 fayl)
+va **11 ta E2E ssenariy** (brauzerda, pastda). Backend qamrovi: statements 91.1%, branches 76.5%, functions 93.0%,
+lines 92.7%. Fon joblarining ish qismi (eslatma yuborish, takrorlanmaslik) testlanadi, taymerning o‘zi — yo‘q.
+`tests/unit/partialUpdateSchemas.test.ts` barcha `update*Schema`larni tekshiradi: qisman tahrir yuborilmagan
+maydonga standart qiymat qo‘ymasligi kerak (yangi validator qo‘shilganda ham avtomatik ishlaydi).
 
 **Integratsion testlar** alohida bazani talab qiladi — testlar uni har safar tozalaydi, shuning uchun
 development bazasini hech qachon ko‘rsatmang. `backend/.env` ga qo‘shing:
@@ -232,6 +234,29 @@ TEST_DATABASE_URL="postgresql://crm:crm_dev_password@localhost:5432/crm_test?sch
 
 (Docker’siz variantda: `cd backend && npx prisma dev --name crm-test --detach`, chiqqan `postgres://...` manzilni yozing.)
 `TEST_DATABASE_URL` bo‘lmasa, integratsion testlar o‘tkazib yuboriladi va unit testlar ishlaydi.
+
+### E2E testlar (brauzerda, Playwright)
+
+Asosiy foydalanuvchi oqimlari haqiqiy brauzerda tekshiriladi: kirish va sessiya tiklanishi, chiqish,
+rollar bo‘yicha menyu va sahifa ruxsatlari, lead qo‘shish va statusini o‘zgartirish, qarzdordan to‘lov
+qabul qilish (qarz kamayishi API orqali tekshiriladi), xarajat qo‘shish, foyda-zarar va direktor paneli,
+qorong‘i mavzu, o‘qituvchining **telefonda** davomat qo‘yishi (gorizontal siljish yo‘qligi bilan).
+Har bir testda brauzer konsolidagi xato yoki ushlanmagan istisno testni yiqitadi.
+
+```bash
+npm run test:e2e          # E2E bazasini qaytadan yaratadi, seed qiladi, backend (4100) va frontend (5174) ni ishga tushiradi
+npm run typecheck:e2e     # E2E fayllari uchun TypeScript
+npm run test:e2e:report   # CI'dagi HTML hisobotni ochish
+```
+
+- Baza: `E2E_DATABASE_URL`, berilmasa `backend/.env` dagi `DATABASE_URL` asosida `crm_e2e`. Skript bazani
+  **o‘chirib qayta yaratadi**, shuning uchun nomida `e2e` bo‘lishi va development/test bazasidan farq qilishi
+  shart — aks holda ishga tushmaydi. Postgres foydalanuvchisida `CREATEDB` huquqi bo‘lishi kerak.
+- Brauzer: lokal mashinada o‘rnatilgan Google Chrome (`E2E_BROWSER_CHANNEL` bilan o‘zgartiriladi); Chrome
+  bo‘lmasa yoki CI'da: `npx playwright install chromium`.
+- Development serverlari (4000/5173) ishlab turgan bo‘lsa ham to‘qnashmaydi — E2E alohida portlarda.
+- Xato bo‘lgan testning skrinshoti va trace fayli `e2e/.results/` ga yoziladi:
+  `npx playwright show-trace e2e/.results/<test>/trace.zip`.
 
 ### Unumdorlik sinovi (katta hajmdagi ma'lumot)
 

@@ -39,13 +39,17 @@ const homeworkFieldsSchema = z.object({
     .number('Ball raqam bo‘lishi kerak')
     .int('Ball butun son bo‘lishi kerak')
     .min(1, 'Ball kamida 1 bo‘lsin')
-    .max(1000, 'Ball 1000 dan oshmasligi kerak')
-    .default(100),
-  xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000).default(20),
-  status: z.enum(HOMEWORK_STATUSES, 'Holat noto‘g‘ri').default('PUBLISHED'),
+    .max(1000, 'Ball 1000 dan oshmasligi kerak'),
+  xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000),
+  status: z.enum(HOMEWORK_STATUSES, 'Holat noto‘g‘ri'),
 });
 
-export const createHomeworkSchema = homeworkFieldsSchema;
+export const createHomeworkSchema = homeworkFieldsSchema.extend({
+  maxPoints: homeworkFieldsSchema.shape.maxPoints.default(100),
+  xpReward: homeworkFieldsSchema.shape.xpReward.default(20),
+  status: homeworkFieldsSchema.shape.status.default('PUBLISHED'),
+});
+// Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
 export const updateHomeworkSchema = homeworkFieldsSchema.omit({ groupId: true }).partial();
 
 /** Bitta o‘quvchining topshirig‘i: holat, ball va izoh */
@@ -99,14 +103,19 @@ const examFieldsSchema = z.object({
     .number('Ball raqam bo‘lishi kerak')
     .int('Ball butun son bo‘lishi kerak')
     .min(1, 'Ball kamida 1 bo‘lsin')
-    .max(1000, 'Ball 1000 dan oshmasligi kerak')
-    .default(100),
+    .max(1000, 'Ball 1000 dan oshmasligi kerak'),
   passScore: optionalField(z.coerce.number('Ball raqam bo‘lishi kerak').int().min(0).max(1000)),
-  xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000).default(50),
-  status: z.enum(EXAM_STATUSES, 'Holat noto‘g‘ri').default('PLANNED'),
+  xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000),
+  status: z.enum(EXAM_STATUSES, 'Holat noto‘g‘ri'),
 });
 
-export const createExamSchema = examFieldsSchema;
+export const createExamSchema = examFieldsSchema.extend({
+  maxScore: examFieldsSchema.shape.maxScore.default(100),
+  xpReward: examFieldsSchema.shape.xpReward.default(50),
+  status: examFieldsSchema.shape.status.default('PLANNED'),
+});
+// Standart qiymatlar faqat yaratishda: `.partial()` ichida ham `.default()` ishlaydi va
+// yuborilmagan maydonni (masalan, maksimal ball) jimgina standart qiymatga qaytarardi
 export const updateExamSchema = examFieldsSchema.omit({ groupId: true }).partial();
 
 export const saveExamResultsSchema = z.object({

@@ -51,7 +51,7 @@ export const voidTransactionSchema = z.object({
     .max(255, 'Sabab 255 belgidan oshmasligi kerak'),
 });
 
-export const accountSchema = z.object({
+const accountFieldsSchema = z.object({
   key: z
     .string('Kalit kiriting')
     .trim()
@@ -61,10 +61,13 @@ export const accountSchema = z.object({
   name: z.string('Nom kiriting').trim().min(2, 'Kamida 2 belgi').max(100, 'Nom juda uzun'),
   type: z.enum(ACCOUNT_TYPES, 'Hisob turini tanlang'),
   description: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
-  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+  sortOrder: z.coerce.number().int().min(0).max(999),
 });
 
-export const updateAccountSchema = accountSchema.partial().extend({
+export const accountSchema = accountFieldsSchema.extend({ sortOrder: accountFieldsSchema.shape.sortOrder.default(0) });
+
+// Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
+export const updateAccountSchema = accountFieldsSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
