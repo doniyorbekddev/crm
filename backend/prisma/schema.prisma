@@ -163,6 +163,7 @@ enum NotificationType {
   TRIAL_LESSON_REMINDER
   EXPENSE_APPROVAL
   SYSTEM
+  DAILY_DIGEST
 }
 
 // ---------------------------------------------------------------------
@@ -227,6 +228,7 @@ model User {
   salesTargets             SalesTarget[]          @relation("SalesTargetUser")
   createdSalesTargets      SalesTarget[]          @relation("SalesTargetCreatedBy")
   resolvedAlerts           Alert[]                @relation("AlertResolvedBy")
+  alertsRead               Alert[]                @relation("AlertReadBy")
   taughtPayments           Payment[]              @relation("PaymentTeacher")
   commissionEntries        CommissionEntry[]      @relation("CommissionTeacher")
   createdCommissions       CommissionEntry[]      @relation("CommissionCreatedBy")
@@ -909,6 +911,10 @@ enum AlertType {
   BUDGET_EXCEEDED
   LOW_GROUP_CAPACITY
   SALES_TARGET_ACHIEVED
+  CONVERSION_DROP
+  DROPOUT_INCREASE
+  CASH_SHORTAGE
+  PENDING_EXPENSE_APPROVAL
 }
 
 enum AlertSeverity {
@@ -1610,11 +1616,16 @@ model Alert {
   dedupeKey    String?       @unique @db.VarChar(150)
   resolvedAt   DateTime?
   resolvedById String?
+  /// "O‘qildi" — kim birinchi ko‘rgan; daraja oshsa qayta o‘qilmagan bo‘ladi
+  readAt       DateTime?
+  readById     String?
   createdAt    DateTime      @default(now())
 
   resolvedBy User? @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  readBy     User? @relation("AlertReadBy", fields: [readById], references: [id], onDelete: SetNull)
 
   @@index([resolvedAt, createdAt])
+  @@index([resolvedAt, readAt])
   @@index([type, createdAt])
   @@index([severity])
   @@map("alerts")

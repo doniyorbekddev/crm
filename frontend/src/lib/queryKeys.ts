@@ -160,6 +160,8 @@ export const queryKeys = {
     all: ['alerts'] as const,
     list: (params: AlertListParams) => ['alerts', 'list', params] as const,
     summary: ['alerts', 'summary'] as const,
+    settings: ['alerts', 'settings'] as const,
+    digest: ['alerts', 'digest'] as const,
   },
   targets: {
     all: ['targets'] as const,

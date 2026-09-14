@@ -75,6 +75,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'expense.requested': 'Xarajat tasdiqqa yuborildi',
   'document.uploaded': 'Hujjat (chek) biriktirildi',
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
+  'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
   'document.deleted': 'Hujjat o‘chirildi',
   'expense.approved': 'Xarajat tasdiqlandi',
   'expense.rejected': 'Xarajat rad etildi',

@@ -4,7 +4,10 @@ import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type {
   Alert,
   AlertListParams,
+  AlertSettings,
+  AlertSettingsPayload,
   AlertSummary,
+  DailyDigest,
   EvaluateResult,
   SaveTargetPayload,
   TargetOverview,
@@ -33,6 +36,31 @@ export const alertsService = {
   async resolve(id: string, note?: string): Promise<MessageResult<Alert>> {
     const response = await api.patch<ApiSuccessResponse<Alert>>(`/alerts/${id}/resolve`, note ? { note } : {});
     return { data: response.data.data, message: response.data.message };
+  },
+
+  async read(id: string): Promise<MessageResult<Alert>> {
+    const response = await api.patch<ApiSuccessResponse<Alert>>(`/alerts/${id}/read`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async readAll(): Promise<MessageResult<{ updated: number }>> {
+    const response = await api.post<ApiSuccessResponse<{ updated: number }>>('/alerts/read-all');
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async settings(): Promise<AlertSettings> {
+    const response = await api.get<ApiSuccessResponse<AlertSettings>>('/alerts/settings');
+    return response.data.data;
+  },
+
+  async updateSettings(payload: AlertSettingsPayload): Promise<MessageResult<AlertSettings>> {
+    const response = await api.put<ApiSuccessResponse<AlertSettings>>('/alerts/settings', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async digest(): Promise<DailyDigest> {
+    const response = await api.get<ApiSuccessResponse<DailyDigest>>('/alerts/digest');
+    return response.data.data;
   },
 };
 

@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { startAlertsJob } from './jobs/alerts.job.js';
+import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
@@ -17,6 +18,8 @@ const stopDebtReminders = startDebtReminderJob();
 // Avtomatik ogohlantirishlar (har 30 daqiqada)
 const stopAlerts = startAlertsJob();
 const stopRecurringExpenses = startRecurringExpensesJob();
+// Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
+const stopDailyDigest = startDailyDigestJob();
 
 const server = app.listen(env.PORT, (error?: Error) => {
   if (error) {
@@ -36,6 +39,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopDebtReminders();
   stopAlerts();
   stopRecurringExpenses();
+  stopDailyDigest();
 
   const forceExitTimer = setTimeout(() => {
     logger.error('Server belgilangan vaqtda to‘xtamadi, majburan yopilmoqda');

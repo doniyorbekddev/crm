@@ -8,15 +8,22 @@ export type AlertType =
   | 'UNPAID_SALARY'
   | 'BUDGET_EXCEEDED'
   | 'LOW_GROUP_CAPACITY'
-  | 'SALES_TARGET_ACHIEVED';
+  | 'SALES_TARGET_ACHIEVED'
+  | 'CONVERSION_DROP'
+  | 'DROPOUT_INCREASE'
+  | 'CASH_SHORTAGE'
+  | 'PENDING_EXPENSE_APPROVAL';
 export type AlertSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
-export type AlertStatusFilter = 'open' | 'resolved' | 'all';
+/** Kritik — yuqori, ogohlantirish — o‘rta, ma’lumot va yutuq — past */
+export type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW';
+export type AlertStatusFilter = 'open' | 'unread' | 'resolved' | 'all';
 export type TargetType = 'LEADS' | 'SALES' | 'REVENUE';
 
 export interface Alert {
   id: string;
   type: AlertType;
   severity: AlertSeverity;
+  priority: AlertPriority;
   title: string;
   message: string;
   entityType: string | null;
@@ -24,12 +31,15 @@ export interface Alert {
   link: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+  readAt: string | null;
+  readBy: PersonRef | null;
   resolvedAt: string | null;
   resolvedBy: PersonRef | null;
 }
 
 export interface AlertSummary {
   open: number;
+  unread: number;
   bySeverity: Record<AlertSeverity, number>;
   byType: Array<{ type: AlertType; count: number }>;
 }
@@ -80,4 +90,47 @@ export interface SaveTargetPayload {
   userId: string;
   type: TargetType;
   targetValue: number;
+}
+
+export interface AlertSettings {
+  rules: Record<AlertType, boolean>;
+  debtSharePercent: number;
+  debtGraceDays: number;
+  dropoutAbsences: number;
+  attendanceWarning: number;
+  attendanceCritical: number;
+  followUpWarning: number;
+  followUpCritical: number;
+  salaryGraceDays: number;
+  capacityPercent: number;
+  conversionDropPoints: number;
+  dropoutIncreasePercent: number;
+  dropoutIncreaseMin: number;
+  expenseApprovalDays: number;
+  digestEnabled: boolean;
+  digestHour: number;
+  updatedAt: string | null;
+}
+
+export type AlertNumericSetting = Exclude<keyof AlertSettings, 'rules' | 'digestEnabled' | 'updatedAt'>;
+
+export type AlertSettingsPayload = Partial<Pick<AlertSettings, AlertNumericSetting | 'digestEnabled'>> & {
+  rules?: Partial<Record<AlertType, boolean>>;
+};
+
+export interface DailyDigest {
+  date: string;
+  revenue: number;
+  expenses: number;
+  netProfit: number;
+  newStudents: number;
+  newLeads: number;
+  wonLeads: number;
+  attendanceRate: number | null;
+  attendanceMarks: number;
+  totalDebt: number;
+  debtors: number;
+  openAlerts: number;
+  criticalAlerts: number;
+  importantAlerts: Array<{ id: string; title: string; severity: AlertSeverity }>;
 }

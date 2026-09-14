@@ -8,6 +8,7 @@ export type NotificationType =
   | 'DEBT_REMINDER'
   | 'TRIAL_LESSON_REMINDER'
   | 'EXPENSE_APPROVAL'
+  | 'DAILY_DIGEST'
   | 'SYSTEM';
 
 export interface NotificationItem {

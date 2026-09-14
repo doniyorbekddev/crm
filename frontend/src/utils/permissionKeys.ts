@@ -88,6 +88,7 @@ export const PERMISSIONS = {
   PARENT_MANAGE: 'parent.manage',
 
   ALERT_VIEW: 'alert.view',
+  ALERT_MANAGE: 'alert.manage',
   TARGET_VIEW: 'target.view',
   TARGET_MANAGE: 'target.manage',
 

@@ -92,6 +92,7 @@ export const PERMISSIONS = {
   PARENT_MANAGE: 'parent.manage',
 
   ALERT_VIEW: 'alert.view',
+  ALERT_MANAGE: 'alert.manage',
   TARGET_VIEW: 'target.view',
   TARGET_MANAGE: 'target.manage',
 
@@ -194,6 +195,11 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.PARENT_MANAGE, module: 'parents', description: 'Ota-ona ma’lumotlarini boshqarish' },
 
   { key: PERMISSIONS.ALERT_VIEW, module: 'alerts', description: 'Ogohlantirishlarni ko‘rish' },
+  {
+    key: PERMISSIONS.ALERT_MANAGE,
+    module: 'alerts',
+    description: 'Ogohlantirish qoidalari va chegaralarini, kunlik xulosani sozlash',
+  },
   { key: PERMISSIONS.TARGET_VIEW, module: 'targets', description: 'Sotuv rejalarini ko‘rish' },
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
@@ -234,6 +240,8 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.FINANCE_REOPEN,
   // Katta xarajatni tasdiqlash — faqat Owner / Super Admin
   PERMISSIONS.EXPENSE_APPROVE,
+  // Ogohlantirish chegaralarini sozlash — faqat Owner / Super Admin
+  PERMISSIONS.ALERT_MANAGE,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */
