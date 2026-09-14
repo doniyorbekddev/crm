@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, ScrollText, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
+import { ExportMenu } from '@/components/ExportMenu';
 import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -13,11 +14,14 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useExport } from '@/hooks/useExport';
+import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { auditService } from '@/services/audit.service';
 import type { AuditListParams, AuditLogItem } from '@/types/audit';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 const PAGE_SIZE = 25;
 
@@ -59,11 +63,52 @@ function metaValue(value: unknown): string {
   return String(value);
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+/** "before" / "after" juftligi — o‘zgargan maydonlar ajratib ko‘rsatiladi */
+function ChangesView({ before, after }: { before: Record<string, unknown>; after: Record<string, unknown> }) {
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-xs">
+        <thead className="bg-surface-muted text-fg-muted">
+          <tr>
+            <th className="px-2 py-1.5 text-left font-medium">Maydon</th>
+            <th className="px-2 py-1.5 text-left font-medium">Oldin</th>
+            <th className="px-2 py-1.5 text-left font-medium">Keyin</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {keys.map((key) => {
+            const changed = JSON.stringify(before[key]) !== JSON.stringify(after[key]);
+            return (
+              <tr key={key} className={cn(changed && 'bg-amber-50/70 dark:bg-amber-950/30')}>
+                <td className="px-2 py-1.5 whitespace-nowrap text-fg-muted">{metaLabel(key)}</td>
+                <td className={cn('px-2 py-1.5 break-all', changed ? 'text-red-600 line-through dark:text-red-400' : 'text-fg')}>{metaValue(before[key])}</td>
+                <td className={cn('px-2 py-1.5 break-all', changed ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-fg')}>{metaValue(after[key])}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function MetadataView({ metadata }: { metadata: unknown }) {
-  if (!metadata || typeof metadata !== 'object') {
+  if (!isRecord(metadata)) {
     return <p className="text-xs text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
   }
-  const entries = Object.entries(metadata as Record<string, unknown>);
+  if (isRecord(metadata.before) && isRecord(metadata.after)) {
+    const { before, after, ...rest } = metadata;
+    return (
+      <div className="space-y-2">
+        <ChangesView before={before} after={after} />
+        {Object.keys(rest).length > 0 && <MetadataView metadata={rest} />}
+      </div>
+    );
+  }
+  const entries = Object.entries(metadata);
   if (entries.length === 0) {
     return <p className="text-xs text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
   }
@@ -81,6 +126,8 @@ function MetadataView({ metadata }: { metadata: unknown }) {
 }
 
 export default function AuditLogPage() {
+  const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const { exporting, run: runExport } = useExport();
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
   const [userId, setUserId] = useState('');
@@ -177,6 +224,22 @@ export default function AuditLogPage() {
       <PageHeader
         title="Audit jurnali"
         description="Kim, nimani va qachon o‘zgartirgani — IP manzili bilan"
+        actions={
+          canExport ? (
+            <ExportMenu
+              loading={exporting}
+              disabled={!logsQuery.data || logsQuery.data.items.length === 0}
+              onExport={(format) =>
+                void runExport(
+                  '/audit-logs/export',
+                  Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'page' && key !== 'limit')),
+                  'audit-jurnali',
+                  format,
+                )
+              }
+            />
+          ) : undefined
+        }
       />
 
       <Card>

@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
+import { activityService } from '../services/activity.service.js';
 import { dashboardService } from '../services/dashboard.service.js';
 import { executiveService } from '../services/executive.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
+import { activityQuerySchema } from '../validators/activity.validator.js';
 import { chartQuerySchema, executiveQuerySchema, managerStatsQuerySchema } from '../validators/dashboard.validator.js';
 
 export const dashboardController = {
@@ -10,6 +12,12 @@ export const dashboardController = {
   async executive(req: Request, res: Response): Promise<void> {
     const query = executiveQuerySchema.parse(req.query);
     sendSuccess(res, await executiveService.summary(query));
+  },
+
+  /** Faoliyat markazi — ruxsat berilgan turlar bo‘yicha vaqt chizig‘i */
+  async activity(req: Request, res: Response): Promise<void> {
+    const query = activityQuerySchema.parse(req.query);
+    sendSuccess(res, await activityService.feed(requireAuthUser(req), query));
   },
 
   async summary(req: Request, res: Response): Promise<void> {

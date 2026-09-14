@@ -49,6 +49,7 @@ export const router = createBrowserRouter([
                 children: [
                   { path: 'executive', lazy: lazyComponent(() => import('@/pages/dashboard/ExecutivePage')) },
                   { path: 'analytics', lazy: lazyComponent(() => import('@/pages/analytics/AnalyticsPage')) },
+                  { path: 'activity', lazy: lazyComponent(() => import('@/pages/activity/ActivityPage')) },
                 ],
               },
               {

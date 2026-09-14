@@ -5,6 +5,8 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { AuditListQuery } from '../validators/audit.validator.js';
+import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
+import type { ExportTable } from '../utils/tableExport.js';
 
 export interface AuditEntry {
   userId?: string | null;
@@ -178,3 +180,47 @@ export const auditLogService = {
     };
   },
 };
+
+function exportTime(value: Date): string {
+  const local = new Date(value.getTime() + env.APP_UTC_OFFSET_MINUTES * 60_000).toISOString();
+  return `${local.slice(8, 10)}.${local.slice(5, 7)}.${local.slice(0, 4)} ${local.slice(11, 16)}`;
+}
+
+/** Audit jurnali eksporti: joriy filtrlar bo‘yicha, eng yangi yozuvlardan */
+export async function exportAuditTable(query: AuditListQuery): Promise<ExportTable> {
+  const where = buildAuditWhere(query);
+  const records = await prisma.auditLog.findMany({
+    where,
+    select: auditSelect,
+    orderBy: { createdAt: 'desc' },
+    take: EXPORT_ROW_LIMIT,
+  });
+  const total = await prisma.auditLog.count({ where });
+  return {
+    title: 'Audit jurnali',
+    subtitle: exportSubtitle(records.length, total),
+    columns: [
+      { key: 'time', label: 'Vaqt', type: 'text' },
+      { key: 'user', label: 'Xodim', type: 'text' },
+      { key: 'email', label: 'Email', type: 'text' },
+      { key: 'action', label: 'Amal', type: 'text' },
+      { key: 'entity', label: 'Obyekt', type: 'text' },
+      { key: 'entityId', label: 'Obyekt ID', type: 'text' },
+      { key: 'ip', label: 'IP', type: 'text' },
+      { key: 'critical', label: 'Muhim', type: 'text' },
+      { key: 'details', label: 'Tafsilot', type: 'text' },
+    ],
+    rows: records.map((log) => ({
+      time: exportTime(log.createdAt),
+      user: log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Tizim',
+      email: log.user?.email ?? null,
+      action: auditActionLabel(log.action),
+      entity: auditEntityLabel(log.entityType),
+      entityId: log.entityId,
+      ip: log.ip,
+      critical: AUDIT_CRITICAL_ACTIONS.includes(log.action) ? 'ha' : null,
+      details: log.metadata ? JSON.stringify(log.metadata).slice(0, 1000) : null,
+    })),
+    totals: null,
+  };
+}

@@ -77,6 +77,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'document.updated': 'Hujjat ma’lumotlari o‘zgartirildi',
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
   'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
+  'audit.exported': 'Audit jurnali eksport qilindi',
   'document.deleted': 'Hujjat o‘chirildi',
   'expense.approved': 'Xarajat tasdiqlandi',
   'expense.rejected': 'Xarajat rad etildi',
@@ -129,6 +130,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   /** Kirish/chiqish amallari ham foydalanuvchi obyektiga yoziladi */
   user: 'Xodim',
+  audit: 'Audit jurnali',
   role: 'Rol',
   lead: 'Lead',
   call: 'Qo‘ng‘iroq',

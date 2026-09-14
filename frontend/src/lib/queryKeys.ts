@@ -1,3 +1,4 @@
+import type { ActivityParams } from '@/types/activity';
 import type { AlertListParams } from '@/types/alert';
 import type { AnalyticsRangeParams, ProfitabilityDimension } from '@/types/analytics';
 import type { AuditListParams } from '@/types/audit';
@@ -114,6 +115,10 @@ export const queryKeys = {
     all: ['notifications'] as const,
     list: (params: NotificationListParams) => ['notifications', 'list', params] as const,
     summary: ['notifications', 'summary'] as const,
+  },
+  activity: {
+    all: ['activity'] as const,
+    feed: (params: Omit<ActivityParams, 'cursor'>) => ['activity', 'feed', params] as const,
   },
   audit: {
     all: ['audit'] as const,
