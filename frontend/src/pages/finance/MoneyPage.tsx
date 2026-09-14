@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Ban, HandCoins, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
+import { BadgeCheck, Ban, HandCoins, Paperclip, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -26,6 +26,7 @@ import { EXPENSE_STATUS_LABELS, EXPENSE_STATUS_ORDER, EXPENSE_STATUS_TONES } fro
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_TONES } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { AttachmentsModal } from './AttachmentsModal';
 import { MoneyFormModal } from './MoneyFormModal';
 import { RecurringExpensesModal } from './RecurringExpensesModal';
 import { VoidReasonModal } from './VoidReasonModal';
@@ -59,6 +60,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     | { type: 'reject'; entry: MoneyEntry }
     | { type: 'pay'; entry: MoneyEntry }
     | { type: 'recurring' }
+    | { type: 'attachments'; entry: MoneyEntry }
     | null
   >(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
@@ -165,6 +167,12 @@ export function MoneyPage({ kind }: MoneyPageProps) {
         : []),
     ];
   };
+
+  const attachmentsItem = (entry: MoneyEntry) => ({
+    label: entry.attachments > 0 ? `Cheklar (${entry.attachments})` : canManage ? 'Chek biriktirish' : 'Cheklar',
+    icon: Paperclip,
+    onSelect: () => setDialog({ type: 'attachments', entry }),
+  });
 
   const changeFilter = (apply: () => void) => {
     apply();
@@ -307,11 +315,9 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                     <TH>Usul / kassa</TH>
                     <TH>Sana</TH>
                     <TH>Kim kiritdi</TH>
-                    {(canManage || canApprove) && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <TH className="w-12">
+                      <span className="sr-only">Amallar</span>
+                    </TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -321,6 +327,9 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                       <TD>
                         <p className="font-medium text-fg">
                           {entry.category.name}
+                          {entry.attachments > 0 && (
+                            <Paperclip className="ml-1.5 inline size-3.5 text-fg-subtle" aria-label={`${entry.attachments} ta chek`} />
+                          )}
                           {entry.isVoided && (
                             <Badge tone="red" className="ml-2">
                               Bekor qilingan
@@ -364,15 +373,9 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                       <TD className="whitespace-nowrap text-fg-muted">
                         {entry.responsible ? `${entry.responsible.firstName} ${entry.responsible.lastName}` : '—'}
                       </TD>
-                      {(canManage || canApprove) && (
-                        <TD className="text-right">
-                          {rowActions(entry).length === 0 ? (
-                            <span className="text-xs text-fg-subtle">—</span>
-                          ) : (
-                            <ActionMenu label={`#${entry.number} amallari`} items={rowActions(entry)} />
-                          )}
-                        </TD>
-                      )}
+                      <TD className="text-right">
+                        <ActionMenu label={`#${entry.number} amallari`} items={[attachmentsItem(entry), ...rowActions(entry)]} />
+                      </TD>
                     </TR>
                   ))}
                 </TBody>
@@ -439,6 +442,17 @@ export function MoneyPage({ kind }: MoneyPageProps) {
       />
 
       {dialog?.type === 'recurring' && <RecurringExpensesModal onClose={() => setDialog(null)} onChanged={refresh} />}
+
+      {dialog?.type === 'attachments' && (
+        <AttachmentsModal
+          owner={isIncome ? 'income' : 'expense'}
+          entityId={dialog.entry.id}
+          title={`#${dialog.entry.number} · ${dialog.entry.category.name} · ${formatMoney(dialog.entry.amount)}`}
+          canManage={canManage}
+          onClose={() => setDialog(null)}
+          onChanged={refresh}
+        />
+      )}
     </>
   );
 }

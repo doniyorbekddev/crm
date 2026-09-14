@@ -6,10 +6,13 @@ import {
   financeController,
   incomeController,
 } from '../controllers/finance.controller.js';
+import { attachmentController } from '../controllers/document.controller.js';
 import { expenseWorkflowController } from '../controllers/expenseWorkflow.controller.js';
 import { financialPeriodController } from '../controllers/financialPeriod.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { uploadBody } from './document.routes.js';
 
 const financeView = requirePermission(PERMISSIONS.FINANCE_VIEW);
 const financeManage = requirePermission(PERMISSIONS.FINANCE_MANAGE);
@@ -48,6 +51,9 @@ incomeRouter.post('/', incomeManage, incomeController.create);
 incomeRouter.post('/categories', incomeManage, incomeController.createCategory);
 incomeRouter.put('/categories/:id', incomeManage, incomeController.updateCategory);
 incomeRouter.post('/:id/void', incomeManage, incomeController.void);
+const incomeAttachments = attachmentController('income');
+incomeRouter.get('/:id/attachments', incomeView, incomeAttachments.list);
+incomeRouter.post('/:id/attachments', incomeManage, heavyLimiter, uploadBody, incomeAttachments.upload);
 
 export const expenseRouter = Router();
 
@@ -68,3 +74,6 @@ expenseRouter.put('/settings/approval', requirePermission(PERMISSIONS.EXPENSE_AP
 expenseRouter.post('/:id/approve', requirePermission(PERMISSIONS.EXPENSE_APPROVE), expenseWorkflowController.approve);
 expenseRouter.post('/:id/reject', expenseManage, expenseWorkflowController.reject);
 expenseRouter.post('/:id/pay', expenseManage, expenseWorkflowController.pay);
+const expenseAttachments = attachmentController('expense');
+expenseRouter.get('/:id/attachments', expenseView, expenseAttachments.list);
+expenseRouter.post('/:id/attachments', expenseManage, heavyLimiter, uploadBody, expenseAttachments.upload);

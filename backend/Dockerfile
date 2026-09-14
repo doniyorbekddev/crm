@@ -52,6 +52,8 @@ COPY --from=build /app/backend/dist ./backend/dist
 
 # Root emas, `node` foydalanuvchisi ostida ishlaydi
 RUN chown -R node:node /app
+# Hujjatlar papkasi (docker volume) ilova foydalanuvchisiga yozish uchun ochiq
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
 USER node
 
 WORKDIR /app/backend

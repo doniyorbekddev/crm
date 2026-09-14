@@ -48,6 +48,8 @@ export interface MoneyEntryDto {
   approvedAt: string | null;
   rejectReason: string | null;
   recurring: { id: string; name: string } | null;
+  /** Biriktirilgan cheklar soni */
+  attachments: number;
   createdAt: string;
 }
 
@@ -105,6 +107,7 @@ const incomeSelect = {
   responsible: { select: { id: true, firstName: true, lastName: true } },
   student: { select: { id: true, firstName: true, lastName: true } },
   transaction: { select: { status: true, voidReason: true } },
+  _count: { select: { documents: { where: { deletedAt: null } } } },
 } satisfies Prisma.IncomeSelect;
 
 const expenseSelect = {
@@ -128,6 +131,7 @@ const expenseSelect = {
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
   recurringExpense: { select: { id: true, name: true } },
   transaction: { select: { status: true, voidReason: true } },
+  _count: { select: { documents: { where: { deletedAt: null } } } },
 } satisfies Prisma.ExpenseSelect;
 
 type IncomeRecord = Prisma.IncomeGetPayload<{ select: typeof incomeSelect }>;
@@ -156,6 +160,7 @@ function toIncomeDto(income: IncomeRecord): MoneyEntryDto {
     approvedAt: null,
     rejectReason: null,
     recurring: null,
+    attachments: income._count.documents,
     createdAt: income.createdAt.toISOString(),
   };
 }
@@ -183,6 +188,7 @@ function toExpenseDto(expense: ExpenseRecord): MoneyEntryDto {
     approvedAt: expense.approvedAt?.toISOString() ?? null,
     rejectReason: expense.rejectReason,
     recurring: expense.recurringExpense,
+    attachments: expense._count.documents,
     createdAt: expense.createdAt.toISOString(),
   };
 }

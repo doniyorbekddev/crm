@@ -73,6 +73,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'payment.deleted': 'To‘lov bekor qilindi',
   'payment.refunded': 'To‘lov qaytarildi',
   'expense.requested': 'Xarajat tasdiqqa yuborildi',
+  'document.uploaded': 'Hujjat (chek) biriktirildi',
+  'document.deleted': 'Hujjat o‘chirildi',
   'expense.approved': 'Xarajat tasdiqlandi',
   'expense.rejected': 'Xarajat rad etildi',
   'expense.paid': 'Xarajat to‘landi',

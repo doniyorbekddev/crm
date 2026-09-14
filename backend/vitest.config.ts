@@ -1,3 +1,5 @@
+import os from 'node:os';
+import path from 'node:path';
 import { config } from 'dotenv';
 import { defineConfig } from 'vitest/config';
 
@@ -30,6 +32,8 @@ export default defineConfig({
       JWT_REFRESH_SECRET: 'test-refresh-secret-0123456789-abcdefghijklmnop',
       CLIENT_URL: 'http://localhost:5173',
       SMTP_HOST: '',
+      // Testlar yuklagan fayllar loyiha papkasiga emas, vaqtinchalik papkaga yoziladi
+      UPLOAD_DIR: path.join(os.tmpdir(), 'crm-test-uploads'),
     },
   },
 });

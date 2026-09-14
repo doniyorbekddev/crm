@@ -150,6 +150,15 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 
 ## 5. Zaxira nusxa (backup)
 
+> **Cheklar va hujjatlar** bazada emas, `crm_uploads` docker volume'ida (`/app/uploads`) saqlanadi.
+> Baza zaxirasi bilan birga shu volume'ni ham zaxiralang, aks holda tiklangan bazadagi hujjat yozuvlari
+> faylsiz qoladi:
+>
+> ```bash
+> docker run --rm -v crm_uploads:/data -v "$PWD/backups":/backup alpine \
+>   tar czf /backup/uploads-$(date +%F_%H-%M).tar.gz -C /data .
+> ```
+
 ```bash
 ./scripts/backup-db.sh                     # backups/crm-<sana>.sql.gz, 30 kun saqlanadi
 ./scripts/restore-db.sh backups/crm-2026-09-12_03-00.sql.gz

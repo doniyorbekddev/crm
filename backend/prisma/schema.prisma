@@ -202,6 +202,7 @@ model User {
   deletedPayments     Payment[]            @relation("PaymentDeletedBy")
   markedAttendances   Attendance[]
   uploadedDocuments   Document[]
+  deletedDocuments    Document[]           @relation("DocumentDeletedBy")
   notifications       Notification[]
   auditLogs           AuditLog[]
   updatedSettings     Setting[]
@@ -712,22 +713,33 @@ model Attendance {
 // ---------------------------------------------------------------------
 
 model Document {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   leadId       String?
   studentId    String?
-  originalName String   @db.VarChar(255)
-  mimeType     String   @db.VarChar(100)
+  expenseId    String?
+  incomeId     String?
+  originalName String    @db.VarChar(255)
+  mimeType     String    @db.VarChar(100)
   size         Int
-  storagePath  String   @unique @db.VarChar(500)
+  storagePath  String    @unique @db.VarChar(500)
+  /// Takroriy yuklashni aniqlash uchun
+  sha256       String?   @db.VarChar(64)
+  deletedAt    DateTime?
+  deletedById  String?
   uploadedById String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   lead       Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   student    Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
   uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  expense    Expense? @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  income     Income?  @relation(fields: [incomeId], references: [id], onDelete: Restrict)
+  deletedBy  User?    @relation("DocumentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@index([leadId])
   @@index([studentId])
+  @@index([expenseId])
+  @@index([incomeId])
   @@map("documents")
 }
 
@@ -1313,6 +1325,7 @@ model Income {
   student     Student?          @relation(fields: [studentId], references: [id], onDelete: SetNull)
   responsible User?             @relation("IncomeResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
   transaction Transaction       @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  documents   Document[]
 
   @@index([receivedAt])
   @@index([categoryId, receivedAt])
@@ -1358,6 +1371,7 @@ model Expense {
   approvedBy       User?             @relation("ExpenseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   rejectedBy       User?             @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
   recurringExpense RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+  documents        Document[]
 
   @@unique([recurringExpenseId, recurringPeriod])
   @@index([status])

@@ -52,6 +52,9 @@ const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     /** Shu vaqtdan uzoq davom etgan so‘rovlar ogohlantirish sifatida logga tushadi */
     SLOW_REQUEST_MS: z.coerce.number().int().min(50).max(60_000).default(800),
+    /** Yuklangan hujjatlar papkasi — public emas, yuklab olish faqat API orqali */
+    UPLOAD_DIR: z.string().trim().min(1).default('uploads'),
+    MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(50).default(5),
     SMTP_HOST: optionalString,
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
     SMTP_SECURE: booleanString,

@@ -89,6 +89,8 @@ export interface MoneyEntry {
   approvedAt: string | null;
   rejectReason: string | null;
   recurring: { id: string; name: string } | null;
+  /** Biriktirilgan cheklar soni */
+  attachments: number;
   createdAt: string;
 }
 

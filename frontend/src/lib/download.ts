@@ -19,12 +19,22 @@ async function unwrapBlobError(error: unknown): Promise<never> {
 export async function downloadFile(path: string, params: object, fallbackName: string): Promise<void> {
   const response = await api.get<Blob>(path, { params, responseType: 'blob' }).catch(unwrapBlobError);
   const disposition = String(response.headers['content-disposition'] ?? '');
+  // UTF-8 nom (filename*) ustun — lotin bo‘lmagan harflar saqlanadi
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
   const match = /filename="?([^";]+)"?/.exec(disposition);
+  let fileName = match?.[1] ?? fallbackName;
+  if (encoded) {
+    try {
+      fileName = decodeURIComponent(encoded);
+    } catch {
+      // noto‘g‘ri kodlangan — ASCII nom qoladi
+    }
+  }
 
   const url = URL.createObjectURL(response.data);
   const link = document.createElement('a');
   link.href = url;
-  link.download = match?.[1] ?? fallbackName;
+  link.download = fileName;
   document.body.append(link);
   link.click();
   link.remove();

@@ -72,6 +72,11 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-Sales CRM <no-reply@localhost>}
+      UPLOAD_DIR: /app/uploads
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
+    # Cheklar va hujjatlar konteyner qayta yaratilganda yo'qolmasligi uchun
+    volumes:
+      - crm_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +101,7 @@ services:
 
 volumes:
   crm_pgdata:
+  crm_uploads:
 
 networks:
   crm:
