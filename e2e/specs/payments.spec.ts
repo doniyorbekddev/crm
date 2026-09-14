@@ -52,4 +52,18 @@ test('buxgalter qarzdor o‘quvchidan to‘lov qabul qiladi, to‘lov ro‘yxatd
 
   const after = (await debtors(request, token)).find((item) => item.studentId === debtor.studentId);
   expect(after?.remaining ?? 0).toBe(debtor.remaining - 100_000);
+
+  // Xuddi shu to'lov qayta kiritilsa — ogohlantirish chiqadi, saqlamasdan yopilganda qarz o'zgarmaydi
+  await page.getByRole('button', { name: 'To‘lov qabul qilish' }).click();
+  const again = page.getByRole('dialog', { name: 'To‘lov qabul qilish' });
+  await again.getByLabel('O‘quvchini qidiring').fill(debtor.code);
+  await again.getByRole('button').filter({ hasText: debtor.code }).first().click();
+  await again.getByLabel('Summa (so‘m)').fill('100000');
+  await again.getByRole('button', { name: 'To‘lovni saqlash' }).click();
+  await expect(again.getByText(/xuddi shu summa (hozirgina|\d+ daqiqa oldin) qabul qilingan/)).toBeVisible();
+  await again.getByRole('button', { name: 'Saqlamasdan yopish' }).click();
+  await expect(again).toBeHidden();
+
+  const unchanged = (await debtors(request, token)).find((item) => item.studentId === debtor.studentId);
+  expect(unchanged?.remaining ?? 0).toBe(debtor.remaining - 100_000);
 });

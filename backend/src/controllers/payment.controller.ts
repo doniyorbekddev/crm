@@ -41,7 +41,13 @@ export const paymentController = {
 
   async create(req: Request, res: Response): Promise<void> {
     const input = createPaymentSchema.parse(req.body);
-    sendCreated(res, await paymentService.create(requireAuthUser(req), input, getClientInfo(req)), 'To‘lov qabul qilindi');
+    const { payment, replayed } = await paymentService.create(requireAuthUser(req), input, getClientInfo(req));
+    if (replayed) {
+      // Xuddi shu so'rov qayta keldi (ikki marta bosish, tarmoq qayta urinishi) — yangi to'lov yaratilmadi
+      sendSuccess(res, payment, { message: 'Bu to‘lov allaqachon qabul qilingan' });
+      return;
+    }
+    sendCreated(res, payment, 'To‘lov qabul qilindi');
   },
 
   async refund(req: Request, res: Response): Promise<void> {

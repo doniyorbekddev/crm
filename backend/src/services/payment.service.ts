@@ -19,12 +19,18 @@ import { notificationService } from './notification.service.js';
 import { debtStatusOf } from './student.service.js';
 import { EXPORT_ROW_LIMIT, exportSubtitle } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
-import { businessDateString } from '../utils/dates.js';
+import { addDays, businessDateString, startOfBusinessDay } from '../utils/dates.js';
 import { commissionService } from './commission.service.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
+
+/**
+ * Shu vaqt ichida bitta o‘quvchidan xuddi shu summa xuddi shu to‘lov kuni bilan qayta kiritilsa — ehtimol takror,
+ * tasdiq so‘raladi. Boshqa kun bilan kiritilgan teng summa (masalan, o‘tgan oylar qismlari) takror emas.
+ */
+export const DUPLICATE_PAYMENT_WINDOW_MINUTES = 10;
 
 const paymentSelect = {
   id: true,
@@ -323,7 +329,17 @@ export const paymentService = {
    * To‘lov qabul qilinadi: kvitansiya yoziladi, qarz qayta hisoblanadi va
    * o‘quvchini olib kelgan manager (lead egasi) to‘lov haqida xabar oladi.
    */
-  async create(actor: AuthUser, input: CreatePaymentInput, client: ClientInfo): Promise<PaymentDto> {
+  /**
+   * To‘lov qabul qiladi. Takrordan himoya:
+   * - `idempotencyKey` bilan qayta kelgan so‘rov yangi to‘lov yaratmaydi — mavjudi qaytadi (`replayed`);
+   * - bitta o‘quvchiga parallel so‘rovlar qarz qatorini qulflab ketma-ket bajariladi, qarz qayta tekshiriladi;
+   * - oxirgi daqiqalarda xuddi shu summa xuddi shu to‘lov kuni bilan qabul qilingan bo‘lsa, `confirmDuplicate` bo‘lmaguncha 409 qaytadi.
+   */
+  async create(
+    actor: AuthUser,
+    input: CreatePaymentInput,
+    client: ClientInfo,
+  ): Promise<{ payment: PaymentDto; replayed: boolean }> {
     const student = await prisma.student.findFirst({
       where: { id: input.studentId, deletedAt: null },
       select: {
@@ -348,20 +364,64 @@ export const paymentService = {
       ]);
     }
 
-    const total = student.debt.totalAmount.toNumber();
-    const alreadyPaid = student.debt.paidAmount.toNumber();
-    if (alreadyPaid + input.amount > total) {
-      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
-        {
-          field: 'amount',
-          message: `Shartnoma bo‘yicha qolgan qarz ${total - alreadyPaid} so‘m — undan ko‘p to‘lov qabul qilinmaydi`,
-        },
-      ]);
-    }
-
     await assertFinancialPeriodOpen(prisma, input.paidAt ?? new Date());
 
-    const paymentId = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      // Qarz qatori qulflanadi: bir o'quvchiga bir vaqtda kelgan to'lovlar ketma-ket bajariladi
+      const [debt] = await tx.$queryRaw<Array<{ totalAmount: unknown; paidAmount: unknown }>>`
+        SELECT "totalAmount", "paidAmount" FROM "debts" WHERE "studentId" = ${student.id} FOR UPDATE
+      `;
+      if (!debt) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          { field: 'studentId', message: 'Bu o‘quvchida shartnoma balansi yo‘q' },
+        ]);
+      }
+
+      if (input.idempotencyKey) {
+        const existing = await tx.payment.findUnique({
+          where: { idempotencyKey: input.idempotencyKey },
+          select: { id: true, studentId: true, amount: true },
+        });
+        if (existing) {
+          if (existing.studentId !== student.id || existing.amount.toNumber() !== input.amount) {
+            throw AppError.conflict('Bu so‘rov kaliti boshqa to‘lov uchun ishlatilgan — formani qaytadan oching');
+          }
+          return { id: existing.id, replayed: true };
+        }
+      }
+
+      const total = Number(debt.totalAmount);
+      const alreadyPaid = Number(debt.paidAmount);
+      if (alreadyPaid + input.amount > total) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          {
+            field: 'amount',
+            message: `Shartnoma bo‘yicha qolgan qarz ${total - alreadyPaid} so‘m — undan ko‘p to‘lov qabul qilinmaydi`,
+          },
+        ]);
+      }
+
+      const paymentDay = startOfBusinessDay(input.paidAt ?? new Date());
+      const recent = await tx.payment.findFirst({
+        where: {
+          studentId: student.id,
+          amount: input.amount,
+          deletedAt: null,
+          paidAt: { gte: paymentDay, lt: addDays(paymentDay, 1) },
+          createdAt: { gte: new Date(Date.now() - DUPLICATE_PAYMENT_WINDOW_MINUTES * 60_000) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { number: true, createdAt: true },
+      });
+      const duplicateOf = recent ? formatPaymentNumber(recent.number) : null;
+      if (recent && duplicateOf && !input.confirmDuplicate) {
+        const minutes = Math.floor((Date.now() - recent.createdAt.getTime()) / 60_000);
+        const when = minutes < 1 ? 'hozirgina' : `${minutes} daqiqa oldin`;
+        throw AppError.conflict(`Bu o‘quvchidan xuddi shu summa ${when} qabul qilingan (${duplicateOf})`, [
+          { field: 'duplicatePayment', message: duplicateOf },
+        ]);
+      }
+
       const payment = await tx.payment.create({
         data: {
           studentId: student.id,
@@ -375,6 +435,7 @@ export const paymentService = {
           // O'qituvchi foizi to'lov paytidagi guruhga bog'lanadi
           groupId: student.groupId,
           teacherId: student.group?.teacherId ?? null,
+          idempotencyKey: input.idempotencyKey ?? null,
         },
         select: { id: true, number: true, paidAt: true, teacherId: true },
       });
@@ -425,13 +486,15 @@ export const paymentService = {
           amount: input.amount,
           method: input.method,
           remaining,
+          // Foydalanuvchi takror ogohlantirishini ko'rib, alohida to'lov ekanini tasdiqlagan
+          ...(duplicateOf ? { duplicateOf } : {}),
         },
         ...client,
       });
-      return payment.id;
+      return { id: payment.id, replayed: false };
     });
 
-    return this.getById(paymentId);
+    return { payment: await this.getById(result.id), replayed: result.replayed };
   },
 
   /**

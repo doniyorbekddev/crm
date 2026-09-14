@@ -44,6 +44,10 @@ export const createPaymentSchema = z.object({
       .transform((value) => new Date(value)),
   ),
   comment: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
+  /** Forma ochilganda yaratiladigan kalit — ikki marta bosish yoki tarmoq qayta urinishi yangi to‘lov yaratmaydi */
+  idempotencyKey: optionalField(z.string().trim().regex(/^[A-Za-z0-9-]{16,64}$/, 'So‘rov kaliti noto‘g‘ri')),
+  /** Yaqinda xuddi shu summa qabul qilingan bo‘lsa ham saqlash — foydalanuvchi alohida to‘lov ekanini tasdiqlagan */
+  confirmDuplicate: z.boolean().default(false),
 });
 
 export const deletePaymentSchema = z.object({

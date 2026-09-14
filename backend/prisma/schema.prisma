@@ -640,30 +640,32 @@ model Debt {
 }
 
 model Payment {
-  id            String        @id @default(cuid())
+  id             String        @id @default(cuid())
   /// Kvitansiya raqami
-  number        Int           @unique @default(autoincrement())
-  studentId     String
+  number         Int           @unique @default(autoincrement())
+  studentId      String
   /// To‘lov paytidagi kurs (snapshot)
-  courseId      String
-  amount        Decimal       @db.Decimal(14, 2)
-  method        PaymentMethod
-  paidAt        DateTime      @default(now())
-  comment       String?
+  courseId       String
+  amount         Decimal       @db.Decimal(14, 2)
+  method         PaymentMethod
+  paidAt         DateTime      @default(now())
+  comment        String?
   /// Sotuvni amalga oshirgan manager (manager performance hisobotlari uchun)
-  managerId     String?
+  managerId      String?
   /// To‘lovni qabul qilgan xodim
-  accountantId  String?
-  deletedAt     DateTime?
-  deletedById   String?
-  deleteReason  String?       @db.VarChar(255)
+  accountantId   String?
+  deletedAt      DateTime?
+  deletedById    String?
+  deleteReason   String?       @db.VarChar(255)
   /// Moliyaviy daftardagi yozuv (tushum ikki marta hisoblanmasligi uchun)
-  transactionId String?       @unique
+  transactionId  String?       @unique
+  /// Formadan kelgan so‘rov kaliti: tarmoq qayta urinishi yoki ikki marta bosish yangi to‘lov yaratmaydi
+  idempotencyKey String?       @unique @db.VarChar(64)
   /// To‘lov paytidagi guruh va o‘qituvchi — o‘quvchi keyin boshqa guruhga o‘tsa ham foiz shu o‘qituvchiga qoladi
-  groupId       String?
-  teacherId     String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  groupId        String?
+  teacherId      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   transaction       Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   student           Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)

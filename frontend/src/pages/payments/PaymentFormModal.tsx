@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useDebounce } from '@/hooks/useDebounce';
-import { getErrorMessage } from '@/lib/api';
+import { getErrorMessage, getErrorStatus, getFieldErrors } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -22,6 +22,7 @@ import { studentsService } from '@/services/students.service';
 import type { PaymentPayload } from '@/types/payment';
 import type { StudentItem, StudentListParams } from '@/types/student';
 import { formatMoney, formatPhone } from '@/utils/format';
+import { createIdempotencyKey } from '@/utils/idempotency';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
 
 const paymentFormSchema = z.object({
@@ -53,6 +54,9 @@ interface PaymentFormModalProps {
 export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModalProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [selected, setSelected] = useState<StudentItem | null>(student ?? null);
+  // Forma ochilishi uchun bitta kalit: ikki marta bosish yoki qayta urinish ikkinchi to'lov yaratmaydi
+  const [idempotencyKey] = useState(createIdempotencyKey);
+  const [duplicate, setDuplicate] = useState<{ message: string; values: PaymentFormValues } | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
 
@@ -84,15 +88,25 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
   const afterPayment = remaining - Number(amount || 0);
 
   const save = useMutation({
-    mutationFn: (values: PaymentFormValues) => {
+    mutationFn: ({ values, confirmDuplicate }: { values: PaymentFormValues; confirmDuplicate: boolean }) => {
       if (!selected) throw new Error('O‘quvchi tanlanmagan');
-      return paymentsService.create(toPayload(selected.id, values));
+      return paymentsService.create({
+        ...toPayload(selected.id, values),
+        idempotencyKey,
+        ...(confirmDuplicate ? { confirmDuplicate: true } : {}),
+      });
     },
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      const isDuplicate =
+        getErrorStatus(error) === 409 && getFieldErrors(error).some((detail) => detail.field === 'duplicatePayment');
+      if (isDuplicate) {
+        setDuplicate({ message: getErrorMessage(error), values: variables.values });
+        return;
+      }
       if (!applyFieldErrors(error, setError, ['amount', 'method'])) {
         setFormError(getErrorMessage(error));
       }
@@ -101,7 +115,8 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
 
   const onSubmit = handleSubmit((values) => {
     setFormError(null);
-    save.mutate(values);
+    setDuplicate(null);
+    save.mutate({ values, confirmDuplicate: false });
   });
 
   return (
@@ -125,6 +140,24 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
       {formError && (
         <Alert tone="error" className="mb-4">
           {formError}
+        </Alert>
+      )}
+
+      {duplicate && (
+        <Alert tone="warning" className="mb-4" title={duplicate.message}>
+          <p>Ikki marta kiritilmaganini tekshiring. Bu alohida to‘lov bo‘lsa, saqlashingiz mumkin.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              loading={save.isPending}
+              onClick={() => save.mutate({ values: duplicate.values, confirmDuplicate: true })}
+            >
+              Baribir saqlash
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onClose} disabled={save.isPending}>
+              Saqlamasdan yopish
+            </Button>
+          </div>
         </Alert>
       )}
 
@@ -193,7 +226,14 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
               <p className="font-semibold text-fg">{formatMoney(remaining)}</p>
             </div>
             {!student && (
-              <Button variant="ghost" onClick={() => setSelected(null)} disabled={save.isPending}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSelected(null);
+                  setDuplicate(null);
+                }}
+                disabled={save.isPending}
+              >
                 O‘zgartirish
               </Button>
             )}

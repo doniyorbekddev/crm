@@ -80,6 +80,10 @@ export interface PaymentPayload {
   method: PaymentMethod;
   paidAt?: string;
   comment?: string;
+  /** Forma ochilishi uchun bitta kalit — takroriy yuborish yangi to‘lov yaratmaydi */
+  idempotencyKey?: string;
+  /** Yaqinda xuddi shu summa qabul qilingan bo‘lsa ham saqlash */
+  confirmDuplicate?: boolean;
 }
 
 export interface DebtItem {
