@@ -1,4 +1,5 @@
 import type { AlertListParams } from '@/types/alert';
+import type { AnalyticsRangeParams, ProfitabilityDimension } from '@/types/analytics';
 import type { AuditListParams } from '@/types/audit';
 import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
@@ -173,6 +174,13 @@ export const queryKeys = {
     all: ['exams'] as const,
     list: (params: ExamListParams) => ['exams', 'list', params] as const,
     detail: (id: string) => ['exams', 'detail', id] as const,
+  },
+  analytics: {
+    all: ['analytics'] as const,
+    unitEconomics: (params: AnalyticsRangeParams) => ['analytics', 'unit-economics', params] as const,
+    profitability: (params: AnalyticsRangeParams & { dimension: ProfitabilityDimension }) => ['analytics', 'profitability', params] as const,
+    cohorts: (months: number) => ['analytics', 'cohorts', months] as const,
+    sources: (params: AnalyticsRangeParams) => ['analytics', 'sources', params] as const,
   },
   finance: {
     all: ['finance'] as const,

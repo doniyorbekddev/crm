@@ -46,7 +46,10 @@ export const router = createBrowserRouter([
               },
               {
                 element: <PermissionGate permission={PERMISSIONS.ANALYTICS_VIEW} />,
-                children: [{ path: 'executive', lazy: lazyComponent(() => import('@/pages/dashboard/ExecutivePage')) }],
+                children: [
+                  { path: 'executive', lazy: lazyComponent(() => import('@/pages/dashboard/ExecutivePage')) },
+                  { path: 'analytics', lazy: lazyComponent(() => import('@/pages/analytics/AnalyticsPage')) },
+                ],
               },
               {
                 element: <PermissionGate permission={PERMISSIONS.ALERT_VIEW} />,

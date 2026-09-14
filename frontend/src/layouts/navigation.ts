@@ -53,6 +53,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: BarChart3, permission: PERMISSIONS.DASHBOARD_VIEW },
       { to: '/executive', label: 'Direktor paneli', icon: Gauge, permission: PERMISSIONS.ANALYTICS_VIEW },
+      { to: '/analytics', label: 'Analitika', icon: Activity, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
     ],
   },
