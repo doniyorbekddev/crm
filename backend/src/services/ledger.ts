@@ -37,7 +37,7 @@ export interface LedgerEntry {
 }
 
 /** Pul qaysi tomonga harakatlanadi: tushum +, xarajat − */
-function balanceDelta(type: TransactionType, amount: number): number {
+export function balanceDelta(type: TransactionType, amount: number): number {
   return type === 'INCOME' || type === 'TRANSFER' ? amount : -amount;
 }
 

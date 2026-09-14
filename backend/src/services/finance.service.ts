@@ -15,7 +15,7 @@ import type {
   VoidTransactionInput,
 } from '../validators/finance.validator.js';
 import { auditService } from './audit.service.js';
-import { OPERATING_LEDGER_WHERE, recordTransaction, voidTransaction } from './ledger.js';
+import { OPERATING_LEDGER_WHERE, balanceDelta, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
@@ -87,7 +87,49 @@ export interface CashFlowPointDto {
   net: number;
   /** Davr boshidan yig‘ilib boradigan qoldiq */
   balance: number;
+  /** Davr oxiridagi haqiqiy kassa qoldig‘i (barcha hisoblar, o‘tkazmalar bilan) */
+  cashBalance: number;
 }
+
+export interface CashFlowStatementDto {
+  from: string;
+  to: string;
+  openingBalance: number;
+  closingBalance: number;
+  /** closingBalance − openingBalance */
+  netChange: number;
+  /** Faoliyatdan sof oqim: o‘tkazmalarsiz kirim − chiqim */
+  operatingNet: number;
+  /** Kassaga bog‘lanmagan yozuvlarning sof summasi — qoldiqqa ta’sir qilmaydi */
+  unassigned: number;
+  inflow: { studentPayments: number; otherIncome: number; transfers: number; other: number; total: number };
+  outflow: { expenses: number; salaries: number; refunds: number; transfers: number; other: number; total: number };
+  accounts: Array<{
+    id: string;
+    name: string;
+    type: AccountType;
+    isActive: boolean;
+    opening: number;
+    inflow: number;
+    outflow: number;
+    closing: number;
+  }>;
+  forecast: {
+    days: number;
+    /** Faol kassalardagi joriy qoldiq */
+    currentBalance: number;
+    /** Kutilayotgan, tasdiq kutayotgan va tasdiqlangan (to‘lanmagan) xarajatlar — muddati o‘tganlari ham */
+    upcomingExpenses: number;
+    upcomingExpenseCount: number;
+    /** Hisoblangan, lekin to‘liq to‘lanmagan maoshlar */
+    unpaidSalaries: number;
+    /** O‘quvchilar qarzi — tushishi mumkin, prognozga qo‘shilmaydi */
+    receivables: number;
+    projectedBalance: number;
+  };
+}
+
+const FORECAST_DAYS = 30;
 
 // ---------------------------------------------------------------------
 // Yordamchilar
@@ -137,8 +179,9 @@ function dayStart(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-function nextDayStart(value: string): Date {
-  return new Date(dayStart(value).getTime() + 86_400_000);
+/** "2026-08-01" → shu kunning boshlanishi o‘quv markaz vaqti bo‘yicha */
+function businessDayStart(value: string): Date {
+  return startOfBusinessDay(new Date(`${value}T12:00:00.000Z`));
 }
 
 function toDateOnly(value: Date): string {
@@ -148,14 +191,26 @@ function toDateOnly(value: Date): string {
 /** Oraliq berilmasa — joriy oy boshidan bugungacha */
 export function resolveRange(query: FinanceRangeQuery): { start: Date; end: Date; from: string; to: string } {
   const today = startOfBusinessDay();
-  const start = query.from ? dayStart(query.from) : startOfBusinessMonth();
-  const end = query.to ? nextDayStart(query.to) : addDays(today, 1);
+  const start = query.from ? businessDayStart(query.from) : startOfBusinessMonth();
+  const end = query.to ? addDays(businessDayStart(query.to), 1) : addDays(today, 1);
   return {
     start,
     end,
     from: query.from ?? businessDateString(start),
     to: query.to ?? businessDateString(today),
   };
+}
+
+/** Berilgan vaqtdagi barcha kassalar qoldig‘i: joriy qoldiqdan shu vaqtdan keyingi harakatlar ayriladi */
+async function cashBalanceAt(date: Date): Promise<number> {
+  const total = await prisma.financialAccount.aggregate({ _sum: { balance: true } });
+  const since = await prisma.transaction.groupBy({
+    by: ['type'],
+    where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date } },
+    _sum: { amount: true },
+  });
+  const delta = since.reduce((sum, row) => sum + balanceDelta(row.type, row._sum.amount?.toNumber() ?? 0), 0);
+  return (total._sum.balance?.toNumber() ?? 0) - delta;
 }
 
 function buildTransactionWhere(query: TransactionListQuery): Prisma.TransactionWhereInput {
@@ -165,8 +220,8 @@ function buildTransactionWhere(query: TransactionListQuery): Prisma.TransactionW
   if (query.accountId) conditions.push({ accountId: query.accountId });
   if (query.entityType) conditions.push({ entityType: query.entityType });
   if (query.createdById) conditions.push({ createdById: query.createdById });
-  if (query.from) conditions.push({ occurredAt: { gte: dayStart(query.from) } });
-  if (query.to) conditions.push({ occurredAt: { lt: nextDayStart(query.to) } });
+  if (query.from) conditions.push({ occurredAt: { gte: businessDayStart(query.from) } });
+  if (query.to) conditions.push({ occurredAt: { lt: addDays(businessDayStart(query.to), 1) } });
 
   const search = query.search?.trim();
   if (search) {
@@ -399,7 +454,7 @@ export const financeService = {
     };
   },
 
-  /** Kunlik / haftalik / oylik pul oqimi (davr boshidan yig‘iladigan qoldiq bilan) */
+  /** Kunlik / haftalik / oylik pul oqimi (davr boshidan yig‘iladigan qoldiq va haqiqiy kassa qoldig‘i bilan) */
   async cashFlow(query: CashFlowQuery): Promise<CashFlowPointDto[]> {
     const { start, end } = resolveRange(query);
     const transactions = await prisma.transaction.findMany({
@@ -407,29 +462,41 @@ export const financeService = {
       select: { type: true, amount: true, occurredAt: true },
       orderBy: { occurredAt: 'asc' },
     });
+    // Kassa qoldig'i barcha yozuvlardan (o'tkazma va boshlang'ich qoldiq ham) hisoblanadi
+    const movements = await prisma.transaction.findMany({
+      where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: start, lt: end } },
+      select: { type: true, amount: true, occurredAt: true },
+    });
+    const openingCash = await cashBalanceAt(start);
 
     const monthLabels = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
-    const buckets = new Map<string, CashFlowPointDto>();
+    const buckets = new Map<string, CashFlowPointDto & { cashDelta: number }>();
 
+    // Guruhlash o'quv markaz sanasi bo'yicha: 31-avgust 20:00 UTC — bu 1-sentabr
     const keyOf = (date: Date): { key: string; label: string } => {
+      const local = businessDateString(date);
       if (query.period === 'month') {
-        const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`;
-        return { key, label: monthLabels[date.getUTCMonth()] ?? key };
+        const month = Number(local.slice(5, 7));
+        return { key: `${local.slice(0, 7)}-01`, label: monthLabels[month - 1] ?? local.slice(0, 7) };
       }
       if (query.period === 'week') {
         // Hafta dushanbadan boshlanadi
-        const day = (date.getUTCDay() + 6) % 7;
-        const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
+        const day = new Date(`${local}T00:00:00.000Z`);
+        const monday = addDays(day, -((day.getUTCDay() + 6) % 7));
         const key = toDateOnly(monday);
         return { key, label: key.slice(5) };
       }
-      const key = toDateOnly(date);
-      return { key, label: key.slice(5) };
+      return { key: local, label: local.slice(5) };
+    };
+    const bucketOf = (date: Date) => {
+      const { key, label } = keyOf(date);
+      const point = buckets.get(key) ?? { date: key, label, income: 0, expense: 0, net: 0, balance: 0, cashBalance: 0, cashDelta: 0 };
+      buckets.set(key, point);
+      return point;
     };
 
     for (const transaction of transactions) {
-      const { key, label } = keyOf(transaction.occurredAt);
-      const point = buckets.get(key) ?? { date: key, label, income: 0, expense: 0, net: 0, balance: 0 };
+      const point = bucketOf(transaction.occurredAt);
       const amount = transaction.amount.toNumber();
       if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER') {
         point.income += amount;
@@ -437,16 +504,150 @@ export const financeService = {
         point.expense += amount;
       }
       point.net = point.income - point.expense;
-      buckets.set(key, point);
+    }
+    for (const movement of movements) {
+      bucketOf(movement.occurredAt).cashDelta += balanceDelta(movement.type, movement.amount.toNumber());
     }
 
     let running = 0;
+    let cash = openingCash;
     return [...buckets.values()]
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map((point) => {
+      .map(({ cashDelta, ...point }) => {
         running += point.net;
-        return { ...point, balance: running };
+        cash += cashDelta;
+        return { ...point, balance: running, cashBalance: cash, hasMovement: point.income !== 0 || point.expense !== 0 || cashDelta !== 0 };
+      })
+      .filter((point) => point.hasMovement)
+      .map(({ hasMovement: _hasMovement, ...point }) => point);
+  },
+
+  /** Pul harakati hisoboti: davr boshidagi va oxiridagi qoldiq, kirim-chiqim tarkibi, kassalar kesimi, 30 kunlik prognoz */
+  async cashFlowStatement(query: FinanceRangeQuery): Promise<CashFlowStatementDto> {
+    const { start, end, from, to } = resolveRange(query);
+
+    const accounts = await prisma.financialAccount.findMany({
+      select: { id: true, name: true, type: true, isActive: true, balance: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    const deltaSince = async (date: Date) => {
+      const rows = await prisma.transaction.groupBy({
+        by: ['accountId', 'type'],
+        where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date } },
+        _sum: { amount: true },
       });
+      const byAccount = new Map<string, number>();
+      for (const row of rows) {
+        if (!row.accountId) continue;
+        byAccount.set(row.accountId, (byAccount.get(row.accountId) ?? 0) + balanceDelta(row.type, row._sum.amount?.toNumber() ?? 0));
+      }
+      return byAccount;
+    };
+    const sinceStart = await deltaSince(start);
+    const sinceEnd = await deltaSince(end);
+
+    const groups = await prisma.transaction.groupBy({
+      by: ['accountId', 'type', 'entityType'],
+      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end } },
+      _sum: { amount: true },
+    });
+
+    const inflow = { studentPayments: 0, otherIncome: 0, transfers: 0, other: 0, total: 0 };
+    const outflow = { expenses: 0, salaries: 0, refunds: 0, transfers: 0, other: 0, total: 0 };
+    const accountFlow = new Map<string, { inflow: number; outflow: number }>();
+    let unassigned = 0;
+
+    for (const group of groups) {
+      const amount = group._sum.amount?.toNumber() ?? 0;
+      const incoming = balanceDelta(group.type, amount) > 0;
+      if (group.entityType === 'transfer') {
+        if (incoming) inflow.transfers += amount;
+        else outflow.transfers += amount;
+      } else if (incoming) {
+        if (group.entityType === 'payment') inflow.studentPayments += amount;
+        else if (group.entityType === 'income') inflow.otherIncome += amount;
+        else inflow.other += amount;
+      } else if (group.type === 'REFUND') {
+        outflow.refunds += amount;
+      } else if (group.entityType === 'teacherSalaryPayment') {
+        outflow.salaries += amount;
+      } else if (group.entityType === 'expense') {
+        outflow.expenses += amount;
+      } else {
+        outflow.other += amount;
+      }
+
+      if (incoming) inflow.total += amount;
+      else outflow.total += amount;
+
+      if (group.accountId) {
+        const flow = accountFlow.get(group.accountId) ?? { inflow: 0, outflow: 0 };
+        if (incoming) flow.inflow += amount;
+        else flow.outflow += amount;
+        accountFlow.set(group.accountId, flow);
+      } else {
+        unassigned += incoming ? amount : -amount;
+      }
+    }
+
+    const accountRows = accounts
+      .map((account) => {
+        const balance = account.balance.toNumber();
+        const flow = accountFlow.get(account.id) ?? { inflow: 0, outflow: 0 };
+        return {
+          id: account.id,
+          name: account.name,
+          type: account.type,
+          isActive: account.isActive,
+          opening: balance - (sinceStart.get(account.id) ?? 0),
+          inflow: flow.inflow,
+          outflow: flow.outflow,
+          closing: balance - (sinceEnd.get(account.id) ?? 0),
+        };
+      })
+      // Faolsiz kassa faqat davrda qoldig'i yoki harakati bo'lsa ko'rsatiladi
+      .filter((row) => row.isActive || row.opening !== 0 || row.closing !== 0 || row.inflow !== 0 || row.outflow !== 0);
+
+    const openingBalance = accountRows.reduce((sum, row) => sum + row.opening, 0);
+    const closingBalance = accountRows.reduce((sum, row) => sum + row.closing, 0);
+
+    // Prognoz — tanlangan davrdan qat'i nazar bugundan boshlab
+    const horizon = addDays(startOfBusinessDay(), FORECAST_DAYS + 1);
+    const upcoming = await prisma.expense.aggregate({
+      where: { status: { in: ['UPCOMING', 'PENDING', 'APPROVED'] }, spentAt: { lt: horizon } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+    const salaries = await prisma.teacherSalaryPeriod.aggregate({
+      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 } },
+      _sum: { remainingAmount: true },
+    });
+    const debts = await prisma.debt.aggregate({ where: { remainingAmount: { gt: 0 } }, _sum: { remainingAmount: true } });
+    const currentBalance = accounts.filter((account) => account.isActive).reduce((sum, account) => sum + account.balance.toNumber(), 0);
+    const upcomingExpenses = upcoming._sum.amount?.toNumber() ?? 0;
+    const unpaidSalaries = salaries._sum.remainingAmount?.toNumber() ?? 0;
+
+    return {
+      from,
+      to,
+      openingBalance,
+      closingBalance,
+      netChange: closingBalance - openingBalance,
+      operatingNet: inflow.total - inflow.transfers - (outflow.total - outflow.transfers),
+      unassigned,
+      inflow,
+      outflow,
+      accounts: accountRows,
+      forecast: {
+        days: FORECAST_DAYS,
+        currentBalance,
+        upcomingExpenses,
+        upcomingExpenseCount: upcoming._count._all,
+        unpaidSalaries,
+        receivables: debts._sum.remainingAmount?.toNumber() ?? 0,
+        projectedBalance: currentBalance - upcomingExpenses - unpaidSalaries,
+      },
+    };
   },
 
   /** Kassadan kassaga o‘tkazma: ikkita yozuv (chiqim va kirim) */

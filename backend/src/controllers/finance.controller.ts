@@ -40,6 +40,11 @@ export const financeController = {
     sendSuccess(res, await financeService.cashFlow(query));
   },
 
+  async cashFlowStatement(req: Request, res: Response): Promise<void> {
+    const query = financeRangeQuerySchema.parse(req.query);
+    sendSuccess(res, await financeService.cashFlowStatement(query));
+  },
+
   async accounts(req: Request, res: Response): Promise<void> {
     const query = financeRangeQuerySchema.parse(req.query);
     sendSuccess(res, await financeService.accounts(query));

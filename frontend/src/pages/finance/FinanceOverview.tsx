@@ -15,6 +15,7 @@ import { formatMoney, formatNumber } from '@/utils/format';
 import { ACCOUNT_TYPE_LABELS } from '@/utils/financeLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { CashFlowChart } from './CashFlowChart';
+import { CashFlowStatementCard } from './CashFlowStatementCard';
 import { TransferModal } from './TransferModal';
 
 interface FinanceOverviewProps {
@@ -133,6 +134,8 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
           </div>
 
           <CashFlowChart range={range} period={period} onPeriodChange={setPeriod} />
+
+          <CashFlowStatementCard range={range} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>

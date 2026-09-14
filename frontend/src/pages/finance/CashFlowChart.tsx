@@ -77,7 +77,7 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value: number) => `${Math.round(value / 1_000_000)}mln`}
+                  tickFormatter={(value: number) => `${Math.round((value / 1_000_000) * 10) / 10}mln`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -92,8 +92,8 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area
                   type="monotone"
-                  dataKey="balance"
-                  name="Yig‘ilgan qoldiq"
+                  dataKey="cashBalance"
+                  name="Kassadagi qoldiq"
                   stroke={COLORS.balance}
                   strokeWidth={2}
                   fill="url(#cash-flow-balance)"

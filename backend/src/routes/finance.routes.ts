@@ -23,6 +23,7 @@ financeRouter.use(authenticate);
 
 financeRouter.get('/summary', financeView, financeController.summary);
 financeRouter.get('/cash-flow', financeView, financeController.cashFlow);
+financeRouter.get('/cash-flow/statement', financeView, financeController.cashFlowStatement);
 financeRouter.get('/accounts', financeView, financeController.accounts);
 financeRouter.post('/accounts', financeManage, financeController.createAccount);
 financeRouter.put('/accounts/:id', financeManage, financeController.updateAccount);

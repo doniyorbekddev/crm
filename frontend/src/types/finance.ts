@@ -64,6 +64,40 @@ export interface CashFlowPoint {
   expense: number;
   net: number;
   balance: number;
+  /** Davr oxiridagi haqiqiy kassa qoldig‘i */
+  cashBalance: number;
+}
+
+export interface CashFlowStatement {
+  from: string;
+  to: string;
+  openingBalance: number;
+  closingBalance: number;
+  netChange: number;
+  operatingNet: number;
+  /** Kassaga bog‘lanmagan yozuvlar — qoldiqqa ta’sir qilmaydi */
+  unassigned: number;
+  inflow: { studentPayments: number; otherIncome: number; transfers: number; other: number; total: number };
+  outflow: { expenses: number; salaries: number; refunds: number; transfers: number; other: number; total: number };
+  accounts: Array<{
+    id: string;
+    name: string;
+    type: AccountType;
+    isActive: boolean;
+    opening: number;
+    inflow: number;
+    outflow: number;
+    closing: number;
+  }>;
+  forecast: {
+    days: number;
+    currentBalance: number;
+    upcomingExpenses: number;
+    upcomingExpenseCount: number;
+    unpaidSalaries: number;
+    receivables: number;
+    projectedBalance: number;
+  };
 }
 
 export interface MoneyEntry {
