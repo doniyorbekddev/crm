@@ -3,6 +3,8 @@ import { formatStudentNumber } from '../config/studentLabels.js';
 import type { DebtStatus, Prisma } from '../generated/prisma/client.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { DebtListQuery, DebtRange } from '../validators/payment.validator.js';
+import { scheduleDueStats } from './paymentSchedule.service.js';
+import type { StudentDueStats } from './paymentSchedule.service.js';
 
 const debtSelect = {
   totalAmount: true,
@@ -50,6 +52,8 @@ export interface DebtDto {
   /** Oxirgi to‘lov (bo‘lmasa null) */
   lastPayment: { paidAt: string; amount: number } | null;
   startDate: string;
+  /** To‘lov jadvali bo‘yicha holat; jadval tuzilmagan bo‘lsa null */
+  schedule: { overdueAmount: number; overdueDays: number; nextDueDate: string | null } | null;
 }
 
 export interface DebtSummaryDto {
@@ -59,6 +63,10 @@ export interface DebtSummaryDto {
   totalContracts: number;
   students: number;
   byRange: Record<Exclude<DebtRange, 'all'>, { students: number; remaining: number }>;
+  /** Jadval bo‘yicha muddati o‘tganlar */
+  overdue: { students: number; amount: number };
+  /** Yaqin 7 kunda (bugun ham) to‘lanishi kerak bo‘lganlar */
+  upcoming: { students: number; amount: number };
 }
 
 /** Qarz oraliqlari — buxgalter uchun odatiy kesim */
@@ -69,7 +77,7 @@ const RANGE_FILTERS: Record<Exclude<DebtRange, 'all'>, Prisma.DebtWhereInput> = 
   '1m-plus': { remainingAmount: { gt: 1_000_000 } },
 };
 
-function toDebtDto(debt: DebtRecord): DebtDto {
+function toDebtDto(debt: DebtRecord, stats: StudentDueStats | undefined): DebtDto {
   const lastPayment = debt.student.payments[0];
   return {
     studentId: debt.student.id,
@@ -86,6 +94,7 @@ function toDebtDto(debt: DebtRecord): DebtDto {
     status: debt.status,
     lastPayment: lastPayment ? { paidAt: lastPayment.paidAt.toISOString(), amount: lastPayment.amount.toNumber() } : null,
     startDate: debt.student.startDate.toISOString().slice(0, 10),
+    schedule: stats ? { overdueAmount: stats.overdueAmount, overdueDays: stats.overdueDays, nextDueDate: stats.nextDueDate } : null,
   };
 }
 
@@ -131,7 +140,15 @@ function buildOrderBy(
 
 export const debtService = {
   async list(query: DebtListQuery): Promise<{ items: DebtDto[]; total: number }> {
-    const where = buildDebtWhere(query);
+    const now = new Date();
+    let where = buildDebtWhere(query);
+    if (query.due !== 'all') {
+      const stats = await scheduleDueStats(now);
+      const ids = [...stats]
+        .filter(([, item]) => (query.due === 'overdue' ? item.overdueAmount > 0 : item.upcomingAmount > 0))
+        .map(([studentId]) => studentId);
+      where = { AND: [where, { studentId: { in: ids } }] };
+    }
     const items = await prisma.debt.findMany({
       where,
       select: debtSelect,
@@ -140,7 +157,11 @@ export const debtService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.debt.count({ where });
-    return { items: items.map(toDebtDto), total };
+    const pageStats = await scheduleDueStats(
+      now,
+      items.map((item) => item.student.id),
+    );
+    return { items: items.map((item) => toDebtDto(item, pageStats.get(item.student.id))), total };
   },
 
   /** Umumiy qarzdorlik va oraliqlar kesimi (ro‘yxat filtrlarini hisobga oladi, `range` dan tashqari) */
@@ -166,7 +187,23 @@ export const debtService = {
       };
     }
 
+    const studentIds = (await prisma.debt.findMany({ where: baseWhere, select: { studentId: true } })).map((row) => row.studentId);
+    const overdue = { students: 0, amount: 0 };
+    const upcoming = { students: 0, amount: 0 };
+    for (const item of (await scheduleDueStats(new Date(), studentIds)).values()) {
+      if (item.overdueAmount > 0) {
+        overdue.students += 1;
+        overdue.amount += item.overdueAmount;
+      }
+      if (item.upcomingAmount > 0) {
+        upcoming.students += 1;
+        upcoming.amount += item.upcomingAmount;
+      }
+    }
+
     return {
+      overdue,
+      upcoming,
       totalRemaining: aggregate._sum.remainingAmount?.toNumber() ?? 0,
       totalPaid: aggregate._sum.paidAmount?.toNumber() ?? 0,
       totalContracts: aggregate._sum.totalAmount?.toNumber() ?? 0,

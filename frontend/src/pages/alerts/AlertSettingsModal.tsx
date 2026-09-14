@@ -24,6 +24,7 @@ interface NumberField {
 const THRESHOLD_FIELDS: readonly NumberField[] = [
   { key: 'debtSharePercent', label: 'Katta qarz', hint: 'shartnomaning kamida shu qismi to‘lanmagan', suffix: '%' },
   { key: 'debtGraceDays', label: 'Qarz uchun kutish', hint: 'o‘qish boshlanganidan keyin', suffix: 'kun' },
+  { key: 'paymentOverdueDays', label: 'To‘lov kechikishi', hint: 'jadvaldagi muddatdan shuncha kun o‘tsa', suffix: 'kun' },
   { key: 'dropoutAbsences', label: 'Chiqib ketish xavfi', hint: 'ketma-ket sababsiz qoldirilgan darslar', suffix: 'ta' },
   { key: 'attendanceWarning', label: 'Past davomat', hint: 'shundan past — o‘rta muhimlik', suffix: '%' },
   { key: 'attendanceCritical', label: 'Juda past davomat', hint: 'shundan past — yuqori muhimlik', suffix: '%' },

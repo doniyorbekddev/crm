@@ -13,7 +13,8 @@ export type AlertType =
   | 'DROPOUT_INCREASE'
   | 'CASH_SHORTAGE'
   | 'PENDING_EXPENSE_APPROVAL'
-  | 'DOCUMENT_EXPIRING';
+  | 'DOCUMENT_EXPIRING'
+  | 'PAYMENT_OVERDUE';
 export type AlertSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 /** Kritik — yuqori, ogohlantirish — o‘rta, ma’lumot va yutuq — past */
 export type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -109,6 +110,7 @@ export interface AlertSettings {
   dropoutIncreaseMin: number;
   expenseApprovalDays: number;
   documentExpiryDays: number;
+  paymentOverdueDays: number;
   digestEnabled: boolean;
   digestHour: number;
   updatedAt: string | null;

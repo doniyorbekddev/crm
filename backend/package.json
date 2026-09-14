@@ -20,6 +20,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:backfill-schedules": "tsx prisma/backfillPaymentSchedules.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "test:unit": "vitest run tests/unit",

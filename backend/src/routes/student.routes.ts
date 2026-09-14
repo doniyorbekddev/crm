@@ -2,9 +2,10 @@ import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceAnalyticsController } from '../controllers/attendanceSession.controller.js';
 import { parentController } from '../controllers/parent.controller.js';
+import { paymentScheduleController } from '../controllers/paymentSchedule.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
-import { requirePermission } from '../middleware/requirePermission.js';
+import { requireAnyPermission, requirePermission } from '../middleware/requirePermission.js';
 import { heavyLimiter } from '../middleware/rateLimiter.js';
 
 export const studentRouter = Router();
@@ -21,6 +22,9 @@ studentRouter.get('/:id/exams', requirePermission(PERMISSIONS.EXAM_VIEW), studen
 studentRouter.get('/:id/parents', requirePermission(PERMISSIONS.PARENT_VIEW), parentController.forStudent);
 studentRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), studentController.attendanceHistory);
 studentRouter.get('/:id/attendance/calendar', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceAnalyticsController.calendar);
+studentRouter.get('/:id/payment-schedule', requireAnyPermission(PERMISSIONS.DEBT_VIEW, PERMISSIONS.PAYMENT_VIEW), paymentScheduleController.get);
+studentRouter.post('/:id/payment-schedule/generate', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.generate);
+studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.replace);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);
 studentRouter.patch('/:id/status', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.setStatus);

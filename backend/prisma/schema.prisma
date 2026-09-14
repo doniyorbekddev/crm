@@ -603,6 +603,7 @@ model Student {
   examResults       ExamResult[]
   progressSnapshots StudentProgressSnapshot[]
   incomes           Income[]
+  installments      PaymentInstallment[]
 
   @@index([courseId])
   @@index([groupId])
@@ -637,6 +638,26 @@ model Debt {
   @@index([remainingAmount])
   @@index([status])
   @@map("debts")
+}
+
+/// To‘lov jadvali: shartnoma summasining muddatli qismlari. Holat saqlanmaydi — Debt.paidAmount
+/// qismlarga muddat tartibida taqsimlanib hisoblanadi (bekor qilish va qaytarish jadvalga o‘zi ta’sir qiladi).
+model PaymentInstallment {
+  id        String   @id @default(cuid())
+  studentId String
+  sequence  Int      @db.SmallInt
+  dueDate   DateTime @db.Date
+  amount    Decimal  @db.Decimal(14, 2)
+  note      String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sequence])
+  @@index([studentId, dueDate])
+  @@index([dueDate])
+  @@map("payment_installments")
 }
 
 model Payment {
@@ -954,6 +975,7 @@ enum AlertType {
   CASH_SHORTAGE
   PENDING_EXPENSE_APPROVAL
   DOCUMENT_EXPIRING
+  PAYMENT_OVERDUE
 }
 
 enum AlertSeverity {

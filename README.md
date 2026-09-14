@@ -165,6 +165,16 @@ Root’dan: `npm run db:migrate`, `npm run db:deploy`. Bazani tozalab qaytadan y
 Birinchi migratsiyada `pg_trgm` kengaytmasi (tez qidiruv) va biznes qoidalari uchun CHECK constraintlar
 (masalan, to‘lov summasi > 0, chegirma ≤ narx) qo‘lda qo‘shilgan.
 
+**To‘lov jadvali** migratsiyasidan keyin mavjud o‘quvchilarga jadval tuzish (bir marta; faqat jadvali yo‘q
+o‘quvchilarga yoziladi, takror ishga tushirish xavfsiz, hech narsa o‘chirilmaydi):
+
+```bash
+cd backend && npm run db:backfill-schedules
+```
+
+Jadval kurs davomiyligi bo‘yicha oylik, birinchi muddat — o‘qish boshlangan kun. Keyin o‘quvchi profilidagi
+«To‘lov jadvali» bo‘limida qayta tuzish yoki qo‘lda tahrirlash mumkin. Yangi o‘quvchilarga jadval avtomatik tuziladi.
+
 ## 8. Seed
 
 ```bash

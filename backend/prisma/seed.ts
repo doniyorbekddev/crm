@@ -29,6 +29,7 @@ import type {
 } from '../src/generated/prisma/client.js';
 
 import { seedAcademyModules } from './academySeed.js';
+import { backfillPaymentSchedules } from './paymentScheduleBackfill.js';
 
 config({ quiet: true });
 
@@ -1144,6 +1145,7 @@ async function main(): Promise<void> {
   const groups = await seedGroups(users, courses);
   await seedSettings(users.admin.id);
   await seedDemoData({ users, sourceIdByKey, courses, groups });
+  log(`✔ ${await backfillPaymentSchedules(prisma)} ta o‘quvchiga to‘lov jadvali`);
   await seedAcademyModules(prisma, log);
 
   log('\nSeed yakunlandi. Kirish ma’lumotlari:');

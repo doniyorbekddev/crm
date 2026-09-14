@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
+import { DEBT_DUE_FILTERS } from './paymentSchedule.validator.js';
 
 export const PAYMENT_METHODS = ['CASH', 'CARD', 'CLICK', 'PAYME', 'UZUM', 'BANK', 'OTHER'] as const;
 export const DEBT_RANGES = ['all', 'zero', 'upto500k', '500k-1m', '1m-plus'] as const;
@@ -79,6 +80,8 @@ export const debtListQuerySchema = paginationQuerySchema.extend({
   courseId: idSchema.optional(),
   groupId: idSchema.optional(),
   sortBy: z.enum(['remaining', 'name', 'startDate']).default('remaining'),
+  /** To‘lov jadvali bo‘yicha: muddati o‘tgan yoki yaqin kunlarda to‘lanishi kerak */
+  due: z.enum(DEBT_DUE_FILTERS, 'Muddat filtri noto‘g‘ri').default('all'),
 });
 
 export const paymentStatsQuerySchema = z.object({

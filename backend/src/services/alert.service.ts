@@ -13,6 +13,7 @@ import type { AlertListQuery, AlertSettingsInput, ResolveAlertInput } from '../v
 import { auditService } from './audit.service.js';
 import { financeService } from './finance.service.js';
 import { computeTargetProgress } from './target.service.js';
+import { scheduleDueStats } from './paymentSchedule.service.js';
 
 /**
  * Avtomatik ogohlantirishlar.
@@ -51,6 +52,8 @@ export interface AlertSettings {
   expenseApprovalDays: number;
   /** Shartnoma/pasport muddati tugashidan necha kun oldin ogohlantirish */
   documentExpiryDays: number;
+  /** To‘lov jadvaldagi muddatidan shuncha kun kechiksa ogohlantirish */
+  paymentOverdueDays: number;
   digestEnabled: boolean;
   digestHour: number;
 }
@@ -77,6 +80,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
   dropoutIncreaseMin: 3,
   expenseApprovalDays: 3,
   documentExpiryDays: 30,
+  paymentOverdueDays: 3,
   digestEnabled: true,
   digestHour: 8,
 };
@@ -99,6 +103,7 @@ const CONDITION_TYPES: readonly AlertType[] = [
   'CASH_SHORTAGE',
   'PENDING_EXPENSE_APPROVAL',
   'DOCUMENT_EXPIRING',
+  'PAYMENT_OVERDUE',
 ];
 
 interface AlertCandidate {
@@ -699,6 +704,34 @@ const documentExpiringRule: Rule = async (now, settings) => {
   });
 };
 
+/** To‘lov jadvali bo‘yicha kechikkan o‘quvchilar — bitta umumiy alert (har o‘quvchiga alohida emas) */
+const paymentOverdueRule: Rule = async (now, settings) => {
+  const late = [...(await scheduleDueStats(now))].filter(([, item]) => item.overdueDays >= settings.paymentOverdueDays);
+  if (late.length === 0) return [];
+  const active = await prisma.student.findMany({
+    where: { id: { in: late.map(([studentId]) => studentId) }, status: { in: ['ACTIVE', 'FROZEN'] } },
+    select: { id: true },
+  });
+  const activeIds = new Set(active.map((student) => student.id));
+  const rows = late.filter(([studentId]) => activeIds.has(studentId)).map(([, item]) => item);
+  if (rows.length === 0) return [];
+
+  const amount = rows.reduce((sum, item) => sum + item.overdueAmount, 0);
+  const maxDays = rows.reduce((max, item) => Math.max(max, item.overdueDays), 0);
+  return [
+    {
+      type: 'PAYMENT_OVERDUE' as const,
+      severity: maxDays >= 30 ? ('CRITICAL' as const) : ('WARNING' as const),
+      title: `Muddati o‘tgan to‘lovlar: ${rows.length} ta o‘quvchi`,
+      message: `Jami ${money(amount)} to‘lov jadvaldagi muddatidan ${settings.paymentOverdueDays} kun va undan ko‘p kechikkan; eng uzoq kechikish — ${maxDays} kun.`,
+      entityType: 'debt',
+      entityId: null,
+      dedupeKey: 'payment-overdue',
+      metadata: { students: rows.length, amount, maxDays },
+    },
+  ];
+};
+
 const RULES: ReadonlyArray<[AlertType, Rule]> = [
   ['HIGH_DEBT', highDebtRule],
   ['HIGH_DROPOUT', dropoutRule],
@@ -713,6 +746,7 @@ const RULES: ReadonlyArray<[AlertType, Rule]> = [
   ['CASH_SHORTAGE', cashShortageRule],
   ['PENDING_EXPENSE_APPROVAL', pendingApprovalRule],
   ['DOCUMENT_EXPIRING', documentExpiringRule],
+  ['PAYMENT_OVERDUE', paymentOverdueRule],
 ];
 
 /** Kritik alert — alert.view ruxsati bor xodimlarga; reja bajarilgani — managerning o‘ziga */

@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HandCoins, Phone, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -18,10 +19,12 @@ import { queryKeys } from '@/lib/queryKeys';
 import { paymentsService, debtsService } from '@/services/payments.service';
 import { studentsService } from '@/services/students.service';
 import type { DebtItem, DebtListParams, DebtRange, DebtSummaryParams } from '@/types/payment';
+import type { DebtDueFilter } from '@/types/paymentSchedule';
 import type { StudentItem } from '@/types/student';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { DEBT_RANGE_LABELS, DEBT_RANGE_ORDER } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { DEBT_DUE_LABELS, DEBT_DUE_ORDER } from '@/utils/scheduleLabels';
 import { DEBT_STATUS_LABELS, DEBT_STATUS_TONES } from '@/utils/studentLabels';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 
@@ -41,6 +44,7 @@ export default function DebtsPage() {
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
   const [range, setRange] = useState<DebtRange>('all');
+  const [due, setDue] = useState<DebtDueFilter>('all');
   const [courseId, setCourseId] = useState('');
   const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('remaining:desc');
   const [page, setPage] = useState(1);
@@ -52,7 +56,7 @@ export default function DebtsPage() {
     ...(search ? { search } : {}),
     ...(courseId ? { courseId } : {}),
   };
-  const params: DebtListParams = { ...filters, page, limit: PAGE_SIZE, range, sortBy, sortOrder };
+  const params: DebtListParams = { ...filters, page, limit: PAGE_SIZE, range, sortBy, sortOrder, due };
 
   const debtsQuery = useQuery({
     queryKey: queryKeys.debts.list(params),
@@ -97,11 +101,20 @@ export default function DebtsPage() {
       <PageHeader title="Qarzdorlik" description="Shartnoma bo‘yicha qolgan summalar va oxirgi to‘lovlar" />
 
       {summary && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <Card className="p-4">
             <p className="text-xs text-fg-muted">Umumiy qarz</p>
             <p className="mt-1 text-xl font-semibold text-red-600 dark:text-red-400">{formatMoney(summary.totalRemaining)}</p>
             <p className="mt-1 text-xs text-fg-muted">{formatNumber(summary.students)} ta o‘quvchi</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs text-fg-muted">Muddati o‘tgan</p>
+            <p className={cn('mt-1 text-xl font-semibold', summary.overdue.amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+              {formatMoney(summary.overdue.amount)}
+            </p>
+            <p className="mt-1 text-xs text-fg-muted">
+              {formatNumber(summary.overdue.students)} ta o‘quvchi · 7 kunda {formatMoney(summary.upcoming.amount)}
+            </p>
           </Card>
           <Card className="p-4">
             <p className="text-xs text-fg-muted">Yig‘ilgan to‘lov</p>
@@ -152,6 +165,44 @@ export default function DebtsPage() {
             })}
           </div>
 
+          <div role="tablist" aria-label="To‘lov muddati" className="-mx-1 flex gap-1 overflow-x-auto px-1">
+            {DEBT_DUE_ORDER.map((item) => {
+              const active = due === item;
+              const count = item === 'overdue' ? summary?.overdue.students : item === 'upcoming' ? summary?.upcoming.students : undefined;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => changeFilter(() => setDue(item))}
+                  className={cn(
+                    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
+                    active
+                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
+                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                  )}
+                >
+                  {DEBT_DUE_LABELS[item]}
+                  {count !== undefined && (
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 tabular-nums',
+                        active
+                          ? 'bg-brand-100 dark:bg-brand-900'
+                          : item === 'overdue' && count > 0
+                            ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+                            : 'bg-surface-muted',
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row">
             <SearchInput
               value={searchInput}
@@ -188,7 +239,7 @@ export default function DebtsPage() {
         </div>
 
         {debtsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
+          <TableSkeleton rows={6} columns={7} />
         ) : debtsQuery.isError ? (
           <ErrorState error={debtsQuery.error} retrying={debtsQuery.isFetching} onRetry={() => void debtsQuery.refetch()} />
         ) : debtsQuery.data.items.length === 0 ? (
@@ -204,6 +255,7 @@ export default function DebtsPage() {
                     <TH>Shartnoma</TH>
                     <TH>To‘langan</TH>
                     <TH>Qolgan</TH>
+                    <TH>Jadval</TH>
                     <TH>Oxirgi to‘lov</TH>
                     {canCreatePayment && (
                       <TH className="w-32">
@@ -216,9 +268,9 @@ export default function DebtsPage() {
                   {debtsQuery.data.items.map((debt) => (
                     <TR key={debt.studentId}>
                       <TD>
-                        <p className="font-medium text-fg">
+                        <Link to={`/students/${debt.studentId}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
                           {debt.firstName} {debt.lastName}
-                        </p>
+                        </Link>
                         <p className="flex items-center gap-1 text-xs text-fg-muted">
                           <Phone className="size-3" aria-hidden />
                           {formatPhone(debt.phone)}
@@ -236,6 +288,23 @@ export default function DebtsPage() {
                           {formatMoney(debt.remaining)}
                         </p>
                         <Badge tone={DEBT_STATUS_TONES[debt.status]}>{DEBT_STATUS_LABELS[debt.status]}</Badge>
+                      </TD>
+                      <TD className="whitespace-nowrap">
+                        {!debt.schedule ? (
+                          <span className="text-xs text-fg-subtle">Jadval yo‘q</span>
+                        ) : debt.schedule.overdueAmount > 0 ? (
+                          <>
+                            <Badge tone="red">{debt.schedule.overdueDays} kun kechikdi</Badge>
+                            <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{formatMoney(debt.schedule.overdueAmount)}</p>
+                          </>
+                        ) : debt.schedule.nextDueDate ? (
+                          <>
+                            <p className="text-fg">{formatDate(debt.schedule.nextDueDate)}</p>
+                            <p className="text-xs text-fg-muted">keyingi to‘lov</p>
+                          </>
+                        ) : (
+                          <span className="text-xs text-fg-muted">To‘liq to‘langan</span>
+                        )}
                       </TD>
                       <TD className="whitespace-nowrap text-fg-muted">
                         {debt.lastPayment ? (

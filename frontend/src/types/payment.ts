@@ -1,3 +1,4 @@
+import type { DebtDueFilter } from './paymentSchedule';
 import type { PersonRef } from './lead';
 import type { DebtStatus } from './student';
 
@@ -101,6 +102,8 @@ export interface DebtItem {
   status: DebtStatus;
   lastPayment: { paidAt: string; amount: number } | null;
   startDate: string;
+  /** To‘lov jadvali bo‘yicha holat; jadval tuzilmagan bo‘lsa null */
+  schedule: { overdueAmount: number; overdueDays: number; nextDueDate: string | null } | null;
 }
 
 export interface DebtListParams {
@@ -112,9 +115,10 @@ export interface DebtListParams {
   groupId?: string;
   sortBy?: 'remaining' | 'name' | 'startDate';
   sortOrder?: 'asc' | 'desc';
+  due?: DebtDueFilter;
 }
 
-export type DebtSummaryParams = Omit<DebtListParams, 'page' | 'limit' | 'range'>;
+export type DebtSummaryParams = Omit<DebtListParams, 'page' | 'limit' | 'range' | 'due'>;
 
 export interface DebtSummary {
   totalRemaining: number;
@@ -122,6 +126,9 @@ export interface DebtSummary {
   totalContracts: number;
   students: number;
   byRange: Record<Exclude<DebtRange, 'all'>, { students: number; remaining: number }>;
+  overdue: { students: number; amount: number };
+  /** Yaqin 7 kunda (bugun ham) to‘lanishi kerak */
+  upcoming: { students: number; amount: number };
 }
 
 export interface PaymentFormLookups {

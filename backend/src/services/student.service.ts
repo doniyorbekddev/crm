@@ -21,6 +21,7 @@ import { permissionService } from './permission.service.js';
 import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
+import { createDefaultSchedule } from './paymentSchedule.service.js';
 
 const studentSelect = {
   id: true,
@@ -345,6 +346,9 @@ export const studentService = {
         },
         select: studentSelect,
       });
+      // Standart to'lov jadvali: kurs davomiyligi bo'yicha oylik qismlar (keyin qo'lda o'zgartiriladi)
+      const course = await tx.course.findUniqueOrThrow({ where: { id: input.courseId }, select: { durationMonths: true } });
+      await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate: input.startDate });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'student.created',
@@ -533,6 +537,9 @@ export const studentService = {
         },
         select: { id: true, number: true },
       });
+
+      const course = await tx.course.findUniqueOrThrow({ where: { id: courseId }, select: { durationMonths: true } });
+      await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate });
 
       await tx.lead.update({ where: { id: lead.id }, data: { status: 'WON', convertedAt: new Date() } });
 

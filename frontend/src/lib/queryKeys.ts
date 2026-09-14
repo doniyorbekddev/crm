@@ -83,6 +83,7 @@ export const queryKeys = {
     homework: (id: string) => ['students', 'homework', id] as const,
     exams: (id: string) => ['students', 'exams', id] as const,
     parents: (id: string) => ['students', 'parents', id] as const,
+    paymentSchedule: (id: string) => ['students', 'payment-schedule', id] as const,
   },
   parents: {
     all: ['parents'] as const,

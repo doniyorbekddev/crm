@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Award, BookOpenCheck, CalendarCheck, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
+import { ArrowLeft, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -19,9 +19,10 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { STUDENT_STATUS_LABELS, STUDENT_STATUS_TONES } from '@/utils/studentLabels';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { ParentsTab } from './profile/ParentsTab';
+import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type Tab = 'overview' | 'parents' | 'homework' | 'exams' | 'payments' | 'achievements' | 'activity';
+type Tab = 'overview' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
 
 export default function StudentProfilePage() {
   const { id = '' } = useParams();
@@ -29,6 +30,8 @@ export default function StudentProfilePage() {
   const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
   const canViewParents = usePermission(PERMISSIONS.PARENT_VIEW);
+  const canViewDebts = usePermission(PERMISSIONS.DEBT_VIEW);
+  const canViewPayments = usePermission(PERMISSIONS.PAYMENT_VIEW);
   const [tab, setTab] = useState<Tab>('overview');
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -77,6 +80,7 @@ export default function StudentProfilePage() {
     ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifasi', icon: BookOpenCheck }] : []),
     ...(canViewExams ? [{ value: 'exams' as const, label: 'Imtihonlar', icon: FileCheck }] : []),
     ...(profile.payments ? [{ value: 'payments' as const, label: 'To‘lovlar', icon: Wallet }] : []),
+    ...(canViewDebts || canViewPayments ? [{ value: 'schedule' as const, label: 'To‘lov jadvali', icon: CalendarClock }] : []),
     { value: 'achievements', label: 'Yutuqlar', icon: Award },
     { value: 'activity', label: 'Faollik', icon: History },
   ];
@@ -179,6 +183,7 @@ export default function StudentProfilePage() {
       {tab === 'homework' && <HomeworkTab studentId={student.id} />}
       {tab === 'exams' && <ExamsTab studentId={student.id} />}
       {tab === 'payments' && <PaymentsTab studentId={student.id} />}
+      {tab === 'schedule' && <PaymentScheduleTab studentId={student.id} startDate={student.startDate} />}
       {tab === 'achievements' && <AchievementsTab profile={profile} />}
       {tab === 'activity' && <ActivityTab profile={profile} />}
 
