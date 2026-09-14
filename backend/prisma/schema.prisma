@@ -209,6 +209,7 @@ model User {
   updatedSettings     Setting[]
 
   // O'quv markaz modullari
+  preferences              UserPreference[]
   teacherProfile           TeacherProfile?
   taughtSessions           AttendanceSession[]    @relation("SessionTeacher")
   markedSessions           AttendanceSession[]    @relation("SessionMarkedBy")
@@ -783,6 +784,20 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+/// Xodimning shaxsiy sozlamalari (dashboard vidjetlari tartibi va boshqalar). Kalit — ruxsat etilganlar ro‘yxatidan
+model UserPreference {
+  userId    String
+  key       String   @db.VarChar(100)
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, key])
+  @@map("user_preferences")
 }
 
 model AuditLog {

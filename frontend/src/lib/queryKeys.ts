@@ -116,6 +116,7 @@ export const queryKeys = {
     list: (params: NotificationListParams) => ['notifications', 'list', params] as const,
     summary: ['notifications', 'summary'] as const,
   },
+  preferences: ['preferences'] as const,
   activity: {
     all: ['activity'] as const,
     feed: (params: Omit<ActivityParams, 'cursor'>) => ['activity', 'feed', params] as const,

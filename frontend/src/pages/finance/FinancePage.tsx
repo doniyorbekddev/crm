@@ -1,8 +1,8 @@
 import { BarChart3, Lock, ScrollText, Target, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
+import type { DateRangeValue } from '@/components/DateRangePicker';
 import { PageHeader } from '@/components/PageHeader';
-import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import type { FinanceRangeParams } from '@/types/finance';
@@ -18,10 +18,9 @@ type Tab = 'overview' | 'pnl' | 'transactions' | 'budget' | 'periods';
 export default function FinancePage() {
   const canViewBudget = usePermission(PERMISSIONS.FINANCE_VIEW);
   const [tab, setTab] = useState<Tab>('overview');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-
-  const range: FinanceRangeParams = { ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  const [rangeValue, setRangeValue] = useState<DateRangeValue>({ preset: 'this_month', custom: { from: '', to: '' } });
+  // Oraliq to'liq tanlanmaguncha server standart davri (joriy oy) ko'rsatiladi
+  const range: FinanceRangeParams = dateRangeParams(rangeValue) ?? {};
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: typeof BarChart3 }> = [
     { value: 'overview', label: 'Panel', icon: BarChart3 },
@@ -66,23 +65,7 @@ export default function FinancePage() {
         </div>
 
         {tab !== 'budget' && tab !== 'periods' && (
-          <Card className="flex items-center gap-2 p-2 sm:ml-auto">
-            <Input
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-              aria-label="Boshlanish sanasi"
-              className="h-9 w-40"
-            />
-            <span className="text-fg-subtle">—</span>
-            <Input
-              type="date"
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
-              aria-label="Tugash sanasi"
-              className="h-9 w-40"
-            />
-          </Card>
+          <DateRangePicker value={rangeValue} onChange={setRangeValue} className="sm:ml-auto" />
         )}
       </div>
 

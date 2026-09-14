@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useState } from 'react';
+import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
+import type { DateRangeValue } from '@/components/DateRangePicker';
 import { ExportMenu } from '@/components/ExportMenu';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -13,44 +15,13 @@ import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { analyticsService } from '@/services/analytics.service';
-import type { AnalyticsRangeParams, ProfitabilityDimension, UnitEconomics } from '@/types/analytics';
+import type { ProfitabilityDimension, UnitEconomics } from '@/types/analytics';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
 // ---------------------------------------------------------------------
 // Davr
 // ---------------------------------------------------------------------
-
-type Preset = 'last30' | 'month' | 'previousMonth' | 'quarter' | 'year';
-
-const PRESETS: ReadonlyArray<{ value: Preset; label: string }> = [
-  { value: 'last30', label: 'So‘nggi 30 kun' },
-  { value: 'month', label: 'Shu oy' },
-  { value: 'previousMonth', label: 'O‘tgan oy' },
-  { value: 'quarter', label: 'So‘nggi 3 oy' },
-  { value: 'year', label: 'So‘nggi 12 oy' },
-];
-
-const pad = (value: number) => String(value).padStart(2, '0');
-const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-function rangeFor(preset: Preset): Required<AnalyticsRangeParams> {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  switch (preset) {
-    case 'last30':
-      return { from: toDateString(new Date(year, month, today.getDate() - 29)), to: toDateString(today) };
-    case 'month':
-      return { from: toDateString(new Date(year, month, 1)), to: toDateString(today) };
-    case 'previousMonth':
-      return { from: toDateString(new Date(year, month - 1, 1)), to: toDateString(new Date(year, month, 0)) };
-    case 'quarter':
-      return { from: toDateString(new Date(year, month - 2, 1)), to: toDateString(today) };
-    case 'year':
-      return { from: toDateString(new Date(year, month - 11, 1)), to: toDateString(today) };
-  }
-}
 
 const DIMENSIONS: ReadonlyArray<{ value: ProfitabilityDimension; label: string; column: string }> = [
   { value: 'course', label: 'Kurslar', column: 'Kurs' },
@@ -120,16 +91,19 @@ function retentionStyle(value: number): React.CSSProperties {
 export default function AnalyticsPage() {
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
-  const [preset, setPreset] = useState<Preset>('quarter');
+  const [rangeValue, setRangeValue] = useState<DateRangeValue>({ preset: 'this_quarter', custom: { from: '', to: '' } });
   const [dimension, setDimension] = useState<ProfitabilityDimension>('course');
   const [months, setMonths] = useState<number>(6);
-  const range = rangeFor(preset);
+  const rangeParams = dateRangeParams(rangeValue);
+  const rangeReady = rangeParams !== null;
+  const range = rangeParams ?? {};
 
-  const unitQuery = useQuery({ queryKey: queryKeys.analytics.unitEconomics(range), queryFn: () => analyticsService.unitEconomics(range) });
+  const unitQuery = useQuery({ queryKey: queryKeys.analytics.unitEconomics(range), queryFn: () => analyticsService.unitEconomics(range) , enabled: rangeReady });
   const profitabilityParams = { ...range, dimension };
   const profitabilityQuery = useQuery({
     queryKey: queryKeys.analytics.profitability(profitabilityParams),
     queryFn: () => analyticsService.profitability(profitabilityParams),
+    enabled: rangeReady,
     placeholderData: (previous) => previous,
   });
   const cohortQuery = useQuery({
@@ -137,7 +111,7 @@ export default function AnalyticsPage() {
     queryFn: () => analyticsService.cohorts(months),
     placeholderData: (previous) => previous,
   });
-  const sourcesQuery = useQuery({ queryKey: queryKeys.analytics.sources(range), queryFn: () => analyticsService.sources(range) });
+  const sourcesQuery = useQuery({ queryKey: queryKeys.analytics.sources(range), queryFn: () => analyticsService.sources(range) , enabled: rangeReady });
 
   const dimensionConfig = DIMENSIONS.find((item) => item.value === dimension) ?? DIMENSIONS[0]!;
   const profitability = profitabilityQuery.data;
@@ -152,15 +126,7 @@ export default function AnalyticsPage() {
         title="Analitika"
         description="Unit economics, rentabellik, o‘quvchilar kohortlari va lead manbalari"
         documentTitle="Analitika"
-        actions={
-          <Select value={preset} onChange={(event) => setPreset(event.target.value as Preset)} aria-label="Davr" wrapperClassName="w-44">
-            {PRESETS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </Select>
-        }
+        actions={<DateRangePicker value={rangeValue} onChange={setRangeValue} />}
       />
 
       <div className="space-y-4">

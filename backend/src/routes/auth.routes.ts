@@ -17,6 +17,8 @@ authRouter.post('/refresh', authController.refresh);
 authRouter.post('/logout', authController.logout);
 authRouter.post('/logout-all', authenticate, authController.logoutAll);
 authRouter.get('/me', authenticate, authController.me);
+authRouter.get('/me/preferences', authenticate, authController.preferences);
+authRouter.put('/me/preferences/:key', authenticate, authController.savePreference);
 authRouter.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
 authRouter.post('/reset-password', authLimiter, authController.resetPassword);
 authRouter.patch('/change-password', authenticate, authController.changePassword);

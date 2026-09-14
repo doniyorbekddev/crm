@@ -19,22 +19,27 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
+import type { DateRangeValue } from '@/components/DateRangePicker';
 import { PageHeader } from '@/components/PageHeader';
+import { WidgetLayoutPanel } from '@/components/WidgetLayoutPanel';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { usePreference } from '@/hooks/usePreference';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { dashboardService } from '@/services/dashboard.service';
 import type { ExecutiveChangeKey, ExecutiveHealth, ExecutiveParams, ExecutiveSummary, HealthStatus } from '@/types/dashboard';
+import type { DateRangePreset } from '@/utils/dateRange';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
+import { WIDGET_SPAN_CLASSES, parseWidgetLayout, resolveWidgets } from '@/utils/widgetLayout';
+import type { WidgetDefinition } from '@/utils/widgetLayout';
 
 /** Grafik ranglari — ikkala mavzuda ham o‘qiladigan to‘q ranglar */
 const COLORS = { revenue: '#10b981', expense: '#ef4444', profit: '#3354ec' };
@@ -43,72 +48,57 @@ const COLORS = { revenue: '#10b981', expense: '#ef4444', profit: '#3354ec' };
 // Davr tanlash
 // ---------------------------------------------------------------------
 
-type Preset = 'current' | 'previous' | 'quarter' | 'year' | 'custom';
-
-const PRESETS: ReadonlyArray<{ value: Preset; label: string }> = [
-  { value: 'current', label: 'Shu oy' },
-  { value: 'previous', label: 'O‘tgan oy' },
-  { value: 'quarter', label: 'So‘nggi 3 oy' },
-  { value: 'year', label: 'Shu yil' },
-  { value: 'custom', label: 'Oraliq tanlash' },
+const EXECUTIVE_PRESETS: readonly DateRangePreset[] = [
+  'this_month',
+  'last_month',
+  'today',
+  'yesterday',
+  'this_week',
+  'last_week',
+  'this_quarter',
+  'this_year',
+  'custom',
 ];
 
-const pad = (value: number) => String(value).padStart(2, '0');
-const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-function paramsFor(preset: Preset, custom: { from: string; to: string }): ExecutiveParams | null {
-  const today = new Date();
-  switch (preset) {
-    case 'current':
-      return {};
-    case 'previous': {
-      const previous = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      return { year: previous.getFullYear(), month: previous.getMonth() + 1 };
-    }
-    case 'quarter':
-      return { from: toDateString(new Date(today.getFullYear(), today.getMonth() - 2, 1)), to: toDateString(today) };
-    case 'year':
-      return { from: `${today.getFullYear()}-01-01`, to: toDateString(today) };
-    case 'custom':
-      // Ikkala sana to‘g‘ri tanlanmaguncha so‘rov yuborilmaydi
-      return custom.from && custom.to && custom.from <= custom.to ? { from: custom.from, to: custom.to } : null;
+/** Shu oy — prognoz bilan joriy oy; o‘tgan oy — to‘liq oy; qolganlari — sana oralig‘i */
+function executiveParams(value: DateRangeValue): ExecutiveParams | null {
+  if (value.preset === 'this_month') return {};
+  if (value.preset === 'last_month') {
+    const today = new Date();
+    const previous = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    return { year: previous.getFullYear(), month: previous.getMonth() + 1 };
   }
+  const range = dateRangeParams(value);
+  return range?.from && range.to ? { from: range.from, to: range.to } : null;
 }
 
 // ---------------------------------------------------------------------
-// Vidjetlar — har bir foydalanuvchi o‘zi uchun tanlaydi (brauzerda saqlanadi)
+// Vidjetlar — tartibi va ko‘rinishi xodim profilida saqlanadi
 // ---------------------------------------------------------------------
 
-const WIDGETS = [
-  { key: 'health', label: 'Sog‘lomlik bahosi' },
-  { key: 'insights', label: 'Xulosalar' },
-  { key: 'kpis', label: 'Asosiy ko‘rsatkichlar' },
-  { key: 'forecast', label: 'Oy oxiri prognozi' },
-  { key: 'attention', label: 'Diqqat talab qiladi' },
-  { key: 'today', label: 'Bugun' },
-  { key: 'trend', label: 'Dinamika grafigi' },
-  { key: 'summary', label: 'Davr yakunlari' },
-] as const;
+type WidgetKey = 'health' | 'insights' | 'kpis' | 'forecast' | 'attention' | 'today' | 'trend' | 'summary';
 
-type WidgetKey = (typeof WIDGETS)[number]['key'];
+const EXECUTIVE_WIDGETS: ReadonlyArray<WidgetDefinition<WidgetKey>> = [
+  { key: 'health', label: 'Sog‘lomlik bahosi', span: 'half' },
+  { key: 'insights', label: 'Xulosalar', span: 'half' },
+  { key: 'kpis', label: 'Asosiy ko‘rsatkichlar', span: 'full' },
+  { key: 'forecast', label: 'Oy oxiri prognozi', span: 'full' },
+  { key: 'attention', label: 'Diqqat talab qiladi', span: 'full' },
+  { key: 'today', label: 'Bugun', span: 'third' },
+  { key: 'trend', label: 'Dinamika grafigi', span: 'twoThirds' },
+  { key: 'summary', label: 'Davr yakunlari', span: 'full' },
+];
 
-const STORAGE_KEY = 'executive.hiddenWidgets';
+/** Avval vidjetlar brauzerda saqlanardi — bir marta profilga ko‘chiriladi */
+const LEGACY_STORAGE_KEY = 'executive.hiddenWidgets';
 
-function readHidden(): WidgetKey[] {
+function readLegacyHidden(): string[] {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item): item is WidgetKey => WIDGETS.some((widget) => widget.key === item)) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
   } catch {
     return [];
-  }
-}
-
-function writeHidden(hidden: WidgetKey[]): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
-  } catch {
-    // Saqlab bo‘lmasa ham sahifa ishlayveradi
   }
 }
 
@@ -238,7 +228,7 @@ function KpiCard({ kpi, changes }: { kpi: KpiDefinition; changes: ExecutiveSumma
   return (
     <Link
       to={kpi.to}
-      className="min-w-0 rounded-xl border border-border bg-surface p-3 transition-colors sm:p-4 hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+      className="min-w-0 rounded-xl border border-border bg-surface p-3 transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs text-fg-muted">{kpi.label}</p>
@@ -289,7 +279,7 @@ function HealthCard({ health }: { health: ExecutiveHealth }) {
   const progress = health.score === null ? 0 : (health.score / 100) * circumference;
 
   return (
-    <Card className="min-w-0">
+    <Card className="h-full min-w-0">
       <CardHeader>
         <CardTitle>Markaz sog‘lomligi</CardTitle>
       </CardHeader>
@@ -354,12 +344,24 @@ function Row({ label, value, hint }: { label: string; value: string; hint?: stri
 // ---------------------------------------------------------------------
 
 export default function ExecutivePage() {
-  const [preset, setPreset] = useState<Preset>('current');
-  const [custom, setCustom] = useState({ from: '', to: '' });
-  const [hidden, setHidden] = useState<WidgetKey[]>(readHidden);
+  const [range, setRange] = useState<DateRangeValue>({ preset: 'this_month', custom: { from: '', to: '' } });
   const [widgetsOpen, setWidgetsOpen] = useState(false);
+  const { value: storedLayout, loaded: layoutLoaded, save: saveLayout } = usePreference('executive.layout', parseWidgetLayout);
 
-  const params = paramsFor(preset, custom);
+  // Brauzerda saqlangan eski tanlov profilga bir marta ko‘chiriladi
+  useEffect(() => {
+    if (!layoutLoaded || storedLayout) return;
+    const legacy = readLegacyHidden();
+    if (legacy.length === 0) return;
+    saveLayout({ order: EXECUTIVE_WIDGETS.map((widget) => widget.key), hidden: legacy });
+    try {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      // Brauzer xotirasiga kirib bo‘lmasa ham sozlama profilda saqlandi
+    }
+  }, [layoutLoaded, storedLayout, saveLayout]);
+
+  const params = executiveParams(range);
   const summaryQuery = useQuery({
     queryKey: queryKeys.dashboard.executivePeriod(params ?? {}),
     queryFn: () => dashboardService.executive(params ?? {}),
@@ -367,57 +369,31 @@ export default function ExecutivePage() {
     placeholderData: (previous) => previous,
   });
 
-  const visible = (key: WidgetKey) => !hidden.includes(key);
-  const toggleWidget = (key: WidgetKey) => {
-    const next = hidden.includes(key) ? hidden.filter((item) => item !== key) : [...hidden, key];
-    setHidden(next);
-    writeHidden(next);
-  };
-
+  const widgets = resolveWidgets(EXECUTIVE_WIDGETS, storedLayout);
   const data = summaryQuery.data;
-
-  const controls = (
-    <div className="flex flex-wrap items-center gap-2">
-      <Select value={preset} onChange={(event) => setPreset(event.target.value as Preset)} aria-label="Davr" wrapperClassName="w-44">
-        {PRESETS.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </Select>
-      {preset === 'custom' && (
-        <>
-          <Input type="date" value={custom.from} onChange={(event) => setCustom((value) => ({ ...value, from: event.target.value }))} aria-label="Boshlanish sanasi" className="h-10 w-40" />
-          <Input type="date" value={custom.to} onChange={(event) => setCustom((value) => ({ ...value, to: event.target.value }))} aria-label="Tugash sanasi" className="h-10 w-40" />
-        </>
-      )}
-      <Button variant="secondary" leftIcon={<LayoutGrid className="size-4" aria-hidden />} aria-expanded={widgetsOpen} onClick={() => setWidgetsOpen((open) => !open)}>
-        Vidjetlar
-      </Button>
-    </div>
-  );
 
   const header = (
     <PageHeader
       title="Direktor paneli"
       description={data ? `${data.period.label} · ${formatDate(data.today.date)} holatiga ko‘ra` : 'Butun markaz holati bitta sahifada'}
       documentTitle="Direktor paneli"
-      actions={controls}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangePicker value={range} onChange={setRange} presets={EXECUTIVE_PRESETS} />
+          <Button variant="secondary" leftIcon={<LayoutGrid className="size-4" aria-hidden />} aria-expanded={widgetsOpen} onClick={() => setWidgetsOpen((open) => !open)}>
+            Vidjetlar
+          </Button>
+        </div>
+      }
     />
   );
 
   const widgetPanel = widgetsOpen && (
-    <Card className="mb-4 p-4">
-      <p className="mb-3 text-sm font-medium text-fg">Qaysi bloklar ko‘rinsin</p>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {WIDGETS.map((widget) => (
-          <label key={widget.key} className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-            <Checkbox checked={visible(widget.key)} onChange={() => toggleWidget(widget.key)} />
-            {widget.label}
-          </label>
-        ))}
-      </div>
-    </Card>
+    <WidgetLayoutPanel
+      widgets={widgets}
+      onChange={(layout) => saveLayout(layout)}
+      onReset={() => saveLayout({ order: EXECUTIVE_WIDGETS.map((widget) => widget.key), hidden: [] })}
+    />
   );
 
   if (params === null) {
@@ -456,238 +432,235 @@ export default function ExecutivePage() {
   const pendingLessons = Math.max(today.lessons - today.markedLessons, 0);
   const periodName = data.period.kind === 'range' ? 'Oraliq' : month.label;
 
+  const content: Record<WidgetKey, ReactNode> = {
+    health: <HealthCard health={data.health} />,
+    insights: (
+      <Card className="h-full min-w-0">
+        <CardHeader>
+          <CardTitle>Xulosalar</CardTitle>
+          <span className="text-xs text-fg-muted">
+            {formatDate(data.period.previousFrom)} — {formatDate(data.period.previousTo)} bilan
+          </span>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {data.insights.map((insight) => {
+              const Icon = insight.tone === 'negative' ? AlertTriangle : insight.tone === 'positive' ? CircleCheck : Info;
+              return (
+                <li key={insight.key} className="flex items-start gap-2 text-sm">
+                  <Icon
+                    className={cn(
+                      'mt-0.5 size-4 shrink-0',
+                      insight.tone === 'negative' && 'text-red-500',
+                      insight.tone === 'positive' && 'text-emerald-500',
+                      insight.tone === 'neutral' && 'text-fg-subtle',
+                    )}
+                    aria-hidden
+                  />
+                  <span className="text-fg">{insight.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
+    ),
+    kpis: (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {buildKpis(data).map((kpi) => (
+          <KpiCard key={kpi.key} kpi={kpi} changes={data.changes} />
+        ))}
+      </div>
+    ),
+    forecast: forecast ? (
+      <Card>
+        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>Oy oxiri prognozi</CardTitle>
+          <span className="text-xs text-fg-muted">
+            {forecast.daysElapsed} / {forecast.daysInMonth} kun o‘tdi
+          </span>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted" aria-hidden>
+            <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.round((forecast.daysElapsed / forecast.daysInMonth) * 100)}%` }} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-xs text-fg-muted">Kutilayotgan tushum</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{formatMoney(forecast.projectedRevenue)}</p>
+              <p className="text-xs text-fg-muted">hozirgi sur’at bo‘yicha</p>
+            </div>
+            <div>
+              <p className="text-xs text-fg-muted">Kutilayotgan xarajat</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{formatMoney(forecast.projectedExpense)}</p>
+              <p className="text-xs text-fg-muted">shundan to‘lanmagan: {formatMoney(forecast.upcomingExpenses)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-fg-muted">Kutilayotgan foyda</p>
+              <p className={cn('mt-1 text-lg font-semibold tabular-nums', forecast.projectedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {forecast.projectedProfit < 0 ? '−' : ''}
+                {formatMoney(Math.abs(forecast.projectedProfit))}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-fg-muted">Tushum rejasi</p>
+              {forecast.targetProgress === null ? (
+                <p className="mt-1 text-sm text-fg-muted">
+                  Reja belgilanmagan ·{' '}
+                  <Link to="/targets" className="text-brand-600 hover:underline dark:text-brand-400">
+                    belgilash
+                  </Link>
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{forecast.targetProgress}%</p>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div
+                      className={cn('h-full rounded-full', forecast.targetProgress >= 100 ? 'bg-emerald-500' : forecast.targetProgress >= 80 ? 'bg-amber-500' : 'bg-red-500')}
+                      style={{ width: `${Math.min(forecast.targetProgress, 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-fg-muted">reja: {formatMoney(forecast.revenueTarget)}</p>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ) : null,
+    attention:
+      data.attention.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Diqqat talab qiladi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 p-4">
+            {data.attention.map((item) => (
+              <span
+                key={item.key}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm',
+                  item.tone === 'danger'
+                    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
+                    : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300',
+                )}
+              >
+                <AlertTriangle className="size-3.5" aria-hidden />
+                {item.label}
+                <strong>{formatNumber(item.value)}</strong>
+              </span>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null,
+    today: (
+      <Card className="h-full min-w-0">
+        <CardHeader>
+          <CardTitle>Bugun</CardTitle>
+          <span className="text-xs text-fg-muted">{formatDate(today.date)}</span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            <Row label="Yangi leadlar" value={formatNumber(today.newLeads)} />
+            <Row label="Yangi o‘quvchilar" value={formatNumber(today.newStudents)} />
+            <Row label="Sinov darslari" value={formatNumber(today.trialLessons)} />
+            <Row
+              label="Darslar"
+              value={`${formatNumber(today.markedLessons)} / ${formatNumber(today.lessons)}`}
+              hint={pendingLessons > 0 ? `${pendingLessons} ta belgilanmagan` : 'hammasi belgilangan'}
+            />
+            <Row label="Davomat" value={`${today.attendanceRate}%`} hint={`${formatNumber(today.absentStudents)} yo‘q`} />
+            <Row label="To‘lovlar" value={formatMoney(today.payments)} />
+            <Row label="Xarajatlar" value={formatMoney(today.expenses)} />
+            <Row label="Sof tushum" value={formatMoney(today.netRevenue)} />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+    trend: (
+      <Card className="h-full min-w-0">
+        <CardHeader>
+          <CardTitle>Tushum va xarajat dinamikasi</CardTitle>
+          <span className="text-xs text-fg-muted">oxirgi 6 oy</span>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72 w-full text-fg-muted">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.15} vertical={false} />
+                <XAxis dataKey="label" stroke="currentColor" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis
+                  stroke="currentColor"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value: number) => `${Math.round((value / 1_000_000) * 10) / 10}mln`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 12,
+                    fontSize: 12,
+                    color: 'var(--color-fg)',
+                  }}
+                  formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="revenue" name="Sof tushum" fill={COLORS.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="expense" name="Xarajat" fill={COLORS.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Line type="monotone" dataKey="profit" name="Sof foyda" stroke={COLORS.profit} strokeWidth={2} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    ),
+    summary: (
+      <Card>
+        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>{periodName} yakunlari</CardTitle>
+          <span className="text-xs text-fg-muted">
+            {formatDate(data.period.from)} — {formatDate(data.period.to)}
+          </span>
+        </CardHeader>
+        <CardContent className="grid gap-x-6 gap-y-0 p-0 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="divide-y divide-border">
+            <Row label="Sof tushum" value={formatMoney(month.revenue)} hint={`oldin: ${formatMoney(previous.revenue)}`} />
+            <Row label="Xarajat" value={formatMoney(month.expense)} hint={`oldin: ${formatMoney(previous.expense)}`} />
+            <Row label="Sof foyda" value={formatMoney(month.netProfit)} hint={`${month.margin}%`} />
+            <Row label="Hisoblangan maosh" value={formatMoney(month.salaryAccrued)} />
+          </div>
+          <div className="divide-y divide-border">
+            <Row label="Yangi leadlar" value={formatNumber(month.newLeads)} hint={`oldin: ${formatNumber(previous.newLeads)}`} />
+            <Row label="Sotuvlar" value={formatNumber(month.wonLeads)} hint={`oldin: ${formatNumber(previous.wonLeads)}`} />
+            <Row label="Konversiya" value={`${month.conversionRate}%`} />
+            <Row label="Qarzdorlik" value={formatMoney(month.totalDebt)} />
+          </div>
+          <div className="divide-y divide-border">
+            <Row label="Yangi o‘quvchilar" value={formatNumber(month.newStudents)} hint={`oldin: ${formatNumber(previous.newStudents)}`} />
+            <Row label="Ketgan o‘quvchilar" value={formatNumber(month.droppedStudents)} hint={`oldin: ${formatNumber(previous.droppedStudents)}`} />
+            <Row label="Faol o‘quvchilar" value={formatNumber(month.activeStudents)} />
+            <Row label="Davomat" value={month.attendanceMarks > 0 ? `${month.attendanceRate}%` : '—'} />
+          </div>
+        </CardContent>
+      </Card>
+    ),
+  };
+
   return (
     <>
       {header}
       {widgetPanel}
 
-      <div className={cn('space-y-4 transition-opacity', summaryQuery.isFetching && 'opacity-70')}>
-        {(visible('health') || visible('insights')) && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {visible('health') && <HealthCard health={data.health} />}
-            {visible('insights') && (
-              <Card className="min-w-0">
-                <CardHeader>
-                  <CardTitle>Xulosalar</CardTitle>
-                  <span className="text-xs text-fg-muted">
-                    {formatDate(data.period.previousFrom)} — {formatDate(data.period.previousTo)} bilan
-                  </span>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {data.insights.map((insight) => {
-                      const Icon = insight.tone === 'negative' ? AlertTriangle : insight.tone === 'positive' ? CircleCheck : Info;
-                      return (
-                        <li key={insight.key} className="flex items-start gap-2 text-sm">
-                          <Icon
-                            className={cn(
-                              'mt-0.5 size-4 shrink-0',
-                              insight.tone === 'negative' && 'text-red-500',
-                              insight.tone === 'positive' && 'text-emerald-500',
-                              insight.tone === 'neutral' && 'text-fg-subtle',
-                            )}
-                            aria-hidden
-                          />
-                          <span className="text-fg">{insight.text}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {visible('kpis') && (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {buildKpis(data).map((kpi) => (
-              <KpiCard key={kpi.key} kpi={kpi} changes={data.changes} />
-            ))}
-          </div>
-        )}
-
-        {visible('forecast') && forecast && (
-          <Card>
-            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>Oy oxiri prognozi</CardTitle>
-              <span className="text-xs text-fg-muted">
-                {forecast.daysElapsed} / {forecast.daysInMonth} kun o‘tdi
-              </span>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted" aria-hidden>
-                <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.round((forecast.daysElapsed / forecast.daysInMonth) * 100)}%` }} />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <p className="text-xs text-fg-muted">Kutilayotgan tushum</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{formatMoney(forecast.projectedRevenue)}</p>
-                  <p className="text-xs text-fg-muted">hozirgi sur’at bo‘yicha</p>
-                </div>
-                <div>
-                  <p className="text-xs text-fg-muted">Kutilayotgan xarajat</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{formatMoney(forecast.projectedExpense)}</p>
-                  <p className="text-xs text-fg-muted">shundan to‘lanmagan: {formatMoney(forecast.upcomingExpenses)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-fg-muted">Kutilayotgan foyda</p>
-                  <p className={cn('mt-1 text-lg font-semibold tabular-nums', forecast.projectedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-                    {forecast.projectedProfit < 0 ? '−' : ''}
-                    {formatMoney(Math.abs(forecast.projectedProfit))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-fg-muted">Tushum rejasi</p>
-                  {forecast.targetProgress === null ? (
-                    <p className="mt-1 text-sm text-fg-muted">
-                      Reja belgilanmagan ·{' '}
-                      <Link to="/targets" className="text-brand-600 hover:underline dark:text-brand-400">
-                        belgilash
-                      </Link>
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mt-1 text-lg font-semibold tabular-nums text-fg">{forecast.targetProgress}%</p>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                        <div
-                          className={cn('h-full rounded-full', forecast.targetProgress >= 100 ? 'bg-emerald-500' : forecast.targetProgress >= 80 ? 'bg-amber-500' : 'bg-red-500')}
-                          style={{ width: `${Math.min(forecast.targetProgress, 100)}%` }}
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-fg-muted">reja: {formatMoney(forecast.revenueTarget)}</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {visible('attention') && data.attention.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Diqqat talab qiladi</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2 p-4">
-              {data.attention.map((item) => (
-                <span
-                  key={item.key}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm',
-                    item.tone === 'danger'
-                      ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
-                      : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300',
-                  )}
-                >
-                  <AlertTriangle className="size-3.5" aria-hidden />
-                  {item.label}
-                  <strong>{formatNumber(item.value)}</strong>
-                </span>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {(visible('today') || visible('trend')) && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {visible('today') && (
-              <Card className="min-w-0">
-                <CardHeader>
-                  <CardTitle>Bugun</CardTitle>
-                  <span className="text-xs text-fg-muted">{formatDate(today.date)}</span>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    <Row label="Yangi leadlar" value={formatNumber(today.newLeads)} />
-                    <Row label="Yangi o‘quvchilar" value={formatNumber(today.newStudents)} />
-                    <Row label="Sinov darslari" value={formatNumber(today.trialLessons)} />
-                    <Row
-                      label="Darslar"
-                      value={`${formatNumber(today.markedLessons)} / ${formatNumber(today.lessons)}`}
-                      hint={pendingLessons > 0 ? `${pendingLessons} ta belgilanmagan` : 'hammasi belgilangan'}
-                    />
-                    <Row label="Davomat" value={`${today.attendanceRate}%`} hint={`${formatNumber(today.absentStudents)} yo‘q`} />
-                    <Row label="To‘lovlar" value={formatMoney(today.payments)} />
-                    <Row label="Xarajatlar" value={formatMoney(today.expenses)} />
-                    <Row label="Sof tushum" value={formatMoney(today.netRevenue)} />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {visible('trend') && (
-              <Card className={cn('min-w-0', visible('today') && 'lg:col-span-2')}>
-                <CardHeader>
-                  <CardTitle>Tushum va xarajat dinamikasi</CardTitle>
-                  <span className="text-xs text-fg-muted">oxirgi 6 oy</span>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-72 w-full text-fg-muted">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={data.trend} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.15} vertical={false} />
-                        <XAxis dataKey="label" stroke="currentColor" fontSize={11} tickLine={false} axisLine={false} />
-                        <YAxis
-                          stroke="currentColor"
-                          fontSize={11}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value: number) => `${Math.round((value / 1_000_000) * 10) / 10}mln`}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: 'var(--color-surface)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: 12,
-                            fontSize: 12,
-                            color: 'var(--color-fg)',
-                          }}
-                          formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
-                        />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar dataKey="revenue" name="Sof tushum" fill={COLORS.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} />
-                        <Bar dataKey="expense" name="Xarajat" fill={COLORS.expense} radius={[4, 4, 0, 0]} maxBarSize={28} />
-                        <Line type="monotone" dataKey="profit" name="Sof foyda" stroke={COLORS.profit} strokeWidth={2} dot={false} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {visible('summary') && (
-          <Card>
-            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>{periodName} yakunlari</CardTitle>
-              <span className="text-xs text-fg-muted">
-                {formatDate(data.period.from)} — {formatDate(data.period.to)}
-              </span>
-            </CardHeader>
-            <CardContent className="grid gap-x-6 gap-y-0 p-0 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="divide-y divide-border">
-                <Row label="Sof tushum" value={formatMoney(month.revenue)} hint={`oldin: ${formatMoney(previous.revenue)}`} />
-                <Row label="Xarajat" value={formatMoney(month.expense)} hint={`oldin: ${formatMoney(previous.expense)}`} />
-                <Row label="Sof foyda" value={formatMoney(month.netProfit)} hint={`${month.margin}%`} />
-                <Row label="Hisoblangan maosh" value={formatMoney(month.salaryAccrued)} />
-              </div>
-              <div className="divide-y divide-border">
-                <Row label="Yangi leadlar" value={formatNumber(month.newLeads)} hint={`oldin: ${formatNumber(previous.newLeads)}`} />
-                <Row label="Sotuvlar" value={formatNumber(month.wonLeads)} hint={`oldin: ${formatNumber(previous.wonLeads)}`} />
-                <Row label="Konversiya" value={`${month.conversionRate}%`} />
-                <Row label="Qarzdorlik" value={formatMoney(month.totalDebt)} />
-              </div>
-              <div className="divide-y divide-border">
-                <Row label="Yangi o‘quvchilar" value={formatNumber(month.newStudents)} hint={`oldin: ${formatNumber(previous.newStudents)}`} />
-                <Row label="Ketgan o‘quvchilar" value={formatNumber(month.droppedStudents)} hint={`oldin: ${formatNumber(previous.droppedStudents)}`} />
-                <Row label="Faol o‘quvchilar" value={formatNumber(month.activeStudents)} />
-                <Row label="Davomat" value={month.attendanceMarks > 0 ? `${month.attendanceRate}%` : '—'} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      <div className={cn('grid grid-cols-1 gap-4 transition-opacity lg:grid-cols-6', summaryQuery.isFetching && 'opacity-70')}>
+        {widgets
+          .filter((widget) => widget.visible && content[widget.key] !== null)
+          .map((widget) => (
+            <div key={widget.key} className={cn('min-w-0', WIDGET_SPAN_CLASSES[widget.span])}>
+              {content[widget.key]}
+            </div>
+          ))}
       </div>
     </>
   );

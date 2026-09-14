@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
@@ -18,6 +17,8 @@ import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { useAuthStore } from '@/store/auth.store';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { hasPermission } from '@/utils/permissions';
+import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
+import type { DateRangeValue } from '@/components/DateRangePicker';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 
@@ -54,34 +55,6 @@ const GROUP_BY_OPTIONS: ReadonlyArray<{ value: ReportGroupBy; label: string }> =
   { value: 'month', label: 'Oylar bo‘yicha' },
 ];
 
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function shiftDays(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return isoDate(date);
-}
-
-function startOfMonth(monthsAgo = 0): string {
-  const date = new Date();
-  return isoDate(new Date(date.getFullYear(), date.getMonth() - monthsAgo, 1));
-}
-
-function endOfMonth(monthsAgo = 0): string {
-  const date = new Date();
-  return isoDate(new Date(date.getFullYear(), date.getMonth() - monthsAgo + 1, 0));
-}
-
-const RANGE_PRESETS: ReadonlyArray<{ label: string; from: string; to: string }> = [
-  { label: 'Bugun', from: shiftDays(0), to: shiftDays(0) },
-  { label: 'So‘nggi 7 kun', from: shiftDays(-6), to: shiftDays(0) },
-  { label: 'So‘nggi 30 kun', from: shiftDays(-29), to: shiftDays(0) },
-  { label: 'Shu oy', from: startOfMonth(), to: shiftDays(0) },
-  { label: 'O‘tgan oy', from: startOfMonth(1), to: endOfMonth(1) },
-];
-
 function formatCell(value: ReportCell, type: ReportColumnType): string {
   if (value === null || value === undefined || value === '') return '—';
   switch (type) {
@@ -116,8 +89,7 @@ export default function ReportsPage() {
   const availableReports = REPORTS.filter((report) => !report.permission || hasPermission(user, report.permission));
 
   const [type, setType] = useState<ReportType>('sales');
-  const [from, setFrom] = useState(shiftDays(-29));
-  const [to, setTo] = useState(shiftDays(0));
+  const [range, setRange] = useState<DateRangeValue>({ preset: 'this_month', custom: { from: '', to: '' } });
   const [groupBy, setGroupBy] = useState<ReportGroupBy>('day');
   const [courseId, setCourseId] = useState('');
   const [groupId, setGroupId] = useState('');
@@ -125,9 +97,9 @@ export default function ReportsPage() {
   const { exporting, run: runExport } = useExport();
 
   const config = availableReports.find((report) => report.value === type) ?? availableReports[0] ?? REPORTS[0]!;
+  const rangeParams = dateRangeParams(range);
   const params: ReportParams = {
-    from,
-    to,
+    ...(rangeParams ?? {}),
     ...(config.timeSeries ? { groupBy } : {}),
     ...(config.filters.includes('course') && courseId ? { courseId } : {}),
     ...(config.filters.includes('group') && groupId ? { groupId } : {}),
@@ -138,6 +110,7 @@ export default function ReportsPage() {
     queryKey: queryKeys.reports.build(type, params),
     queryFn: () => reportsService.build(type, params),
     placeholderData: keepPreviousData,
+    enabled: rangeParams !== null,
   });
   const lookupsQuery = useQuery({
     queryKey: queryKeys.lookups.paymentForm,
@@ -190,30 +163,8 @@ export default function ReportsPage() {
             })}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {RANGE_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => {
-                  setFrom(preset.from);
-                  setTo(preset.to);
-                }}
-                className={cn(
-                  'rounded-full border px-3 py-1 text-xs transition-colors',
-                  from === preset.from && to === preset.to
-                    ? 'border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200'
-                    : 'border-border text-fg-muted hover:bg-surface-muted hover:text-fg',
-                )}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} aria-label="Boshlanish sanasi" className="sm:w-44" />
-            <Input type="date" value={to} onChange={(event) => setTo(event.target.value)} aria-label="Tugash sanasi" className="sm:w-44" />
+            <DateRangePicker value={range} onChange={setRange} />
             {config.timeSeries && (
               <Select
                 value={groupBy}

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { authService } from '../services/auth.service.js';
+import { preferenceService } from '../services/preference.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../utils/refreshCookie.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
@@ -10,6 +11,7 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from '../validators/auth.validator.js';
+import { preferenceKeyParamSchema } from '../validators/preference.validator.js';
 
 export const authController = {
   async login(req: Request, res: Response): Promise<void> {
@@ -52,6 +54,15 @@ export const authController = {
   async me(req: Request, res: Response): Promise<void> {
     const user = requireAuthUser(req);
     sendSuccess(res, await authService.me(user.id));
+  },
+
+  async preferences(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await preferenceService.list(requireAuthUser(req).id));
+  },
+
+  async savePreference(req: Request, res: Response): Promise<void> {
+    const { key } = preferenceKeyParamSchema.parse(req.params);
+    sendSuccess(res, await preferenceService.set(requireAuthUser(req).id, key, req.body), { message: 'Sozlama saqlandi' });
   },
 
   async forgotPassword(req: Request, res: Response): Promise<void> {
