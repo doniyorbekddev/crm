@@ -15,6 +15,9 @@ import type { ReportType } from '../validators/report.validator.js';
  * tegishli modul ruxsati ham kerak (masalan, maoshni faqat salary.view egasi ko‘radi).
  */
 const EXTRA_PERMISSION: Partial<Record<ReportType, PermissionKey>> = {
+  // O‘quvchi ismi, telefoni va qarzi / to‘lovlari — shaxsiy moliyaviy ma’lumot
+  debts: PERMISSIONS.DEBT_VIEW,
+  payments: PERMISSIONS.PAYMENT_VIEW,
   teachers: PERMISSIONS.TEACHER_VIEW,
   salaries: PERMISSIONS.SALARY_VIEW,
   incomes: PERMISSIONS.INCOME_VIEW,

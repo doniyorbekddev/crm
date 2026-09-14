@@ -168,7 +168,7 @@ export default function EmployeesPage() {
                         </p>
                       </TD>
                       <TD className="whitespace-nowrap text-fg">{EMPLOYEE_POSITION_LABELS[employee.position]}</TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(employee.baseSalary)}</TD>
+                      <TD className="text-right whitespace-nowrap tabular-nums text-fg">{employee.baseSalary === null ? '—' : formatMoney(employee.baseSalary)}</TD>
                       <TD className="whitespace-nowrap text-fg-muted">
                         {formatDate(employee.hireDate)}
                         {employee.terminationDate && <p className="text-xs">ketgan: {formatDate(employee.terminationDate)}</p>}

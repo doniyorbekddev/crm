@@ -322,6 +322,8 @@ ${table.rows.length > 0 ? `<autoFilter ref="A${headerRow}:${lastRef.replace(/\d+
 
 /** Faylni javob sifatida yuboradi; nom faqat xavfsiz belgilardan iborat bo‘ladi */
 export function sendTable(res: Response, table: ExportTable, baseName: string, format: ExportFormat): void {
+  // Moliyaviy va shaxsiy ma’lumotli fayl proxy yoki brauzer keshida qolmasin
+  res.setHeader('Cache-Control', 'private, no-store');
   const safeName = baseName.replace(/[^A-Za-z0-9._-]/g, '_');
   if (format === 'xlsx') {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

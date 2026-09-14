@@ -154,14 +154,40 @@ async function revokeFamily(familyId: string): Promise<void> {
   });
 }
 
+/** Hisob darajasidagi blok: bitta hisobga turli IP’lardan parol tanlashga qarshi (IP limitidan tashqari) */
+const LOGIN_LOCK_THRESHOLD = 8;
+const LOGIN_LOCK_WINDOW_MS = 15 * 60_000;
+
+async function assertLoginNotLocked(
+  failures: Prisma.AuditLogWhereInput,
+  since: Date,
+  audit: { userId?: string; entityId?: string; email?: string },
+  client: ClientInfo,
+): Promise<void> {
+  const count = await prisma.auditLog.count({ where: { action: 'auth.login_failed', createdAt: { gte: since }, ...failures } });
+  if (count < LOGIN_LOCK_THRESHOLD) return;
+  await auditService.record({
+    userId: audit.userId ?? null,
+    action: 'auth.login_locked',
+    entityType: 'user',
+    entityId: audit.entityId ?? null,
+    metadata: { failures: count, ...(audit.email ? { email: audit.email } : {}) },
+    ...client,
+  });
+  throw AppError.tooManyRequests('Juda ko‘p noto‘g‘ri urinish. Hisob 15 daqiqaga vaqtincha bloklandi.');
+}
+
 export const authService = {
   async login(input: LoginInput, client: ClientInfo): Promise<SessionResult> {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
-      select: { ...authUserSelect, passwordHash: true },
+      select: { ...authUserSelect, passwordHash: true, lastLoginAt: true },
     });
+    const windowStart = new Date(Date.now() - LOGIN_LOCK_WINDOW_MS);
 
     if (!user) {
+      // Mavjud bo‘lmagan email ham xuddi shunday bloklanadi — hisob borligi oshkor bo‘lmasin
+      await assertLoginNotLocked({ userId: null, metadata: { path: ['email'], equals: input.email } }, windowStart, { email: input.email }, client);
       await simulatePasswordCheck(input.password);
       await auditService.record({
         action: 'auth.login_failed',
@@ -171,6 +197,10 @@ export const authService = {
       });
       throw AppError.unauthorized(INVALID_CREDENTIALS);
     }
+
+    // Oxirgi muvaffaqiyatli kirishdan keyingi urinishlar hisoblanadi; bloklangan paytda to‘g‘ri parol ham qabul qilinmaydi
+    const lockSince = user.lastLoginAt && user.lastLoginAt > windowStart ? user.lastLoginAt : windowStart;
+    await assertLoginNotLocked({ userId: user.id }, lockSince, { userId: user.id, entityId: user.id }, client);
 
     const passwordValid = await verifyPassword(input.password, user.passwordHash);
     if (!passwordValid || user.deletedAt) {

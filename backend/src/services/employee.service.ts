@@ -19,7 +19,8 @@ export interface EmployeeDto {
   lastName: string;
   phone: string | null;
   position: EmployeePosition;
-  baseSalary: number;
+  /** salary.view ruxsati bo‘lmasa null */
+  baseSalary: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
@@ -65,9 +66,9 @@ type EmployeeRecord = Prisma.EmployeeGetPayload<{ select: typeof employeeSelect 
 
 const toDateOnly = (value: Date) => value.toISOString().slice(0, 10);
 
-async function withCurrentSalaries(records: EmployeeRecord[]): Promise<EmployeeDto[]> {
+async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = true): Promise<EmployeeDto[]> {
   const { year, month } = currentBusinessMonth();
-  const periods = records.length
+  const periods = records.length && salaryVisible
     ? await prisma.teacherSalaryPeriod.findMany({
         where: { employeeId: { in: records.map((record) => record.id) }, year, month },
         select: { id: true, employeeId: true, year: true, month: true, status: true, totalAmount: true, paidAmount: true, remainingAmount: true },
@@ -82,7 +83,7 @@ async function withCurrentSalaries(records: EmployeeRecord[]): Promise<EmployeeD
       lastName: record.lastName,
       phone: record.phone,
       position: record.position,
-      baseSalary: record.baseSalary.toNumber(),
+      baseSalary: salaryVisible ? record.baseSalary.toNumber() : null,
       status: record.status,
       hireDate: toDateOnly(record.hireDate),
       terminationDate: record.terminationDate ? toDateOnly(record.terminationDate) : null,
@@ -143,7 +144,8 @@ function assertDates(status: EmployeeStatus, hireDate: Date, terminationDate: Da
 }
 
 export const employeeService = {
-  async list(query: EmployeeListQuery): Promise<{ items: EmployeeDto[]; total: number }> {
+  /** `salaryVisible: false` — maosh summalari (salary.view ruxsatisiz) qaytarilmaydi */
+  async list(query: EmployeeListQuery, salaryVisible = true): Promise<{ items: EmployeeDto[]; total: number }> {
     const conditions: Prisma.EmployeeWhereInput[] = [];
     if (query.status) conditions.push({ status: query.status });
     if (query.position) conditions.push({ position: query.position });
@@ -166,11 +168,11 @@ export const employeeService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.employee.count({ where });
-    return { items: await withCurrentSalaries(records), total };
+    return { items: await withCurrentSalaries(records, salaryVisible), total };
   },
 
-  async getById(id: string): Promise<EmployeeDto> {
-    const [employee] = await withCurrentSalaries([await findOrFail(id)]);
+  async getById(id: string, salaryVisible = true): Promise<EmployeeDto> {
+    const [employee] = await withCurrentSalaries([await findOrFail(id)], salaryVisible);
     return employee!;
   },
 

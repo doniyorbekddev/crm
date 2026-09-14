@@ -18,7 +18,8 @@ export interface Employee {
   lastName: string;
   phone: string | null;
   position: EmployeePosition;
-  baseSalary: number;
+  /** salary.view ruxsati bo‘lmasa null */
+  baseSalary: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
@@ -49,7 +50,8 @@ export interface EmployeePayload {
   lastName: string;
   phone: string | null;
   position: EmployeePosition;
-  baseSalary: number;
+  /** Maosh yashirilgan xodim tahrirlaganda yuborilmaydi (saqlangan qiymat o‘zgarmaydi) */
+  baseSalary?: number;
   hireDate: string;
   status: EmployeeStatus;
   terminationDate: string | null;

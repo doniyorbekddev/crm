@@ -381,6 +381,41 @@ Loyiha so‘nggi barqaror Prisma 7.10.0 da; `npm audit fix --force` Prisma’ni 
 `mysql2` ilova kodida ishlatilmaydi (PostgreSQL), `deepmerge-ts` faqat CLI konfiguratsiyasini o‘qishda —
 HTTP orqali erishib bo‘lmaydi. Prisma 8 barqaror chiqqanda yangilash tavsiya etiladi.
 
+### Xavfsizlik auditi (moliya va kadrlar kengaytirishi)
+
+**Tekshirildi:** barcha yangi route’lar (`/finance`, `/payroll`, `/salaries`, `/employees`, `/documents`, `/analytics`,
+`/alerts`, `/dashboard/activity`, `/audit-logs/export`, `/auth/me/preferences`) ruxsat bilan himoyalangan; o‘qituvchi
+faqat o‘z guruhlari ma’lumotini ko‘radi; global qidiruv natijalari ruxsat bo‘yicha filtrlanadi; bildirishnoma va
+shaxsiy sozlamalar faqat egasiga; fayllar ochiq URL’siz, turi magic bytes bo‘yicha; xom SQL faqat parametrli.
+
+**Tuzatildi:**
+
+| Muammo | Yechim |
+|---|---|
+| Qarzdorlik (o‘quvchi ismi, telefoni, qarzi) va to‘lovlar hisobotini faqat `report.view` bilan olish mumkin edi | Qo‘shimcha `debt.view` / `payment.view` talab qilinadi (server va frontend) |
+| `employee.view` bor, `salary.view` yo‘q rol xodimlar maoshini (`baseSalary`, joriy oy maoshi) ko‘rardi | Server tomonda `null`; bunday xodim formani saqlaganda maosh yuborilmaydi va o‘zgarmaydi |
+| Pasport, shartnoma kabi xodim hujjatini kim yuklab olgani yozilmasdi | `document.downloaded` auditi |
+| Eksport fayllari (moliya, audit, ro‘yxatlar) keshda qolishi mumkin edi | `Cache-Control: private, no-store` |
+| Bitta hisobga turli IP’lardan parol tanlash faqat IP limiti bilan cheklangan edi | Oxirgi muvaffaqiyatli kirishdan keyin 15 daqiqada 8 ta noto‘g‘ri urinish — hisob vaqtincha bloklanadi (to‘g‘ri parol ham), `auth.login_locked` (muhim amal); mavjud bo‘lmagan email ham xuddi shunday javob beradi |
+| Faoliyat lentasi og‘ir so‘rovlariga limit yo‘q edi | `heavyLimiter` |
+
+**Spec 74 ruxsatlari → mavjud kalitlar.** Takroriy ruxsat yaratilmadi (mavjud rollar va sozlangan maxsus rollar buzilmasin):
+
+| Spec | Tizimdagi kalit |
+|---|---|
+| `finance.view` | `finance.view` (+ `income.view`, `expense.view`) |
+| `finance.create`, `finance.edit` | `finance.manage`, `income.manage`, `expense.manage`, `budget.manage` |
+| `finance.approve` | `expense.approve` (katta xarajat), `finance.close` / `finance.reopen` (moliyaviy oy) |
+| `payroll.view` / `teacher_salary.view` | `salary.view` (o‘qituvchi o‘zinikini — `commission.view_own`, `/teachers/me`) |
+| `payroll.calculate` | `salary.calculate` (bonus/jarima ham) |
+| `payroll.approve` | `salary.approve`; tasdiqlanganni ochish — `salary.unlock` (faqat Owner/Super Admin) |
+| `payroll.pay` | `salary.pay` |
+
+Rollar matritsasi integratsion testda tekshiriladi (`tests/securityHardening.test.ts`): o‘qituvchi va sotuv menejeri
+moliya/maosh/analitikani ko‘rmaydi; buxgalter ko‘radi va to‘laydi, lekin maosh va xarajatni tasdiqlay olmaydi, oyni
+qayta ocholmaydi; admin tasdiqlangan maoshni ochish, katta xarajatni tasdiqlash va ogohlantirish chegaralarini
+o‘zgartira olmaydi.
+
 ### Spec bo‘yicha qolgan bo‘shliqlar
 
 Kengaytirishning 17 bosqichi, ota-ona moduli, global qidiruv va Excel eksport yakunlangan, lekin `promt.md` dagi quyidagi talablar hali to‘liq bajarilmagan:
@@ -464,3 +499,4 @@ Audit natijasi va roadmap: o‘qituvchi foizi → payroll → moliya → P&L →
 | 13 | Kadrlar: holat va hujjatlar | O‘qituvchi profilida HR holati (`employmentStatus`: faol, ta’tilda, to‘xtatilgan, ishdan ketgan) va ketgan sana; `isActive` holatdan kelib chiqadi (faol yoki ta’tilda), eski faollashtirish tugmasi ishlashda davom etadi, ishdan ketishda sana majburiy, o‘zgarishlar auditga yoziladi (`teacher.status_changed`). Xodimlarda holat va sanalar 4b’dan beri bor. Hujjatlar: `Document` modeli o‘qituvchi va xodimga kengaytirildi — tur (shartnoma, pasport nusxasi, sertifikat, boshqa; xarajat/tushum fayllari — chek), nomi, amal qilish muddati; `GET/POST /teachers/:id/documents`, `/employees/:id/documents`, `PATCH /documents/:id`. Alohida ruxsat `staff_document.view/manage` (Owner, Super Admin, Admin). Ochiq havola yo‘q, fayl turi magic bytes bo‘yicha, yumshoq o‘chirish, audit. Muddati 30 kun ichida tugaydigan yoki o‘tgan hujjat — `DOCUMENT_EXPIRING` ogohlantirishi (ishdan ketganlar hisobga olinmaydi, kun soni sozlanadi) | ✅ |
 | 14a | Faoliyat markazi va audit | `GET /dashboard/activity` (`analytics.view`): yangi o‘quvchi, to‘lov va qaytarish, xarajat, lead, davomat (keldi/jami), o‘qituvchi amallari (uy vazifasi, imtihon), maosh va avans — asosiy jadvallardan, bitta vaqt chizig‘ida; har bir tur tegishli ruxsat bilan filtrlanadi (masalan, maosh — `salary.view`), kursorli sahifalash (`nextCursor`), tur va sana bo‘yicha filtr. Audit jurnali: `GET /audit-logs/export` (CSV/Excel, joriy filtrlar bilan, `report.export`), eksportning o‘zi auditga yoziladi (`audit.exported`); tafsilotda `before/after` o‘zgargan maydonlar jadvalda ajratib ko‘rsatiladi. Umumiy `DateRangePicker` (bugun, kecha, shu/o‘tgan hafta, shu/o‘tgan oy, chorak, yil, oraliq; hafta dushanbadan) | ✅ |
 | 14b | Dashboard sozlamalari va sana tanlovi | `UserPreference` (xodim + kalit, faqat ruxsat etilgan kalitlar va qat’iy sxema): `GET /auth/me/preferences`, `PUT /auth/me/preferences/:key` (`dashboard.layout`, `executive.layout` — `{ order, hidden }`). Dashboard va direktor panelida vidjetlarni yashirish va tartibini o‘zgartirish (yuqoriga/pastga), standart holatga qaytarish; sozlama profilda saqlanadi va optimistik yangilanadi; direktor panelining brauzerdagi eski tanlovi bir marta profilga ko‘chiriladi. Dashboardga "So‘nggi faoliyat" vidjeti. Umumiy sana tanlovchi direktor paneli, analitika, moliya va hisobotlarda (hisobotlardagi UTC bo‘yicha sana hisoblash xatosi ham tuzatildi) | ✅ |
+| 15 | Xavfsizlik | Qarzdorlik va to‘lov hisobotlariga modul ruxsati, xodim maoshini `salary.view`siz yashirish, xodim hujjati yuklab olinishi auditi, eksportlarga `no-store`, hisob darajasida vaqtinchalik blok, faoliyat lentasiga limit; spec 74 ruxsatlari mavjud kalitlarga moslashtirildi va rollar matritsasi testi (batafsil — «Xavfsizlik auditi (moliya va kadrlar kengaytirishi)») | ✅ |

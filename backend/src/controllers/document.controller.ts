@@ -41,7 +41,7 @@ export function attachmentController(owner: DocumentOwner) {
 export const documentController = {
   async download(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    const file = await documentService.download(requireAuthUser(req), id);
+    const file = await documentService.download(requireAuthUser(req), id, getClientInfo(req));
     try {
       await stat(file.absolutePath);
     } catch {

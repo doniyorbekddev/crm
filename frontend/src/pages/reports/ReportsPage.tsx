@@ -34,8 +34,8 @@ interface ReportConfig {
 const REPORTS: readonly ReportConfig[] = [
   { value: 'sales', label: 'Sotuv', timeSeries: true, filters: ['manager'] },
   { value: 'managers', label: 'Managerlar', timeSeries: false, filters: ['manager'] },
-  { value: 'payments', label: 'To‘lovlar', timeSeries: true, filters: ['course', 'group', 'manager'] },
-  { value: 'debts', label: 'Qarzdorlik', timeSeries: false, filters: ['course', 'group'] },
+  { value: 'payments', label: 'To‘lovlar', timeSeries: true, filters: ['course', 'group', 'manager'], permission: PERMISSIONS.PAYMENT_VIEW },
+  { value: 'debts', label: 'Qarzdorlik', timeSeries: false, filters: ['course', 'group'], permission: PERMISSIONS.DEBT_VIEW },
   { value: 'profit', label: 'Foyda', timeSeries: true, filters: [], permission: PERMISSIONS.FINANCE_VIEW },
   { value: 'incomes', label: 'Tushumlar', timeSeries: false, filters: [], permission: PERMISSIONS.INCOME_VIEW },
   { value: 'expenses', label: 'Xarajatlar', timeSeries: false, filters: [], permission: PERMISSIONS.EXPENSE_VIEW },

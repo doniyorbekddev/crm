@@ -2,6 +2,7 @@
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'auth.login': 'Tizimga kirdi',
   'auth.login_failed': 'Kirish muvaffaqiyatsiz',
+  'auth.login_locked': 'Hisob vaqtincha bloklandi (ko‘p noto‘g‘ri urinish)',
   'auth.logout': 'Tizimdan chiqdi',
   'auth.logout_all': 'Barcha qurilmalardan chiqdi',
   'auth.password_changed': 'Parolini o‘zgartirdi',
@@ -75,6 +76,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'expense.requested': 'Xarajat tasdiqqa yuborildi',
   'document.uploaded': 'Hujjat (chek) biriktirildi',
   'document.updated': 'Hujjat ma’lumotlari o‘zgartirildi',
+  'document.downloaded': 'Xodim hujjati yuklab olindi',
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
   'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
   'audit.exported': 'Audit jurnali eksport qilindi',
@@ -164,6 +166,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
 /** Xavfli yoki diqqat talab qiladigan amallar — ro‘yxatda ajratib ko‘rsatiladi */
 export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'auth.login_failed',
+  'auth.login_locked',
   'auth.refresh_token_reuse',
   'user.deleted',
   'role.deleted',

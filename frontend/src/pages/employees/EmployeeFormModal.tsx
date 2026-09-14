@@ -39,13 +39,13 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-function toPayload(values: FormValues): EmployeePayload {
+function toPayload(values: FormValues, includeSalary: boolean): EmployeePayload {
   return {
     firstName: values.firstName,
     lastName: values.lastName,
     phone: values.phone || null,
     position: values.position,
-    baseSalary: Number(values.baseSalary),
+    ...(includeSalary ? { baseSalary: Number(values.baseSalary) } : {}),
     hireDate: values.hireDate,
     status: values.status,
     terminationDate: values.terminationDate || null,
@@ -61,6 +61,8 @@ interface EmployeeFormModalProps {
 }
 
 export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormModalProps) {
+  /** salary.view ruxsati yo‘q — maosh ko‘rsatilmaydi va o‘zgartirilmaydi */
+  const salaryHidden = employee?.baseSalary === null;
   const [formError, setFormError] = useState<string | null>(null);
 
   const candidatesQuery = useQuery({ queryKey: queryKeys.employees.candidates, queryFn: employeesService.candidates });
@@ -78,7 +80,7 @@ export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormMo
       lastName: employee?.lastName ?? '',
       phone: employee?.phone ?? '',
       position: employee?.position ?? 'ADMINISTRATOR',
-      baseSalary: employee ? String(employee.baseSalary) : '',
+      baseSalary: salaryHidden ? '0' : employee ? String(employee.baseSalary) : '',
       hireDate: employee?.hireDate ?? new Date().toISOString().slice(0, 10),
       status: employee?.status ?? 'ACTIVE',
       terminationDate: employee?.terminationDate ?? '',
@@ -90,7 +92,7 @@ export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormMo
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
-      employee ? employeesService.update(employee.id, toPayload(values)) : employeesService.create(toPayload(values)),
+      employee ? employeesService.update(employee.id, toPayload(values, !salaryHidden)) : employeesService.create(toPayload(values, true)),
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();
@@ -158,9 +160,11 @@ export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormMo
               ))}
             </Select>
           </FormField>
-          <FormField label="Oylik maosh (so‘m)" htmlFor="employee-baseSalary" error={errors.baseSalary?.message} required hint="Oy o‘rtasida kirgan/ketganda kunlarga proporsional">
-            <Input id="employee-baseSalary" inputMode="numeric" invalid={Boolean(errors.baseSalary)} {...register('baseSalary')} />
-          </FormField>
+          {!salaryHidden && (
+            <FormField label="Oylik maosh (so‘m)" htmlFor="employee-baseSalary" error={errors.baseSalary?.message} required hint="Oy o‘rtasida kirgan/ketganda kunlarga proporsional">
+              <Input id="employee-baseSalary" inputMode="numeric" invalid={Boolean(errors.baseSalary)} {...register('baseSalary')} />
+            </FormField>
+          )}
           <FormField label="Ishga kirgan sana" htmlFor="employee-hireDate" error={errors.hireDate?.message} required>
             <Input id="employee-hireDate" type="date" invalid={Boolean(errors.hireDate)} {...register('hireDate')} />
           </FormField>

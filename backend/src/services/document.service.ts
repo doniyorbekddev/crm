@@ -281,13 +281,28 @@ export const documentService = {
   },
 
   /** Yuklab olish: bog‘langan yozuvni ko‘rish ruxsati bo‘lsa */
-  async download(actor: AuthUser, id: string): Promise<{ absolutePath: string; originalName: string; mimeType: string; size: number }> {
+  async download(
+    actor: AuthUser,
+    id: string,
+    client: ClientInfo,
+  ): Promise<{ absolutePath: string; originalName: string; mimeType: string; size: number }> {
     const document = await findActive(id);
     const owner = ownerOf(document);
     if (!owner) {
       throw AppError.forbidden();
     }
     await assertPermission(actor, OWNER_PERMISSIONS[owner.key].view);
+    // Pasport, shartnoma kabi xodim hujjatini kim ochgani tarixda qolsin
+    if (owner.key === 'teacher' || owner.key === 'employee') {
+      await auditService.record({
+        userId: actor.id,
+        action: 'document.downloaded',
+        entityType: owner.key,
+        entityId: owner.id,
+        metadata: { document: id, name: document.originalName, category: document.category },
+        ...client,
+      });
+    }
     return {
       absolutePath: resolveStoredPath(document.storagePath),
       originalName: document.originalName,
