@@ -135,24 +135,82 @@ export interface ExecutiveToday {
   activeTeachers: number;
 }
 
-export interface ExecutiveMonth {
-  year: number;
-  month: number;
-  label: string;
+export interface ExecutiveMetrics {
   revenue: number;
   expense: number;
   netProfit: number;
   margin: number;
   newLeads: number;
   wonLeads: number;
+  lostLeads: number;
   conversionRate: number;
   newStudents: number;
   droppedStudents: number;
+  attendanceRate: number;
+  attendanceMarks: number;
+}
+
+export interface ExecutiveMonth extends ExecutiveMetrics {
+  year: number;
+  month: number;
+  label: string;
   activeStudents: number;
   totalDebt: number;
   salaryAccrued: number;
   salaryPaid: number;
-  attendanceRate: number;
+}
+
+export interface ExecutivePeriod {
+  kind: 'current-month' | 'month' | 'range';
+  from: string;
+  to: string;
+  label: string;
+  previousFrom: string;
+  previousTo: string;
+}
+
+export type ExecutiveChangeKey =
+  | 'revenue'
+  | 'expense'
+  | 'netProfit'
+  | 'newLeads'
+  | 'wonLeads'
+  | 'newStudents'
+  | 'droppedStudents'
+  | 'margin'
+  | 'conversionRate'
+  | 'attendanceRate';
+
+export type HealthStatus = 'GOOD' | 'FAIR' | 'POOR' | 'NO_DATA';
+
+export interface ExecutiveHealth {
+  score: number | null;
+  status: HealthStatus;
+  components: Array<{ key: string; label: string; score: number | null; weight: number; value: string; hint: string }>;
+}
+
+export interface ExecutiveInsight {
+  key: string;
+  tone: 'positive' | 'negative' | 'neutral';
+  text: string;
+}
+
+export interface ExecutiveForecast {
+  daysElapsed: number;
+  daysInMonth: number;
+  projectedRevenue: number;
+  projectedExpense: number;
+  upcomingExpenses: number;
+  projectedProfit: number;
+  revenueTarget: number;
+  targetProgress: number | null;
+}
+
+export interface ExecutiveParams {
+  year?: number;
+  month?: number;
+  from?: string;
+  to?: string;
 }
 
 export interface ExecutiveTrendPoint {
@@ -164,9 +222,16 @@ export interface ExecutiveTrendPoint {
 }
 
 export interface ExecutiveSummary {
+  period: ExecutivePeriod;
   kpi: ExecutiveKpi;
   today: ExecutiveToday;
   month: ExecutiveMonth;
+  previous: ExecutiveMetrics;
+  /** Summalar — foizda, marja/konversiya/davomat — foiz punktida; null — oldingi davr bo‘sh */
+  changes: Record<ExecutiveChangeKey, number | null>;
+  health: ExecutiveHealth;
+  insights: ExecutiveInsight[];
+  forecast: ExecutiveForecast | null;
   trend: ExecutiveTrendPoint[];
   attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger' }>;
 }

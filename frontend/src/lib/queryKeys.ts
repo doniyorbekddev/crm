@@ -3,7 +3,7 @@ import type { AuditListParams } from '@/types/audit';
 import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { CallListParams } from '@/types/call';
-import type { ChartPeriod, ManagerPeriod } from '@/types/dashboard';
+import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
 import type { CommissionParams } from '@/types/commission';
 import type { CourseListParams } from '@/types/course';
 import type { EmployeeListParams } from '@/types/employee';
@@ -29,6 +29,7 @@ export const queryKeys = {
     all: ['dashboard'] as const,
     summary: ['dashboard', 'summary'] as const,
     executive: ['dashboard', 'executive'] as const,
+    executivePeriod: (params: ExecutiveParams) => ['dashboard', 'executive', params] as const,
     charts: (period: ChartPeriod) => ['dashboard', 'charts', period] as const,
     funnel: ['dashboard', 'funnel'] as const,
     followUps: ['dashboard', 'follow-ups'] as const,

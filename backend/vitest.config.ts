@@ -5,7 +5,8 @@ import { defineConfig } from 'vitest/config';
 
 // TEST_DATABASE_URL backend/.env dan olinadi. U yo‘q bo‘lsa, integratsion testlar o‘tkazib yuboriladi
 // va hech qanday test development bazasiga ulanmaydi.
-config({ path: '.env', quiet: true });
+// Yo‘l config fayliga nisbatan — buyruq qaysi papkadan ishga tushirilishidan qat’i nazar
+config({ path: path.resolve(import.meta.dirname, '.env'), quiet: true });
 const testDatabaseUrl = process.env.TEST_DATABASE_URL?.trim() ?? '';
 
 export default defineConfig({
