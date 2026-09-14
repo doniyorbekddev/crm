@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, MoneyListParams, MoneyPayload, MoneyStats, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
+import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, ExpenseApprovalSettings, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, MoneyListParams, MoneyPayload, MoneyStats, RecurringExpense, RecurringExpensePayload, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
 
 /** Tushum va xarajat API'lari bir xil — bitta fabrikadan ikkita servis */
 function moneyService(resource: 'incomes' | 'expenses') {
@@ -47,11 +47,59 @@ function moneyService(resource: 'incomes' | 'expenses') {
       const response = await api.put<ApiSuccessResponse<FinanceCategory[]>>(`/${resource}/categories/${id}`, payload);
       return { data: response.data.data, message: response.data.message };
     },
+
+    /** Quyidagilar faqat xarajatlar uchun (tasdiq jarayoni) */
+    async approve(id: string): Promise<MessageResult<MoneyEntry>> {
+      const response = await api.post<ApiSuccessResponse<MoneyEntry>>(`/${resource}/${id}/approve`);
+      return { data: response.data.data, message: response.data.message };
+    },
+
+    async reject(id: string, reason: string): Promise<MessageResult<MoneyEntry>> {
+      const response = await api.post<ApiSuccessResponse<MoneyEntry>>(`/${resource}/${id}/reject`, { reason });
+      return { data: response.data.data, message: response.data.message };
+    },
+
+    async pay(id: string, payload: { method?: string; accountId?: string; date?: string } = {}): Promise<MessageResult<MoneyEntry>> {
+      const response = await api.post<ApiSuccessResponse<MoneyEntry>>(`/${resource}/${id}/pay`, payload);
+      return { data: response.data.data, message: response.data.message };
+    },
+
+    async approvalSettings(): Promise<ExpenseApprovalSettings> {
+      const response = await api.get<ApiSuccessResponse<ExpenseApprovalSettings>>(`/${resource}/settings/approval`);
+      return response.data.data;
+    },
+
+    async updateApprovalSettings(approvalThreshold: number): Promise<MessageResult<ExpenseApprovalSettings>> {
+      const response = await api.put<ApiSuccessResponse<ExpenseApprovalSettings>>(`/${resource}/settings/approval`, { approvalThreshold });
+      return { data: response.data.data, message: response.data.message };
+    },
   };
 }
 
 export const incomesService = moneyService('incomes');
 export const expensesService = moneyService('expenses');
+
+export const recurringExpensesService = {
+  async list(): Promise<RecurringExpense[]> {
+    const response = await api.get<ApiSuccessResponse<RecurringExpense[]>>('/recurring-expenses');
+    return response.data.data;
+  },
+
+  async create(payload: RecurringExpensePayload): Promise<MessageResult<RecurringExpense>> {
+    const response = await api.post<ApiSuccessResponse<RecurringExpense>>('/recurring-expenses', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async update(id: string, payload: Partial<RecurringExpensePayload> & { isActive?: boolean }): Promise<MessageResult<RecurringExpense>> {
+    const response = await api.put<ApiSuccessResponse<RecurringExpense>>(`/recurring-expenses/${id}`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async generate(): Promise<MessageResult<{ created: number; period: string }>> {
+    const response = await api.post<ApiSuccessResponse<{ created: number; period: string }>>('/recurring-expenses/generate');
+    return { data: response.data.data, message: response.data.message };
+  },
+};
 
 export const financeService = {
   async summary(params: FinanceRangeParams): Promise<FinanceSummary> {

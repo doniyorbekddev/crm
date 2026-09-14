@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { AccountType, TransactionStatus, TransactionType } from '@/types/finance';
+import type { AccountType, ExpenseStatus, TransactionStatus, TransactionType } from '@/types/finance';
 
 export const TRANSACTION_TYPE_ORDER: readonly TransactionType[] = ['INCOME', 'EXPENSE', 'TRANSFER', 'REFUND'];
 
@@ -50,3 +50,21 @@ export const CASH_FLOW_PERIODS = [
   { value: 'week', label: 'Haftalik' },
   { value: 'month', label: 'Oylik' },
 ] as const;
+
+export const EXPENSE_STATUS_ORDER = ['PENDING', 'APPROVED', 'UPCOMING', 'PAID', 'REJECTED'] as const satisfies readonly ExpenseStatus[];
+
+export const EXPENSE_STATUS_LABELS: Record<ExpenseStatus, string> = {
+  UPCOMING: 'Kutilayotgan',
+  PENDING: 'Tasdiq kutmoqda',
+  APPROVED: 'Tasdiqlangan',
+  REJECTED: 'Rad etilgan',
+  PAID: 'To‘langan',
+};
+
+export const EXPENSE_STATUS_TONES: Record<ExpenseStatus, BadgeTone> = {
+  UPCOMING: 'blue',
+  PENDING: 'yellow',
+  APPROVED: 'purple',
+  REJECTED: 'gray',
+  PAID: 'green',
+};

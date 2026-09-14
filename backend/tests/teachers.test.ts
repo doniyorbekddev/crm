@@ -433,7 +433,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       const expense = await prisma.expense.findFirst({ include: { category: true, transaction: true } });
       expect(expense?.amount.toNumber()).toBe(150_000);
       expect(expense?.category.key).toBe('TEACHER_SALARY');
-      expect(expense?.transaction.type).toBe('EXPENSE');
+      expect(expense?.transaction?.type).toBe('EXPENSE');
       expect((await prisma.financialAccount.findUniqueOrThrow({ where: { id: account.id } })).balance.toNumber()).toBe(9_850_000);
 
       const tooMuch = await request(app)

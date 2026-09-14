@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
@@ -11,12 +11,14 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { expensesService, financeService, incomesService } from '@/services/finance.service';
 import { formatMoney } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 const schema = z.object({
   categoryId: z.string().min(1, 'Kategoriyani tanlang'),
@@ -25,6 +27,7 @@ const schema = z.object({
   accountId: z.string(),
   date: z.string(),
   description: z.string().trim().max(255, 'Izoh juda uzun'),
+  vendor: z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -48,10 +51,19 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
     queryFn: () => financeService.accounts(),
     staleTime: 60_000,
   });
+  const isExpense = kind === 'expense';
+  const canApprove = usePermission(PERMISSIONS.EXPENSE_APPROVE);
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.expenses.approvalSettings,
+    queryFn: expensesService.approvalSettings,
+    enabled: isExpense,
+    staleTime: 60_000,
+  });
 
   const {
     register,
     handleSubmit,
+    control,
     setError,
     formState: { errors },
   } = useForm({
@@ -63,8 +75,12 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
       accountId: '',
       date: new Date().toISOString().slice(0, 10),
       description: '',
+      vendor: '',
     },
   });
+  const amount = Number(useWatch({ control, name: 'amount' }) || 0);
+  const threshold = settingsQuery.data?.approvalThreshold ?? 0;
+  const needsApproval = isExpense && !canApprove && threshold > 0 && amount >= threshold;
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
@@ -75,6 +91,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
         ...(values.accountId ? { accountId: values.accountId } : {}),
         ...(values.date ? { date: values.date } : {}),
         ...(values.description ? { description: values.description } : {}),
+        ...(isExpense && values.vendor ? { vendor: values.vendor } : {}),
       }),
     onSuccess: (result) => {
       toast.success(result.message);
@@ -173,6 +190,18 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
             <Input id="money-date" type="date" {...register('date')} />
           </FormField>
         </div>
+
+        {isExpense && (
+          <FormField label="Yetkazib beruvchi" htmlFor="money-vendor" error={errors.vendor?.message} hint="Ixtiyoriy — kompaniya yoki shaxs">
+            <Input id="money-vendor" placeholder="Oqtepa Plaza MChJ" {...register('vendor')} />
+          </FormField>
+        )}
+
+        {needsApproval && (
+          <Alert tone="warning">
+            Summa tasdiq chegarasidan ({formatMoney(threshold)}) katta — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.
+          </Alert>
+        )}
 
         <FormField label="Izoh" htmlFor="money-description" error={errors.description?.message} hint="Ixtiyoriy">
           <Textarea id="money-description" rows={2} {...register('description')} />

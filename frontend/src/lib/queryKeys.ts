@@ -193,6 +193,8 @@ export const queryKeys = {
     list: (params: MoneyListParams) => ['expenses', 'list', params] as const,
     stats: (params: Omit<MoneyListParams, 'page' | 'limit'>) => ['expenses', 'stats', params] as const,
     categories: ['expenses', 'categories'] as const,
+    approvalSettings: ['expenses', 'approval-settings'] as const,
+    recurring: ['expenses', 'recurring'] as const,
   },
   lookups: {
     leadForm: ['lookups', 'lead-form'] as const,

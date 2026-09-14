@@ -70,6 +70,7 @@ export const PERMISSIONS = {
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',
   EXPENSE_MANAGE: 'expense.manage',
+  EXPENSE_APPROVE: 'expense.approve',
   BUDGET_MANAGE: 'budget.manage',
 
   GAMIFICATION_VIEW: 'gamification.view',

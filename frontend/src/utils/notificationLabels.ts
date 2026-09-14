@@ -1,4 +1,4 @@
-import { AlertTriangle, BellRing, CalendarClock, GraduationCap, HandCoins, Info, Target, UserCheck, Wallet } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, BellRing, CalendarClock, GraduationCap, HandCoins, Info, Target, UserCheck, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NotificationType } from '@/types/notification';
 
@@ -11,6 +11,7 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'NEW_STUDENT',
   'DEBT_REMINDER',
   'TRIAL_LESSON_REMINDER',
+  'EXPENSE_APPROVAL',
   'SYSTEM',
 ];
 
@@ -23,6 +24,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   NEW_STUDENT: 'Yangi o‘quvchi',
   DEBT_REMINDER: 'Qarzdorlik',
   TRIAL_LESSON_REMINDER: 'Sinov darsi',
+  EXPENSE_APPROVAL: 'Xarajat tasdig‘i',
   SYSTEM: 'Tizim',
 };
 
@@ -35,6 +37,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   NEW_STUDENT: GraduationCap,
   DEBT_REMINDER: HandCoins,
   TRIAL_LESSON_REMINDER: BellRing,
+  EXPENSE_APPROVAL: BadgeCheck,
   SYSTEM: Info,
 };
 
@@ -48,6 +51,7 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   NEW_STUDENT: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
   DEBT_REMINDER: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   TRIAL_LESSON_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  EXPENSE_APPROVAL: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   SYSTEM: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
 };
 
@@ -65,6 +69,8 @@ export function notificationLink(entityType: string | null, entityId: string | n
       return '/payments';
     case 'debt':
       return '/debts';
+    case 'expense':
+      return '/expenses';
     default:
       return null;
   }

@@ -15,7 +15,11 @@ const amountSchema = z.coerce
   .min(1000, 'Eng kam summa — 1 000 so‘m')
   .max(999_999_999, 'Summa juda katta');
 
+export const EXPENSE_STATUSES = ['UPCOMING', 'PENDING', 'APPROVED', 'REJECTED', 'PAID'] as const;
+
 export const moneyListQuerySchema = paginationQuerySchema.extend({
+  /** Faqat xarajatlar uchun */
+  status: z.enum(EXPENSE_STATUSES, 'Holat noto‘g‘ri').optional(),
   categoryId: idSchema.optional(),
   accountId: idSchema.optional(),
   method: z.enum(PAYMENT_METHODS, 'To‘lov usuli noto‘g‘ri').optional(),
@@ -40,7 +44,9 @@ export const createIncomeSchema = moneyFieldsSchema.extend({
 });
 
 /** Ilova (chek) fayli keyingi bosqichda hujjatlar moduli orqali yuklanadi — mijozdan erkin yo‘l qabul qilinmaydi */
-export const createExpenseSchema = moneyFieldsSchema;
+export const createExpenseSchema = moneyFieldsSchema.extend({
+  vendor: optionalField(z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun')),
+});
 
 export const voidMoneySchema = z.object({
   reason: z
@@ -95,3 +101,46 @@ export type CategoryInput = z.infer<typeof categorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type BudgetQuery = z.infer<typeof budgetQuerySchema>;
 export type SaveBudgetInput = z.infer<typeof saveBudgetSchema>;
+
+// ---------------------------------------------------------------------
+// Xarajat tasdig‘i va takroriy xarajatlar
+// ---------------------------------------------------------------------
+
+export const payExpenseSchema = z.object({
+  method: z.enum(PAYMENT_METHODS, 'To‘lov usuli noto‘g‘ri').optional(),
+  accountId: optionalField(idSchema),
+  date: optionalField(dateOnlySchema),
+});
+
+export const expenseSettingsSchema = z.object({
+  approvalThreshold: z.coerce
+    .number('Summa raqam bo‘lishi kerak')
+    .int('Summa butun son bo‘lishi kerak')
+    .min(0, 'Summa manfiy bo‘lmasligi kerak')
+    .max(999_999_999, 'Summa juda katta'),
+});
+
+const recurringFields = {
+  name: z.string('Nomini kiriting').trim().min(2, 'Kamida 2 belgi').max(150, 'Nom juda uzun'),
+  categoryId: z.string('Kategoriyani tanlang').trim().min(1, 'Kategoriyani tanlang').max(50),
+  amount: amountSchema,
+  method: z.enum(PAYMENT_METHODS, 'To‘lov usulini tanlang').default('CASH'),
+  accountId: optionalField(idSchema),
+  vendor: optionalField(z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun')),
+  dayOfMonth: z.coerce.number('Kun raqam bo‘lishi kerak').int().min(1, 'Kun 1 dan 28 gacha').max(28, 'Kun 1 dan 28 gacha (har oyda bor bo‘lishi uchun)'),
+  startDate: dateOnlySchema.transform((value) => new Date(`${value}T00:00:00.000Z`)),
+  endDate: optionalField(dateOnlySchema.transform((value) => new Date(`${value}T00:00:00.000Z`))),
+  note: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
+};
+
+export const recurringExpenseSchema = z.object(recurringFields);
+
+export const updateRecurringExpenseSchema = z
+  .object({ ...recurringFields, isActive: z.boolean() })
+  .partial()
+  .refine((values) => Object.values(values).some((value) => value !== undefined), 'Kamida bitta maydonni o‘zgartiring');
+
+export type PayExpenseInput = z.infer<typeof payExpenseSchema>;
+export type ExpenseSettingsInput = z.infer<typeof expenseSettingsSchema>;
+export type RecurringExpenseInput = z.infer<typeof recurringExpenseSchema>;
+export type UpdateRecurringExpenseInput = z.infer<typeof updateRecurringExpenseSchema>;

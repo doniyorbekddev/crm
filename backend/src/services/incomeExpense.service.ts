@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import type { PaymentMethod, Prisma } from '../generated/prisma/client.js';
+import type { ExpenseStatus, PaymentMethod, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { toSkipTake } from '../utils/pagination.js';
@@ -17,6 +17,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
+import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -37,7 +38,16 @@ export interface MoneyEntryDto {
   account: { id: string; name: string } | null;
   responsible: { id: string; firstName: string; lastName: string } | null;
   student: { id: string; firstName: string; lastName: string } | null;
-  transactionId: string;
+  /** To‘lanmagan xarajatda daftar yozuvi yo‘q */
+  transactionId: string | null;
+  /** Tushum har doim PAID; xarajat: UPCOMING / PENDING / APPROVED / REJECTED / PAID */
+  status: ExpenseStatus;
+  vendor: string | null;
+  dueDate: string | null;
+  approvedBy: { id: string; firstName: string; lastName: string } | null;
+  approvedAt: string | null;
+  rejectReason: string | null;
+  recurring: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -107,9 +117,16 @@ const expenseSelect = {
   attachmentPath: true,
   createdAt: true,
   transactionId: true,
+  status: true,
+  vendor: true,
+  dueDate: true,
+  approvedAt: true,
+  rejectReason: true,
   category: { select: { id: true, key: true, name: true } },
   account: { select: { id: true, name: true } },
   responsible: { select: { id: true, firstName: true, lastName: true } },
+  approvedBy: { select: { id: true, firstName: true, lastName: true } },
+  recurringExpense: { select: { id: true, name: true } },
   transaction: { select: { status: true, voidReason: true } },
 } satisfies Prisma.ExpenseSelect;
 
@@ -132,6 +149,13 @@ function toIncomeDto(income: IncomeRecord): MoneyEntryDto {
     responsible: income.responsible,
     student: income.student,
     transactionId: income.transactionId,
+    status: 'PAID',
+    vendor: null,
+    dueDate: null,
+    approvedBy: null,
+    approvedAt: null,
+    rejectReason: null,
+    recurring: null,
     createdAt: income.createdAt.toISOString(),
   };
 }
@@ -145,13 +169,20 @@ function toExpenseDto(expense: ExpenseRecord): MoneyEntryDto {
     date: expense.spentAt.toISOString(),
     description: expense.description,
     attachmentPath: expense.attachmentPath,
-    isVoided: expense.transaction.status !== 'COMPLETED',
-    voidReason: expense.transaction.voidReason,
+    isVoided: expense.transaction !== null && expense.transaction.status !== 'COMPLETED',
+    voidReason: expense.transaction?.voidReason ?? null,
     category: expense.category,
     account: expense.account,
     responsible: expense.responsible,
     student: null,
     transactionId: expense.transactionId,
+    status: expense.status,
+    vendor: expense.vendor,
+    dueDate: expense.dueDate ? expense.dueDate.toISOString().slice(0, 10) : null,
+    approvedBy: expense.approvedBy,
+    approvedAt: expense.approvedAt?.toISOString() ?? null,
+    rejectReason: expense.rejectReason,
+    recurring: expense.recurringExpense,
     createdAt: expense.createdAt.toISOString(),
   };
 }
@@ -355,8 +386,19 @@ export const incomeService = {
 // ---------------------------------------------------------------------
 
 export const expenseService = {
+  async getById(id: string): Promise<MoneyEntryDto> {
+    const expense = await prisma.expense.findUnique({ where: { id }, select: expenseSelect });
+    if (!expense) {
+      throw AppError.notFound('Xarajat topilmadi');
+    }
+    return toExpenseDto(expense);
+  },
+
   async list(query: MoneyListQuery): Promise<{ items: MoneyEntryDto[]; total: number }> {
-    const where = buildWhere(query, 'spentAt') as Prisma.ExpenseWhereInput;
+    const where = {
+      ...(buildWhere(query, 'spentAt') as Prisma.ExpenseWhereInput),
+      ...(query.status ? { status: query.status } : {}),
+    };
     const items = await prisma.expense.findMany({
       where,
       select: expenseSelect,
@@ -406,7 +448,43 @@ export const expenseService = {
     }
 
     const occurredAt = toOccurredAt(input.date);
+    // Chegara summadan katta va tasdiqlash ruxsati yo'q — rahbar tasdig'i kutiladi, pul yechilmaydi
+    if (await requiresApproval(actor, input.amount)) {
+      const pendingId = await prisma.$transaction(async (tx) => {
+        const accountId = input.accountId ? await resolveAccountId(tx, input.accountId, input.method) : null;
+        const expense = await tx.expense.create({
+          data: {
+            categoryId: category.id,
+            amount: input.amount,
+            method: input.method,
+            accountId,
+            spentAt: occurredAt,
+            description: input.description ?? null,
+            vendor: input.vendor ?? null,
+            responsibleId: actor.id,
+            status: 'PENDING',
+          },
+          select: { id: true, number: true },
+        });
+        await notifyApprovers(
+          tx,
+          { id: expense.id, number: expense.number, amount: input.amount, categoryName: category.name, description: input.description ?? null },
+          actor.id,
+        );
+        await auditService.recordInTransaction(tx, {
+          userId: actor.id,
+          action: 'expense.requested',
+          entityType: 'expense',
+          entityId: expense.id,
+          metadata: { number: expense.number, amount: input.amount, category: category.name, vendor: input.vendor ?? null },
+          ...client,
+        });
+        return expense.id;
+      });
+      return toExpenseDto(await prisma.expense.findUniqueOrThrow({ where: { id: pendingId }, select: expenseSelect }));
+    }
     await assertFinancialPeriodOpen(prisma, occurredAt);
+    const approvedByActor = (await getApprovalThreshold()) > 0 && input.amount >= (await getApprovalThreshold());
     const id = await prisma.$transaction(async (tx) => {
       const accountId = await resolveAccountId(tx, input.accountId, input.method);
       const transaction = await recordTransaction(tx, {
@@ -428,8 +506,11 @@ export const expenseService = {
           accountId,
           spentAt: occurredAt,
           description: input.description ?? null,
+          vendor: input.vendor ?? null,
           responsibleId: actor.id,
           transactionId: transaction.id,
+          status: 'PAID',
+          ...(approvedByActor ? { approvedById: actor.id, approvedAt: new Date() } : {}),
         },
         select: { id: true, number: true },
       });
@@ -467,13 +548,16 @@ export const expenseService = {
     if (expense.salaryPaymentId) {
       throw AppError.unprocessable('Maosh to‘lovi maoshlar bo‘limida bekor qilinadi');
     }
+    if (!expense.transaction || !expense.transactionId) {
+      throw AppError.unprocessable('Xarajat hali to‘lanmagan — bekor qilish uchun “Rad etish”dan foydalaning');
+    }
     if (expense.transaction.status !== 'COMPLETED') {
       throw AppError.conflict('Bu xarajat allaqachon bekor qilingan');
     }
 
     await assertFinancialPeriodOpen(prisma, expense.transaction.occurredAt);
     await prisma.$transaction(async (tx) => {
-      await voidTransaction(tx, expense.transactionId, { userId: actor.id, reason: input.reason });
+      await voidTransaction(tx, expense.transactionId!, { userId: actor.id, reason: input.reason });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'expense.voided',

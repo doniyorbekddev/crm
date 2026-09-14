@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { BadgeCheck, Ban, HandCoins, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -7,6 +7,7 @@ import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
@@ -20,11 +21,13 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { expensesService, incomesService } from '@/services/finance.service';
-import type { MoneyEntry, MoneyListParams } from '@/types/finance';
+import type { ExpenseStatus, MoneyEntry, MoneyListParams } from '@/types/finance';
+import { EXPENSE_STATUS_LABELS, EXPENSE_STATUS_ORDER, EXPENSE_STATUS_TONES } from '@/utils/financeLabels';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_TONES } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { MoneyFormModal } from './MoneyFormModal';
+import { RecurringExpensesModal } from './RecurringExpensesModal';
 import { VoidReasonModal } from './VoidReasonModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
@@ -41,6 +44,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   const isIncome = kind === 'income';
   const service = isIncome ? incomesService : expensesService;
   const canManage = usePermission(isIncome ? PERMISSIONS.INCOME_MANAGE : PERMISSIONS.EXPENSE_MANAGE);
+  const canApprove = usePermission(PERMISSIONS.EXPENSE_APPROVE) && !isIncome;
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -48,7 +52,15 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
-  const [dialog, setDialog] = useState<{ type: 'create' } | { type: 'void'; entry: MoneyEntry } | null>(null);
+  const [status, setStatus] = useState<ExpenseStatus | ''>('');
+  const [dialog, setDialog] = useState<
+    | { type: 'create' }
+    | { type: 'void'; entry: MoneyEntry }
+    | { type: 'reject'; entry: MoneyEntry }
+    | { type: 'pay'; entry: MoneyEntry }
+    | { type: 'recurring' }
+    | null
+  >(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
   const [voidError, setVoidError] = useState<string | null>(null);
@@ -59,7 +71,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
-  const params: MoneyListParams = { ...filters, page, limit: PAGE_SIZE };
+  const params: MoneyListParams = { ...filters, ...(!isIncome && status ? { status } : {}), page, limit: PAGE_SIZE };
   const keys = isIncome ? queryKeys.incomes : queryKeys.expenses;
 
   const listQuery = useQuery({
@@ -84,6 +96,75 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     },
     onError: (error) => setVoidError(getErrorMessage(error)),
   });
+
+  const approve = useMutation({
+    mutationFn: (id: string) => service.approve(id),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      refresh();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  const reject = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => service.reject(id, reason),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setDialog(null);
+      refresh();
+    },
+    onError: (error) => setVoidError(getErrorMessage(error)),
+  });
+
+  const pay = useMutation({
+    mutationFn: (id: string) => service.pay(id),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setDialog(null);
+      refresh();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  /** Holatga qarab amallar: tasdiqlash (rahbar), to‘lash, rad etish, bekor qilish */
+  const rowActions = (entry: MoneyEntry) => {
+    if (entry.isVoided || entry.status === 'REJECTED') return [];
+    if (entry.status === 'PAID') {
+      return canManage
+        ? [
+            {
+              label: 'Bekor qilish',
+              icon: Ban,
+              tone: 'danger' as const,
+              onSelect: () => {
+                setVoidError(null);
+                setDialog({ type: 'void', entry });
+              },
+            },
+          ]
+        : [];
+    }
+    const canReject = (entry.status !== 'UPCOMING' && canApprove) || (entry.status === 'UPCOMING' && canManage);
+    return [
+      ...(entry.status === 'PENDING' && canApprove ? [{ label: 'Tasdiqlash', icon: BadgeCheck, onSelect: () => approve.mutate(entry.id) }] : []),
+      ...((entry.status === 'APPROVED' || entry.status === 'UPCOMING') && canManage
+        ? [{ label: 'To‘lash', icon: HandCoins, onSelect: () => setDialog({ type: 'pay', entry }) }]
+        : []),
+      ...(canReject
+        ? [
+            {
+              label: entry.status === 'UPCOMING' ? 'Bu oy o‘tkazib yuborish' : 'Rad etish',
+              icon: XCircle,
+              tone: 'danger' as const,
+              onSelect: () => {
+                setVoidError(null);
+                setDialog({ type: 'reject', entry });
+              },
+            },
+          ]
+        : []),
+    ];
+  };
 
   const changeFilter = (apply: () => void) => {
     apply();
@@ -111,6 +192,11 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                   void runExport(`/reports/${isIncome ? 'incomes' : 'expenses'}/export`, { ...(from ? { from } : {}), ...(to ? { to } : {}) }, isIncome ? 'tushumlar' : 'xarajatlar', format)
                 }
               />
+            )}
+            {!isIncome && (
+              <Button variant="secondary" leftIcon={<Repeat className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'recurring' })}>
+                Takroriy
+              </Button>
             )}
             {canManage && (
               <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
@@ -141,6 +227,28 @@ export function MoneyPage({ kind }: MoneyPageProps) {
       )}
 
       <Card>
+        {!isIncome && (
+          <div role="tablist" aria-label="Xarajat holati" className="-mx-1 flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
+            {(['', ...EXPENSE_STATUS_ORDER] as const).map((value) => {
+              const active = status === value;
+              return (
+                <button
+                  key={value || 'all'}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => changeFilter(() => setStatus(value))}
+                  className={cn(
+                    'inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
+                    active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                  )}
+                >
+                  {value ? EXPENSE_STATUS_LABELS[value] : 'Barchasi'}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
           <SearchInput
             value={searchInput}
@@ -199,7 +307,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                     <TH>Usul / kassa</TH>
                     <TH>Sana</TH>
                     <TH>Kim kiritdi</TH>
-                    {canManage && (
+                    {(canManage || canApprove) && (
                       <TH className="w-12">
                         <span className="sr-only">Amallar</span>
                       </TH>
@@ -218,8 +326,21 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                               Bekor qilingan
                             </Badge>
                           )}
+                          {entry.status !== 'PAID' && (
+                            <Badge tone={EXPENSE_STATUS_TONES[entry.status]} className="ml-2">
+                              {EXPENSE_STATUS_LABELS[entry.status]}
+                            </Badge>
+                          )}
                         </p>
                         {entry.description && <p className="truncate text-xs text-fg-muted">{entry.description}</p>}
+                        {(entry.vendor || entry.recurring) && (
+                          <p className="truncate text-xs text-fg-muted">
+                            {[entry.vendor, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                        {entry.status === 'REJECTED' && entry.rejectReason && (
+                          <p className="truncate text-xs text-red-600 dark:text-red-400">{entry.rejectReason}</p>
+                        )}
                         {entry.isVoided && entry.voidReason && (
                           <p className="truncate text-xs text-red-600 dark:text-red-400">{entry.voidReason}</p>
                         )}
@@ -236,29 +357,19 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                         <Badge tone={PAYMENT_METHOD_TONES[entry.method]}>{PAYMENT_METHOD_LABELS[entry.method]}</Badge>
                         {entry.account && <p className="mt-1 text-xs text-fg-muted">{entry.account.name}</p>}
                       </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(entry.date)}</TD>
+                      <TD className="whitespace-nowrap text-fg-muted">
+                        {formatDate(entry.dueDate && entry.status !== 'PAID' ? entry.dueDate : entry.date)}
+                        {entry.status !== 'PAID' && entry.status !== 'REJECTED' && <p className="text-xs">muddat</p>}
+                      </TD>
                       <TD className="whitespace-nowrap text-fg-muted">
                         {entry.responsible ? `${entry.responsible.firstName} ${entry.responsible.lastName}` : '—'}
                       </TD>
-                      {canManage && (
+                      {(canManage || canApprove) && (
                         <TD className="text-right">
-                          {entry.isVoided ? (
+                          {rowActions(entry).length === 0 ? (
                             <span className="text-xs text-fg-subtle">—</span>
                           ) : (
-                            <ActionMenu
-                              label={`#${entry.number} amallari`}
-                              items={[
-                                {
-                                  label: 'Bekor qilish',
-                                  icon: Ban,
-                                  tone: 'danger',
-                                  onSelect: () => {
-                                    setVoidError(null);
-                                    setDialog({ type: 'void', entry });
-                                  },
-                                },
-                              ]}
-                            />
+                            <ActionMenu label={`#${entry.number} amallari`} items={rowActions(entry)} />
                           )}
                         </TD>
                       )}
@@ -300,6 +411,34 @@ export function MoneyPage({ kind }: MoneyPageProps) {
           onConfirm={(reason) => voidEntry.mutate({ id: dialog.entry.id, reason })}
         />
       )}
+
+      {dialog?.type === 'reject' && (
+        <VoidReasonModal
+          title={dialog.entry.status === 'UPCOMING' ? 'Bu oy uchun o‘tkazib yuborish' : 'Xarajatni rad etish'}
+          description={`#${dialog.entry.number} · ${dialog.entry.category.name} · ${formatMoney(dialog.entry.amount)}`}
+          loading={reject.isPending}
+          error={voidError}
+          onClose={() => setDialog(null)}
+          onConfirm={(reason) => reject.mutate({ id: dialog.entry.id, reason })}
+        />
+      )}
+
+      <ConfirmDialog
+        open={dialog?.type === 'pay'}
+        tone="primary"
+        title="Xarajatni to‘lash"
+        description={
+          dialog?.type === 'pay'
+            ? `#${dialog.entry.number} · ${dialog.entry.category.name} · ${formatMoney(dialog.entry.amount)} — kassadan yechiladi va moliyaviy daftarga yoziladi.`
+            : ''
+        }
+        confirmLabel="To‘lash"
+        loading={pay.isPending}
+        onConfirm={() => dialog?.type === 'pay' && pay.mutate(dialog.entry.id)}
+        onCancel={() => setDialog(null)}
+      />
+
+      {dialog?.type === 'recurring' && <RecurringExpensesModal onClose={() => setDialog(null)} onChanged={refresh} />}
     </>
   );
 }

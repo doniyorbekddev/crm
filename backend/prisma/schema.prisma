@@ -161,6 +161,7 @@ enum NotificationType {
   NEW_STUDENT
   DEBT_REMINDER
   TRIAL_LESSON_REMINDER
+  EXPENSE_APPROVAL
   SYSTEM
 }
 
@@ -237,6 +238,9 @@ model User {
   createdRefunds           PaymentRefund[]        @relation("PaymentRefundCreatedBy")
   closedFinancialPeriods   FinancialPeriod[]      @relation("FinancialPeriodClosedBy")
   reopenedFinancialPeriods FinancialPeriod[]      @relation("FinancialPeriodReopenedBy")
+  approvedExpenses         Expense[]              @relation("ExpenseApprovedBy")
+  rejectedExpenses         Expense[]              @relation("ExpenseRejectedBy")
+  createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
 
   @@index([roleId])
   @@index([status])
@@ -1208,11 +1212,12 @@ model FinancialAccount {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  transactions   Transaction[]
-  incomes        Income[]
-  expenses       Expense[]
-  salaryPayments TeacherSalaryPayment[]
-  refunds        PaymentRefund[]
+  transactions      Transaction[]
+  incomes           Income[]
+  expenses          Expense[]
+  salaryPayments    TeacherSalaryPayment[]
+  refunds           PaymentRefund[]
+  recurringExpenses RecurringExpense[]
 
   @@map("financial_accounts")
 }
@@ -1280,8 +1285,9 @@ model ExpenseCategory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  expenses    Expense[]
-  budgetLines BudgetLine[]
+  expenses          Expense[]
+  recurringExpenses RecurringExpense[]
+  budgetLines       BudgetLine[]
 
   @@map("expense_categories")
 }
@@ -1314,28 +1320,47 @@ model Income {
 }
 
 model Expense {
-  id              String        @id @default(cuid())
-  number          Int           @unique @default(autoincrement())
-  categoryId      String
-  amount          Decimal       @db.Decimal(14, 2)
-  method          PaymentMethod @default(CASH)
-  accountId       String?
-  spentAt         DateTime      @default(now())
-  description     String?       @db.VarChar(255)
-  attachmentPath  String?       @db.VarChar(500)
-  responsibleId   String?
-  transactionId   String        @unique
+  id                 String        @id @default(cuid())
+  number             Int           @unique @default(autoincrement())
+  categoryId         String
+  amount             Decimal       @db.Decimal(14, 2)
+  method             PaymentMethod @default(CASH)
+  accountId          String?
+  spentAt            DateTime      @default(now())
+  description        String?       @db.VarChar(255)
+  attachmentPath     String?       @db.VarChar(500)
+  responsibleId      String?
+  /// To‘lanmagan (kutilayotgan / tasdiq kutayotgan) xarajatda daftar yozuvi yo‘q
+  transactionId      String?       @unique
   /// Maosh to‘lovi xarajat sifatida yozilganda
-  salaryPaymentId String?       @unique
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  salaryPaymentId    String?       @unique
+  status             ExpenseStatus @default(PAID)
+  vendor             String?       @db.VarChar(150)
+  /// Takroriy xarajatning to‘lov kuni
+  dueDate            DateTime?     @db.Date
+  approvedById       String?
+  approvedAt         DateTime?
+  rejectedById       String?
+  rejectedAt         DateTime?
+  rejectReason       String?       @db.VarChar(255)
+  recurringExpenseId String?
+  /// "2026-09" — takroriy xarajat qaysi oy uchun yaratilgani
+  recurringPeriod    String?       @db.VarChar(7)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   category      ExpenseCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   account       FinancialAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
   responsible   User?                 @relation("ExpenseResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
-  transaction   Transaction           @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  transaction   Transaction?          @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   salaryPayment TeacherSalaryPayment? @relation(fields: [salaryPaymentId], references: [id], onDelete: SetNull)
 
+  approvedBy       User?             @relation("ExpenseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  rejectedBy       User?             @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
+  recurringExpense RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+
+  @@unique([recurringExpenseId, recurringPeriod])
+  @@index([status])
   @@index([spentAt])
   @@index([categoryId, spentAt])
   @@map("expenses")
@@ -1771,4 +1796,43 @@ model FinancialPeriod {
 
   @@unique([year, month])
   @@map("financial_periods")
+}
+
+enum ExpenseStatus {
+  /// Takroriy xarajatdan yaratilgan, to‘lov kutilmoqda (tasdiq shart emas)
+  UPCOMING
+  /// Chegara summadan katta — rahbar tasdig‘i kutilmoqda
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+/// Har oy takrorlanadigan xarajat (ijara, internet, dastur). Tizim oy boshida kutilayotgan
+/// xarajat yaratadi — pul avtomatik yechilmaydi, to‘lov qo‘lda tasdiqlanadi.
+model RecurringExpense {
+  id          String        @id @default(cuid())
+  name        String        @db.VarChar(150)
+  categoryId  String
+  amount      Decimal       @db.Decimal(14, 2)
+  method      PaymentMethod @default(CASH)
+  accountId   String?
+  vendor      String?       @db.VarChar(150)
+  /// Oyning qaysi kuni (1–28)
+  dayOfMonth  Int           @db.SmallInt
+  startDate   DateTime      @db.Date
+  endDate     DateTime?     @db.Date
+  isActive    Boolean       @default(true)
+  note        String?       @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  category  ExpenseCategory   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account   FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy User?             @relation("RecurringExpenseCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  expenses  Expense[]
+
+  @@index([isActive])
+  @@map("recurring_expenses")
 }

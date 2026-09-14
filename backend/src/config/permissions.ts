@@ -74,6 +74,7 @@ export const PERMISSIONS = {
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',
   EXPENSE_MANAGE: 'expense.manage',
+  EXPENSE_APPROVE: 'expense.approve',
   BUDGET_MANAGE: 'budget.manage',
 
   GAMIFICATION_VIEW: 'gamification.view',
@@ -175,6 +176,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.INCOME_MANAGE, module: 'finance', description: 'Tushum qo‘shish va bekor qilish' },
   { key: PERMISSIONS.EXPENSE_VIEW, module: 'finance', description: 'Xarajatlarni ko‘rish' },
   { key: PERMISSIONS.EXPENSE_MANAGE, module: 'finance', description: 'Xarajat qo‘shish va bekor qilish' },
+  { key: PERMISSIONS.EXPENSE_APPROVE, module: 'finance', description: 'Katta xarajatni tasdiqlash / rad etish, tasdiq chegarasini belgilash' },
   { key: PERMISSIONS.BUDGET_MANAGE, module: 'finance', description: 'Oylik budjetni belgilash' },
 
   { key: PERMISSIONS.GAMIFICATION_VIEW, module: 'gamification', description: 'XP, daraja va reytingni ko‘rish' },
@@ -230,6 +232,8 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.SALARY_UNLOCK,
   // Yopilgan moliyaviy oyni ochish — faqat Owner / Super Admin
   PERMISSIONS.FINANCE_REOPEN,
+  // Katta xarajatni tasdiqlash — faqat Owner / Super Admin
+  PERMISSIONS.EXPENSE_APPROVE,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */

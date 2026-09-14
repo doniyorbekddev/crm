@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { startAlertsJob } from './jobs/alerts.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
+import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
 import { logger } from './utils/logger.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -15,6 +16,7 @@ const stopFollowUpReminders = startFollowUpReminderJob();
 const stopDebtReminders = startDebtReminderJob();
 // Avtomatik ogohlantirishlar (har 30 daqiqada)
 const stopAlerts = startAlertsJob();
+const stopRecurringExpenses = startRecurringExpensesJob();
 
 const server = app.listen(env.PORT, (error?: Error) => {
   if (error) {
@@ -33,6 +35,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopFollowUpReminders();
   stopDebtReminders();
   stopAlerts();
+  stopRecurringExpenses();
 
   const forceExitTimer = setTimeout(() => {
     logger.error('Server belgilangan vaqtda to‘xtamadi, majburan yopilmoqda');

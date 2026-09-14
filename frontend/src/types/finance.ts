@@ -5,6 +5,7 @@ export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'REFUND';
 export type TransactionStatus = 'COMPLETED' | 'VOID' | 'REVERSED';
 export type AccountType = 'CASH' | 'BANK' | 'CARD' | 'UZCARD' | 'HUMO' | 'CLICK' | 'PAYME' | 'UZUM' | 'OTHER';
 export type CashFlowPeriod = 'day' | 'week' | 'month';
+export type ExpenseStatus = 'UPCOMING' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
 
 export interface FinanceAccount {
   id: string;
@@ -79,7 +80,15 @@ export interface MoneyEntry {
   account: { id: string; name: string } | null;
   responsible: PersonRef | null;
   student: { id: string; firstName: string; lastName: string } | null;
-  transactionId: string;
+  /** To‘lanmagan xarajatda daftar yozuvi yo‘q */
+  transactionId: string | null;
+  status: ExpenseStatus;
+  vendor: string | null;
+  dueDate: string | null;
+  approvedBy: PersonRef | null;
+  approvedAt: string | null;
+  rejectReason: string | null;
+  recurring: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -146,6 +155,7 @@ export interface MoneyListParams extends FinanceRangeParams {
   accountId?: string;
   method?: PaymentMethod;
   responsibleId?: string;
+  status?: ExpenseStatus;
   sortBy?: 'date' | 'amount' | 'number';
   sortOrder?: 'asc' | 'desc';
 }
@@ -158,6 +168,7 @@ export interface MoneyPayload {
   date?: string;
   description?: string;
   studentId?: string;
+  vendor?: string;
 }
 
 export interface TransferPayload {
@@ -190,4 +201,40 @@ export interface FinancialPeriod {
   reopenedAt: string | null;
   reopenedBy: { id: string; firstName: string; lastName: string } | null;
   reopenReason: string | null;
+}
+
+export interface ExpenseApprovalSettings {
+  /** 0 — tasdiqlash o‘chirilgan */
+  approvalThreshold: number;
+  updatedAt: string | null;
+}
+
+export interface RecurringExpense {
+  id: string;
+  name: string;
+  amount: number;
+  method: PaymentMethod;
+  vendor: string | null;
+  dayOfMonth: number;
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  note: string | null;
+  category: { id: string; name: string };
+  account: { id: string; name: string } | null;
+  currentMonth: { expenseId: string; status: string; dueDate: string | null } | null;
+  createdAt: string;
+}
+
+export interface RecurringExpensePayload {
+  name: string;
+  categoryId: string;
+  amount: number;
+  dayOfMonth: number;
+  startDate: string;
+  method?: PaymentMethod;
+  accountId?: string;
+  vendor?: string;
+  endDate?: string;
+  note?: string;
 }

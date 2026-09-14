@@ -6,6 +6,7 @@ import {
   financeController,
   incomeController,
 } from '../controllers/finance.controller.js';
+import { expenseWorkflowController } from '../controllers/expenseWorkflow.controller.js';
 import { financialPeriodController } from '../controllers/financialPeriod.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
@@ -62,3 +63,8 @@ expenseRouter.post('/', expenseManage, expenseController.create);
 expenseRouter.post('/categories', expenseManage, expenseController.createCategory);
 expenseRouter.put('/categories/:id', expenseManage, expenseController.updateCategory);
 expenseRouter.post('/:id/void', expenseManage, expenseController.void);
+expenseRouter.get('/settings/approval', expenseView, expenseWorkflowController.settings);
+expenseRouter.put('/settings/approval', requirePermission(PERMISSIONS.EXPENSE_APPROVE), expenseWorkflowController.updateSettings);
+expenseRouter.post('/:id/approve', requirePermission(PERMISSIONS.EXPENSE_APPROVE), expenseWorkflowController.approve);
+expenseRouter.post('/:id/reject', expenseManage, expenseWorkflowController.reject);
+expenseRouter.post('/:id/pay', expenseManage, expenseWorkflowController.pay);
