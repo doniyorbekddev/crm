@@ -5,7 +5,7 @@ import { formatStudentNumber } from '../config/studentLabels.js';
 import type { AlertSeverity, AlertType, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
-import { addDays, businessMonthRange, currentBusinessMonth, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
+import { addDays, businessDateString, businessMonthRange, currentBusinessMonth, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import { ALERT_TYPES } from '../validators/alert.validator.js';
@@ -49,6 +49,8 @@ export interface AlertSettings {
   dropoutIncreasePercent: number;
   dropoutIncreaseMin: number;
   expenseApprovalDays: number;
+  /** Shartnoma/pasport muddati tugashidan necha kun oldin ogohlantirish */
+  documentExpiryDays: number;
   digestEnabled: boolean;
   digestHour: number;
 }
@@ -74,6 +76,7 @@ export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
   dropoutIncreasePercent: 50,
   dropoutIncreaseMin: 3,
   expenseApprovalDays: 3,
+  documentExpiryDays: 30,
   digestEnabled: true,
   digestHour: 8,
 };
@@ -95,6 +98,7 @@ const CONDITION_TYPES: readonly AlertType[] = [
   'DROPOUT_INCREASE',
   'CASH_SHORTAGE',
   'PENDING_EXPENSE_APPROVAL',
+  'DOCUMENT_EXPIRING',
 ];
 
 interface AlertCandidate {
@@ -189,6 +193,10 @@ function linkFor(entityType: string | null, entityId: string | null): string | n
       return '/targets';
     case 'analytics':
       return '/analytics';
+    case 'teacher':
+      return '/teachers';
+    case 'employee':
+      return '/employees';
     default:
       return null;
   }
@@ -643,6 +651,54 @@ const pendingApprovalRule: Rule = async (now, settings) => {
   ];
 };
 
+const DOCUMENT_CATEGORY_TITLES = { CONTRACT: 'Shartnoma', PASSPORT: 'Pasport', CERTIFICATE: 'Sertifikat', RECEIPT: 'Chek', OTHER: 'Hujjat' } as const;
+
+/** O‘qituvchi yoki xodim hujjati (shartnoma, pasport) muddati tugayapti yoki o‘tib ketgan */
+const documentExpiringRule: Rule = async (now, settings) => {
+  const today = new Date(`${businessDateString(now)}T00:00:00.000Z`);
+  const documents = await prisma.document.findMany({
+    where: {
+      deletedAt: null,
+      expiresAt: { not: null, lte: addDays(today, settings.documentExpiryDays) },
+      OR: [
+        { teacherProfile: { employmentStatus: { not: 'RESIGNED' } } },
+        { employee: { status: { not: 'RESIGNED' } } },
+      ],
+    },
+    select: {
+      id: true,
+      category: true,
+      title: true,
+      originalName: true,
+      expiresAt: true,
+      teacherProfile: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
+      employee: { select: { id: true, firstName: true, lastName: true } },
+    },
+  });
+
+  return documents.flatMap((document) => {
+    const person = document.teacherProfile?.user ?? document.employee;
+    const ownerId = document.teacherProfile?.id ?? document.employee?.id;
+    if (!person || !ownerId || !document.expiresAt) return [];
+    const daysLeft = Math.round((document.expiresAt.getTime() - today.getTime()) / DAY_MS);
+    const date = document.expiresAt.toISOString().slice(0, 10);
+    const when = daysLeft < 0 ? `${-daysLeft} kun oldin tugagan` : daysLeft === 0 ? 'bugun tugaydi' : `${daysLeft} kundan keyin tugaydi`;
+    const kind = DOCUMENT_CATEGORY_TITLES[document.category];
+    return [
+      {
+        type: 'DOCUMENT_EXPIRING' as const,
+        severity: daysLeft < 0 ? ('CRITICAL' as const) : ('WARNING' as const),
+        title: `${kind} muddati ${daysLeft < 0 ? 'o‘tgan' : 'tugamoqda'}: ${person.firstName} ${person.lastName}`,
+        message: `${document.title ?? document.originalName} — ${when} (${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}).`,
+        entityType: document.teacherProfile ? 'teacher' : 'employee',
+        entityId: ownerId,
+        dedupeKey: `document-expiring:${document.id}`,
+        metadata: { document: document.id, daysLeft, expiresAt: date },
+      },
+    ];
+  });
+};
+
 const RULES: ReadonlyArray<[AlertType, Rule]> = [
   ['HIGH_DEBT', highDebtRule],
   ['HIGH_DROPOUT', dropoutRule],
@@ -656,6 +712,7 @@ const RULES: ReadonlyArray<[AlertType, Rule]> = [
   ['DROPOUT_INCREASE', dropoutIncreaseRule],
   ['CASH_SHORTAGE', cashShortageRule],
   ['PENDING_EXPENSE_APPROVAL', pendingApprovalRule],
+  ['DOCUMENT_EXPIRING', documentExpiringRule],
 ];
 
 /** Kritik alert — alert.view ruxsati bor xodimlarga; reja bajarilgani — managerning o‘ziga */

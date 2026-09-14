@@ -5,6 +5,8 @@ import { teacherController } from '../controllers/teacher.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { heavyLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { attachmentController } from '../controllers/document.controller.js';
+import { uploadBody } from './document.routes.js';
 
 export const teacherRouter = Router();
 
@@ -22,6 +24,15 @@ teacherRouter.get('/candidates', manage, teacherController.candidates);
 teacherRouter.get('/:id', view, teacherController.getById);
 teacherRouter.post('/', manage, teacherController.create);
 teacherRouter.put('/:id', manage, teacherController.update);
+const teacherDocuments = attachmentController('teacher');
+teacherRouter.get('/:id/documents', requirePermission(PERMISSIONS.STAFF_DOCUMENT_VIEW), teacherDocuments.list);
+teacherRouter.post(
+  '/:id/documents',
+  requirePermission(PERMISSIONS.STAFF_DOCUMENT_MANAGE),
+  heavyLimiter,
+  uploadBody,
+  teacherDocuments.upload,
+);
 
 teacherRouter.get('/:id/salary-rules', salaryView, teacherController.salaryRules);
 teacherRouter.post('/:id/salary-rules', manage, teacherController.createSalaryRule);

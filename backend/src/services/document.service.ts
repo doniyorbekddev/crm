@@ -2,35 +2,74 @@ import { createHash } from 'node:crypto';
 import { prisma } from '../config/database.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { PermissionKey } from '../config/permissions.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { DocumentCategory, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { detectFileType, removeStoredFile, resolveStoredPath, sanitizeFileName, saveFile } from '../utils/fileStorage.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import type { StaffDocumentMeta, UpdateDocumentInput } from '../validators/document.validator.js';
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 
 /**
- * Hujjatlar (promt 19, 20, 56-bo‘limlar): xarajat va tushum cheklari. Fayl ochiq URL orqali berilmaydi —
- * yuklab olishda bog‘langan yozuvni ko‘rish ruxsati tekshiriladi. O‘chirilgan hujjat tarixda qoladi.
+ * Hujjatlar (promt 19, 20, 56-bo‘limlar): xarajat va tushum cheklari, o‘qituvchi va xodim hujjatlari
+ * (shartnoma, pasport nusxasi, sertifikat). Fayl ochiq URL orqali berilmaydi — yuklab olishda
+ * bog‘langan yozuvni ko‘rish ruxsati tekshiriladi. O‘chirilgan hujjat tarixda qoladi.
  */
 
-export type DocumentOwner = 'expense' | 'income';
+export type DocumentOwner = 'expense' | 'income' | 'teacher' | 'employee';
 
-const MAX_PER_ENTITY = 10;
+type OwnerKey = DocumentOwner | 'lead' | 'student';
 
-const OWNER_PERMISSIONS: Record<DocumentOwner | 'lead' | 'student', { view: PermissionKey; manage: PermissionKey }> = {
-  expense: { view: PERMISSIONS.EXPENSE_VIEW, manage: PERMISSIONS.EXPENSE_MANAGE },
-  income: { view: PERMISSIONS.INCOME_VIEW, manage: PERMISSIONS.INCOME_MANAGE },
+interface OwnerConfig {
+  field: 'expenseId' | 'incomeId' | 'teacherProfileId' | 'employeeId';
+  view: PermissionKey;
+  manage: PermissionKey;
+  notFound: string;
+  maxFiles: number;
+  /** Xodim hujjati: turi, nomi va amal qilish muddati bilan */
+  staff: boolean;
+}
+
+const OWNERS: Record<DocumentOwner, OwnerConfig> = {
+  expense: { field: 'expenseId', view: PERMISSIONS.EXPENSE_VIEW, manage: PERMISSIONS.EXPENSE_MANAGE, notFound: 'Xarajat topilmadi', maxFiles: 10, staff: false },
+  income: { field: 'incomeId', view: PERMISSIONS.INCOME_VIEW, manage: PERMISSIONS.INCOME_MANAGE, notFound: 'Tushum topilmadi', maxFiles: 10, staff: false },
+  teacher: {
+    field: 'teacherProfileId',
+    view: PERMISSIONS.STAFF_DOCUMENT_VIEW,
+    manage: PERMISSIONS.STAFF_DOCUMENT_MANAGE,
+    notFound: 'O‘qituvchi topilmadi',
+    maxFiles: 30,
+    staff: true,
+  },
+  employee: {
+    field: 'employeeId',
+    view: PERMISSIONS.STAFF_DOCUMENT_VIEW,
+    manage: PERMISSIONS.STAFF_DOCUMENT_MANAGE,
+    notFound: 'Xodim topilmadi',
+    maxFiles: 30,
+    staff: true,
+  },
+};
+
+const OWNER_PERMISSIONS: Record<OwnerKey, { view: PermissionKey; manage: PermissionKey }> = {
+  ...OWNERS,
   lead: { view: PERMISSIONS.LEAD_VIEW, manage: PERMISSIONS.LEAD_UPDATE },
   student: { view: PERMISSIONS.STUDENT_VIEW, manage: PERMISSIONS.STUDENT_MANAGE },
 };
+
+/** Tartib: shartnoma, pasport, sertifikat, boshqa */
+const CATEGORY_ORDER: Record<DocumentCategory, number> = { CONTRACT: 0, PASSPORT: 1, CERTIFICATE: 2, OTHER: 3, RECEIPT: 4 };
 
 export interface DocumentDto {
   id: string;
   originalName: string;
   mimeType: string;
   size: number;
+  category: DocumentCategory;
+  title: string | null;
+  /** Amal qilish muddati (YYYY-MM-DD) */
+  expiresAt: string | null;
   createdAt: string;
   uploadedBy: { id: string; firstName: string; lastName: string } | null;
 }
@@ -40,6 +79,9 @@ const documentSelect = {
   originalName: true,
   mimeType: true,
   size: true,
+  category: true,
+  title: true,
+  expiresAt: true,
   createdAt: true,
   uploadedBy: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.DocumentSelect;
@@ -47,24 +89,45 @@ const documentSelect = {
 type DocumentRecord = Prisma.DocumentGetPayload<{ select: typeof documentSelect }>;
 
 function toDto(document: DocumentRecord): DocumentDto {
-  return { ...document, createdAt: document.createdAt.toISOString() };
+  return {
+    ...document,
+    expiresAt: document.expiresAt ? document.expiresAt.toISOString().slice(0, 10) : null,
+    createdAt: document.createdAt.toISOString(),
+  };
 }
 
-const ownerWhere = (owner: DocumentOwner, entityId: string): Prisma.DocumentWhereInput =>
-  owner === 'expense' ? { expenseId: entityId } : { incomeId: entityId };
+const ownerWhere = (owner: DocumentOwner, entityId: string): Prisma.DocumentWhereInput => ({ [OWNERS[owner].field]: entityId });
 
 async function assertOwnerExists(owner: DocumentOwner, entityId: string): Promise<void> {
-  const exists = owner === 'expense' ? await prisma.expense.count({ where: { id: entityId } }) : await prisma.income.count({ where: { id: entityId } });
-  if (!exists) {
-    throw AppError.notFound(owner === 'expense' ? 'Xarajat topilmadi' : 'Tushum topilmadi');
+  const count =
+    owner === 'expense'
+      ? await prisma.expense.count({ where: { id: entityId } })
+      : owner === 'income'
+        ? await prisma.income.count({ where: { id: entityId } })
+        : owner === 'teacher'
+          ? await prisma.teacherProfile.count({ where: { id: entityId } })
+          : await prisma.employee.count({ where: { id: entityId } });
+  if (!count) {
+    throw AppError.notFound(OWNERS[owner].notFound);
   }
 }
 
-function ownerOf(document: { expenseId: string | null; incomeId: string | null; leadId: string | null; studentId: string | null }) {
-  if (document.expenseId) return { key: 'expense' as const, id: document.expenseId };
-  if (document.incomeId) return { key: 'income' as const, id: document.incomeId };
-  if (document.leadId) return { key: 'lead' as const, id: document.leadId };
-  if (document.studentId) return { key: 'student' as const, id: document.studentId };
+type OwnerFields = {
+  expenseId: string | null;
+  incomeId: string | null;
+  leadId: string | null;
+  studentId: string | null;
+  teacherProfileId: string | null;
+  employeeId: string | null;
+};
+
+function ownerOf(document: OwnerFields): { key: OwnerKey; id: string } | null {
+  if (document.expenseId) return { key: 'expense', id: document.expenseId };
+  if (document.incomeId) return { key: 'income', id: document.incomeId };
+  if (document.teacherProfileId) return { key: 'teacher', id: document.teacherProfileId };
+  if (document.employeeId) return { key: 'employee', id: document.employeeId };
+  if (document.leadId) return { key: 'lead', id: document.leadId };
+  if (document.studentId) return { key: 'student', id: document.studentId };
   return null;
 }
 
@@ -78,13 +141,30 @@ async function assertPermission(actor: AuthUser, key: PermissionKey): Promise<vo
 async function findActive(id: string) {
   const document = await prisma.document.findFirst({
     where: { id, deletedAt: null },
-    select: { id: true, storagePath: true, originalName: true, mimeType: true, size: true, expenseId: true, incomeId: true, leadId: true, studentId: true },
+    select: {
+      id: true,
+      storagePath: true,
+      originalName: true,
+      mimeType: true,
+      size: true,
+      category: true,
+      title: true,
+      expiresAt: true,
+      expenseId: true,
+      incomeId: true,
+      leadId: true,
+      studentId: true,
+      teacherProfileId: true,
+      employeeId: true,
+    },
   });
   if (!document) {
     throw AppError.notFound('Hujjat topilmadi');
   }
   return document;
 }
+
+const dateOnly = (value: Date | null) => (value ? value.toISOString().slice(0, 10) : null);
 
 export const documentService = {
   async list(owner: DocumentOwner, entityId: string): Promise<DocumentDto[]> {
@@ -94,7 +174,8 @@ export const documentService = {
       orderBy: { createdAt: 'desc' },
       select: documentSelect,
     });
-    return documents.map(toDto);
+    const items = documents.map(toDto);
+    return OWNERS[owner].staff ? items.sort((a, b) => CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category]) : items;
   },
 
   async upload(
@@ -102,8 +183,10 @@ export const documentService = {
     owner: DocumentOwner,
     entityId: string,
     file: { buffer: unknown; fileName: string | undefined },
+    meta: StaffDocumentMeta | null,
     client: ClientInfo,
   ): Promise<DocumentDto> {
+    const config = OWNERS[owner];
     await assertOwnerExists(owner, entityId);
     if (!Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
       throw AppError.unprocessable('Fayl yuborilmadi');
@@ -114,26 +197,30 @@ export const documentService = {
       throw AppError.unprocessable('Faqat JPG, PNG, WEBP yoki PDF fayl biriktirish mumkin');
     }
     const where = { ...ownerWhere(owner, entityId), deletedAt: null };
-    if ((await prisma.document.count({ where })) >= MAX_PER_ENTITY) {
-      throw AppError.unprocessable(`Bitta yozuvga eng ko‘pi ${MAX_PER_ENTITY} ta fayl biriktiriladi`);
+    if ((await prisma.document.count({ where })) >= config.maxFiles) {
+      throw AppError.unprocessable(`Bitta yozuvga eng ko‘pi ${config.maxFiles} ta fayl biriktiriladi`);
     }
     const sha256 = createHash('sha256').update(buffer).digest('hex');
     if (await prisma.document.findFirst({ where: { ...where, sha256 }, select: { id: true } })) {
       throw AppError.conflict('Bu fayl allaqachon biriktirilgan');
     }
 
+    const category: DocumentCategory = config.staff ? (meta?.category ?? 'OTHER') : 'RECEIPT';
     const originalName = sanitizeFileName(file.fileName, type.ext);
     const storagePath = await saveFile(buffer, type.ext);
     try {
       const document = await prisma.$transaction(async (tx) => {
         const created = await tx.document.create({
           data: {
-            ...(owner === 'expense' ? { expenseId: entityId } : { incomeId: entityId }),
+            [config.field]: entityId,
             originalName,
             mimeType: type.mime,
             size: buffer.length,
             storagePath,
             sha256,
+            category,
+            title: config.staff ? (meta?.title ?? null) : null,
+            expiresAt: config.staff ? (meta?.expiresAt ?? null) : null,
             uploadedById: actor.id,
           },
           select: documentSelect,
@@ -143,7 +230,7 @@ export const documentService = {
           action: 'document.uploaded',
           entityType: owner,
           entityId,
-          metadata: { document: created.id, name: originalName, mimeType: type.mime, size: buffer.length },
+          metadata: { document: created.id, name: originalName, category, mimeType: type.mime, size: buffer.length },
           ...client,
         });
         return created;
@@ -154,6 +241,43 @@ export const documentService = {
       await removeStoredFile(storagePath);
       throw error;
     }
+  },
+
+  /** Xodim hujjatining turi, nomi yoki muddatini o‘zgartirish (fayl o‘zgarmaydi) */
+  async update(actor: AuthUser, id: string, input: UpdateDocumentInput, client: ClientInfo): Promise<DocumentDto> {
+    const document = await findActive(id);
+    const owner = ownerOf(document);
+    if (!owner || (owner.key !== 'teacher' && owner.key !== 'employee')) {
+      throw AppError.unprocessable('Faqat o‘qituvchi va xodim hujjatlarining ma’lumotlari tahrirlanadi');
+    }
+    await assertPermission(actor, OWNER_PERMISSIONS[owner.key].manage);
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const record = await tx.document.update({
+        where: { id },
+        data: {
+          ...(input.category === undefined ? {} : { category: input.category }),
+          ...(input.title === undefined ? {} : { title: input.title }),
+          ...(input.expiresAt === undefined ? {} : { expiresAt: input.expiresAt }),
+        },
+        select: documentSelect,
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'document.updated',
+        entityType: owner.key,
+        entityId: owner.id,
+        metadata: {
+          document: id,
+          name: document.originalName,
+          before: { category: document.category, title: document.title, expiresAt: dateOnly(document.expiresAt) },
+          after: { category: record.category, title: record.title, expiresAt: dateOnly(record.expiresAt) },
+        },
+        ...client,
+      });
+      return record;
+    });
+    return toDto(updated);
   },
 
   /** Yuklab olish: bog‘langan yozuvni ko‘rish ruxsati bo‘lsa */

@@ -35,6 +35,7 @@ const THRESHOLD_FIELDS: readonly NumberField[] = [
   { key: 'dropoutIncreasePercent', label: 'Ketishlar o‘sishi', hint: 'o‘tgan oyning shu davriga nisbatan', suffix: '%' },
   { key: 'dropoutIncreaseMin', label: 'Ketganlar (kamida)', hint: 'oy boshidan ketgan o‘quvchilar', suffix: 'ta' },
   { key: 'expenseApprovalDays', label: 'Tasdiq kutish', hint: 'xarajat shuncha kundan ortiq kutsa', suffix: 'kun' },
+  { key: 'documentExpiryDays', label: 'Hujjat muddati', hint: 'tugashidan shuncha kun oldin', suffix: 'kun' },
 ];
 
 type FormValues = Record<AlertNumericSetting, string>;

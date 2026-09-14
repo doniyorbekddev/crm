@@ -12,4 +12,5 @@ documentRouter.use(authenticate);
 
 // Ruxsat hujjat bog'langan yozuvga qarab servisda tekshiriladi
 documentRouter.get('/:id/download', documentController.download);
+documentRouter.patch('/:id', documentController.update);
 documentRouter.delete('/:id', documentController.remove);

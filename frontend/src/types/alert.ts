@@ -12,7 +12,8 @@ export type AlertType =
   | 'CONVERSION_DROP'
   | 'DROPOUT_INCREASE'
   | 'CASH_SHORTAGE'
-  | 'PENDING_EXPENSE_APPROVAL';
+  | 'PENDING_EXPENSE_APPROVAL'
+  | 'DOCUMENT_EXPIRING';
 export type AlertSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 /** Kritik — yuqori, ogohlantirish — o‘rta, ma’lumot va yutuq — past */
 export type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -107,6 +108,7 @@ export interface AlertSettings {
   dropoutIncreasePercent: number;
   dropoutIncreaseMin: number;
   expenseApprovalDays: number;
+  documentExpiryDays: number;
   digestEnabled: boolean;
   digestHour: number;
   updatedAt: string | null;

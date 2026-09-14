@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { IdCard, Pencil, Plus } from 'lucide-react';
+import { FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -28,16 +28,20 @@ import {
 import { formatDate, formatMoney, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { SALARY_STATUS_LABELS, SALARY_STATUS_TONES } from '@/utils/teacherLabels';
+import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { EmployeeFormModal } from './EmployeeFormModal';
 
 const PAGE_SIZE = 20;
 
-type Dialog = { type: 'create' } | { type: 'edit'; employee: Employee } | null;
+type Dialog = { type: 'create' } | { type: 'edit'; employee: Employee } | { type: 'documents'; employee: Employee } | null;
 
 /** Xodimlar (HR): o‘qituvchidan tashqari xodimlar, lavozim, maosh va holat */
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.EMPLOYEE_MANAGE);
+  const canViewDocuments = usePermission(PERMISSIONS.STAFF_DOCUMENT_VIEW);
+  const canManageDocuments = usePermission(PERMISSIONS.STAFF_DOCUMENT_MANAGE);
+  const showActions = canManage || canViewDocuments;
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -144,7 +148,7 @@ export default function EmployeesPage() {
                     <TH>Ishga kirgan</TH>
                     <TH>Holat</TH>
                     <TH>Joriy oy maoshi</TH>
-                    {canManage && (
+                    {showActions && (
                       <TH className="w-12">
                         <span className="sr-only">Amallar</span>
                       </TH>
@@ -185,11 +189,16 @@ export default function EmployeesPage() {
                           <span className="text-xs text-fg-subtle">Hisoblanmagan</span>
                         )}
                       </TD>
-                      {canManage && (
+                      {showActions && (
                         <TD className="text-right">
                           <ActionMenu
                             label={`${employee.firstName} ${employee.lastName} amallari`}
-                            items={[{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }]}
+                            items={[
+                              ...(canManage ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }] : []),
+                              ...(canViewDocuments
+                                ? [{ label: 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', employee }) }]
+                                : []),
+                            ]}
                           />
                         </TD>
                       )}
@@ -212,6 +221,15 @@ export default function EmployeesPage() {
 
       {dialog?.type === 'create' && <EmployeeFormModal onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog?.type === 'edit' && <EmployeeFormModal employee={dialog.employee} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog?.type === 'documents' && (
+        <StaffDocumentsModal
+          owner="employee"
+          entityId={dialog.employee.id}
+          personName={`${dialog.employee.firstName} ${dialog.employee.lastName}`}
+          canManage={canManageDocuments}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </>
   );
 }

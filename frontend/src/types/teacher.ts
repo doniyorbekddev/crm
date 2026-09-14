@@ -2,6 +2,7 @@ import type { PersonRef } from './lead';
 import type { PaymentMethod } from './payment';
 import type { GroupStatus, WeekDay } from './group';
 import type { UserStatus } from './auth';
+import type { EmployeeStatus } from './employee';
 
 export type SalaryType = 'FIXED' | 'PER_LESSON' | 'PER_STUDENT' | 'PERCENTAGE' | 'MIXED';
 export type SalaryPeriodStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PARTIALLY_PAID' | 'PAID';
@@ -62,6 +63,10 @@ export interface TeacherItem {
   hireDate: string | null;
   bio: string | null;
   isActive: boolean;
+  /** HR holati */
+  employmentStatus: EmployeeStatus;
+  terminationDate: string | null;
+  documents: number;
   groups: number;
   students: number;
   lessonsThisMonth: number;
@@ -216,6 +221,7 @@ export interface TeacherListParams {
   search?: string;
   isActive?: 'true' | 'false';
   salaryType?: SalaryType;
+  employmentStatus?: EmployeeStatus;
   sortBy?: 'name' | 'hireDate' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
@@ -226,6 +232,8 @@ export interface TeacherProfilePayload {
   hireDate?: string;
   bio?: string;
   isActive?: boolean;
+  employmentStatus?: EmployeeStatus;
+  terminationDate?: string;
 }
 
 export interface CreateTeacherPayload extends TeacherProfilePayload {

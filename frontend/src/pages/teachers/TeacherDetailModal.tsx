@@ -14,6 +14,7 @@ import type { TeacherDetail } from '@/types/teacher';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { GROUP_STATUS_LABELS, formatSchedule } from '@/utils/courseLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_TONES } from '@/utils/employeeLabels';
 import { SALARY_STATUS_LABELS, SALARY_STATUS_TONES, SALARY_TYPE_LABELS, salaryRuleSummary } from '@/utils/teacherLabels';
 
 interface TeacherDetailModalProps {
@@ -40,9 +41,9 @@ function DetailBody({ teacher, canViewSalary }: { teacher: TeacherDetail; canVie
         <div className="rounded-xl border border-border p-3">
           <p className="text-sm font-medium text-fg">
             {teacher.user.firstName} {teacher.user.lastName}
-            {!teacher.isActive && (
-              <Badge tone="red" className="ml-2">
-                Faolsiz
+            {teacher.employmentStatus !== 'ACTIVE' && (
+              <Badge tone={EMPLOYEE_STATUS_TONES[teacher.employmentStatus]} className="ml-2">
+                {EMPLOYEE_STATUS_LABELS[teacher.employmentStatus]}
               </Badge>
             )}
           </p>
@@ -54,6 +55,7 @@ function DetailBody({ teacher, canViewSalary }: { teacher: TeacherDetail; canVie
             {teacher.specialization ?? 'Mutaxassislik ko‘rsatilmagan'}
             {teacher.experienceYears !== null && ` · ${teacher.experienceYears} yil tajriba`}
             {teacher.hireDate && ` · ${formatDate(teacher.hireDate)} dan`}
+            {teacher.terminationDate && ` · ${formatDate(teacher.terminationDate)} da ketgan`}
           </p>
           {teacher.bio && <p className="mt-2 text-xs text-fg-muted">{teacher.bio}</p>}
         </div>

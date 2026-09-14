@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
+import { EMPLOYEE_STATUSES } from './employee.validator.js';
 
 export const SALARY_TYPES = ['FIXED', 'PER_LESSON', 'PER_STUDENT', 'PERCENTAGE', 'MIXED'] as const;
 
@@ -23,6 +24,7 @@ export const teacherListQuerySchema = paginationQuerySchema.extend({
     .optional()
     .transform((value) => (value === undefined ? undefined : value === 'true')),
   salaryType: z.enum(SALARY_TYPES, 'Maosh modeli noto‘g‘ri').optional(),
+  employmentStatus: z.enum(EMPLOYEE_STATUSES, 'Holat noto‘g‘ri').optional(),
   sortBy: z.enum(['name', 'hireDate', 'createdAt']).default('name'),
 });
 
@@ -44,7 +46,11 @@ export const createTeacherProfileSchema = profileFieldsSchema.extend({
 });
 
 export const updateTeacherProfileSchema = profileFieldsSchema.extend({
+  /** Eski mijozlar uchun: false — ishdan ketgan (sana bugun), true — qayta faol */
   isActive: z.boolean().optional(),
+  /** HR holati; berilsa isActive o‘rniga ishlatiladi */
+  employmentStatus: z.enum(EMPLOYEE_STATUSES, 'Holatni tanlang').optional(),
+  terminationDate: optionalField(dateOnlySchema),
 });
 
 /** Yangi maosh modeli. Eskisi tarix uchun saqlanadi (effectiveTo yopiladi). */

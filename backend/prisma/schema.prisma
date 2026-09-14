@@ -714,34 +714,55 @@ model Attendance {
 // DOCUMENTS, NOTIFICATIONS, AUDIT, SETTINGS
 // ---------------------------------------------------------------------
 
-model Document {
-  id           String    @id @default(cuid())
-  leadId       String?
-  studentId    String?
-  expenseId    String?
-  incomeId     String?
-  originalName String    @db.VarChar(255)
-  mimeType     String    @db.VarChar(100)
-  size         Int
-  storagePath  String    @unique @db.VarChar(500)
-  /// Takroriy yuklashni aniqlash uchun
-  sha256       String?   @db.VarChar(64)
-  deletedAt    DateTime?
-  deletedById  String?
-  uploadedById String?
-  createdAt    DateTime  @default(now())
+/// Hujjat turi: xodim hujjatlari (shartnoma, pasport, sertifikat) va moliyaviy cheklar
+enum DocumentCategory {
+  CONTRACT
+  PASSPORT
+  CERTIFICATE
+  RECEIPT
+  OTHER
+}
 
-  lead       Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  student    Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  expense    Expense? @relation(fields: [expenseId], references: [id], onDelete: Restrict)
-  income     Income?  @relation(fields: [incomeId], references: [id], onDelete: Restrict)
-  deletedBy  User?    @relation("DocumentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+model Document {
+  id               String           @id @default(cuid())
+  leadId           String?
+  studentId        String?
+  expenseId        String?
+  incomeId         String?
+  teacherProfileId String?
+  employeeId       String?
+  category         DocumentCategory @default(OTHER)
+  /// Xodim hujjati nomi (masalan, "Mehnat shartnomasi 2026")
+  title            String?          @db.VarChar(150)
+  /// Shartnoma yoki pasport amal qilish muddati — ogohlantirish shu sana bo‘yicha
+  expiresAt        DateTime?        @db.Date
+  originalName     String           @db.VarChar(255)
+  mimeType         String           @db.VarChar(100)
+  size             Int
+  storagePath      String           @unique @db.VarChar(500)
+  /// Takroriy yuklashni aniqlash uchun
+  sha256           String?          @db.VarChar(64)
+  deletedAt        DateTime?
+  deletedById      String?
+  uploadedById     String?
+  createdAt        DateTime         @default(now())
+
+  lead           Lead?           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  student        Student?        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  uploadedBy     User?           @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  expense        Expense?        @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  income         Income?         @relation(fields: [incomeId], references: [id], onDelete: Restrict)
+  teacherProfile TeacherProfile? @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  employee       Employee?       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  deletedBy      User?           @relation("DocumentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@index([leadId])
   @@index([studentId])
   @@index([expenseId])
   @@index([incomeId])
+  @@index([teacherProfileId])
+  @@index([employeeId])
+  @@index([expiresAt])
   @@map("documents")
 }
 
@@ -915,6 +936,7 @@ enum AlertType {
   DROPOUT_INCREASE
   CASH_SHORTAGE
   PENDING_EXPENSE_APPROVAL
+  DOCUMENT_EXPIRING
 }
 
 enum AlertSeverity {
@@ -1093,21 +1115,26 @@ model Streak {
 /// O‘qituvchi ma'lumotlari. Shaxs va kirish ma'lumotlari `User` da qoladi —
 /// bu yerda faqat o‘qituvchilik profili saqlanadi.
 model TeacherProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  specialization  String?   @db.VarChar(150)
-  experienceYears Int?      @db.SmallInt
-  hireDate        DateTime? @db.Date
-  bio             String?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id               String         @id @default(cuid())
+  userId           String         @unique
+  specialization   String?        @db.VarChar(150)
+  experienceYears  Int?           @db.SmallInt
+  hireDate         DateTime?      @db.Date
+  bio              String?
+  isActive         Boolean        @default(true)
+  /// HR holati; isActive shundan kelib chiqadi (faol yoki ta’tilda — true)
+  employmentStatus EmployeeStatus @default(ACTIVE)
+  terminationDate  DateTime?      @db.Date
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   salaryRules   TeacherSalaryRule[]
   salaryPeriods TeacherSalaryPeriod[]
+  documents     Document[]
 
   @@index([isActive])
+  @@index([employmentStatus])
   @@map("teacher_profiles")
 }
 
@@ -1763,6 +1790,7 @@ model Employee {
   user          User?                 @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
   createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   salaryPeriods TeacherSalaryPeriod[]
+  documents     Document[]
 
   @@index([status])
   @@index([position])

@@ -74,6 +74,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'payment.refunded': 'To‘lov qaytarildi',
   'expense.requested': 'Xarajat tasdiqqa yuborildi',
   'document.uploaded': 'Hujjat (chek) biriktirildi',
+  'document.updated': 'Hujjat ma’lumotlari o‘zgartirildi',
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
   'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
   'document.deleted': 'Hujjat o‘chirildi',
@@ -87,6 +88,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'finance.period_reopened': 'Moliyaviy oy qayta ochildi',
 
   'teacher.profile_created': 'O‘qituvchi profili yaratildi',
+  'teacher.status_changed': 'O‘qituvchi holati o‘zgartirildi',
   'teacher.profile_updated': 'O‘qituvchi profili tahrirlandi',
   'teacher.deactivated': 'O‘qituvchi faolsizlantirildi',
 

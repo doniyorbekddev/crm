@@ -1,7 +1,7 @@
 import { prisma } from '../config/database.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
-import type { AttendanceStatus, GroupStatus, Prisma, UserStatus, WeekDay } from '../generated/prisma/client.js';
+import type { AttendanceStatus, EmployeeStatus, GroupStatus, Prisma, UserStatus, WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
@@ -16,6 +16,7 @@ import { permissionService } from './permission.service.js';
 import type { SalaryPeriodDto, SalaryRuleDto } from './salary.service.js';
 import { monthRange, salaryService, toSalaryRuleDto } from './salary.service.js';
 import { refundTotal } from './revenue.js';
+import { businessDateString } from '../utils/dates.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -37,6 +38,11 @@ export interface TeacherDto {
   hireDate: string | null;
   bio: string | null;
   isActive: boolean;
+  /** HR holati: faol, ta’tilda, to‘xtatilgan, ishdan ketgan */
+  employmentStatus: EmployeeStatus;
+  terminationDate: string | null;
+  /** Biriktirilgan hujjatlar soni (fayllarning o‘zi alohida ruxsat bilan) */
+  documents: number;
   /** Faol va rejalashtirilgan guruhlar soni */
   groups: number;
   students: number;
@@ -120,6 +126,9 @@ const profileSelect = {
   hireDate: true,
   bio: true,
   isActive: true,
+  employmentStatus: true,
+  terminationDate: true,
+  _count: { select: { documents: { where: { deletedAt: null } } } },
   createdAt: true,
   userId: true,
   user: {
@@ -197,6 +206,7 @@ async function countHeldLessons(userIds: string[], start: Date, end: Date): Prom
 function buildTeacherWhere(query: TeacherListQuery): Prisma.TeacherProfileWhereInput {
   const conditions: Prisma.TeacherProfileWhereInput[] = [{ user: { deletedAt: null } }];
   if (query.isActive !== undefined) conditions.push({ isActive: query.isActive });
+  if (query.employmentStatus) conditions.push({ employmentStatus: query.employmentStatus });
   if (query.salaryType) {
     conditions.push({ salaryRules: { some: { isActive: true, type: query.salaryType } } });
   }
@@ -296,6 +306,9 @@ async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date, sala
       hireDate: profile.hireDate ? toDateOnly(profile.hireDate) : null,
       bio: profile.bio,
       isActive: profile.isActive,
+      employmentStatus: profile.employmentStatus,
+      terminationDate: profile.terminationDate ? toDateOnly(profile.terminationDate) : null,
+      documents: profile._count.documents,
       groups: counts.groups,
       students: counts.students,
       lessonsThisMonth: lessons.get(profile.userId) ?? 0,
@@ -511,20 +524,58 @@ export const teacherService = {
   ): Promise<TeacherDetailDto> {
     const profile = await findProfileOrFail(id);
 
+    // Holat: aniq berilgan bo'lsa — shu; eski "faolsizlantirish" tugmasi — ishdan ketgan
+    const status: EmployeeStatus =
+      input.employmentStatus ??
+      (input.isActive === undefined
+        ? profile.employmentStatus
+        : input.isActive
+          ? profile.employmentStatus === 'RESIGNED' || profile.employmentStatus === 'SUSPENDED'
+            ? 'ACTIVE'
+            : profile.employmentStatus
+          : 'RESIGNED');
+    const hireDate = input.hireDate ? new Date(`${input.hireDate}T00:00:00.000Z`) : null;
+    let terminationDate: Date | null =
+      input.terminationDate !== undefined
+        ? new Date(`${input.terminationDate}T00:00:00.000Z`)
+        : status !== 'RESIGNED'
+          ? null
+          : profile.terminationDate;
+    if (status === 'RESIGNED' && !terminationDate) {
+      if (input.employmentStatus === 'RESIGNED') {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'terminationDate', message: 'Ishdan ketgan sanani kiriting' }]);
+      }
+      terminationDate = new Date(`${businessDateString(new Date())}T00:00:00.000Z`);
+    }
+    if (terminationDate && hireDate && terminationDate < hireDate) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+        { field: 'terminationDate', message: 'Ishdan ketgan sana ishga olingan sanadan oldin bo‘lmasligi kerak' },
+      ]);
+    }
+    // Faol yoki ta'tilda — guruh va maosh uchun faol hisoblanadi
+    const isActive = status === 'ACTIVE' || status === 'ON_LEAVE';
+
     await prisma.$transaction(async (tx) => {
       await tx.teacherProfile.update({
         where: { id },
         data: {
           specialization: input.specialization ?? null,
           experienceYears: input.experienceYears ?? null,
-          hireDate: input.hireDate ? new Date(`${input.hireDate}T00:00:00.000Z`) : null,
+          hireDate,
           bio: input.bio ?? null,
-          ...(input.isActive === undefined ? {} : { isActive: input.isActive }),
+          employmentStatus: status,
+          terminationDate,
+          isActive,
         },
       });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
-        action: input.isActive === false ? 'teacher.deactivated' : 'teacher.profile_updated',
+        action:
+          profile.isActive && !isActive
+            ? 'teacher.deactivated'
+            : status !== profile.employmentStatus
+              ? 'teacher.status_changed'
+              : 'teacher.profile_updated',
         entityType: 'teacher',
         entityId: id,
         metadata: {
@@ -534,12 +585,16 @@ export const teacherService = {
             experienceYears: profile.experienceYears,
             hireDate: profile.hireDate ? toDateOnly(profile.hireDate) : null,
             isActive: profile.isActive,
+            employmentStatus: profile.employmentStatus,
+            terminationDate: profile.terminationDate ? toDateOnly(profile.terminationDate) : null,
           },
           after: {
             specialization: input.specialization ?? null,
             experienceYears: input.experienceYears ?? null,
             hireDate: input.hireDate ?? null,
-            isActive: input.isActive ?? profile.isActive,
+            isActive,
+            employmentStatus: status,
+            terminationDate: terminationDate ? toDateOnly(terminationDate) : null,
           },
         },
         ...client,

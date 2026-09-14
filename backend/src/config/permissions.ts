@@ -50,6 +50,8 @@ export const PERMISSIONS = {
   USER_MANAGE: 'user.manage',
   EMPLOYEE_VIEW: 'employee.view',
   EMPLOYEE_MANAGE: 'employee.manage',
+  STAFF_DOCUMENT_VIEW: 'staff_document.view',
+  STAFF_DOCUMENT_MANAGE: 'staff_document.manage',
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
@@ -154,6 +156,16 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.USER_MANAGE, module: 'users', description: 'Xodim yaratish, o‘chirish, role berish' },
   { key: PERMISSIONS.EMPLOYEE_VIEW, module: 'employees', description: 'Xodimlar (HR) ro‘yxatini ko‘rish' },
   { key: PERMISSIONS.EMPLOYEE_MANAGE, module: 'employees', description: 'Xodim qo‘shish, tahrirlash, holatini o‘zgartirish' },
+  {
+    key: PERMISSIONS.STAFF_DOCUMENT_VIEW,
+    module: 'hr',
+    description: 'O‘qituvchi va xodim hujjatlarini (shartnoma, pasport, sertifikat) ko‘rish va yuklab olish',
+  },
+  {
+    key: PERMISSIONS.STAFF_DOCUMENT_MANAGE,
+    module: 'hr',
+    description: 'O‘qituvchi va xodim hujjatlarini yuklash, tahrirlash va o‘chirish',
+  },
 
   { key: PERMISSIONS.ROLE_MANAGE, module: 'roles', description: 'Rollar va permissionlarni boshqarish' },
   { key: PERMISSIONS.SETTINGS_MANAGE, module: 'settings', description: 'CRM sozlamalarini boshqarish' },

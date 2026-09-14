@@ -14,6 +14,7 @@ export const ALERT_TYPES = [
   'DROPOUT_INCREASE',
   'CASH_SHORTAGE',
   'PENDING_EXPENSE_APPROVAL',
+  'DOCUMENT_EXPIRING',
 ] as const;
 export const ALERT_SEVERITIES = ['INFO', 'SUCCESS', 'WARNING', 'CRITICAL'] as const;
 export const TARGET_TYPES = ['LEADS', 'SALES', 'REVENUE'] as const;
@@ -56,6 +57,7 @@ export const alertSettingsSchema = z.object({
   dropoutIncreasePercent: intRange('Ketishlar o‘sishi', 1, 1000).optional(),
   dropoutIncreaseMin: intRange('Ketganlar soni', 1, 100).optional(),
   expenseApprovalDays: intRange('Tasdiq kutish', 1, 60).optional(),
+  documentExpiryDays: intRange('Hujjat muddati', 1, 180).optional(),
   digestEnabled: z.boolean('Yoqilgan yoki o‘chirilgan bo‘lsin').optional(),
   digestHour: intRange('Kunlik xulosa soati', 0, 23).optional(),
 });

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Eye, Pencil, Plus, Power, UserCog } from 'lucide-react';
+import { Coins, Eye, FolderLock, Pencil, Plus, Power, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -23,7 +23,9 @@ import { teachersService } from '@/services/teachers.service';
 import type { SalaryType, TeacherItem, TeacherListParams } from '@/types/teacher';
 import { formatDate, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_TONES } from '@/utils/employeeLabels';
 import { SALARY_TYPE_LABELS, SALARY_TYPE_ORDER, salaryRuleSummary } from '@/utils/teacherLabels';
+import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { SalaryRuleModal } from './SalaryRuleModal';
 import { TeacherDetailModal } from './TeacherDetailModal';
 import { TeacherFormModal } from './TeacherFormModal';
@@ -43,12 +45,15 @@ type Dialog =
   | { type: 'detail'; teacherId: string }
   | { type: 'salary-rule'; teacher: TeacherItem }
   | { type: 'toggle'; teacher: TeacherItem }
+  | { type: 'documents'; teacher: TeacherItem }
   | null;
 
 export default function TeachersPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.TEACHER_MANAGE);
   const canViewSalary = usePermission(PERMISSIONS.SALARY_VIEW);
+  const canViewDocuments = usePermission(PERMISSIONS.STAFF_DOCUMENT_VIEW);
+  const canManageDocuments = usePermission(PERMISSIONS.STAFF_DOCUMENT_MANAGE);
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -104,6 +109,9 @@ export default function TeachersPage() {
 
   const rowActions = (teacher: TeacherItem) => [
     { label: 'Tafsilotlar', icon: Eye, onSelect: () => setDialog({ type: 'detail', teacherId: teacher.id }) },
+    ...(canViewDocuments
+      ? [{ label: teacher.documents > 0 ? `Hujjatlar (${teacher.documents})` : 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', teacher }) }]
+      : []),
     ...(canManage
       ? [
           { label: 'Profilni tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', teacher }) },
@@ -223,9 +231,9 @@ export default function TeachersPage() {
                       <TD>
                         <p className="font-medium text-fg">
                           {teacher.user.firstName} {teacher.user.lastName}
-                          {!teacher.isActive && (
-                            <Badge tone="red" className="ml-2">
-                              Faolsiz
+                          {teacher.employmentStatus !== 'ACTIVE' && (
+                            <Badge tone={EMPLOYEE_STATUS_TONES[teacher.employmentStatus]} className="ml-2">
+                              {EMPLOYEE_STATUS_LABELS[teacher.employmentStatus]}
                             </Badge>
                           )}
                         </p>
@@ -238,6 +246,7 @@ export default function TeachersPage() {
                         <p className="text-xs text-fg-muted">
                           {teacher.experienceYears === null ? 'Tajriba ko‘rsatilmagan' : `${teacher.experienceYears} yil tajriba`}
                           {teacher.hireDate && ` · ${formatDate(teacher.hireDate)}`}
+                          {teacher.terminationDate && ` · ketgan ${formatDate(teacher.terminationDate)}`}
                         </p>
                       </TD>
                       <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.groups)}</TD>
@@ -279,6 +288,17 @@ export default function TeachersPage() {
           </>
         )}
       </Card>
+
+      {dialog?.type === 'documents' && (
+        <StaffDocumentsModal
+          owner="teacher"
+          entityId={dialog.teacher.id}
+          personName={`${dialog.teacher.user.firstName} ${dialog.teacher.user.lastName}`}
+          canManage={canManageDocuments}
+          onClose={() => setDialog(null)}
+          onChanged={refresh}
+        />
+      )}
 
       {dialog?.type === 'create' && (
         <TeacherFormModal

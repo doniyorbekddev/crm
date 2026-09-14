@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
@@ -15,7 +15,9 @@ import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { teachersService } from '@/services/teachers.service';
+import type { EmployeeStatus } from '@/types/employee';
 import type { TeacherItem, TeacherProfilePayload } from '@/types/teacher';
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_ORDER } from '@/utils/employeeLabels';
 
 const schema = z.object({
   userId: z.string(),
@@ -26,6 +28,8 @@ const schema = z.object({
     .refine((value) => value === '' || Number(value) <= 60, 'Tajriba 60 yildan oshmasligi kerak'),
   hireDate: z.string(),
   bio: z.string().trim().max(1000, 'Izoh 1000 belgidan oshmasligi kerak'),
+  employmentStatus: z.enum(EMPLOYEE_STATUS_ORDER),
+  terminationDate: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -59,6 +63,7 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -68,6 +73,8 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
       experienceYears: teacher?.experienceYears === null || teacher?.experienceYears === undefined ? '' : String(teacher.experienceYears),
       hireDate: teacher?.hireDate ?? '',
       bio: teacher?.bio ?? '',
+      employmentStatus: (teacher?.employmentStatus ?? 'ACTIVE') as EmployeeStatus,
+      terminationDate: teacher?.terminationDate ?? '',
     },
   });
 
@@ -77,14 +84,18 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
         return teachersService.create({ userId: values.userId, ...toPayload(values) });
       }
       if (!teacher) throw new Error('O‘qituvchi topilmadi');
-      return teachersService.update(teacher.id, { ...toPayload(values), isActive: teacher.isActive });
+      return teachersService.update(teacher.id, {
+        ...toPayload(values),
+        employmentStatus: values.employmentStatus,
+        ...(values.employmentStatus === 'RESIGNED' && values.terminationDate ? { terminationDate: values.terminationDate } : {}),
+      });
     },
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['userId', 'specialization', 'experienceYears', 'hireDate'])) {
+      if (!applyFieldErrors(error, setError, ['userId', 'specialization', 'experienceYears', 'hireDate', 'employmentStatus', 'terminationDate'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -96,10 +107,15 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
       setError('userId', { message: 'Xodimni tanlang' });
       return;
     }
+    if (mode === 'edit' && values.employmentStatus === 'RESIGNED' && !values.terminationDate) {
+      setError('terminationDate', { message: 'Ishdan ketgan sanani kiriting' });
+      return;
+    }
     save.mutate(values);
   });
 
   const candidates = candidatesQuery.data ?? [];
+  const employmentStatus = useWatch({ control, name: 'employmentStatus' });
 
   return (
     <Modal
@@ -171,6 +187,22 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
           <FormField label="Ishga olingan sana" htmlFor="teacher-hireDate" error={errors.hireDate?.message}>
             <Input id="teacher-hireDate" type="date" {...register('hireDate')} />
           </FormField>
+          {mode === 'edit' && (
+            <FormField label="Holat" htmlFor="teacher-status" error={errors.employmentStatus?.message} hint="Faol va ta’tildagi o‘qituvchi guruh va maosh uchun faol hisoblanadi">
+              <Select id="teacher-status" {...register('employmentStatus')}>
+                {EMPLOYEE_STATUS_ORDER.map((value) => (
+                  <option key={value} value={value}>
+                    {EMPLOYEE_STATUS_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+          )}
+          {mode === 'edit' && employmentStatus === 'RESIGNED' && (
+            <FormField label="Ishdan ketgan sana" htmlFor="teacher-terminationDate" error={errors.terminationDate?.message} required>
+              <Input id="teacher-terminationDate" type="date" {...register('terminationDate')} />
+            </FormField>
+          )}
         </div>
 
         <FormField label="Izoh" htmlFor="teacher-bio" error={errors.bio?.message} hint="Ixtiyoriy — qisqa tavsif">

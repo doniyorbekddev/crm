@@ -14,6 +14,7 @@ export const ALERT_TYPE_LABELS: Record<AlertType, string> = {
   DROPOUT_INCREASE: 'Ketishlar o‘sishi',
   CASH_SHORTAGE: 'Mablag‘ yetishmasligi',
   PENDING_EXPENSE_APPROVAL: 'Kutib qolgan tasdiq',
+  DOCUMENT_EXPIRING: 'Hujjat muddati',
 };
 
 export const ALERT_TYPE_ORDER: readonly AlertType[] = [
@@ -26,6 +27,7 @@ export const ALERT_TYPE_ORDER: readonly AlertType[] = [
   'UNPAID_SALARY',
   'BUDGET_EXCEEDED',
   'PENDING_EXPENSE_APPROVAL',
+  'DOCUMENT_EXPIRING',
   'OVERDUE_FOLLOWUPS',
   'LOW_GROUP_CAPACITY',
   'SALES_TARGET_ACHIEVED',
@@ -55,6 +57,7 @@ export const ALERT_TYPE_DESCRIPTIONS: Record<AlertType, string> = {
   DROPOUT_INCREASE: 'Ketgan o‘quvchilar o‘tgan oyning shu davriga nisbatan ko‘paydi',
   CASH_SHORTAGE: '30 kunlik prognozda majburiyatlarga mablag‘ yetmaydi',
   PENDING_EXPENSE_APPROVAL: 'Xarajat belgilangan kundan ortiq tasdiq kutmoqda',
+  DOCUMENT_EXPIRING: 'O‘qituvchi yoki xodim shartnomasi, pasporti muddati tugamoqda yoki o‘tgan',
 };
 
 export const ALERT_SEVERITY_TONES: Record<AlertSeverity, BadgeTone> = {
