@@ -507,3 +507,28 @@ Audit natijasi va roadmap: o‘qituvchi foizi → payroll → moliya → P&L →
 | T3 | O‘quvchi guruh tarixi | `StudentGroupChange` (qaysi guruhdan → qaysi guruhga, o‘sha paytdagi guruh nomlari, sabab, kim, qachon; qo‘shimcha migratsiya, mavjud o‘quvchilarning hozirgi guruhi boshlang‘ich yozuv sifatida to‘ldirildi). `POST /students/:id/transfer` (`student.manage`): faqat o‘quvchi kursining rejalashtirilgan yoki faol guruhiga, bo‘sh o‘rin bo‘lsa (guruh qatori `FOR UPDATE` bilan qulflanadi — parallel o‘tkazishda sig‘imdan oshmaydi), sabab majburiy, `groupId: null` — guruhdan chiqarish; auditga `student.group_changed`. Kursni almashtirish shartnomaga ta’sir qilgani uchun tahrirlash orqali. Yaratish, leaddan aylantirish va tahrirlashda guruh o‘zgarsa ham tarixga yoziladi. To‘lov va o‘qituvchi foizi to‘lov paytidagi guruhda qoladi (o‘zgarmaydi). `GET /students/:id/group-history` — oldingi guruhda o‘tkazilgan kunlar bilan; o‘quvchi profili faolligida va faoliyat markazida (o‘tkazish, chiqarish). Frontend: o‘quvchilar ro‘yxatida «Guruhga o‘tkazish», profilda «Guruh tarixi» | ✅ |
 | T4 | Marketing xarajati ↔ lead manbasi (ROI) | Xarajatga ixtiyoriy `sourceId` (qo‘shimcha migratsiya, guruh o‘chirilsa `SetNull`): reklama xarajati qaysi kanalga tegishli ekani belgilanadi. Manbalar ro‘yxati `GET /lookups/marketing-sources` (`expense.view` yoki `analytics.view`) — buxgalterda lead ruxsati bo‘lmasligi mumkin. Analitikadagi «Lead manbalari» bo‘limi va manbalar hisoboti kanal kesimida: marketing xarajati, lead narxi, o‘quvchi narxi, sof foyda (tushum − xarajat) va ROI ((tushum − xarajat) / xarajat); yakunda kanalga bog‘lanmagan reklama xarajati alohida ko‘rsatiladi. Xarajat sifatida faqat to‘langanlari hisoblanadi; kanalga bog‘langan har qanday kategoriya xarajati shu kanalga yoziladi | ✅ |
 | 18 | Yakuniy UI/UX va tekshiruv | Pul va sonlar formati `Intl`/`toLocaleString` dan olib tashlandi: brauzerda yoki Node’da «uz-UZ» lokali bo‘lmasa ular ingliz formatiga tushib vergul qo‘yardi («7,200,000»). Endi guruhlash uzilmas probel bilan, frontend (`utils/format.ts`) va backend (`utils/money.ts`) bir xil qoida bo‘yicha; XP, maosh yorliqlari, bildirishnoma, alert, qidiruv va jadval matnlari shu formatga o‘tkazildi (manfiy summa va `-0` holati ham qoplangan, unit testlar bilan). Ko‘zdan kechirish: 30 dan ortiq sahifa ko‘rinishi (admin va o‘qituvchi rollari) 390px qorong‘i hamda 1440px yorug‘ rejimda — gorizontal siljish yo‘q, konsol xatosi yo‘q, vergulli summa yo‘q; bildirishnomalar sahifasidagi 5px siljish tuzatildi (sarlavhadagi tugmalar tor ekranda satrga o‘tadi). Production build (backend + frontend) tekshirildi | ✅ |
+
+## Yakuniy tekshiruv (spec 75)
+
+Ro‘yxatdagi har bir band avtomatik dalil bilan yopilgan. Rollar bo‘yicha brauzer tekshiruvi: rahbar 30,
+super admin 31, buxgalter 16, o‘qituvchi 13, sotuv manageri 11 sahifa — har birida sarlavha yuklanadi,
+konsol xatosi yo‘q, ruxsat buzilishi yo‘q, gorizontal siljish yo‘q.
+
+| Band | Dalil |
+|---|---|
+| Login, rollar, ruxsatlar | `tests/auth.test.ts`, `tests/roles.test.ts`, `tests/securityHardening.test.ts` (rollar matritsasi), E2E `auth.spec.ts` va `rbac.spec.ts`, rollar bo‘yicha brauzer tekshiruvi |
+| Leadlar va sotuv | `tests/leads.test.ts`, `tests/calls.test.ts`, `tests/followups.test.ts`, E2E `leads.spec.ts` |
+| O‘quvchilar va guruhlar | `tests/students.test.ts`, `tests/groups.test.ts`, `tests/studentGroupHistory.test.ts`, E2E `groupTransfer.spec.ts` |
+| Davomat, statistika, reyting | `tests/attendance.test.ts`, `tests/attendanceSessions.test.ts`, mobil E2E `attendance.mobile.spec.ts` |
+| Gamification: XP, daraja, nishon, seriya, reyting | `tests/gamification.test.ts` |
+| O‘qituvchilar, maosh hisobi va tasdiqlash | `tests/teachers.test.ts`, `tests/payroll.test.ts`, `tests/commissions.test.ts`, `tests/staffDocuments.test.ts` |
+| To‘lovlar, qarzdorlik, to‘lov jadvali | `tests/payments.test.ts`, `tests/refunds.test.ts`, `tests/paymentDuplicates.test.ts`, `tests/paymentSchedule.test.ts`, E2E `payments.spec.ts`, `schedule.spec.ts` |
+| Tushum, xarajat, tranzaksiyalar, foyda | `tests/finance.test.ts`, `tests/financeExtra.test.ts`, `tests/expenseApproval.test.ts`, `tests/profitLoss.test.ts`, `tests/budget.test.ts`, E2E `finance.spec.ts` |
+| Hisobotlar va eksport (CSV/Excel) | `tests/reports.test.ts`, `tests/reportCenter.test.ts`, `tests/exports.test.ts`, `tests/marketingRoi.test.ts` |
+| Bildirishnomalar, ogohlantirishlar, direktor paneli | `tests/notifications.test.ts`, `tests/alerts.test.ts`, `tests/alertsUpgrade.test.ts`, `tests/executive.test.ts`, `tests/executiveInsights.test.ts` |
+| Audit jurnali | `tests/audit.test.ts`, `tests/activity.test.ts` |
+| Responsive (390px) va qorong‘i rejim | 30 dan ortiq sahifa ko‘rinishi ikki rejimda tekshirildi; E2E `theme.spec.ts` va mobil ssenariy |
+| Xavfsizlik | `tests/security.test.ts`, `tests/securityAudit.test.ts`, `tests/securityHardening.test.ts` (hisob bloki, maosh maskasi, eksport keshlanmasligi) |
+| Baza saqlanishi (persistence) | Barcha integratsion testlar real PostgreSQL’da; migratsiyalar qo‘shimcha, zaxira bilan qo‘llanadi |
+| API xatolarini boshqarish | `tests/unit/errorHandler.test.ts`, `tests/prismaErrors.test.ts`, `tests/edgeCases.test.ts` |
+| Production build | `npm run build` (backend + frontend) — chiqish kodi 0 |
