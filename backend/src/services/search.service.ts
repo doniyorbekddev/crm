@@ -6,6 +6,7 @@ import { STUDENT_STATUS_LABELS, formatStudentNumber } from '../config/studentLab
 import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { permissionService } from './permission.service.js';
+import { moneyUz } from '../utils/money.js';
 
 /** Har bir bo‘limdan ko‘rsatiladigan natijalar soni */
 const PER_GROUP = 5;
@@ -267,7 +268,7 @@ export const searchService = {
           hits: courses.map((course) => ({
             id: course.id,
             title: course.name,
-            subtitle: `${course.finalPrice.toNumber().toLocaleString('uz-UZ')} so‘m · ${course._count.students} o‘quvchi`,
+            subtitle: `${moneyUz(course.finalPrice.toNumber())} · ${course._count.students} o‘quvchi`,
             code: null,
             url: '/courses',
           })),
@@ -333,7 +334,7 @@ export const searchService = {
             hits: payments.map((payment) => ({
               id: payment.id,
               title: `${payment.student.firstName} ${payment.student.lastName}`,
-              subtitle: `${payment.amount.toNumber().toLocaleString('uz-UZ')} so‘m · ${payment.paidAt.toISOString().slice(0, 10)}${payment.deletedAt ? ' · bekor qilingan' : ''}`,
+              subtitle: `${moneyUz(payment.amount.toNumber())} · ${payment.paidAt.toISOString().slice(0, 10)}${payment.deletedAt ? ' · bekor qilingan' : ''}`,
               code: formatPaymentNumber(payment.number),
               url: '/payments',
             })),
@@ -375,7 +376,7 @@ export const searchService = {
             label: 'Tranzaksiyalar',
             hits: transactions.map((transaction) => ({
               id: transaction.id,
-              title: `${TRANSACTION_TYPE_LABELS[transaction.type]} · ${transaction.amount.toNumber().toLocaleString('uz-UZ')} so‘m`,
+              title: `${TRANSACTION_TYPE_LABELS[transaction.type]} · ${moneyUz(transaction.amount.toNumber())}`,
               subtitle: [
                 transaction.occurredAt.toISOString().slice(0, 10),
                 transaction.categoryName ?? transaction.description,

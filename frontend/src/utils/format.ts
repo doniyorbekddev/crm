@@ -1,6 +1,17 @@
 import { format, isValid } from 'date-fns';
 
-const numberFormatter = new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 });
+/**
+ * Raqamlar uzilmas probel bilan ajratiladi: "7 200 000". `Intl` ishlatilmaydi — brauzerda "uz-UZ"
+ * lokali bo'lmasa u ingliz formatiga tushib, vergul qo'yib yuboradi ("7,200,000").
+ */
+const GROUP_SEPARATOR = '\u00a0';
+
+function groupDigits(value: number): string {
+  const rounded = Math.round(Math.abs(value));
+  const grouped = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, GROUP_SEPARATOR);
+  // Math.round(-0.2) → -0: nol har doim ishorasiz ko'rsatiladi
+  return rounded > 0 && value < 0 ? `-${grouped}` : grouped;
+}
 
 function toNumber(value: number | string | null | undefined): number {
   if (value === null || value === undefined) return 0;
@@ -15,11 +26,11 @@ function toDate(value: string | Date): Date | null {
 
 /** 1500000 → "1 500 000 so‘m" */
 export function formatMoney(value: number | string | null | undefined): string {
-  return `${numberFormatter.format(toNumber(value))} so‘m`;
+  return `${groupDigits(toNumber(value))} so‘m`;
 }
 
 export function formatNumber(value: number | string | null | undefined): string {
-  return numberFormatter.format(toNumber(value));
+  return groupDigits(toNumber(value));
 }
 
 /** → "11.09.2026" */

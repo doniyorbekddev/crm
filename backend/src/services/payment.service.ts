@@ -22,6 +22,7 @@ import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { addDays, businessDateString, startOfBusinessDay } from '../utils/dates.js';
 import { commissionService } from './commission.service.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
+import { moneyUz } from '../utils/money.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
@@ -468,7 +469,7 @@ export const paymentService = {
           userId: managerId,
           type: 'NEW_PAYMENT',
           title: 'Yangi to‘lov',
-          message: `${student.firstName} ${student.lastName} ${input.amount.toLocaleString('uz-UZ')} so‘m to‘lov qildi. Qolgan qarz: ${remaining.toLocaleString('uz-UZ')} so‘m.`,
+          message: `${student.firstName} ${student.lastName} ${moneyUz(input.amount)} to‘lov qildi. Qolgan qarz: ${moneyUz(remaining)}.`,
           entityType: 'payment',
           entityId: payment.id,
           dedupeKey: `payment:${payment.id}`,
@@ -583,7 +584,7 @@ export const paymentService = {
     }
     if (input.amount > refundable) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
-        { field: 'amount', message: `Eng ko‘pi ${refundable.toLocaleString('uz-UZ')} so‘m qaytarish mumkin` },
+        { field: 'amount', message: `Eng ko‘pi ${moneyUz(refundable)} qaytarish mumkin` },
       ]);
     }
     const refundedAt = new Date();

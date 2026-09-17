@@ -9,6 +9,7 @@ import { permissionService } from './permission.service.js';
 import type { StudentDto } from './student.service.js';
 import { studentService } from './student.service.js';
 import { refundTotal } from './revenue.js';
+import { moneyUz } from '../utils/money.js';
 
 /**
  * O‘quvchi profili va progressi: davomat, uy vazifasi, imtihon, XP va o‘qituvchi
@@ -348,7 +349,7 @@ export const studentProgressService = {
       for (const payment of recentPayments) {
         activity.push({
           type: 'payment',
-          title: `${payment.amount.toNumber().toLocaleString('uz-UZ')} so‘m to‘lov`,
+          title: `${moneyUz(payment.amount.toNumber())} to‘lov`,
           description: PAYMENT_METHOD_LABELS[payment.method],
           date: payment.paidAt.toISOString(),
           tone: 'positive',

@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { logger } from '../utils/logger.js';
+import { moneyUz } from '../utils/money.js';
 
 /** Har 30 daqiqada tekshiriladi, lekin bildirishnoma kuniga bir marta yuboriladi (dedupeKey orqali) */
 const INTERVAL_MS = 30 * 60_000;
@@ -41,7 +42,7 @@ export async function sendDailyDebtSummary(now: Date): Promise<number> {
       userId: user.id,
       type: 'DEBT_REMINDER' as const,
       title: 'Qarzdorlik hisoboti',
-      message: `${debtors} ta o‘quvchida jami ${total.toLocaleString('uz-UZ')} so‘m qarz bor.`,
+      message: `${debtors} ta o‘quvchida jami ${moneyUz(total)} qarz bor.`,
       entityType: 'debt',
       dedupeKey: `debt-summary:${date}:${user.id}`,
     })),

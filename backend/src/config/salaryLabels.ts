@@ -1,4 +1,5 @@
-/** Maosh davrlari uchun o‘zbekcha oy nomlari */
+
+import { moneyUz } from '../utils/money.js';/** Maosh davrlari uchun o‘zbekcha oy nomlari */
 export const MONTH_NAMES: readonly string[] = [
   'yanvar',
   'fevral',
@@ -21,5 +22,5 @@ export function formatSalaryPeriod(year: number, month: number): string {
 
 /** Maoshni so‘mda ko‘rsatish (bildirishnoma matnlari uchun) */
 export function formatSalaryAmount(amount: number): string {
-  return `${amount.toLocaleString('uz-UZ')} so‘m`;
+  return `${moneyUz(amount)}`;
 }

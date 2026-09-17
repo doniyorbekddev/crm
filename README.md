@@ -229,9 +229,10 @@ npm run test:unit      # Faqat backend unit testlari (bazasiz, ~6 soniya)
 npm run test:coverage  # Qamrov hisoboti (backend + frontend)
 ```
 
-Testlar tarkibi: **393 ta backend testi** (62 fayl — unit va integratsion), **35 ta frontend unit testi** (5 fayl)
-va **11 ta E2E ssenariy** (brauzerda, pastda). Backend qamrovi: statements 91.1%, branches 76.5%, functions 93.0%,
-lines 92.7%. Fon joblarining ish qismi (eslatma yuborish, takrorlanmaslik) testlanadi, taymerning o‘zi — yo‘q.
+Testlar tarkibi: **419 ta backend testi** (68 fayl — unit va integratsion), **38 ta frontend unit testi** (6 fayl)
+va **14 ta E2E ssenariy** (brauzerda, pastda). Backend qamrovi: statements 91.4%, branches 77.5%,
+functions 93.5%, lines 93.0%. Fon joblarining ish qismi (eslatma yuborish, takrorlanmaslik) testlanadi,
+taymerning o‘zi — yo‘q.
 `tests/unit/partialUpdateSchemas.test.ts` barcha `update*Schema`larni tekshiradi: qisman tahrir yuborilmagan
 maydonga standart qiymat qo‘ymasligi kerak (yangi validator qo‘shilganda ham avtomatik ishlaydi).
 

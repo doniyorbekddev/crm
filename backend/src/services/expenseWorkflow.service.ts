@@ -10,6 +10,7 @@ import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { accountIdForMethod, recordTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
+import { moneyUz } from '../utils/money.js';
 
 /**
  * Xarajatni tasdiqlash (promt 21-bo‘lim): chegara summadan katta xarajat rahbar tasdiqlamaguncha
@@ -60,7 +61,7 @@ export async function notifyApprovers(
       userId: approver.id,
       type: 'EXPENSE_APPROVAL',
       title: 'Xarajat tasdiq kutmoqda',
-      message: `#${expense.number} · ${expense.categoryName} · ${expense.amount.toLocaleString('uz-UZ')} so‘m${expense.description ? ` — ${expense.description}` : ''}`,
+      message: `#${expense.number} · ${expense.categoryName} · ${moneyUz(expense.amount)}${expense.description ? ` — ${expense.description}` : ''}`,
       entityType: 'expense',
       entityId: expense.id,
       dedupeKey: `expense:${expense.id}:approval:${approver.id}`,
@@ -132,7 +133,7 @@ export const expenseWorkflowService = {
           userId: expense.responsibleId,
           type: 'EXPENSE_APPROVAL',
           title: 'Xarajat tasdiqlandi',
-          message: `#${expense.number} · ${expense.category.name} · ${expense.amount.toNumber().toLocaleString('uz-UZ')} so‘m — to‘lash mumkin`,
+          message: `#${expense.number} · ${expense.category.name} · ${moneyUz(expense.amount.toNumber())} — to‘lash mumkin`,
           entityType: 'expense',
           entityId: id,
           dedupeKey: `expense:${id}:approved`,

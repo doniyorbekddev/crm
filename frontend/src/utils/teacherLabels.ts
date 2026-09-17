@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@/components/ui/Badge';
 import type { PayrollAdjustmentCategory, PayrollAdjustmentType, SalaryPaymentKind, SalaryPeriodStatus, SalaryType } from '@/types/teacher';
+import { formatMoney } from './format';
 
 export const SALARY_TYPE_ORDER: readonly SalaryType[] = ['FIXED', 'PER_LESSON', 'PER_STUDENT', 'PERCENTAGE', 'MIXED'];
 
@@ -66,7 +67,7 @@ export function salaryRuleSummary(rule: {
   perStudentRate: number;
   percentage: number;
 }): string {
-  const money = (value: number) => `${value.toLocaleString('uz-UZ')} so‘m`;
+  const money = (value: number) => formatMoney(value);
   switch (rule.type) {
     case 'FIXED':
       return money(rule.baseSalary);

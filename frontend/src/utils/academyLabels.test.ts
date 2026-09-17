@@ -38,6 +38,7 @@ import {
   SALARY_TYPE_ORDER,
   salaryRuleSummary,
 } from './teacherLabels';
+import { formatMoney } from './format';
 
 /** Tartib ro‘yxatidagi har bir qiymat uchun yorliq bor va ortiqcha yorliq yo‘q */
 function expectComplete(order: readonly string[], labels: Record<string, string>) {
@@ -46,7 +47,7 @@ function expectComplete(order: readonly string[], labels: Record<string, string>
   for (const key of order) expect(labels[key]?.trim()).toBeTruthy();
 }
 
-const money = (value: number) => `${value.toLocaleString('uz-UZ')} so‘m`;
+const money = (value: number) => formatMoney(value);
 
 describe('maosh yorliqlari', () => {
   it('model va holatlar to‘liq', () => {

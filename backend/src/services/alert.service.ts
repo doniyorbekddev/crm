@@ -14,6 +14,7 @@ import { auditService } from './audit.service.js';
 import { financeService } from './finance.service.js';
 import { computeTargetProgress } from './target.service.js';
 import { scheduleDueStats } from './paymentSchedule.service.js';
+import { moneyUz } from '../utils/money.js';
 
 /**
  * Avtomatik ogohlantirishlar.
@@ -241,7 +242,7 @@ function stableJson(value: unknown): string {
 }
 
 function money(value: number): string {
-  return `${value.toLocaleString('uz-UZ')} so‘m`;
+  return `${moneyUz(value)}`;
 }
 
 // ---------------------------------------------------------------------

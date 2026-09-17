@@ -166,7 +166,7 @@ export default function NotificationsPage() {
         title="Bildirishnomalar"
         description={summary ? `${summary.unread} ta o‘qilmagan · jami ${summary.total} ta` : 'Yuklanmoqda'}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
               leftIcon={<CheckCheck className="size-4" aria-hidden />}

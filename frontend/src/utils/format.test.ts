@@ -12,9 +12,18 @@ import {
 } from './format';
 
 describe('pul va sonlar', () => {
-  it('summani bo‘shliq bilan ajratib, "so‘m" bilan ko‘rsatadi', () => {
-    expect(formatMoney(1_500_000)).toMatch(/^1.500.000 so‘m$/);
-    expect(formatNumber(1234)).toMatch(/^1.234$/);
+  it('summani uzilmas bo‘shliq bilan ajratadi (brauzer lokalidan qat’i nazar)', () => {
+    expect(formatMoney(1_500_000)).toBe('1\u00a0500\u00a0000 so‘m');
+    expect(formatNumber(1234)).toBe('1\u00a0234');
+    expect(formatNumber(999)).toBe('999');
+    expect(formatMoney(7_200_000)).not.toContain(',');
+  });
+
+  it('manfiy summa, nol va kasr sonlarni to‘g‘ri ko‘rsatadi', () => {
+    expect(formatMoney(-450_000)).toBe('-450\u00a0000 so‘m');
+    expect(formatMoney(-0.2)).toBe('0 so‘m');
+    expect(formatNumber(1_234.6)).toBe('1\u00a0235');
+    expect(formatMoney('1234567.89')).toBe('1\u00a0234\u00a0568 so‘m');
   });
 
   it('matn ko‘rinishidagi sonni ham qabul qiladi', () => {

@@ -8,6 +8,7 @@ import type { AllocatedInstallment, PlannedInstallment } from '../utils/paymentS
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { GenerateScheduleInput, ReplaceScheduleInput } from '../validators/paymentSchedule.validator.js';
 import { auditService } from './audit.service.js';
+import { groupUz } from '../utils/money.js';
 
 /** Muddatiga shuncha kun (bugun ham) qolgan to‘lov "yaqinlashayotgan" hisoblanadi */
 export const UPCOMING_DUE_DAYS = 7;
@@ -90,7 +91,7 @@ async function loadStudent(id: string): Promise<{ id: string; total: number; pai
   return { id: student.id, total: student.debt.totalAmount.toNumber(), paid: student.debt.paidAmount.toNumber() };
 }
 
-const formatSum = (value: number) => value.toLocaleString('uz-UZ');
+const formatSum = (value: number) => groupUz(value);
 
 /**
  * Jadvali bor o‘quvchilar bo‘yicha ko‘rsatkichlar. To‘langan summa qismlarga muddat tartibida

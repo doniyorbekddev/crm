@@ -25,6 +25,7 @@ import { createDefaultSchedule } from './paymentSchedule.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
 import type { TransferStudentGroupInput } from '../validators/student.validator.js';
+import { moneyUz } from '../utils/money.js';
 
 const studentSelect = {
   id: true,
@@ -632,7 +633,7 @@ export const studentService = {
           userId: lead.assignedToId,
           type: 'NEW_STUDENT',
           title: 'Lead o‘quvchiga aylantirildi',
-          message: `${lead.firstName} ${lead.lastName ?? ''} (${formatStudentNumber(student.number)}) — shartnoma ${contractPrice.toLocaleString('uz-UZ')} so‘m`,
+          message: `${lead.firstName} ${lead.lastName ?? ''} (${formatStudentNumber(student.number)}) — shartnoma ${moneyUz(contractPrice)}`,
           entityType: 'student',
           entityId: student.id,
           dedupeKey: `student-created:${student.id}`,

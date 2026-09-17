@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@/components/ui/Badge';
 import type { BadgeRule, LeaderboardPeriod, XpSource } from '@/types/gamification';
+import { formatNumber } from './format';
 
 export const XP_SOURCE_LABELS: Record<XpSource, string> = {
   ATTENDANCE: 'Davomat',
@@ -55,5 +56,5 @@ export const RANK_MEDALS = ['🥇', '🥈', '🥉'] as const;
 
 /** XP ni qisqa ko‘rinishda: 2450 → "2 450 XP" */
 export function formatXp(value: number): string {
-  return `${new Intl.NumberFormat('uz-UZ').format(value)} XP`;
+  return `${formatNumber(value)} XP`;
 }
