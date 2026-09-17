@@ -342,9 +342,9 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                           )}
                         </p>
                         {entry.description && <p className="truncate text-xs text-fg-muted">{entry.description}</p>}
-                        {(entry.vendor || entry.recurring) && (
+                        {(entry.vendor || entry.recurring || entry.source) && (
                           <p className="truncate text-xs text-fg-muted">
-                            {[entry.vendor, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
+                            {[entry.vendor, entry.source?.name ?? null, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
                           </p>
                         )}
                         {entry.status === 'REJECTED' && entry.rejectReason && (

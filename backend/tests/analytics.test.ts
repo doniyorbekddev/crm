@@ -167,11 +167,53 @@ describe.skipIf(!hasTestDatabase)('Analitika: unit economics, rentabellik, kohor
   it('manbalar: konversiya, o‘quvchilar, sof tushum va sotuv tezligi; ruxsatsiz 403', async () => {
     const response = await request(app).get('/api/analytics/sources').query(RANGE).set(bearer(owner));
     expect(response.status).toBe(200);
+    // Kanalga bog'langan marketing xarajati yo'q — xarajat 0, ROI va narxlar null
     expect(response.body.data.rows).toEqual([
-      { id: ids.instagram, name: 'Instagram', leads: 2, won: 1, lost: 1, conversion: 50, students: 1, revenue: 1_000_000, revenuePerLead: 500_000, avgDaysToConvert: 4 },
-      { id: ids.telegram, name: 'Telegram', leads: 0, won: 1, lost: 0, conversion: 100, students: 1, revenue: 600_000, revenuePerLead: null, avgDaysToConvert: 11 },
+      {
+        id: ids.instagram,
+        name: 'Instagram',
+        leads: 2,
+        won: 1,
+        lost: 1,
+        conversion: 50,
+        students: 1,
+        revenue: 1_000_000,
+        revenuePerLead: 500_000,
+        avgDaysToConvert: 4,
+        spend: 0,
+        costPerLead: null,
+        costPerStudent: null,
+        profit: 1_000_000,
+        roi: null,
+      },
+      {
+        id: ids.telegram,
+        name: 'Telegram',
+        leads: 0,
+        won: 1,
+        lost: 0,
+        conversion: 100,
+        students: 1,
+        revenue: 600_000,
+        revenuePerLead: null,
+        avgDaysToConvert: 11,
+        spend: 0,
+        costPerLead: null,
+        costPerStudent: null,
+        profit: 600_000,
+        roi: null,
+      },
     ]);
-    expect(response.body.data.totals).toEqual({ leads: 2, won: 2, students: 2, revenue: 1_600_000, conversion: 67 });
+    expect(response.body.data.totals).toMatchObject({
+      leads: 2,
+      won: 2,
+      students: 2,
+      revenue: 1_600_000,
+      conversion: 67,
+      spend: 0,
+      profit: 1_600_000,
+      roi: null,
+    });
 
     expect((await request(app).get('/api/analytics/profitability').query({ from: '2026-09-10', to: '2026-09-01' }).set(bearer(owner))).status).toBe(422);
     const csv = await request(app).get('/api/analytics/profitability/export').query({ ...RANGE, dimension: 'course', format: 'csv' }).set(bearer(owner));

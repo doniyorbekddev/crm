@@ -44,6 +44,14 @@ lookupRouter.get(
 );
 
 lookupRouter.get(
+  '/marketing-sources',
+  requireAnyPermission(PERMISSIONS.EXPENSE_VIEW, PERMISSIONS.ANALYTICS_VIEW),
+  async (_req: Request, res: Response) => {
+    sendSuccess(res, await lookupService.marketingSources());
+  },
+);
+
+lookupRouter.get(
   '/salary-form',
   requireAnyPermission(PERMISSIONS.SALARY_VIEW, PERMISSIONS.SALARY_PAY),
   async (_req: Request, res: Response) => {

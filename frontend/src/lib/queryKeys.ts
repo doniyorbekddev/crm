@@ -221,6 +221,7 @@ export const queryKeys = {
     leadForm: ['lookups', 'lead-form'] as const,
     groupForm: ['lookups', 'group-form'] as const,
     studentForm: ['lookups', 'student-form'] as const,
+    marketingSources: ['lookups', 'marketing-sources'] as const,
     paymentForm: ['lookups', 'payment-form'] as const,
     salaryForm: ['lookups', 'salary-form'] as const,
   },

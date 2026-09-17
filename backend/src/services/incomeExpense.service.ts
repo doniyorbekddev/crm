@@ -36,6 +36,8 @@ export interface MoneyEntryDto {
   isVoided: boolean;
   voidReason: string | null;
   category: { id: string; key: string; name: string };
+  /** Reklama xarajati bog‘langan lead manbasi (kanal) */
+  source: { id: string; name: string } | null;
   account: { id: string; name: string } | null;
   responsible: { id: string; firstName: string; lastName: string } | null;
   student: { id: string; firstName: string; lastName: string } | null;
@@ -137,6 +139,7 @@ const expenseSelect = {
   approvedAt: true,
   rejectReason: true,
   category: { select: { id: true, key: true, name: true } },
+  source: { select: { id: true, name: true } },
   account: { select: { id: true, name: true } },
   responsible: { select: { id: true, firstName: true, lastName: true } },
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
@@ -160,6 +163,7 @@ function toIncomeDto(income: IncomeRecord): MoneyEntryDto {
     isVoided: income.transaction.status !== 'COMPLETED',
     voidReason: income.transaction.voidReason,
     category: income.category,
+    source: null,
     account: income.account,
     responsible: income.responsible,
     student: income.student,
@@ -188,6 +192,7 @@ function toExpenseDto(expense: ExpenseRecord): MoneyEntryDto {
     isVoided: expense.transaction !== null && expense.transaction.status !== 'COMPLETED',
     voidReason: expense.transaction?.voidReason ?? null,
     category: expense.category,
+    source: expense.source,
     account: expense.account,
     responsible: expense.responsible,
     student: null,
@@ -464,6 +469,14 @@ export const expenseService = {
       ]);
     }
 
+    const sourceId = input.sourceId ?? null;
+    if (sourceId) {
+      const source = await prisma.source.findFirst({ where: { id: sourceId, isActive: true }, select: { id: true } });
+      if (!source) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'sourceId', message: 'Manba topilmadi' }]);
+      }
+    }
+
     const occurredAt = toOccurredAt(input.date);
     // Chegara summadan katta va tasdiqlash ruxsati yo'q — rahbar tasdig'i kutiladi, pul yechilmaydi
     if (await requiresApproval(actor, input.amount)) {
@@ -478,6 +491,7 @@ export const expenseService = {
             spentAt: occurredAt,
             description: input.description ?? null,
             vendor: input.vendor ?? null,
+            sourceId,
             responsibleId: actor.id,
             status: 'PENDING',
           },
@@ -524,6 +538,7 @@ export const expenseService = {
           spentAt: occurredAt,
           description: input.description ?? null,
           vendor: input.vendor ?? null,
+          sourceId,
           responsibleId: actor.id,
           transactionId: transaction.id,
           status: 'PAID',

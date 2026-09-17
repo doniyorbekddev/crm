@@ -16,6 +16,7 @@ import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { expensesService, financeService, incomesService } from '@/services/finance.service';
+import { lookupsService } from '@/services/lookups.service';
 import { formatMoney } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
@@ -28,6 +29,7 @@ const schema = z.object({
   date: z.string(),
   description: z.string().trim().max(255, 'Izoh juda uzun'),
   vendor: z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun'),
+  sourceId: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -76,7 +78,17 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
       date: new Date().toISOString().slice(0, 10),
       description: '',
       vendor: '',
+      sourceId: '',
     },
+  });
+  // Reklama xarajati kanalga bog'lanadi — manba bo'yicha ROI shu yerdan chiqadi
+  const selectedCategoryId = useWatch({ control, name: 'categoryId' });
+  const isMarketing = isExpense && (categoriesQuery.data ?? []).some((item) => item.id === selectedCategoryId && item.key === 'ADVERTISEMENT');
+  const sourcesQuery = useQuery({
+    queryKey: queryKeys.lookups.marketingSources,
+    queryFn: lookupsService.marketingSources,
+    enabled: isMarketing,
+    staleTime: 5 * 60_000,
   });
   const amount = Number(useWatch({ control, name: 'amount' }) || 0);
   const threshold = settingsQuery.data?.approvalThreshold ?? 0;
@@ -92,6 +104,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
         ...(values.date ? { date: values.date } : {}),
         ...(values.description ? { description: values.description } : {}),
         ...(isExpense && values.vendor ? { vendor: values.vendor } : {}),
+        ...(isMarketing && values.sourceId ? { sourceId: values.sourceId } : {}),
       }),
     onSuccess: (result) => {
       toast.success(result.message);
@@ -194,6 +207,19 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
         {isExpense && (
           <FormField label="Yetkazib beruvchi" htmlFor="money-vendor" error={errors.vendor?.message} hint="Ixtiyoriy — kompaniya yoki shaxs">
             <Input id="money-vendor" placeholder="Oqtepa Plaza MChJ" {...register('vendor')} />
+          </FormField>
+        )}
+
+        {isMarketing && (
+          <FormField label="Reklama manbasi" htmlFor="money-source" hint="Ixtiyoriy — tanlansa, shu kanalning ROI hisobiga kiradi">
+            <Select id="money-source" disabled={sourcesQuery.isPending} {...register('sourceId')}>
+              <option value="">Tanlanmagan</option>
+              {(sourcesQuery.data?.sources ?? []).map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
+                </option>
+              ))}
+            </Select>
           </FormField>
         )}
 

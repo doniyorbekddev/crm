@@ -734,6 +734,13 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     `,
   ]);
   const revenueBySource = new Map(payments.map((row) => [row.sourceId, Number(row.total ?? 0)]));
+  // Kanalga bog'langan marketing xarajati (faqat to'langan xarajatlar)
+  const spendRows = await prisma.expense.groupBy({
+    by: ['sourceId'],
+    where: { sourceId: { in: ids }, status: 'PAID', spentAt: range },
+    _sum: { amount: true },
+  });
+  const spendBySource = new Map(spendRows.map((row) => [row.sourceId ?? '', row._sum.amount?.toNumber() ?? 0]));
   // Qaytarilgan pul manba tushumidan qaytarish sanasi bo'yicha ayriladi
   const sourceRefunds = await prisma.$queryRaw<Array<{ sourceId: string; total: unknown }>>`
     SELECT l."sourceId" AS "sourceId", SUM(r."amount") AS "total"
@@ -753,20 +760,27 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     const leadCount = leads.find((row) => row.sourceId === source.id)?._count._all ?? 0;
     const wonCount = won.find((row) => row.sourceId === source.id)?._count._all ?? 0;
     const lostCount = lost.find((row) => row.sourceId === source.id)?._count._all ?? 0;
-    if (leadCount === 0 && wonCount === 0) continue;
+    const spend = spendBySource.get(source.id) ?? 0;
+    if (leadCount === 0 && wonCount === 0 && spend === 0) continue;
+    const revenue = revenueBySource.get(source.id) ?? 0;
     rows.push({
       source: source.name,
       leads: leadCount,
       won: wonCount,
       lost: lostCount,
       conversion: percent(wonCount, wonCount + lostCount),
-      revenue: revenueBySource.get(source.id) ?? 0,
+      revenue,
+      spend,
+      costPerLead: spend > 0 && leadCount > 0 ? Math.round(spend / leadCount) : 0,
+      roi: spend > 0 ? Math.round(((revenue - spend) / spend) * 100) : 0,
     });
   }
 
   rows.sort((a, b) => (b.leads as number) - (a.leads as number));
   const totalLeads = rows.reduce((sum, row) => sum + (row.leads as number), 0);
   const totalWon = rows.reduce((sum, row) => sum + (row.won as number), 0);
+  const totalSpend = rows.reduce((sum, row) => sum + (row.spend as number), 0);
+  const totalRevenue = rows.reduce((sum, row) => sum + (row.revenue as number), 0);
 
   return {
     columns: [
@@ -776,6 +790,9 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
       { key: 'lost', label: 'Yo‘qotildi', type: 'number' },
       { key: 'conversion', label: 'Konversiya', type: 'percent' },
       { key: 'revenue', label: 'Tushum', type: 'money' },
+      { key: 'spend', label: 'Marketing xarajati', type: 'money' },
+      { key: 'costPerLead', label: 'Lead narxi', type: 'money' },
+      { key: 'roi', label: 'ROI', type: 'percent' },
     ],
     rows,
     kpis: [
@@ -783,6 +800,8 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
       { label: 'Jami leadlar', value: totalLeads, type: 'number' },
       { label: 'Sotildi', value: totalWon, type: 'number' },
       { label: 'Umumiy konversiya', value: percent(totalWon, totalLeads), type: 'percent' },
+      { label: 'Marketing xarajati', value: totalSpend, type: 'money' },
+      { label: 'ROI', value: totalSpend > 0 ? Math.round(((totalRevenue - totalSpend) / totalSpend) * 100) : 0, type: 'percent' },
     ],
   };
 }

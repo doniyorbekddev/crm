@@ -69,11 +69,29 @@ export interface SourceAnalyticsRow {
   revenue: number;
   revenuePerLead: number | null;
   avgDaysToConvert: number | null;
+  /** Shu kanalga bog‘langan marketing xarajati */
+  spend: number;
+  costPerLead: number | null;
+  costPerStudent: number | null;
+  profit: number;
+  /** (tushum − xarajat) / xarajat, %; xarajat bo‘lmasa null */
+  roi: number | null;
 }
 
 export interface SourceAnalytics {
   from: string;
   to: string;
   rows: SourceAnalyticsRow[];
-  totals: { leads: number; won: number; students: number; revenue: number; conversion: number };
+  totals: {
+    leads: number;
+    won: number;
+    students: number;
+    revenue: number;
+    conversion: number;
+    spend: number;
+    profit: number;
+    roi: number | null;
+    /** Kanalga bog‘lanmagan reklama xarajati */
+    unattributedSpend: number;
+  };
 }

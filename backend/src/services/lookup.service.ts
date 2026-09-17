@@ -47,7 +47,21 @@ export interface SalaryFormLookups {
   accounts: Array<{ id: string; key: string; name: string; type: AccountType; balance: number }>;
 }
 
+export interface MarketingSourceLookups {
+  /** Reklama xarajatini kanalga bog‘lash uchun faol manbalar */
+  sources: Array<{ id: string; name: string }>;
+}
+
 export const lookupService = {
+  async marketingSources(): Promise<MarketingSourceLookups> {
+    const sources = await prisma.source.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    });
+    return { sources };
+  },
+
   async leadForm(): Promise<LeadFormLookups> {
     const sources = await prisma.source.findMany({
       where: { isActive: true },

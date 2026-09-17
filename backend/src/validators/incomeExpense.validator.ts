@@ -46,6 +46,8 @@ export const createIncomeSchema = moneyFieldsSchema.extend({
 /** Ilova (chek) fayli keyingi bosqichda hujjatlar moduli orqali yuklanadi — mijozdan erkin yo‘l qabul qilinmaydi */
 export const createExpenseSchema = moneyFieldsSchema.extend({
   vendor: optionalField(z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun')),
+  /** Reklama xarajati qaysi lead manbasiga (kanalga) tegishli — manba bo‘yicha ROI uchun */
+  sourceId: optionalField(idSchema),
 });
 
 export const voidMoneySchema = z.object({

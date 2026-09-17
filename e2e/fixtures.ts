@@ -24,6 +24,13 @@ export async function login(page: Page, user: SeedUser): Promise<void> {
   await expect(page).not.toHaveURL(/\/login/);
 }
 
+/** Kirgan foydalanuvchi login sahifasidan qaytariladi — boshqa rol bilan kirishdan oldin chiqish kerak */
+export async function logout(page: Page, user: SeedUser): Promise<void> {
+  await page.getByRole('button', { name: new RegExp(USERS[user].name) }).click();
+  await page.getByText('Chiqish', { exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+}
+
 /** Takrorlanmas harfli yorliq — ism maydonlari raqam qabul qilmaydi */
 export function uniqueLetters(length = 6): string {
   return String(Date.now())

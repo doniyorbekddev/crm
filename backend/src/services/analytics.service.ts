@@ -96,13 +96,32 @@ export interface SourceAnalyticsRowDto {
   revenue: number;
   revenuePerLead: number | null;
   avgDaysToConvert: number | null;
+  /** Shu kanalga bog‘langan marketing xarajati (to‘langan) */
+  spend: number;
+  costPerLead: number | null;
+  costPerStudent: number | null;
+  /** Sof tushum − xarajat */
+  profit: number;
+  /** (tushum − xarajat) / xarajat, %; xarajat bo‘lmasa null */
+  roi: number | null;
 }
 
 export interface SourceAnalyticsDto {
   from: string;
   to: string;
   rows: SourceAnalyticsRowDto[];
-  totals: { leads: number; won: number; students: number; revenue: number; conversion: number };
+  totals: {
+    leads: number;
+    won: number;
+    students: number;
+    revenue: number;
+    conversion: number;
+    spend: number;
+    profit: number;
+    roi: number | null;
+    /** Kanalga bog‘lanmagan reklama xarajati */
+    unattributedSpend: number;
+  };
 }
 
 const DAY_MS = 86_400_000;
@@ -425,6 +444,17 @@ export const analyticsService = {
       where: { refundedAt: range, transaction: { status: 'COMPLETED' }, payment: { deletedAt: null, student: { lead: { isNot: null } } } },
       select: { amount: true, payment: { select: { student: { select: { lead: { select: { sourceId: true } } } } } } },
     });
+    // Kanalga bog'langan xarajat (har qanday kategoriya) va bog'lanmagan reklama xarajati
+    const spendRows = await prisma.expense.groupBy({
+      by: ['sourceId'],
+      where: { sourceId: { not: null }, status: 'PAID', spentAt: range },
+      _sum: { amount: true },
+    });
+    const unattributed = await prisma.expense.aggregate({
+      where: { sourceId: null, status: 'PAID', spentAt: range, category: { key: MARKETING_CATEGORY_KEY } },
+      _sum: { amount: true },
+    });
+    const spendBySource = new Map(spendRows.map((row) => [row.sourceId ?? '', row._sum.amount?.toNumber() ?? 0]));
 
     const revenueBySource = new Map<string, number>();
     for (const payment of payments) {
@@ -442,7 +472,9 @@ export const analyticsService = {
       const lostCount = lost.find((row) => row.sourceId === source.id)?._count._all ?? 0;
       const wonLeads = won.filter((lead) => lead.sourceId === source.id);
       const revenue = revenueBySource.get(source.id) ?? 0;
-      if (leads === 0 && wonLeads.length === 0 && revenue === 0) continue;
+      const spend = spendBySource.get(source.id) ?? 0;
+      if (leads === 0 && wonLeads.length === 0 && revenue === 0 && spend === 0) continue;
+      const studentCount = students.filter((student) => student.lead?.sourceId === source.id).length;
       const days = wonLeads
         .filter((lead) => lead.convertedAt !== null)
         .map((lead) => Math.max(lead.convertedAt!.getTime() - lead.createdAt.getTime(), 0) / DAY_MS);
@@ -453,16 +485,23 @@ export const analyticsService = {
         won: wonLeads.length,
         lost: lostCount,
         conversion: percentOf(wonLeads.length, wonLeads.length + lostCount),
-        students: students.filter((student) => student.lead?.sourceId === source.id).length,
+        students: studentCount,
         revenue,
         revenuePerLead: leads > 0 ? Math.round(revenue / leads) : null,
         avgDaysToConvert: days.length > 0 ? round1(days.reduce((sum, value) => sum + value, 0) / days.length) : null,
+        spend,
+        costPerLead: spend > 0 && leads > 0 ? Math.round(spend / leads) : null,
+        costPerStudent: spend > 0 && studentCount > 0 ? Math.round(spend / studentCount) : null,
+        profit: revenue - spend,
+        roi: spend > 0 ? Math.round(((revenue - spend) / spend) * 100) : null,
       });
     }
     rows.sort((a, b) => b.revenue - a.revenue || b.leads - a.leads);
 
     const totalWon = rows.reduce((sum, row) => sum + row.won, 0);
     const totalLost = rows.reduce((sum, row) => sum + row.lost, 0);
+    const totalRevenue = rows.reduce((sum, row) => sum + row.revenue, 0);
+    const totalSpend = rows.reduce((sum, row) => sum + row.spend, 0);
     return {
       from,
       to,
@@ -471,8 +510,12 @@ export const analyticsService = {
         leads: rows.reduce((sum, row) => sum + row.leads, 0),
         won: totalWon,
         students: rows.reduce((sum, row) => sum + row.students, 0),
-        revenue: rows.reduce((sum, row) => sum + row.revenue, 0),
+        revenue: totalRevenue,
         conversion: percentOf(totalWon, totalWon + totalLost),
+        spend: totalSpend,
+        profit: totalRevenue - totalSpend,
+        roi: totalSpend > 0 ? Math.round(((totalRevenue - totalSpend) / totalSpend) * 100) : null,
+        unattributedSpend: unattributed._sum.amount?.toNumber() ?? 0,
       },
     };
   },
@@ -554,6 +597,9 @@ export const analyticsExport = {
         { key: 'students', label: 'O‘quvchilar', type: 'number' },
         { key: 'revenue', label: 'Sof tushum', type: 'money' },
         { key: 'revenuePerLead', label: 'Lead boshiga tushum', type: 'money' },
+        { key: 'spend', label: 'Marketing xarajati', type: 'money' },
+        { key: 'costPerLead', label: 'Lead narxi', type: 'money' },
+        { key: 'roi', label: 'ROI', type: 'percent' },
         { key: 'avgDaysToConvert', label: 'Sotuv tezligi (kun)', type: 'number' },
       ],
       rows: data.rows.map((row) => ({
@@ -565,9 +611,18 @@ export const analyticsExport = {
         students: row.students,
         revenue: row.revenue,
         revenuePerLead: row.revenuePerLead,
+        spend: row.spend,
+        costPerLead: row.costPerLead,
+        roi: row.roi,
         avgDaysToConvert: row.avgDaysToConvert,
       })),
-      totals: { leads: data.totals.leads, won: data.totals.won, students: data.totals.students, revenue: data.totals.revenue },
+      totals: {
+        leads: data.totals.leads,
+        won: data.totals.won,
+        students: data.totals.students,
+        revenue: data.totals.revenue,
+        spend: data.totals.spend,
+      },
     };
   },
 };

@@ -346,7 +346,8 @@ model Source {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leads Lead[]
+  leads             Lead[]
+  marketingExpenses Expense[]
 
   @@map("sources")
 }
@@ -1451,6 +1452,8 @@ model Expense {
   salaryPaymentId    String?       @unique
   status             ExpenseStatus @default(PAID)
   vendor             String?       @db.VarChar(150)
+  /// Reklama xarajati qaysi lead manbasiga (kanalga) tegishli — manba bo‘yicha ROI uchun
+  sourceId           String?
   /// Takroriy xarajatning to‘lov kuni
   dueDate            DateTime?     @db.Date
   approvedById       String?
@@ -1474,11 +1477,13 @@ model Expense {
   rejectedBy       User?             @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
   recurringExpense RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
   documents        Document[]
+  source           Source?           @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
   @@unique([recurringExpenseId, recurringPeriod])
   @@index([status])
   @@index([spentAt])
   @@index([categoryId, spentAt])
+  @@index([sourceId, spentAt])
   @@index([createdAt])
   @@map("expenses")
 }

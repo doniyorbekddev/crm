@@ -113,6 +113,8 @@ export interface MoneyEntry {
   isVoided: boolean;
   voidReason: string | null;
   category: { id: string; key: string; name: string };
+  /** Reklama xarajati bog‘langan lead manbasi */
+  source: { id: string; name: string } | null;
   account: { id: string; name: string } | null;
   responsible: PersonRef | null;
   student: { id: string; firstName: string; lastName: string } | null;

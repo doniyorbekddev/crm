@@ -392,13 +392,16 @@ export default function AnalyticsPage() {
                       <TH className="text-right">O‘quvchilar</TH>
                       <TH className="text-right">Sof tushum</TH>
                       <TH className="text-right">Lead boshiga</TH>
+                      <TH className="text-right">Xarajat</TH>
+                      <TH className="text-right">Lead narxi</TH>
+                      <TH className="text-right">ROI</TH>
                       <TH className="text-right">Sotuv tezligi</TH>
                     </tr>
                   </THead>
                   <TBody>
                     {sourcesQuery.data.rows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-fg-muted">
+                        <td colSpan={10} className="px-4 py-8 text-center text-sm text-fg-muted">
                           Tanlangan davrda lead yo‘q
                         </td>
                       </tr>
@@ -413,6 +416,16 @@ export default function AnalyticsPage() {
                           <TD className="text-right tabular-nums text-fg-muted">{formatNumber(row.students)}</TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(row.revenue)}</TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{moneyOrDash(row.revenuePerLead)}</TD>
+                          <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{row.spend > 0 ? formatMoney(row.spend) : '—'}</TD>
+                          <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{moneyOrDash(row.costPerLead)}</TD>
+                          <TD
+                            className={cn(
+                              'text-right whitespace-nowrap tabular-nums',
+                              row.roi === null ? 'text-fg-muted' : row.roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+                            )}
+                          >
+                            {row.roi === null ? '—' : `${row.roi}%`}
+                          </TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{row.avgDaysToConvert === null ? '—' : `${row.avgDaysToConvert} kun`}</TD>
                         </TR>
                       ))
@@ -420,6 +433,12 @@ export default function AnalyticsPage() {
                   </TBody>
                 </Table>
               </TableContainer>
+            )}
+            {sourcesQuery.data && sourcesQuery.data.totals.unattributedSpend > 0 && (
+              <p className="border-t border-border px-4 py-2.5 text-xs text-fg-muted">
+                Kanalga bog‘lanmagan reklama xarajati: {formatMoney(sourcesQuery.data.totals.unattributedSpend)} — xarajatni kiritishda manbani tanlasangiz, ROI
+                aniqroq bo‘ladi.
+              </p>
             )}
           </Card>
         </div>
