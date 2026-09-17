@@ -1,1235 +1,1771 @@
-SEN — 10+ YILLIK TAJRIBAGA EGA SENIOR FULL-STACK SOFTWARE ARCHITECT, PRODUCT DESIGNER VA DATABASE ARCHITECT sifatida ishlaysan.
-
-Menga o‘quv markaz uchun professional, zamonaviy, tezkor va real biznesda ishlatishga tayyor bo‘lgan **Sales CRM System** yaratib ber.
-
-Bu oddiy demo yoki landing page emas.
-
-BU — o‘quv markazning sotuv bo‘limi har kuni foydalanadigan TO‘LIQ CRM tizimi bo‘lishi kerak.
-
-==================================================
-
-1. TEXNOLOGIYALAR
-   ==================================================
-
-FRONTEND:
-
-* React.js
-* TypeScript
-* Vite
-* Tailwind CSS
-* React Router DOM
-* TanStack Query
-* React Hook Form
-* Zod
-* Axios
-* Zustand yoki Redux Toolkit
-* Recharts
-* Lucide React
-* Toast notifications
-* Responsive design
-
-BACKEND:
-
-* Node.js
-* Express.js
-* TypeScript
-* REST API
-* JWT Authentication
-* bcrypt
-* Zod validation
-* Helmet
-* CORS
-* Rate limiting
-* Centralized error handling
-* Winston/Pino logging
-
-DATABASE:
-
-* PostgreSQL
-* Prisma ORM
-
-ARCHITECTURE:
-
-* Frontend va Backend alohida
-* REST API orqali bog‘lanadi
-* Clean Architecture
-* Modular architecture
-* Production-ready structure
-
-==================================================
-2. CRM ASOSIY MAQSADI
-=====================
-
-CRM quyidagi jarayonni to‘liq boshqarishi kerak:
-
-LEAD → ALOQA → QIZIQISH → SINOV DARSI → MUROJAAT → SHARTNOMA → O‘QUVCHI → TO‘LOV → KURS
-
-Sotuvchi har bir leadning qayerdan kelganini, kim bilan gaplashganini, nima deyilganini, keyingi qachon bog‘lanish kerakligini va sotuv natijasini ko‘ra olishi kerak.
-
-==================================================
-3. USER ROLES
-=============
-
-Quyidagi role tizimini yarat:
-
-SUPER ADMIN
-ADMIN
-SALES MANAGER
-CALL CENTER
-TEACHER
-ACCOUNTANT
-
-Har bir role uchun Permission System bo‘lsin.
-
-Masalan:
-
-Super Admin:
-
-* barcha ma'lumotlarni ko‘rish
-* user yaratish
-* user o‘chirish
-* role berish
-* permission boshqarish
-* CRM sozlamalari
-* barcha hisobotlar
-
-Admin:
-
-* leadlar
-* students
-* courses
-* payments
-* sales
-* reports
-
-Sales Manager:
-
-* lead ko‘rish
-* lead yaratish
-* leadni o‘ziga biriktirish
-* status o‘zgartirish
-* qo‘ng‘iroq yozish
-* follow-up yaratish
-
-Call Center:
-
-* leadlar
-* qo‘ng‘iroqlar
-* follow-up
-
-Teacher:
-
-* o‘z guruhlari
-* o‘quvchilar
-* davomad
-
-Accountant:
-
-* to‘lovlar
-* qarzdorlik
-* moliyaviy hisobotlar
-
-Har bir API endpoint permission orqali himoyalansin.
-
-==================================================
-4. AUTHENTICATION
-=================
-
-Login/Register tizimi:
-
-* Login
-* Register
-* Logout
-* JWT
-* Refresh token
-* Password hashing
-* Forgot password
-* Reset password
-* Change password
-* Protected routes
-* Role-based access
-* Permission-based access
-
-Login sahifasi professional bo‘lsin.
-
-Session xavfsiz boshqarilsin.
-
-==================================================
-5. DASHBOARD
-============
-
-Dashboard juda professional bo‘lsin.
-
-Quyidagilar ko‘rinsin:
-
-* Bugungi leadlar
-* Bugungi yangi mijozlar
-* Bugungi qo‘ng‘iroqlar
-* Bugungi follow-up
-* Bugungi sotuvlar
-* Bugungi tushum
-* Oylik tushum
-* Qarzdorlik
-* Conversion Rate
-* Yangi leadlar
-* Trial darsga yozilganlar
-* Trial darsdan sotuvga o‘tganlar
-
-Charts:
-
-* Kunlik leadlar
-* Haftalik leadlar
-* Oylik leadlar
-* Sales funnel
-* Revenue chart
-* Lead source chart
-* Manager performance
-* Course performance
-
-Dashboard real-time database ma'lumotlari asosida ishlasin.
-
-==================================================
-6. LEADS SYSTEM
-===============
-
-Lead CRUD:
-
-* Create
-* Read
-* Update
-* Delete
-* Search
-* Filter
-* Sort
-* Pagination
-
-Lead fields:
-
-* First name
-* Last name
-* Phone
-* Telegram username
-* Email
-* Age
-* Gender
-* Address
-* Source
-* Course
-* Status
-* Assigned manager
-* Priority
-* Notes
-* Created date
-* Updated date
-* Next follow-up date
-
-Lead Source:
-
-* Instagram
-* Telegram
-* Facebook
-* YouTube
-* Google
-* Website
-* Recommendation
-* Walk-in
-* Phone
-* Advertisement
-* Other
-
-Lead status:
-
-* NEW
-* CONTACTED
-* INTERESTED
-* TRIAL_BOOKED
-* TRIAL_ATTENDED
-* NEGOTIATION
-* WON
-* LOST
-* CALLBACK
-
-Statuslar Kanban ko‘rinishida ham bo‘lsin.
-
-Drag & Drop orqali statusni o‘zgartirish imkoniyati bo‘lsin.
-
-==================================================
-7. LEAD PROFILE
-===============
-
-Har bir lead uchun alohida profile page bo‘lsin.
-
-Profile ichida:
-
-PERSONAL INFORMATION
-CONTACT INFORMATION
-COURSE INTEREST
-SALES INFORMATION
-ACTIVITY HISTORY
-CALL HISTORY
-NOTES
-FOLLOW-UP
-PAYMENTS
-DOCUMENTS
-
-Activity Timeline:
-
-2026-09-11 10:30
-Manager lead yaratdi
-
-2026-09-11 11:00
-Telefon orqali bog‘landi
-
-2026-09-11 11:15
-Trial lesson belgilandi
-
-2026-09-12
-Trial lessonga keldi
-
-2026-09-12
-Studentga aylantirildi
-
-==================================================
-8. CALL CENTER
-==============
-
-Call management system yarat.
-
-Har bir qo‘ng‘iroq:
-
-* Lead
-* Manager
-* Call date
-* Call duration
-* Result
-* Notes
-* Next call
-* Status
-
-Call result:
-
-* Answered
-* No answer
-* Busy
-* Wrong number
-* Interested
-* Not interested
-* Callback
-
-Call history ko‘rinsin.
-
-==================================================
-9. FOLLOW-UP SYSTEM
-===================
-
-CRMning eng muhim qismlaridan biri.
-
-Manager follow-up yaratishi mumkin:
-
-"Ali bilan ertaga soat 15:00 da bog‘lanish"
-
-Follow-up:
-
-* Date
-* Time
-* Lead
-* Manager
-* Reminder
-* Status
-* Notes
-
-Dashboardda:
-
-BUGUNGI FOLLOW-UP
-
-KECHIKKAN FOLLOW-UP
-
-ERTANGI FOLLOW-UP
-
-ko‘rinsin.
-
-Notification system yarat.
-
-==================================================
-10. COURSES
-===========
-
-Course management:
-
-* Course name
-* Category
-* Description
-* Duration
-* Price
-* Discount
-* Final price
-* Teacher
-* Status
-
-Misol:
-
-Frontend
-Backend
-English
-German
-Korean
-Computer Literacy
-President School Preparation
-
-Course price dinamik bo‘lsin.
-
-==================================================
-11. GROUPS
-==========
-
-Group management:
-
-* Group name
-* Course
-* Teacher
-* Room
-* Start date
-* End date
-* Schedule
-* Start time
-* End time
-* Capacity
-* Current students
-* Status
-
-Schedule:
-
-Dushanba / Chorshanba / Juma
-
-yoki
-
-Seshanba / Payshanba / Shanba
-
-==================================================
-12. STUDENTS
-============
-
-Lead WON bo‘lganda:
-
-LEAD → STUDENT
-
-avtomatik conversion qilish imkoniyati bo‘lsin.
-
-Student:
-
-* Full name
-* Phone
-* Parent phone
-* Telegram
-* Course
-* Group
-* Teacher
-* Contract
-* Start date
-* Status
-
-Student status:
-
-* Active
-* Frozen
-* Completed
-* Dropped
-* Graduated
-
-==================================================
-13. PAYMENTS
-============
-
-Payment system:
-
-* Student
-* Amount
-* Payment date
-* Payment method
-* Course
-* Manager
-* Accountant
-* Comment
-
-Payment methods:
-
-* Cash
-* Card
-* Click
-* Payme
-* Uzum
-* Bank
-* Other
-
-Student uchun:
-
-TOTAL PRICE
-PAID
-REMAINING
-
-ko‘rsatilishi kerak.
-
-==================================================
-14. DEBT SYSTEM
-===============
-
-Qarzdorlikni avtomatik hisobla.
-
-Masalan:
-
-Course price: 1,500,000 UZS
-Paid: 900,000 UZS
-Debt: 600,000 UZS
-
-Dashboardda:
-
-TOTAL DEBT
-
-ko‘rinsin.
-
-Debt bo‘yicha filter:
-
-* 0 debt
-* 1–500k
-* 500k–1m
-* 1m+
-
-==================================================
-15. SALES FUNNEL
-================
-
-Professional funnel:
-
-NEW LEAD
-↓
-CONTACTED
-↓
-INTERESTED
-↓
-TRIAL
-↓
-NEGOTIATION
-↓
-WON
-
-Har bir bosqich:
-
-* Count
-* Percentage
-* Conversion rate
-
-ko‘rsatilsin.
-
-==================================================
-16. SALES MANAGER PERFORMANCE
-=============================
-
-Har bir manager uchun:
-
-* Assigned leads
-* Contacted
-* Interested
-* Trial
-* Won
-* Lost
-* Conversion rate
-* Revenue
-* Average deal
-
-Ranking:
-
-1. Manager A
-2. Manager B
-3. Manager C
-
-bo‘lsin.
-
-==================================================
-17. REPORTS
-===========
-
-Reports section:
-
-Daily report
-Weekly report
-Monthly report
-Yearly report
-
-Reports:
-
-* Lead report
-* Sales report
-* Revenue report
-* Debt report
-* Manager report
-* Course report
-* Source report
-* Conversion report
-
-Date range filter bo‘lsin.
-
-Excel/CSV export imkoniyati qo‘sh.
-
-==================================================
-18. SEARCH
-==========
-
-Global search bo‘lsin.
-
-Qidirish:
-
-* Name
-* Phone
-* Telegram
-* Email
-* Student ID
-* Lead ID
-
-bo‘yicha ishlasin.
-
-==================================================
-19. NOTIFICATIONS
-=================
-
-Notification center yarat.
-
-Notificationlar:
-
-* New lead
-* New payment
-* Follow-up reminder
-* Overdue follow-up
-* New student
-* Debt reminder
-* Trial lesson reminder
-
-==================================================
-20. AUDIT LOG
-=============
-
-Admin barcha muhim harakatlarni ko‘ra olsin.
-
-Masalan:
-
-Admin created user
-
-Manager updated lead
-
-Manager changed status
-
-Accountant created payment
-
-Student converted from lead
-
-Har bir action:
-
-* User
-* Action
-* Entity
-* Entity ID
-* Date
-* IP
-
-saqlansin.
-
-==================================================
-21. DATABASE
-============
-
-Prisma schema professional bo‘lsin.
-
-Asosiy modelar:
-
-User
-Role
-Permission
-RolePermission
-Lead
-LeadActivity
-LeadNote
-Call
-FollowUp
-Course
-Group
-Student
-Payment
-Debt
-Notification
-AuditLog
-Source
-
-Barcha relationlar to‘g‘ri qurilsin.
-
-UUID yoki CUID ishlat.
-
-CreatedAt
-UpdatedAt
-
-barcha kerakli modelarda bo‘lsin.
-
-Database normalizationga rioya qil.
-
-Indexes qo‘sh.
-
-Unique constraints qo‘sh.
-
-Foreign keys qo‘sh.
-
-==================================================
-22. API
-=======
-
-REST API yarat.
-
-Masalan:
-
-POST /api/auth/login
-POST /api/auth/register
-POST /api/auth/logout
-GET /api/auth/me
-
-GET /api/leads
-POST /api/leads
-GET /api/leads/:id
-PUT /api/leads/:id
-DELETE /api/leads/:id
-
-GET /api/courses
-POST /api/courses
-PUT /api/courses/:id
-DELETE /api/courses/:id
-
-GET /api/students
-POST /api/students
-
-GET /api/payments
-POST /api/payments
-
-GET /api/dashboard
-
-GET /api/reports
-
-va hokazo.
-
-API response format bir xil bo‘lsin:
-
-{
-"success": true,
-"data": {},
-"message": ""
-}
-
-Error:
-
-{
-"success": false,
-"message": "",
-"errors": []
-}
-
-==================================================
-23. FRONTEND UI/UX
-==================
-
-UI juda professional bo‘lsin.
-
-Desktop-first, lekin tablet va mobile responsive.
-
-Layout:
-
-Sidebar
-Topbar
-Main content
-
-Sidebar:
-
-Dashboard
-Leads
-Calls
-Follow-ups
-Students
-Courses
-Groups
-Payments
-Debts
-Reports
-Users
-Settings
-
-Design:
-
-* Minimal
-* Clean
-* Modern
-* Professional SaaS
-* Fast
-* Easy to use
-
-Dark mode + Light mode.
-
-Sidebar collapse bo‘lsin.
-
-Tables professional bo‘lsin.
-
-Modal va Drawerlardan foydalan.
-
-Form validation bo‘lsin.
-
-Loading skeletonlar bo‘lsin.
-
-Empty states bo‘lsin.
-
-Error states bo‘lsin.
-
-Confirmation dialog bo‘lsin.
-
-Toast notifications bo‘lsin.
-
-==================================================
-24. RESPONSIVE
-==============
-
-Desktop:
-1440px
-1280px
-1024px
-
-Tablet:
-768px
-
-Mobile:
-375px
-390px
-430px
-
-barcha sahifalar responsive bo‘lsin.
-
-==================================================
-25. SECURITY
-============
-
-Security juda muhim.
-
-Quyidagilarni ishlat:
-
-* JWT
-* Refresh token
-* bcrypt
-* Helmet
-* CORS
-* Rate limit
-* Input validation
-* SQL injection protection
-* XSS protection
-* Secure cookies
-* Environment variables
-* Password rules
-* Permission middleware
-
-SECRET KEY kod ichida yozilmasin.
-
-==================================================
-26. ENV
-=======
-
-Backend:
-
-DATABASE_URL=
-JWT_SECRET=
-JWT_REFRESH_SECRET=
-PORT=
-CLIENT_URL=
-
-Frontend:
-
-VITE_API_URL=
-
-.env.example yarat.
-
-==================================================
-27. PROJECT STRUCTURE
-=====================
-
-Root:
-
-crm/
-frontend/
-backend/
-
-Frontend:
-
-src/
-components/
-pages/
-layouts/
-hooks/
-services/
-store/
-types/
-utils/
-lib/
-routes/
-
-Backend:
-
-src/
-controllers/
-routes/
-services/
-middleware/
-validators/
-utils/
-config/
-prisma/
-types/
-
-Kod modular va maintainable bo‘lsin.
-
-==================================================
-28. ERROR HANDLING
-==================
-
-Frontend va backendda professional error handling.
-
-API xatoliklari userga tushunarli ko‘rinishda chiqsin.
-
-Backend loglarda texnik xatolik saqlansin.
-
-==================================================
-29. PERFORMANCE
-===============
-
-Performance yuqori bo‘lsin.
-
-* Pagination
-* Debounced search
-* Lazy loading
-* Code splitting
-* React Query caching
-* Database indexes
-* Optimized queries
-* Avoid unnecessary re-renders
-
-100,000+ lead bo‘lganda ham CRM ishlashi kerak.
-
-==================================================
-30. DATA PERSISTENCE
-====================
-
-ENG MUHIM TALAB:
-
-Ma'lumotlar faqat browser/localStorage'da saqlanmasin.
-
-Barcha asosiy ma'lumotlar PostgreSQL database'da saqlansin.
-
-Masalan:
-
-Manager 1:
-Lead yaratadi.
-
-Logout qiladi.
-
-Manager 2:
-Login qiladi.
-
-Lead database'dan chiqishi kerak.
-
-Server restart bo‘lganda ham ma'lumotlar saqlanib qolishi kerak.
-
-==================================================
-31. SEED DATA
-=============
-
-Development uchun seed yarat.
-
-Admin:
-
-email:
-[admin@example.com](mailto:admin@example.com)
-
-password:
-Admin123!
-
-Demo manager:
-
-[manager@example.com](mailto:manager@example.com)
-
-password:
-Manager123!
-
-Demo courses:
-Frontend
-Backend
-English
-German
-Korean
-
-Demo leads kamida 30 ta bo‘lsin.
-
-==================================================
-32. README
-==========
-
-README.md yarat.
-
-Unda:
-
-1. Project haqida
-2. Requirements
-3. Installation
-4. Environment variables
-5. PostgreSQL setup
-6. Prisma setup
-7. Migration
-8. Seed
-9. Development
-10. Production
-11. Build
-12. Deployment
-
-hammasini tushuntir.
-
-==================================================
-33. INSTALLATION COMMANDS
-=========================
-
-Men projectni clone qilganimdan keyin:
-
-npm install
-
-va kerakli commandlar bilan projectni ishga tushira olishim kerak.
-
-Frontend:
-
-npm run dev
-
-Backend:
-
-npm run dev
-
-Database:
-
-npx prisma migrate dev
-npx prisma db seed
-
-==================================================
-34. IMPORTANT BUSINESS LOGIC
-============================
-
-Lead WON bo‘lganda Student yaratish mumkin.
-
-Studentga Course va Group biriktirish mumkin.
-
-Student uchun payment yaratilganda debt avtomatik qayta hisoblanadi.
-
-Payment o‘chirilsa debt qayta hisoblanadi.
-
-Course narxi o‘zgarsa eski paymentlar buzilmasin.
-
-Lead status o‘zgarganda LeadActivity yozilsin.
-
-Lead managerga biriktirilganda activity yozilsin.
-
-Follow-up deadline o'tib ketsa "Overdue" bo‘lsin.
-
-Dashboard barcha ma'lumotlarni PostgreSQL'dan olsin.
-
-==================================================
-35. CODE QUALITY
-================
-
-Kod:
-
-* TypeScript strict mode
-* Clean code
-* DRY
-* SOLID
-* Reusable components
-* Reusable services
-* Strong typing
-* No unnecessary duplication
-
-hech qayerda:
-
-any
-
-dan keraksiz foydalanma.
-
-Console.log bilan production logging qilma.
-
-==================================================
-36. NO MOCK CRM
-===============
+Sen hozir mavjud o‘quv markaz CRM loyihasini rivojlantirayotgan Senior Full-Stack Architect sifatida ishlaysan.
 
 MUHIM:
 
-Men mockup yoki fake CRM xohlamayman.
+Oldingi bosqichda yaratilgan CRM mavjud.
 
-Faqat frontend UI yaratib qo‘yma.
+Mavjud:
 
-Buttonlar ishlashi kerak.
+- React.js + TypeScript frontend
+- Node.js + Express + TypeScript backend
+- PostgreSQL
+- Prisma
+- JWT authentication
+- Role & Permission
+- Leads
+- Sales
+- Calls
+- Follow-ups
+- Courses
+- Groups
+- Students
+- Payments
+- Debts
+- Reports
+- Dashboard
+- Notifications
+- Audit Logs
+- Dark/Light Mode
 
-Formlar databasega ma'lumot yuborishi kerak.
+ENDI SHU CRM'NI TO‘LIQ PROFESSIONAL O‘QUV MARKAZ BOSHQARUV TIZIMIGA AYLANTIR.
 
-CRUD real ishlashi kerak.
+MAVJUD FUNKSIYALARNI BUZMA.
 
-Login real ishlashi kerak.
+Yangi funksiyalarni mavjud architecture bilan integratsiya qil.
 
-Role permission real ishlashi kerak.
-
-Dashboard real PostgreSQL ma'lumotlari asosida ishlashi kerak.
-
-Payments real databasega yozilishi kerak.
-
-Reports real database'dan olinishi kerak.
-
-==================================================
-37. DEVELOPMENT PROCESS
-=======================
-
-LOYIHANI BIR YO‘LA TARTIBSIZ YOZMA.
-
-Quyidagi bosqichda ishlab chiq:
-
-PHASE 1:
-Architecture + folder structure
-
-PHASE 2:
-PostgreSQL + Prisma schema
-
-PHASE 3:
-Backend authentication
-
-PHASE 4:
-Roles + permissions
-
-PHASE 5:
-Lead system
-
-PHASE 6:
-Calls + follow-ups
-
-PHASE 7:
-Courses + groups
-
-PHASE 8:
-Students
-
-PHASE 9:
-Payments + debts
-
-PHASE 10:
-Dashboard
-
-PHASE 11:
-Reports
-
-PHASE 12:
-Notifications
-
-PHASE 13:
-Audit logs
-
-PHASE 14:
-Frontend UI polish
-
-PHASE 15:
-Security + performance
-
-PHASE 16:
-Testing
-
-PHASE 17:
-Production deployment
+Database migrationlardan foydalan.
 
 ==================================================
-38. CLAUDE'DAN TALAB
+
+1. # YANGI CRM ARXITEKTURASI
+
+CRM quyidagi barcha yo‘nalishlarni qamrab olishi kerak:
+
+1. Sales CRM
+2. Students Management
+3. Attendance
+4. Gamification
+5. Teacher Management
+6. Teacher Salary
+7. Finance
+8. Income
+9. Expenses
+10. Groups
+11. Courses
+12. Parents
+13. Homework
+14. Exams
+15. Student Progress
+16. Notifications
+17. Reports
+18. Analytics
+19. HR
+20. Administration
+21. Role & Permission
+22. Audit Log
+
+CRM boshqaruvchiga o‘quv markazning barcha jarayonlarini bitta joydan ko‘rish imkonini bersin.
+
+================================================== 2. OWNER / DIRECTOR DASHBOARD
+=============================
+
+ENG MUHIM MODULLARDAN BIRI.
+
+OWNER yoki DIRECTOR login qilganda butun markaz holatini ko‘ra olishi kerak.
+
+Dashboard:
+
+BUGUN:
+
+- Yangi leadlar
+- Yangi o‘quvchilar
+- Trial lessonlar
+- Davomat
+- Kelmagan o‘quvchilar
+- To‘lovlar
+- Xarajatlar
+- Sof tushum
+- Qarzdorlik
+- O‘qituvchilar
+- Faol guruhlar
+
+OYLIK:
+
+- Umumiy tushum
+- Umumiy xarajat
+- Sof foyda
+- Yangi leadlar
+- Sotuvlar
+- Conversion Rate
+- Yangi o‘quvchilar
+- Ketgan o‘quvchilar
+- Faol o‘quvchilar
+- Qarzdorlik
+- O‘qituvchilar uchun hisoblangan maosh
+
+================================================== 3. EXECUTIVE KPI
+================
+
+Owner dashboardda KPI cards:
+
+TOTAL STUDENTS
+ACTIVE STUDENTS
+NEW STUDENTS
+DROPPED STUDENTS
+TOTAL GROUPS
+TOTAL TEACHERS
+MONTHLY REVENUE
+MONTHLY EXPENSES
+NET PROFIT
+TOTAL DEBT
+ATTENDANCE RATE
+SALES CONVERSION
+
+Har bir KPI ustiga bosilganda batafsil sahifaga o'tsin.
+
+================================================== 4. ATTENDANCE SYSTEM
 ====================
 
-Har bir PHASE tugagandan keyin:
+To‘liq davomat tizimi yarat.
 
-1. Qaysi fayllar yaratildi
-2. Qaysi kod yozildi
-3. Qanday ishlaydi
-4. Qaysi commandlarni ishga tushirish kerak
-5. Qanday test qilish kerak
-6. Keyingi PHASE nima
+Teacher yoki Admin groupni ochadi.
 
-deb yoz.
+Guruhdagi barcha o‘quvchilar chiqadi.
 
-Agar kod juda uzun bo‘lsa, fayllarni bosqichma-bosqich yarat.
+Bugungi sana avtomatik belgilanadi.
 
-HECH QACHON kodni qisqartirib:
+Har bir student uchun:
 
-// rest of code
-// implement this
-// TODO
+PRESENT
+ABSENT
+LATE
+EXCUSED
+
+statuslari bo‘lsin.
+
+Teacher bir klik bilan davomat qo‘ya olsin.
+
+Masalan:
+
+Aliyev Aziz ✅
+Valiyeva Madina ❌
+Karimov Anvar 🕐
+Rahimov Bekzod 🟡
+
+================================================== 5. ATTENDANCE CALENDAR
+======================
+
+Har bir student profile'da:
+
+Attendance Calendar
+
+bo‘lsin.
+
+Kunlar kalendar ko‘rinishida chiqsin.
+
+Ranglar orqali:
+
+Present
+Absent
+Late
+Excused
+
+ko‘rinsin.
+
+Studentning:
+
+TOTAL LESSONS
+PRESENT
+ABSENT
+LATE
+ATTENDANCE %
+
+hisoblansin.
+
+================================================== 6. ATTENDANCE STATISTICS
+========================
+
+Alohida:
+
+ATTENDANCE
+
+dashboard yarat.
+
+Filter:
+
+- Date range
+- Course
+- Group
+- Teacher
+- Student
+- Status
+
+Statistika:
+
+Bugungi davomat
+Haftalik davomat
+Oylik davomat
+
+Attendance percentage:
+
+95–100%
+90–95%
+80–90%
+70–80%
+0–70%
+
+bo‘yicha ko‘rsatilsin.
+
+================================================== 7. ATTENDANCE RANKING
+=====================
+
+Studentlar davomat bo‘yicha reytingga tushsin.
+
+Masalan:
+
+🏆 DAVOMAT REYTINGI
+
+1. Aziz — 100%
+2. Madina — 98%
+3. Anvar — 96%
+4. Bekzod — 94%
+
+Filter:
+
+- All students
+- Course
+- Group
+- Month
+- Teacher
+
+bo‘lsin.
+
+Eng yuqori attendance bo‘lgan studentlar alohida ko‘rinsin.
+
+================================================== 8. TEACHER ATTENDANCE
+=====================
+
+Teacher ham o‘z guruhlarining davomatini ko‘ra olsin.
+
+Teacher dashboard:
+
+My Groups
+Today's Lessons
+Today's Attendance
+Absent Students
+Attendance Rate
+
+ko‘rinsin.
+
+================================================== 9. AUTOMATIC ABSENCE NOTIFICATION
+=================================
+
+Agar student darsga kelmasa:
+
+Notification yaratilishi kerak.
+
+Admin/Manager ko‘rishi kerak.
+
+Keyinchalik Telegram integration uchun architecture tayyor bo‘lsin.
+
+Masalan:
+
+"Aziz bugungi Frontend darsida qatnashmadi."
+
+================================================== 10. GAMIFICATION SYSTEM
+=======================
+
+O‘quvchilar uchun professional gamification yarat.
+
+Studentlar:
+
+XP
+Points
+Level
+Badges
+Achievements
+Streak
+Leaderboard
+
+tizimiga ega bo‘lsin.
+
+================================================== 11. XP SYSTEM
+=============
+
+XP avtomatik berilsin.
+
+Misol:
+
+Darsga keldi:
++10 XP
+
+Uy vazifasini topshirdi:
++20 XP
+
+Testdan 90%+ oldi:
++30 XP
+
+Imtihondan yaxshi natija:
++50 XP
+
+7 kun ketma-ket qatnashdi:
++100 XP
+
+Do‘st olib keldi:
++100 XP
+
+Course tugatdi:
++500 XP
+
+XP qoidalari admin tomonidan o‘zgartiriladigan bo‘lsin.
+
+================================================== 12. LEVEL SYSTEM
+================
+
+Masalan:
+
+Level 1 — Beginner
+0 XP
+
+Level 2
+100 XP
+
+Level 3
+250 XP
+
+Level 4
+500 XP
+
+Level 5
+1000 XP
+
+Level 10
+5000 XP
+
+Level tizimi dinamik bo‘lsin.
+
+Admin level thresholdlarini o‘zgartira olsin.
+
+================================================== 13. BADGES
+==========
+
+Badges:
+
+🔥 7 Day Streak
+🔥 30 Day Streak
+🏆 Perfect Attendance
+📚 Homework Hero
+💯 Test Master
+🚀 Fast Learner
+⭐️ Top Student
+🎯 Goal Crusher
+👑 Monthly Champion
+
+bo‘lsin.
+
+Admin yangi badge yaratishi mumkin.
+
+================================================== 14. LEADERBOARD
+===============
+
+Student leaderboard:
+
+🏆 TOP STUDENTS
+
+1. Aziz — 2450 XP
+2. Madina — 2200 XP
+3. Anvar — 1950 XP
+4. Bekzod — 1700 XP
+
+Filter:
+
+- Weekly
+- Monthly
+- Yearly
+- All Time
+
+Course va Group bo‘yicha ham filter bo‘lsin.
+
+================================================== 15. STUDENT PROFILE
+===================
+
+Student profile juda professional bo‘lsin.
+
+Header:
+
+Student name
+Avatar
+Level
+XP
+Progress bar
+Rank
+Attendance %
+
+Tabs:
+
+Overview
+Attendance
+Payments
+Courses
+Groups
+Homework
+Exams
+Achievements
+Activity
+
+Overview:
+
+XP
+Level
+Attendance
+Average Score
+Completed Courses
+Current Group
+Debt
+
+================================================== 16. STREAK SYSTEM
+=================
+
+Student ketma-ket darsga kelganda streak oshsin.
+
+Masalan:
+
+🔥 3 days
+🔥 7 days
+🔥 14 days
+🔥 30 days
+🔥 60 days
+
+Attendance asosida avtomatik hisoblanadi.
+
+Bir necha dars sababsiz qoldirilsa streak reset bo‘lishi mumkin.
+
+Business logic aniq va testlangan bo‘lsin.
+
+================================================== 17. TEACHER MANAGEMENT
+======================
+
+Teacherlar uchun alohida modul.
+
+Teacher:
+
+- Full name
+- Phone
+- Email
+- Specialization
+- Experience
+- Salary type
+- Base salary
+- Per student rate
+- Per lesson rate
+- Percentage
+- Bonus
+- Status
+- Hire date
+
+bo‘lsin.
+
+================================================== 18. TEACHER SALARY SYSTEM
+=========================
+
+ENG MUHIM FUNKSIYA.
+
+Teacher maoshi avtomatik hisoblanishi kerak.
+
+Salary types:
+
+1. FIXED
+2. PER_LESSON
+3. PER_STUDENT
+4. PERCENTAGE
+5. MIXED
+
+Admin teacher uchun salary modelni tanlaydi.
+
+================================================== 19. FIXED SALARY
+================
+
+Masalan:
+
+Teacher salary:
+5,000,000 UZS
+
+Oy oxirida:
+
+Base Salary = 5,000,000
+
+bo‘lsin.
+
+================================================== 20. PER LESSON
+==============
+
+Masalan:
+
+1 lesson = 100,000 UZS
+
+Oy davomida:
+
+24 lesson
+
+24 × 100,000 = 2,400,000 UZS
+
+Avtomatik hisoblanadi.
+
+Faqat o‘tkazilgan darslar hisobga olinsin.
+
+================================================== 21. PER STUDENT
+===============
+
+Masalan:
+
+1 student = 50,000 UZS
+
+Teacherda:
+
+30 students
+
+30 × 50,000 = 1,500,000 UZS
+
+================================================== 22. PERCENTAGE
+==============
+
+Masalan:
+
+Teacher = 30%
+
+Group revenue = 10,000,000
+
+Teacher salary = 3,000,000
+
+Avtomatik hisoblanadi.
+
+================================================== 23. MIXED SALARY
+================
+
+Masalan:
+
+Base:
+2,000,000
+
+-
+
+Student:
+30 × 30,000
+
+-
+
+Bonus:
+500,000
+
+TOTAL:
+
+3,400,000
+
+# Formula admin tomonidan sozlanadigan bo‘lsin.
+
+24. # TEACHER SALARY DASHBOARD
+
+Admin:
+
+Teacher Salaries
+
+sahifasini ko‘radi.
+
+Columns:
+
+Teacher
+Lessons
+Students
+Revenue
+Base
+Bonus
+Penalty
+Calculated Salary
+Paid
+Remaining
+Status
+
+Status:
+
+Pending
+Calculated
+Approved
+Partially Paid
+Paid
+
+================================================== 25. SALARY HISTORY
+==================
+
+Har oy salary history saqlansin.
+
+Masalan:
+
+September 2026
+October 2026
+November 2026
+
+Har bir oy uchun:
+
+Calculated
+Paid
+Remaining
+
+ko‘rinsin.
+
+Oldingi oy ma'lumotlari o‘zgarmasin.
+
+================================================== 26. SALARY APPROVAL
+===================
+
+Salary avtomatik hisoblanadi.
+
+Lekin Owner/Admin:
+
+APPROVE
+
+qilishi kerak.
+
+Approve qilingandan keyin salary locked bo‘lishi kerak.
+
+O‘zgartirish uchun maxsus permission kerak.
+
+Audit log yozilsin.
+
+================================================== 27. FINANCE SYSTEM
+==================
+
+To‘liq moliyaviy modul yarat.
+
+Menu:
+
+Finance
+
+ichida:
+
+Dashboard
+Income
+Expenses
+Transactions
+Teacher Salaries
+Student Payments
+Debts
+Reports
+
+================================================== 28. INCOME
+==========
+
+Income qo‘shish:
+
+- Amount
+- Category
+- Date
+- Payment method
+- Description
+- Responsible user
+
+Income categories:
+
+Student Payment
+Registration
+Books
+Uniform
+Other
+
+================================================== 29. EXPENSES
+============
+
+Expense:
+
+- Amount
+- Category
+- Date
+- Payment method
+- Description
+- Responsible user
+- Attachment
+
+Categories:
+
+Teacher Salary
+Rent
+Advertisement
+Utilities
+Internet
+Equipment
+Office
+Tax
+Repair
+Cleaning
+Other
+
+================================================== 30. TRANSACTION SYSTEM
+======================
+
+Har bir moliyaviy harakat transaction sifatida saqlansin.
+
+TYPE:
+
+INCOME
+EXPENSE
+TRANSFER
+REFUND
+
+Transaction history bo‘lsin.
+
+Filter:
+
+Date
+Type
+Category
+User
+Payment method
+
+================================================== 31. FINANCIAL DASHBOARD
+=======================
+
+Dashboard:
+
+TOTAL INCOME
+TOTAL EXPENSE
+NET PROFIT
+TOTAL DEBT
+TEACHER SALARY
+MARKETING COST
+OTHER EXPENSE
+
+Formula:
+
+NET PROFIT =
+TOTAL INCOME - TOTAL EXPENSE
+
+Chart:
+
+Income vs Expense
+
+kunlik / haftalik / oylik.
+
+================================================== 32. CASH FLOW
+=============
+
+Cash flow chart yarat.
+
+Har kuni:
+
+Income
+Expense
+Balance
+
+ko‘rinsin.
+
+================================================== 33. CASH / BANK
+===============
+
+Payment accountlar:
+
+Cash
+Bank
+Card
+Click
+Payme
+Uzum
+
+alohida hisobga olinishi mumkin.
+
+Har bir account balance:
+
+Cash: 4,500,000
+Bank: 12,300,000
+Card: 5,200,000
+
+TOTAL BALANCE:
+
+22,000,000
+
+================================================== 34. BUDGET
+==========
+
+Admin oylik budget belgilashi mumkin.
+
+Masalan:
+
+Marketing:
+5,000,000
+
+Office:
+2,000,000
+
+Equipment:
+3,000,000
+
+Budget vs Actual ko‘rsatilishi kerak.
+
+================================================== 35. PARENT SYSTEM
+=================
+
+Agar student voyaga yetmagan bo‘lsa:
+
+Parent profile yaratish.
+
+Parent:
+
+- Name
+- Phone
+- Telegram
+- Relationship
+
+Student bilan relation.
+
+Kelajakda parent portal qo‘shish uchun architecture tayyor bo‘lsin.
+
+================================================== 36. HOMEWORK SYSTEM
+===================
+
+Teacher homework bera olsin.
+
+Homework:
+
+- Title
+- Description
+- Course
+- Group
+- Teacher
+- Deadline
+- Attachment
+- Points
+
+Student:
+
+Submitted
+Not Submitted
+Late
+
+statusiga ega.
+
+Homework bajarilganda XP berilsin.
+
+================================================== 37. EXAM / TEST SYSTEM
+======================
+
+Teacher/Admin:
+
+Exam yaratishi mumkin.
+
+Exam:
+
+- Title
+- Course
+- Group
+- Date
+- Max score
+
+Student result:
+
+Score
+Percentage
+Grade
+
+saqlansin.
+
+High score uchun XP berilsin.
+
+================================================== 38. STUDENT PROGRESS
+====================
+
+Student progress:
+
+Attendance
+Homework
+Exam
+XP
+Teacher feedback
+
+asosida ko‘rinsin.
+
+Progress chart bo‘lsin.
+
+================================================== 39. TEACHER PERFORMANCE
+=======================
+
+Owner teacher performance ko‘ra olsin.
+
+Teacher:
+
+- Number of students
+- Attendance rate
+- Average student score
+- Homework completion
+- Student retention
+- Revenue generated
+- Lessons conducted
+- Salary
+- Student feedback
+
+ko‘rsatilsin.
+
+================================================== 40. STUDENT RETENTION
+=====================
+
+Muhim analytics.
+
+Ko‘rsat:
+
+New students
+Active students
+Dropped students
+Frozen students
+Graduated students
+
+Monthly retention rate.
+
+Dropout analysis:
+
+Qaysi course'dan ko‘p student ketmoqda?
+
+Qaysi groupda dropout yuqori?
+
+Qaysi teacherda retention yuqori?
+
+================================================== 41. COURSE ANALYTICS
+====================
+
+Har bir course:
+
+Students
+Revenue
+Expenses
+Profit
+Attendance
+Dropout
+Teacher
+Groups
+
+ko‘rinsin.
+
+Masalan:
+
+Frontend
+
+Students: 70
+Revenue: 42,000,000
+Attendance: 91%
+Dropout: 5%
+Profit: ...
+
+================================================== 42. GROUP ANALYTICS
+===================
+
+Har bir group:
+
+Students
+Capacity
+Attendance
+Revenue
+Teacher
+Debt
+Average score
+
+ko‘rinsin.
+
+Capacity:
+
+15 / 20
+
+ko‘rinishida.
+
+================================================== 43. SALES + EDUCATION INTEGRATION
+=================================
+
+Sales CRM va Education CRM bir-biriga bog‘langan bo‘lsin.
+
+Flow:
+
+Lead
+↓
+Trial
+↓
+Won
+↓
+Student
+↓
+Course
+↓
+Group
+↓
+Attendance
+↓
+Payment
+↓
+Homework
+↓
+Exam
+↓
+XP
+↓
+Achievement
+
+Barcha ma'lumotlar bir-biri bilan bog‘liq bo‘lsin.
+
+================================================== 44. GLOBAL SEARCH
+=================
+
+Bitta global search orqali:
+
+Lead
+Student
+Teacher
+Group
+Course
+Payment
+Transaction
+
+qidirish mumkin bo‘lsin.
+
+================================================== 45. ADVANCED FILTER
+===================
+
+Barcha tablelarda:
+
+Search
+Filter
+Sort
+Pagination
+Column visibility
+Export
+
+bo‘lsin.
+
+================================================== 46. EXPORT
+==========
+
+CSV / Excel export:
+
+Students
+Leads
+Attendance
+Payments
+Expenses
+Income
+Teacher Salary
+Reports
+
+uchun ishlasin.
+
+================================================== 47. REPORT CENTER
+=================
+
+Professional Report Center yarat.
+
+Reports:
+
+Sales Report
+Student Report
+Attendance Report
+Teacher Report
+Salary Report
+Income Report
+Expense Report
+Profit Report
+Debt Report
+Course Report
+Group Report
+Retention Report
+Gamification Report
+
+Date range bilan ishlasin.
+
+================================================== 48. OWNER PERMISSION
+====================
+
+OWNER barcha ma'lumotlarni ko‘ra oladi.
+
+Owner:
+
+- Sales
+- Students
+- Teachers
+- Attendance
+- Finance
+- Salary
+- Expenses
+- Income
+- Reports
+- Analytics
+- Settings
+
+hammasiga accessga ega.
+
+Owner uchun maxsus Executive Dashboard bo‘lsin.
+
+================================================== 49. ROLE DASHBOARD
+==================
+
+Har bir role uchun alohida dashboard:
+
+OWNER:
+Full analytics
+
+ADMIN:
+Operations
+
+SALES:
+Sales KPI
+
+TEACHER:
+Groups + Attendance + Homework
+
+ACCOUNTANT:
+Finance + Payments + Salary
+
+CALL CENTER:
+Calls + Leads + Follow-ups
+
+Dashboarddagi ma'lumotlar permissionga qarab chiqsin.
+
+================================================== 50. SETTINGS
+============
+
+Settings:
+
+Academy information
+Logo
+Phone
+Address
+Working hours
+Currency
+Academic year
+Attendance rules
+XP rules
+Level rules
+Salary rules
+Payment methods
+Expense categories
+Income categories
+Notification settings
+
+================================================== 51. AUDIT LOG
+=============
+
+Quyidagi barcha harakatlar log qilinsin:
+
+Attendance changed
+Payment created
+Payment deleted
+Salary calculated
+Salary approved
+Expense created
+Income created
+Student created
+Student deleted
+Teacher created
+Role changed
+Permission changed
+XP added
+Badge awarded
+
+================================================== 52. SECURITY
+============
+
+Moliyaviy va o‘quvchi ma'lumotlari xavfsiz bo‘lishi kerak.
+
+Role + Permission middleware.
+
+Sensitive finance APIlar faqat ruxsat berilgan userlarga.
+
+Salary faqat:
+
+OWNER
+ADMIN
+ACCOUNTANT
+
+ko‘ra olsin.
+
+Expense create/edit permission bilan himoyalansin.
+
+# Audit logni oddiy user o‘chira olmasin.
+
+53. # DATABASE MODELS
+
+Mavjud database schema'ni tekshir.
+
+Kerak bo‘lsa quyidagi modellarni qo‘sh:
+
+Attendance
+AttendanceSession
+GamificationProfile
+XPTransaction
+Level
+Badge
+StudentBadge
+Streak
+Teacher
+TeacherSalary
+TeacherSalaryRule
+TeacherSalaryPayment
+Income
+Expense
+Transaction
+FinancialAccount
+Budget
+BudgetCategory
+Parent
+Homework
+HomeworkSubmission
+Exam
+ExamResult
+StudentProgress
+Notification
+
+Relationlarni professional tarzda yarat.
+
+Indexes va constraints qo‘sh.
+
+================================================== 54. DATABASE INTEGRITY
+======================
+
+Finance uchun:
+
+Money calculations DECIMAL / NUMERIC orqali bajarilsin.
+
+Float ishlatma.
+
+Payment summalarida rounding error bo‘lmasin.
+
+Teacher salary calculation transaction-safe bo‘lsin.
+
+Attendance duplicate bo‘lmasin.
+
+Bir student uchun bir lesson/date combination duplicate bo‘lmasin.
+
+================================================== 55. BACKEND SERVICES
+====================
+
+Business logic controller ichiga tiqib yuborilmasin.
+
+Alohida services:
+
+AttendanceService
+GamificationService
+SalaryService
+FinanceService
+StudentService
+PaymentService
+ReportService
+NotificationService
+
+yarat.
+
+================================================== 56. AUTOMATIC BUSINESS LOGIC
+============================
+
+Quyidagilar avtomatik ishlasin:
+
+Student attendance qilindi
+→ Attendance statistics update
+
+Attendance present
+→ XP beriladi
+
+Attendance consecutive
+→ Streak update
+
+Streak milestone
+→ Badge beriladi
+
+Homework submitted
+→ XP beriladi
+
+Exam result
+→ XP beriladi
+
+Student payment
+→ Debt update
+
+Lesson completed
+→ Teacher lesson count update
+
+Month end salary
+→ Teacher salary calculation
+
+Income/Expense
+→ Financial dashboard update
+
+================================================== 57. FINANCE SAFETY
+==================
+
+Hech qachon payment yoki expense shunchaki DELETE qilib yo‘q qilinmasin.
+
+Financial records uchun:
+
+VOID
+REFUND
+REVERSAL
+
+mexanizmini qo‘sh.
+
+Audit log saqlansin.
+
+================================================== 58. UI/UX
+=========
+
+CRM juda professional SaaS ko‘rinishda bo‘lsin.
+
+Dashboardlar:
+
+Cards
+Charts
+Tables
+Progress bars
+Badges
+Timeline
+Calendar
+Kanban
+
+bilan ishlasin.
+
+UX:
+
+3-click rule:
+Muhim actionlar 3 ta clickdan ko‘p bo‘lmasin.
+
+Teacher davomatni juda tez qo‘yishi kerak.
+
+Accountant paymentni tez kiritishi kerak.
+
+Sales manager leadni tez update qilishi kerak.
+
+Owner kerakli statistikani 5 soniya ichida topa olishi kerak.
+
+================================================== 59. MOBILE
+==========
+
+Teacher telefon orqali ham davomat qo‘ya olishi kerak.
+
+Mobile:
+
+- Attendance
+- Student list
+- Homework
+- Notifications
+
+juda qulay ishlashi kerak.
+
+================================================== 60. DARK MODE
+=============
+
+Dark/Light mode barcha yangi modullarda ham ishlasin.
+
+================================================== 61. LOADING / ERROR / EMPTY STATE
+=================================
+
+Har bir sahifada:
+
+Loading
+Skeleton
+Error
+Empty state
+
+bo‘lsin.
+
+================================================== 62. REAL DATA
+=============
+
+MOCK DATA bilan cheklanma.
+
+Barcha yangi modullar:
+
+React
+↓
+API
+↓
+Node.js
+↓
+Prisma
+↓
+PostgreSQL
+
+orqali ishlasin.
+
+LocalStorage faqat UI preferences uchun ishlatilishi mumkin.
+
+Asosiy business data PostgreSQL'da saqlansin.
+
+================================================== 63. TESTING
+===========
+
+Muhim business logic uchun test yoz.
+
+Kamida:
+
+Attendance calculation
+XP calculation
+Streak calculation
+Debt calculation
+Teacher salary calculation
+Income/expense calculation
+Profit calculation
+Permission checking
+
+test qilinsin.
+
+================================================== 64. SEED DATA
+=============
+
+Development uchun realistic seed data yarat:
+
+10 teachers
+100 students
+10 groups
+5 courses
+100+ attendance records
+100+ payments
+50+ expenses
+50+ income
+XP transactions
+Badges
+Homework
+Exam results
+
+Shunda dashboard real ko‘rinishda ishlasin.
+
+================================================== 65. PERFORMANCE
+===============
+
+Kamida:
+
+1000 teachers
+100,000 students
+1,000,000 attendance records
+1,000,000 transactions
+
+bilan ishlashni hisobga ol.
+
+Pagination
+Indexes
+Aggregations
+Database query optimization
+
+ishlat.
+
+N+1 query muammosiga yo‘l qo‘yma.
+
+================================================== 66. OWNER EXECUTIVE REPORT
+==========================
+
+Owner uchun bitta juda muhim sahifa yarat:
+
+"BUSINESS OVERVIEW"
+
+Unda:
+
+REVENUE
+EXPENSE
+PROFIT
+STUDENTS
+NEW STUDENTS
+DROPOUT
+ATTENDANCE
+DEBT
+SALES
+CONVERSION
+TEACHER COST
+MARKETING COST
+
+hammasi bitta joyda.
+
+Date range:
+
+Today
+This Week
+This Month
+Last Month
+This Year
+Custom
+
+bo‘lsin.
+
+================================================== 67. PROFITABILITY
+=================
+
+Course profitability:
+
+Revenue
+Teacher salary
+Marketing
+Other expenses
+
+asosida:
+
+Gross Profit
+Net Profit
+Profit Margin
+
+hisoblansin.
+
+Course bo‘yicha ham.
+
+Umumiy markaz bo‘yicha ham.
+
+================================================== 68. ALERT SYSTEM
+================
+
+Owner/Admin uchun alerts:
+
+🔴 High debt
+🔴 Low attendance
+🔴 High dropout
+🔴 Overdue follow-ups
+🔴 Unpaid teacher salary
+🔴 Expense exceeds budget
+🟡 Low group capacity
+🟢 Sales target achieved
+
+bo‘lsin.
+
+================================================== 69. SALES TARGET
+================
+
+Manager uchun target:
+
+Monthly Lead Target
+Monthly Sales Target
+Revenue Target
+
+belgilash mumkin bo‘lsin.
+
+Progress:
+
+65 / 100 sales
+
+ko‘rinishida.
+
+================================================== 70. EMPLOYEE PERFORMANCE
+========================
+
+Sales manager:
+
+Leads
+Calls
+Follow-ups
+Won
+Lost
+Revenue
+Conversion
+
+Teacher:
+
+Students
+Attendance
+Homework
+Average score
+Retention
+Revenue
+Salary
+
+bo‘yicha baholansin.
+
+================================================== 71. FUTURE READY ARCHITECTURE
+=============================
+
+Kelajakda:
+
+Telegram Bot
+WhatsApp
+SMS
+Online Payment
+Parent Portal
+Student Mobile App
+Teacher Mobile App
+AI Analytics
+
+qo‘shish mumkin bo‘ladigan architecture yarat.
+
+Hozir integratsiya qilish shart emas.
+
+Lekin database va API architecture bunga tayyor bo‘lsin.
+
+================================================== 72. MUHIM TALAB
+===============
+
+MAVJUD CRM'NI QAYTADAN YOZMA.
+
+Avval mavjud projectni analiz qil:
+
+- package.json
+- frontend structure
+- backend structure
+- Prisma schema
+- existing API
+- authentication
+- roles
+- permissions
+- components
+- routes
+
+Keyin yangi modullarni mavjud architecture bilan integratsiya qil.
+
+Mavjud funksiyalarni buzma.
+
+================================================== 73. DEVELOPMENT STRATEGY
+========================
+
+Quyidagi tartibda ishlagin:
+
+PHASE 1
+Existing project audit
+
+PHASE 2
+Database schema update
+
+PHASE 3
+Attendance
+
+PHASE 4
+Gamification
+
+PHASE 5
+Teacher management
+
+PHASE 6
+Teacher salary
+
+PHASE 7
+Finance
+
+PHASE 8
+Income/Expense
+
+PHASE 9
+Owner dashboard
+
+PHASE 10
+Reports & analytics
+
+PHASE 11
+Homework & exams
+
+PHASE 12
+Student progress
+
+PHASE 13
+Alerts
+
+PHASE 14
+Performance optimization
+
+PHASE 15
+Security audit
+
+PHASE 16
+Testing
+
+PHASE 17
+Final UI/UX polish
+
+================================================== 74. HAR BIR PHASE UCHUN
+=======================
+
+Har bir PHASE'da:
+
+1. Mavjud kodni analiz qil
+2. O‘zgartiriladigan fayllarni ko‘rsat
+3. Yangi fayllarni ko‘rsat
+4. Database migration yoz
+5. Backend code yoz
+6. API yarat
+7. Frontend UI yarat
+8. Integration qil
+9. Test yoz
+10. Test qilish commandlarini ber
+
+TO‘LIQ KOD YOZ.
+
+Hech qachon:
+
+TODO
+IMPLEMENT HERE
+REST OF CODE
+EXAMPLE ONLY
 
 deb tashlab ketma.
 
-Kerakli faylning TO‘LIQ kodini yoz.
+================================================== 75. FINAL QUALITY CHECK
+=======================
 
-Agar biror qaror noaniq bo‘lsa, production-ready variantni tanla va nima uchun tanlaganingni qisqa tushuntir.
+Loyiha tugagach quyidagilarni tekshir:
+[ ] Login ishlaydi
+[ ] Roles ishlaydi
+[ ] Permissions ishlaydi
+[ ] Leads ishlaydi
+[ ] Sales ishlaydi
+[ ] Students ishlaydi
+[ ] Groups ishlaydi
+[ ] Attendance ishlaydi
+[ ] Attendance statistics ishlaydi
+[ ] Attendance ranking ishlaydi
+[ ] Gamification ishlaydi
+[ ] XP ishlaydi
+[ ] Levels ishlaydi
+[ ] Badges ishlaydi
+[ ] Streak ishlaydi
+[ ] Leaderboard ishlaydi
+[ ] Teachers ishlaydi
+[ ] Salary calculation ishlaydi
+[ ] Salary approval ishlaydi
+[ ] Payments ishlaydi
+[ ] Debts ishlaydi
+[ ] Income ishlaydi
+[ ] Expenses ishlaydi
+[ ] Transactions ishlaydi
+[ ] Profit calculation ishlaydi
+[ ] Reports ishlaydi
+[ ] Export ishlaydi
+[ ] Notifications ishlaydi
+[ ] Owner dashboard ishlaydi
+[ ] Audit logs ishlaydi
+[ ] Responsive ishlaydi
+[ ] Dark mode ishlaydi
+[ ] Security ishlaydi
+[ ] Database persistence ishlaydi
+[ ] API error handling ishlaydi
+[ ] Production build ishlaydi
 
 ==================================================
-39. FINAL RESULT
-================
+FINAL GOAL
+==========
 
-Oxirida men quyidagi tizimga ega bo‘lishim kerak:
+Maqsad oddiy CRM emas.
 
-Professional Sales CRM
-+
-PostgreSQL
-+
-Node.js Backend
-+
-React.js Frontend
-+
-Authentication
-+
-Role & Permission
-+
-Lead Management
-+
-Call Center
-+
-Follow-up
-+
-Sales Funnel
-+
-Courses
-+
-Groups
-+
-Students
-+
-Payments
-+
-Debt Management
-+
-Reports
-+
-Dashboard
-+
-Notifications
-+
-Audit Logs
-+
-Dark/Light Mode
-+
-Responsive UI
-+ 
-BOSHLASHDAN OLDIN:
+Menga:
 
-Avval menga:
+SALES CRM
 
-1. Architecture
-2. Database ERD tushuntirishi
-3. Folder structure
-4. Main modules
-5. API structure
-6. Development phases
+- STUDENT MANAGEMENT SYSTEM
+- ATTENDANCE SYSTEM
+- GAMIFICATION PLATFORM
+- TEACHER MANAGEMENT
+- TEACHER PAYROLL
+- FINANCIAL MANAGEMENT
+- ACCOUNTING-LIKE INCOME/EXPENSE
+- EDUCATION MANAGEMENT
+- ANALYTICS
+- OWNER EXECUTIVE DASHBOARD
+
+birlashtirilgan professional O‘QUV MARKAZ BOSHQARUV TIZIMI kerak.
+
+Tizim real o‘quv markazda har kuni ishlatilishi mumkin bo‘lgan darajada professional bo‘lsin.
+
+Avval EXISTING PROJECT AUDIT qil.
+
+Keyin menga:
+
+1. Hozirgi architecture tahlili
+2. Nimalar mavjud
+3. Nimalar yetishmayapti
+4. Qaysi database table/model qo‘shiladi
+5. Qaysi API qo‘shiladi
+6. Qaysi frontend pages qo‘shiladi
+7. Development plan
 
 ni ko‘rsat.
 
-Shundan keyin PHASE 1 dan boshlagin.
+KEYIN PHASE 1 DAN BOSHLASH.
