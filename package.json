@@ -25,6 +25,7 @@
     "db:migrate": "npm run db:migrate -w @crm/backend",
     "db:deploy": "npm run db:deploy -w @crm/backend",
     "db:seed": "npm run db:seed -w @crm/backend",
+    "db:clear-demo": "npm run db:clear-demo -w @crm/backend",
     "db:reset": "npm run db:reset -w @crm/backend",
     "db:studio": "npm run db:studio -w @crm/backend",
     "test:unit": "npm run test:unit -w @crm/backend",
