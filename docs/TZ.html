@@ -365,6 +365,7 @@
       <li><a href="#s10"><span class="num">10</span>Tayyor va rejadagi ishlar</a></li>
       <li><a href="#s11"><span class="num">11</span>Ishga tushirish va hisoblar</a></li>
       <li><a href="#s12"><span class="num">12</span>Qoidalar: xavfsizlik va ma’lumot</a></li>
+      <li><a href="#s13"><span class="num">13</span>Oxirgi qo‘shilgan imkoniyatlar</a></li>
     </ol>
   </nav>
 
@@ -922,12 +923,16 @@
           <tr><td>Hisobotlar</td><td><span class="tag done">TAYYOR</span></td><td>8 turdagi hisobot + Excel/CSV</td></tr>
           <tr><td>Dashboard</td><td><span class="tag done">TAYYOR</span></td><td>KPI, grafik, voronka, managerlar reytingi</td></tr>
           <tr><td>Bildirishnoma va audit</td><td><span class="tag done">TAYYOR</span></td><td>Qo‘ng‘iroqcha, jurnal, filtrlar</td></tr>
-          <tr><td>O‘qituvchi profili</td><td><span class="tag plan">REJADA</span></td><td>Mutaxassislik, tajriba, samaradorlik</td></tr>
-          <tr><td>Maosh</td><td><span class="tag plan">REJADA</span></td><td>5 model, avtomatik hisob, tasdiqlash</td></tr>
-          <tr><td>Moliya (tushum/xarajat UI)</td><td><span class="tag plan">REJADA</span></td><td>Kassa, budjet, sof foyda paneli</td></tr>
-          <tr><td>Direktor paneli</td><td><span class="tag plan">REJADA</span></td><td>Business Overview, ogohlantirishlar</td></tr>
-          <tr><td>Uy vazifa va imtihon</td><td><span class="tag plan">REJADA</span></td><td>Topshirish, baholash, progress</td></tr>
-          <tr><td>Ota-onalar</td><td><span class="tag plan">REJADA</span></td><td>Aloqa, kelajakda ota-ona kabineti</td></tr>
+          <tr><td>O‘qituvchi profili</td><td><span class="tag done">TAYYOR</span></td><td>Mutaxassislik, HR holati, hujjatlar, samaradorlik</td></tr>
+          <tr><td>Maosh</td><td><span class="tag done">TAYYOR</span></td><td>5 model, avtomatik hisob, bonus/jarima, avans, tasdiqlash</td></tr>
+          <tr><td>Moliya (tushum/xarajat UI)</td><td><span class="tag done">TAYYOR</span></td><td>Kassa, budjet, foyda-zarar, pul oqimi, oyni yopish</td></tr>
+          <tr><td>Direktor paneli</td><td><span class="tag done">TAYYOR</span></td><td>KPI, prognoz, sog‘lomlik bahosi, ogohlantirishlar</td></tr>
+          <tr><td>Uy vazifa va imtihon</td><td><span class="tag done">TAYYOR</span></td><td>Topshirish, baholash, progress, XP</td></tr>
+          <tr><td>Ota-onalar</td><td><span class="tag done">TAYYOR</span></td><td>Aloqa, bir nechta farzand (kabinet — keyingi bosqich)</td></tr>
+          <tr><td>To‘lov jadvali</td><td><span class="tag done">TAYYOR</span></td><td>Oylik qismlar, muddati o‘tganlar, avtomatik ogohlantirish</td></tr>
+          <tr><td>Guruh tarixi</td><td><span class="tag done">TAYYOR</span></td><td>Sabab bilan o‘tkazish, kim/qachon/qayerdan</td></tr>
+          <tr><td>Analitika va ROI</td><td><span class="tag done">TAYYOR</span></td><td>Unit economics, kohortlar, kanal bo‘yicha ROI</td></tr>
+          <tr><td>Serverga chiqarish</td><td><span class="tag plan">REJADA</span></td><td>Server va domen olingach: HTTPS, zaxira, kuzatuv</td></tr>
         </tbody>
       </table>
     </div>
@@ -995,13 +1000,36 @@
 
     <h3>Sifat</h3>
     <p>
-      Tizimda <strong>252 ta avtomatik test</strong> ishlaydi: qarz hisoblash, davomat, XP, ruxsatlar va boshqa
+      Tizimda <strong>471 ta avtomatik test</strong> ishlaydi (419 server, 38 interfeys va 14 ta brauzerda to‘liq ssenariy): qarz hisoblash, davomat, XP, ruxsatlar va boshqa
       muhim qoidalar har o‘zgarishdan keyin qayta tekshiriladi. Ya’ni bir joyni tuzatganda boshqa joy buzilmaydi.
     </p>
   </section>
 
+  <!-- 13 -->
+  <section id="s13">
+    <h2><span class="num">13</span>Oxirgi qo‘shilgan imkoniyatlar</h2>
+    <p>12-sentabrdagi birinchi versiyadan keyin tizimga quyidagilar qo‘shildi.</p>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>Imkoniyat</th><th>Nima beradi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Takroriy to‘lovdan himoya</td><td>Ikki marta bosish yoki internet uzilishi ikkinchi to‘lov yaratmaydi. Xuddi shu summa shu kuni qayta kiritilsa, tizim ogohlantiradi.</td></tr>
+          <tr><td>To‘lov jadvali</td><td>Shartnoma oylik qismlarga bo‘linadi. Qarzdorlikda «muddati o‘tgan» va «7 kun ichida» filtrlari bor; kechikkanlar haqida avtomatik ogohlantirish keladi.</td></tr>
+          <tr><td>Guruh almashtirish tarixi</td><td>O‘quvchi boshqa guruhga sabab bilan o‘tkaziladi. Kim, qachon, qaysi guruhdan — hammasi profilda saqlanadi.</td></tr>
+          <tr><td>Marketing ROI</td><td>Reklama xarajati kanalga bog‘lanadi: har bir kanal bo‘yicha lead narxi, o‘quvchi narxi va qaytim ko‘rinadi.</td></tr>
+          <tr><td>Tezlik</td><td>Og‘ir moliyaviy hisobotlar tezlashdi: foyda-zarar 276 ms dan 62 ms ga, pul oqimi 282 ms dan 67 ms ga.</td></tr>
+          <tr><td>Xavfsizlik</td><td>8 marta noto‘g‘ri parol kiritilsa, hisob 15 daqiqaga bloklanadi. Maosh ma’lumoti ruxsatsiz xodimga umuman yuborilmaydi.</td></tr>
+          <tr><td>Pul formati</td><td>Summalar hamma joyda «7 200 000 so‘m» ko‘rinishida chiqadi.</td></tr>
+          <tr><td>Toza boshlash</td><td>Demo ma’lumotlarni bitta buyruq bilan tozalash mumkin: xodimlar, kurslar va guruhlar qoladi.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <footer>
-    Texnik topshiriq · O‘quv markaz boshqaruv tizimi · Versiya 1.0 (12.09.2026).
+    Texnik topshiriq · O‘quv markaz boshqaruv tizimi · Versiya 1.1 (18.09.2026).
     Hujjat tizim rivojlangani sayin yangilanadi.
   </footer>
 
