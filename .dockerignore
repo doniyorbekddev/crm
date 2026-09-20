@@ -8,3 +8,8 @@
 .git
 docs
 promt.md
+# Serverdagi zaxiralar va deploy holati build kontekstiga tushmasin
+backups
+.deploy
+e2e/.report
+e2e/.results
