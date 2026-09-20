@@ -16,6 +16,16 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+# Skript git reset paytida o'zi almashishi mumkin (bash faylni bo'lak-bo'lak o'qiydi),
+# shuning uchun vaqtinchalik nusxadan ishlaymiz.
+if [ -z "${DEPLOY_SELF_COPY:-}" ]; then
+  _copy="$(mktemp -t crm-deploy.XXXXXX)"
+  cat "$0" > "$_copy"
+  DEPLOY_SELF_COPY=1 APP_DIR="$APP_DIR" exec bash "$_copy" "$@"
+fi
+trap 'rm -f -- "$0"' EXIT
+
 cd "$APP_DIR"
 
 ENV_FILE="${ENV_FILE:-.env.production}"

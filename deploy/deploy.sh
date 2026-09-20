@@ -19,6 +19,16 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+# Skript git reset paytida o'zi almashishi mumkin (bash faylni bo'lak-bo'lak o'qiydi),
+# shuning uchun vaqtinchalik nusxadan ishlaymiz.
+if [ -z "${DEPLOY_SELF_COPY:-}" ]; then
+  _copy="$(mktemp -t crm-deploy.XXXXXX)"
+  cat "$0" > "$_copy"
+  DEPLOY_SELF_COPY=1 APP_DIR="$APP_DIR" exec bash "$_copy" "$@"
+fi
+trap 'rm -f -- "$0"' EXIT
+
 cd "$APP_DIR"
 
 ENV_FILE="${ENV_FILE:-.env.production}"
@@ -38,9 +48,11 @@ die() { printf '\n\033[31m[%s] XATO: %s\033[0m\n' "$(date '+%F %T')" "$1" >&2; e
 [ -f "$ENV_FILE" ] || die "$ENV_FILE topilmadi. docs/CI-CD.md, 2-bo'limga qarang."
 [ -f "$COMPOSE_FILE" ] || die "$COMPOSE_FILE topilmadi."
 
-# Bir vaqtda ikki deploy ketmasligi uchun qulf
-exec 9>"$STATE_DIR/deploy.lock"
-flock -n 9 || die "Boshqa deploy ketmoqda — keyinroq urinib ko'ring."
+# Bir vaqtda ikki deploy ketmasligi uchun qulf (Linux serverda flock mavjud)
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$STATE_DIR/deploy.lock"
+  flock -n 9 || die "Boshqa deploy ketmoqda — keyinroq urinib ko'ring."
+fi
 
 dc() { docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"; }
 
