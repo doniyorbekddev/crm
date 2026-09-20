@@ -338,6 +338,10 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 Tartib avtomatik: PostgreSQL → migratsiyalar → backend → frontend (Nginx).
 Zaxira nusxa: `./scripts/backup-db.sh`, tiklash: `./scripts/restore-db.sh <fayl>`.
 
+**Avtomatik deploy (CI/CD):** [docs/CI-CD.md](docs/CI-CD.md) — `main` ga push → CI → GitHub Actions
+SSH orqali serverda `deploy/deploy.sh`: build, zaxira, `migrate deploy`, konteynerlarni almashtirish,
+sog‘liq tekshiruvi va xato bo‘lsa avtomatik rollback.
+
 **Birinchi marta serverga qo‘yish:** [docs/HOSTING-VA-DOMEN.md](docs/HOSTING-VA-DOMEN.md) — VPS sozlash,
 kodni ko‘chirish, `.env.production`, birinchi admin (`npm run db:bootstrap`), domenni DNS orqali bog‘lash va HTTPS.
 
@@ -352,7 +356,8 @@ zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va
 crm/
 ├── backend/     Express API (src/config, controllers, routes, services, middleware, validators, utils, types) + Dockerfile
 ├── frontend/    React SPA (src/components, pages, layouts, hooks, services, store, types, utils, lib, routes) + Dockerfile, nginx/
-├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, TZ.html/TZ.pdf
+├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, CI-CD.md, TZ.html/TZ.pdf
+├── deploy/      setup-server.sh, deploy.sh, rollback.sh, nginx/
 ├── scripts/     backup-db.sh, restore-db.sh
 ├── .github/     CI (typecheck, lint, test, build)
 ├── docker-compose.yml        development uchun PostgreSQL

@@ -1,0 +1,112 @@
+name: Deploy (production)
+
+# CI (typecheck, lint, test, build, E2E) `main` da muvaffaqiyatli tugagach ishga tushadi —
+# ya'ni serverga faqat testlardan o'tgan kod chiqadi. Qo'lda ham ishga tushirish mumkin
+# (masalan aniq commitni qayta deploy qilish uchun).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Deploy qilinadigan commit (bo‘sh bo‘lsa — main dagi oxirgisi)'
+        required: false
+        type: string
+
+# Bir vaqtda faqat bitta deploy; navbatdagisi bekor qilinmaydi
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Ahost VPS ga deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # workflow_run holatida faqat CI muvaffaqiyatli bo'lsa
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Commitni aniqlash
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.sha }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEFAULT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            SHA="${INPUT_SHA:-$DEFAULT_SHA}"
+          else
+            SHA="$RUN_SHA"
+          fi
+          # Faqat commit SHA ko'rinishi (buyruqqa begona matn tushmasligi uchun)
+          if ! printf '%s' "$SHA" | grep -Eq '^[0-9a-f]{7,40}$'; then
+            echo "Commit SHA noto‘g‘ri: $SHA" >&2
+            exit 1
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploy qilinadi: $SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: SSH kalitini sozlash
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_SSH_KNOWN_HOSTS: ${{ secrets.SERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVER_SSH_KEY" || { echo "SERVER_SSH_KEY secret yo‘q" >&2; exit 1; }
+          test -n "$SERVER_HOST" || { echo "SERVER_HOST secret yo‘q" >&2; exit 1; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [ -n "$SERVER_SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SERVER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            # Secret berilmagan bo'lsa serverning kaliti shu yerda o'qiladi
+            ssh-keyscan -p "${SERVER_PORT:-22}" -H "$SERVER_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Serverda deploy
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_APP_DIR: ${{ secrets.SERVER_APP_DIR }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          APP_DIR="${SERVER_APP_DIR:-/opt/sales-crm}"
+          ssh -i ~/.ssh/id_deploy -p "${SERVER_PORT:-22}" \
+            -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 \
+            "${SERVER_USER:-crm}@${SERVER_HOST}" \
+            "cd '$APP_DIR' && ./deploy/deploy.sh '$SHA'"
+
+      - name: Natija
+        if: always()
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deploy muvaffaqiyatli: \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "❌ Deploy muvaffaqiyatsiz: \`$SHA\`"
+              echo ""
+              echo "Serverdagi skript sog'liq tekshiruvi o'tmasa kodni oldingi commitga o'zi qaytaradi —"
+              echo "CRM ishlashda davom etayotganini tekshiring. Qo'lda:"
+              echo '```'
+              echo "ssh <user>@<host>"
+              echo "cd /opt/sales-crm && docker compose -f docker-compose.prod.yml --env-file .env.production ps"
+              echo "./deploy/rollback.sh          # oxirgi ishlagan versiyaga qaytish"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

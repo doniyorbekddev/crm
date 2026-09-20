@@ -5,6 +5,8 @@ Stack: **PostgreSQL 17 + Node 24 (Express) + Nginx (React build)**, hammasi Dock
 
 > Birinchi marta o‘rnatyapsizmi? [HOSTING-VA-DOMEN.md](HOSTING-VA-DOMEN.md) — yangi VPS va domen uchun
 > qadam-baqadam yo‘riqnoma (SSH, Docker, kodni ko‘chirish, birinchi admin, DNS, HTTPS).
+>
+> Avtomatik deploy (`git push` → server yangilanadi): [CI-CD.md](CI-CD.md).
 
 ---
 

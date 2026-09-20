@@ -26,6 +26,9 @@ backend/uploads/
 # Baza zaxira nusxalari
 backups/
 
+# Serverdagi deploy holati (last-good commit, qulf, tarix)
+.deploy/
+
 # Logs
 *.log
 npm-debug.log*

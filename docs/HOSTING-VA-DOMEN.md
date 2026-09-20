@@ -3,6 +3,9 @@
 Bu — **birinchi marta** serverga o‘rnatish uchun amaliy yo‘riqnoma: buyruqlarni tartib bilan
 ko‘chirib qo‘yib borish kifoya. Har bir bo‘limning texnik tafsiloti [DEPLOYMENT.md](DEPLOYMENT.md) da.
 
+> Kodni GitHub'dan avtomatik olib turadigan CI/CD ham sozlamoqchi bo‘lsangiz (tavsiya etiladi),
+> shu yo‘riqnoma o‘rniga [CI-CD.md](CI-CD.md) dan boshlang — u serverni sozlashni ham o‘z ichiga oladi.
+
 Boshlashdan oldin qo‘lingizda bo‘lishi kerak:
 
 | Nima | Qanday bo‘lishi kerak |
@@ -242,10 +245,20 @@ Zaxirani vaqti-vaqti bilan boshqa joyga (o‘z kompyuteringiz yoki bulut) ko‘c
 
 ## Keyingi yangilanishlar
 
+Eng qulay yo‘l — avtomatik deploy: `git push origin main` qilganingizda server o‘zi yangilanadi.
+Sozlash: [CI-CD.md](CI-CD.md). Qo‘lda yangilash kerak bo‘lsa:
+
+```bash
+cd /opt/sales-crm
+./deploy/deploy.sh                          # zaxira + migratsiya + build + sog‘liq tekshiruvi
+```
+
+Eski usul (deploy skriptisiz):
+
 ```bash
 cd /opt/sales-crm
 ./scripts/backup-db.sh
-git pull                                    # yoki 3-qadamdagi rsync
+git pull
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
