@@ -60,19 +60,31 @@ curl -s http://localhost:8080/healthz          # Nginx
 curl -s http://localhost:8080/api/health       # API + baza
 ```
 
-### Boshlang‘ich ma’lumotlar
+### Boshlang‘ich ma’lumotlar (birinchi admin)
 
-Bo‘sh bazaga rollar, ruxsatlar va birinchi Super Admin kerak:
+Bo‘sh bazaga ruxsatlar, rollar, ma’lumotnomalar (kassalar, kategoriyalar, lead manbalari,
+XP qoidalari) va bitta Super Admin kerak. Buning uchun **`db:bootstrap`** buyrug‘i bor —
+u demo lead, o‘quvchi, to‘lov va oldindan ma’lum parolli sinov xodimlarini yaratmaydi:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production \
-  run --rm migrate npx prisma db seed
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm \
+  -e ADMIN_EMAIL='rahbar@markaz.uz' \
+  -e ADMIN_PASSWORD='BuYerdaKuchliParol1' \
+  -e ADMIN_FIRST_NAME='Ism' -e ADMIN_LAST_NAME='Familiya' -e ADMIN_PHONE='901234567' \
+  -e COMPANY_NAME='O‘quv markaz nomi' -e COMPANY_PHONE='+998 90 123 45 67' \
+  migrate npm run db:bootstrap
 ```
 
-> **Diqqat:** seed demo ma’lumotlarni ham qo‘shadi. Faqat rollar va bitta admin kerak bo‘lsa,
-> `backend/prisma/seed.ts` dagi demo qismini o‘chirib qo‘ying yoki birinchi xodimni
-> `/register` orqali yaratib, bazada `status='ACTIVE'` va Super Admin roliga o‘tkazing.
-> **Birinchi kirishdan so‘ng demo parollarni albatta almashtiring.**
+Parol talablari login formasidagi bilan bir xil: kamida 8 belgi, katta harf, kichik harf va raqam.
+Buyruq **idempotent** — qayta ishga tushirsa ruxsatlar va ma’lumotnomalar yangilanadi, mavjud
+sozlamalar va ma’lumotlar o‘zgarmaydi. Admin allaqachon bo‘lsa paroli tegilmaydi; uni almashtirish
+kerak bo‘lsa `-e ADMIN_RESET_PASSWORD=yes` qo‘shiladi (parolni unutib qolgan holat uchun).
+
+Qolgan xodimlar CRM ichida yaratiladi: **Sozlamalar → Xodimlar → Xodim qo‘shish** (rol tanlanadi,
+parol beriladi). Shunda hech qaysi hisobda umumiy/standart parol qolmaydi.
+
+> `npm run db:seed` — faqat development uchun: u demo lead, o‘quvchi va parollari hujjatda
+> yozilgan sinov xodimlarini yaratadi. Serverda **ishlatilmaydi**.
 
 ---
 

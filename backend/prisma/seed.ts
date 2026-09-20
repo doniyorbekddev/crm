@@ -11,7 +11,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hash } from 'bcryptjs';
 import { config } from 'dotenv';
-import { PERMISSION_DEFINITIONS, ROLE_KEYS, SYSTEM_ROLES } from '../src/config/permissions.js';
+import { ROLE_KEYS } from '../src/config/permissions.js';
 import type { RoleKey } from '../src/config/permissions.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import type {
@@ -29,6 +29,7 @@ import type {
 } from '../src/generated/prisma/client.js';
 
 import { seedAcademyModules } from './academySeed.js';
+import { LEAD_SOURCES, seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
 import { backfillPaymentSchedules } from './paymentScheduleBackfill.js';
 import { backfillGroupHistory } from './studentGroupHistoryBackfill.js';
 
@@ -158,19 +159,7 @@ const SEED_USERS: readonly SeedUserDefinition[] = [
   { key: 'pending', email: 'pending@example.com', password: 'Pending123!', firstName: 'Sanjar', lastName: 'Ergashev', phone: '+998901000008', role: ROLE_KEYS.CALL_CENTER, status: 'PENDING' },
 ];
 
-const SOURCES: ReadonlyArray<{ key: string; name: string }> = [
-  { key: 'INSTAGRAM', name: 'Instagram' },
-  { key: 'TELEGRAM', name: 'Telegram' },
-  { key: 'FACEBOOK', name: 'Facebook' },
-  { key: 'YOUTUBE', name: 'YouTube' },
-  { key: 'GOOGLE', name: 'Google' },
-  { key: 'WEBSITE', name: 'Veb-sayt' },
-  { key: 'RECOMMENDATION', name: 'Tavsiya' },
-  { key: 'WALK_IN', name: 'O‘zi kelgan (walk-in)' },
-  { key: 'PHONE', name: 'Telefon qo‘ng‘irog‘i' },
-  { key: 'ADVERTISEMENT', name: 'Reklama' },
-  { key: 'OTHER', name: 'Boshqa' },
-];
+const SOURCES = LEAD_SOURCES;
 
 /** Leadlar qaysi manbadan ko‘proq kelishini aks ettiradi. */
 const SOURCE_WEIGHTS: readonly string[] = [
@@ -384,47 +373,6 @@ function generatePerson(): Person {
 // Asosiy ma'lumotlar (idempotent)
 // ---------------------------------------------------------------------
 
-async function seedRolesAndPermissions(): Promise<Map<RoleKey, string>> {
-  for (const permission of PERMISSION_DEFINITIONS) {
-    await prisma.permission.upsert({
-      where: { key: permission.key },
-      update: { module: permission.module, description: permission.description },
-      create: { key: permission.key, module: permission.module, description: permission.description },
-    });
-  }
-
-  const permissions = await prisma.permission.findMany({ select: { id: true, key: true } });
-  const permissionIdByKey = new Map(permissions.map((permission) => [permission.key, permission.id]));
-  const resetPermissions = process.env.SEED_RESET_PERMISSIONS === 'true';
-  const roleIdByKey = new Map<RoleKey, string>();
-
-  for (const role of SYSTEM_ROLES) {
-    const permissionIds = role.permissions.map((key) => {
-      const id = permissionIdByKey.get(key);
-      if (!id) throw new Error(`Permission topilmadi: ${key}`);
-      return id;
-    });
-
-    const existing = await prisma.role.findUnique({ where: { key: role.key } });
-    const saved = await prisma.role.upsert({
-      where: { key: role.key },
-      update: { name: role.name, description: role.description, isSystem: true },
-      create: { key: role.key, name: role.name, description: role.description, isSystem: true },
-    });
-    roleIdByKey.set(role.key, saved.id);
-
-    if (!existing || resetPermissions) {
-      await prisma.rolePermission.deleteMany({ where: { roleId: saved.id } });
-      await prisma.rolePermission.createMany({
-        data: permissionIds.map((permissionId) => ({ roleId: saved.id, permissionId })),
-      });
-    }
-  }
-
-  log(`✔ ${PERMISSION_DEFINITIONS.length} ta permission, ${SYSTEM_ROLES.length} ta rol`);
-  return roleIdByKey;
-}
-
 interface UserRef {
   id: string;
   firstName: string;
@@ -475,20 +423,6 @@ async function seedUsers(roleIdByKey: Map<RoleKey, string>): Promise<SeedUsers> 
 function requireUser(user: UserRef | undefined, key: string): UserRef {
   if (!user) throw new Error(`Seed foydalanuvchisi yaratilmadi: ${key}`);
   return user;
-}
-
-async function seedSources(): Promise<Map<string, string>> {
-  const sourceIdByKey = new Map<string, string>();
-  for (const [index, source] of SOURCES.entries()) {
-    const saved = await prisma.source.upsert({
-      where: { key: source.key },
-      update: {},
-      create: { key: source.key, name: source.name, sortOrder: index },
-    });
-    sourceIdByKey.set(source.key, saved.id);
-  }
-  log(`✔ ${SOURCES.length} ta lead manbasi`);
-  return sourceIdByKey;
 }
 
 interface CourseRef {
@@ -1139,9 +1073,9 @@ async function seedDemoData(ctx: DemoContext): Promise<void> {
 
 async function main(): Promise<void> {
   log('\nSeed boshlandi...\n');
-  const roleIdByKey = await seedRolesAndPermissions();
+  const roleIdByKey = await seedRolesAndPermissions(prisma, log);
   const users = await seedUsers(roleIdByKey);
-  const sourceIdByKey = await seedSources();
+  const sourceIdByKey = await seedLeadSources(prisma, log);
   const courses = await seedCourses(users);
   const groups = await seedGroups(users, courses);
   await seedSettings(users.admin.id);

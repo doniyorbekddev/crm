@@ -170,7 +170,7 @@ function dateOnly(value: Date): Date {
 // Ma'lumotnomalar seedi
 // ---------------------------------------------------------------------
 
-async function seedReferenceData(prisma: PrismaClient, log: Log): Promise<void> {
+export async function seedReferenceData(prisma: PrismaClient, log: Log): Promise<void> {
   for (const level of LEVELS) {
     await prisma.level.upsert({
       where: { number: level.number },
