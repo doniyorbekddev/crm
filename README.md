@@ -338,6 +338,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 Tartib avtomatik: PostgreSQL → migratsiyalar → backend → frontend (Nginx).
 Zaxira nusxa: `./scripts/backup-db.sh`, tiklash: `./scripts/restore-db.sh <fayl>`.
 
+**Birinchi marta serverga qo‘yish:** [docs/HOSTING-VA-DOMEN.md](docs/HOSTING-VA-DOMEN.md) — VPS sozlash,
+kodni ko‘chirish, `.env.production`, birinchi admin (`npm run db:bootstrap`), domenni DNS orqali bog‘lash va HTTPS.
+
 **To‘liq qo‘llanma:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — HTTPS (Let's Encrypt), yangilash va rollback,
 zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va Docker‘siz (systemd) variant.
 
@@ -349,7 +352,7 @@ zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va
 crm/
 ├── backend/     Express API (src/config, controllers, routes, services, middleware, validators, utils, types) + Dockerfile
 ├── frontend/    React SPA (src/components, pages, layouts, hooks, services, store, types, utils, lib, routes) + Dockerfile, nginx/
-├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, TZ.html/TZ.pdf
+├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, TZ.html/TZ.pdf
 ├── scripts/     backup-db.sh, restore-db.sh
 ├── .github/     CI (typecheck, lint, test, build)
 ├── docker-compose.yml        development uchun PostgreSQL
