@@ -28,6 +28,7 @@
     "db:seed": "npm run db:seed -w @crm/backend",
     "db:bootstrap": "npm run db:bootstrap -w @crm/backend",
     "db:clear-demo": "npm run db:clear-demo -w @crm/backend",
+    "db:clear-finance": "npm run db:clear-finance -w @crm/backend",
     "db:reset": "npm run db:reset -w @crm/backend",
     "db:studio": "npm run db:studio -w @crm/backend",
     "test:unit": "npm run test:unit -w @crm/backend",

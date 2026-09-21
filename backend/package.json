@@ -22,6 +22,7 @@
     "db:seed": "prisma db seed",
     "db:bootstrap": "tsx prisma/bootstrap.ts",
     "db:clear-demo": "tsx prisma/clearDemoData.ts",
+    "db:clear-finance": "tsx prisma/clearFinanceData.ts",
     "db:backfill-schedules": "tsx prisma/backfillPaymentSchedules.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
