@@ -15,6 +15,7 @@
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm run dev -w @crm/backend\" \"npm run dev -w @crm/frontend\"",
     "dev:backend": "npm run dev -w @crm/backend",
     "dev:frontend": "npm run dev -w @crm/frontend",
+    "dev:lan": "bash scripts/dev-lan.sh",
     "build": "npm run build -w @crm/backend && npm run build -w @crm/frontend",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "npm run lint --workspaces",
