@@ -4,6 +4,7 @@ import { attendanceAnalyticsController } from '../controllers/attendanceSession.
 import { parentController } from '../controllers/parent.controller.js';
 import { paymentScheduleController } from '../controllers/paymentSchedule.controller.js';
 import { portalController } from '../controllers/portal.controller.js';
+import { telegramController } from '../controllers/telegram.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAnyPermission, requirePermission } from '../middleware/requirePermission.js';
@@ -31,6 +32,7 @@ studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VI
 studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
 studentRouter.get('/:id/risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.risk);
 studentRouter.post('/:id/portal-account', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.createStudentAccount);
+studentRouter.get('/:id/telegram-link', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.linkForStudent);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);

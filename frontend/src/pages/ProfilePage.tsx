@@ -13,6 +13,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { TelegramLinkCard } from '@/components/TelegramLinkCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
@@ -248,6 +249,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
+          <TelegramLinkCard />
           <ChangePasswordCard />
           <SessionsCard />
         </div>

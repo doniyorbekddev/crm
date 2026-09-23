@@ -163,6 +163,21 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+/// Xabar qaysi kanal orqali yetkaziladi
+enum DeliveryChannel {
+  IN_APP
+  TELEGRAM
+}
+
+/// Yetkazish holati — navbat (outbox) uchun
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  /// Qabul qiluvchida bu kanal ulanmagan yoki o'chirilgan
+  SKIPPED
+}
+
 enum NotificationType {
   NEW_LEAD
   LEAD_ASSIGNED
@@ -175,6 +190,10 @@ enum NotificationType {
   EXPENSE_APPROVAL
   SYSTEM
   DAILY_DIGEST
+  /// Ota-onaga: farzandi darsga kelmadi
+  CHILD_ABSENT
+  /// Ota-ona/o'quvchiga: to'lov muddati yaqinlashdi
+  PAYMENT_DUE_SOON
 }
 
 // ---------------------------------------------------------------------
@@ -263,6 +282,7 @@ model User {
   studentAccount           Student?               @relation("StudentPortalAccount")
   /// Portal hisobi qaysi ota-onaga tegishli (ota-ona kabineti)
   parentAccount            Parent?                @relation("ParentPortalAccount")
+  telegramLinks            TelegramLink[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -677,7 +697,8 @@ model Student {
   statusChanges     StudentStatusChange[]
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  telegramLinks TelegramLink[]
 
   @@index([branchId])
   @@index([courseId])
@@ -914,6 +935,67 @@ model Document {
   @@map("documents")
 }
 
+/// Telegram chat bilan bog'lanish. Egasi — xodim (`userId`), o'quvchi yoki ota-ona:
+/// aynan bittasi to'ldiriladi (baza darajasidagi CHECK bilan kafolatlanadi).
+/// Bog'lash `/start <linkCode>` orqali: kod CRM'da beriladi, bot uni webhookda qabul qiladi.
+model TelegramLink {
+  id         String    @id @default(cuid())
+  /// Telegram chat identifikatori (bog'langandan keyin to'ladi)
+  chatId     String?   @unique @db.VarChar(64)
+  /// Bir martalik bog'lash kodi
+  linkCode   String    @unique @db.VarChar(32)
+  userId     String?
+  studentId  String?
+  parentId   String?
+  /// Telegramdagi ismi — xodim kimga yuborilayotganini ko'rishi uchun
+  chatTitle  String?   @db.VarChar(150)
+  verifiedAt DateTime?
+  /// Foydalanuvchi xabarlarni o'chirib qo'ygan bo'lsa
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student    Student?               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent     Parent?                @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId])
+  @@index([studentId])
+  @@index([parentId])
+  @@index([verifiedAt])
+  @@map("telegram_links")
+}
+
+/// Yetkazish navbati (outbox): tashqi kanalga yuborish asosiy so'rovni kutib qoldirmaydi,
+/// xatolik bo'lsa qayta urinish mumkin va har bir urinish iz qoldiradi.
+model NotificationDelivery {
+  id             String          @id @default(cuid())
+  notificationId String?
+  channel        DeliveryChannel
+  status         DeliveryStatus  @default(PENDING)
+  /// Takrorlanmaslik kaliti: <dedupeKey>:<channel>
+  dedupeKey      String?         @unique @db.VarChar(200)
+  telegramLinkId String?
+  title          String          @db.VarChar(200)
+  body           String
+  attempts       Int             @default(0) @db.SmallInt
+  lastError      String?         @db.VarChar(500)
+  /// Keyingi urinish vaqti (exponential backoff)
+  nextAttemptAt  DateTime        @default(now())
+  sentAt         DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  telegramLink TelegramLink? @relation(fields: [telegramLinkId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([notificationId])
+  @@index([createdAt])
+  @@map("notification_deliveries")
+}
+
 model Notification {
   id         String           @id @default(cuid())
   userId     String
@@ -927,7 +1009,8 @@ model Notification {
   readAt     DateTime?
   createdAt  DateTime         @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
@@ -1646,8 +1729,9 @@ model Parent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  students StudentParent[]
-  user     User?           @relation("ParentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
+  students      StudentParent[]
+  user          User?           @relation("ParentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
+  telegramLinks TelegramLink[]
 
   @@index([phone])
   @@map("parents")

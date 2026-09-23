@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { parentController } from '../controllers/parent.controller.js';
 import { portalController } from '../controllers/portal.controller.js';
+import { telegramController } from '../controllers/telegram.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 
@@ -18,6 +19,11 @@ parentRouter.post('/', manage, parentController.create);
 parentRouter.put('/:id', manage, parentController.update);
 parentRouter.delete('/:id', manage, parentController.remove);
 parentRouter.post('/:id/students', manage, parentController.linkStudent);
+parentRouter.get(
+  '/:id/telegram-link',
+  requirePermission(PERMISSIONS.PORTAL_MANAGE),
+  telegramController.linkForParent,
+);
 parentRouter.post(
   '/:id/portal-account',
   requirePermission(PERMISSIONS.PORTAL_MANAGE),

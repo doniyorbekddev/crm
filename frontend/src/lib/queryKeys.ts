@@ -73,6 +73,10 @@ export const queryKeys = {
     all: ['groups'] as const,
     list: (params: GroupListParams) => ['groups', 'list', params] as const,
   },
+  telegram: {
+    all: ['telegram'] as const,
+    me: ['telegram', 'me'] as const,
+  },
   portal: {
     all: ['portal'] as const,
     me: ['portal', 'me'] as const,

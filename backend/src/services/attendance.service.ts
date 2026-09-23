@@ -253,21 +253,46 @@ export const attendanceService = {
           date: input.date,
         });
 
-        // Darsga kelmagan o‘quvchi haqida ogohlantirish (Telegram integratsiyasi shu yerga ulanadi)
-        if (saved.status === 'ABSENT' && supervisors.length > 0) {
+        // Darsga kelmagan o‘quvchi: xodimlarga ilova ichida, ota-onasiga esa Telegramga
+        if (saved.status === 'ABSENT') {
           const name = studentNames.get(record.studentId) ?? 'O‘quvchi';
-          await notificationService.createManyInTransaction(
-            tx,
-            supervisors.map((supervisor) => ({
-              userId: supervisor.id,
-              type: 'SYSTEM' as const,
-              title: 'Darsga kelmadi',
-              message: `${name} — ${group.name} guruhidagi ${toDateOnly(input.date)} kungi darsga kelmadi.`,
-              entityType: 'student',
-              entityId: record.studentId,
-              dedupeKey: `absence:${saved.id}`,
-            })),
-          );
+          const message = `${name} — ${group.name} guruhidagi ${toDateOnly(input.date)} kungi darsga kelmadi.`;
+
+          if (supervisors.length > 0) {
+            await notificationService.createManyInTransaction(
+              tx,
+              supervisors.map((supervisor) => ({
+                userId: supervisor.id,
+                type: 'SYSTEM' as const,
+                title: 'Darsga kelmadi',
+                message,
+                entityType: 'student',
+                entityId: record.studentId,
+                dedupeKey: `absence:${saved.id}`,
+              })),
+            );
+          }
+
+          // Ota-onalar: CRM hisobi bo'lmasligi mumkin, shuning uchun to'g'ridan-to'g'ri kanalga
+          const parents = await tx.studentParent.findMany({
+            where: { studentId: record.studentId },
+            select: { parentId: true },
+          });
+          for (const link of parents) {
+            await notificationService.notifyExternalInTransaction(tx, {
+              title: 'Farzandingiz darsga kelmadi',
+              message,
+              parentId: link.parentId,
+              dedupeKey: `absence:${saved.id}:parent:${link.parentId}`,
+            });
+          }
+          // O'quvchining o'ziga ham (Telegramni ulagan bo'lsa)
+          await notificationService.notifyExternalInTransaction(tx, {
+            title: 'Darsga kelmadingiz',
+            message,
+            studentId: record.studentId,
+            dedupeKey: `absence:${saved.id}:student`,
+          });
         }
       }
       await auditService.recordInTransaction(tx, {

@@ -346,7 +346,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **1.5** | Filial poydevori (`Branch` + `branchId` + scope) | 1 + 10 ustun | ✅ **Tugadi** |
 | **2** | Student lifecycle + risk/churn tizimi | 1 + 4 ustun | ✅ **Tugadi** |
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
-| **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | Katta |
+| **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | ✅ **Tugadi** |
 | **5** | Jadval + xona boshqaruvi | 1 | O'rta |
 | **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | Eng katta |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
@@ -464,3 +464,24 @@ har hisobda yuzlab qator o'chirilib qayta yozilardi.
 yetib bormasdi (faqat `SEED_RESET_PERMISSIONS=true` bilan). Endi `seedRolesAndPermissions` shu
 yurishda **yangi paydo bo'lgan** ruxsatlarni tizim rollariga qo'shadi; Super Admin qo'lda sozlagan
 huquqlarga tegilmaydi.
+
+### PHASE 4 — bajarilgan ish (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `TelegramLink` — chat bog'lanishi; egasi **aynan bitta**: xodim, o'quvchi yoki ota-ona (baza CHECK bilan) | ✅ |
+| `NotificationDelivery` — yetkazish navbati (outbox): `PENDING/SENT/FAILED/SKIPPED`, urinishlar soni, `nextAttemptAt` bilan backoff (1, 4, 9, 16 daqiqa), 5 urinishdan keyin to'xtatiladi | ✅ |
+| `NotificationType` ga `CHILD_ABSENT`, `PAYMENT_DUE_SOON` | ✅ |
+| `telegram.service.ts` — Bot API mijozi; **token bo'lmasa o'chirilgan rejim** (xabar yuborilmaydi, qolgan mantiq ishlayveradi) | ✅ |
+| `telegramLink.service.ts` — `/start <kod>` orqali bog'lash; webhook imzosi `timingSafeEqual` bilan tekshiriladi; secret sozlanmagan bo'lsa webhook **umuman qabul qilinmaydi** | ✅ |
+| Kabinet foydalanuvchisi uchun bog'lanish `studentId`/`parentId` ga yoziladi (`userId` ga emas) — xabarlar ham shu kalitlar bo'yicha yuboriladi | ✅ |
+| Mavjud bildirishnomalar avtomatik navbatga tushadi; hisobi yo'q ota-ona uchun `notifyExternalInTransaction` | ✅ |
+| Davomatda `ABSENT` → xodimga ilova ichida, ota-onaga va o'quvchiga Telegramga | ✅ |
+| API: `GET/DELETE /telegram/me`, `POST /telegram/webhook`, `GET /students/:id/telegram-link`, `GET /parents/:id/telegram-link` | ✅ |
+| Job: har daqiqada navbatni qayta ishlash | ✅ |
+| Frontend: `TelegramLinkCard` — kabinet va xodim profilida (kod, deep link, "Uzish"); bot sozlanmagan bo'lsa ogohlantirish | ✅ |
+| Deploy: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` — compose va `.env.production.example` da | ✅ |
+| Testlar: `tests/telegram.test.ts` (10 ta) — imzo tekshiruvi, bog'lash, dedupe, SENT/FAILED/SKIPPED, backoff | ✅ 452 test, E2E 14/14 |
+
+**Token hali sozlanmagan** — bu ataylab: butun zanjir tokensiz sinaladi va bot ulangach hech narsa
+qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlashtiriladi).

@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { startAlertsJob } from './jobs/alerts.job.js';
+import { startNotificationDeliveryJob } from './jobs/notificationDelivery.job.js';
 import { startStudentRiskJob } from './jobs/studentRisk.job.js';
 import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
@@ -19,6 +20,7 @@ const stopDebtReminders = startDebtReminderJob();
 // Avtomatik ogohlantirishlar (har 30 daqiqada)
 const stopAlerts = startAlertsJob();
 const stopStudentRisk = startStudentRiskJob();
+const stopDelivery = startNotificationDeliveryJob();
 const stopRecurringExpenses = startRecurringExpensesJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
@@ -41,6 +43,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopDebtReminders();
   stopAlerts();
   stopStudentRisk();
+  stopDelivery();
   stopRecurringExpenses();
   stopDailyDigest();
 

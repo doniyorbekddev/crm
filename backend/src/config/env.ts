@@ -61,6 +61,15 @@ const envSchema = z
     SMTP_USER: optionalString,
     SMTP_PASS: optionalString,
     SMTP_FROM: z.string().trim().min(3).default('Sales CRM <no-reply@localhost>'),
+
+    // --- Telegram bot (ixtiyoriy) ---
+    // Token berilmasa bot "o'chirilgan rejim"da ishlaydi: xabarlar yuborilmaydi,
+    // lekin navbat, bog'lanish va barcha mantiq ishlayveradi (loglarga yoziladi).
+    TELEGRAM_BOT_TOKEN: optionalString,
+    /// Webhook so'rovini tekshirish uchun: Telegram X-Telegram-Bot-Api-Secret-Token sarlavhasida qaytaradi
+    TELEGRAM_WEBHOOK_SECRET: optionalString,
+    /// Bot foydalanuvchi nomi — kabinetdagi "Telegramni ulash" havolasi uchun (masalan: markaz_crm_bot)
+    TELEGRAM_BOT_USERNAME: optionalString,
   })
   .refine((values) => values.JWT_SECRET !== values.JWT_REFRESH_SECRET, {
     message: 'JWT_SECRET va JWT_REFRESH_SECRET bir-biridan farq qilishi kerak',

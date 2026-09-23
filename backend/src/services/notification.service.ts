@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { notificationDeliveryService } from './notificationDelivery.service.js';
 import type { NotificationType, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
@@ -82,16 +83,50 @@ function toCreateData(input: NotificationInput): Prisma.NotificationUncheckedCre
   };
 }
 
+/**
+ * Ilova ichidagi bildirishnoma yaratilgandan keyin uni tashqi kanal (Telegram) navbatiga ham
+ * qo'shadi. Navbat bo'sh o'tishi mumkin — foydalanuvchi Telegramni ulamagan bo'lsa hech nima
+ * yaratilmaydi va bu xato emas.
+ */
+async function enqueueExternal(tx: Prisma.TransactionClient, inputs: NotificationInput[]): Promise<void> {
+  for (const input of inputs) {
+    await notificationDeliveryService.enqueueInTransaction(tx, {
+      title: input.title,
+      body: input.message,
+      target: { userId: input.userId },
+      dedupeKey: input.dedupeKey ?? null,
+    });
+  }
+}
+
 export const notificationService = {
   /** Asosiy amal bilan bir tranzaksiyada yaratiladi. `dedupeKey` takrorlansa — jimgina o‘tkazib yuboriladi. */
   async createInTransaction(tx: Prisma.TransactionClient, input: NotificationInput): Promise<void> {
     await tx.notification.createMany({ data: [toCreateData(input)], skipDuplicates: true });
+    await enqueueExternal(tx, [input]);
   },
 
   /** Bir nechta xodimga bir xil xabar (masalan, yangi lead haqida barcha managerlarga) */
   async createManyInTransaction(tx: Prisma.TransactionClient, inputs: NotificationInput[]): Promise<void> {
     if (inputs.length === 0) return;
     await tx.notification.createMany({ data: inputs.map(toCreateData), skipDuplicates: true });
+    await enqueueExternal(tx, inputs);
+  },
+
+  /**
+   * Hisobi yo'q qabul qiluvchi (o'quvchi yoki ota-ona) uchun faqat tashqi kanal.
+   * Ilova ichida ko'rsatiladigan joyi yo'q, shuning uchun `Notification` yozuvi yaratilmaydi.
+   */
+  async notifyExternalInTransaction(
+    tx: Prisma.TransactionClient,
+    input: { title: string; message: string; studentId?: string | null; parentId?: string | null; dedupeKey?: string | null },
+  ): Promise<number> {
+    return notificationDeliveryService.enqueueInTransaction(tx, {
+      title: input.title,
+      body: input.message,
+      target: { studentId: input.studentId ?? null, parentId: input.parentId ?? null },
+      dedupeKey: input.dedupeKey ?? null,
+    });
   },
 
   async list(actor: AuthUser, query: NotificationListQuery): Promise<{ items: NotificationDto[]; total: number }> {

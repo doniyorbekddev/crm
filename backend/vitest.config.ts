@@ -32,6 +32,8 @@ export default defineConfig({
       JWT_SECRET: 'test-access-secret-0123456789-abcdefghijklmnop',
       JWT_REFRESH_SECRET: 'test-refresh-secret-0123456789-abcdefghijklmnop',
       CLIENT_URL: 'http://localhost:5173',
+      // Telegram: token yo'q (o'chirilgan rejim), lekin webhook imzosi tekshiriladigan bo'lsin
+      TELEGRAM_WEBHOOK_SECRET: 'test-telegram-webhook-secret',
       SMTP_HOST: '',
       // Testlar yuklagan fayllar loyiha papkasiga emas, vaqtinchalik papkaga yoziladi
       UPLOAD_DIR: path.join(os.tmpdir(), 'crm-test-uploads'),
