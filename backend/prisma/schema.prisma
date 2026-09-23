@@ -400,6 +400,7 @@ model Branch {
   incomes      Income[]
   expenses     Expense[]
   accounts     FinancialAccount[]
+  rooms        Room[]
 
   @@map("branches")
 }
@@ -597,12 +598,39 @@ model Course {
   @@map("courses")
 }
 
+/// O'quv xonasi. Guruh jadvali shu xonaga bog'lanadi va band qilish konflikti tekshiriladi.
+model Room {
+  id        String   @id @default(cuid())
+  branchId  String   @default("branch_main")
+  /// A1, LAB2, ...
+  key       String   @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  capacity  Int      @default(15) @db.SmallInt
+  /// Jihozlar: ["Proyektor", "Doska", "12 ta kompyuter"]
+  equipment String[]
+  note      String?  @db.VarChar(255)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  groups Group[]
+
+  /// Kalit filial ichida takrorlanmaydi (boshqa filialda ham "A1" bo'lishi mumkin)
+  @@unique([branchId, key])
+  @@index([branchId, isActive])
+  @@map("rooms")
+}
+
 model Group {
   id           String      @id @default(cuid())
   name         String      @unique @db.VarChar(100)
   courseId     String
   teacherId    String?
+  /// Eski matnli xona nomi — yangi yozuvlarda `roomId` ishlatiladi
   room         String?     @db.VarChar(50)
+  roomId       String?
   startDate    DateTime    @db.Date
   endDate      DateTime?   @db.Date
   scheduleDays WeekDay[]
@@ -617,6 +645,7 @@ model Group {
   updatedAt    DateTime    @updatedAt
 
   course      Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  roomRef     Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
   teacher     User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   students    Student[]
   attendances Attendance[]
@@ -633,6 +662,7 @@ model Group {
   @@index([courseId])
   @@index([teacherId])
   @@index([status])
+  @@index([roomId])
   @@map("groups")
 }
 

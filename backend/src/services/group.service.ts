@@ -7,6 +7,8 @@ import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CreateGroupInput, GroupListQuery, UpdateGroupInput } from '../validators/group.validator.js';
 import { auditService } from './audit.service.js';
+import { scheduleConflictService } from './scheduleConflict.service.js';
+import type { ScheduleConflict } from './scheduleConflict.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 import type { BranchAccess } from './branchAccess.js';
 import { permissionService } from './permission.service.js';
@@ -15,6 +17,9 @@ const groupSelect = {
   id: true,
   name: true,
   room: true,
+  roomId: true,
+  branchId: true,
+  roomRef: { select: { id: true, name: true, capacity: true } },
   startDate: true,
   endDate: true,
   scheduleDays: true,
@@ -34,6 +39,8 @@ export interface GroupDto {
   id: string;
   name: string;
   room: string | null;
+  /** Xona kartochkasi (yangi model); eski matnli `room` mos kelish uchun saqlanadi */
+  roomRef: { id: string; name: string; capacity: number } | null;
   startDate: string;
   endDate: string | null;
   scheduleDays: WeekDay[];
@@ -58,6 +65,7 @@ function toGroupDto(group: GroupRecord): GroupDto {
     id: group.id,
     name: group.name,
     room: group.room,
+    roomRef: group.roomRef,
     startDate: toDateOnly(group.startDate),
     endDate: group.endDate ? toDateOnly(group.endDate) : null,
     scheduleDays: group.scheduleDays,
@@ -141,6 +149,27 @@ async function assertNameAvailable(name: string, exceptId?: string): Promise<voi
   }
 }
 
+/**
+ * Jadval konfliktini tekshiradi. `allowConflict: true` bo'lsa ogohlantirish qaytariladi,
+ * lekin saqlashga yo'l qo'yiladi (ba'zan rahbar ataylab ikki guruhni bitta xonaga qo'yadi —
+ * masalan qo'shma dars). Standart holatda konflikt saqlashni to'xtatadi.
+ */
+async function assertNoScheduleConflict(
+  candidate: Parameters<typeof scheduleConflictService.find>[0],
+  allowConflict: boolean,
+): Promise<ScheduleConflict[]> {
+  const conflicts = await scheduleConflictService.find(candidate);
+  if (conflicts.length === 0 || allowConflict) return conflicts;
+
+  throw AppError.conflict(
+    conflicts.length === 1 ? conflicts[0]!.message : `Jadvalda ${conflicts.length} ta to‘qnashuv bor`,
+    conflicts.map((conflict) => ({
+      field: conflict.kind === 'ROOM' ? 'roomId' : 'teacherId',
+      message: conflict.message,
+    })),
+  );
+}
+
 async function assertReferences(courseId: string, teacherId: string | undefined): Promise<void> {
   const [course, teacher] = [
     await prisma.course.findUnique({ where: { id: courseId }, select: { id: true } }),
@@ -177,6 +206,20 @@ export const groupService = {
   async create(actor: AuthUser, input: CreateGroupInput, client: ClientInfo): Promise<GroupDto> {
     await assertNameAvailable(input.name);
     await assertReferences(input.courseId, input.teacherId);
+    const branchId = resolveBranchId(await getBranchAccess(actor));
+    await assertNoScheduleConflict(
+      {
+        branchId,
+        roomId: input.roomId ?? null,
+        teacherId: input.teacherId ?? null,
+        scheduleDays: input.scheduleDays,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        startDate: input.startDate,
+        endDate: input.endDate ?? null,
+      },
+      input.allowConflict ?? false,
+    );
 
     const created = await prisma.$transaction(async (tx) => {
       const group = await tx.group.create({
@@ -185,6 +228,7 @@ export const groupService = {
           courseId: input.courseId,
           teacherId: input.teacherId ?? null,
           room: input.room ?? null,
+          roomId: input.roomId ?? null,
           startDate: input.startDate,
           endDate: input.endDate ?? null,
           scheduleDays: input.scheduleDays,
@@ -192,7 +236,7 @@ export const groupService = {
           endTime: input.endTime,
           capacity: input.capacity,
           status: input.status,
-          branchId: resolveBranchId(await getBranchAccess(actor)),
+          branchId,
         },
         select: groupSelect,
       });
@@ -221,6 +265,21 @@ export const groupService = {
         { field: 'capacity', message: `Guruhda ${group._count.students} ta o‘quvchi bor — sig‘im undan kam bo‘lmasin` },
       ]);
     }
+
+    await assertNoScheduleConflict(
+      {
+        groupId: id,
+        branchId: group.branchId,
+        roomId: input.roomId ?? null,
+        teacherId: input.teacherId ?? null,
+        scheduleDays: input.scheduleDays,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        startDate: input.startDate,
+        endDate: input.endDate ?? null,
+      },
+      input.allowConflict ?? false,
+    );
 
     const updated = await prisma.$transaction(async (tx) => {
       const record = await tx.group.update({

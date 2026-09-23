@@ -15,6 +15,7 @@ import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { groupsService } from '@/services/groups.service';
+import { roomsService } from '@/services/rooms.service';
 import type { GroupItem, GroupPayload, WeekDay } from '@/types/group';
 import { GROUP_STATUS_LABELS, GROUP_STATUS_ORDER, WEEK_DAY_LABELS, WEEK_DAY_ORDER } from '@/utils/courseLabels';
 
@@ -32,7 +33,7 @@ const groupFormSchema = z
     name: z.string().trim().min(2, 'Kamida 2 belgi').max(100, 'Nom juda uzun'),
     courseId: z.string().min(1, 'Kursni tanlang'),
     teacherId: z.string(),
-    room: z.string().trim().max(50, 'Xona nomi juda uzun'),
+    roomId: z.string(),
     startDate: z.string().min(1, 'Boshlanish sanasini kiriting'),
     endDate: z.string(),
     scheduleDays: z.array(z.enum(WEEK_DAY_ORDER)).min(1, 'Kamida bitta dars kunini tanlang'),
@@ -63,7 +64,7 @@ function toPayload(values: GroupFormValues): GroupPayload {
     capacity: Number(values.capacity),
     status: values.status,
     ...(values.teacherId ? { teacherId: values.teacherId } : {}),
-    ...(values.room ? { room: values.room } : {}),
+    ...(values.roomId ? { roomId: values.roomId } : {}),
     ...(values.endDate ? { endDate: values.endDate } : {}),
   };
 }
@@ -87,7 +88,7 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
     name: group?.name ?? '',
     courseId: group?.course.id ?? '',
     teacherId: group?.teacher?.id ?? '',
-    room: group?.room ?? '',
+    roomId: group?.roomRef?.id ?? '',
     startDate: group?.startDate ?? '',
     endDate: group?.endDate ?? '',
     scheduleDays: group?.scheduleDays ?? ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
@@ -102,8 +103,46 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
     handleSubmit,
     setError,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({ resolver: zodResolver(groupFormSchema), defaultValues });
+
+  const roomsQuery = useQuery({
+    queryKey: queryKeys.rooms.list(false),
+    queryFn: () => roomsService.list(),
+    staleTime: 5 * 60_000,
+  });
+
+  // Jadval to'qnashuvini saqlashdan oldin ko'rsatamiz — xodim xatoni formada bilib oladi
+  const [roomId, teacherId, scheduleDays, startTime, endTime, startDate, endDate] = watch([
+    'roomId',
+    'teacherId',
+    'scheduleDays',
+    'startTime',
+    'endTime',
+    'startDate',
+    'endDate',
+  ]);
+  const conflictInput =
+    (roomId || teacherId) && scheduleDays.length > 0 && timePattern.test(startTime) && timePattern.test(endTime) && startDate
+      ? {
+          ...(group ? { groupId: group.id } : {}),
+          ...(roomId ? { roomId } : {}),
+          ...(teacherId ? { teacherId } : {}),
+          scheduleDays,
+          startTime,
+          endTime,
+          startDate,
+          ...(endDate ? { endDate } : {}),
+        }
+      : null;
+  const conflictsQuery = useQuery({
+    queryKey: ['rooms', 'conflicts', conflictInput],
+    queryFn: () => roomsService.checkConflicts(conflictInput!),
+    enabled: conflictInput !== null,
+    staleTime: 10_000,
+  });
+  const conflicts = conflictsQuery.data ?? [];
 
   const save = useMutation({
     mutationFn: (values: GroupFormValues) => {
@@ -144,6 +183,17 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
         </>
       }
     >
+      {conflicts.length > 0 && (
+        <Alert tone="warning" className="mb-4">
+          <p className="font-medium">Jadvalda to‘qnashuv bor:</p>
+          <ul className="mt-1 list-disc pl-4">
+            {conflicts.map((conflict) => (
+              <li key={`${conflict.kind}-${conflict.groupId}`}>{conflict.message}</li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs">Saqlash uchun vaqtni yoki xonani o‘zgartiring.</p>
+        </Alert>
+      )}
       {formError && (
         <Alert tone="error" className="mb-4">
           {formError}
@@ -174,8 +224,15 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
             ))}
           </Select>
         </FormField>
-        <FormField label="Xona" htmlFor="group-room" error={errors.room?.message}>
-          <Input id="group-room" placeholder="101" {...register('room')} />
+        <FormField label="Xona" htmlFor="group-room" error={errors.roomId?.message} hint="Band qilish to‘qnashuvi avtomatik tekshiriladi">
+          <Select id="group-room" {...register('roomId')}>
+            <option value="">Xona tanlanmagan</option>
+            {(roomsQuery.data ?? []).map((room) => (
+              <option key={room.id} value={room.id}>
+                {room.name} ({room.capacity} o‘rin)
+              </option>
+            ))}
+          </Select>
         </FormField>
 
         <div className="sm:col-span-2">

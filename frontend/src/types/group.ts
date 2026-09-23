@@ -7,6 +7,8 @@ export interface GroupItem {
   id: string;
   name: string;
   room: string | null;
+  /** Xona kartochkasi (yangi model); `room` — eski matnli maydon */
+  roomRef: { id: string; name: string; capacity: number } | null;
   /** "2026-10-01" — vaqtsiz sana */
   startDate: string;
   endDate: string | null;
@@ -38,6 +40,9 @@ export interface GroupPayload {
   courseId: string;
   teacherId?: string;
   room?: string;
+  roomId?: string;
+  /** To‘qnashuvga qaramay saqlash (qo‘shma dars) */
+  allowConflict?: boolean;
   startDate: string;
   endDate?: string;
   scheduleDays: WeekDay[];

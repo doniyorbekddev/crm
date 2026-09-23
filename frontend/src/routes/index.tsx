@@ -211,6 +211,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/groups/GroupsPage"),
                         ),
                       },
+                      {
+                        path: "rooms",
+                        lazy: lazyComponent(
+                          () => import("@/pages/rooms/RoomsPage"),
+                        ),
+                      },
                     ],
                   },
                   {

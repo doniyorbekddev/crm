@@ -347,7 +347,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **2** | Student lifecycle + risk/churn tizimi | 1 + 4 ustun | ✅ **Tugadi** |
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | ✅ **Tugadi** |
-| **5** | Jadval + xona boshqaruvi | 1 | O'rta |
+| **5** | Jadval + xona boshqaruvi | 1 | ✅ **Tugadi** |
 | **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | Eng katta |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
 | **8** | HR + o'qituvchi analitikasi + NPS | 3 | O'rta |
@@ -485,3 +485,17 @@ huquqlarga tegilmaydi.
 
 **Token hali sozlanmagan** — bu ataylab: butun zanjir tokensiz sinaladi va bot ulangach hech narsa
 qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlashtiriladi).
+
+### PHASE 5 — bajarilgan ish (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Room` modeli — filialga bog'langan (PHASE 1.5 poydevori ishladi), kalit filial ichida unikal, sig'im CHECK bilan | ✅ |
+| `Group.roomId` — eski matnli `room` ustuni **saqlandi** (mavjud 10 guruh buzilmadi) | ✅ |
+| `scheduleConflict.service.ts` — to'qnashuv 4 shart bo'yicha: bir xil hafta kuni + vaqt kesishishi + davr kesishishi + guruh faol (PLANNED/ACTIVE) | ✅ |
+| Xona va o'qituvchi to'qnashuvi guruh yaratish va tahrirlashda tekshiriladi; xato 409 va aniq matn bilan ("Xona band: «Kechki» guruhi Dushanba… 14:00–16:00 da dars qiladi") | ✅ |
+| `allowConflict: true` — ataylab saqlash (qo'shma dars) | ✅ |
+| Tahrirlashda guruh o'zi bilan to'qnashmaydi | ✅ |
+| API: `GET/POST/PUT /rooms`, `POST /rooms/conflicts` (saqlashdan oldin tekshirish) | ✅ |
+| Frontend: `/rooms` sahifasi (sig'im, jihozlar, band qilish jadvali, faollik), guruh formasida xona tanlash va **real vaqtda** to'qnashuv ogohlantirishi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/rooms.test.ts` (9 ta) — ruxsatlar, takroriy kalit, xona/o'qituvchi to'qnashuvi, chegaradagi vaqtlar (14–16 va 16–18 to'qnashmaydi), davr kesishmasligi, allowConflict, o'zi bilan to'qnashmaslik, band xonani o'chirmaslik | ✅ 461 test, E2E 14/14 |

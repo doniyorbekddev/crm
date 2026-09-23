@@ -24,6 +24,9 @@ const groupFieldsSchema = z.object({
   courseId: z.string('Kursni tanlang').trim().min(1, 'Kursni tanlang').max(50),
   teacherId: optionalField(idSchema),
   room: optionalField(z.string().trim().max(50, 'Xona nomi juda uzun')),
+  roomId: optionalField(z.string().trim().max(50)),
+  /** Jadval to‘qnashuviga qaramay saqlash (masalan qo‘shma dars) */
+  allowConflict: z.boolean().optional(),
   startDate: z.coerce.date('Boshlanish sanasini kiriting'),
   endDate: optionalField(z.coerce.date('Sana noto‘g‘ri')),
   scheduleDays: z

@@ -1,4 +1,5 @@
 import {
+  DoorOpen,
   Activity,
   BarChart3,
   Bell,
@@ -72,6 +73,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
       { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
+      { to: '/rooms', label: 'Xonalar', icon: DoorOpen, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/students', label: 'O‘quvchilar', icon: GraduationCap, permission: PERMISSIONS.STUDENT_VIEW },
       { to: '/parents', label: 'Ota-onalar', icon: UsersRound, permission: PERMISSIONS.PARENT_VIEW },
       { to: '/attendance', label: 'Davomat', icon: CalendarCheck, permission: PERMISSIONS.ATTENDANCE_VIEW },
