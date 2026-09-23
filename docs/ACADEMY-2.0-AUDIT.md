@@ -139,8 +139,8 @@ chunki ular shaxsiy ma'lumot); rol ruxsatlari keshi 60 sekund (ko'p nusxali depl
 | F12 | Parol siyosatida maxsus belgi, parol tarixi, lug'at tekshiruvi yo'q | O'rtacha xavf | PHASE 11 |
 | F13 | PWA yo'q (manifest, service worker) | Telefonga "o'rnatib" ishlatish mumkin emas | PHASE 4/12 |
 | F14 | Barcha bildirishnomalar faqat ilova ichida (email — faqat parol tiklash) | Xodim CRM'ni ochmasa xabardan bexabar | PHASE 4 (Telegram) |
-| F15 | **Davomat foizi ikki xil hisoblanadi:** panel/hisobotda `PRESENT+LATE+EXCUSED`, ogohlantirishda esa `PRESENT+LATE` (`alert.service.ts` `lowAttendanceRule`) | Bir guruh uchun ikki xil foiz ko'rinadi | Ochiq — PHASE 2 da birlashtiriladi |
-| F16 | Davomat foizi **faqat belgilangan** yozuvlar ustida: o'qituvchi davomat qo'ymagan darslar maxrajga kirmaydi | Foiz sun'iy oshadi, risk hisobi ham buziladi | PHASE 2 (jadval bo'yicha kutilgan darslar maxraji) |
+| F15 | **Davomat foizi ikki xil hisoblanadi:** panel/hisobotda `PRESENT+LATE+EXCUSED`, ogohlantirishda esa `PRESENT+LATE` | Bir guruh uchun ikki xil foiz ko'rinadi | ✅ **Tuzatildi** — yagona ta'rif `utils/attendance.ts` da |
+| F16 | Davomat foizi **faqat belgilangan** yozuvlar ustida: o'qituvchi davomat qo'ymagan darslar maxrajga kirmaydi | Foiz sun'iy oshadi | ✅ **Risk hisobida tuzatildi** — maxraj: guruhda o'tkazilgan darslar |
 | F17 | **LTV butun tarix, CAC tanlangan davr** bo'yicha hisoblanadi (`analytics.service.ts`) | `LTV:CAC` va `paybackMonths` metodologik jihatdan taqqoslanmaydi | PHASE 8 |
 | F18 | Maosh xarajati **ikki xil bazada**: `profitability` — hisoblangan (accrual), P&L — to'langan (kassa) | Bir davr uchun ikki xil foyda chiqadi | PHASE 8 (izoh + tanlov) |
 | F19 | Retention faqat `status='DROPPED'` ga tayanadi — to'lamay qo'ygan, lekin statusi yangilanmagan o'quvchi "saqlangan" sanaladi | Retention optimistik | PHASE 2 (risk tizimi statusni avtomatik taklif qiladi) |
@@ -344,7 +344,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 |---|---|---|---|
 | **1** | Audit + arxitektura | — | ✅ **Tugadi** (shu hujjat + F1 tuzatildi) |
 | **1.5** | Filial poydevori (`Branch` + `branchId` + scope) | 1 + 10 ustun | ✅ **Tugadi** |
-| **2** | Student lifecycle + risk/churn tizimi | 3 | O'rta |
+| **2** | Student lifecycle + risk/churn tizimi | 1 + 4 ustun | ✅ **Tugadi** |
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | Katta |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | Katta |
 | **5** | Jadval + xona boshqaruvi | 1 | O'rta |
@@ -426,5 +426,22 @@ ta'minlangan.
 | 7 | Testlar: risk hisobi unit testlari, API ruxsat testlari, status tarixi integratsion testi, E2E (risk filtri) | `backend/tests/`, `e2e/specs/` |
 
 **Buzilmasligi kafolatlanadigan joylar:** mavjud `StudentStatus` qiymatlari o'zgarmaydi (faqat yangi
-qiymat qo'shiladi), `students` ro'yxati va profil API javoblari eski maydonlarni saqlaydi, 471 test
-o'zgarishsiz o'tishi shart.
+qiymat qo'shiladi), `students` ro'yxati va profil API javoblari eski maydonlarni saqlaydi.
+
+### PHASE 2 — bajarilgan ish (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `RiskLevel` enum, `StudentStatus.ALUMNI`, `Student.healthScore/riskLevel/riskFactors/riskUpdatedAt`, `StudentStatusChange` modeli | ✅ migratsiya `20260923..._student_risk` (DROP/TRUNCATE/DELETE yo'q) |
+| `services/studentRisk.service.ts` — 6 signal (davomat, ketma-ket kelmaslik, qarz, to'lov kechikishi, uy vazifasi, imtihon), vazn bilan o'rtacha, `null`-aware | ✅ 123 o'quvchida 300 ms |
+| Chegaralar `alerts.settings` dan olinadi — ogohlantirish va risk **bitta haqiqatdan** ishlaydi | ✅ |
+| Yangi o'quvchi qarzi uchun kritik deb belgilanmaydi (`debtGraceDays` imtiyoz muddati) | ✅ real ma'lumotda sinovdan o'tdi: 99 ta soxta "kritik" → 1 ta haqiqiy |
+| Yetarli ma'lumot bo'lmasa daraja berilmaydi (`MIN_SCORED_WEIGHT`) | ✅ |
+| `jobs/studentRisk.job.ts` — har 30 daqiqada qayta hisoblash | ✅ |
+| API: `GET /students/at-risk`, `/students/:id/risk`, `/students/:id/status-history`, `PATCH /students/:id/status` (sabab bilan) + ro'yxatda `riskLevel` filtri | ✅ |
+| UI: ro'yxatda "Xavf" ustuni va filtri, profilda "Ketib qolish xavfi" bloki (signal chiziqlari bilan), Dashboard vidjeti, holat modalida sabab maydoni | ✅ brauzerda tekshirildi |
+| Testlar: `tests/studentRisk.test.ts` (9 ta) | ✅ 435 test, E2E 14/14, frontend 38 |
+
+**Audit rejasidan chetlanish:** `StudentRiskFactor` alohida jadvali o'rniga `Student.riskFactors` (JSON)
+ishlatildi — sabablar har 30 daqiqada qayta hisoblanadigan **hosila** qiymat, alohida jadval bo'lsa
+har hisobda yuzlab qator o'chirilib qayta yozilardi.

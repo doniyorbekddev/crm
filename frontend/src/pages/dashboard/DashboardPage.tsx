@@ -46,6 +46,7 @@ import { LEAD_STATUS_LABELS, leadFullName } from '@/utils/leadLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { WIDGET_SPAN_CLASSES, parseWidgetLayout, resolveWidgets } from '@/utils/widgetLayout';
 import type { WidgetDefinition } from '@/utils/widgetLayout';
+import { AtRiskStudents } from './AtRiskStudents';
 import { DashboardCharts } from './DashboardCharts';
 
 const MANAGER_PERIODS: ReadonlyArray<{ value: ManagerPeriod; label: string }> = [
@@ -54,7 +55,7 @@ const MANAGER_PERIODS: ReadonlyArray<{ value: ManagerPeriod; label: string }> = 
   { value: 'year', label: 'So‘nggi 12 oy' },
 ];
 
-type WidgetKey = 'kpis' | 'charts' | 'tasks' | 'funnel' | 'managers' | 'activity';
+type WidgetKey = 'kpis' | 'charts' | 'tasks' | 'funnel' | 'atRisk' | 'managers' | 'activity';
 
 interface KpiCardProps {
   icon: LucideIcon;
@@ -153,6 +154,7 @@ export default function DashboardPage() {
   const canViewLeads = usePermission(PERMISSIONS.LEAD_VIEW);
   const canViewFollowUps = usePermission(PERMISSIONS.FOLLOWUP_VIEW);
   const canViewActivity = usePermission(PERMISSIONS.ANALYTICS_VIEW);
+  const canViewStudents = usePermission(PERMISSIONS.STUDENT_VIEW);
   const [managerPeriod, setManagerPeriod] = useState<ManagerPeriod>('month');
   const [layoutOpen, setLayoutOpen] = useState(false);
   const layout = usePreference('dashboard.layout', parseWidgetLayout);
@@ -182,6 +184,7 @@ export default function DashboardPage() {
     { key: 'charts', label: 'Grafiklar', span: 'twoThirds' },
     { key: 'tasks', label: 'Bugungi vazifalar', span: 'third', available: canViewFollowUps },
     { key: 'funnel', label: 'Sotuv voronkasi', span: 'third', available: canViewLeads },
+    { key: 'atRisk', label: 'Xavf ostidagi o‘quvchilar', span: 'third', available: canViewStudents },
     { key: 'managers', label: 'Managerlar reytingi', span: 'twoThirds', available: canViewReports },
     { key: 'activity', label: 'So‘nggi faoliyat', span: 'full', available: canViewActivity },
   ];
@@ -490,6 +493,7 @@ export default function DashboardPage() {
     charts: <DashboardCharts showRevenue={Boolean(summary?.finance)} />,
     tasks,
     funnel,
+    atRisk: <AtRiskStudents />,
     managers,
     activity: <RecentActivity />,
   };

@@ -1,4 +1,4 @@
-import type { AttendanceStatus, StudentStatus } from '../generated/prisma/client.js';
+import type { AttendanceStatus, RiskLevel, StudentStatus } from '../generated/prisma/client.js';
 
 export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   ACTIVE: 'O‘qimoqda',
@@ -6,9 +6,26 @@ export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   COMPLETED: 'Yakunlagan',
   DROPPED: 'Tashlab ketgan',
   GRADUATED: 'Bitirgan',
+  ALUMNI: 'Bitiruvchi (aloqada)',
 };
 
-export const STUDENT_STATUS_ORDER: readonly StudentStatus[] = ['ACTIVE', 'FROZEN', 'COMPLETED', 'GRADUATED', 'DROPPED'];
+export const STUDENT_STATUS_ORDER: readonly StudentStatus[] = [
+  'ACTIVE',
+  'FROZEN',
+  'COMPLETED',
+  'GRADUATED',
+  'ALUMNI',
+  'DROPPED',
+];
+
+export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
+  HEALTHY: 'Barqaror',
+  ATTENTION: 'E‘tibor kerak',
+  AT_RISK: 'Xavf ostida',
+  CRITICAL: 'Kritik',
+};
+
+export const RISK_LEVEL_ORDER: readonly RiskLevel[] = ['CRITICAL', 'AT_RISK', 'ATTENTION', 'HEALTHY'];
 
 export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
   PRESENT: 'Keldi',

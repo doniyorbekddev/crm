@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { ATTENDED_STATUSES } from '../utils/attendance.js';
 import { ATTENDANCE_STATUS_LABELS, formatStudentNumber } from '../config/studentLabels.js';
 import type { AttendanceStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -12,7 +13,8 @@ import type {
 import { getSessionAccess, parseDateOnly } from './attendanceSession.service.js';
 
 /** Qatnashgan deb hisoblanadigan holatlar (sababsiz qoldirilgandan tashqari hammasi) */
-const ATTENDED: readonly AttendanceStatus[] = ['PRESENT', 'LATE', 'EXCUSED'];
+/** Yagona ta'rif — `utils/attendance.ts` (ogohlantirish tizimi ham shuni ishlatadi) */
+const ATTENDED = ATTENDED_STATUSES;
 
 export interface AttendanceCounts {
   PRESENT: number;

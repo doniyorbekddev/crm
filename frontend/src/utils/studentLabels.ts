@@ -1,8 +1,15 @@
 import type { BadgeTone } from '@/components/ui/Badge';
 import type { AttendanceStatus } from '@/types/attendance';
-import type { DebtStatus, StudentStatus } from '@/types/student';
+import type { DebtStatus, RiskLevel, StudentStatus } from '@/types/student';
 
-export const STUDENT_STATUS_ORDER: readonly StudentStatus[] = ['ACTIVE', 'FROZEN', 'COMPLETED', 'GRADUATED', 'DROPPED'];
+export const STUDENT_STATUS_ORDER: readonly StudentStatus[] = [
+  'ACTIVE',
+  'FROZEN',
+  'COMPLETED',
+  'GRADUATED',
+  'ALUMNI',
+  'DROPPED',
+];
 
 export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   ACTIVE: 'O‘qimoqda',
@@ -10,6 +17,7 @@ export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   COMPLETED: 'Yakunlagan',
   DROPPED: 'Tashlab ketgan',
   GRADUATED: 'Bitirgan',
+  ALUMNI: 'Bitiruvchi (aloqada)',
 };
 
 export const STUDENT_STATUS_TONES: Record<StudentStatus, BadgeTone> = {
@@ -18,6 +26,23 @@ export const STUDENT_STATUS_TONES: Record<StudentStatus, BadgeTone> = {
   COMPLETED: 'blue',
   DROPPED: 'red',
   GRADUATED: 'purple',
+  ALUMNI: 'blue',
+};
+
+export const RISK_LEVEL_ORDER: readonly RiskLevel[] = ['CRITICAL', 'AT_RISK', 'ATTENTION', 'HEALTHY'];
+
+export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
+  HEALTHY: 'Barqaror',
+  ATTENTION: 'E‘tibor kerak',
+  AT_RISK: 'Xavf ostida',
+  CRITICAL: 'Kritik',
+};
+
+export const RISK_LEVEL_TONES: Record<RiskLevel, BadgeTone> = {
+  HEALTHY: 'green',
+  ATTENTION: 'blue',
+  AT_RISK: 'yellow',
+  CRITICAL: 'red',
 };
 
 export const DEBT_STATUS_LABELS: Record<DebtStatus, string> = {

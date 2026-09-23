@@ -1,6 +1,8 @@
 import type { Gender } from './lead';
 
-export type StudentStatus = 'ACTIVE' | 'FROZEN' | 'COMPLETED' | 'DROPPED' | 'GRADUATED';
+export type StudentStatus = 'ACTIVE' | 'FROZEN' | 'COMPLETED' | 'DROPPED' | 'GRADUATED' | 'ALUMNI';
+/** Xavf darajasi — holatdan mustaqil o‘lchov: o‘quvchi bir vaqtda "Faol" va "Kritik" bo‘lishi mumkin */
+export type RiskLevel = 'HEALTHY' | 'ATTENTION' | 'AT_RISK' | 'CRITICAL';
 export type DebtStatus = 'UNPAID' | 'PARTIAL' | 'PAID';
 
 export interface StudentDebt {
@@ -30,6 +32,10 @@ export interface StudentItem {
   /** "2026-10-01" — vaqtsiz sana */
   startDate: string;
   status: StudentStatus;
+  riskLevel: RiskLevel | null;
+  /** 0–100; `null` — hisob uchun yetarli ma'lumot yo‘q */
+  healthScore: number | null;
+  riskUpdatedAt: string | null;
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };
@@ -42,6 +48,7 @@ export interface StudentListParams {
   limit: number;
   search?: string;
   status?: StudentStatus;
+  riskLevel?: RiskLevel;
   courseId?: string;
   groupId?: string;
   sortBy?: 'createdAt' | 'firstName' | 'startDate' | 'number';
@@ -103,4 +110,31 @@ export interface StudentGroupChange {
 export interface TransferGroupPayload {
   groupId: string | null;
   reason: string;
+}
+
+export interface RiskFactor {
+  key: 'attendance' | 'absences' | 'debt' | 'overdue' | 'homework' | 'exam';
+  label: string;
+  weight: number;
+  score: number | null;
+  value: string;
+  hint: string;
+}
+
+export interface StudentRisk {
+  studentId: string;
+  healthScore: number | null;
+  riskLevel: RiskLevel | null;
+  factors: RiskFactor[];
+  reasons: string[];
+  updatedAt: string | null;
+}
+
+export interface StudentStatusChange {
+  id: string;
+  fromStatus: StudentStatus;
+  toStatus: StudentStatus;
+  reason: string | null;
+  changedAt: string;
+  changedBy: { id: string; firstName: string; lastName: string } | null;
 }

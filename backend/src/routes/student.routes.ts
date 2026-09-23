@@ -14,6 +14,7 @@ studentRouter.use(authenticate);
 
 studentRouter.get('/', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.list);
 studentRouter.get('/summary', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.summary);
+studentRouter.get('/at-risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.atRisk);
 studentRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.STUDENT_VIEW), requirePermission(PERMISSIONS.REPORT_EXPORT), studentController.export);
 studentRouter.get('/:id', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.getById);
 studentRouter.get('/:id/profile', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.profile);
@@ -26,6 +27,8 @@ studentRouter.get('/:id/payment-schedule', requireAnyPermission(PERMISSIONS.DEBT
 studentRouter.post('/:id/payment-schedule/generate', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.generate);
 studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.replace);
 studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.groupHistory);
+studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
+studentRouter.get('/:id/risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.risk);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);

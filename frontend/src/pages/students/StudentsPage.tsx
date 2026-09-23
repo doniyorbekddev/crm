@@ -21,12 +21,15 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { studentsService } from '@/services/students.service';
-import type { StudentItem, StudentListParams, StudentStatus, StudentSummaryParams } from '@/types/student';
+import type { RiskLevel, StudentItem, StudentListParams, StudentStatus, StudentSummaryParams } from '@/types/student';
 import { formatDate, formatMoney, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import {
   DEBT_STATUS_LABELS,
   DEBT_STATUS_TONES,
+  RISK_LEVEL_LABELS,
+  RISK_LEVEL_ORDER,
+  RISK_LEVEL_TONES,
   STUDENT_STATUS_LABELS,
   STUDENT_STATUS_ORDER,
   STUDENT_STATUS_TONES,
@@ -69,6 +72,7 @@ export default function StudentsPage() {
   const search = useDebounce(searchInput.trim(), 400);
   const [status, setStatus] = useState<StudentStatus | 'ALL'>('ALL');
   const [courseId, setCourseId] = useState('');
+  const [riskLevel, setRiskLevel] = useState<RiskLevel | 'ALL'>('ALL');
   const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('createdAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -85,6 +89,7 @@ export default function StudentsPage() {
     sortBy,
     sortOrder,
     ...(status === 'ALL' ? {} : { status }),
+    ...(riskLevel === 'ALL' ? {} : { riskLevel }),
   };
 
   const studentsQuery = useQuery({
@@ -194,6 +199,19 @@ export default function StudentsPage() {
               className="sm:max-w-xs"
             />
             <Select
+              value={riskLevel}
+              onChange={(event) => changeFilter(() => setRiskLevel(event.target.value as RiskLevel | 'ALL'))}
+              aria-label="Xavf darajasi"
+              wrapperClassName="sm:w-44"
+            >
+              <option value="ALL">Xavf: barchasi</option>
+              {RISK_LEVEL_ORDER.map((level) => (
+                <option key={level} value={level}>
+                  {RISK_LEVEL_LABELS[level]}
+                </option>
+              ))}
+            </Select>
+            <Select
               value={courseId}
               onChange={(event) => changeFilter(() => setCourseId(event.target.value))}
               aria-label="Kurs"
@@ -243,6 +261,7 @@ export default function StudentsPage() {
                     <TH>Qarzdorlik</TH>
                     <TH>Boshlangan</TH>
                     <TH>Holat</TH>
+                    <TH>Xavf</TH>
                     <TH className="w-12">
                       <span className="sr-only">Amallar</span>
                     </TH>
@@ -282,6 +301,18 @@ export default function StudentsPage() {
                       <TD className="whitespace-nowrap text-fg-muted">{formatDate(student.startDate)}</TD>
                       <TD>
                         <Badge tone={STUDENT_STATUS_TONES[student.status]}>{STUDENT_STATUS_LABELS[student.status]}</Badge>
+                      </TD>
+                      <TD>
+                        {student.riskLevel ? (
+                          <Badge tone={RISK_LEVEL_TONES[student.riskLevel]}>
+                            {RISK_LEVEL_LABELS[student.riskLevel]}
+                            {student.healthScore !== null && <span className="ml-1 tabular-nums opacity-70">{student.healthScore}</span>}
+                          </Badge>
+                        ) : (
+                          <span className="text-fg-subtle" title="Baho uchun yetarli ma’lumot yo‘q">
+                            —
+                          </span>
+                        )}
                       </TD>
                       <TD className="text-right">
                         <ActionMenu

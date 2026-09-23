@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { isAttended } from '../utils/attendance.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
@@ -369,7 +370,7 @@ const lowAttendanceRule: Rule = async (now, settings) => {
   for (const row of grouped) {
     const current = stats.get(row.groupId) ?? { total: 0, attended: 0 };
     current.total += row._count._all;
-    if (row.status === 'PRESENT' || row.status === 'LATE') current.attended += row._count._all;
+    if (isAttended(row.status)) current.attended += row._count._all;
     stats.set(row.groupId, current);
   }
 

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { emailSchema, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
 
-export const STUDENT_STATUSES = ['ACTIVE', 'FROZEN', 'COMPLETED', 'DROPPED', 'GRADUATED'] as const;
+export const STUDENT_STATUSES = ['ACTIVE', 'FROZEN', 'COMPLETED', 'DROPPED', 'GRADUATED', 'ALUMNI'] as const;
+export const RISK_LEVELS = ['HEALTHY', 'ATTENTION', 'AT_RISK', 'CRITICAL'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
 
@@ -20,6 +21,7 @@ const dateOnlySchema = z
 
 export const studentListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(STUDENT_STATUSES, 'Holat noto‘g‘ri').optional(),
+  riskLevel: z.enum(RISK_LEVELS, 'Xavf darajasi noto‘g‘ri').optional(),
   courseId: idSchema.optional(),
   groupId: idSchema.optional(),
   sortBy: z.enum(['createdAt', 'firstName', 'startDate', 'number']).default('createdAt'),
@@ -49,6 +51,8 @@ export const updateStudentSchema = studentFieldsSchema;
 
 export const updateStudentStatusSchema = z.object({
   status: z.enum(STUDENT_STATUSES, 'Holat noto‘g‘ri'),
+  /** Nima uchun o‘zgartirildi — tarixda va auditda saqlanadi */
+  reason: optionalField(z.string().trim().max(255, 'Sabab juda uzun')),
 });
 
 /** Leadni o‘quvchiga aylantirish — ma'lumotlar leaddan olinadi, qolganini shu yerda to‘ldiriladi */
@@ -64,6 +68,22 @@ export const convertLeadSchema = z.object({
 export type StudentListQuery = z.infer<typeof studentListQuerySchema>;
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
+export const atRiskQuerySchema = z.object({
+  levels: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(',')
+            .map((item) => item.trim().toUpperCase())
+            .filter((item): item is (typeof RISK_LEVELS)[number] => (RISK_LEVELS as readonly string[]).includes(item))
+        : undefined,
+    ),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type AtRiskQuery = z.infer<typeof atRiskQuerySchema>;
 export type UpdateStudentStatusInput = z.infer<typeof updateStudentStatusSchema>;
 export type ConvertLeadInput = z.infer<typeof convertLeadSchema>;
 

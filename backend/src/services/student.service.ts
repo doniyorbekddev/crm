@@ -2,7 +2,7 @@ import { prisma } from '../config/database.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { STUDENT_STATUS_ORDER, formatStudentNumber } from '../config/studentLabels.js';
-import type { DebtStatus, Gender, Prisma, StudentStatus } from '../generated/prisma/client.js';
+import type { DebtStatus, Gender, Prisma, RiskLevel, StudentStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
@@ -47,6 +47,9 @@ const studentSelect = {
   startDate: true,
   status: true,
   statusChangedAt: true,
+  healthScore: true,
+  riskLevel: true,
+  riskUpdatedAt: true,
   notes: true,
   createdAt: true,
   course: { select: { id: true, name: true } },
@@ -55,6 +58,15 @@ const studentSelect = {
 } satisfies Prisma.StudentSelect;
 
 type StudentRecord = Prisma.StudentGetPayload<{ select: typeof studentSelect }>;
+
+export interface StatusChangeDto {
+  id: string;
+  fromStatus: StudentStatus;
+  toStatus: StudentStatus;
+  reason: string | null;
+  changedAt: string;
+  changedBy: { id: string; firstName: string; lastName: string } | null;
+}
 
 export interface StudentDto {
   id: string;
@@ -74,6 +86,10 @@ export interface StudentDto {
   contractPrice: number;
   startDate: string;
   status: StudentStatus;
+  /** Xavf darajasi — holatdan mustaqil o‘lchov (`studentRisk.service.ts`) */
+  riskLevel: RiskLevel | null;
+  healthScore: number | null;
+  riskUpdatedAt: string | null;
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };
@@ -97,6 +113,9 @@ function toStudentDto(student: StudentRecord): StudentDto {
     parentPhone: student.parentPhone,
     telegram: student.telegram,
     email: student.email,
+    riskLevel: student.riskLevel,
+    healthScore: student.healthScore,
+    riskUpdatedAt: student.riskUpdatedAt?.toISOString() ?? null,
     birthDate: student.birthDate ? toDateOnly(student.birthDate) : null,
     gender: student.gender,
     address: student.address,
@@ -151,6 +170,7 @@ function buildWhere(access: StudentAccess, query: Partial<StudentListQuery>): Pr
   if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
   if (access.onlyOwnGroups) conditions.push({ group: { teacherId: access.userId } });
   if (query.status) conditions.push({ status: query.status });
+  if (query.riskLevel) conditions.push({ riskLevel: query.riskLevel });
   if (query.courseId) conditions.push({ courseId: query.courseId });
   if (query.groupId) conditions.push({ groupId: query.groupId });
 
@@ -444,6 +464,49 @@ export const studentService = {
     return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id: updated.id }, select: studentSelect }));
   },
 
+  /** Holat tarixi: kim, qachon, nimadan nimaga va nima sababdan o‘zgartirgan */
+  async statusHistory(actor: AuthUser, id: string): Promise<StatusChangeDto[]> {
+    const access = await getStudentAccess(actor);
+    await findVisibleStudent(access, id);
+    const rows = await prisma.studentStatusChange.findMany({
+      where: { studentId: id },
+      orderBy: { changedAt: 'asc' },
+      select: {
+        id: true,
+        fromStatus: true,
+        toStatus: true,
+        reason: true,
+        changedAt: true,
+        changedBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      fromStatus: row.fromStatus,
+      toStatus: row.toStatus,
+      reason: row.reason,
+      changedAt: row.changedAt.toISOString(),
+      changedBy: row.changedBy,
+    }));
+  },
+
+  /** Xavf ostidagi o‘quvchilar — eng past balldan boshlab (dashboard vidjeti va ro‘yxat uchun) */
+  async atRisk(actor: AuthUser, query: { levels?: RiskLevel[]; limit: number }): Promise<StudentDto[]> {
+    const access = await getStudentAccess(actor);
+    const where = buildWhere(access, {});
+    const rows = await prisma.student.findMany({
+      where: {
+        ...where,
+        riskLevel: { in: query.levels ?? ['CRITICAL', 'AT_RISK'] },
+        status: { in: ['ACTIVE', 'FROZEN'] },
+      },
+      select: studentSelect,
+      orderBy: [{ healthScore: 'asc' }, { riskUpdatedAt: 'desc' }],
+      take: query.limit,
+    });
+    return rows.map(toStudentDto);
+  },
+
   async groupHistory(actor: AuthUser, id: string): Promise<GroupChangeDto[]> {
     const access = await getStudentAccess(actor);
     await findVisibleStudent(access, id);
@@ -521,12 +584,22 @@ export const studentService = {
         data: { status: input.status, statusChangedAt: new Date() },
         select: studentSelect,
       });
+      // Holat tarixi — guruh tarixi bilan bir xil naqsh: kim, qachon, nimadan nimaga, nega
+      await tx.studentStatusChange.create({
+        data: {
+          studentId: id,
+          fromStatus: student.status,
+          toStatus: input.status,
+          reason: input.reason ?? null,
+          changedById: actor.id,
+        },
+      });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'student.status_changed',
         entityType: 'student',
         entityId: id,
-        metadata: { from: student.status, to: input.status },
+        metadata: { from: student.status, to: input.status, reason: input.reason ?? null },
         ...client,
       });
       return record;

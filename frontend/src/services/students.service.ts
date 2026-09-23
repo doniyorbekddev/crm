@@ -6,8 +6,11 @@ import type { StudentAttendanceHistory } from '@/types/attendance';
 import type {
   ConvertLeadPayload,
   StudentFormLookups,
+  RiskLevel,
   StudentGroupChange,
   StudentItem,
+  StudentRisk,
+  StudentStatusChange,
   StudentListParams,
   StudentPayload,
   StudentStatus,
@@ -46,9 +49,28 @@ export const studentsService = {
     return { data: response.data.data, message: response.data.message };
   },
 
-  async setStatus(id: string, status: StudentStatus): Promise<MessageResult<StudentItem>> {
-    const response = await api.patch<ApiSuccessResponse<StudentItem>>(`/students/${id}/status`, { status });
+  async setStatus(id: string, status: StudentStatus, reason?: string): Promise<MessageResult<StudentItem>> {
+    const response = await api.patch<ApiSuccessResponse<StudentItem>>(`/students/${id}/status`, { status, reason });
     return { data: response.data.data, message: response.data.message };
+  },
+
+  async statusHistory(id: string): Promise<StudentStatusChange[]> {
+    const response = await api.get<ApiSuccessResponse<StudentStatusChange[]>>(`/students/${id}/status-history`);
+    return response.data.data;
+  },
+
+  /** Bitta o‘quvchining xavf tafsiloti — har so‘rovda yangidan hisoblanadi */
+  async risk(id: string): Promise<StudentRisk> {
+    const response = await api.get<ApiSuccessResponse<StudentRisk>>(`/students/${id}/risk`);
+    return response.data.data;
+  },
+
+  /** Xavf ostidagilar — eng past balldan boshlab */
+  async atRisk(params: { levels?: RiskLevel[]; limit?: number } = {}): Promise<StudentItem[]> {
+    const response = await api.get<ApiSuccessResponse<StudentItem[]>>('/students/at-risk', {
+      params: { levels: params.levels?.join(','), limit: params.limit },
+    });
+    return response.data.data;
   },
 
   async remove(id: string): Promise<string> {

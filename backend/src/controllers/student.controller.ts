@@ -1,11 +1,13 @@
 import type { Request, Response } from 'express';
 import { attendanceService } from '../services/attendance.service.js';
 import { studentService } from '../services/student.service.js';
+import { studentRiskService } from '../services/studentRisk.service.js';
 import { studentProgressService } from '../services/studentProgress.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { exportFormatSchema, idParamSchema } from '../validators/common.validator.js';
 import {
+  atRiskQuerySchema,
   convertLeadSchema,
   createStudentSchema,
   studentListQuerySchema,
@@ -80,6 +82,24 @@ export const studentController = {
     sendSuccess(res, await studentService.transferGroup(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: input.groupId ? 'O‘quvchi guruhga o‘tkazildi' : 'O‘quvchi guruhdan chiqarildi',
     });
+  },
+
+  async statusHistory(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await studentService.statusHistory(requireAuthUser(req), id));
+  },
+
+  async risk(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const actor = requireAuthUser(req);
+    // Ko'rish huquqi tekshirilishi uchun avval o'quvchi olinadi
+    await studentService.getById(actor, id);
+    sendSuccess(res, await studentRiskService.forStudent(id));
+  },
+
+  async atRisk(req: Request, res: Response): Promise<void> {
+    const query = atRiskQuerySchema.parse(req.query);
+    sendSuccess(res, await studentService.atRisk(requireAuthUser(req), query));
   },
 
   async setStatus(req: Request, res: Response): Promise<void> {

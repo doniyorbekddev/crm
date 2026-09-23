@@ -127,6 +127,17 @@ enum StudentStatus {
   COMPLETED
   DROPPED
   GRADUATED
+  /// Bitirgan va markaz bilan aloqada qoladigan o'quvchi (referral, qayta yozilish uchun)
+  ALUMNI
+}
+
+/// O'quvchining ketib qolish xavfi. Bu — holat (StudentStatus) emas, alohida o'lchov:
+/// o'quvchi bir vaqtda ACTIVE va CRITICAL bo'lishi mumkin.
+enum RiskLevel {
+  HEALTHY
+  ATTENTION
+  AT_RISK
+  CRITICAL
 }
 
 enum PaymentMethod {
@@ -247,6 +258,7 @@ model User {
   rejectedExpenses         Expense[]              @relation("ExpenseRejectedBy")
   createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
   groupChanges             StudentGroupChange[]   @relation("GroupChangeBy")
+  statusChanges            StudentStatusChange[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -625,6 +637,12 @@ model Student {
   notes           String?
   createdById     String?
   branchId        String        @default("branch_main")
+  /// Sog'lomlik bahosi 0–100 (studentRisk.service qayta hisoblaydi)
+  healthScore     Int?          @db.SmallInt
+  riskLevel       RiskLevel?
+  /// Risk sabablari: [{key, label, score, weight, value, hint}] — hisoblangan qiymat
+  riskFactors     Json?
+  riskUpdatedAt   DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   deletedAt       DateTime?
@@ -650,6 +668,7 @@ model Student {
   incomes           Income[]
   installments      PaymentInstallment[]
   groupChanges      StudentGroupChange[]
+  statusChanges     StudentStatusChange[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -657,6 +676,7 @@ model Student {
   @@index([courseId])
   @@index([groupId])
   @@index([groupId, status, deletedAt])
+  @@index([riskLevel, deletedAt])
   @@index([status])
   @@index([createdAt])
   @@index([deletedAt])
@@ -711,6 +731,25 @@ model PaymentInstallment {
 
 /// O‘quvchining guruh almashtirish tarixi. Guruh nomlari o‘sha paytdagi holatda saqlanadi —
 /// guruh keyin qayta nomlansa yoki o‘chirilsa ham tarix o‘qiladi.
+/// O'quvchi holati tarixi: kim, qachon, nimadan nimaga va **nima sababdan** o'zgartirdi.
+model StudentStatusChange {
+  id          String        @id @default(cuid())
+  studentId   String
+  fromStatus  StudentStatus
+  toStatus    StudentStatus
+  reason      String?       @db.VarChar(255)
+  changedById String?
+  changedAt   DateTime      @default(now())
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  changedBy User?   @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, changedAt])
+  @@index([toStatus, changedAt])
+  @@index([changedAt])
+  @@map("student_status_changes")
+}
+
 model StudentGroupChange {
   id            String   @id @default(cuid())
   studentId     String
