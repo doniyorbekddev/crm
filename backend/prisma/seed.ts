@@ -29,7 +29,7 @@ import type {
 } from '../src/generated/prisma/client.js';
 
 import { seedAcademyModules } from './academySeed.js';
-import { LEAD_SOURCES, seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
+import { LEAD_SOURCES, ensureMainBranch, seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
 import { backfillPaymentSchedules } from './paymentScheduleBackfill.js';
 import { backfillGroupHistory } from './studentGroupHistoryBackfill.js';
 
@@ -1073,6 +1073,7 @@ async function seedDemoData(ctx: DemoContext): Promise<void> {
 
 async function main(): Promise<void> {
   log('\nSeed boshlandi...\n');
+  await ensureMainBranch(prisma, log);
   const roleIdByKey = await seedRolesAndPermissions(prisma, log);
   const users = await seedUsers(roleIdByKey);
   const sourceIdByKey = await seedLeadSources(prisma, log);

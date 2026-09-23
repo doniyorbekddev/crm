@@ -15,6 +15,7 @@ import type {
   UserSummaryQuery,
 } from '../validators/user.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 
 const userSelect = {
   id: true,
@@ -194,6 +195,7 @@ export const userService = {
           passwordHash,
           status: 'ACTIVE',
           roleId: role.id,
+          branchId: resolveBranchId(await getBranchAccess(actor)),
         },
         select: userSelect,
       });

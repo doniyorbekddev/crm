@@ -181,6 +181,7 @@ model User {
   roleId            String
   lastLoginAt       DateTime?
   passwordChangedAt DateTime?
+  branchId          String     @default("branch_main")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
   deletedAt         DateTime?
@@ -247,6 +248,9 @@ model User {
   createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
   groupChanges             StudentGroupChange[]   @relation("GroupChangeBy")
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([roleId])
   @@index([status])
   @@map("users")
@@ -336,6 +340,34 @@ model PasswordResetToken {
 // LEADS
 // ---------------------------------------------------------------------
 
+/// Filial. Bitta markazda ham bitta "Asosiy filial" yozuvi bo'ladi —
+/// shunda ikkinchi filial ochilganda hech narsa qayta yozilmaydi.
+model Branch {
+  id        String   @id @default(cuid())
+  /// MAIN, CHILONZOR, ...
+  key       String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  address   String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(32)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  employees    Employee[]
+  leads        Lead[]
+  students     Student[]
+  groups       Group[]
+  payments     Payment[]
+  transactions Transaction[]
+  incomes      Income[]
+  expenses     Expense[]
+  accounts     FinancialAccount[]
+
+  @@map("branches")
+}
+
 model Source {
   id        String   @id @default(cuid())
   /// INSTAGRAM, TELEGRAM, ...
@@ -375,6 +407,7 @@ model Lead {
   courseId        String?
   assignedToId    String?
   createdById     String?
+  branchId        String       @default("branch_main")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   deletedAt       DateTime?
@@ -390,6 +423,9 @@ model Lead {
   followUps  FollowUp[]
   documents  Document[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([status])
   @@index([assignedToId, status])
   @@index([assignedToId, createdAt])
@@ -540,6 +576,7 @@ model Group {
   endTime      String      @db.VarChar(5)
   capacity     Int         @default(15) @db.SmallInt
   status       GroupStatus @default(PLANNED)
+  branchId     String      @default("branch_main")
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -554,6 +591,9 @@ model Group {
   changesFrom StudentGroupChange[] @relation("GroupChangeFrom")
   changesTo   StudentGroupChange[] @relation("GroupChangeTo")
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([courseId])
   @@index([teacherId])
   @@index([status])
@@ -584,6 +624,7 @@ model Student {
   statusChangedAt DateTime?
   notes           String?
   createdById     String?
+  branchId        String        @default("branch_main")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   deletedAt       DateTime?
@@ -610,6 +651,9 @@ model Student {
   installments      PaymentInstallment[]
   groupChanges      StudentGroupChange[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([courseId])
   @@index([groupId])
   @@index([groupId, status, deletedAt])
@@ -715,6 +759,7 @@ model Payment {
   /// To‘lov paytidagi guruh va o‘qituvchi — o‘quvchi keyin boshqa guruhga o‘tsa ham foiz shu o‘qituvchiga qoladi
   groupId        String?
   teacherId      String?
+  branchId       String        @default("branch_main")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -729,6 +774,9 @@ model Payment {
   commissionEntries CommissionEntry[]
   refunds           PaymentRefund[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([studentId])
   @@index([studentId, deletedAt])
   @@index([courseId])
@@ -1324,6 +1372,7 @@ model FinancialAccount {
   isActive    Boolean     @default(true)
   sortOrder   Int         @default(0)
   description String?     @db.VarChar(255)
+  branchId    String      @default("branch_main")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -1334,6 +1383,9 @@ model FinancialAccount {
   refunds           PaymentRefund[]
   recurringExpenses RecurringExpense[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@map("financial_accounts")
 }
 
@@ -1355,6 +1407,7 @@ model Transaction {
   voidedById   String?
   voidReason   String?           @db.VarChar(255)
   reversalOfId String?           @unique
+  branchId     String            @default("branch_main")
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
@@ -1368,6 +1421,9 @@ model Transaction {
   expense       Expense?
   paymentRefund PaymentRefund?
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([occurredAt])
   @@index([type, occurredAt])
   @@index([status, occurredAt])
@@ -1420,6 +1476,7 @@ model Income {
   studentId     String?
   responsibleId String?
   transactionId String        @unique
+  branchId      String        @default("branch_main")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -1430,6 +1487,9 @@ model Income {
   transaction Transaction       @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   documents   Document[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([receivedAt])
   @@index([categoryId, receivedAt])
   @@map("incomes")
@@ -1464,6 +1524,7 @@ model Expense {
   recurringExpenseId String?
   /// "2026-09" — takroriy xarajat qaysi oy uchun yaratilgani
   recurringPeriod    String?       @db.VarChar(7)
+  branchId           String        @default("branch_main")
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -1479,7 +1540,10 @@ model Expense {
   documents        Document[]
   source           Source?           @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
   @@unique([recurringExpenseId, recurringPeriod])
+  @@index([branchId])
   @@index([status])
   @@index([spentAt])
   @@index([categoryId, spentAt])
@@ -1861,6 +1925,7 @@ model Employee {
   terminationDate DateTime?        @db.Date
   note            String?          @db.VarChar(500)
   createdById     String?
+  branchId        String           @default("branch_main")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -1869,6 +1934,9 @@ model Employee {
   salaryPeriods TeacherSalaryPeriod[]
   documents     Document[]
 
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([branchId])
   @@index([status])
   @@index([position])
   @@map("employees")

@@ -38,6 +38,8 @@ export interface LedgerEntry {
   entityType?: string | null;
   entityId?: string | null;
   createdById?: string | null;
+  /** Qaysi filialning puli. Berilmasa bazadagi DEFAULT ("Asosiy filial") ishlaydi. */
+  branchId?: string | null;
 }
 
 /** Pul qaysi tomonga harakatlanadi: tushum +, xarajat − */
@@ -72,6 +74,7 @@ export async function recordTransaction(
       entityType: entry.entityType ?? null,
       entityId: entry.entityId ?? null,
       createdById: entry.createdById ?? null,
+      ...(entry.branchId ? { branchId: entry.branchId } : {}),
     },
     select: { id: true, number: true },
   });

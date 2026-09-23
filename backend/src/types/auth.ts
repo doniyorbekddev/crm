@@ -6,4 +6,6 @@ export interface AuthUser {
   lastName: string;
   roleId: string;
   roleKey: string;
+  /** Xodim biriktirilgan filial — ko‘rinish doirasi va yangi yozuvlar uchun */
+  branchId: string;
 }

@@ -5,6 +5,7 @@
  * Bu modul `seed.ts` (development) va `bootstrap.ts` (production) tomonidan ishlatiladi,
  * shuning uchun bir xil ro‘yxat ikki joyda saqlanmaydi.
  */
+import { MAIN_BRANCH_ID, MAIN_BRANCH_KEY, MAIN_BRANCH_NAME } from '../src/config/branch.js';
 import { PERMISSION_DEFINITIONS, SYSTEM_ROLES } from '../src/config/permissions.js';
 import type { RoleKey } from '../src/config/permissions.js';
 import type { PrismaClient } from '../src/generated/prisma/client.js';
@@ -24,6 +25,20 @@ export const LEAD_SOURCES: ReadonlyArray<{ key: string; name: string }> = [
   { key: 'ADVERTISEMENT', name: 'Reklama' },
   { key: 'OTHER', name: 'Boshqa' },
 ];
+
+/**
+ * "Asosiy filial" — migratsiya uni yaratadi, lekin bo'sh bazada (test, e2e) ham
+ * bo'lishi shart: `branchId` ustunlarining DEFAULT qiymati shunga ishora qiladi.
+ */
+export async function ensureMainBranch(prisma: PrismaClient, log?: Log): Promise<string> {
+  await prisma.branch.upsert({
+    where: { id: MAIN_BRANCH_ID },
+    update: {},
+    create: { id: MAIN_BRANCH_ID, key: MAIN_BRANCH_KEY, name: MAIN_BRANCH_NAME, sortOrder: 0 },
+  });
+  log?.('✔ Asosiy filial');
+  return MAIN_BRANCH_ID;
+}
 
 /**
  * Permission va tizim rollari. Mavjud rolning permissionlari Super Admin tomonidan

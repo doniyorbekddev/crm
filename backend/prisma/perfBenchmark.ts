@@ -40,9 +40,9 @@ async function main(): Promise<void> {
 
   const owner = await prisma.user.findFirstOrThrow({
     where: { role: { key: 'OWNER' } },
-    select: { id: true, email: true, firstName: true, lastName: true, roleId: true, role: { select: { key: true } } },
+    select: { id: true, email: true, firstName: true, lastName: true, roleId: true, branchId: true, role: { select: { key: true } } },
   });
-  const actor = { id: owner.id, email: owner.email, firstName: owner.firstName, lastName: owner.lastName, roleId: owner.roleId, roleKey: owner.role.key };
+  const actor = { id: owner.id, email: owner.email, firstName: owner.firstName, lastName: owner.lastName, roleId: owner.roleId, roleKey: owner.role.key, branchId: owner.branchId };
 
   const today = new Date();
   const iso = (date: Date) => date.toISOString().slice(0, 10);

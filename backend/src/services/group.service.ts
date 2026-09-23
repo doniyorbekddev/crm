@@ -7,6 +7,8 @@ import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CreateGroupInput, GroupListQuery, UpdateGroupInput } from '../validators/group.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import type { BranchAccess } from './branchAccess.js';
 import { permissionService } from './permission.service.js';
 
 const groupSelect = {
@@ -76,6 +78,8 @@ export interface GroupAccess {
   canManage: boolean;
   /** O‘qituvchi faqat o‘zi dars beradigan guruhlarni ko‘radi */
   onlyOwnGroups: boolean;
+  /** Filial doirasi — `branch.view_all` bo‘lmasa faqat o‘z filiali */
+  branch: BranchAccess;
 }
 
 async function getGroupAccess(actor: AuthUser): Promise<GroupAccess> {
@@ -85,11 +89,13 @@ async function getGroupAccess(actor: AuthUser): Promise<GroupAccess> {
     userId: actor.id,
     canManage,
     onlyOwnGroups: !canManage && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    branch: await getBranchAccess(actor),
   };
 }
 
 function buildWhere(access: GroupAccess, query: Partial<GroupListQuery>): Prisma.GroupWhereInput {
   const conditions: Prisma.GroupWhereInput[] = [];
+  if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
   if (access.onlyOwnGroups) conditions.push({ teacherId: access.userId });
   if (query.courseId) conditions.push({ courseId: query.courseId });
   if (query.teacherId) conditions.push({ teacherId: query.teacherId });
@@ -186,6 +192,7 @@ export const groupService = {
           endTime: input.endTime,
           capacity: input.capacity,
           status: input.status,
+          branchId: resolveBranchId(await getBranchAccess(actor)),
         },
         select: groupSelect,
       });

@@ -37,6 +37,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'followup.completed': 'Follow-up bajarildi',
   'followup.deleted': 'Follow-up o‘chirildi',
 
+  'branch.created': 'Filial qo‘shildi',
+  'branch.updated': 'Filial tahrirlandi',
   'course.created': 'Kurs qo‘shildi',
   'course.updated': 'Kurs tahrirlandi',
   'course.deleted': 'Kurs o‘chirildi',
@@ -127,6 +129,17 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
   'alert.resolved': 'Ogohlantirish yopildi',
   'target.updated': 'Sotuv rejasi belgilandi',
+  'gamification.xp_awarded': 'XP berildi',
+  'gamification.badge_awarded': 'Nishon berildi',
+  'gamification.badge_updated': 'Nishon tahrirlandi',
+  'gamification.level_updated': 'Daraja tahrirlandi',
+  'gamification.rule_updated': 'XP qoidasi tahrirlandi',
+  'gamification.recalculated': 'XP va darajalar qayta hisoblandi',
+  'attendance_session.updated': 'Dars seansi tahrirlandi',
+  'attendance_session.deleted': 'Dars seansi o‘chirildi',
+  'payment_schedule.generated': 'To‘lov jadvali tuzildi',
+  'payment_schedule.updated': 'To‘lov jadvali o‘zgartirildi',
+  'student.group_changed': 'O‘quvchi guruhi almashtirildi',
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
@@ -137,6 +150,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   lead: 'Lead',
   call: 'Qo‘ng‘iroq',
   followUp: 'Follow-up',
+  branch: 'Filial',
   course: 'Kurs',
   group: 'Guruh',
   student: 'O‘quvchi',

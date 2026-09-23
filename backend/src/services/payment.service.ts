@@ -352,6 +352,7 @@ export const paymentService = {
         groupId: true,
         group: { select: { teacherId: true } },
         status: true,
+        branchId: true,
         debt: { select: { totalAmount: true, paidAmount: true } },
         lead: { select: { assignedToId: true } },
       },
@@ -437,6 +438,8 @@ export const paymentService = {
           groupId: student.groupId,
           teacherId: student.group?.teacherId ?? null,
           idempotencyKey: input.idempotencyKey ?? null,
+          // To'lov o'quvchi qaysi filialda bo'lsa, o'sha filialning tushumi hisoblanadi
+          branchId: student.branchId,
         },
         select: { id: true, number: true, paidAt: true, teacherId: true },
       });
@@ -453,6 +456,7 @@ export const paymentService = {
         entityType: 'payment',
         entityId: payment.id,
         createdById: actor.id,
+        branchId: student.branchId,
       });
       await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
       await commissionService.accrueForPayment(

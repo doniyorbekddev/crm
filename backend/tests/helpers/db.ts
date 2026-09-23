@@ -1,4 +1,5 @@
 import { prisma } from '../../src/config/database.js';
+import { MAIN_BRANCH_ID, MAIN_BRANCH_KEY, MAIN_BRANCH_NAME } from '../../src/config/branch.js';
 import { PERMISSION_DEFINITIONS, SYSTEM_ROLES } from '../../src/config/permissions.js';
 import type { UserStatus } from '../../src/generated/prisma/client.js';
 import { hashPassword } from '../../src/utils/password.js';
@@ -25,6 +26,11 @@ export async function resetDatabase(): Promise<void> {
   if (tables.length === 0) return;
   const list = tables.map((table) => `"public"."${table.tablename}"`).join(', ');
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
+  // `branchId` ustunlarining DEFAULT qiymati 'branch_main' ga ishora qiladi —
+  // tozalashdan keyin ham shu yozuv bo'lishi shart, aks holda har qanday INSERT FK xatosi beradi.
+  await prisma.branch.create({
+    data: { id: MAIN_BRANCH_ID, key: MAIN_BRANCH_KEY, name: MAIN_BRANCH_NAME, sortOrder: 0 },
+  });
 }
 
 export async function seedRolesAndPermissions(): Promise<void> {
@@ -63,6 +69,8 @@ export interface TestUserOptions {
   role?: string;
   firstName?: string;
   lastName?: string;
+  /** Xodim qaysi filialda ishlaydi (standart — "Asosiy filial") */
+  branchId?: string;
 }
 
 let userCounter = 0;
@@ -78,6 +86,7 @@ export async function createTestUser(options: TestUserOptions = {}) {
       passwordHash: await hashPassword(options.password ?? DEFAULT_PASSWORD),
       status: options.status ?? 'ACTIVE',
       roleId: role.id,
+      ...(options.branchId ? { branchId: options.branchId } : {}),
     },
   });
 }

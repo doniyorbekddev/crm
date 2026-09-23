@@ -3,6 +3,8 @@ import { PERMISSIONS } from '../config/permissions.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
+import { getBranchAccess } from './branchAccess.js';
+import type { BranchAccess } from './branchAccess.js';
 import { permissionService } from './permission.service.js';
 
 /**
@@ -15,6 +17,8 @@ export interface LeadAccess {
   canViewAll: boolean;
   canAssign: boolean;
   canDelete: boolean;
+  /** Filial doirasi — `branch.view_all` bo‘lmasa faqat o‘z filiali */
+  branch: BranchAccess;
 }
 
 export async function getLeadAccess(actor: AuthUser): Promise<LeadAccess> {
@@ -24,11 +28,16 @@ export async function getLeadAccess(actor: AuthUser): Promise<LeadAccess> {
     canViewAll: permissions.has(PERMISSIONS.LEAD_VIEW_ALL),
     canAssign: permissions.has(PERMISSIONS.LEAD_ASSIGN),
     canDelete: permissions.has(PERMISSIONS.LEAD_DELETE),
+    branch: await getBranchAccess(actor),
   };
 }
 
 export function leadScopeCondition(access: LeadAccess): Prisma.LeadWhereInput | null {
-  return access.canViewAll ? null : { OR: [{ assignedToId: access.userId }, { assignedToId: null }] };
+  const conditions: Prisma.LeadWhereInput[] = [];
+  if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
+  if (!access.canViewAll) conditions.push({ OR: [{ assignedToId: access.userId }, { assignedToId: null }] });
+  if (conditions.length === 0) return null;
+  return conditions.length === 1 ? conditions[0]! : { AND: conditions };
 }
 
 /** Qo‘ng‘iroq va follow-up so‘rovlarida ishlatiladigan "ko‘rinadigan lead" sharti */

@@ -15,6 +15,8 @@ import type {
   UpdateStudentStatusInput,
 } from '../validators/student.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import type { BranchAccess } from './branchAccess.js';
 import { getLeadAccess, visibleLeadFilter } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
@@ -129,6 +131,8 @@ export interface StudentAccess {
   canManage: boolean;
   /** O‘qituvchi faqat o‘zi dars beradigan guruh o‘quvchilarini ko‘radi */
   onlyOwnGroups: boolean;
+  /** Filial doirasi — `branch.view_all` bo‘lmasa faqat o‘z filiali */
+  branch: BranchAccess;
 }
 
 async function getStudentAccess(actor: AuthUser): Promise<StudentAccess> {
@@ -138,11 +142,13 @@ async function getStudentAccess(actor: AuthUser): Promise<StudentAccess> {
     userId: actor.id,
     canManage,
     onlyOwnGroups: !canManage && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    branch: await getBranchAccess(actor),
   };
 }
 
 function buildWhere(access: StudentAccess, query: Partial<StudentListQuery>): Prisma.StudentWhereInput {
   const conditions: Prisma.StudentWhereInput[] = [];
+  if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
   if (access.onlyOwnGroups) conditions.push({ group: { teacherId: access.userId } });
   if (query.status) conditions.push({ status: query.status });
   if (query.courseId) conditions.push({ courseId: query.courseId });
@@ -343,6 +349,7 @@ export const studentService = {
           startDate: input.startDate,
           notes: input.notes ?? null,
           createdById: actor.id,
+          branchId: resolveBranchId(await getBranchAccess(actor)),
           // Har bir o‘quvchi uchun balans yozuvi darhol ochiladi
           debt: {
             create: { totalAmount: contractPrice, paidAmount: 0, remainingAmount: contractPrice, status: 'UNPAID' },
@@ -567,6 +574,7 @@ export const studentService = {
         courseId: true,
         status: true,
         assignedToId: true,
+        branchId: true,
         student: { select: { id: true } },
       },
     });
@@ -608,6 +616,7 @@ export const studentService = {
           contractPrice,
           startDate,
           createdById: actor.id,
+          branchId: lead.branchId,
           debt: {
             create: { totalAmount: contractPrice, paidAmount: 0, remainingAmount: contractPrice, status: 'UNPAID' },
           },

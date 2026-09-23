@@ -130,7 +130,7 @@ chunki ular shaxsiy ma'lumot); rol ruxsatlari keshi 60 sekund (ko'p nusxali depl
 | F3 | Frontend komponent/hook testlari yo'q (faqat 38 ta sof funksiya testi + 14 E2E) | UI regressiyasi faqat E2E bilan ushlanadi | Ochiq (PHASE 12) |
 | F4 | Rate limiting testda butunlay o'chirilgan (`skip: () => isTest`) | 429 xatti-harakati hech qachon tekshirilmagan | Ochiq (PHASE 11) |
 | F5 | `audit_logs` uchun retention/arxivlash yo'q | Jadval cheksiz o'sadi (perf sinovida 150k yozuv = 62 MB) | Ochiq (PHASE 11) |
-| F6 | 11 ta audit amalining o'zbekcha izohi yo'q (`gamification.*`, `attendance_session.*`, `payment_schedule.*`, `student.group_changed`) | UI'da xom kalit ko'rinadi | Ochiq (tez tuzatiladi) |
+| F6 | 11 ta audit amalining o'zbekcha izohi yo'q (`gamification.*`, `attendance_session.*`, `payment_schedule.*`, `student.group_changed`) | UI'da xom kalit ko'rinadi | ✅ **Tuzatildi** (PHASE 1.5 bilan birga) |
 | F7 | `NotificationType.TRIAL_LESSON_REMINDER` enum'da bor, lekin hech qayerda yaratilmaydi | O'lik kod | Ochiq |
 | F8 | `Student.parentPhone` matn maydoni `Parent` modeli bilan dublikat | Ikki xil "ota-ona telefoni" manbasi | PHASE 3 da birlashtiriladi |
 | F9 | Frontenddagi `EXECUTIVE_ROLE_KEYS`, `SUPER_ADMIN_ROLE_KEY`, `OWNER_ROLE_KEY` ishlatilmaydi | O'lik kod | Ochiq (tez tuzatiladi) |
@@ -234,8 +234,10 @@ davomat, hisobot mantig'i shunga bog'langan** (masalan `status: ACTIVE` bo'yicha
 | B. AT_RISK ni `StudentStatus` ga qo'shish | Matnga so'zma-so'z mos | Risk paytida "faol"ligi yo'qoladi; davomat/qarz/maosh hisoblari buziladi; har statusdan qaytish mantig'i murakkablashadi |
 | C. Ikkalasi ham | — | Ikki manbali haqiqat, chalkashlik |
 
-**Tavsiyam — A variant.** Status = hayot sikli, risk = o'lchov. UI'da o'quvchi kartochkasida
-ikkalasi yonma-yon ko'rsatiladi ("Faol · Xavf: yuqori"), ro'yxatda esa risk bo'yicha filtr bo'ladi.
+**✅ QABUL QILINGAN QAROR (2026-09-23): A variant.** Status = hayot sikli, risk = o'lchov.
+UI'da o'quvchi kartochkasida ikkalasi yonma-yon ko'rsatiladi ("Faol · Xavf: yuqori"), ro'yxatda esa
+risk bo'yicha alohida filtr bo'ladi. `StudentStatus` ga faqat `ALUMNI` qo'shiladi; mavjud qiymatlar
+va ularga bog'liq to'lov/qarz/davomat/maosh mantig'i o'zgarmaydi.
 
 ---
 
@@ -341,6 +343,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | Bosqich | Mazmuni | Yangi model | Baho |
 |---|---|---|---|
 | **1** | Audit + arxitektura | — | ✅ **Tugadi** (shu hujjat + F1 tuzatildi) |
+| **1.5** | Filial poydevori (`Branch` + `branchId` + scope) | 1 + 10 ustun | ✅ **Tugadi** |
 | **2** | Student lifecycle + risk/churn tizimi | 3 | O'rta |
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | Katta |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | Katta |
@@ -348,15 +351,53 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | Eng katta |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
 | **8** | HR + o'qituvchi analitikasi + NPS | 3 | O'rta |
-| **9** | Inventar + multi-branch | 4 + `branchId` | Eng qimmat |
+| **9** | Inventar (+ filial UI'ni to'ldirish) | 3 | O'rta |
 | **10** | AI biznes yordamchisi | 1 | O'rta |
 | **11** | Xavfsizlik + unumdorlik + avtomatlashtirish dvigateli | 2 | O'rta |
 | **12** | To'liq testlar + production tayyorligi | — | O'rta |
 
-**Tavsiya qilingan tartib o'zgarishi:** 9-bosqichdagi **multi-branch**ni imkon qadar ertaroq
-(3-bosqichdan keyin) qilish arzonroq — chunki har bir yangi model `branchId` bilan tug'ilsa,
-keyinchalik 20+ jadvalga ustun qo'shib, barcha so'rovni qayta yozishdan osonroq. Agar yaqin
-1–2 yilda filial ochish rejasi bo'lmasa, hozirgi tartib qoladi. **Bu — sizning qaroringiz.**
+### ✅ QABUL QILINGAN QAROR (2026-09-23): filial poydevori — PHASE 1.5
+
+Markaz **1 yil ichida filial ochishni rejalashtirgan**. Shuning uchun `Branch` poydevori
+9-bosqichdan **1.5-bosqichga** ko'chiriladi: har bir yangi model (kabinetlar, kurrikulum,
+inventar, sertifikat) darhol `branchId` bilan tug'iladi va keyinchalik 25+ jadvalga ustun
+qo'shib, barcha so'rovni qayta yozish kerak bo'lmaydi.
+
+**PHASE 1.5 qamrovi (faqat poydevor, to'liq multi-branch UI emas):**
+
+| Qadam | Ish |
+|---|---|
+| 1 | `Branch` modeli (`key`, `name`, `address`, `phone`, `isActive`, `sortOrder` — mavjud katalog naqshi) |
+| 2 | `branchId` qo'shiladi: `User`, `Employee`, `Lead`, `Student`, `Group`, `Payment`, `Transaction`, `Income`, `Expense`, `FinancialAccount` (qolganlari — `Debt`, `Attendance`, `Homework`, `Exam`, maosh — ota yozuvidan kelib chiqadi) |
+| 3 | Migratsiya: "Asosiy filial" yaratiladi va **barcha mavjud yozuvlar unga biriktiriladi** (ma'lumot yo'qolmaydi), keyin ustunlar `NOT NULL` qilinadi |
+| 4 | Servis qatlamida yagona `branchScope(actor)` yordamchisi (mavjud `leadAccess.ts` / `onlyOwnGroups` naqshi bo'yicha) — filtr controllerlarga tashlab qo'yilmaydi |
+| 5 | Yangi ruxsatlar: `branch.view_all` (Owner/Super Admin — barcha filial), `branch.manage`; `User.branchId` — xodim qaysi filialda ishlashi |
+| 6 | Frontend: Topbar'da filial tanlash (faqat bir nechta filial bo'lsa ko'rinadi), formalarda filial maydoni |
+| 7 | Testlar: filial izolyatsiyasi (boshqa filial ma'lumoti ko'rinmasligi), backfill migratsiyasi, mavjud 471 test o'zgarishsiz o'tishi |
+
+Bitta filial ishlayotganda foydalanuvchi uchun **hech narsa o'zgarmaydi** — hamma narsa
+"Asosiy filial" ostida ishlaydi.
+
+### PHASE 1.5 — bajarilgan ish (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Branch` modeli + `branchId` 10 ta jadvalda (`users`, `employees`, `leads`, `students`, `groups`, `payments`, `transactions`, `incomes`, `expenses`, `financial_accounts`) | ✅ |
+| Migratsiya `20260923061734_branches`: "Asosiy filial" (`branch_main`) yaratiladi, **mavjud barcha yozuvlar unga biriktiriladi**; DROP/TRUNCATE/DELETE yo'q | ✅ Dev bazada tekshirildi: 130 o'quvchi, 11 lead, 18 xodim, 10 guruh, 6 kassa — hammasi joyida |
+| Ustunlar `NOT NULL` + `DEFAULT 'branch_main'` — eski kod yo'llari ham ishlaydi, yangi yozuv filialsiz qolmaydi | ✅ |
+| `AuthUser.branchId` (autentifikatsiyada o'qiladi) | ✅ |
+| `services/branchAccess.ts`: `getBranchAccess`, `branchFilter`, `resolveBranchId`, `assertBranchAccess` | ✅ |
+| Ruxsatlar: `branch.view_all`, `branch.manage` (faqat Owner/Super Admin; Admin o'z filiali doirasida) | ✅ 73 → 75 ruxsat |
+| API: `GET/POST/PUT /api/branches` | ✅ |
+| **Ko'rish doirasi**: o'quvchilar, leadlar (+ qo'ng'iroq, follow-up), guruhlar | ✅ |
+| **Yozish doirasi**: o'quvchi (yaratish va leaddan aylantirish), lead, guruh, to'lov (o'quvchi filiali bo'yicha), tushum, xarajat, daftar yozuvlari, xodim, HR xodimi | ✅ |
+| Testlar: `tests/branches.test.ts` (7 ta) — asosiy filial, CRUD ruxsatlari, takroriy kalit, asosiy filialni o'chirib bo'lmasligi, Owner hammasini ko'rishi, boshqa filial ma'lumoti ko'rinmasligi, yangi yozuv filialga biriktirilishi | ✅ 426 test (419 + 7), E2E 14/14 |
+
+**Ataylab keyinga qoldirilgan** (ikkinchi filial ochilganda, PHASE 9): moliya/hisobot/analitika
+so'rovlarida filial filtri, foydalanuvchi va xodim ro'yxatlarida filtr, Topbar'dagi filial tanlash
+paneli va formalardagi filial maydoni. Sabab: bitta filial ishlayotganda bu UI hech narsa qilmaydi,
+lekin **ma'lumot to'g'ri filialga yozilishi** — keyinchalik tuzatish qiyin bo'lgan qism — allaqachon
+ta'minlangan.
 
 ---
 

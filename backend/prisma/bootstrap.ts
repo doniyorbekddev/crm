@@ -25,7 +25,7 @@ import { ROLE_KEYS } from '../src/config/permissions.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { normalizePhone } from '../src/validators/common.validator.js';
 import { seedReferenceData } from './academySeed.js';
-import { seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
+import { ensureMainBranch, seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
 
 config({ quiet: true });
 
@@ -140,6 +140,7 @@ async function upsertAdmin(roleId: string): Promise<{ id: string; created: boole
 async function main(): Promise<void> {
   log('\nBirlamchi sozlash boshlandi...\n');
 
+  await ensureMainBranch(prisma, log);
   const roleIdByKey = await seedRolesAndPermissions(prisma, log);
   const superAdminRoleId = roleIdByKey.get(ROLE_KEYS.SUPER_ADMIN);
   if (!superAdminRoleId) throw new Error('Super Admin roli topilmadi');

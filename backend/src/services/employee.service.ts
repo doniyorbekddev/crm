@@ -7,6 +7,7 @@ import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CreateEmployeeInput, EmployeeListQuery, UpdateEmployeeInput } from '../validators/employee.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 
 /**
  * Xodimlar (HR) — o‘qituvchidan tashqari xodimlar (promt 52–55-bo‘limlar).
@@ -200,6 +201,7 @@ export const employeeService = {
           baseSalary: input.baseSalary,
           status: input.status,
           hireDate: input.hireDate,
+          branchId: resolveBranchId(await getBranchAccess(actor)),
           terminationDate: input.terminationDate ?? null,
           note: input.note ?? null,
           userId: input.userId ?? null,

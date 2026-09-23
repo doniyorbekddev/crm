@@ -99,6 +99,9 @@ export const PERMISSIONS = {
   TARGET_MANAGE: 'target.manage',
 
   ANALYTICS_VIEW: 'analytics.view',
+
+  BRANCH_VIEW_ALL: 'branch.view_all',
+  BRANCH_MANAGE: 'branch.manage',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -216,6 +219,13 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
   { key: PERMISSIONS.ANALYTICS_VIEW, module: 'analytics', description: 'Kengaytirilgan analitikani ko‘rish' },
+
+  {
+    key: PERMISSIONS.BRANCH_VIEW_ALL,
+    module: 'branches',
+    description: 'Barcha filiallar ma’lumotini ko‘rish (bo‘lmasa — faqat o‘z filiali)',
+  },
+  { key: PERMISSIONS.BRANCH_MANAGE, module: 'branches', description: 'Filial qo‘shish va tahrirlash' },
 ];
 
 export const ROLE_KEYS = {
@@ -254,6 +264,10 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.EXPENSE_APPROVE,
   // Ogohlantirish chegaralarini sozlash — faqat Owner / Super Admin
   PERMISSIONS.ALERT_MANAGE,
+  // Filial boshqaruvi va barcha filiallarni ko‘rish — faqat Owner / Super Admin.
+  // Admin o‘z filiali doirasida ishlaydi (bitta filial bo‘lsa farqi bilinmaydi).
+  PERMISSIONS.BRANCH_VIEW_ALL,
+  PERMISSIONS.BRANCH_MANAGE,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */

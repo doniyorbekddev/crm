@@ -19,6 +19,7 @@ import type {
   UpdateLeadStatusInput,
 } from '../validators/lead.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import type { LeadAccess } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
@@ -536,7 +537,12 @@ export const leadService = {
 
     const leadId = await prisma.$transaction(async (tx) => {
       const created = await tx.lead.create({
-        data: { ...toLeadFields(input), assignedToId: assignee?.id ?? null, createdById: actor.id },
+        data: {
+          ...toLeadFields(input),
+          assignedToId: assignee?.id ?? null,
+          createdById: actor.id,
+          branchId: resolveBranchId(await getBranchAccess(actor)),
+        },
         select: { id: true, number: true, firstName: true, lastName: true },
       });
 

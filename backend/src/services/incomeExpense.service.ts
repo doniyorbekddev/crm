@@ -15,6 +15,7 @@ import type {
   VoidMoneyInput,
 } from '../validators/incomeExpense.validator.js';
 import { auditService } from './audit.service.js';
+import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
@@ -310,6 +311,7 @@ export const incomeService = {
   },
 
   async create(actor: AuthUser, input: CreateIncomeInput, client: ClientInfo): Promise<MoneyEntryDto> {
+    const branchId = resolveBranchId(await getBranchAccess(actor));
     const category = await prisma.incomeCategory.findFirst({
       where: { id: input.categoryId, isActive: true },
       select: { id: true, name: true },
@@ -341,6 +343,7 @@ export const incomeService = {
         categoryName: category.name,
         entityType: 'income',
         createdById: actor.id,
+        branchId,
       });
 
       const income = await tx.income.create({
@@ -353,6 +356,7 @@ export const incomeService = {
           description: input.description ?? null,
           studentId: input.studentId ?? null,
           responsibleId: actor.id,
+          branchId,
           transactionId: transaction.id,
         },
         select: { id: true, number: true },
@@ -459,6 +463,7 @@ export const expenseService = {
   },
 
   async create(actor: AuthUser, input: CreateExpenseInput, client: ClientInfo): Promise<MoneyEntryDto> {
+    const branchId = resolveBranchId(await getBranchAccess(actor));
     const category = await prisma.expenseCategory.findFirst({
       where: { id: input.categoryId, isActive: true },
       select: { id: true, name: true },
@@ -493,6 +498,7 @@ export const expenseService = {
             vendor: input.vendor ?? null,
             sourceId,
             responsibleId: actor.id,
+            branchId,
             status: 'PENDING',
           },
           select: { id: true, number: true },
@@ -527,6 +533,7 @@ export const expenseService = {
         categoryName: category.name,
         entityType: 'expense',
         createdById: actor.id,
+        branchId,
       });
 
       const expense = await tx.expense.create({
@@ -540,6 +547,7 @@ export const expenseService = {
           vendor: input.vendor ?? null,
           sourceId,
           responsibleId: actor.id,
+          branchId,
           transactionId: transaction.id,
           status: 'PAID',
           ...(approvedByActor ? { approvedById: actor.id, approvedAt: new Date() } : {}),

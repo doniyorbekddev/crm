@@ -32,6 +32,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       deletedAt: true,
       passwordChangedAt: true,
       roleId: true,
+      branchId: true,
       role: { select: { key: true } },
     },
   });
@@ -54,6 +55,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     lastName: user.lastName,
     roleId: user.roleId,
     roleKey: user.role.key,
+    branchId: user.branchId,
   };
   next();
 };
