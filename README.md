@@ -338,6 +338,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 Tartib avtomatik: PostgreSQL → migratsiyalar → backend → frontend (Nginx).
 Zaxira nusxa: `./scripts/backup-db.sh`, tiklash: `./scripts/restore-db.sh <fayl>`.
 
+**ACADEMY CRM 2.0 rejasi:** [docs/ACADEMY-2.0-AUDIT.md](docs/ACADEMY-2.0-AUDIT.md) — mavjud tizim auditi
+(60 model, 261 endpoint, 73 ruxsat, 471 test), topilgan nuqsonlar va 12 bosqichli rivojlantirish rejasi.
+
 **Avtomatik deploy (CI/CD):** [docs/CI-CD.md](docs/CI-CD.md) — `main` ga push → CI → GitHub Actions
 SSH orqali serverda `deploy/deploy.sh`: build, zaxira, `migrate deploy`, konteynerlarni almashtirish,
 sog‘liq tekshiruvi va xato bo‘lsa avtomatik rollback.
@@ -356,7 +359,7 @@ zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va
 crm/
 ├── backend/     Express API (src/config, controllers, routes, services, middleware, validators, utils, types) + Dockerfile
 ├── frontend/    React SPA (src/components, pages, layouts, hooks, services, store, types, utils, lib, routes) + Dockerfile, nginx/
-├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, CI-CD.md, TZ.html/TZ.pdf
+├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, CI-CD.md, ACADEMY-2.0-AUDIT.md, TZ.html/TZ.pdf
 ├── deploy/      setup-server.sh, deploy.sh, rollback.sh, nginx/
 ├── scripts/     backup-db.sh, restore-db.sh
 ├── .github/     CI (typecheck, lint, test, build)
