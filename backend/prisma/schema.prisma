@@ -304,6 +304,8 @@ model User {
   createdPromoCodes        PromoCode[]            @relation("PromoCodeCreatedBy")
   rewardedReferrals        Referral[]             @relation("ReferralRewardedBy")
   receivedFeedback         Feedback[]             @relation("FeedbackTeacher")
+  requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
+  decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -2411,12 +2413,26 @@ model Employee {
   firstName       String           @db.VarChar(100)
   lastName        String           @db.VarChar(100)
   phone           String?          @db.VarChar(32)
+  email           String?          @db.VarChar(255)
+  /// Bo'lim: "Sotuv", "O'quv bo'limi", "Buxgalteriya" — markaz o'zi nomlaydi
+  department      String?          @db.VarChar(100)
   position        EmployeePosition
   /// Oylik belgilangan maosh (oy o‘rtasida kirgan/ketganda kunlarga proporsional)
   baseSalary      Decimal          @default(0) @db.Decimal(14, 2)
   status          EmployeeStatus   @default(ACTIVE)
   hireDate        DateTime         @db.Date
   terminationDate DateTime?        @db.Date
+  /// Mehnat shartnomasi
+  contractNumber    String?        @unique @db.VarChar(50)
+  contractStartDate DateTime?      @db.Date
+  /// Muddatsiz shartnomada bo'sh qoladi
+  contractEndDate   DateTime?      @db.Date
+  /// Maxfiy ma'lumot — `employee.sensitive` ruxsati bo'lmasa javobda qaytarilmaydi
+  birthDate         DateTime?      @db.Date
+  address           String?        @db.VarChar(255)
+  passportNumber    String?        @db.VarChar(32)
+  emergencyContact  String?        @db.VarChar(120)
+  emergencyPhone    String?        @db.VarChar(32)
   note            String?          @db.VarChar(500)
   createdById     String?
   branchId        String           @default("branch_main")
@@ -2427,13 +2443,61 @@ model Employee {
   createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   salaryPeriods TeacherSalaryPeriod[]
   documents     Document[]
+  leaves        EmployeeLeave[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([branchId])
   @@index([status])
   @@index([position])
+  @@index([department])
+  @@index([contractEndDate])
   @@map("employees")
+}
+
+/// Ta'til turi
+enum LeaveType {
+  VACATION
+  SICK
+  UNPAID
+  MATERNITY
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Xodimning ta'til/dam olish arizasi. Tasdiqlangan ta'til xodim holatini **o'zgartirmaydi** —
+/// "bugun ta'tilda" degan javob sanalardan hisoblanadi, shunda qo'lda qo'yilgan holat buzilmaydi.
+model EmployeeLeave {
+  id           String      @id @default(cuid())
+  employeeId   String
+  type         LeaveType
+  startDate    DateTime    @db.Date
+  endDate      DateTime    @db.Date
+  /// Kunlar soni (ikkala chekka kun ham kiradi) — yozuvda muzlatiladi
+  days         Int         @db.SmallInt
+  reason       String?     @db.VarChar(255)
+  status       LeaveStatus @default(PENDING)
+  requestedById String?
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?     @db.VarChar(255)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requestedBy User?    @relation("LeaveRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User?    @relation("LeaveDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, startDate])
+  @@index([status, startDate])
+  @@index([startDate, endDate])
+  @@map("employee_leaves")
 }
 
 enum FinancialPeriodStatus {

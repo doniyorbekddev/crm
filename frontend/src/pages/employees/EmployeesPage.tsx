@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
+import { CalendarOff, FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -30,10 +30,16 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { SALARY_STATUS_LABELS, SALARY_STATUS_TONES } from '@/utils/teacherLabels';
 import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { EmployeeFormModal } from './EmployeeFormModal';
+import { LeavesModal } from './LeavesModal';
 
 const PAGE_SIZE = 20;
 
-type Dialog = { type: 'create' } | { type: 'edit'; employee: Employee } | { type: 'documents'; employee: Employee } | null;
+type Dialog =
+  | { type: 'create' }
+  | { type: 'edit'; employee: Employee }
+  | { type: 'documents'; employee: Employee }
+  | { type: 'leaves'; employee: Employee }
+  | null;
 
 /** Xodimlar (HR): o‘qituvchidan tashqari xodimlar, lavozim, maosh va holat */
 export default function EmployeesPage() {
@@ -63,6 +69,9 @@ export default function EmployeesPage() {
     queryFn: () => employeesService.list(params),
     placeholderData: keepPreviousData,
   });
+
+  // Mavjud bo'lim nomlari — formada taklif sifatida ishlatiladi
+  const departments = [...new Set((query.data?.items ?? []).map((item) => item.department).filter((name): name is string => Boolean(name)))].sort();
 
   const saved = () => {
     setDialog(null);
@@ -144,6 +153,8 @@ export default function EmployeesPage() {
                   <tr>
                     <TH>Xodim</TH>
                     <TH>Lavozim</TH>
+                    <TH>Bo‘lim</TH>
+                    <TH>Shartnoma</TH>
                     <TH className="text-right">Oylik maosh</TH>
                     <TH>Ishga kirgan</TH>
                     <TH>Holat</TH>
@@ -168,6 +179,22 @@ export default function EmployeesPage() {
                         </p>
                       </TD>
                       <TD className="whitespace-nowrap text-fg">{EMPLOYEE_POSITION_LABELS[employee.position]}</TD>
+                      <TD className="whitespace-nowrap text-fg-muted">{employee.department ?? '—'}</TD>
+                      <TD className="whitespace-nowrap text-fg-muted">
+                        {employee.contractNumber ?? '—'}
+                        {employee.contractEndDate && (
+                          <p
+                            className={cn(
+                              'text-xs',
+                              employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-red-600 dark:text-red-400' : '',
+                            )}
+                          >
+                            {employee.contractDaysLeft !== null && employee.contractDaysLeft < 0
+                              ? `muddati ${Math.abs(employee.contractDaysLeft)} kun oldin tugagan`
+                              : `${employee.contractDaysLeft} kun qoldi`}
+                          </p>
+                        )}
+                      </TD>
                       <TD className="text-right whitespace-nowrap tabular-nums text-fg">{employee.baseSalary === null ? '—' : formatMoney(employee.baseSalary)}</TD>
                       <TD className="whitespace-nowrap text-fg-muted">
                         {formatDate(employee.hireDate)}
@@ -175,6 +202,7 @@ export default function EmployeesPage() {
                       </TD>
                       <TD>
                         <Badge tone={EMPLOYEE_STATUS_TONES[employee.status]}>{EMPLOYEE_STATUS_LABELS[employee.status]}</Badge>
+                        {employee.onLeaveToday && <Badge tone="yellow" className="ml-1">Bugun ta’tilda</Badge>}
                       </TD>
                       <TD className="whitespace-nowrap">
                         {employee.currentSalary ? (
@@ -195,6 +223,7 @@ export default function EmployeesPage() {
                             label={`${employee.firstName} ${employee.lastName} amallari`}
                             items={[
                               ...(canManage ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }] : []),
+                              { label: 'Ta’tillar', icon: CalendarOff, onSelect: () => setDialog({ type: 'leaves', employee }) },
                               ...(canViewDocuments
                                 ? [{ label: 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', employee }) }]
                                 : []),
@@ -219,8 +248,11 @@ export default function EmployeesPage() {
         )}
       </Card>
 
-      {dialog?.type === 'create' && <EmployeeFormModal onClose={() => setDialog(null)} onSaved={saved} />}
-      {dialog?.type === 'edit' && <EmployeeFormModal employee={dialog.employee} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog?.type === 'create' && <EmployeeFormModal departments={departments} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog?.type === 'edit' && (
+        <EmployeeFormModal employee={dialog.employee} departments={departments} onClose={() => setDialog(null)} onSaved={saved} />
+      )}
+      {dialog?.type === 'leaves' && <LeavesModal employee={dialog.employee} onClose={() => setDialog(null)} />}
       {dialog?.type === 'documents' && (
         <StaffDocumentsModal
           owner="employee"

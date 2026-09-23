@@ -25,6 +25,7 @@ const dateOnlySchema = (label: string) =>
 export const employeeListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(EMPLOYEE_STATUSES, 'Holat noto‘g‘ri').optional(),
   position: z.enum(EMPLOYEE_POSITIONS, 'Lavozim noto‘g‘ri').optional(),
+  department: optionalField(z.string().trim().max(100)),
 });
 
 const employeeFields = {
@@ -43,7 +44,46 @@ const employeeFields = {
   note: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
   /** Tizim akkaunti (bildirishnoma uchun) — ixtiyoriy */
   userId: optionalField(idSchema),
+  email: optionalField(z.email('Email noto‘g‘ri formatda').max(255)),
+  department: optionalField(z.string().trim().max(100, 'Bo‘lim nomi juda uzun')),
+  // Mehnat shartnomasi
+  contractNumber: optionalField(z.string().trim().max(50, 'Shartnoma raqami juda uzun')),
+  contractStartDate: optionalField(dateOnlySchema('Shartnoma boshlangan sana')),
+  contractEndDate: optionalField(dateOnlySchema('Shartnoma tugash sanasi')),
+  // Maxfiy ma'lumot — faqat `employee.sensitive` ruxsati bilan ko'rinadi
+  birthDate: optionalField(dateOnlySchema('Tug‘ilgan sana')),
+  address: optionalField(z.string().trim().max(255, 'Manzil juda uzun')),
+  passportNumber: optionalField(z.string().trim().max(32, 'Pasport raqami juda uzun')),
+  emergencyContact: optionalField(z.string().trim().max(120, 'Juda uzun')),
+  emergencyPhone: optionalField(phoneSchema),
 };
+
+export const LEAVE_TYPES = ['VACATION', 'SICK', 'UNPAID', 'MATERNITY', 'OTHER'] as const;
+export const LEAVE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
+
+export const createLeaveSchema = z
+  .object({
+    employeeId: idSchema,
+    type: z.enum(LEAVE_TYPES, 'Ta’til turini tanlang'),
+    startDate: dateOnlySchema('Boshlanish sanasi'),
+    endDate: dateOnlySchema('Tugash sanasi'),
+    reason: optionalField(z.string().trim().max(255, 'Sabab juda uzun')),
+  })
+  .refine((values) => values.endDate >= values.startDate, {
+    path: ['endDate'],
+    message: 'Tugash sanasi boshlanishdan keyin bo‘lsin',
+  });
+
+export const decideLeaveSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED', 'CANCELLED'], 'Qaror noto‘g‘ri'),
+  note: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
+});
+
+export const leaveListQuerySchema = paginationQuerySchema.omit({ search: true }).extend({
+  employeeId: optionalField(idSchema),
+  status: z.enum(LEAVE_STATUSES).optional(),
+  type: z.enum(LEAVE_TYPES).optional(),
+});
 
 export const createEmployeeSchema = z.object({ ...employeeFields, status: employeeFields.status.default('ACTIVE') });
 
@@ -55,3 +95,5 @@ export const updateEmployeeSchema = z
 export type EmployeeListQuery = z.infer<typeof employeeListQuerySchema>;
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
+export type CreateLeaveInput = z.infer<typeof createLeaveSchema>;
+export type LeaveListQuery = z.infer<typeof leaveListQuerySchema>;

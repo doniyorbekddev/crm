@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { attachmentController } from '../controllers/document.controller.js';
-import { employeeController } from '../controllers/employee.controller.js';
+import { employeeController, leaveController } from '../controllers/employee.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { heavyLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
@@ -16,6 +16,11 @@ const manage = requirePermission(PERMISSIONS.EMPLOYEE_MANAGE);
 
 employeeRouter.get('/', view, employeeController.list);
 employeeRouter.get('/candidates', manage, employeeController.candidates);
+// Ta'tillar — aniq yo'llar `/:id` dan oldin turadi
+employeeRouter.get('/leaves', view, leaveController.list);
+employeeRouter.post('/leaves', manage, leaveController.create);
+employeeRouter.post('/leaves/:id/decide', manage, leaveController.decide);
+employeeRouter.get('/:id/leaves', view, leaveController.forEmployee);
 employeeRouter.get('/:id', view, employeeController.getById);
 employeeRouter.post('/', manage, employeeController.create);
 employeeRouter.put('/:id', manage, employeeController.update);

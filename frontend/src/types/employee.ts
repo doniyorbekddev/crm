@@ -17,12 +17,28 @@ export interface Employee {
   firstName: string;
   lastName: string;
   phone: string | null;
+  email: string | null;
+  department: string | null;
   position: EmployeePosition;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
+  contractNumber: string | null;
+  contractStartDate: string | null;
+  contractEndDate: string | null;
+  /** Shartnoma tugashiga necha kun qolgani (muddatsiz bo‘lsa null) */
+  contractDaysLeft: number | null;
+  onLeaveToday: boolean;
+  /** `employee.sensitive` ruxsati bo‘lmasa butun blok null */
+  sensitive: {
+    birthDate: string | null;
+    address: string | null;
+    passportNumber: string | null;
+    emergencyContact: string | null;
+    emergencyPhone: string | null;
+  } | null;
   note: string | null;
   createdAt: string;
   user: { id: string; email: string; firstName: string; lastName: string } | null;
@@ -43,6 +59,7 @@ export interface EmployeeListParams {
   search?: string;
   status?: EmployeeStatus;
   position?: EmployeePosition;
+  department?: string;
 }
 
 export interface EmployeePayload {
@@ -57,6 +74,59 @@ export interface EmployeePayload {
   terminationDate: string | null;
   note: string | null;
   userId: string | null;
+  email?: string | null;
+  department?: string | null;
+  contractNumber?: string | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
+  birthDate?: string | null;
+  address?: string | null;
+  passportNumber?: string | null;
+  emergencyContact?: string | null;
+  emergencyPhone?: string | null;
+}
+
+export type LeaveType = 'VACATION' | 'SICK' | 'UNPAID' | 'MATERNITY' | 'OTHER';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface EmployeeLeave {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string | null;
+  status: LeaveStatus;
+  requestedBy: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  isActiveToday: boolean;
+  createdAt: string;
+}
+
+export interface LeaveListParams {
+  page: number;
+  limit: number;
+  employeeId?: string;
+  status?: LeaveStatus;
+  type?: LeaveType;
+}
+
+export interface CreateLeavePayload {
+  employeeId: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+}
+
+export interface EmployeeLeaveHistory {
+  items: EmployeeLeave[];
+  approvedDaysThisYear: number;
+  onLeaveToday: boolean;
 }
 
 export interface EmployeeCandidate {

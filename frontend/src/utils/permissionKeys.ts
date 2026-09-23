@@ -89,6 +89,7 @@ export const PERMISSIONS = {
 
   ALERT_VIEW: 'alert.view',
   ALERT_MANAGE: 'alert.manage',
+  EMPLOYEE_SENSITIVE: 'employee.sensitive',
   STAFF_DOCUMENT_VIEW: 'staff_document.view',
   STAFF_DOCUMENT_MANAGE: 'staff_document.manage',
   TARGET_VIEW: 'target.view',

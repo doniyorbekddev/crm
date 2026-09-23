@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
@@ -31,6 +33,20 @@ const schema = z
     terminationDate: z.string(),
     userId: z.string(),
     note: z.string().trim().max(500, 'Izoh juda uzun'),
+    email: z.string().trim().refine((value) => value === '' || z.email().safeParse(value).success, 'Email noto‘g‘ri formatda'),
+    department: z.string().trim().max(100, 'Bo‘lim nomi juda uzun'),
+    contractNumber: z.string().trim().max(50, 'Shartnoma raqami juda uzun'),
+    contractStartDate: z.string(),
+    contractEndDate: z.string(),
+    birthDate: z.string(),
+    address: z.string().trim().max(255, 'Manzil juda uzun'),
+    passportNumber: z.string().trim().max(32, 'Pasport raqami juda uzun'),
+    emergencyContact: z.string().trim().max(120, 'Juda uzun'),
+    emergencyPhone: optionalPhoneField,
+  })
+  .refine((values) => values.contractEndDate === '' || values.contractStartDate === '' || values.contractEndDate >= values.contractStartDate, {
+    path: ['contractEndDate'],
+    message: 'Tugash sanasi boshlanishdan keyin bo‘lsin',
   })
   .refine((values) => values.status !== 'RESIGNED' || values.terminationDate !== '', {
     path: ['terminationDate'],
@@ -39,7 +55,7 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-function toPayload(values: FormValues, includeSalary: boolean): EmployeePayload {
+function toPayload(values: FormValues, includeSalary: boolean, includeSensitive: boolean): EmployeePayload {
   return {
     firstName: values.firstName,
     lastName: values.lastName,
@@ -51,18 +67,38 @@ function toPayload(values: FormValues, includeSalary: boolean): EmployeePayload 
     terminationDate: values.terminationDate || null,
     note: values.note || null,
     userId: values.userId || null,
+    email: values.email || null,
+    department: values.department || null,
+    contractNumber: values.contractNumber || null,
+    contractStartDate: values.contractStartDate || null,
+    contractEndDate: values.contractEndDate || null,
+    // Maxfiy maydonlar faqat ko‘rish huquqi bo‘lganda formada bo‘ladi — aks holda
+    // yuborilmaydi va saqlangan qiymat o‘zgarmaydi
+    ...(includeSensitive
+      ? {
+          birthDate: values.birthDate || null,
+          address: values.address || null,
+          passportNumber: values.passportNumber || null,
+          emergencyContact: values.emergencyContact || null,
+          emergencyPhone: values.emergencyPhone || null,
+        }
+      : {}),
   };
 }
 
 interface EmployeeFormModalProps {
   employee?: Employee;
+  /** Mavjud bo‘lim nomlari — yozishda taklif qilinadi (yangi nom ham kiritsa bo‘ladi) */
+  departments?: readonly string[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormModalProps) {
+export function EmployeeFormModal({ employee, departments = [], onClose, onSaved }: EmployeeFormModalProps) {
   /** salary.view ruxsati yo‘q — maosh ko‘rsatilmaydi va o‘zgartirilmaydi */
   const salaryHidden = employee?.baseSalary === null;
+  /** Maxfiy ma'lumotni faqat ruxsati borlar ko'radi va tahrirlaydi */
+  const canSeeSensitive = usePermission(PERMISSIONS.EMPLOYEE_SENSITIVE);
   const [formError, setFormError] = useState<string | null>(null);
 
   const candidatesQuery = useQuery({ queryKey: queryKeys.employees.candidates, queryFn: employeesService.candidates });
@@ -86,13 +122,25 @@ export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormMo
       terminationDate: employee?.terminationDate ?? '',
       userId: employee?.user?.id ?? '',
       note: employee?.note ?? '',
+      email: employee?.email ?? '',
+      department: employee?.department ?? '',
+      contractNumber: employee?.contractNumber ?? '',
+      contractStartDate: employee?.contractStartDate ?? '',
+      contractEndDate: employee?.contractEndDate ?? '',
+      birthDate: employee?.sensitive?.birthDate ?? '',
+      address: employee?.sensitive?.address ?? '',
+      passportNumber: employee?.sensitive?.passportNumber ?? '',
+      emergencyContact: employee?.sensitive?.emergencyContact ?? '',
+      emergencyPhone: employee?.sensitive?.emergencyPhone ?? '',
     },
   });
   const status = useWatch({ control, name: 'status' });
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
-      employee ? employeesService.update(employee.id, toPayload(values, !salaryHidden)) : employeesService.create(toPayload(values, true)),
+      employee
+        ? employeesService.update(employee.id, toPayload(values, !salaryHidden, canSeeSensitive))
+        : employeesService.create(toPayload(values, true, canSeeSensitive)),
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();
@@ -193,6 +241,58 @@ export function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormMo
             </Select>
           </FormField>
         </div>
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">Shartnoma va aloqa</legend>
+          <FormField label="Email" htmlFor="employee-email" error={errors.email?.message}>
+            <Input id="employee-email" type="email" invalid={Boolean(errors.email)} {...register('email')} />
+          </FormField>
+          <FormField label="Bo‘lim" htmlFor="employee-department" error={errors.department?.message} hint="Masalan: Sotuv, O‘quv bo‘limi">
+            <Input id="employee-department" list="employee-departments" invalid={Boolean(errors.department)} {...register('department')} />
+            <datalist id="employee-departments">
+              {departments.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </FormField>
+          <FormField label="Shartnoma raqami" htmlFor="employee-contractNumber" error={errors.contractNumber?.message}>
+            <Input id="employee-contractNumber" invalid={Boolean(errors.contractNumber)} {...register('contractNumber')} />
+          </FormField>
+          <FormField label="Shartnoma boshlangan" htmlFor="employee-contractStartDate" error={errors.contractStartDate?.message}>
+            <Input id="employee-contractStartDate" type="date" {...register('contractStartDate')} />
+          </FormField>
+          <FormField
+            label="Shartnoma tugaydi"
+            htmlFor="employee-contractEndDate"
+            error={errors.contractEndDate?.message}
+            hint="Muddatsiz bo‘lsa bo‘sh qoldiring"
+          >
+            <Input id="employee-contractEndDate" type="date" invalid={Boolean(errors.contractEndDate)} {...register('contractEndDate')} />
+          </FormField>
+        </fieldset>
+
+        {canSeeSensitive && (
+          <fieldset className="grid gap-4 sm:grid-cols-2">
+            <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">
+              Maxfiy ma’lumot (faqat ruxsati borlarga ko‘rinadi)
+            </legend>
+            <FormField label="Tug‘ilgan sana" htmlFor="employee-birthDate" error={errors.birthDate?.message}>
+              <Input id="employee-birthDate" type="date" {...register('birthDate')} />
+            </FormField>
+            <FormField label="Pasport" htmlFor="employee-passportNumber" error={errors.passportNumber?.message}>
+              <Input id="employee-passportNumber" placeholder="AA1234567" invalid={Boolean(errors.passportNumber)} {...register('passportNumber')} />
+            </FormField>
+            <FormField label="Manzil" htmlFor="employee-address" error={errors.address?.message}>
+              <Input id="employee-address" invalid={Boolean(errors.address)} {...register('address')} />
+            </FormField>
+            <FormField label="Favqulodda aloqa" htmlFor="employee-emergencyContact" error={errors.emergencyContact?.message}>
+              <Input id="employee-emergencyContact" placeholder="Kim bilan bog‘lanish" invalid={Boolean(errors.emergencyContact)} {...register('emergencyContact')} />
+            </FormField>
+            <FormField label="Favqulodda telefon" htmlFor="employee-emergencyPhone" error={errors.emergencyPhone?.message}>
+              <Input id="employee-emergencyPhone" type="tel" invalid={Boolean(errors.emergencyPhone)} {...register('emergencyPhone')} />
+            </FormField>
+          </fieldset>
+        )}
+
         <FormField label="Izoh" htmlFor="employee-note" error={errors.note?.message}>
           <Textarea id="employee-note" rows={2} {...register('note')} />
         </FormField>

@@ -627,3 +627,24 @@ bilan lead yaratilib o'quvchiga aylantirildi va bonus berildi. Tekshiruvdan keyi
 bildirishnoma paydo bo'ldi, izoh bilan yopilgach "Ochiq salbiy fikr" 0 ga tushdi; NPS 9 ball yuborilib
 ko'rsatkich 100 bo'ldi. Tekshiruvdan keyin barcha test yozuvlari (2 fikr, kabinet hisobi, test admin)
 o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim) tegilmadi.
+
+### PHASE 8 (2-qism) — HR: shartnoma, maxfiy ma'lumot va ta'tillar (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Employee` kengaytirildi: email, **bo'lim**, mehnat shartnomasi (raqam, boshlanish va tugash sanasi) | ✅ |
+| Shartnoma muddati tugashiga qolgan kun hisoblanadi; 30 kundan kam qolsa ro'yxatda qizil ko'rinadi | ✅ brauzerda tekshirildi |
+| **Maxfiy ma'lumot** (tug'ilgan sana, manzil, pasport, favqulodda aloqa) alohida `sensitive` blokda; `employee.sensitive` ruxsati bo'lmasa blok **butunlay `null`** — "bo'sh" va "ko'rsatilmadi" farqlanadi | ✅ testda tekshiriladi |
+| Ruxsati yo'q xodim tahrirlaganda maxfiy maydonlar formada ham yo'q va so'rovda yuborilmaydi — saqlangan qiymat o'zgarmaydi | ✅ |
+| `EmployeeLeave` — ta'til arizasi: tur (yillik, kasallik, haq to'lanmaydigan, tug'ruq, boshqa), sanalar, kunlar soni (muzlatiladi), sabab | ✅ |
+| **Holat o'zgarmaydi:** tasdiqlangan ta'til `Employee.status` ga tegmaydi — "bugun ta'tilda" sanalardan hisoblanadi, shunda qo'lda qo'yilgan holat buzilmaydi va ta'til tugagach hech narsa qaytarilmaydi | ✅ testda tekshiriladi |
+| Tasdiqlangan ta'tillar ustma-ust tushmaydi (409, sanalari bilan) | ✅ brauzerda tekshirildi |
+| Rad etishda sabab majburiy; rad etilgan ariza qayta tasdiqlanmaydi; ariza o'chirilmaydi — bekor qilinadi | ✅ testda tekshiriladi |
+| Har bir ariza va qaror auditga tushadi (`employee.leave_*`) | ✅ |
+| Bonus/jarima uchun mavjud `PayrollAdjustment` ishlatiladi — dublikat model yaratilmadi | ✅ |
+| Frontend: xodimlar ro'yxatida bo'lim va shartnoma ustunlari, "Bugun ta'tilda" belgisi, formada shartnoma va maxfiy bloklar, ta'tillar oynasi (qo'shish/tasdiqlash/rad etish) | ✅ brauzerda tekshirildi |
+| Testlar: `tests/hr.test.ts` (8 ta) | ✅ 522 test, E2E 14/14, typecheck va build toza |
+
+**PHASE 8 yakunlandi.** Fikr-mulohaza va NPS, o'qituvchi samaradorligi hamda HR (shartnoma, maxfiy
+ma'lumot, ta'til) tayyor. Brauzer tekshiruvidan keyin test yozuvlari (1 xodim, 1 ta'til, test admin)
+o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim, 1 HR xodimi) tegilmadi.

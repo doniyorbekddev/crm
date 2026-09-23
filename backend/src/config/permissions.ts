@@ -50,6 +50,7 @@ export const PERMISSIONS = {
   USER_MANAGE: 'user.manage',
   EMPLOYEE_VIEW: 'employee.view',
   EMPLOYEE_MANAGE: 'employee.manage',
+  EMPLOYEE_SENSITIVE: 'employee.sensitive',
   STAFF_DOCUMENT_VIEW: 'staff_document.view',
   STAFF_DOCUMENT_MANAGE: 'staff_document.manage',
 
@@ -174,6 +175,11 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.USER_MANAGE, module: 'users', description: 'Xodim yaratish, o‘chirish, role berish' },
   { key: PERMISSIONS.EMPLOYEE_VIEW, module: 'employees', description: 'Xodimlar (HR) ro‘yxatini ko‘rish' },
   { key: PERMISSIONS.EMPLOYEE_MANAGE, module: 'employees', description: 'Xodim qo‘shish, tahrirlash, holatini o‘zgartirish' },
+  {
+    key: PERMISSIONS.EMPLOYEE_SENSITIVE,
+    module: 'employees',
+    description: 'Xodimning maxfiy ma’lumotini (pasport, tug‘ilgan sana, manzil, favqulodda aloqa) ko‘rish',
+  },
   {
     key: PERMISSIONS.STAFF_DOCUMENT_VIEW,
     module: 'hr',

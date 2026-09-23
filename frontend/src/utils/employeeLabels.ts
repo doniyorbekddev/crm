@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { EmployeePosition, EmployeeStatus } from '@/types/employee';
+import type { EmployeePosition, EmployeeStatus, LeaveStatus, LeaveType } from '@/types/employee';
 
 export const EMPLOYEE_POSITION_ORDER = [
   'ADMINISTRATOR',
@@ -37,4 +37,29 @@ export const EMPLOYEE_STATUS_TONES: Record<EmployeeStatus, BadgeTone> = {
   ON_LEAVE: 'blue',
   SUSPENDED: 'yellow',
   RESIGNED: 'gray',
+};
+
+/** Ta'til turlari */
+export const LEAVE_TYPE_ORDER: readonly LeaveType[] = ['VACATION', 'SICK', 'UNPAID', 'MATERNITY', 'OTHER'];
+
+export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  VACATION: 'Yillik ta’til',
+  SICK: 'Kasallik',
+  UNPAID: 'Haq to‘lanmaydigan',
+  MATERNITY: 'Tug‘ruq ta’tili',
+  OTHER: 'Boshqa',
+};
+
+export const LEAVE_STATUS_LABELS: Record<LeaveStatus, string> = {
+  PENDING: 'Ko‘rib chiqilmoqda',
+  APPROVED: 'Tasdiqlangan',
+  REJECTED: 'Rad etilgan',
+  CANCELLED: 'Bekor qilingan',
+};
+
+export const LEAVE_STATUS_TONES: Record<LeaveStatus, BadgeTone> = {
+  PENDING: 'yellow',
+  APPROVED: 'green',
+  REJECTED: 'red',
+  CANCELLED: 'gray',
 };

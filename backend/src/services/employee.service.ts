@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { employeesOnLeaveToday } from './employeeLeave.service.js';
 import type { EmployeePosition, EmployeeStatus, Prisma, SalaryPeriodStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
@@ -19,12 +20,32 @@ export interface EmployeeDto {
   firstName: string;
   lastName: string;
   phone: string | null;
+  email: string | null;
+  department: string | null;
   position: EmployeePosition;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
+  contractNumber: string | null;
+  contractStartDate: string | null;
+  contractEndDate: string | null;
+  /** Shartnoma muddati tugashiga necha kun qolgani (muddatsiz bo‘lsa null) */
+  contractDaysLeft: number | null;
+  /** Bugun ta’tilda ekani — tasdiqlangan ta’til sanalaridan hisoblanadi */
+  onLeaveToday: boolean;
+  /**
+   * Maxfiy ma’lumot: `employee.sensitive` ruxsati bo‘lmasa butun blok `null` bo‘ladi
+   * (maydonlarni alohida yashirish o‘rniga — shunda “bo‘sh” va “ko‘rsatilmadi” farqlanadi).
+   */
+  sensitive: {
+    birthDate: string | null;
+    address: string | null;
+    passportNumber: string | null;
+    emergencyContact: string | null;
+    emergencyPhone: string | null;
+  } | null;
   note: string | null;
   createdAt: string;
   user: { id: string; email: string; firstName: string; lastName: string } | null;
@@ -53,11 +74,21 @@ const employeeSelect = {
   firstName: true,
   lastName: true,
   phone: true,
+  email: true,
+  department: true,
   position: true,
   baseSalary: true,
   status: true,
   hireDate: true,
   terminationDate: true,
+  contractNumber: true,
+  contractStartDate: true,
+  contractEndDate: true,
+  birthDate: true,
+  address: true,
+  passportNumber: true,
+  emergencyContact: true,
+  emergencyPhone: true,
   note: true,
   createdAt: true,
   user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -67,8 +98,12 @@ type EmployeeRecord = Prisma.EmployeeGetPayload<{ select: typeof employeeSelect 
 
 const toDateOnly = (value: Date) => value.toISOString().slice(0, 10);
 
-async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = true): Promise<EmployeeDto[]> {
+const DAY_MS = 86_400_000;
+
+async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = true, sensitiveVisible = false): Promise<EmployeeDto[]> {
   const { year, month } = currentBusinessMonth();
+  const onLeave = await employeesOnLeaveToday(records.map((record) => record.id));
+  const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
   const periods = records.length && salaryVisible
     ? await prisma.teacherSalaryPeriod.findMany({
         where: { employeeId: { in: records.map((record) => record.id) }, year, month },
@@ -83,11 +118,29 @@ async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = tr
       firstName: record.firstName,
       lastName: record.lastName,
       phone: record.phone,
+      email: record.email,
+      department: record.department,
       position: record.position,
       baseSalary: salaryVisible ? record.baseSalary.toNumber() : null,
       status: record.status,
       hireDate: toDateOnly(record.hireDate),
       terminationDate: record.terminationDate ? toDateOnly(record.terminationDate) : null,
+      contractNumber: record.contractNumber,
+      contractStartDate: record.contractStartDate ? toDateOnly(record.contractStartDate) : null,
+      contractEndDate: record.contractEndDate ? toDateOnly(record.contractEndDate) : null,
+      contractDaysLeft: record.contractEndDate
+        ? Math.round((record.contractEndDate.getTime() - today.getTime()) / DAY_MS)
+        : null,
+      onLeaveToday: onLeave.has(record.id),
+      sensitive: sensitiveVisible
+        ? {
+            birthDate: record.birthDate ? toDateOnly(record.birthDate) : null,
+            address: record.address,
+            passportNumber: record.passportNumber,
+            emergencyContact: record.emergencyContact,
+            emergencyPhone: record.emergencyPhone,
+          }
+        : null,
       note: record.note,
       createdAt: record.createdAt.toISOString(),
       user: record.user,
@@ -146,10 +199,11 @@ function assertDates(status: EmployeeStatus, hireDate: Date, terminationDate: Da
 
 export const employeeService = {
   /** `salaryVisible: false` — maosh summalari (salary.view ruxsatisiz) qaytarilmaydi */
-  async list(query: EmployeeListQuery, salaryVisible = true): Promise<{ items: EmployeeDto[]; total: number }> {
+  async list(query: EmployeeListQuery, salaryVisible = true, sensitiveVisible = false): Promise<{ items: EmployeeDto[]; total: number }> {
     const conditions: Prisma.EmployeeWhereInput[] = [];
     if (query.status) conditions.push({ status: query.status });
     if (query.position) conditions.push({ position: query.position });
+    if (query.department) conditions.push({ department: query.department });
     for (const term of splitSearchTerms(query.search)) {
       const digits = term.replace(/\D/g, '');
       conditions.push({
@@ -169,11 +223,11 @@ export const employeeService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.employee.count({ where });
-    return { items: await withCurrentSalaries(records, salaryVisible), total };
+    return { items: await withCurrentSalaries(records, salaryVisible, sensitiveVisible), total };
   },
 
-  async getById(id: string, salaryVisible = true): Promise<EmployeeDto> {
-    const [employee] = await withCurrentSalaries([await findOrFail(id)], salaryVisible);
+  async getById(id: string, salaryVisible = true, sensitiveVisible = false): Promise<EmployeeDto> {
+    const [employee] = await withCurrentSalaries([await findOrFail(id)], salaryVisible, sensitiveVisible);
     return employee!;
   },
 
@@ -203,6 +257,16 @@ export const employeeService = {
           hireDate: input.hireDate,
           branchId: resolveBranchId(await getBranchAccess(actor)),
           terminationDate: input.terminationDate ?? null,
+          email: input.email ?? null,
+          department: input.department ?? null,
+          contractNumber: input.contractNumber ?? null,
+          contractStartDate: input.contractStartDate ?? null,
+          contractEndDate: input.contractEndDate ?? null,
+          birthDate: input.birthDate ?? null,
+          address: input.address ?? null,
+          passportNumber: input.passportNumber ?? null,
+          emergencyContact: input.emergencyContact ?? null,
+          emergencyPhone: input.emergencyPhone ?? null,
           note: input.note ?? null,
           userId: input.userId ?? null,
           createdById: actor.id,
@@ -259,6 +323,16 @@ export const employeeService = {
           ...(input.position === undefined ? {} : { position: input.position }),
           ...(input.baseSalary === undefined ? {} : { baseSalary: input.baseSalary }),
           ...(input.hireDate === undefined ? {} : { hireDate: input.hireDate }),
+          ...(input.email === undefined ? {} : { email: input.email }),
+          ...(input.department === undefined ? {} : { department: input.department }),
+          ...(input.contractNumber === undefined ? {} : { contractNumber: input.contractNumber }),
+          ...(input.contractStartDate === undefined ? {} : { contractStartDate: input.contractStartDate }),
+          ...(input.contractEndDate === undefined ? {} : { contractEndDate: input.contractEndDate }),
+          ...(input.birthDate === undefined ? {} : { birthDate: input.birthDate }),
+          ...(input.address === undefined ? {} : { address: input.address }),
+          ...(input.passportNumber === undefined ? {} : { passportNumber: input.passportNumber }),
+          ...(input.emergencyContact === undefined ? {} : { emergencyContact: input.emergencyContact }),
+          ...(input.emergencyPhone === undefined ? {} : { emergencyPhone: input.emergencyPhone }),
           ...(input.note === undefined ? {} : { note: input.note }),
           ...(input.userId === undefined ? {} : { userId: input.userId }),
           status,

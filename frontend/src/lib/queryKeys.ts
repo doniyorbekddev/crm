@@ -6,6 +6,7 @@ import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { ReferralListParams } from '@/types/referral';
 import type { FeedbackListParams } from '@/types/feedback';
+import type { LeaveListParams } from '@/types/employee';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
 import type { CommissionParams } from '@/types/commission';
@@ -206,6 +207,8 @@ export const queryKeys = {
     all: ['employees'] as const,
     list: (params: EmployeeListParams) => ['employees', 'list', params] as const,
     candidates: ['employees', 'candidates'] as const,
+    leaves: (params: LeaveListParams) => ['employees', 'leaves', params] as const,
+    employeeLeaves: (id: string) => ['employees', 'leaves', 'employee', id] as const,
   },
   commissions: {
     all: ['commissions'] as const,
