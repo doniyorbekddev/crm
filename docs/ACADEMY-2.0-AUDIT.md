@@ -348,7 +348,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | ✅ **Tugadi** |
 | **5** | Jadval + xona boshqaruvi | 1 | ✅ **Tugadi** |
-| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | Eng katta |
+| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | 🔄 1/3 qism tugadi |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
 | **8** | HR + o'qituvchi analitikasi + NPS | 3 | O'rta |
 | **9** | Inventar (+ filial UI'ni to'ldirish) | 3 | O'rta |
@@ -499,3 +499,24 @@ qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlash
 | API: `GET/POST/PUT /rooms`, `POST /rooms/conflicts` (saqlashdan oldin tekshirish) | ✅ |
 | Frontend: `/rooms` sahifasi (sig'im, jihozlar, band qilish jadvali, faollik), guruh formasida xona tanlash va **real vaqtda** to'qnashuv ogohlantirishi | ✅ brauzerda tekshirildi |
 | Testlar: `tests/rooms.test.ts` (9 ta) — ruxsatlar, takroriy kalit, xona/o'qituvchi to'qnashuvi, chegaradagi vaqtlar (14–16 va 16–18 to'qnashmaydi), davr kesishmasligi, allowConflict, o'zi bilan to'qnashmaslik, band xonani o'chirmaslik | ✅ 461 test, E2E 14/14 |
+
+### PHASE 6 (1-qism) — kurrikulum va progress (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `CourseModule` / `CourseTopic` — Kurs → Modul → Mavzu; `AttendanceSession.topicId` (dars qaysi mavzuga tegishli) | ✅ |
+| `StudentTopicProgress` — yozuv **faqat holat o'zgarganda** yaratiladi; yozuvi yo'q mavzu `NOT_STARTED` (1000 o'quvchi × 100 mavzu = 100 000 bo'sh qator yaratilmaydi) | ✅ |
+| Mavzuni guruh bo'yicha yoki tanlangan o'quvchilarga belgilash; takroriy belgilash holatni yangilaydi (idempotent) | ✅ |
+| Progress foizi: kurs bo'yicha va modul bo'yicha ("HTML 100%, CSS 82%"); faol bo'lmagan mavzu maxrajga kirmaydi | ✅ |
+| API: `GET /courses/:id/curriculum`, `POST /courses/:id/modules`, `PUT /curriculum/modules/:id`, `POST /curriculum/modules/:id/topics`, `PUT /curriculum/topics/:id`, `POST /curriculum/topics/:id/mark`, `GET /students/:id/curriculum` | ✅ |
+| Frontend: kurs kartochkasida "Kurs dasturi" oynasi (modul/mavzu qo'shish, guruh tanlab "O'tildi"), o'quvchi profilida progress kartochkasi | ✅ |
+| Testlar: `tests/curriculum.test.ts` (7 ta) | ✅ 468 test, E2E 14/14 |
+
+**Ikki haqiqiy nuqson topildi va tuzatildi:**
+
+1. **Xavfsizlik:** o'qituvchi tekshiruvida `NOT: { group: { teacherId } }` ishlatilgan edi — guruhga
+   o'qituvchi biriktirilmagan bo'lsa (`NULL`) SQL solishtiruvi `NULL` qaytaradi va tekshiruv **jimgina
+   o'tib ketadi**. Test buni ushladi (o'qituvchi begona guruhga mavzu belgilay oldi); endi qiymatlar
+   o'qib olinib, aniq solishtiriladi.
+2. **Tartib:** modul va mavzular `sortOrder = 0` bilan yaratilib, alifbo bo'yicha chiqib ketardi.
+   Endi tartib ko'rsatilmasa yozuv ro'yxat oxiriga qo'shiladi (qo'shilish tartibi saqlanadi).

@@ -15,6 +15,7 @@ import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/utils/f
 import { GRADE_TONES, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 import { PAYMENT_METHOD_LABELS } from '@/utils/paymentLabels';
 import { ProgressChart } from './ProgressChart';
+import { CurriculumProgressCard } from './CurriculumProgressCard';
 import { RiskCard } from './RiskCard';
 
 function StatTile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'good' | 'warn' | 'bad' }) {
@@ -79,6 +80,8 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
       </div>
 
       <RiskCard studentId={student.id} />
+
+      <CurriculumProgressCard studentId={student.id} />
 
       <Card>
         <CardHeader>

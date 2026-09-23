@@ -283,6 +283,7 @@ model User {
   /// Portal hisobi qaysi ota-onaga tegishli (ota-ona kabineti)
   parentAccount            Parent?                @relation("ParentPortalAccount")
   telegramLinks            TelegramLink[]
+  markedTopics             StudentTopicProgress[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -569,6 +570,74 @@ model FollowUp {
 // COURSES, GROUPS, STUDENTS
 // ---------------------------------------------------------------------
 
+/// O'quvchining mavzu bo'yicha holati
+enum TopicProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// Kurrikulum: Kurs → Modul → Mavzu. Modul — yirik bo'lim ("HTML asoslari"),
+/// mavzu — bitta yoki bir necha darsda o'tiladigan birlik ("Formalar").
+model CourseModule {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topics CourseTopic[]
+
+  @@index([courseId, sortOrder])
+  @@map("course_modules")
+}
+
+model CourseTopic {
+  id          String   @id @default(cuid())
+  moduleId    String
+  title       String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  /// Taxminiy necha dars ketadi — jadval rejalashtirish uchun
+  lessonCount Int      @default(1) @db.SmallInt
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  module   CourseModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress StudentTopicProgress[]
+  sessions AttendanceSession[]
+
+  @@index([moduleId, sortOrder])
+  @@map("course_topics")
+}
+
+/// O'quvchining bitta mavzu bo'yicha holati. Yozuv faqat holat o'zgarganda yaratiladi —
+/// yozuvi yo'q mavzu NOT_STARTED hisoblanadi (yuz minglab bo'sh qator yaratilmaydi).
+model StudentTopicProgress {
+  id          String              @id @default(cuid())
+  studentId   String
+  topicId     String
+  status      TopicProgressStatus @default(IN_PROGRESS)
+  completedAt DateTime?
+  markedById  String?
+  note        String?             @db.VarChar(255)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  student  Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  topic    CourseTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  markedBy User?       @relation(fields: [markedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, topicId])
+  @@index([topicId, status])
+  @@map("student_topic_progress")
+}
+
 model Course {
   id             String         @id @default(cuid())
   name           String         @unique @db.VarChar(150)
@@ -585,13 +654,14 @@ model Course {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  teacher  User?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacher  User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   leads    Lead[]
   groups   Group[]
   students Student[]
   payments Payment[]
   homework Homework[]
   exams    Exam[]
+  modules  CourseModule[]
 
   @@index([status])
   @@index([category])
@@ -725,6 +795,7 @@ model Student {
   installments      PaymentInstallment[]
   groupChanges      StudentGroupChange[]
   statusChanges     StudentStatusChange[]
+  topicProgress     StudentTopicProgress[]
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -1242,17 +1313,21 @@ model AttendanceSession {
   /// "HH:mm"
   startTime  String?                 @db.VarChar(5)
   endTime    String?                 @db.VarChar(5)
+  /// Erkin matnli mavzu (eski usul, saqlanadi)
   topic      String?                 @db.VarChar(200)
+  /// Kurrikulumdagi mavzu — belgilansa, davomat bilan birga progress yangilanadi
+  topicId    String?
   note       String?                 @db.VarChar(500)
   status     AttendanceSessionStatus @default(HELD)
   markedById String?
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
 
-  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  teacher     User?        @relation("SessionTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
-  markedBy    User?        @relation("SessionMarkedBy", fields: [markedById], references: [id], onDelete: SetNull)
-  attendances Attendance[]
+  group           Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  curriculumTopic CourseTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  teacher         User?        @relation("SessionTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  markedBy        User?        @relation("SessionMarkedBy", fields: [markedById], references: [id], onDelete: SetNull)
+  attendances     Attendance[]
 
   @@unique([groupId, date])
   @@index([teacherId, date])

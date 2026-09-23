@@ -38,6 +38,11 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'followup.deleted': 'Follow-up o‘chirildi',
 
   'branch.created': 'Filial qo‘shildi',
+  'curriculum.module_created': 'Kurs moduli qo‘shildi',
+  'curriculum.module_updated': 'Kurs moduli tahrirlandi',
+  'curriculum.topic_created': 'Mavzu qo‘shildi',
+  'curriculum.topic_updated': 'Mavzu tahrirlandi',
+  'curriculum.topic_marked': 'Mavzu o‘tilgan deb belgilandi',
   'room.created': 'Xona qo‘shildi',
   'room.updated': 'Xona tahrirlandi',
   'portal.student_account_created': 'O‘quvchiga kabinet ochildi',

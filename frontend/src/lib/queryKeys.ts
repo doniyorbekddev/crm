@@ -73,6 +73,11 @@ export const queryKeys = {
     all: ['groups'] as const,
     list: (params: GroupListParams) => ['groups', 'list', params] as const,
   },
+  curriculum: {
+    all: ['curriculum'] as const,
+    course: (courseId: string) => ['curriculum', 'course', courseId] as const,
+    student: (studentId: string) => ['curriculum', 'student', studentId] as const,
+  },
   rooms: {
     all: ['rooms'] as const,
     list: (includeInactive: boolean) => ['rooms', 'list', includeInactive] as const,

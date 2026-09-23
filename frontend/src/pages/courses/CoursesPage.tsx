@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
+import { CurriculumModal } from './CurriculumModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -33,7 +34,7 @@ import { CourseFormModal } from './CourseFormModal';
 
 const PAGE_SIZE = 12;
 
-type Dialog = { type: 'create' } | { type: 'edit' | 'delete'; course: CourseItem } | null;
+type Dialog = { type: 'create' } | { type: 'edit' | 'curriculum' | 'delete'; course: CourseItem } | null;
 
 export default function CoursesPage() {
   const queryClient = useQueryClient();
@@ -154,6 +155,7 @@ export default function CoursesPage() {
                       <ActionMenu
                         label={`${course.name} amallari`}
                         items={[
+                          { label: 'Kurs dasturi', icon: BookOpen, onSelect: () => setDialog({ type: 'curriculum', course }) },
                           { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', course }) },
                           { label: 'O‘chirish', icon: Trash2, tone: 'danger', onSelect: () => setDialog({ type: 'delete', course }) },
                         ]}
@@ -211,6 +213,7 @@ export default function CoursesPage() {
         </>
       )}
 
+      {dialog?.type === 'curriculum' && <CurriculumModal course={dialog.course} onClose={() => setDialog(null)} />}
       {dialog?.type === 'create' && (
         <CourseFormModal
           onClose={() => setDialog(null)}

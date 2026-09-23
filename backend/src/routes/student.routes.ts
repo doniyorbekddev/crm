@@ -3,6 +3,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceAnalyticsController } from '../controllers/attendanceSession.controller.js';
 import { parentController } from '../controllers/parent.controller.js';
 import { paymentScheduleController } from '../controllers/paymentSchedule.controller.js';
+import { curriculumController } from '../controllers/curriculum.controller.js';
 import { portalController } from '../controllers/portal.controller.js';
 import { telegramController } from '../controllers/telegram.controller.js';
 import { studentController } from '../controllers/student.controller.js';
@@ -30,6 +31,7 @@ studentRouter.post('/:id/payment-schedule/generate', requirePermission(PERMISSIO
 studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.replace);
 studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.groupHistory);
 studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
+studentRouter.get('/:id/curriculum', requirePermission(PERMISSIONS.STUDENT_VIEW), curriculumController.studentProgress);
 studentRouter.get('/:id/risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.risk);
 studentRouter.post('/:id/portal-account', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.createStudentAccount);
 studentRouter.get('/:id/telegram-link', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.linkForStudent);
