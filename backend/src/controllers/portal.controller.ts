@@ -1,0 +1,43 @@
+import type { Request, Response } from 'express';
+import { portalService } from '../services/portal.service.js';
+import { portalAccountService } from '../services/portalAccount.service.js';
+import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
+import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
+import { idParamSchema } from '../validators/common.validator.js';
+import { portalAccountSchema, portalChildQuerySchema } from '../validators/portal.validator.js';
+
+export const portalController = {
+  async me(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await portalService.me(requireAuthUser(req)));
+  },
+
+  async profile(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.profile(requireAuthUser(req), studentId));
+  },
+
+  async schedule(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.schedule(requireAuthUser(req), studentId));
+  },
+
+  async createStudentAccount(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { email } = portalAccountSchema.parse(req.body);
+    sendCreated(
+      res,
+      await portalAccountService.createForStudent(requireAuthUser(req), id, email, getClientInfo(req)),
+      'Kabinet ochildi — parolni o‘quvchiga yetkazing',
+    );
+  },
+
+  async createParentAccount(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { email } = portalAccountSchema.parse(req.body);
+    sendCreated(
+      res,
+      await portalAccountService.createForParent(requireAuthUser(req), id, email, getClientInfo(req)),
+      'Kabinet ochildi — parolni ota-onaga yetkazing',
+    );
+  },
+};

@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom
 import { ForbiddenState } from '@/components/ForbiddenState';
 import { PageLoader } from '@/components/PageLoader';
 import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 import { useAuthStore } from '@/store/auth.store';
 import { safeRedirectPath } from '@/utils/url';
 
@@ -33,6 +34,34 @@ export function GuestRoute() {
   }
 
   return <Outlet />;
+}
+
+/** Kabinet (o‘quvchi/ota-ona) foydalanuvchisimi */
+export function useIsPortalUser(): boolean {
+  const isStudent = usePermission(PERMISSIONS.PORTAL_STUDENT);
+  const isParent = usePermission(PERMISSIONS.PORTAL_PARENT);
+  return isStudent || isParent;
+}
+
+/**
+ * Kabinet foydalanuvchisi xodim sahifalariga kira olmaydi va aksincha.
+ * Bu faqat qulaylik uchun — haqiqiy himoya backendda.
+ */
+export function PortalRoute() {
+  const status = useAuthStore((state) => state.status);
+  const isPortal = useIsPortalUser();
+
+  if (status === 'checking') return <PageLoader />;
+  return isPortal ? <Outlet /> : <Navigate to="/dashboard" replace />;
+}
+
+/** Xodim sahifalari: kabinet foydalanuvchisi kabinetga qaytariladi */
+export function StaffRoute() {
+  const status = useAuthStore((state) => state.status);
+  const isPortal = useIsPortalUser();
+
+  if (status === 'checking') return <PageLoader />;
+  return isPortal ? <Navigate to="/portal" replace /> : <Outlet />;
 }
 
 /**

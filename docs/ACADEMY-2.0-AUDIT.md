@@ -345,7 +345,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **1** | Audit + arxitektura | — | ✅ **Tugadi** (shu hujjat + F1 tuzatildi) |
 | **1.5** | Filial poydevori (`Branch` + `branchId` + scope) | 1 + 10 ustun | ✅ **Tugadi** |
 | **2** | Student lifecycle + risk/churn tizimi | 1 + 4 ustun | ✅ **Tugadi** |
-| **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | Katta |
+| **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | Katta |
 | **5** | Jadval + xona boshqaruvi | 1 | O'rta |
 | **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | Eng katta |
@@ -445,3 +445,22 @@ qiymat qo'shiladi), `students` ro'yxati va profil API javoblari eski maydonlarni
 **Audit rejasidan chetlanish:** `StudentRiskFactor` alohida jadvali o'rniga `Student.riskFactors` (JSON)
 ishlatildi — sabablar har 30 daqiqada qayta hisoblanadigan **hosila** qiymat, alohida jadval bo'lsa
 har hisobda yuzlab qator o'chirilib qayta yozilardi.
+
+### PHASE 3 — bajarilgan ish (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Student.userId` va `Parent.userId` (unique, `SET NULL`) — kabinet hisobi | ✅ migratsiya `..._portal_accounts` |
+| Yangi rollar: `STUDENT` va `PARENT` — **aynan bitta** ruxsat bilan (`portal.student` / `portal.parent`) | ✅ |
+| `portal.student` / `portal.parent` rahbar rollariga **berilmaydi** (aks holda rahbarning o'zi kabinetga tushib qolardi) | ✅ testda qat'iy tekshiriladi |
+| `services/portal.service.ts` — kirish huquqi faqat `User → Student/Parent` bog'lanishi orqali; so'rovdagi `studentId` ga **ishonilmaydi**, har safar qayta tekshiriladi | ✅ |
+| `services/portalAccount.service.ts` — xodim (`portal.manage`) kabinet ochadi, parol tizim tomonidan generatsiya qilinadi va faqat bir marta ko'rsatiladi (bazada bcrypt hash) | ✅ |
+| API: `GET /portal/me`, `/portal/profile`, `/portal/schedule`; `POST /students/:id/portal-account`, `POST /parents/:id/portal-account` | ✅ |
+| Frontend: alohida `PortalLayout` (xodim menyusisiz), `/portal` sahifasi (daraja/XP, davomat, uy vazifasi, imtihon, to'lov jadvali, hodisalar, yutuqlar), ota-ona uchun farzand tanlash, xodimlar sahifasida "Kabinet ochish" oynasi | ✅ brauzerda tekshirildi |
+| Marshrut himoyasi: kabinet foydalanuvchisi xodim sahifalariga kira olmaydi va aksincha | ✅ |
+| Testlar: `tests/portal.test.ts` (7 ta izolyatsiya testi) | ✅ 442 test, E2E 14/14 |
+
+**Yo'l-yo'lakay tuzatilgan operatsion nuqson:** yangi ruxsat qo'shilganda u mavjud tizim rollariga
+yetib bormasdi (faqat `SEED_RESET_PERMISSIONS=true` bilan). Endi `seedRolesAndPermissions` shu
+yurishda **yangi paydo bo'lgan** ruxsatlarni tizim rollariga qo'shadi; Super Admin qo'lda sozlagan
+huquqlarga tegilmaydi.

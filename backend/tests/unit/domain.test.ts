@@ -36,9 +36,22 @@ describe('ruxsatlar konfiguratsiyasi', () => {
     const superAdmin = SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.SUPER_ADMIN);
     const admin = SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.ADMIN);
 
-    // O‘qituvchining shaxsiy sahifasi (commission.view_own) rahbar rollariga berilmaydi
-    expect(superAdmin?.permissions).toHaveLength(ALL_PERMISSION_KEYS.length - 1);
-    expect(superAdmin?.permissions).not.toContain(PERMISSIONS.COMMISSION_VIEW_OWN);
+    // Rahbar rollariga berilmaydigan ruxsatlar:
+    //  - commission.view_own — o‘qituvchining shaxsiy "Mening daromadim" sahifasi;
+    //  - portal.student / portal.parent — kabinet hisoblari uchun (berilsa, rahbarning
+    //    o‘zi kabinetga tushib qolardi va xodim bo‘limlarini ko‘rmay qolardi).
+    const excludedFromLeaders = [
+      PERMISSIONS.COMMISSION_VIEW_OWN,
+      PERMISSIONS.PORTAL_STUDENT,
+      PERMISSIONS.PORTAL_PARENT,
+    ];
+    expect(superAdmin?.permissions).toHaveLength(ALL_PERMISSION_KEYS.length - excludedFromLeaders.length);
+    for (const key of excludedFromLeaders) {
+      expect(superAdmin?.permissions).not.toContain(key);
+    }
+    // Kabinet rollari esa aynan bitta ruxsat bilan cheklangan
+    expect(SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.STUDENT)?.permissions).toEqual([PERMISSIONS.PORTAL_STUDENT]);
+    expect(SYSTEM_ROLES.find((role) => role.key === ROLE_KEYS.PARENT)?.permissions).toEqual([PERMISSIONS.PORTAL_PARENT]);
     expect(admin?.permissions).not.toContain(PERMISSIONS.USER_MANAGE);
     expect(admin?.permissions).not.toContain(PERMISSIONS.ROLE_MANAGE);
     expect(admin?.permissions).not.toContain(PERMISSIONS.SETTINGS_MANAGE);

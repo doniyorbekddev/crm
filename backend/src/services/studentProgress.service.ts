@@ -127,11 +127,17 @@ const XP_SOURCE_TITLES: Record<XpSource, string> = {
   MANUAL: 'Qo‘lda berildi',
 };
 
-export const studentProgressService = {
-  async profile(actor: AuthUser, studentId: string): Promise<StudentProfileDto> {
-    // Ko'rinish tekshiruvi: topilmasa yoki o'qituvchining guruhida bo'lmasa 404
-    const student = await studentService.getById(actor, studentId);
-    const permissions = await permissionService.getRolePermissions(actor.roleId);
+/**
+ * Profil ma'lumotini yig'adi. **Ruxsat tekshirmaydi** — chaqiruvchi tomondan
+ * tekshirilgan bo'lishi shart (`studentProgressService.profile` xodim uchun,
+ * `portal.service` esa kabinet egasi uchun tekshiradi).
+ */
+export async function buildStudentProfile(
+  student: StudentDto,
+  options: { includePayments: boolean },
+): Promise<StudentProfileDto> {
+  const studentId = student.id;
+  {
 
     const now = new Date();
     const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1), 1));
@@ -225,7 +231,7 @@ export const studentProgressService = {
 
     // --- To'lovlar (faqat ruxsat bo'lsa) ---
     let payments: StudentProfileDto['payments'] = null;
-    if (permissions.has(PERMISSIONS.PAYMENT_VIEW)) {
+    if (options.includePayments) {
       const aggregate = await prisma.payment.aggregate({
         where: { studentId, deletedAt: null },
         _sum: { amount: true },
@@ -387,6 +393,15 @@ export const studentProgressService = {
       feedback,
       activity: activity.slice(0, 30),
     };
+  }
+}
+
+export const studentProgressService = {
+  async profile(actor: AuthUser, studentId: string): Promise<StudentProfileDto> {
+    // Ko'rinish tekshiruvi: topilmasa yoki o'qituvchining guruhida bo'lmasa 404
+    const student = await studentService.getById(actor, studentId);
+    const permissions = await permissionService.getRolePermissions(actor.roleId);
+    return buildStudentProfile(student, { includePayments: permissions.has(PERMISSIONS.PAYMENT_VIEW) });
   },
 
   async homework(actor: AuthUser, studentId: string): Promise<StudentHomeworkRowDto[]> {

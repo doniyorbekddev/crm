@@ -95,6 +95,10 @@ export const PERMISSIONS = {
   TARGET_MANAGE: 'target.manage',
 
   ANALYTICS_VIEW: 'analytics.view',
+
+  PORTAL_STUDENT: 'portal.student',
+  PORTAL_PARENT: 'portal.parent',
+  PORTAL_MANAGE: 'portal.manage',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

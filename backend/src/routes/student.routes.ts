@@ -3,6 +3,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceAnalyticsController } from '../controllers/attendanceSession.controller.js';
 import { parentController } from '../controllers/parent.controller.js';
 import { paymentScheduleController } from '../controllers/paymentSchedule.controller.js';
+import { portalController } from '../controllers/portal.controller.js';
 import { studentController } from '../controllers/student.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAnyPermission, requirePermission } from '../middleware/requirePermission.js';
@@ -29,6 +30,7 @@ studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT
 studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.groupHistory);
 studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
 studentRouter.get('/:id/risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.risk);
+studentRouter.post('/:id/portal-account', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.createStudentAccount);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);

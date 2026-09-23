@@ -36,6 +36,8 @@ export interface StudentItem {
   /** 0–100; `null` — hisob uchun yetarli ma'lumot yo‘q */
   healthScore: number | null;
   riskUpdatedAt: string | null;
+  /** Kabinet hisobi ochilganmi */
+  hasPortalAccount: boolean;
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };

@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import type { StudentExamRow, StudentHomeworkRow, StudentProfile } from '@/types/studentProfile';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
+import type { PortalAccount } from '@/types/portal';
 import type { StudentAttendanceHistory } from '@/types/attendance';
 import type {
   ConvertLeadPayload,
@@ -51,6 +52,12 @@ export const studentsService = {
 
   async setStatus(id: string, status: StudentStatus, reason?: string): Promise<MessageResult<StudentItem>> {
     const response = await api.patch<ApiSuccessResponse<StudentItem>>(`/students/${id}/status`, { status, reason });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Kabinet hisobi ochish — vaqtinchalik parol faqat shu javobda qaytadi */
+  async createPortalAccount(id: string, email: string): Promise<MessageResult<PortalAccount>> {
+    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/students/${id}/portal-account`, { email });
     return { data: response.data.data, message: response.data.message };
   },
 

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
+import { KeyRound, ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import { StudentXpModal } from '../gamification/StudentXpModal';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
+import { PortalAccountModal } from './PortalAccountModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
@@ -55,7 +56,7 @@ const SORT_OPTIONS = [
 
 type Dialog =
   | { type: 'create' }
-  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp'; student: StudentItem }
+  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal'; student: StudentItem }
   | null;
 
 export default function StudentsPage() {
@@ -67,6 +68,7 @@ export default function StudentsPage() {
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
   const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
   const canViewGamification = usePermission(PERMISSIONS.GAMIFICATION_VIEW);
+  const canManagePortal = usePermission(PERMISSIONS.PORTAL_MANAGE);
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -339,6 +341,15 @@ export default function StudentsPage() {
                                   { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', student }) },
                                   { label: 'Guruhga o‘tkazish', icon: ArrowLeftRight, onSelect: () => setDialog({ type: 'transfer', student }) },
                                   { label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog({ type: 'status', student }) },
+                                  ...(canManagePortal && !student.hasPortalAccount
+                                    ? [
+                                        {
+                                          label: 'Kabinet ochish',
+                                          icon: KeyRound,
+                                          onSelect: () => setDialog({ type: 'portal', student }),
+                                        },
+                                      ]
+                                    : []),
                                   {
                                     label: 'O‘chirish',
                                     icon: Trash2,
@@ -384,6 +395,13 @@ export default function StudentsPage() {
             setDialog(null);
             refresh();
           }}
+        />
+      )}
+      {dialog?.type === 'portal' && (
+        <PortalAccountModal
+          student={dialog.student}
+          onClose={() => setDialog(null)}
+          onSaved={() => void queryClient.invalidateQueries({ queryKey: queryKeys.students.all })}
         />
       )}
       {dialog?.type === 'status' && (

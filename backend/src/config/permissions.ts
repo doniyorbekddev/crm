@@ -102,6 +102,12 @@ export const PERMISSIONS = {
 
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
+
+  /// Kabinet (portal) ruxsatlari — faqat o'quvchi va ota-ona hisoblari uchun
+  PORTAL_STUDENT: 'portal.student',
+  PORTAL_PARENT: 'portal.parent',
+  /// Xodim o'quvchi/ota-onaga kabinet hisobi ochishi
+  PORTAL_MANAGE: 'portal.manage',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -226,6 +232,14 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
     description: 'Barcha filiallar ma’lumotini ko‘rish (bo‘lmasa — faqat o‘z filiali)',
   },
   { key: PERMISSIONS.BRANCH_MANAGE, module: 'branches', description: 'Filial qo‘shish va tahrirlash' },
+
+  { key: PERMISSIONS.PORTAL_STUDENT, module: 'portal', description: 'O‘quvchi kabinetiga kirish' },
+  { key: PERMISSIONS.PORTAL_PARENT, module: 'portal', description: 'Ota-ona kabinetiga kirish' },
+  {
+    key: PERMISSIONS.PORTAL_MANAGE,
+    module: 'portal',
+    description: 'O‘quvchi va ota-onaga kabinet hisobi ochish',
+  },
 ];
 
 export const ROLE_KEYS = {
@@ -236,6 +250,9 @@ export const ROLE_KEYS = {
   CALL_CENTER: 'CALL_CENTER',
   TEACHER: 'TEACHER',
   ACCOUNTANT: 'ACCOUNTANT',
+  /// Kabinet rollari — xodim emas, faqat o'z ma'lumotini ko'radi
+  STUDENT: 'STUDENT',
+  PARENT: 'PARENT',
 } as const;
 
 export type RoleKey = (typeof ROLE_KEYS)[keyof typeof ROLE_KEYS];
@@ -248,8 +265,16 @@ export interface SystemRoleDefinition {
 }
 
 /** Rahbar rollari uchun — o‘qituvchining shaxsiy "Mening daromadim" sahifasi ularga kerak emas */
+/**
+ * Rahbar rollari uchun. Chiqarib tashlanadi:
+ *  - `commission.view_own` — o'qituvchining shaxsiy "Mening daromadim" sahifasi;
+ *  - `portal.student` / `portal.parent` — kabinet hisoblari uchun, xodimga kerak emas
+ *    (va berilsa, xodimning o'zi kabinetga tushib qolardi).
+ */
+const PORTAL_ACCESS_PERMISSIONS: readonly PermissionKey[] = [PERMISSIONS.PORTAL_STUDENT, PERMISSIONS.PORTAL_PARENT];
+
 const ALL_PERMISSIONS: readonly PermissionKey[] = PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
-  (key) => key !== PERMISSIONS.COMMISSION_VIEW_OWN,
+  (key) => key !== PERMISSIONS.COMMISSION_VIEW_OWN && !PORTAL_ACCESS_PERMISSIONS.includes(key),
 );
 
 const ADMIN_EXCLUDED: readonly PermissionKey[] = [
@@ -357,6 +382,18 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.PARENT_VIEW,
       PERMISSIONS.COMMISSION_VIEW_OWN,
     ],
+  },
+  {
+    key: ROLE_KEYS.STUDENT,
+    name: 'O‘quvchi (kabinet)',
+    description: 'Faqat o‘z davomati, uy vazifasi, imtihonlari, XP va to‘lovlari',
+    permissions: [PERMISSIONS.PORTAL_STUDENT],
+  },
+  {
+    key: ROLE_KEYS.PARENT,
+    name: 'Ota-ona (kabinet)',
+    description: 'Faqat o‘z farzandlarining ma’lumotlari',
+    permissions: [PERMISSIONS.PORTAL_PARENT],
   },
   {
     key: ROLE_KEYS.ACCOUNTANT,

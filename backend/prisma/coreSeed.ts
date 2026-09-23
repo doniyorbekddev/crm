@@ -46,6 +46,13 @@ export async function ensureMainBranch(prisma: PrismaClient, log?: Log): Promise
  * `SEED_RESET_PERMISSIONS=true` bo‘lganda qayta yoziladi.
  */
 export async function seedRolesAndPermissions(prisma: PrismaClient, log: Log): Promise<Map<RoleKey, string>> {
+  // Shu yurishda YANGI paydo bo'lgan ruxsatlar — ular mavjud tizim rollariga ham qo'shiladi,
+  // aks holda yangilanishdan keyin yangi imkoniyat hech kimga ko'rinmay qolardi.
+  const existingKeys = new Set(
+    (await prisma.permission.findMany({ select: { key: true } })).map((permission) => permission.key),
+  );
+  const freshKeys = new Set(PERMISSION_DEFINITIONS.map((item) => item.key).filter((key) => !existingKeys.has(key)));
+
   for (const permission of PERMISSION_DEFINITIONS) {
     await prisma.permission.upsert({
       where: { key: permission.key },
@@ -79,6 +86,20 @@ export async function seedRolesAndPermissions(prisma: PrismaClient, log: Log): P
       await prisma.rolePermission.createMany({
         data: permissionIds.map((permissionId) => ({ roleId: saved.id, permissionId })),
       });
+    } else {
+      // Mavjud rol: faqat **yangi** ruxsatlar qo'shiladi. Super Admin sozlagan huquqlar
+      // (olib tashlangan yoki qo'shilganlari) o'z holicha qoladi.
+      const additions = role.permissions
+        .filter((key) => freshKeys.has(key))
+        .map((key) => permissionIdByKey.get(key))
+        .filter((id): id is string => Boolean(id));
+      if (additions.length > 0) {
+        await prisma.rolePermission.createMany({
+          data: additions.map((permissionId) => ({ roleId: saved.id, permissionId })),
+          skipDuplicates: true,
+        });
+        log(`  + ${role.key}: ${additions.length} ta yangi ruxsat`);
+      }
     }
   }
 

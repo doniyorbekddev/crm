@@ -29,7 +29,7 @@ import type { GroupChangeDto } from './studentGroupHistory.js';
 import type { TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
 
-const studentSelect = {
+export const studentSelect = {
   id: true,
   number: true,
   leadId: true,
@@ -47,6 +47,7 @@ const studentSelect = {
   startDate: true,
   status: true,
   statusChangedAt: true,
+  userId: true,
   healthScore: true,
   riskLevel: true,
   riskUpdatedAt: true,
@@ -90,6 +91,8 @@ export interface StudentDto {
   riskLevel: RiskLevel | null;
   healthScore: number | null;
   riskUpdatedAt: string | null;
+  /** Kabinet hisobi ochilganmi (parol qayta ko‘rsatilmaydi, faqat holat) */
+  hasPortalAccount: boolean;
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };
@@ -101,7 +104,7 @@ function toDateOnly(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-function toStudentDto(student: StudentRecord): StudentDto {
+export function toStudentDto(student: StudentRecord): StudentDto {
   return {
     id: student.id,
     number: student.number,
@@ -116,6 +119,7 @@ function toStudentDto(student: StudentRecord): StudentDto {
     riskLevel: student.riskLevel,
     healthScore: student.healthScore,
     riskUpdatedAt: student.riskUpdatedAt?.toISOString() ?? null,
+    hasPortalAccount: student.userId !== null,
     birthDate: student.birthDate ? toDateOnly(student.birthDate) : null,
     gender: student.gender,
     address: student.address,

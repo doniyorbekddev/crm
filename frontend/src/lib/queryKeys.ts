@@ -73,6 +73,12 @@ export const queryKeys = {
     all: ['groups'] as const,
     list: (params: GroupListParams) => ['groups', 'list', params] as const,
   },
+  portal: {
+    all: ['portal'] as const,
+    me: ['portal', 'me'] as const,
+    profile: (studentId: string) => ['portal', 'profile', studentId] as const,
+    schedule: (studentId: string) => ['portal', 'schedule', studentId] as const,
+  },
   students: {
     all: ['students'] as const,
     list: (params: StudentListParams) => ['students', 'list', params] as const,

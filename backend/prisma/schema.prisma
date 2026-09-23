@@ -259,6 +259,10 @@ model User {
   createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
   groupChanges             StudentGroupChange[]   @relation("GroupChangeBy")
   statusChanges            StudentStatusChange[]
+  /// Portal hisobi qaysi o'quvchiga tegishli (o'quvchi kabineti)
+  studentAccount           Student?               @relation("StudentPortalAccount")
+  /// Portal hisobi qaysi ota-onaga tegishli (ota-ona kabineti)
+  parentAccount            Parent?                @relation("ParentPortalAccount")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -638,6 +642,8 @@ model Student {
   createdById     String?
   branchId        String        @default("branch_main")
   /// Sog'lomlik bahosi 0–100 (studentRisk.service qayta hisoblaydi)
+  /// Kabinetga kirish uchun hisob (ixtiyoriy) — o'quvchi portali
+  userId          String?       @unique
   healthScore     Int?          @db.SmallInt
   riskLevel       RiskLevel?
   /// Risk sabablari: [{key, label, score, weight, value, hint}] — hisoblangan qiymat
@@ -669,6 +675,7 @@ model Student {
   installments      PaymentInstallment[]
   groupChanges      StudentGroupChange[]
   statusChanges     StudentStatusChange[]
+  user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -1628,6 +1635,8 @@ model BudgetLine {
 
 model Parent {
   id        String   @id @default(cuid())
+  /// Kabinetga kirish uchun hisob (ixtiyoriy) — ota-ona portali
+  userId    String?  @unique
   firstName String   @db.VarChar(100)
   lastName  String   @db.VarChar(100)
   phone     String   @db.VarChar(32)
@@ -1638,6 +1647,7 @@ model Parent {
   updatedAt DateTime @updatedAt
 
   students StudentParent[]
+  user     User?           @relation("ParentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([phone])
   @@map("parents")
