@@ -15,6 +15,7 @@ import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/utils/f
 import { GRADE_TONES, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 import { PAYMENT_METHOD_LABELS } from '@/utils/paymentLabels';
 import { ProgressChart } from './ProgressChart';
+import { CertificatesCard } from './CertificatesCard';
 import { CurriculumProgressCard } from './CurriculumProgressCard';
 import { RiskCard } from './RiskCard';
 
@@ -82,6 +83,8 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
       <RiskCard studentId={student.id} />
 
       <CurriculumProgressCard studentId={student.id} />
+
+      <CertificatesCard studentId={student.id} />
 
       <Card>
         <CardHeader>

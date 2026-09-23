@@ -38,6 +38,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'followup.deleted': 'Follow-up o‘chirildi',
 
   'branch.created': 'Filial qo‘shildi',
+  'certificate.issued': 'Sertifikat berildi',
+  'certificate.revoked': 'Sertifikat bekor qilindi',
   'question.created': 'Savol qo‘shildi',
   'question.updated': 'Savol tahrirlandi',
   'exam.questions_attached': 'Imtihonga savollar biriktirildi',

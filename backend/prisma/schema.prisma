@@ -286,6 +286,8 @@ model User {
   markedTopics             StudentTopicProgress[]
   createdQuestions         Question[]
   gradedAttempts           ExamAttempt[]
+  issuedCertificates       Certificate[]          @relation("CertificateIssuer")
+  revokedCertificates      Certificate[]          @relation("CertificateRevoker")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -657,15 +659,16 @@ model Course {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  teacher   User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  leads     Lead[]
-  groups    Group[]
-  students  Student[]
-  payments  Payment[]
-  homework  Homework[]
-  exams     Exam[]
-  modules   CourseModule[]
-  questions Question[]
+  teacher      User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  leads        Lead[]
+  groups       Group[]
+  students     Student[]
+  payments     Payment[]
+  homework     Homework[]
+  exams        Exam[]
+  modules      CourseModule[]
+  questions    Question[]
+  certificates Certificate[]
 
   @@index([status])
   @@index([category])
@@ -718,17 +721,18 @@ model Group {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  course      Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  roomRef     Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  teacher     User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  students    Student[]
-  attendances Attendance[]
-  sessions    AttendanceSession[]
-  homework    Homework[]
-  exams       Exam[]
-  payments    Payment[]
-  changesFrom StudentGroupChange[] @relation("GroupChangeFrom")
-  changesTo   StudentGroupChange[] @relation("GroupChangeTo")
+  course       Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  roomRef      Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  teacher      User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  students     Student[]
+  attendances  Attendance[]
+  sessions     AttendanceSession[]
+  homework     Homework[]
+  exams        Exam[]
+  payments     Payment[]
+  certificates Certificate[]
+  changesFrom  StudentGroupChange[] @relation("GroupChangeFrom")
+  changesTo    StudentGroupChange[] @relation("GroupChangeTo")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -801,6 +805,7 @@ model Student {
   statusChanges     StudentStatusChange[]
   topicProgress     StudentTopicProgress[]
   examAttempts      ExamAttempt[]
+  certificates      Certificate[]
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -2056,6 +2061,52 @@ model ExamAnswer {
   @@unique([attemptId, examQuestionId])
   @@index([questionId])
   @@map("exam_answers")
+}
+
+/// Kurs yakunlangani haqidagi sertifikat.
+///
+/// Ism, kurs va o'qituvchi nomi **nusxa (snapshot) sifatida** saqlanadi: keyin o'quvchi
+/// ismi tahrirlansa yoki kurs o'chirilsa ham berilgan sertifikat o'zgarmaydi — bu hujjat,
+/// jonli ma'lumot emas.
+model Certificate {
+  id             String    @id @default(cuid())
+  /// Foydalanuvchiga ko'rinadigan raqam: CRT-2026-000123
+  number         Int       @unique @default(autoincrement())
+  /// Ochiq tekshirish uchun taxmin qilib bo'lmaydigan kalit (/verify/<token>)
+  verifyToken    String    @unique @db.VarChar(64)
+  studentId      String
+  courseId       String?
+  groupId        String?
+  /// Berilgan paytdagi qiymatlar — keyin o'zgarmaydi
+  studentName    String    @db.VarChar(200)
+  courseName     String    @db.VarChar(150)
+  teacherName    String?   @db.VarChar(200)
+  branchName     String?   @db.VarChar(100)
+  startDate      DateTime  @db.Date
+  completionDate DateTime  @db.Date
+  /// Yakuniy natija (foiz) va baho — bo'lmasligi ham mumkin
+  percentage     Int?      @db.SmallInt
+  grade          String?   @db.VarChar(4)
+  note           String?   @db.VarChar(500)
+  issuedAt       DateTime  @default(now())
+  issuedById     String?
+  /// Bekor qilingan sertifikat tekshiruvda "haqiqiy emas" deb ko'rsatiladi
+  revokedAt      DateTime?
+  revokedById    String?
+  revokeReason   String?   @db.VarChar(255)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group     Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  issuedBy  User?   @relation("CertificateIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  revokedBy User?   @relation("CertificateRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, issuedAt])
+  @@index([courseId])
+  @@index([issuedAt])
+  @@map("certificates")
 }
 
 model Exam {

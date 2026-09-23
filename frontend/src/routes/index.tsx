@@ -496,6 +496,13 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      {
+        // Ochiq sahifa: sertifikatni QR orqali tekshirish (kirish talab qilinmaydi)
+        path: "verify/:token",
+        lazy: lazyComponent(
+          () => import("@/pages/certificates/VerifyCertificatePage"),
+        ),
+      },
       { path: "*", lazy: lazyComponent(() => import("@/pages/NotFoundPage")) },
     ],
   },

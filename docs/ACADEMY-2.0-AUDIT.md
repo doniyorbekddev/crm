@@ -348,7 +348,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | ✅ **Tugadi** |
 | **5** | Jadval + xona boshqaruvi | 1 | ✅ **Tugadi** |
-| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | 🔄 2/3 qism tugadi |
+| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 10 | ✅ **Tugadi** |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
 | **8** | HR + o'qituvchi analitikasi + NPS | 3 | O'rta |
 | **9** | Inventar (+ filial UI'ni to'ldirish) | 3 | O'rta |
@@ -537,3 +537,20 @@ qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlash
 | API: `GET/POST/PUT /questions`, `POST/GET /exams/:id/questions`, `POST /exams/:id/attempts/:studentId`, `GET /exams/:id/attempts`, `POST /exams/attempts/:id/grade` | ✅ |
 | Frontend: `/questions` savollar bazasi sahifasi (filtrlar, variantli forma), imtihon kartochkasida "Savollar va tahlil" oynasi (tasodifiy biriktirish + mavzular bo'yicha natija chiziqlari) | ✅ |
 | Testlar: `tests/examEngine.test.ts` (8 ta) | ✅ 476 test, E2E 14/14 |
+
+### PHASE 6 (3-qism) — sertifikatlar (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Certificate` — o'quvchi ismi, kurs, o'qituvchi va filial nomi **nusxa (snapshot)** sifatida saqlanadi: keyin yozuvlar tahrirlansa ham berilgan hujjat o'zgarmaydi | ✅ testda tekshiriladi |
+| Raqam `CRT-2026-000001` ko'rinishida; `verifyToken` — taxmin qilib bo'lmaydigan 32 belgili kalit | ✅ |
+| Natija ko'rsatilmasa imtihon natijalaridan o'rtacha olinadi va bahoga aylantiriladi | ✅ |
+| Bitta kurs bo'yicha ikkinchi sertifikat berilmaydi (409) | ✅ |
+| **Bekor qilish — o'chirish emas:** yozuv qoladi, tekshiruvda "haqiqiy emas" deb ko'rinadi | ✅ |
+| **Ochiq tekshiruv** `GET /api/certificates/verify/:token` — autentifikatsiyasiz, rate limit bilan; javobda **faqat** ism, kurs, o'qituvchi, sana va baho (ID, telefon, foiz yo'q) | ✅ testda tekshiriladi |
+| Frontend: ochiq `/verify/:token` sahifasi (kirish talab qilinmaydi) va o'quvchi profilida sertifikatlar kartochkasi | ✅ brauzerda tekshirildi |
+| QR kod — inline SVG (`qrcode-generator`, bog'liqliksiz 10 KB kutubxona); rasm fayli yaratilmaydi, chop etishda ham toza chiqadi | ✅ |
+| Testlar: `tests/certificates.test.ts` (7 ta) | ✅ 483 test, E2E 14/14, production build toza |
+
+**PHASE 6 yakunlandi.** Uch qismning hammasi tayyor: kurrikulum va progress, imtihon dvigateli,
+sertifikat va ochiq tekshiruv.
