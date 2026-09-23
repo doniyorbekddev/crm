@@ -38,6 +38,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'followup.deleted': 'Follow-up o‘chirildi',
 
   'branch.created': 'Filial qo‘shildi',
+  'lead.auto_assigned': 'Lead avtomatik biriktirildi',
+  'lead.assignment_rules_updated': 'Lead taqsimot qoidalari o‘zgartirildi',
   'certificate.issued': 'Sertifikat berildi',
   'certificate.revoked': 'Sertifikat bekor qilindi',
   'question.created': 'Savol qo‘shildi',

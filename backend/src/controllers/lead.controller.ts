@@ -1,9 +1,12 @@
 import type { Request, Response } from 'express';
+import { leadAssignmentService } from '../services/leadAssignment.service.js';
+import { leadScoreService } from '../services/leadScore.service.js';
 import { leadService } from '../services/lead.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { exportFormatSchema, idParamSchema } from '../validators/common.validator.js';
 import {
+  assignmentRulesSchema,
   assignLeadSchema,
   createLeadNoteSchema,
   createLeadSchema,
@@ -17,8 +20,28 @@ import {
 } from '../validators/lead.validator.js';
 import { businessDateString } from '../utils/dates.js';
 import { sendTable } from '../utils/tableExport.js';
+import { AppError } from '../utils/AppError.js';
 
 export const leadController = {
+  /** Lead bahosi va u qanday yig'ilgani */
+  async score(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const result = await leadScoreService.forLead(id);
+    if (!result) throw AppError.notFound('Lead topilmadi');
+    sendSuccess(res, result);
+  },
+
+  async assignmentRules(_req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await leadAssignmentService.list());
+  },
+
+  async saveAssignmentRules(req: Request, res: Response): Promise<void> {
+    const { rules } = assignmentRulesSchema.parse(req.body);
+    sendSuccess(res, await leadAssignmentService.replace(requireAuthUser(req), rules, getClientInfo(req)), {
+      message: 'Taqsimot qoidalari saqlandi',
+    });
+  },
+
   /** Filtrlangan ro‘yxatni CSV yoki XLSX ga eksport qilish */
   async export(req: Request, res: Response): Promise<void> {
     const query = leadListQuerySchema.parse(req.query);

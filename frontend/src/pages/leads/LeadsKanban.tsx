@@ -28,6 +28,7 @@ import { leadsService } from '@/services/leads.service';
 import type { LeadFilters, LeadKanbanColumn, LeadListItem, LeadStatus } from '@/types/lead';
 import { formatDateTime, formatPhone } from '@/utils/format';
 import { LEAD_PRIORITY_LABELS, LEAD_STATUS_DOTS, LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, leadFullName } from '@/utils/leadLabels';
+import { LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LostReasonModal } from './LostReasonModal';
 
@@ -60,6 +61,11 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
       <p className="mt-0.5 truncate text-xs text-fg-muted">
         {lead.code} · {formatPhone(lead.phone)}
       </p>
+      {lead.temperature !== null && lead.temperature !== 'COLD' && (
+        <p className="mt-1.5">
+          <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />
+        </p>
+      )}
       {lead.course && (
         <p className="mt-2 flex items-center gap-1.5 truncate text-xs text-fg-muted">
           <BookOpen className="size-3.5 shrink-0" aria-hidden />

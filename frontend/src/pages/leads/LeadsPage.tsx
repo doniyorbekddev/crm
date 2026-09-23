@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Columns3, List, Plus } from 'lucide-react';
+import { Columns3, List, Plus, Shuffle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
@@ -12,6 +12,7 @@ import { lookupsService } from '@/services/lookups.service';
 import { useUiStore } from '@/store/ui.store';
 import type { LeadsView } from '@/store/ui.store';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { AssignmentRulesModal } from './AssignmentRulesModal';
 import { EMPTY_LEAD_FILTERS, LeadFiltersBar, toLeadFilters } from './LeadFiltersBar';
 import type { LeadFilterState } from './LeadFiltersBar';
 import { LeadFormModal } from './LeadFormModal';
@@ -29,11 +30,13 @@ export default function LeadsPage() {
   const setView = useUiStore((state) => state.setLeadsView);
   const canCreate = usePermission(PERMISSIONS.LEAD_CREATE);
   const canViewAll = usePermission(PERMISSIONS.LEAD_VIEW_ALL);
+  const canAssign = usePermission(PERMISSIONS.LEAD_ASSIGN);
 
   const [filterState, setFilterState] = useState<LeadFilterState>(EMPTY_LEAD_FILTERS);
   const search = useDebounce(filterState.search.trim(), 400);
   const filters = useMemo(() => toLeadFilters(filterState, search), [filterState, search]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const lookupsQuery = useQuery({ queryKey: queryKeys.lookups.leadForm, queryFn: lookupsService.leadForm, staleTime: 5 * 60_000 });
 
@@ -61,6 +64,16 @@ export default function LeadsPage() {
                 </button>
               ))}
             </div>
+            {canAssign && (
+              <Button
+                variant="secondary"
+                leftIcon={<Shuffle className="size-4" aria-hidden />}
+                disabled={!lookupsQuery.data}
+                onClick={() => setRulesOpen(true)}
+              >
+                Taqsimot
+              </Button>
+            )}
             {canCreate && (
               <Button leftIcon={<Plus className="size-4" aria-hidden />} disabled={!lookupsQuery.data} onClick={() => setCreateOpen(true)}>
                 Lead qo‘shish
@@ -73,6 +86,10 @@ export default function LeadsPage() {
       <LeadFiltersBar value={filterState} onChange={setFilterState} lookups={lookupsQuery.data} canViewAll={canViewAll} />
 
       {view === 'table' ? <LeadsTable key={JSON.stringify(filters)} filters={filters} /> : <LeadsKanban filters={filters} />}
+
+      {rulesOpen && lookupsQuery.data && (
+        <AssignmentRulesModal lookups={lookupsQuery.data} onClose={() => setRulesOpen(false)} />
+      )}
 
       {createOpen && lookupsQuery.data && (
         <LeadFormModal

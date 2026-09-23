@@ -15,6 +15,8 @@ leadRouter.get('/summary', requirePermission(PERMISSIONS.LEAD_VIEW), leadControl
 leadRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.LEAD_VIEW), requirePermission(PERMISSIONS.REPORT_EXPORT), leadController.export);
 leadRouter.get('/kanban', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.kanban);
 leadRouter.post('/', requirePermission(PERMISSIONS.LEAD_CREATE), leadController.create);
+leadRouter.get('/assignment-rules', requirePermission(PERMISSIONS.LEAD_ASSIGN), leadController.assignmentRules);
+leadRouter.put('/assignment-rules', requirePermission(PERMISSIONS.LEAD_ASSIGN), leadController.saveAssignmentRules);
 leadRouter.get('/:id', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.getById);
 leadRouter.put('/:id', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.update);
 leadRouter.patch('/:id/status', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.setStatus);
@@ -24,6 +26,7 @@ leadRouter.delete('/:id', requirePermission(PERMISSIONS.LEAD_DELETE), leadContro
 leadRouter.post('/:id/convert', requirePermission(PERMISSIONS.STUDENT_CONVERT), studentController.convertLead);
 
 leadRouter.get('/:id/activities', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.activities);
+leadRouter.get('/:id/score', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.score);
 leadRouter.get('/:id/notes', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.notes);
 leadRouter.post('/:id/notes', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.addNote);
 leadRouter.delete('/:id/notes/:noteId', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.deleteNote);

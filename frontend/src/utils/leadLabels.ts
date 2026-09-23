@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { Gender, LeadPriority, LeadStatus } from '@/types/lead';
+import type { Gender, LeadPriority, LeadStatus, LeadTemperature } from '@/types/lead';
 
 /** Sotuv jarayoni bo‘yicha tartib (Kanban ustunlari, tablar) */
 export const LEAD_STATUS_ORDER: readonly LeadStatus[] = [
@@ -65,6 +65,31 @@ export const LEAD_PRIORITY_TONES: Record<LeadPriority, BadgeTone> = {
   MEDIUM: 'blue',
   HIGH: 'yellow',
   URGENT: 'red',
+};
+
+/** Qizish darajasi — ball oralig'i backend'dagi `temperatureFor()` bilan bir xil */
+export const LEAD_TEMPERATURE_ORDER: readonly LeadTemperature[] = ['VERY_HOT', 'HOT', 'WARM', 'COLD'];
+
+export const LEAD_TEMPERATURE_LABELS: Record<LeadTemperature, string> = {
+  COLD: 'Sovuq',
+  WARM: 'Iliq',
+  HOT: 'Qizigan',
+  VERY_HOT: 'Juda qizigan',
+};
+
+export const LEAD_TEMPERATURE_TONES: Record<LeadTemperature, BadgeTone> = {
+  COLD: 'gray',
+  WARM: 'blue',
+  HOT: 'yellow',
+  VERY_HOT: 'red',
+};
+
+/** Ball oralig'ini xodimga tushuntirish uchun */
+export const LEAD_TEMPERATURE_HINTS: Record<LeadTemperature, string> = {
+  COLD: '0–39 ball',
+  WARM: '40–69 ball',
+  HOT: '70–89 ball',
+  VERY_HOT: '90–100 ball',
 };
 
 export const GENDER_LABELS: Record<Gender, string> = {

@@ -81,6 +81,8 @@ export interface FunnelStage {
   status: LeadStatus;
   count: number;
   percent: number;
+  /** Lead shu bosqichga kelishi uchun o‘rtacha necha kun ketgani (ma’lumot yetmasa null) */
+  avgDaysToReach: number | null;
 }
 
 export interface ManagerStats {

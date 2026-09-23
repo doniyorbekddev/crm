@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Target } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LeadPriorityBadge, LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
+import { LeadPriorityBadge, LeadStatusBadge, LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -29,6 +29,7 @@ const SORT_OPTIONS: ReadonlyArray<{ value: `${LeadSortBy}:${'asc' | 'desc'}`; la
   { value: 'createdAt:asc', label: 'Avval eskilari' },
   { value: 'nextFollowUpAt:asc', label: 'Yaqin keyingi aloqa' },
   { value: 'priority:desc', label: 'Muhimlik bo‘yicha' },
+  { value: 'score:desc', label: 'Eng qizigan leadlar' },
   { value: 'updatedAt:desc', label: 'Oxirgi o‘zgarganlar' },
   { value: 'firstName:asc', label: 'Ism (A–Z)' },
 ];
@@ -131,7 +132,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
       </div>
 
       {listQuery.isPending ? (
-        <TableSkeleton rows={8} columns={7} />
+        <TableSkeleton rows={8} columns={8} />
       ) : listQuery.isError ? (
         <ErrorState error={listQuery.error} retrying={listQuery.isFetching} onRetry={() => void listQuery.refetch()} />
       ) : listQuery.data.items.length === 0 ? (
@@ -148,6 +149,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
                 <tr>
                   <TH>Lead</TH>
                   <TH>Holat</TH>
+                  <TH>Daraja</TH>
                   <TH>Kurs</TH>
                   <TH>Manba</TH>
                   <TH>Mas’ul</TH>
@@ -179,6 +181,9 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
                       </TD>
                       <TD>
                         <LeadStatusBadge status={lead.status} />
+                      </TD>
+                      <TD>
+                        <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />
                       </TD>
                       <TD className="whitespace-nowrap text-fg-muted">{lead.course?.name ?? '—'}</TD>
                       <TD className="whitespace-nowrap text-fg-muted">{lead.source.name}</TD>

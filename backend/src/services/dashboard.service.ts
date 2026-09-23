@@ -103,6 +103,8 @@ export interface FunnelStageDto {
   count: number;
   /** Barcha leadlarga nisbatan ulush (yo‘qotilganlar ham hisobga olinadi) */
   percent: number;
+  /** Shu bosqichga o‘tishga o‘rtacha necha kun ketgan; `null` — ma'lumot yetarli emas */
+  avgDaysToReach: number | null;
 }
 
 export interface ManagerStatsDto {
@@ -382,6 +384,46 @@ function assignToBuckets<T>(
   }
 }
 
+/**
+ * Har bir bosqichga o'tishga o'rtacha necha kun ketganini hisoblaydi.
+ *
+ * Manba — `LeadActivity` dagi `STATUS_CHANGED` yozuvlari: leadning yaratilgan vaqtidan
+ * shu bosqichga birinchi marta o'tgan vaqtigacha bo'lgan farq olinadi. Yozuv bo'lmasa
+ * (eski leadlar) natija `null` bo'ladi — nol emas, chunki "ma'lumot yo'q" va "bir kunda"
+ * bir xil narsa emas.
+ */
+async function averageStageDurations(scope: Prisma.LeadWhereInput | null): Promise<Map<LeadStatus, number>> {
+  const activities = await prisma.leadActivity.findMany({
+    where: { type: 'STATUS_CHANGED', lead: { deletedAt: null, ...(scope ? { AND: [scope] } : {}) } },
+    select: { leadId: true, createdAt: true, metadata: true, lead: { select: { createdAt: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const durations = new Map<LeadStatus, number[]>();
+  const seen = new Set<string>();
+  for (const activity of activities) {
+    const metadata = activity.metadata as { to?: LeadStatus } | null;
+    const to = metadata?.to;
+    if (!to) continue;
+    // Faqat birinchi marta o'tish hisobga olinadi (orqaga qaytish o'rtachani buzmasin)
+    const key = `${activity.leadId}:${to}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const days = (activity.createdAt.getTime() - activity.lead.createdAt.getTime()) / 86_400_000;
+    const list = durations.get(to) ?? [];
+    list.push(Math.max(days, 0));
+    durations.set(to, list);
+  }
+
+  return new Map(
+    [...durations.entries()].map(([status, values]) => [
+      status,
+      Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10,
+    ]),
+  );
+}
+
 export const dashboardService = {
   async summary(actor: AuthUser): Promise<DashboardSummaryDto> {
     const access = await getDashboardAccess(actor);
@@ -465,9 +507,18 @@ export const dashboardService = {
     const counts = new Map(grouped.map((row) => [row.status, row._count._all]));
     const total = LEAD_STATUS_ORDER.reduce((sum, status) => sum + (counts.get(status) ?? 0), 0);
 
+    // Bosqichlararo o'rtacha o'tish vaqti: `LeadActivity` dagi status o'zgarishlari orasidagi farq
+    const timings = await averageStageDurations(scope);
+
     return LEAD_STATUS_ORDER.filter((status) => status !== 'LOST').map((status) => {
       const count = counts.get(status) ?? 0;
-      return { status, count, percent: total === 0 ? 0 : Math.round((count / total) * 100) };
+      return {
+        status,
+        count,
+        percent: total === 0 ? 0 : Math.round((count / total) * 100),
+        /** Shu bosqichga o'tishga o'rtacha necha kun ketgan (`null` — ma'lumot yo'q) */
+        avgDaysToReach: timings.get(status) ?? null,
+      };
     });
   },
 

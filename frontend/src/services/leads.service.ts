@@ -2,6 +2,8 @@ import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type {
+  AssignmentRule,
+  AssignmentRulePayload,
   CreateLeadPayload,
   LeadActivity,
   LeadDetail,
@@ -11,6 +13,7 @@ import type {
   LeadListParams,
   LeadNote,
   LeadPayload,
+  LeadScoreResult,
   LeadStatusSummary,
   UpdateLeadStatusPayload,
 } from '@/types/lead';
@@ -46,6 +49,21 @@ export const leadsService = {
       params: { ...filters, perColumn: KANBAN_PER_COLUMN },
     });
     return response.data.data;
+  },
+
+  /** Lead bahosi va u qanday yig'ilgani (omillar ro'yxati bilan) */
+  async score(id: string): Promise<LeadScoreResult> {
+    const response = await api.get<ApiSuccessResponse<LeadScoreResult>>(`/leads/${id}/score`);
+    return response.data.data;
+  },
+
+  async assignmentRules(): Promise<AssignmentRule[]> {
+    const response = await api.get<ApiSuccessResponse<AssignmentRule[]>>('/leads/assignment-rules');
+    return response.data.data;
+  },
+
+  async saveAssignmentRules(rules: AssignmentRulePayload[]): Promise<MessageResult<AssignmentRule[]>> {
+    return withMessage(await api.put<ApiSuccessResponse<AssignmentRule[]>>('/leads/assignment-rules', { rules }));
   },
 
   async get(id: string): Promise<LeadDetail> {

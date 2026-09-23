@@ -72,6 +72,14 @@ enum CallStatus {
   CANCELLED
 }
 
+/// Lead "qizigan"ligi — ball asosida avtomatik aniqlanadi
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+  VERY_HOT
+}
+
 enum CallResult {
   ANSWERED
   NO_ANSWER
@@ -284,6 +292,7 @@ model User {
   parentAccount            Parent?                @relation("ParentPortalAccount")
   telegramLinks            TelegramLink[]
   markedTopics             StudentTopicProgress[]
+  leadAssignmentRule       LeadAssignmentRule?
   createdQuestions         Question[]
   gradedAttempts           ExamAttempt[]
   issuedCertificates       Certificate[]          @relation("CertificateIssuer")
@@ -410,6 +419,26 @@ model Branch {
   @@map("branches")
 }
 
+/// Yangi leadni kimga biriktirish qoidasi (weighted round-robin).
+/// Vazn kattaroq bo'lgan xodim ko'proq lead oladi; `lastAssignedAt` navbatni belgilaydi.
+model LeadAssignmentRule {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  /// Nisbiy ulush: 2 bo'lsa, vazni 1 bo'lgandan ikki barobar ko'p lead oladi
+  weight         Int       @default(1) @db.SmallInt
+  isActive       Boolean   @default(true)
+  /// Bir kunda maksimal nechta lead (0 — cheksiz)
+  dailyLimit     Int       @default(0) @db.SmallInt
+  lastAssignedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@map("lead_assignment_rules")
+}
+
 model Source {
   id        String   @id @default(cuid())
   /// INSTAGRAM, TELEGRAM, ...
@@ -427,21 +456,21 @@ model Source {
 }
 
 model Lead {
-  id              String       @id @default(cuid())
+  id              String           @id @default(cuid())
   /// Foydalanuvchiga ko‘rinadigan raqam: L-000123
-  number          Int          @unique @default(autoincrement())
-  firstName       String       @db.VarChar(100)
-  lastName        String?      @db.VarChar(100)
-  phone           String       @db.VarChar(32)
-  telegram        String?      @db.VarChar(64)
-  email           String?      @db.VarChar(255)
-  age             Int?         @db.SmallInt
+  number          Int              @unique @default(autoincrement())
+  firstName       String           @db.VarChar(100)
+  lastName        String?          @db.VarChar(100)
+  phone           String           @db.VarChar(32)
+  telegram        String?          @db.VarChar(64)
+  email           String?          @db.VarChar(255)
+  age             Int?             @db.SmallInt
   gender          Gender?
-  address         String?      @db.VarChar(255)
-  status          LeadStatus   @default(NEW)
-  priority        LeadPriority @default(MEDIUM)
+  address         String?          @db.VarChar(255)
+  status          LeadStatus       @default(NEW)
+  priority        LeadPriority     @default(MEDIUM)
   notes           String?
-  lostReason      String?      @db.VarChar(255)
+  lostReason      String?          @db.VarChar(255)
   nextFollowUpAt  DateTime?
   lastContactedAt DateTime?
   convertedAt     DateTime?
@@ -449,9 +478,15 @@ model Lead {
   courseId        String?
   assignedToId    String?
   createdById     String?
-  branchId        String       @default("branch_main")
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  branchId        String           @default("branch_main")
+  /// Qiziqish bahosi 0–100 (leadScore.service hisoblaydi)
+  score           Int?             @db.SmallInt
+  temperature     LeadTemperature?
+  /// Ball qanday yig'ilgani: [{key, label, points, detail}]
+  scoreFactors    Json?
+  scoreUpdatedAt  DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   deletedAt       DateTime?
 
   source     Source         @relation(fields: [sourceId], references: [id], onDelete: Restrict)
@@ -472,6 +507,7 @@ model Lead {
   @@index([assignedToId, status])
   @@index([assignedToId, createdAt])
   @@index([status, convertedAt])
+  @@index([temperature, status])
   @@index([sourceId])
   @@index([courseId])
   @@index([createdAt])

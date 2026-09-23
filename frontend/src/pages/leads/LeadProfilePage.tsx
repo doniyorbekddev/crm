@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { LeadPriorityBadge, LeadStatusBadge } from '@/components/leads/LeadStatusBadge';
+import { LeadPriorityBadge, LeadStatusBadge, LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -32,6 +32,7 @@ import { LeadCalls } from './LeadCalls';
 import { LeadFollowUps } from './LeadFollowUps';
 import { LeadFormModal } from './LeadFormModal';
 import { LeadNotes } from './LeadNotes';
+import { LeadScoreCard } from './LeadScoreCard';
 import { LeadTimeline } from './LeadTimeline';
 import { LostReasonModal } from './LostReasonModal';
 
@@ -171,6 +172,7 @@ export default function LeadProfilePage() {
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <LeadStatusBadge status={lead.status} />
                 <LeadPriorityBadge priority={lead.priority} />
+                {lead.temperature !== null && <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />}
                 {lead.student && <Badge tone="green">O‘quvchi</Badge>}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -267,6 +269,8 @@ export default function LeadProfilePage() {
               </InfoList>
             </CardContent>
           </Card>
+
+          <LeadScoreCard leadId={lead.id} />
 
           <Card>
             <CardHeader>

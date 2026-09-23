@@ -55,6 +55,8 @@ export const queryKeys = {
     detail: (id: string) => ['leads', 'detail', id] as const,
     activities: (id: string) => ['leads', 'activities', id] as const,
     notes: (id: string) => ['leads', 'notes', id] as const,
+    score: (id: string) => ['leads', 'score', id] as const,
+    assignmentRules: ['leads', 'assignment-rules'] as const,
   },
   calls: {
     all: ['calls'] as const,

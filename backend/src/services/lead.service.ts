@@ -1,7 +1,7 @@
 import { prisma } from '../config/database.js';
 import { LEAD_PRIORITY_LABELS, LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
-import type { Gender, LeadActivityType, LeadPriority, LeadStatus, Prisma } from '../generated/prisma/client.js';
+import type { LeadTemperature, Gender, LeadActivityType, LeadPriority, LeadStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { addDays, startOfBusinessDay } from '../utils/dates.js';
@@ -20,6 +20,7 @@ import type {
 } from '../validators/lead.validator.js';
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import { leadAssignmentService } from './leadAssignment.service.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import type { LeadAccess } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
@@ -43,6 +44,8 @@ const leadListSelect = {
   email: true,
   status: true,
   priority: true,
+  score: true,
+  temperature: true,
   nextFollowUpAt: true,
   lastContactedAt: true,
   createdAt: true,
@@ -107,6 +110,9 @@ export interface LeadListItemDto {
   email: string | null;
   status: LeadStatus;
   priority: LeadPriority;
+  /** Qiziqish bahosi 0–100 va darajasi (`leadScore.service`) */
+  score: number | null;
+  temperature: LeadTemperature | null;
   nextFollowUpAt: string | null;
   lastContactedAt: string | null;
   createdAt: string;
@@ -169,6 +175,8 @@ function toListItem(lead: LeadListRecord): LeadListItemDto {
     email: lead.email,
     status: lead.status,
     priority: lead.priority,
+    score: lead.score,
+    temperature: lead.temperature,
     nextFollowUpAt: iso(lead.nextFollowUpAt),
     lastContactedAt: iso(lead.lastContactedAt),
     createdAt: lead.createdAt.toISOString(),
@@ -256,6 +264,7 @@ function buildLeadWhere(
   if (filters.sourceId) conditions.push({ sourceId: filters.sourceId });
   if (filters.courseId) conditions.push({ courseId: filters.courseId });
   if (filters.priority) conditions.push({ priority: filters.priority });
+  if (filters.temperature) conditions.push({ temperature: filters.temperature });
 
   if (filters.assignedTo === 'me') conditions.push({ assignedToId: access.userId });
   else if (filters.assignedTo === 'unassigned') conditions.push({ assignedToId: null });
@@ -286,6 +295,9 @@ function buildLeadOrderBy(sortBy: LeadListQuery['sortBy'], sortOrder: LeadListQu
       return [{ firstName: sortOrder }, { lastName: sortOrder }, { id: 'asc' }];
     case 'priority':
       return [{ priority: sortOrder }, { createdAt: 'desc' }];
+    case 'score':
+      // Ball hali hisoblanmagan leadlar oxirida qoladi — ular hali baholanmagan, past emas.
+      return [{ score: { sort: sortOrder, nulls: 'last' } }, { createdAt: 'desc' }];
     case 'number':
       return [{ number: sortOrder }];
     case 'updatedAt':
@@ -535,16 +547,33 @@ export const leadService = {
       }
     }
 
+    const branchId = resolveBranchId(await getBranchAccess(actor));
+
     const leadId = await prisma.$transaction(async (tx) => {
+      // Mas'ul ko'rsatilmagan bo'lsa — avtomatik taqsimot qoidalari bo'yicha navbatdagi xodimga.
+      // Qoida sozlanmagan bo'lsa `null` qaytadi va lead biriktirilmagan holda qoladi.
+      const autoAssigneeId = assignee ? null : await leadAssignmentService.pickAssignee(tx);
+
       const created = await tx.lead.create({
         data: {
           ...toLeadFields(input),
-          assignedToId: assignee?.id ?? null,
+          assignedToId: assignee?.id ?? autoAssigneeId,
           createdById: actor.id,
-          branchId: resolveBranchId(await getBranchAccess(actor)),
+          branchId,
         },
         select: { id: true, number: true, firstName: true, lastName: true },
       });
+
+      if (autoAssigneeId) {
+        await auditService.recordInTransaction(tx, {
+          userId: actor.id,
+          action: 'lead.auto_assigned',
+          entityType: 'lead',
+          entityId: created.id,
+          metadata: { assignedToId: autoAssigneeId },
+          ...client,
+        });
+      }
 
       await addActivity(tx, {
         leadId: created.id,

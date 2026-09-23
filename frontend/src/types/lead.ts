@@ -11,6 +11,44 @@ export type LeadStatus =
 
 export type LeadPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
+export type LeadTemperature = 'COLD' | 'WARM' | 'HOT' | 'VERY_HOT';
+
+export type LeadScoreFactorKey = 'status' | 'calls' | 'engagement' | 'course' | 'followUp' | 'source' | 'recency';
+
+export interface LeadScoreFactor {
+  key: LeadScoreFactorKey;
+  label: string;
+  points: number;
+  detail: string;
+}
+
+/** `GET /leads/:id/score` javobi */
+export interface LeadScoreResult {
+  score: number;
+  temperature: LeadTemperature;
+  factors: LeadScoreFactor[];
+  reasons: string[];
+}
+
+export interface AssignmentRule {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  weight: number;
+  dailyLimit: number;
+  isActive: boolean;
+  lastAssignedAt: string | null;
+  assignedToday: number;
+}
+
+export interface AssignmentRulePayload {
+  userId: string;
+  weight: number;
+  dailyLimit: number;
+  isActive: boolean;
+}
+
 export type Gender = 'MALE' | 'FEMALE';
 
 export type LeadActivityType =
@@ -27,7 +65,7 @@ export type LeadActivityType =
 
 export type LeadFollowUpFilter = 'overdue' | 'today' | 'upcoming' | 'none';
 
-export type LeadSortBy = 'createdAt' | 'updatedAt' | 'nextFollowUpAt' | 'firstName' | 'priority' | 'number';
+export type LeadSortBy = 'createdAt' | 'updatedAt' | 'nextFollowUpAt' | 'firstName' | 'priority' | 'score' | 'number';
 
 export interface PersonRef {
   id: string;
@@ -46,6 +84,9 @@ export interface LeadListItem {
   email: string | null;
   status: LeadStatus;
   priority: LeadPriority;
+  /** Qiziqish bahosi 0–100 va undan kelib chiqadigan daraja (fon vazifasi hisoblaydi) */
+  score: number | null;
+  temperature: LeadTemperature | null;
   nextFollowUpAt: string | null;
   lastContactedAt: string | null;
   createdAt: string;
@@ -74,6 +115,7 @@ export interface LeadFilters {
   /** "me", "unassigned" yoki xodim ID */
   assignedTo?: string;
   priority?: LeadPriority;
+  temperature?: LeadTemperature;
   followUp?: LeadFollowUpFilter;
 }
 

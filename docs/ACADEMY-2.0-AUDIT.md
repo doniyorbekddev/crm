@@ -554,3 +554,24 @@ qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlash
 
 **PHASE 6 yakunlandi.** Uch qismning hammasi tayyor: kurrikulum va progress, imtihon dvigateli,
 sertifikat va ochiq tekshiruv.
+
+### PHASE 7 (1-qism) — lead scoring va avtomatik taqsimot (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Lead.score` (0–100), `LeadTemperature` (Sovuq / Iliq / Qizigan / Juda qizigan), `scoreFactors`, `scoreUpdatedAt` | ✅ migratsiya CHECK'lari bilan |
+| **7 omil:** voronka bosqichi, javob berilgan qo'ng'iroqlar, qiziqish belgilari, tanlangan kurs, rejalashtirilgan aloqa, manba tarixiy konversiyasi, oxirgi aloqa vaqti | ✅ |
+| Ball **vaqt bilan pasayadi** — 14 kundan beri aloqa bo'lmasa lead sovuydi | ✅ |
+| Har bir omil o'z sababini qaytaradi ("Javob berilgan qo'ng'iroq yo'q"), shuning uchun xodim "nega 13 ball?" degan savolga javob ko'radi | ✅ brauzerda tekshirildi |
+| Fon vazifasi — har 30 daqiqada qayta hisoblash (`jobs/leadScore.job.ts`) | ✅ 10 lead 1 marta hisobda |
+| `LeadAssignmentRule` — **vaznli round-robin**: eng uzoq vaqt lead olmagan xodim navbatda birinchi; vazn ulushni belgilaydi, kunlik limit (0 = cheklanmagan) chetlatadi | ✅ |
+| Navbatda hech kim qolmasa lead **biriktirilmagan** holda qoladi — avtomatika to'xtasa ham jarayon to'xtamaydi | ✅ testda tekshiriladi |
+| Avtomatik biriktirish faqat xodim aniq ko'rsatilmaganda ishlaydi; har biriktirish `lead.auto_assigned` sifatida auditga tushadi | ✅ |
+| **Voronka bosqich vaqti:** dashboard voronkasida "o'rtacha N kunda keladi" (`LeadActivity` tarixidan, har bosqichga birinchi kelish bo'yicha) | ✅ |
+| Frontend: ro'yxatda "Daraja" ustuni va filtri, "Eng qizigan leadlar" saralashi, profilda omillar bilan ball kartochkasi, Kanban kartochkasida daraja, `lead.assign` huquqi bilan "Taqsimot" oynasi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/leadScoring.test.ts` (10 ta — 4 sof funksiya + 6 integratsiya) | ✅ 493 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** ikkita test manageri navbatga qo'yildi (vazn 3 va 1), ketma-ket yaratilgan
+ikki lead ikkalasiga taqsimlandi, ball kartochkasi 7 omilni sabablari bilan ko'rsatdi. Tekshiruvdan
+keyin test xodimlari, test leadlari va qoidalar o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim,
+10 lead) tegilmadi.

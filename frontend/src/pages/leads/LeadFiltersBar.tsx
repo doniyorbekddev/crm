@@ -2,8 +2,13 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import type { LeadFilters, LeadFollowUpFilter, LeadFormLookups, LeadPriority } from '@/types/lead';
-import { LEAD_PRIORITY_LABELS, LEAD_PRIORITY_ORDER } from '@/utils/leadLabels';
+import type { LeadFilters, LeadFollowUpFilter, LeadFormLookups, LeadPriority, LeadTemperature } from '@/types/lead';
+import {
+  LEAD_PRIORITY_LABELS,
+  LEAD_PRIORITY_ORDER,
+  LEAD_TEMPERATURE_LABELS,
+  LEAD_TEMPERATURE_ORDER,
+} from '@/utils/leadLabels';
 
 export interface LeadFilterState {
   search: string;
@@ -11,6 +16,7 @@ export interface LeadFilterState {
   courseId: string;
   assignedTo: string;
   priority: '' | LeadPriority;
+  temperature: '' | LeadTemperature;
   followUp: '' | LeadFollowUpFilter;
 }
 
@@ -20,6 +26,7 @@ export const EMPTY_LEAD_FILTERS: LeadFilterState = {
   courseId: '',
   assignedTo: '',
   priority: '',
+  temperature: '',
   followUp: '',
 };
 
@@ -31,6 +38,7 @@ export function toLeadFilters(state: LeadFilterState, debouncedSearch: string): 
     ...(state.courseId ? { courseId: state.courseId } : {}),
     ...(state.assignedTo ? { assignedTo: state.assignedTo } : {}),
     ...(state.priority ? { priority: state.priority } : {}),
+    ...(state.temperature ? { temperature: state.temperature } : {}),
     ...(state.followUp ? { followUp: state.followUp } : {}),
   };
 }
@@ -61,7 +69,7 @@ export function LeadFiltersBar({ value, onChange, lookups, canViewAll }: LeadFil
         placeholder="Ism, telefon, telegram yoki L-000123"
         className="lg:max-w-xs"
       />
-      <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         <Select value={value.sourceId} onChange={(event) => set('sourceId', event.target.value)} aria-label="Manba">
           <option value="">Barcha manbalar</option>
           {lookups?.sources.map((source) => (
@@ -94,6 +102,18 @@ export function LeadFiltersBar({ value, onChange, lookups, canViewAll }: LeadFil
           {LEAD_PRIORITY_ORDER.map((priority) => (
             <option key={priority} value={priority}>
               {LEAD_PRIORITY_LABELS[priority]}
+            </option>
+          ))}
+        </Select>
+        <Select
+          value={value.temperature}
+          onChange={(event) => set('temperature', event.target.value as LeadFilterState['temperature'])}
+          aria-label="Qizish darajasi"
+        >
+          <option value="">Barcha darajalar</option>
+          {LEAD_TEMPERATURE_ORDER.map((temperature) => (
+            <option key={temperature} value={temperature}>
+              {LEAD_TEMPERATURE_LABELS[temperature]}
             </option>
           ))}
         </Select>

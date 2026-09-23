@@ -15,6 +15,7 @@ export const LEAD_STATUSES = [
 ] as const satisfies readonly LeadStatus[];
 
 export const LEAD_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const satisfies readonly LeadPriority[];
+export const LEAD_TEMPERATURES = ['COLD', 'WARM', 'HOT', 'VERY_HOT'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
 
@@ -40,14 +41,31 @@ export const leadFilterQuerySchema = z.object({
   /** "me" — menga biriktirilgan, "unassigned" — biriktirilmagan, yoki xodim ID */
   assignedTo: idSchema.optional(),
   priority: z.enum(LEAD_PRIORITIES, 'Muhimlik noto‘g‘ri').optional(),
+  temperature: z.enum(LEAD_TEMPERATURES, 'Qizish darajasi noto‘g‘ri').optional(),
   createdFrom: z.coerce.date('Sana noto‘g‘ri').optional(),
   createdTo: z.coerce.date('Sana noto‘g‘ri').optional(),
   followUp: z.enum(['overdue', 'today', 'upcoming', 'none'], 'Follow-up filtri noto‘g‘ri').optional(),
 });
 
+/** Avtomatik taqsimot qoidalari — ro'yxat to'liq almashtiriladi */
+export const assignmentRulesSchema = z.object({
+  rules: z
+    .array(
+      z.object({
+        userId: z.string().trim().min(1).max(50),
+        weight: z.coerce.number().int().min(1, 'Vazn kamida 1').max(10, 'Vazn 10 dan oshmasin').default(1),
+        dailyLimit: z.coerce.number().int().min(0).max(200).default(0),
+        isActive: z.boolean().default(true),
+      }),
+    )
+    .max(50, 'Juda ko‘p xodim'),
+});
+
+export type AssignmentRulesInput = z.infer<typeof assignmentRulesSchema>;
+
 export const leadListQuerySchema = paginationQuerySchema.omit({ search: true }).extend({
   ...leadFilterQuerySchema.shape,
-  sortBy: z.enum(['createdAt', 'updatedAt', 'nextFollowUpAt', 'firstName', 'priority', 'number']).default('createdAt'),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'nextFollowUpAt', 'firstName', 'priority', 'score', 'number']).default('createdAt'),
 });
 
 export const leadKanbanQuerySchema = leadFilterQuerySchema.omit({ status: true }).extend({

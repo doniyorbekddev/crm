@@ -423,6 +423,9 @@ export default function DashboardPage() {
                     style={{ width: `${Math.round((stage.count / maxFunnel) * 100)}%` }}
                   />
                 </div>
+                {stage.avgDaysToReach !== null && (
+                  <p className="mt-0.5 text-[11px] text-fg-subtle">o‘rtacha {stage.avgDaysToReach} kunda keladi</p>
+                )}
               </li>
             ))}
           </ul>
