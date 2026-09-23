@@ -284,6 +284,8 @@ model User {
   parentAccount            Parent?                @relation("ParentPortalAccount")
   telegramLinks            TelegramLink[]
   markedTopics             StudentTopicProgress[]
+  createdQuestions         Question[]
+  gradedAttempts           ExamAttempt[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -608,9 +610,10 @@ model CourseTopic {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  module   CourseModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progress StudentTopicProgress[]
-  sessions AttendanceSession[]
+  module    CourseModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress  StudentTopicProgress[]
+  sessions  AttendanceSession[]
+  questions Question[]
 
   @@index([moduleId, sortOrder])
   @@map("course_topics")
@@ -654,14 +657,15 @@ model Course {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  teacher  User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  leads    Lead[]
-  groups   Group[]
-  students Student[]
-  payments Payment[]
-  homework Homework[]
-  exams    Exam[]
-  modules  CourseModule[]
+  teacher   User?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  leads     Lead[]
+  groups    Group[]
+  students  Student[]
+  payments  Payment[]
+  homework  Homework[]
+  exams     Exam[]
+  modules   CourseModule[]
+  questions Question[]
 
   @@index([status])
   @@index([category])
@@ -796,6 +800,7 @@ model Student {
   groupChanges      StudentGroupChange[]
   statusChanges     StudentStatusChange[]
   topicProgress     StudentTopicProgress[]
+  examAttempts      ExamAttempt[]
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -1912,6 +1917,147 @@ model HomeworkSubmission {
   @@map("homework_submissions")
 }
 
+/// Savol turi. TEXT — qo'lda baholanadi, qolganlari avtomatik.
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TEXT
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  /// Avtomatik baholangan, lekin matnli javoblar qo'lda baholanishi kerak
+  NEEDS_REVIEW
+  GRADED
+}
+
+/// Savollar bazasi. Savol kursga (va ixtiyoriy ravishda mavzuga) tegishli bo'ladi —
+/// shunda imtihon natijasini mavzular kesimida tahlil qilish mumkin.
+model Question {
+  id          String             @id @default(cuid())
+  courseId    String
+  topicId     String?
+  text        String             @db.VarChar(1000)
+  type        QuestionType       @default(SINGLE_CHOICE)
+  difficulty  QuestionDifficulty @default(MEDIUM)
+  /// Standart ball — imtihonga qo'shilganda o'zgartirish mumkin
+  points      Int                @default(1) @db.SmallInt
+  /// Matnli savol uchun namunaviy javob (o'qituvchiga yordam)
+  answerHint  String?            @db.VarChar(500)
+  isActive    Boolean            @default(true)
+  createdById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic         CourseTopic?     @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  createdBy     User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  options       QuestionOption[]
+  examQuestions ExamQuestion[]
+  answers       ExamAnswer[]
+
+  @@index([courseId, isActive])
+  @@index([topicId])
+  @@index([difficulty])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String  @db.VarChar(500)
+  isCorrect  Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, sortOrder])
+  @@map("question_options")
+}
+
+/// Imtihonga biriktirilgan savol. Ball shu yerda saqlanadi — savollar bazasidagi
+/// standart ball keyin o'zgarsa, o'tkazilgan imtihon natijasi o'zgarmaydi.
+model ExamQuestion {
+  id         String @id @default(cuid())
+  examId     String
+  questionId String
+  points     Int    @db.SmallInt
+  sortOrder  Int    @default(0)
+
+  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  ExamAnswer[]
+
+  @@unique([examId, questionId])
+  @@index([examId, sortOrder])
+  @@map("exam_questions")
+}
+
+/// O'quvchining imtihon urinishi. Bir imtihonda bir necha urinish bo'lishi mumkin
+/// (`attemptNo`), lekin yakuniy natija `ExamResult` ga yoziladi — mavjud hisobotlar
+/// va XP mantig'i o'zgarishsiz ishlayveradi.
+model ExamAttempt {
+  id          String        @id @default(cuid())
+  examId      String
+  studentId   String
+  attemptNo   Int           @default(1) @db.SmallInt
+  status      AttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  submittedAt DateTime?
+  gradedAt    DateTime?
+  gradedById  String?
+  /// Yig'ilgan ball va imtihonning umumiy bali
+  score       Int           @default(0) @db.SmallInt
+  maxScore    Int           @default(0) @db.SmallInt
+  percentage  Int           @default(0) @db.SmallInt
+  passed      Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student  Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy User?        @relation(fields: [gradedById], references: [id], onDelete: SetNull)
+  answers  ExamAnswer[]
+
+  @@unique([examId, studentId, attemptNo])
+  @@index([examId, status])
+  @@index([studentId, submittedAt])
+  @@map("exam_attempts")
+}
+
+model ExamAnswer {
+  id             String   @id @default(cuid())
+  attemptId      String
+  examQuestionId String
+  questionId     String
+  /// Tanlangan variantlar (bitta yoki bir nechta)
+  optionIds      String[]
+  /// Matnli javob
+  text           String?  @db.VarChar(2000)
+  /// Avtomatik yoki qo'lda baholangan ball
+  score          Int      @default(0) @db.SmallInt
+  /// `null` — hali baholanmagan (matnli javob)
+  isCorrect      Boolean?
+  feedback       String?  @db.VarChar(500)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  attempt      ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examQuestion ExamQuestion @relation(fields: [examQuestionId], references: [id], onDelete: Cascade)
+  question     Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, examQuestionId])
+  @@index([questionId])
+  @@map("exam_answers")
+}
+
 model Exam {
   id          String     @id @default(cuid())
   title       String     @db.VarChar(200)
@@ -1927,10 +2073,12 @@ model Exam {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  course  Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  teacher User?        @relation("ExamTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
-  results ExamResult[]
+  course    Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher   User?          @relation("ExamTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  results   ExamResult[]
+  questions ExamQuestion[]
+  attempts  ExamAttempt[]
 
   @@index([groupId, date])
   @@index([status, date])

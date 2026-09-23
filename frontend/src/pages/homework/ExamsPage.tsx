@@ -1,9 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardCheck, FileCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ListChecks, ClipboardCheck, FileCheck, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
+import { ExamQuestionsModal } from './ExamQuestionsModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,6 +35,7 @@ type Dialog =
   | { type: 'create' }
   | { type: 'edit'; exam: Exam }
   | { type: 'results'; id: string }
+  | { type: 'questions'; exam: Exam }
   | { type: 'delete'; exam: Exam }
   | null;
 
@@ -210,6 +212,11 @@ export default function ExamsPage() {
                               icon: ClipboardCheck,
                               onSelect: () => setDialog({ type: 'results', id: exam.id }),
                             },
+                            {
+                              label: 'Savollar va tahlil',
+                              icon: ListChecks,
+                              onSelect: () => setDialog({ type: 'questions', exam }),
+                            },
                             ...(canManage
                               ? [
                                   { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', exam }) },
@@ -251,6 +258,8 @@ export default function ExamsPage() {
           }}
         />
       )}
+
+      {dialog?.type === 'questions' && <ExamQuestionsModal exam={dialog.exam} onClose={() => setDialog(null)} />}
 
       {dialog?.type === 'results' && (
         <ExamResultsModal examId={dialog.id} onClose={() => setDialog(null)} onChanged={refresh} />

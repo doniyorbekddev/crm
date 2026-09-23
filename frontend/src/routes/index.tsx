@@ -290,7 +290,13 @@ export const router = createBrowserRouter([
                           () => import("@/pages/homework/ExamsPage"),
                         ),
                       },
-                    ],
+                    
+                      {
+                        path: "questions",
+                        lazy: lazyComponent(
+                          () => import("@/pages/questions/QuestionsPage"),
+                        ),
+                      },],
                   },
                   {
                     element: (

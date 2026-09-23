@@ -348,7 +348,7 @@ unit + integratsion testlar → E2E → migratsiya tekshiruvi → ruxsat tekshir
 | **3** | O'quvchi va ota-ona kabinetlari | 2 ustun + 2 rol | ✅ **Tugadi** |
 | **4** | Telegram + bildirishnoma avtomatlashtirish | 2 | ✅ **Tugadi** |
 | **5** | Jadval + xona boshqaruvi | 1 | ✅ **Tugadi** |
-| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | 🔄 1/3 qism tugadi |
+| **6** | Kurrikulum + imtihon dvigateli + sertifikat | 9 | 🔄 2/3 qism tugadi |
 | **7** | Lead scoring + sotuv + referral + chegirma | 6 | Katta |
 | **8** | HR + o'qituvchi analitikasi + NPS | 3 | O'rta |
 | **9** | Inventar (+ filial UI'ni to'ldirish) | 3 | O'rta |
@@ -520,3 +520,20 @@ qayta yozilmaydi. Ulash tartibi `docs/CI-CD.md` da (keyingi bosqichda hujjatlash
    o'qib olinib, aniq solishtiriladi.
 2. **Tartib:** modul va mavzular `sortOrder = 0` bilan yaratilib, alifbo bo'yicha chiqib ketardi.
    Endi tartib ko'rsatilmasa yozuv ro'yxat oxiriga qo'shiladi (qo'shilish tartibi saqlanadi).
+
+### PHASE 6 (2-qism) — imtihon dvigateli (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Question` / `QuestionOption` — savollar bazasi: kurs va **mavzuga** bog'langan, 3 tur (bitta javob / bir nechta javob / matnli), 3 murakkablik darajasi | ✅ |
+| `ExamQuestion` — imtihonga biriktirilgan savol; **ball shu yerda muzlatiladi**, shuning uchun savollar bazasidagi ball keyin o'zgarsa o'tkazilgan imtihon natijasi o'zgarmaydi | ✅ |
+| `ExamAttempt` / `ExamAnswer` — urinishlar (`attemptNo`) va javoblar | ✅ |
+| **Avtomatik baholash:** variantli savollarda to'plam aynan mos kelishi kerak (yarim javobga ball berilmaydi); matnli savol `NEEDS_REVIEW` holatida qoladi va o'qituvchi baholaydi (ball savol balidan oshmaydi) | ✅ |
+| **Mavzular kesimi:** har urinishda mavzu bo'yicha foiz, `strongTopics` (≥85%) va `weakTopics` (<60%) — "Takrorlash kerak: Formalar" | ✅ |
+| Tasodifiy tanlash (mavzu va murakkablik bo'yicha); savollar yetmasa aniq xabar | ✅ |
+| Imtihon boshlangandan keyin savollar tarkibi o'zgarmaydi | ✅ |
+| **Mavjud tizim bilan integratsiya:** urinish baholangach natija baribir `ExamResult` ga yoziladi va XP mavjud gamifikatsiya hooki orqali beriladi — hisobotlar, analitika va XP o'zgarishsiz ishlaydi | ✅ |
+| To'g'ri javob (`isCorrect`) o'quvchiga ko'rinadigan javobda **hech qachon** qaytarilmaydi | ✅ testda tekshiriladi |
+| API: `GET/POST/PUT /questions`, `POST/GET /exams/:id/questions`, `POST /exams/:id/attempts/:studentId`, `GET /exams/:id/attempts`, `POST /exams/attempts/:id/grade` | ✅ |
+| Frontend: `/questions` savollar bazasi sahifasi (filtrlar, variantli forma), imtihon kartochkasida "Savollar va tahlil" oynasi (tasodifiy biriktirish + mavzular bo'yicha natija chiziqlari) | ✅ |
+| Testlar: `tests/examEngine.test.ts` (8 ta) | ✅ 476 test, E2E 14/14 |

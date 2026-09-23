@@ -73,6 +73,11 @@ export const queryKeys = {
     all: ['groups'] as const,
     list: (params: GroupListParams) => ['groups', 'list', params] as const,
   },
+  questions: {
+    all: ['questions'] as const,
+    list: (params: Record<string, unknown>) => ['questions', 'list', params] as const,
+    attempts: (examId: string) => ['questions', 'attempts', examId] as const,
+  },
   curriculum: {
     all: ['curriculum'] as const,
     course: (courseId: string) => ['curriculum', 'course', courseId] as const,
