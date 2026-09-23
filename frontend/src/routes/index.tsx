@@ -221,6 +221,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.FEEDBACK_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "feedback",
+                        lazy: lazyComponent(
+                          () => import("@/pages/feedback/FeedbackPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.REFERRAL_VIEW} />
                     ),
                     children: [

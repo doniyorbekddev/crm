@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  MessageSquareHeart,
   Gift,
   HelpCircle,
   DoorOpen,
@@ -87,6 +88,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/questions', label: 'Savollar bazasi', icon: HelpCircle, permission: PERMISSIONS.EXAM_VIEW },
       { to: '/gamification', label: 'Reyting', icon: Trophy, permission: PERMISSIONS.GAMIFICATION_VIEW },
       { to: '/teachers', label: 'O‘qituvchilar', icon: UserCog, permission: PERMISSIONS.TEACHER_VIEW },
+      { to: '/feedback', label: 'Fikr-mulohaza', icon: MessageSquareHeart, permission: PERMISSIONS.FEEDBACK_VIEW },
       { to: '/my-earnings', label: 'Mening daromadim', icon: Coins, permission: PERMISSIONS.COMMISSION_VIEW_OWN },
     ],
   },

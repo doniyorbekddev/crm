@@ -103,6 +103,9 @@ export const PERMISSIONS = {
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
 
+  FEEDBACK_VIEW: 'feedback.view',
+  FEEDBACK_MANAGE: 'feedback.manage',
+
   DISCOUNT_VIEW: 'discount.view',
   DISCOUNT_MANAGE: 'discount.manage',
   DISCOUNT_GRANT: 'discount.grant',
@@ -231,6 +234,13 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
   { key: PERMISSIONS.ANALYTICS_VIEW, module: 'analytics', description: 'Kengaytirilgan analitikani ko‘rish' },
+
+  { key: PERMISSIONS.FEEDBACK_VIEW, module: 'feedback', description: 'O‘quvchilar fikri va NPS hisobotini ko‘rish' },
+  {
+    key: PERMISSIONS.FEEDBACK_MANAGE,
+    module: 'feedback',
+    description: 'Fikr qo‘shish va salbiy fikrni ishlangan deb belgilash (past baho bildirishnomasi shu ruxsat bo‘yicha boradi)',
+  },
 
   { key: PERMISSIONS.DISCOUNT_VIEW, module: 'discounts', description: 'Chegirma qoidalari va berilgan chegirmalarni ko‘rish' },
   { key: PERMISSIONS.DISCOUNT_MANAGE, module: 'discounts', description: 'Chegirma qoidalari va promo kodlarni boshqarish' },
@@ -395,6 +405,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.GAMIFICATION_VIEW,
       PERMISSIONS.PARENT_VIEW,
       PERMISSIONS.COMMISSION_VIEW_OWN,
+      PERMISSIONS.FEEDBACK_VIEW,
     ],
   },
   {

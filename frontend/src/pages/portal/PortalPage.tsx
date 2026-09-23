@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, GraduationCap, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { TelegramLinkCard } from '@/components/TelegramLinkCard';
+import { FeedbackCard } from './FeedbackCard';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -203,6 +204,8 @@ export function PortalPage() {
           </div>
 
           <TelegramLinkCard />
+
+          <FeedbackCard studentId={activeChild} />
 
           {profile.gamification.badges.length > 0 && (
             <Card>

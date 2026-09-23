@@ -4,6 +4,10 @@ import type { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { permissionService } from './permission.service.js';
+import { feedbackService } from './feedback.service.js';
+import type { FeedbackDto } from './feedback.service.js';
+import type { FeedbackType } from '../generated/prisma/client.js';
+import type { PortalFeedbackBody } from '../validators/feedback.validator.js';
 import { paymentScheduleService } from './paymentSchedule.service.js';
 import type { PaymentScheduleDto } from './paymentSchedule.service.js';
 import { buildStudentProfile } from './studentProgress.service.js';
@@ -132,6 +136,21 @@ export const portalService = {
   async schedule(actor: AuthUser, requestedStudentId?: string): Promise<PaymentScheduleDto> {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     return paymentScheduleService.get(studentId);
+  },
+
+  /** Bugun qaysi fikrlar qoldirilgani — kabinetda formani yashirish uchun */
+  async feedbackState(actor: AuthUser, requestedStudentId?: string): Promise<{ answeredToday: FeedbackType[] }> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return feedbackService.pendingForStudent(studentId);
+  },
+
+  /**
+   * Kabinetdan fikr qoldirish. `studentId` **so'rovdan olinmaydi** — faqat hisobga
+   * bog'langan o'quvchi (yoki ota-onaning farzandi) uchun yoziladi.
+   */
+  async submitFeedback(actor: AuthUser, input: PortalFeedbackBody, requestedStudentId?: string): Promise<FeedbackDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return feedbackService.create({ ...input, studentId });
   },
 };
 

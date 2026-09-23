@@ -202,6 +202,8 @@ enum NotificationType {
   CHILD_ABSENT
   /// Ota-ona/o'quvchiga: to'lov muddati yaqinlashdi
   PAYMENT_DUE_SOON
+  /// Xodimga: past baho bilan fikr keldi
+  NEGATIVE_FEEDBACK
 }
 
 // ---------------------------------------------------------------------
@@ -301,6 +303,8 @@ model User {
   revokedDiscounts         StudentDiscount[]      @relation("DiscountRevokedBy")
   createdPromoCodes        PromoCode[]            @relation("PromoCodeCreatedBy")
   rewardedReferrals        Referral[]             @relation("ReferralRewardedBy")
+  receivedFeedback         Feedback[]             @relation("FeedbackTeacher")
+  handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -419,6 +423,7 @@ model Branch {
   expenses     Expense[]
   accounts     FinancialAccount[]
   rooms        Room[]
+  feedback     Feedback[]
 
   @@map("branches")
 }
@@ -710,6 +715,7 @@ model Course {
   modules      CourseModule[]
   questions    Question[]
   certificates Certificate[]
+  feedback     Feedback[]
 
   @@index([status])
   @@index([category])
@@ -772,6 +778,7 @@ model Group {
   exams        Exam[]
   payments     Payment[]
   certificates Certificate[]
+  feedback     Feedback[]
   changesFrom  StudentGroupChange[] @relation("GroupChangeFrom")
   changesTo    StudentGroupChange[] @relation("GroupChangeTo")
 
@@ -853,6 +860,7 @@ model Student {
   examAttempts      ExamAttempt[]
   certificates      Certificate[]
   discounts         StudentDiscount[]
+  feedback          Feedback[]
   referralsMade     Referral[]                @relation("ReferralReferrer")
   referredBy        Referral?                 @relation("ReferralReferred")
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
@@ -2664,4 +2672,54 @@ model Referral {
   @@index([referrerStudentId, status])
   @@index([status, createdAt])
   @@map("referrals")
+}
+
+// ---------------------------------------------------------------------
+// FIKR-MULOHAZA VA NPS
+// ---------------------------------------------------------------------
+
+/// Fikr nima haqida: o'qituvchi, kurs, markaz yoki tavsiya ehtimoli (NPS)
+enum FeedbackType {
+  TEACHER
+  COURSE
+  ACADEMY
+  NPS
+}
+
+/// O'quvchi (yoki ota-ona) fikri. Anonim bo'lsa ham o'quvchi bog'lanadi — bir xil
+/// so'rovga ikki marta javob bermasligi va statistika to'g'ri bo'lishi uchun; lekin
+/// ismi xodimga **ko'rsatilmaydi** (`isAnonymous`).
+model Feedback {
+  id            String       @id @default(cuid())
+  studentId     String
+  type          FeedbackType
+  teacherId     String?
+  courseId      String?
+  groupId       String?
+  /// 1–5 yulduz (NPS uchun null)
+  rating        Int?         @db.SmallInt
+  /// 0–10 tavsiya ehtimoli (faqat NPS uchun)
+  npsScore      Int?         @db.SmallInt
+  comment       String?      @db.VarChar(1000)
+  isAnonymous   Boolean      @default(false)
+  /// Past baho bilan ishlanganmi (xodim ko'rib chiqdi)
+  handledAt     DateTime?
+  handledById   String?
+  handleNote    String?      @db.VarChar(500)
+  branchId      String       @default("branch_main")
+  createdAt     DateTime     @default(now())
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   User?   @relation("FeedbackTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group     Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  handledBy User?   @relation("FeedbackHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([type, createdAt])
+  @@index([teacherId, createdAt])
+  @@index([studentId, createdAt])
+  @@index([branchId])
+  @@index([handledAt])
+  @@map("feedback")
 }

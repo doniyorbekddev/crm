@@ -100,6 +100,16 @@ export interface TeacherPerformance {
   homework: number;
   exams: number;
   revenue: number;
+  /** Guruhlaridagi o‘qiyotgan o‘quvchilar */
+  studentCount: number;
+  /** Tashlab ketmaganlar ulushi: active / (active + dropped) */
+  retentionRate: number | null;
+  /** Uy vazifasi topshirilish foizi */
+  homeworkCompletionRate: number | null;
+  /** Imtihonlar o‘rtacha foizi */
+  examAveragePercent: number | null;
+  /** O‘quvchilar bahosi (1–5) */
+  satisfaction: { average: number | null; responses: number };
 }
 
 export interface SalaryPayment {

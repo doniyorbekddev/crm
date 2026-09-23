@@ -605,3 +605,25 @@ bilan lead yaratilib o'quvchiga aylantirildi va bonus berildi. Tekshiruvdan keyi
 (123 o'quvchi, 10 lead, 9 xodim) tegilmadi.
 
 **PHASE 7 yakunlandi.** Lead scoring, avtomatik taqsimot, voronka vaqti, referal tizimi va chegirma dvigateli tayyor.
+
+### PHASE 8 (1-qism) — o'quvchi fikri, NPS va o'qituvchi samaradorligi (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `Feedback` — o'qituvchi, kurs, markaz bahosi (1–5) va tavsiya ehtimoli (NPS, 0–10), izoh bilan | ✅ |
+| **Anonimlik haqiqiy:** anonim fikrda DTO da o'quvchi ma'lumoti umuman qaytarilmaydi (yozuvda bog'lanish qoladi — takror javobni oldini olish va statistika uchun) | ✅ testda tekshiriladi |
+| **Salbiy fikr e'tiborsiz qolmaydi:** 1–2 yulduz yoki NPS ≤ 6 bo'lsa `feedback.manage` huquqli xodimlarga bildirishnoma boradi, fikr "ochiq" turadi | ✅ brauzerda tekshirildi |
+| Salbiy fikr izoh bilan "ishlandi" deb yopiladi — kim va nima qilgani yoziladi, auditga tushadi | ✅ |
+| Bir kunda bir turdagi fikr ikki marta yozilmaydi (409) | ✅ testda tekshiriladi |
+| **Kabinetdan fikr:** o'quvchi (yoki ota-ona farzandi uchun) o'zi baho qoldiradi; `studentId` so'rovdan olinmaydi — begona o'quvchi uchun yozish 403 | ✅ testda tekshiriladi |
+| NPS hisobi: tarafdor (9–10) − tanqidchi (0–6) foizi; javob bo'lmasa `null` (nol emas) | ✅ testda tekshiriladi |
+| Bazada cheklovlar: baho 1–5, NPS 0–10, NPS da ball majburiy, o'qituvchi fikri o'qituvchisiz bo'lmaydi | ✅ |
+| **O'qituvchi samaradorligi kengaytirildi:** o'quvchilar soni, ushlab qolish (active/(active+dropped)), uy vazifasi topshirilish foizi, imtihon o'rtachasi va o'quvchilar bahosi qo'shildi | ✅ |
+| O'qituvchi o'z panelida shu ko'rsatkichlarni ko'radi (`feedback.view` o'qituvchi roliga berildi), rahbar esa hammasini | ✅ |
+| Frontend: `/feedback` sahifasi (NPS, baholar taqsimoti, ochiq salbiylar, ishlandi deb belgilash), kabinetda yulduz/NPS formasi, o'qituvchi kartochkasida yangi ko'rsatkichlar | ✅ brauzerda tekshirildi |
+| Testlar: `tests/feedback.test.ts` (9 ta) | ✅ 514 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** kabinetdan 2 yulduzli fikr yuborildi → xodim panelida "Ishlanmagan" belgisi va
+bildirishnoma paydo bo'ldi, izoh bilan yopilgach "Ochiq salbiy fikr" 0 ga tushdi; NPS 9 ball yuborilib
+ko'rsatkich 100 bo'ldi. Tekshiruvdan keyin barcha test yozuvlari (2 fikr, kabinet hisobi, test admin)
+o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim) tegilmadi.

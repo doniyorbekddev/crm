@@ -96,6 +96,9 @@ export const PERMISSIONS = {
 
   ANALYTICS_VIEW: 'analytics.view',
 
+  FEEDBACK_VIEW: 'feedback.view',
+  FEEDBACK_MANAGE: 'feedback.manage',
+
   DISCOUNT_VIEW: 'discount.view',
   DISCOUNT_MANAGE: 'discount.manage',
   DISCOUNT_GRANT: 'discount.grant',

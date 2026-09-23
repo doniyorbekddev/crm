@@ -104,6 +104,25 @@ function DetailBody({ teacher, canViewSalary }: { teacher: TeacherDetail; canVie
             value={`${formatNumber(performance.homework)} / ${formatNumber(performance.exams)}`}
           />
           <StatTile label="Guruhlaridan tushum" value={formatMoney(performance.revenue)} />
+          <StatTile
+            label="O‘quvchilar"
+            value={formatNumber(performance.studentCount)}
+            hint={performance.retentionRate === null ? undefined : `${performance.retentionRate}% ushlab qolish`}
+          />
+          <StatTile
+            label="Uy vazifasi topshirilishi"
+            value={performance.homeworkCompletionRate === null ? '—' : `${performance.homeworkCompletionRate}%`}
+            hint={performance.homeworkCompletionRate === null ? 'Bu oyda vazifa berilmagan' : undefined}
+          />
+          <StatTile
+            label="Imtihon o‘rtachasi"
+            value={performance.examAveragePercent === null ? '—' : `${performance.examAveragePercent}%`}
+          />
+          <StatTile
+            label="O‘quvchilar bahosi"
+            value={performance.satisfaction.average === null ? '—' : `${performance.satisfaction.average} / 5`}
+            hint={performance.satisfaction.responses > 0 ? `${formatNumber(performance.satisfaction.responses)} ta fikr` : 'Fikr yo‘q'}
+          />
         </div>
       </section>
 

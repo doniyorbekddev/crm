@@ -40,6 +40,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'branch.created': 'Filial qo‘shildi',
   'lead.auto_assigned': 'Lead avtomatik biriktirildi',
   'lead.assignment_rules_updated': 'Lead taqsimot qoidalari o‘zgartirildi',
+  'feedback.created': 'Fikr qo‘shildi',
+  'feedback.handled': 'Salbiy fikr ishlandi',
   'discount.granted': 'Chegirma berildi',
   'discount.revoked': 'Chegirma bekor qilindi',
   'discount.rule_saved': 'Chegirma qoidasi saqlandi',

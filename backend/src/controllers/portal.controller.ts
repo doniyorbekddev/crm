@@ -5,6 +5,7 @@ import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import { portalAccountSchema, portalChildQuerySchema } from '../validators/portal.validator.js';
+import { portalFeedbackSchema } from '../validators/feedback.validator.js';
 
 export const portalController = {
   async me(req: Request, res: Response): Promise<void> {
@@ -19,6 +20,17 @@ export const portalController = {
   async schedule(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.schedule(requireAuthUser(req), studentId));
+  },
+
+  async feedbackState(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.feedbackState(requireAuthUser(req), studentId));
+  },
+
+  async submitFeedback(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const input = portalFeedbackSchema.parse(req.body);
+    sendCreated(res, await portalService.submitFeedback(requireAuthUser(req), input, studentId), 'Fikringiz uchun rahmat');
   },
 
   async createStudentAccount(req: Request, res: Response): Promise<void> {

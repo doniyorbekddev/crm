@@ -5,6 +5,7 @@ import type { AuditListParams } from '@/types/audit';
 import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { ReferralListParams } from '@/types/referral';
+import type { FeedbackListParams } from '@/types/feedback';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
 import type { CommissionParams } from '@/types/commission';
@@ -58,6 +59,12 @@ export const queryKeys = {
     notes: (id: string) => ['leads', 'notes', id] as const,
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
+  },
+  feedback: {
+    all: ['feedback'] as const,
+    list: (params: FeedbackListParams) => ['feedback', 'list', params] as const,
+    stats: (params: { teacherId?: string; months?: number }) => ['feedback', 'stats', params] as const,
+    portal: (studentId: string | undefined) => ['feedback', 'portal', studentId] as const,
   },
   discounts: {
     all: ['discounts'] as const,

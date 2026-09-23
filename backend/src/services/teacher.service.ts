@@ -1,7 +1,7 @@
 import { prisma } from '../config/database.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
-import type { AttendanceStatus, EmployeeStatus, GroupStatus, Prisma, UserStatus, WeekDay } from '../generated/prisma/client.js';
+import type { AttendanceStatus, EmployeeStatus, GroupStatus, Prisma, StudentStatus, UserStatus, WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
@@ -80,6 +80,19 @@ export interface TeacherPerformanceDto {
   exams: number;
   /** Guruhlari o‘quvchilaridan shu oyda tushgan to‘lovlar */
   revenue: number;
+  /** Guruhlaridagi o‘quvchilar (o‘qiyotganlar) */
+  studentCount: number;
+  /**
+   * Ushlab qolish: guruhlarida bo‘lgan o‘quvchilardan nechtasi tashlab ketmagani.
+   * active / (active + dropped) — bitirganlar hisobga olinmaydi (ular muvaffaqiyat, yo‘qotish emas).
+   */
+  retentionRate: number | null;
+  /** Shu oyda berilgan uy vazifalarining topshirilish foizi */
+  homeworkCompletionRate: number | null;
+  /** Shu oydagi imtihon natijalarining o‘rtacha foizi */
+  examAveragePercent: number | null;
+  /** O‘quvchilar bahosi (1–5) va nechta fikr asosida */
+  satisfaction: { average: number | null; responses: number };
 }
 
 export interface TeacherDetailDto extends TeacherDto {
@@ -365,6 +378,48 @@ async function loadPerformance(userId: string, year: number, month: number): Pro
     _sum: { amount: true },
   });
 
+  // O'quvchilar soni va ushlab qolish — guruhlari bo'yicha
+  const studentsByStatus = await prisma.student.groupBy({
+    by: ['status'],
+    where: { deletedAt: null, group: { teacherId: userId } },
+    _count: { _all: true },
+  });
+  const statusCount = (status: StudentStatus) => studentsByStatus.find((row) => row.status === status)?._count._all ?? 0;
+  const activeStudents = statusCount('ACTIVE');
+  const droppedStudents = statusCount('DROPPED');
+  const retentionBase = activeStudents + droppedStudents;
+
+  // Uy vazifasi topshirilishi: shu oyda berilgan vazifalar bo'yicha topshiriqlar
+  const submissionRows = await prisma.homeworkSubmission.groupBy({
+    by: ['status'],
+    where: {
+      homework: {
+        assignedAt: { gte: start, lt: end },
+        OR: [{ teacherId: userId }, { teacherId: null, group: { teacherId: userId } }],
+      },
+    },
+    _count: { _all: true },
+  });
+  const submissionTotal = submissionRows.reduce((sum, row) => sum + row._count._all, 0);
+  // Topshirilgan deb hisoblanadi: vaqtida, kechikib yoki baholangan (PENDING va MISSED — topshirilmagan)
+  const submitted = submissionRows
+    .filter((row) => row.status === 'SUBMITTED' || row.status === 'LATE' || row.status === 'GRADED')
+    .reduce((sum, row) => sum + row._count._all, 0);
+
+  const examAverage = await prisma.examResult.aggregate({
+    where: {
+      exam: { date: { gte: start, lt: end }, OR: [{ teacherId: userId }, { teacherId: null, group: { teacherId: userId } }] },
+    },
+    _avg: { percentage: true },
+    _count: { _all: true },
+  });
+
+  const satisfaction = await prisma.feedback.aggregate({
+    where: { teacherId: userId, rating: { not: null } },
+    _avg: { rating: true },
+    _count: { _all: true },
+  });
+
   return {
     year,
     month,
@@ -378,6 +433,14 @@ async function loadPerformance(userId: string, year: number, month: number): Pro
     homework,
     exams,
     revenue: (revenue._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: start, lt: end }, { teacherId: userId })),
+    studentCount: activeStudents,
+    retentionRate: retentionBase === 0 ? null : Math.round((activeStudents / retentionBase) * 100),
+    homeworkCompletionRate: submissionTotal === 0 ? null : Math.round((submitted / submissionTotal) * 100),
+    examAveragePercent: examAverage._count._all === 0 ? null : Math.round(examAverage._avg.percentage ?? 0),
+    satisfaction: {
+      average: satisfaction._count._all === 0 ? null : Math.round((satisfaction._avg.rating ?? 0) * 10) / 10,
+      responses: satisfaction._count._all,
+    },
   };
 }
 
