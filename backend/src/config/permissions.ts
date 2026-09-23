@@ -103,6 +103,12 @@ export const PERMISSIONS = {
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
 
+  DISCOUNT_VIEW: 'discount.view',
+  DISCOUNT_MANAGE: 'discount.manage',
+  DISCOUNT_GRANT: 'discount.grant',
+  REFERRAL_VIEW: 'referral.view',
+  REFERRAL_REWARD: 'referral.reward',
+
   /// Kabinet (portal) ruxsatlari — faqat o'quvchi va ota-ona hisoblari uchun
   PORTAL_STUDENT: 'portal.student',
   PORTAL_PARENT: 'portal.parent',
@@ -225,6 +231,12 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
   { key: PERMISSIONS.ANALYTICS_VIEW, module: 'analytics', description: 'Kengaytirilgan analitikani ko‘rish' },
+
+  { key: PERMISSIONS.DISCOUNT_VIEW, module: 'discounts', description: 'Chegirma qoidalari va berilgan chegirmalarni ko‘rish' },
+  { key: PERMISSIONS.DISCOUNT_MANAGE, module: 'discounts', description: 'Chegirma qoidalari va promo kodlarni boshqarish' },
+  { key: PERMISSIONS.DISCOUNT_GRANT, module: 'discounts', description: 'O‘quvchiga chegirma berish va bekor qilish' },
+  { key: PERMISSIONS.REFERRAL_VIEW, module: 'referrals', description: 'Do‘st taklif qilish (referal) ro‘yxati va hisobotini ko‘rish' },
+  { key: PERMISSIONS.REFERRAL_REWARD, module: 'referrals', description: 'Taklif uchun bonus berish' },
 
   {
     key: PERMISSIONS.BRANCH_VIEW_ALL,
@@ -353,6 +365,8 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.STUDENT_CONVERT,
       PERMISSIONS.TARGET_VIEW,
       PERMISSIONS.PARENT_VIEW,
+      PERMISSIONS.REFERRAL_VIEW,
+      PERMISSIONS.DISCOUNT_VIEW,
     ],
   },
   {
@@ -418,6 +432,8 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.SALARY_CALCULATE,
       PERMISSIONS.SALARY_PAY,
       PERMISSIONS.TEACHER_VIEW,
+      PERMISSIONS.DISCOUNT_VIEW,
+      PERMISSIONS.REFERRAL_VIEW,
     ],
   },
 ];

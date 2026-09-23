@@ -575,3 +575,33 @@ sertifikat va ochiq tekshiruv.
 ikki lead ikkalasiga taqsimlandi, ball kartochkasi 7 omilni sabablari bilan ko'rsatdi. Tekshiruvdan
 keyin test xodimlari, test leadlari va qoidalar o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim,
 10 lead) tegilmadi.
+
+### PHASE 7 (2-qism) — referal tizimi va chegirma dvigateli (2026-09-23)
+
+| Qism | Holat |
+|---|---|
+| `DiscountRule` — qoidalar katalogi: oila, referal, promo, 3/6 oylik oldindan to'lov, birinchi to'lov, maxsus. Migratsiya 5 ta standart qoidani `ON CONFLICT DO NOTHING` bilan qo'yadi | ✅ |
+| `PromoCode` — qoidaga ishlovchi kod, ishlatilish limiti va muddati bilan; kod katta harfda saqlanadi | ✅ |
+| `StudentDiscount` — berilgan chegirma. Qiymatlar **nusxa** sifatida muzlatiladi: qoida keyin o'zgarsa berilgan chegirma o'zgarmaydi | ✅ testda tekshiriladi |
+| **O'chirilmaydi, bekor qilinadi:** summa shartnomaga qaytadi, yozuv sabab bilan tarixda qoladi | ✅ brauzerda tekshirildi |
+| Chegirma shartnoma narxini kamaytiradi va **qarzdorlikni qayta hisoblaydi** (to'langan summa tegilmaydi); `Student.discountTotal` chegirmasiz narxni tiklash imkonini beradi | ✅ |
+| **Stacking qoidalari:** `stackable=false` qoida boshqa chegirma ustiga qo'llanmaydi; sozlamada umuman birga qo'llashni o'chirish mumkin | ✅ testda tekshiriladi |
+| **Umumiy chegara:** `discount.settings` dagi foizdan oshmaydi, xabarda "yana qancha berish mumkin" ko'rsatiladi | ✅ testda tekshiriladi |
+| Qo'lda (CUSTOM) chegirma **sababsiz berilmaydi** | ✅ |
+| Har bir chegirma va bekor qilish auditga tushadi (kim, qancha, nega) | ✅ |
+| `Student.referralCode` (R00045) — raqamdan hosil bo'ladi, takrorlanmaydi; mavjud 123 o'quvchiga migratsiyada to'ldirildi | ✅ |
+| `Referral` — lead taklif kodi bilan kelsa PENDING, o'quvchiga aylansa CONVERTED; o'zini o'zi taklif qilish holati bekor qilinadi | ✅ testda tekshiriladi |
+| **Bonus avtomatik berilmaydi:** xodim `referral.reward` huquqi bilan beradi, bonus referal qoidasidagi chegirma sifatida tushadi va auditga yoziladi | ✅ brauzerda tekshirildi |
+| Kod noto'g'ri bo'lsa lead baribir yaratiladi (sotuv to'xtamaydi), faqat taklif yozuvi bo'lmaydi | ✅ |
+| Hisobot: takliflar, aylanishlar, konversiya foizi, berilgan bonus va **taklif tushumi** (taklif bo'yicha kelganlardan tushgan to'lovlar) + eng ko'p do'st olib kelganlar | ✅ |
+| Ruxsatlar: `discount.view/manage/grant`, `referral.view/reward`. Sotuv manageri va buxgalter ko'radi, bonus/qoidani boshqarmaydi | ✅ testda tekshiriladi |
+| Frontend: `/discounts` (chegara, qoidalar, promo kodlar), `/referrals` (statistika, ro'yxat, bonus berish), o'quvchi profilida chegirma kartochkasi, lead formasida taklif kodi maydoni | ✅ brauzerda tekshirildi |
+| Testlar: `tests/referralDiscount.test.ts` (12 ta) | ✅ 505 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** promo kod yaratildi, o'quvchiga oila chegirmasi berilib shartnoma 390 000 → 351 000
+so'mga tushdi, bekor qilingach 390 000 ga qaytdi va yozuv "Bekor qilingan" holatida qoldi; taklif kodi
+bilan lead yaratilib o'quvchiga aylantirildi va bonus berildi. Tekshiruvdan keyin barcha test yozuvlari
+(2 o'quvchi, 2 lead, 2 taklif, 2 chegirma, promo kod, test admin) o'chirildi — haqiqiy ma'lumot
+(123 o'quvchi, 10 lead, 9 xodim) tegilmadi.
+
+**PHASE 7 yakunlandi.** Lead scoring, avtomatik taqsimot, voronka vaqti, referal tizimi va chegirma dvigateli tayyor.

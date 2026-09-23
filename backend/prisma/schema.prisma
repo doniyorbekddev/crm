@@ -297,6 +297,10 @@ model User {
   gradedAttempts           ExamAttempt[]
   issuedCertificates       Certificate[]          @relation("CertificateIssuer")
   revokedCertificates      Certificate[]          @relation("CertificateRevoker")
+  grantedDiscounts         StudentDiscount[]      @relation("DiscountGrantedBy")
+  revokedDiscounts         StudentDiscount[]      @relation("DiscountRevokedBy")
+  createdPromoCodes        PromoCode[]            @relation("PromoCodeCreatedBy")
+  rewardedReferrals        Referral[]             @relation("ReferralRewardedBy")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -494,6 +498,7 @@ model Lead {
   assignedTo User?          @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   createdBy  User?          @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
   student    Student?
+  referral   Referral?
   activities LeadActivity[]
   leadNotes  LeadNote[]
   calls      Call[]
@@ -808,6 +813,11 @@ model Student {
   /// Sog'lomlik bahosi 0–100 (studentRisk.service qayta hisoblaydi)
   /// Kabinetga kirish uchun hisob (ixtiyoriy) — o'quvchi portali
   userId          String?       @unique
+  /// Do'stini taklif qilish kodi: R00045 (raqamdan hosil bo'ladi, o'zgarmaydi)
+  referralCode    String?       @unique @db.VarChar(16)
+  /// Faol chegirmalar yig'indisi (hisoblangan qiymat). Shartnoma narxidan oldingi narx =
+  /// contractPrice + discountTotal
+  discountTotal   Decimal       @default(0) @db.Decimal(14, 2)
   healthScore     Int?          @db.SmallInt
   riskLevel       RiskLevel?
   /// Risk sabablari: [{key, label, score, weight, value, hint}] — hisoblangan qiymat
@@ -842,6 +852,9 @@ model Student {
   topicProgress     StudentTopicProgress[]
   examAttempts      ExamAttempt[]
   certificates      Certificate[]
+  discounts         StudentDiscount[]
+  referralsMade     Referral[]                @relation("ReferralReferrer")
+  referredBy        Referral?                 @relation("ReferralReferred")
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
@@ -2506,4 +2519,149 @@ model RecurringExpense {
 
   @@index([isActive])
   @@map("recurring_expenses")
+}
+
+// ---------------------------------------------------------------------
+// REFERAL VA CHEGIRMALAR
+// ---------------------------------------------------------------------
+
+/// Chegirma turlari. `CUSTOM` — qoidasiz, qo'lda beriladigan chegirma (sabab majburiy).
+enum DiscountType {
+  FAMILY
+  REFERRAL
+  PROMO_CODE
+  PREPAY_3
+  PREPAY_6
+  FIRST_PAYMENT
+  CUSTOM
+}
+
+enum DiscountValueType {
+  PERCENT
+  AMOUNT
+}
+
+/// Chegirma qoidasi — katalog yozuvi. Qoida o'zgarsa **berilgan** chegirmalar o'zgarmaydi:
+/// `StudentDiscount` qiymatlarni nusxa sifatida saqlaydi.
+model DiscountRule {
+  id          String            @id @default(cuid())
+  key         String            @unique @db.VarChar(50)
+  name        String            @db.VarChar(120)
+  type        DiscountType
+  valueType   DiscountValueType @default(PERCENT)
+  /// PERCENT uchun 0–100, AMOUNT uchun so'm
+  value       Decimal           @db.Decimal(14, 2)
+  /// Boshqa chegirmalar ustiga qo'shilishi mumkinmi (stacking)
+  stackable   Boolean           @default(true)
+  /// Kichik raqam avval hisoblanadi
+  priority    Int               @default(0) @db.SmallInt
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0) @db.SmallInt
+  /// Amal qilish oralig'i (ko'rsatilmasa — cheksiz)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  description String?           @db.VarChar(255)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  promoCodes PromoCode[]
+  discounts  StudentDiscount[]
+
+  @@index([isActive, sortOrder])
+  @@index([type])
+  @@map("discount_rules")
+}
+
+/// Promo kod — qoidaga ishlovchi kalit. Kod katta harflarda saqlanadi.
+model PromoCode {
+  id          String    @id @default(cuid())
+  code        String    @unique @db.VarChar(32)
+  ruleId      String
+  /// 0 — cheksiz
+  usageLimit  Int       @default(0) @db.SmallInt
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  note        String?   @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  rule      DiscountRule      @relation(fields: [ruleId], references: [id], onDelete: Restrict)
+  createdBy User?             @relation("PromoCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  discounts StudentDiscount[]
+
+  @@index([isActive])
+  @@map("promo_codes")
+}
+
+/// O'quvchiga berilgan chegirma. **O'chirilmaydi** — bekor qilinadi (`revokedAt`), shunda
+/// shartnoma narxi qanday shakllangani tarixi saqlanadi.
+model StudentDiscount {
+  id           String            @id @default(cuid())
+  studentId    String
+  ruleId       String?
+  promoCodeId  String?
+  /// Berilgan paytdagi nusxa — qoida keyin o'zgarsa ham hujjat o'zgarmaydi
+  label        String            @db.VarChar(120)
+  type         DiscountType
+  valueType    DiscountValueType
+  value        Decimal           @db.Decimal(14, 2)
+  /// Shartnoma narxidan chegirilgan summa (so'm) — hisoblangach muzlatiladi
+  amount       Decimal           @db.Decimal(14, 2)
+  note         String?           @db.VarChar(255)
+  grantedById  String?
+  createdAt    DateTime          @default(now())
+  revokedAt    DateTime?
+  revokedById  String?
+  revokeReason String?           @db.VarChar(255)
+
+  student   Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rule      DiscountRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  promoCode PromoCode?    @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  grantedBy User?         @relation("DiscountGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+  revokedBy User?         @relation("DiscountRevokedBy", fields: [revokedById], references: [id], onDelete: SetNull)
+  referral  Referral?     @relation("ReferralBonusDiscount")
+
+  @@index([studentId, revokedAt])
+  @@index([type])
+  @@map("student_discounts")
+}
+
+/// Taklif holati: lead kelgan → o'quvchiga aylandi → bonus berildi.
+enum ReferralStatus {
+  PENDING
+  CONVERTED
+  REWARDED
+  CANCELLED
+}
+
+/// Kim kimni taklif qilgani. Lead referral kod bilan kelganda yoziladi va lead o'quvchiga
+/// aylanganda `CONVERTED` bo'ladi. Bonus **avtomatik berilmaydi** — xodim aniq harakat bilan
+/// beradi, shunda pul harakati doim ko'rinib turadi.
+model Referral {
+  id                String         @id @default(cuid())
+  referrerStudentId String
+  leadId            String?        @unique
+  referredStudentId String?        @unique
+  status            ReferralStatus @default(PENDING)
+  /// Bonus summasi (berilganda yoziladi)
+  bonusAmount       Decimal        @default(0) @db.Decimal(14, 2)
+  /// Bonus qaysi chegirma sifatida berilgani
+  bonusDiscountId   String?        @unique
+  rewardedById      String?
+  rewardedAt        DateTime?
+  note              String?        @db.VarChar(255)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  referrer      Student          @relation("ReferralReferrer", fields: [referrerStudentId], references: [id], onDelete: Cascade)
+  referred      Student?         @relation("ReferralReferred", fields: [referredStudentId], references: [id], onDelete: SetNull)
+  lead          Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  bonusDiscount StudentDiscount? @relation("ReferralBonusDiscount", fields: [bonusDiscountId], references: [id], onDelete: SetNull)
+  rewardedBy    User?            @relation("ReferralRewardedBy", fields: [rewardedById], references: [id], onDelete: SetNull)
+
+  @@index([referrerStudentId, status])
+  @@index([status, createdAt])
+  @@map("referrals")
 }

@@ -24,6 +24,7 @@ import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExpo
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
 import { createDefaultSchedule } from './paymentSchedule.service.js';
+import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
 import type { TransferStudentGroupInput } from '../validators/student.validator.js';
@@ -44,6 +45,8 @@ export const studentSelect = {
   address: true,
   contractNumber: true,
   contractPrice: true,
+  discountTotal: true,
+  referralCode: true,
   startDate: true,
   status: true,
   statusChangedAt: true,
@@ -84,7 +87,12 @@ export interface StudentDto {
   gender: Gender | null;
   address: string | null;
   contractNumber: string | null;
+  /** Chegirmalar hisobga olingan shartnoma summasi */
   contractPrice: number;
+  /** Faol chegirmalar yig‘indisi (chegirmasiz narx = contractPrice + discountTotal) */
+  discountTotal: number;
+  /** Do‘stini taklif qilish kodi */
+  referralCode: string | null;
   startDate: string;
   status: StudentStatus;
   /** Xavf darajasi — holatdan mustaqil o‘lchov (`studentRisk.service.ts`) */
@@ -125,6 +133,8 @@ export function toStudentDto(student: StudentRecord): StudentDto {
     address: student.address,
     contractNumber: student.contractNumber,
     contractPrice: student.contractPrice.toNumber(),
+    discountTotal: student.discountTotal.toNumber(),
+    referralCode: student.referralCode,
     startDate: toDateOnly(student.startDate),
     status: student.status,
     notes: student.notes,
@@ -270,6 +280,14 @@ async function resolvePlacement(input: {
   return { finalPrice: course.finalPrice.toNumber() };
 }
 
+/**
+ * Taklif kodi o'quvchi raqamidan hosil bo'ladi (ST-45 -> R00045): takrorlanmaydi, o'zgarmaydi
+ * va og'zaki aytish oson. Raqam faqat yozuvdan keyin ma'lum bo'lgani uchun shu yerda yoziladi.
+ */
+async function assignReferralCode(tx: Prisma.TransactionClient, studentId: string, number: number): Promise<void> {
+  await tx.student.update({ where: { id: studentId }, data: { referralCode: `R${String(number).padStart(5, '0')}` } });
+}
+
 export const studentService = {
   async list(actor: AuthUser, query: StudentListQuery): Promise<{ items: StudentDto[]; total: number }> {
     const access = await getStudentAccess(actor);
@@ -381,6 +399,7 @@ export const studentService = {
         },
         select: studentSelect,
       });
+      await assignReferralCode(tx, student.id, student.number);
       // Standart to'lov jadvali: kurs davomiyligi bo'yicha oylik qismlar (keyin qo'lda o'zgartiriladi)
       const course = await tx.course.findUniqueOrThrow({ where: { id: input.courseId }, select: { durationMonths: true } });
       await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate: input.startDate });
@@ -701,6 +720,9 @@ export const studentService = {
         select: { id: true, number: true },
       });
 
+      await assignReferralCode(tx, student.id, student.number);
+      // Lead taklif kodi bilan kelgan bo'lsa, taklif "aylandi" holatiga o'tadi (bonus keyin qo'lda beriladi)
+      await referralService.onLeadConverted(tx, lead.id, student.id);
       const course = await tx.course.findUniqueOrThrow({ where: { id: courseId }, select: { durationMonths: true } });
       await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate });
       await recordGroupChange(tx, {

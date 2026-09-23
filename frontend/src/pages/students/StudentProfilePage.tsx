@@ -105,7 +105,15 @@ export default function StudentProfilePage() {
               <span className="font-mono">{student.code}</span> · {student.course.name}
               {student.group && ` · ${student.group.name}`} · {formatPhone(student.phone)}
             </p>
-            <p className="text-xs text-fg-subtle">O‘qish boshlangan: {formatDate(student.startDate)}</p>
+            <p className="text-xs text-fg-subtle">
+              O‘qish boshlangan: {formatDate(student.startDate)}
+              {student.referralCode && (
+                <>
+                  {' · '}
+                  Taklif kodi: <span className="font-mono text-fg-muted">{student.referralCode}</span>
+                </>
+              )}
+            </p>
 
             <div className="mt-3 max-w-md">
               <div className="flex items-center justify-between text-xs">

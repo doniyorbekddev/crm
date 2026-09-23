@@ -4,6 +4,7 @@ import type { AnalyticsRangeParams, ProfitabilityDimension } from '@/types/analy
 import type { AuditListParams } from '@/types/audit';
 import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
+import type { ReferralListParams } from '@/types/referral';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
 import type { CommissionParams } from '@/types/commission';
@@ -57,6 +58,18 @@ export const queryKeys = {
     notes: (id: string) => ['leads', 'notes', id] as const,
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
+  },
+  discounts: {
+    all: ['discounts'] as const,
+    settings: ['discounts', 'settings'] as const,
+    rules: (includeInactive: boolean) => ['discounts', 'rules', includeInactive] as const,
+    promoCodes: (includeInactive: boolean) => ['discounts', 'promo-codes', includeInactive] as const,
+    student: (studentId: string) => ['discounts', 'student', studentId] as const,
+  },
+  referrals: {
+    all: ['referrals'] as const,
+    list: (params: ReferralListParams) => ['referrals', 'list', params] as const,
+    stats: ['referrals', 'stats'] as const,
   },
   calls: {
     all: ['calls'] as const,

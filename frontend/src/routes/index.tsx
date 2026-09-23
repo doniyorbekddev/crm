@@ -221,6 +221,32 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.REFERRAL_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "referrals",
+                        lazy: lazyComponent(
+                          () => import("@/pages/referrals/ReferralsPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
+                      <PermissionGate permission={PERMISSIONS.DISCOUNT_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "discounts",
+                        lazy: lazyComponent(
+                          () => import("@/pages/discounts/DiscountsPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.STUDENT_VIEW} />
                     ),
                     children: [

@@ -16,6 +16,7 @@ import { GRADE_TONES, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '
 import { PAYMENT_METHOD_LABELS } from '@/utils/paymentLabels';
 import { ProgressChart } from './ProgressChart';
 import { CertificatesCard } from './CertificatesCard';
+import { DiscountsCard } from './DiscountsCard';
 import { CurriculumProgressCard } from './CurriculumProgressCard';
 import { RiskCard } from './RiskCard';
 
@@ -81,6 +82,8 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
       </div>
 
       <RiskCard studentId={student.id} />
+
+      <DiscountsCard studentId={student.id} />
 
       <CurriculumProgressCard studentId={student.id} />
 

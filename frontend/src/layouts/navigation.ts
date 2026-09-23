@@ -1,4 +1,6 @@
 import {
+  BadgePercent,
+  Gift,
   HelpCircle,
   DoorOpen,
   Activity,
@@ -67,6 +69,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/leads', label: 'Leadlar', icon: Target, permission: PERMISSIONS.LEAD_VIEW },
       { to: '/follow-ups', label: 'Follow-up', icon: CalendarClock, permission: PERMISSIONS.FOLLOWUP_VIEW },
       { to: '/targets', label: 'Sotuv rejalari', icon: Crosshair, permission: PERMISSIONS.TARGET_VIEW },
+      { to: '/referrals', label: 'Takliflar', icon: Gift, permission: PERMISSIONS.REFERRAL_VIEW },
+      { to: '/discounts', label: 'Chegirmalar', icon: BadgePercent, permission: PERMISSIONS.DISCOUNT_VIEW },
     ],
   },
   {

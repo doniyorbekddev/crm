@@ -96,6 +96,12 @@ export const PERMISSIONS = {
 
   ANALYTICS_VIEW: 'analytics.view',
 
+  DISCOUNT_VIEW: 'discount.view',
+  DISCOUNT_MANAGE: 'discount.manage',
+  DISCOUNT_GRANT: 'discount.grant',
+  REFERRAL_VIEW: 'referral.view',
+  REFERRAL_REWARD: 'referral.reward',
+
   PORTAL_STUDENT: 'portal.student',
   PORTAL_PARENT: 'portal.parent',
   PORTAL_MANAGE: 'portal.manage',

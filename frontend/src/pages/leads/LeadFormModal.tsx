@@ -47,6 +47,10 @@ const leadFormSchema = z.object({
   courseId: z.string(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   assignedToId: z.string(),
+  referralCode: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || /^R?\d{1,6}$/i.test(value), 'Taklif kodi R00045 ko‘rinishida bo‘lsin'),
   notes: z.string().trim().max(2000, 'Izoh 2000 belgidan oshmasligi kerak'),
 });
 
@@ -100,6 +104,7 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
     priority: lead?.priority ?? 'MEDIUM',
     // Sales Manager uchun yangi lead standart holatda o‘ziga biriktiriladi
     assignedToId: mode === 'create' && canAssign && !canViewAll && currentUser ? currentUser.id : '',
+    referralCode: '',
     notes: lead?.notes ?? '',
   };
 
@@ -117,6 +122,7 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
         return leadsService.create({
           ...payload,
           ...(values.assignedToId ? { assignedToId: values.assignedToId } : {}),
+          ...(values.referralCode ? { referralCode: values.referralCode.toUpperCase() } : {}),
           ...(allowDuplicate ? { allowDuplicate: true } : {}),
         });
       }
@@ -264,6 +270,21 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
                   </option>
                 ))}
               </Select>
+            </FormField>
+          )}
+          {mode === 'create' && (
+            <FormField
+              label="Taklif kodi"
+              htmlFor="lead-referralCode"
+              error={errors.referralCode?.message}
+              hint="Do‘sti taklif qilgan bo‘lsa: R00045"
+            >
+              <Input
+                id="lead-referralCode"
+                placeholder="R00045"
+                invalid={Boolean(errors.referralCode)}
+                {...register('referralCode')}
+              />
             </FormField>
           )}
           <div className="sm:col-span-2">

@@ -29,6 +29,10 @@ export interface StudentItem {
   address: string | null;
   contractNumber: string | null;
   contractPrice: number;
+  /** Faol chegirmalar yig‘indisi (chegirmasiz narx = contractPrice + discountTotal) */
+  discountTotal: number;
+  /** Do‘stini taklif qilish kodi */
+  referralCode: string | null;
   /** "2026-10-01" — vaqtsiz sana */
   startDate: string;
   status: StudentStatus;

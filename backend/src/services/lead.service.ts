@@ -21,6 +21,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 import { leadAssignmentService } from './leadAssignment.service.js';
+import { referralService } from './referral.service.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import type { LeadAccess } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
@@ -581,6 +582,21 @@ export const leadService = {
         type: 'CREATED',
         description: `Lead yaratildi (manba: ${source.name})`,
       });
+
+      // Taklif kodi bilan kelgan bo'lsa — kim olib kelgani yoziladi. Kod noto'g'ri bo'lsa
+      // lead baribir yaratiladi: sotuvni kod uchun to'xtatmaymiz.
+      if (input.referralCode) {
+        const referralId = await referralService.attachToLead(tx, created.id, input.referralCode);
+        if (referralId) {
+          await addActivity(tx, {
+            leadId: created.id,
+            userId: actor.id,
+            type: 'NOTE_ADDED',
+            description: `Taklif kodi bo‘yicha keldi: ${input.referralCode.toUpperCase()}`,
+            metadata: { referralId },
+          });
+        }
+      }
       if (assignee) {
         await addActivity(tx, {
           leadId: created.id,

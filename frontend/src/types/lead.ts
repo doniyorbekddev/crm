@@ -169,6 +169,8 @@ export interface LeadPayload {
 
 export interface CreateLeadPayload extends LeadPayload {
   assignedToId?: string;
+  /** Do‘stini taklif qilgan o‘quvchining kodi (R00045) */
+  referralCode?: string;
   allowDuplicate?: boolean;
 }
 

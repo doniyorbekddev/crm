@@ -95,6 +95,8 @@ const leadFieldsSchema = z.object({
 
 export const createLeadSchema = leadFieldsSchema.extend({
   assignedToId: optionalField(idSchema),
+  /** Do‘stini taklif qilgan o‘quvchining kodi: R00045 */
+  referralCode: optionalField(z.string().trim().max(16, 'Kod 16 belgidan oshmasligi kerak')),
   /** Shu telefon raqamli lead mavjud bo‘lsa ham yaratish */
   allowDuplicate: z.boolean().default(false),
 });
