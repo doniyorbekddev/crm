@@ -1,5 +1,4 @@
 import { prisma } from '../config/database.js';
-import { PERMISSIONS } from '../config/permissions.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import type { HomeworkStatus, Prisma, SubmissionStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -16,7 +15,12 @@ import type {
 import { auditService } from './audit.service.js';
 import { notifyHomeworkCreated, notifyHomeworkGraded } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
-import { permissionService } from './permission.service.js';
+import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
+import type { TeachingAccess } from './teachingAccess.js';
+
+// Egalik qoidasi endi `teachingAccess.ts` da — eski importlar ishlashi uchun qayta eksport
+export { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
+export type { TeachingAccess } from './teachingAccess.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -65,14 +69,6 @@ export interface SubmissionDto {
 
 export interface HomeworkDetailDto extends HomeworkDto {
   submissions: SubmissionDto[];
-}
-
-export interface TeachingAccess {
-  userId: string;
-  /** Barcha guruhlar bilan ishlay oladi (admin, owner) */
-  canManageAll: boolean;
-  /** O‘qituvchi faqat o‘z guruhlari bilan ishlaydi */
-  onlyOwnGroups: boolean;
 }
 
 // ---------------------------------------------------------------------
@@ -170,27 +166,6 @@ function toDetailDto(homework: HomeworkRecord): HomeworkDetailDto {
       }))
       .sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName)),
   };
-}
-
-/** O‘qituvchi faqat o‘z guruhlari bilan ishlaydi, admin — hammasi bilan */
-export async function getTeachingAccess(actor: AuthUser): Promise<TeachingAccess> {
-  const permissions = await permissionService.getRolePermissions(actor.roleId);
-  const canManageAll = permissions.has(PERMISSIONS.GROUP_MANAGE);
-  return { userId: actor.id, canManageAll, onlyOwnGroups: !canManageAll };
-}
-
-export async function assertGroupVisible(
-  access: TeachingAccess,
-  groupId: string,
-): Promise<{ id: string; name: string; courseId: string; teacherId: string | null }> {
-  const group = await prisma.group.findUnique({
-    where: { id: groupId },
-    select: { id: true, name: true, courseId: true, teacherId: true },
-  });
-  if (!group || (access.onlyOwnGroups && group.teacherId !== access.userId)) {
-    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'groupId', message: 'Guruh topilmadi' }]);
-  }
-  return group;
 }
 
 /** Vazifa e’lon qilinganda guruhdagi har bir faol o‘quvchiga bo‘sh topshiriq ochiladi */

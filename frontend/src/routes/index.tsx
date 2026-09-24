@@ -63,9 +63,51 @@ export const router = createBrowserRouter([
                 children: [
                   {
                     path: "portal",
-                    lazy: lazyComponent(
-                      () => import("@/pages/portal/PortalPage"),
-                    ),
+                    children: [
+                      {
+                        index: true,
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalPage"),
+                        ),
+                      },
+                      {
+                        path: "homework",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalHomeworkPage"),
+                        ),
+                      },
+                      {
+                        path: "exams",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalExamsPage"),
+                        ),
+                      },
+                      {
+                        path: "attendance",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalAttendancePage"),
+                        ),
+                      },
+                      {
+                        path: "payments",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalPaymentsPage"),
+                        ),
+                      },
+                      {
+                        path: "settings",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalSettingsPage"),
+                        ),
+                      },
+                      {
+                        // Xodim sahifasi bilan bir xil komponent — endpointlar ruxsat talab qilmaydi
+                        path: "notifications",
+                        lazy: lazyComponent(
+                          () => import("@/pages/notifications/NotificationsPage"),
+                        ),
+                      },
+                    ],
                   },
                 ],
               },

@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, GraduationCap, Wallet } from 'lucide-react';
-import { useState } from 'react';
-import { TelegramLinkCard } from '@/components/TelegramLinkCard';
+import { CalendarDays, Wallet } from 'lucide-react';
 import { AchievementsCard } from './AchievementsCard';
 import { CurriculumCard } from './CurriculumCard';
 import { FeedbackCard } from './FeedbackCard';
@@ -9,11 +7,10 @@ import { LessonsCard } from './LessonsCard';
 import { MyCertificatesCard } from './MyCertificatesCard';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePortal } from '@/layouts/PortalContext';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { portalService } from '@/services/portal.service';
@@ -31,76 +28,31 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 /**
- * O'quvchi va ota-ona kabineti. Ota-ona bo'lsa yuqorida farzandni tanlash paneli chiqadi.
- * Ma'lumot doirasi backendda aniqlanadi — bu yerda faqat ko'rsatiladi.
+ * Kabinet bosh sahifasi: asosiy ko‘rsatkichlar, to‘lov holati, so‘nggi hodisalar.
+ * Kim va qaysi farzand — `PortalLayout` dagi kontekstdan; ma’lumot doirasi backendda aniqlanadi.
  */
 export function PortalPage() {
   useDocumentTitle('Kabinet');
-  const [childId, setChildId] = useState<string | undefined>(undefined);
-
-  const meQuery = useQuery({ queryKey: queryKeys.portal.me, queryFn: () => portalService.me() });
-  const activeChild = childId ?? meQuery.data?.children[0]?.studentId;
+  const { me, activeChild } = usePortal();
 
   const profileQuery = useQuery({
-    queryKey: queryKeys.portal.profile(activeChild ?? ''),
+    queryKey: queryKeys.portal.profile(activeChild),
     queryFn: () => portalService.profile(activeChild),
-    enabled: Boolean(activeChild),
   });
   const scheduleQuery = useQuery({
-    queryKey: queryKeys.portal.schedule(activeChild ?? ''),
+    queryKey: queryKeys.portal.schedule(activeChild),
     queryFn: () => portalService.schedule(activeChild),
-    enabled: Boolean(activeChild),
   });
-
-  if (meQuery.isPending) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
-
-  if (meQuery.isError) {
-    return <ErrorState error={meQuery.error} onRetry={() => void meQuery.refetch()} />;
-  }
-
-  const me = meQuery.data;
-  if (me.children.length === 0) {
-    return (
-      <EmptyState
-        icon={GraduationCap}
-        title="Ma’lumot topilmadi"
-        description="Hisobingizga o‘quvchi biriktirilmagan. O‘quv markazga murojaat qiling."
-      />
-    );
-  }
 
   const profile = profileQuery.data;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg">Salom, {me.fullName.split(' ')[0]}!</h1>
-          <p className="text-sm text-fg-muted">
-            {me.kind === 'PARENT' ? 'Farzandingiz ko‘rsatkichlari' : 'Sizning ko‘rsatkichlaringiz'}
-          </p>
-        </div>
-        {me.kind === 'PARENT' && me.children.length > 1 && (
-          <Select
-            value={activeChild}
-            onChange={(event) => setChildId(event.target.value)}
-            aria-label="Farzandni tanlash"
-            wrapperClassName="sm:w-60"
-          >
-            {me.children.map((child) => (
-              <option key={child.studentId} value={child.studentId}>
-                {child.firstName} {child.lastName}
-              </option>
-            ))}
-          </Select>
-        )}
+      <div>
+        <h1 className="text-2xl font-semibold text-fg">Salom, {me.fullName.split(' ')[0]}!</h1>
+        <p className="text-sm text-fg-muted">
+          {me.kind === 'PARENT' ? 'Farzandingiz ko‘rsatkichlari' : 'Sizning ko‘rsatkichlaringiz'}
+        </p>
       </div>
 
       {profileQuery.isPending ? (
@@ -214,8 +166,6 @@ export function PortalPage() {
           {profileQuery.data && <AchievementsCard profile={profileQuery.data} />}
 
           <MyCertificatesCard studentId={activeChild} />
-
-          <TelegramLinkCard audience="portal" />
 
           <FeedbackCard studentId={activeChild} />
 

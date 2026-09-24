@@ -46,7 +46,7 @@ export const questionController = {
   /** O‘quvchiga ko‘rinadigan savollar — to‘g‘ri javoblarsiz */
   async examQuestions(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    sendSuccess(res, await examAttemptService.questionsForStudent(id));
+    sendSuccess(res, await examAttemptService.questionsForStudent(requireAuthUser(req), id));
   },
 
   /** Imtihonni boshlash — vaqt chegarasi shu yerdan hisoblanadi */
@@ -71,12 +71,12 @@ export const questionController = {
 
   async attempts(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    sendSuccess(res, await examAttemptService.listForExam(id));
+    sendSuccess(res, await examAttemptService.listForExam(requireAuthUser(req), id));
   },
 
   async attempt(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    sendSuccess(res, await examAttemptService.getById(id));
+    sendSuccess(res, await examAttemptService.getById(requireAuthUser(req), id));
   },
 
   async gradeAttempt(req: Request, res: Response): Promise<void> {

@@ -1,5 +1,6 @@
 import type { StudentProfile } from './studentProfile';
 import type { PaymentSchedule } from './paymentSchedule';
+import type { PaymentMethod } from './payment';
 
 export interface PortalChild {
   studentId: string;
@@ -16,6 +17,10 @@ export interface PortalMe {
   fullName: string;
   /** Ota-ona uchun farzandlar; o‘quvchi uchun bitta yozuv */
   children: PortalChild[];
+  /** Sarlavhadagi qo‘ng‘iroqcha uchun */
+  unreadNotifications: number;
+  /** Telegram bog‘langan va tasdiqlangan */
+  telegramLinked: boolean;
 }
 
 export type PortalProfile = StudentProfile;
@@ -42,4 +47,21 @@ export interface PortalLessons {
   /** O‘qituvchi haqida faqat ism va yo‘nalish — aloqa ma’lumotlari ko‘rsatilmaydi */
   teacher: { name: string; specialization: string | null } | null;
   lessons: PortalLesson[];
+}
+
+export interface PortalPaymentHistoryItem {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  paidAt: string;
+}
+
+export interface PortalPayments {
+  schedule: PaymentSchedule;
+  /** So‘nggi 20 ta to‘lov */
+  history: PortalPaymentHistoryItem[];
+}
+
+export interface HomeworkSubmitPayload {
+  answerText: string;
 }

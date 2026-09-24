@@ -14,7 +14,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { notifyExamResult } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
-import { assertGroupVisible, getTeachingAccess } from './homework.service.js';
+import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
 import type { TeachingAccess } from './homework.service.js';
 
 // ---------------------------------------------------------------------

@@ -35,7 +35,8 @@
     "perf:bench": "tsx prisma/perfBenchmark.ts",
     "telegram:webhook": "tsx scripts/telegramWebhook.ts",
     "telegram:check": "tsx scripts/telegramCheck.ts",
-    "telegram:load": "tsx scripts/telegramLoad.ts"
+    "telegram:load": "tsx scripts/telegramLoad.ts",
+    "docs:permissions": "tsx scripts/permissionsDoc.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

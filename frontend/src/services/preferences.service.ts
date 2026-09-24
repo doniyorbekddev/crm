@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { ApiSuccessResponse } from '@/types/api';
 
-export type PreferenceKey = 'dashboard.layout' | 'executive.layout';
+export type PreferenceKey = 'dashboard.layout' | 'executive.layout' | 'portal.activeChild';
 
 export const preferencesService = {
   async list(): Promise<Partial<Record<PreferenceKey, unknown>>> {

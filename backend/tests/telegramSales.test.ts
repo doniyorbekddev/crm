@@ -10,6 +10,13 @@ import { telegramSessionService } from '../src/telegram/session.service.js';
 import { moneyUz } from '../src/utils/money.js';
 import { createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
+import { addDays, startOfBusinessDay } from '../src/utils/dates.js';
+
+/** Hozirdan bir soat keyin, lekin o'quv markaz kunining oxiridan oldin */
+function laterToday(): Date {
+  const dayEnd = addDays(startOfBusinessDay(new Date()), 1).getTime();
+  return new Date(Math.min(Date.now() + 60 * 60_000, dayEnd - 60_000));
+}
 import { createCourse, createGroup, createLead, createSource } from './helpers/fixtures.js';
 
 const app = createApp();
@@ -129,7 +136,8 @@ describe.skipIf(!hasTestDatabase)('Telegram — sotuv boti', () => {
     const source = await createSource();
     const lead = await createLead({ sourceId: source.id, firstName: 'Kamola', assignedToId: manager.id });
     const followUp = await prisma.followUp.create({
-      data: { leadId: lead.id, title: 'Qayta qo‘ng‘iroq', dueAt: new Date(Date.now() + 60 * 60_000), assignedToId: manager.id, createdById: manager.id },
+      // "Bugun" ro'yxatiga tushishi uchun muddat kun oxiridan oshmasligi kerak — test yarim tunga yaqin ham o'tadi
+      data: { leadId: lead.id, title: 'Qayta qo‘ng‘iroq', dueAt: laterToday(), assignedToId: manager.id, createdById: manager.id },
     });
     const bot = captureBot();
 

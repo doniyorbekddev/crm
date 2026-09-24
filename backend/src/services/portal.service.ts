@@ -23,6 +23,7 @@ import { gamificationService } from './gamification.service.js';
 import { homeworkService } from './homework.service.js';
 import { detectFileType, saveFile } from '../utils/fileStorage.js';
 import { currentBusinessMonth } from '../utils/dates.js';
+import { ownerForActor, telegramLinkService } from './telegramLink.service.js';
 
 /**
  * Kabinet (portal) — o'quvchi va ota-ona uchun.
@@ -48,6 +49,10 @@ export interface PortalMeDto {
   fullName: string;
   /** Ota-ona uchun — farzandlar ro'yxati; o'quvchi uchun bitta yozuv */
   children: PortalChildDto[];
+  /** Kabinet sarlavhasidagi qo'ng'iroqcha uchun — alohida so'rov kerak bo'lmasin */
+  unreadNotifications: number;
+  /** Telegram bog'langan va tasdiqlanganmi (sozlamalar bo'limi uchun) */
+  telegramLinked: boolean;
 }
 
 const studentSelect = {
@@ -139,12 +144,22 @@ export interface PortalLessonsDto {
 export const portalService = {
   async me(actor: AuthUser): Promise<PortalMeDto> {
     const scope = await resolvePortalScope(actor);
-    const rows = await prisma.student.findMany({
-      where: { id: { in: scope.studentIds }, deletedAt: null },
-      select: studentSelect,
-      orderBy: { firstName: 'asc' },
-    });
-    return { kind: scope.kind, fullName: scope.fullName, children: rows.map(toChild) };
+    const [rows, unreadNotifications, telegramLink] = await Promise.all([
+      prisma.student.findMany({
+        where: { id: { in: scope.studentIds }, deletedAt: null },
+        select: studentSelect,
+        orderBy: { firstName: 'asc' },
+      }),
+      prisma.notification.count({ where: { userId: actor.id, readAt: null } }),
+      telegramLinkService.status(await ownerForActor(actor.id)),
+    ]);
+    return {
+      kind: scope.kind,
+      fullName: scope.fullName,
+      children: rows.map(toChild),
+      unreadNotifications,
+      telegramLinked: Boolean(telegramLink && telegramLink.verifiedAt !== null && telegramLink.isActive),
+    };
   },
 
   /** To'liq profil: XP, davomat, uy vazifasi, imtihonlar, to'lovlar, progress dinamikasi */

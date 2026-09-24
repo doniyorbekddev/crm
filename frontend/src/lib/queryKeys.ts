@@ -157,6 +157,11 @@ export const queryKeys = {
     lessons: (studentId: string) => ['portal', 'lessons', studentId] as const,
     curriculum: (studentId: string) => ['portal', 'curriculum', studentId] as const,
     certificates: (studentId: string) => ['portal', 'certificates', studentId] as const,
+    homework: (studentId: string) => ['portal', 'homework', studentId] as const,
+    exams: (studentId: string) => ['portal', 'exams', studentId] as const,
+    attendance: (studentId: string, year: number, month: number) => ['portal', 'attendance', studentId, year, month] as const,
+    gamification: (studentId: string) => ['portal', 'gamification', studentId] as const,
+    payments: (studentId: string) => ['portal', 'payments', studentId] as const,
   },
   students: {
     all: ['students'] as const,

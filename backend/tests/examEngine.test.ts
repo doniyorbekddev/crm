@@ -339,6 +339,58 @@ describe.skipIf(!hasTestDatabase)('Imtihon dvigateli: savollar bazasi va urinish
   });
 });
 
+describe.skipIf(!hasTestDatabase)('Imtihon urinishlari: o‘qituvchi doirasi (TZ 3.0 §6, §63)', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+  });
+
+  it('o‘qituvchi A begona guruh (B) imtihoni va urinishlariga kira olmaydi, o‘zinikiga — kiradi', async () => {
+    const { user: teacherA, token: tokenA } = await createUserWithToken(app, { role: 'TEACHER' });
+    const { user: teacherB, token: tokenB } = await createUserWithToken(app, { role: 'TEACHER' });
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const course = await createCourse('Scope kursi');
+    const groupA = await createGroup({ courseId: course.id, teacherId: teacherA.id });
+    const groupB = await createGroup({ courseId: course.id, teacherId: teacherB.id });
+    const studentB = await createStudent(course.id, groupB.id, 'B-o‘quvchi');
+
+    // B o'z guruhida imtihon tuzadi va urinishni boshlaydi
+    const examB = await createExamWithQuestions(tokenB, course.id, groupB.id);
+    const started = await request(app).post(`/api/exams/${examB.id}/attempts/${studentB.id}/start`).set(bearer(tokenB));
+    expect(started.status).toBe(200);
+    const attemptId = started.body.data.attemptId as string;
+
+    // A uchun B'ning imtihoni "yo'q" — mavjudligi ham oshkor bo'lmaydi
+    const questionB = await createQuestion(tokenA, course.id, { text: 'A savoli' });
+    const attach = await request(app).post(`/api/exams/${examB.id}/questions`).set(bearer(tokenA)).send({ questionIds: [questionB.id] });
+    const questions = await request(app).get(`/api/exams/${examB.id}/questions`).set(bearer(tokenA));
+    const start = await request(app).post(`/api/exams/${examB.id}/attempts/${studentB.id}/start`).set(bearer(tokenA));
+    const submit = await request(app).post(`/api/exams/${examB.id}/attempts/${studentB.id}`).set(bearer(tokenA)).send({ answers: examB.answers });
+    const attempts = await request(app).get(`/api/exams/${examB.id}/attempts`).set(bearer(tokenA));
+    const attempt = await request(app).get(`/api/exams/attempts/${attemptId}`).set(bearer(tokenA));
+    const grade = await request(app).post(`/api/exams/attempts/${attemptId}/grade`).set(bearer(tokenA)).send({ grades: [{ answerId: attemptId, score: 1 }] });
+
+    expect([attach.status, questions.status, start.status, submit.status, attempts.status, attempt.status, grade.status]).toEqual([
+      404, 404, 404, 404, 404, 404, 404,
+    ]);
+
+    // B o'zinikini, admin — hammasini ko'radi
+    const ownAttempts = await request(app).get(`/api/exams/${examB.id}/attempts`).set(bearer(tokenB));
+    const ownAttempt = await request(app).get(`/api/exams/attempts/${attemptId}`).set(bearer(tokenB));
+    const adminAttempts = await request(app).get(`/api/exams/${examB.id}/attempts`).set(bearer(admin));
+    expect(ownAttempts.status).toBe(200);
+    expect(ownAttempts.body.data).toHaveLength(1);
+    expect(ownAttempt.status).toBe(200);
+    expect(adminAttempts.status).toBe(200);
+
+    // A o'z guruhida bemalol ishlaydi
+    const examA = await createExamWithQuestions(tokenA, course.id, groupA.id);
+    const ownQuestions = await request(app).get(`/api/exams/${examA.id}/questions`).set(bearer(tokenA));
+    expect(ownQuestions.status).toBe(200);
+    expect(ownQuestions.body.data).toHaveLength(1);
+  });
+});
+
 describe.skipIf(!hasTestDatabase)('Imtihon: vaqt va urinishlar chegarasi', () => {
   beforeEach(async () => {
     await resetDatabase();

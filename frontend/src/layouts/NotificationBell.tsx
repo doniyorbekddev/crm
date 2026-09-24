@@ -20,7 +20,8 @@ import {
 const POLL_MS = 60_000;
 const PREVIEW_PARAMS: NotificationListParams = { page: 1, limit: 8 };
 
-export function NotificationBell() {
+/** `listPath` — "Barchasini ko‘rish" havolasi (kabinetda o‘z sahifasi bor) */
+export function NotificationBell({ listPath = '/notifications' }: { listPath?: string } = {}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -184,7 +185,7 @@ export function NotificationBell() {
           </div>
 
           <Link
-            to="/notifications"
+            to={listPath}
             onClick={() => setOpen(false)}
             className="block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-brand-600 hover:bg-surface-muted dark:text-brand-300"
           >

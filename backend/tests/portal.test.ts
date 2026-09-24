@@ -244,4 +244,95 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
     const curriculum = await request(app).get('/api/portal/curriculum').set(bearer(token));
     expect(curriculum.status).toBe(200);
   });
+
+  it('kabinet sarlavhasi: o‘qilmagan bildirishnomalar soni va Telegram holati /me da keladi', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id, 'Sarlavha');
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token, account } = await openStudentPortal(admin, student.id, 'sarlavha@portal.uz');
+
+    await prisma.notification.createMany({
+      data: [
+        { userId: account.userId, type: 'SYSTEM', title: 'Bir', message: 'x' },
+        { userId: account.userId, type: 'SYSTEM', title: 'Ikki', message: 'y' },
+        { userId: account.userId, type: 'SYSTEM', title: 'O‘qilgan', message: 'z', readAt: new Date() },
+      ],
+    });
+
+    const me = await request(app).get('/api/portal/me').set(bearer(token));
+    expect(me.status).toBe(200);
+    expect(me.body.data).toMatchObject({ unreadNotifications: 2, telegramLinked: false });
+
+    // Kabinet egasi o'z bildirishnomalari va sozlamalariga kira oladi (xodim ruxsati talab qilinmaydi)
+    const list = await request(app).get('/api/notifications').set(bearer(token));
+    const settings = await request(app).get('/api/notifications/settings').set(bearer(token));
+    expect(list.status).toBe(200);
+    expect(list.body.data).toHaveLength(3);
+    expect(settings.status).toBe(200);
+  });
+
+  it('ota-ona A begona farzand (B) uchun barcha kabinet bo‘limlarida 403 oladi (TZ 3.0 §63)', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const own = await createStudent(course.id, group.id, 'O‘ziniki');
+    const stranger = await createStudent(course.id, group.id, 'Begona');
+    const parent = await prisma.parent.create({
+      data: { firstName: 'Ota', lastName: 'A', phone: '+998901112233', students: { create: [{ studentId: own.id, isPrimary: true }] } },
+    });
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const created = await request(app).post(`/api/parents/${parent.id}/portal-account`).set(bearer(admin)).send({ email: 'ota-a@portal.uz' });
+    const token = await loginAs(app, 'ota-a@portal.uz', created.body.data.temporaryPassword);
+
+    const readPaths = [
+      '/api/portal/profile',
+      '/api/portal/schedule',
+      '/api/portal/lessons',
+      '/api/portal/curriculum',
+      '/api/portal/certificates',
+      '/api/portal/homework',
+      '/api/portal/exams',
+      '/api/portal/attendance/calendar',
+      '/api/portal/gamification',
+      '/api/portal/payments',
+      '/api/portal/feedback',
+    ];
+    const foreign = await Promise.all(readPaths.map((path) => request(app).get(path).query({ studentId: stranger.id }).set(bearer(token))));
+    const foreignSubmit = await request(app)
+      .post('/api/portal/homework/hw_yoq/submit')
+      .query({ studentId: stranger.id })
+      .set(bearer(token))
+      .send({ answerText: 'javob' });
+    const foreignFeedback = await request(app)
+      .post('/api/portal/feedback')
+      .query({ studentId: stranger.id })
+      .set(bearer(token))
+      .send({ type: 'ACADEMY', rating: 5, comment: 'yaxshi' });
+
+    expect(foreign.map((response) => response.status)).toEqual(readPaths.map(() => 403));
+    expect(foreignSubmit.status).toBe(403);
+    expect(foreignFeedback.status).toBe(403);
+
+    // O'z farzandi — hammasi ochiq
+    const mine = await Promise.all(readPaths.map((path) => request(app).get(path).query({ studentId: own.id }).set(bearer(token))));
+    expect(mine.map((response) => response.status)).toEqual(readPaths.map(() => 200));
+  });
+
+  it('kabinet egasi xodimlarning imtihon urinishi endpointlariga kira olmaydi', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id, 'Imtihonchi');
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const exam = await request(app)
+      .post('/api/exams')
+      .set(bearer(admin))
+      .send({ title: 'Yopiq imtihon', groupId: group.id, date: '2026-10-15', maxScore: 100 });
+    const { token } = await openStudentPortal(admin, student.id, 'imtihonchi@portal.uz');
+    const examId = exam.body.data.id as string;
+
+    const start = await request(app).post(`/api/exams/${examId}/attempts/${student.id}/start`).set(bearer(token));
+    const questions = await request(app).get(`/api/exams/${examId}/questions`).set(bearer(token));
+    const attempts = await request(app).get(`/api/exams/${examId}/attempts`).set(bearer(token));
+    expect([start.status, questions.status, attempts.status]).toEqual([403, 403, 403]);
+  });
 });

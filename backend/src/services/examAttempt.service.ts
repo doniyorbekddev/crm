@@ -7,6 +7,8 @@ import type { AttachQuestionsInput, GradeAttemptInput, SubmitAttemptInput } from
 import { auditService } from './audit.service.js';
 import { notifyExamResultForAttempt } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
+import { getTeachingAccess, teachingGroupFilter } from './teachingAccess.js';
+import type { TeachingAccess } from './teachingAccess.js';
 
 /**
  * Imtihon urinishi: savollarni biriktirish, javoblarni qabul qilish, avtomatik baholash
@@ -170,11 +172,27 @@ function gradeChoice(selected: string[], correct: string[], points: number): { s
   return { score: exact ? points : 0, isCorrect: exact };
 }
 
+/**
+ * Egalik: o'qituvchi faqat o'z guruhi imtihonlari va ularning urinishlari bilan ishlaydi
+ * (`teachingAccess`). Begona imtihon "topilmadi" deb qaytadi — mavjudligi oshkor bo'lmaydi.
+ */
+function attemptScope(access: TeachingAccess): Prisma.ExamAttemptWhereInput {
+  return access.onlyOwnGroups ? { exam: { group: { teacherId: access.userId } } } : {};
+}
+
+async function requireVisibleExam(actor: AuthUser, examId: string): Promise<TeachingAccess> {
+  const access = await getTeachingAccess(actor);
+  const exam = await prisma.exam.findFirst({ where: { id: examId, ...teachingGroupFilter(access) }, select: { id: true } });
+  if (!exam) throw AppError.notFound('Imtihon topilmadi');
+  return access;
+}
+
 export const examAttemptService = {
   /** Imtihonga savollarni biriktirish: qo'lda tanlash yoki tasodifiy */
   async attachQuestions(actor: AuthUser, examId: string, input: AttachQuestionsInput, client: ClientInfo): Promise<{ attached: number }> {
-    const exam = await prisma.exam.findUnique({
-      where: { id: examId },
+    const access = await getTeachingAccess(actor);
+    const exam = await prisma.exam.findFirst({
+      where: { id: examId, ...teachingGroupFilter(access) },
       select: { id: true, courseId: true, group: { select: { courseId: true } }, _count: { select: { attempts: true } } },
     });
     if (!exam) throw AppError.notFound('Imtihon topilmadi');
@@ -240,9 +258,10 @@ export const examAttemptService = {
   },
 
   /** O'quvchi uchun savollar ro'yxati — to'g'ri javoblarsiz */
-  async questionsForStudent(examId: string): Promise<
+  async questionsForStudent(actor: AuthUser, examId: string): Promise<
     Array<{ examQuestionId: string; text: string; type: string; points: number; options: Array<{ id: string; text: string }> }>
   > {
+    await requireVisibleExam(actor, examId);
     const rows = await prisma.examQuestion.findMany({
       where: { examId },
       orderBy: { sortOrder: 'asc' },
@@ -271,8 +290,9 @@ export const examAttemptService = {
    * o'quvchi savollarni ko'rib chiqib keyin "urinish qolmagan" degan javobni olmasin.
    */
   async start(actor: AuthUser, examId: string, studentId: string, client: ClientInfo): Promise<{ attemptId: string; attemptNo: number; deadline: string | null }> {
-    const exam = await prisma.exam.findUnique({
-      where: { id: examId },
+    const access = await getTeachingAccess(actor);
+    const exam = await prisma.exam.findFirst({
+      where: { id: examId, ...teachingGroupFilter(access) },
       select: { id: true, title: true, durationMinutes: true, maxAttempts: true, questions: { select: { id: true } } },
     });
     if (!exam) throw AppError.notFound('Imtihon topilmadi');
@@ -331,8 +351,9 @@ export const examAttemptService = {
    * qilinmaydi — urinish `EXPIRED` bo'lib yopiladi va bu urinishlar hisobiga kirmaydi.
    */
   async submit(actor: AuthUser, examId: string, studentId: string, input: SubmitAttemptInput, client: ClientInfo): Promise<AttemptDto> {
-    const exam = await prisma.exam.findUnique({
-      where: { id: examId },
+    const access = await getTeachingAccess(actor);
+    const exam = await prisma.exam.findFirst({
+      where: { id: examId, ...teachingGroupFilter(access) },
       select: {
         id: true,
         passScore: true,
@@ -465,8 +486,9 @@ export const examAttemptService = {
 
   /** Matnli javoblarni qo'lda baholash — shundan keyin urinish yakunlanadi */
   async grade(actor: AuthUser, attemptId: string, input: GradeAttemptInput, client: ClientInfo): Promise<AttemptDto> {
-    const attempt = await prisma.examAttempt.findUnique({
-      where: { id: attemptId },
+    const access = await getTeachingAccess(actor);
+    const attempt = await prisma.examAttempt.findFirst({
+      where: { id: attemptId, ...attemptScope(access) },
       select: { id: true, examId: true, status: true, answers: { select: { id: true, examQuestion: { select: { points: true } } } } },
     });
     if (!attempt) throw AppError.notFound('Urinish topilmadi');
@@ -537,13 +559,15 @@ export const examAttemptService = {
     return toAttemptDto(updated);
   },
 
-  async getById(attemptId: string): Promise<AttemptDto> {
-    const attempt = await prisma.examAttempt.findUnique({ where: { id: attemptId }, select: attemptSelect });
+  async getById(actor: AuthUser, attemptId: string): Promise<AttemptDto> {
+    const access = await getTeachingAccess(actor);
+    const attempt = await prisma.examAttempt.findFirst({ where: { id: attemptId, ...attemptScope(access) }, select: attemptSelect });
     if (!attempt) throw AppError.notFound('Urinish topilmadi');
     return toAttemptDto(attempt);
   },
 
-  async listForExam(examId: string): Promise<AttemptDto[]> {
+  async listForExam(actor: AuthUser, examId: string): Promise<AttemptDto[]> {
+    await requireVisibleExam(actor, examId);
     const rows = await prisma.examAttempt.findMany({
       where: { examId },
       orderBy: [{ studentId: 'asc' }, { attemptNo: 'desc' }],
