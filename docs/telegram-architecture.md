@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–5 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona boti, o'qituvchi boti).
+> Holat: **PHASE 1–7 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv va rahbar botlari).
 
 ---
 
@@ -136,8 +136,7 @@ ochish ortiqcha, chunki muddat o'qishda ham tekshiriladi.
 |---|---|
 | O'quvchi / Ota-ona | 📊 Profil · 📅 Dars jadvali · ✅ Davomat · 📝 Uy vazifalari · 🎯 Imtihonlar · ⭐ XP & Reyting · 💳 To'lovlar · 📜 Sertifikatlar · 🔗 Holat · 🚫 Uzish |
 | Ota-ona (2+ farzand) | + 👨‍👩‍👧 Farzandni tanlash — tanlov sessiyada turadi, bo'limlar o'sha farzand haqida |
-| Xodim (`attendance.mark` ruxsati bilan) | 📅 Bugungi darslar · 📚 Guruhlarim · 🔗 Holat · 🚫 Uzish |
-| Boshqa xodim | 🔗 Holat · 🚫 Uzish |
+| Xodim | Ruxsatga qarab: `dashboard.view` → 📊 Ko'rsatkichlar · `attendance.mark` → 📅 Bugungi darslar, 📚 Guruhlarim · `lead.view` → 📞 Leadlarim, 🔥 Qizigan, ⏰ Follow-uplar · `debt.view` → ⚠️ Qarzdorlar · `student.view` → 🔥 Xavf ostida · `alert.view` → 🔔 Ogohlantirishlar · har doim: 🔗 Holat, 🚫 Uzish |
 
 ---
 
@@ -199,6 +198,22 @@ ko'rsatiladi — bu kutilgan holat, umumiy "Xatolik yuz berdi" emas.
 
 Bloklangan (`status ≠ ACTIVE`) xodimning bog'lanishi yopiladi — CRM'ga kira olmagani kabi botda ham ishlamaydi.
 
+## 5c. Sotuv va rahbar bo'limlari (PHASE 6–7)
+
+`handlers/sales.ts` va `handlers/owner.ts` — ikkalasi ham `scope.actor` nomidan mavjud servislar.
+
+| Bo'lim | Servis | Izoh |
+|---|---|---|
+| Leadlarim | `leadService.list` (`assignedTo: me`, ochiq statuslar) | "faqat mening leadlarim" — `leadAccess.ts` |
+| Qizigan leadlar | `leadService.list` (VERY_HOT, keyin HOT) | skor bo'yicha |
+| Lead kartochkasi | `leadService.getById` | telefon, kurs, skor, oxirgi aloqa, keyingi follow-up |
+| Status | `leadService.setStatus` | audit va faollik tarixi servisda. **WON bot orqali qo'yilmaydi** — o'quvchiga aylantirish CRM'da. LOST — sabab so'raladi (oqim `lead_lost`) |
+| Follow-uplar | `followUpService.list` / `complete` | bugun · kechikkan · kelgusi |
+| Ko'rsatkichlar | `dashboardService.summary` | bloklar ruxsatga qarab keladi, bot hech nimani hisoblamaydi (TZ §23) |
+| Qarzdorlar | `debtService.list` (eng kattalari) | servis actor olmaydi → `debt.view` botda tekshiriladi |
+| Xavf ostida | `studentService.atRisk` | daraja va sog'lomlik bahosi |
+| Ogohlantirishlar | `alertService.list` (ochiq) | `alert.view` botda tekshiriladi |
+
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga
 ajratildi — `buildStudentProfile` naqshi bo'yicha (ruxsat chaqiruvchi tomonda).
@@ -259,6 +274,6 @@ so'rovni qabul qilmaydi va bot jim qolardi.
 | ~~3~~ | ✅ Student bot — bajarildi |
 | ~~4~~ | ✅ Parent bot — farzand tanlash PHASE 3 ichida bajarildi (xavfsizlik uchun kerak edi: bo'lim birinchi farzandni jimgina ko'rsatmasin) |
 | ~~5~~ | ✅ Teacher bot — bajarildi |
-| **6–7** | Sales va Owner bot |
+| ~~6–7~~ | ✅ Sotuv va rahbar botlari — bajarildi |
 | **8** | Yangi bildirishnoma turlari (homework, exam, XP, certificate) |
 | **9** | Broadcast |

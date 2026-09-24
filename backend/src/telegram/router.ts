@@ -14,6 +14,8 @@ import {
   handleHomeworkCreateFlow,
   handleTeacherAction,
 } from './handlers/teacher.js';
+import { LEAD_LOST_FLOW, SALES_COMMANDS, handleLeadLostFlow, handleSalesAction } from './handlers/sales.js';
+import { OWNER_COMMANDS, handleOwnerAction } from './handlers/owner.js';
 import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
 import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
@@ -268,6 +270,7 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   if (inFlow && !isCommand) {
     if (session.flow === HOMEWORK_FLOW && scope.kind !== 'STAFF') return handleHomeworkFlow(context, scope, session);
     if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
+    if (session.flow === LEAD_LOST_FLOW && scope.actor) return handleLeadLostFlow(context, scope, session);
     // Davomat varag'i matn kutmaydi — tugmalar bilan ishlanadi; matn oddiy buyruq kabi ketadi
     if (session.flow !== ATTENDANCE_FLOW) await telegramSessionService.clearFlow(context.chatId);
   }
@@ -278,10 +281,15 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
     const handled = await handleStudentAction(context, scope, studentAction, null);
     if (handled) return handled;
   }
-  const teacherAction = scope.actor ? TEACHER_COMMANDS[command] : undefined;
-  if (teacherAction) {
-    const handled = await handleTeacherAction(context, scope, teacherAction, null);
-    if (handled) return handled;
+  if (scope.actor) {
+    const staffAction = TEACHER_COMMANDS[command] ?? SALES_COMMANDS[command] ?? OWNER_COMMANDS[command];
+    if (staffAction) {
+      const handled =
+        (await handleTeacherAction(context, scope, staffAction, null)) ??
+        (await handleSalesAction(context, scope, staffAction, null)) ??
+        (await handleOwnerAction(context, scope, staffAction));
+      if (handled) return handled;
+    }
   }
   return runCommand(context, scope, text);
 }
@@ -301,6 +309,14 @@ async function handleCallback(context: BotContext, scope: NonNullable<BotContext
   }
   if (action.startsWith('tc_') && scope.actor) {
     const handled = await handleTeacherAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
+  if (action.startsWith('sl_') && scope.actor) {
+    const handled = await handleSalesAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
+  if (action.startsWith('ow_') && scope.actor) {
+    const handled = await handleOwnerAction(context, scope, action);
     if (handled) return handled;
   }
 

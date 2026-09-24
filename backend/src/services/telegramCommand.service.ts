@@ -50,7 +50,16 @@ function helpText(scope: CommandScope): string {
   const lines = ['<b>Mavjud buyruqlar</b>', ''];
   if (scope.kind === 'STAFF') {
     lines.push('Bu chat xodim hisobiga bog‘langan — eslatmalar shu yerga keladi.', '');
-    lines.push('/bugun — bugungi darslar va davomat', '/guruhlar — guruhlarim, o‘quvchilar, vazifa berish', '');
+    lines.push(
+      '/panel — bugungi ko‘rsatkichlar',
+      '/bugun — bugungi darslar va davomat',
+      '/guruhlar — guruhlarim, o‘quvchilar, vazifa berish',
+      '/leadlar — leadlarim va statusni o‘zgartirish',
+      '/followup — follow-uplar',
+      '/qarzdorlar — eng katta qarzdorlar',
+      '(bo‘limlar ruxsatingizga qarab ochiladi)',
+      '',
+    );
   } else {
     lines.push(...STUDENT_COMMANDS);
   }
@@ -231,8 +240,12 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'xp', description: 'XP, seriya, reyting' },
   { command: 'qarz', description: 'To‘lovlar va qarz' },
   { command: 'sertifikat', description: 'Sertifikatlar' },
+  { command: 'panel', description: 'Ko‘rsatkichlar (rahbar)' },
   { command: 'bugun', description: 'Bugungi darslar (o‘qituvchi)' },
   { command: 'guruhlar', description: 'Guruhlarim (o‘qituvchi)' },
+  { command: 'leadlar', description: 'Leadlarim (sotuv)' },
+  { command: 'followup', description: 'Follow-uplar (sotuv)' },
+  { command: 'qarzdorlar', description: 'Qarzdorlar (rahbar)' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },

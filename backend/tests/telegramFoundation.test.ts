@@ -200,9 +200,11 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
 
     await post(messageUpdate('/start')).expect(200);
 
-    // Admin davomat olish huquqiga ega — o'qituvchi bo'limlari chiqadi, o'quvchi bo'limlari yo'q
-    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['tc_today', 'tc_groups', 'cmd:/holat', 'cmd:/uzish']);
-    expect(dataOf(bot.sent[0]!.keyboard).some((data) => data.startsWith('st_'))).toBe(false);
+    // Xodim menyusi ruxsatga qarab quriladi — o'quvchi bo'limlari (st_*) hech qachon chiqmaydi
+    const data = dataOf(bot.sent[0]!.keyboard);
+    expect(data).toContain('cmd:/holat');
+    expect(data).toContain('cmd:/uzish');
+    expect(data.some((item) => item.startsWith('st_'))).toBe(false);
   });
 
   it('noma’lum callback bosh menyuga qaytaradi', async () => {

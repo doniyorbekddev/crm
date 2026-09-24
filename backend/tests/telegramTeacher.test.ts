@@ -120,14 +120,16 @@ describe.skipIf(!hasTestDatabase)('Telegram — o‘qituvchi boti', () => {
     const bot = captureBot();
 
     await message('/start').expect(200);
-    expect(bot.lastData()).toEqual(['tc_today', 'tc_groups', 'cmd:/holat', 'cmd:/uzish']);
+    expect(bot.lastData()).toEqual(expect.arrayContaining(['tc_today', 'tc_groups', 'cmd:/holat', 'cmd:/uzish']));
+    expect(bot.lastData().some((item) => item.startsWith('st_'))).toBe(false);
 
     // Davomat huquqi yo'q xodim (buxgalter) — o'qituvchi tugmalari chiqmaydi
     const { user: accountant } = await createUserWithToken(app, { role: 'ACCOUNTANT', email: 'buxgalter-tg@local.uz' });
     const link = await telegramLinkService.ensureLink({ userId: accountant.id });
     await message(`/start ${link.linkCode}`, 909_002);
     await message('/start', 909_002).expect(200);
-    expect(bot.lastData()).toEqual(['cmd:/holat', 'cmd:/uzish']);
+    expect(bot.lastData()).not.toContain('tc_today');
+    expect(bot.lastData()).not.toContain('tc_groups');
   });
 
   it('guruhlar ro‘yxatida faqat o‘z guruhlari', async () => {

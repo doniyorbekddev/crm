@@ -4,6 +4,8 @@ import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, grid } from '../keyboards.j
 import type { BotContext, HandlerResult } from '../types.js';
 import { STUDENT_ACTIONS, activeChildName } from './student.js';
 import { TEACHER_ACTIONS } from './teacher.js';
+import { SALES_ACTIONS } from './sales.js';
+import { OWNER_ACTIONS } from './owner.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import { permissionService } from '../../services/permission.service.js';
 
@@ -52,15 +54,29 @@ const TEACHER_ITEMS: readonly MenuItem[] = [
   { text: '📚 Guruhlarim', data: callback(TEACHER_ACTIONS.groups) },
 ];
 
+const SALES_ITEMS: readonly MenuItem[] = [
+  { text: '📞 Leadlarim', data: callback(SALES_ACTIONS.leads) },
+  { text: '🔥 Qizigan leadlar', data: callback(SALES_ACTIONS.hot) },
+  { text: '⏰ Follow-uplar', data: callback(SALES_ACTIONS.followUps) },
+];
+
 /**
  * Menyu rolga qarab emas, **ruxsatga** qarab quriladi (TZ §5): `attendance.mark` bo'lsa
- * o'qituvchi bo'limlari ko'rinadi — rol nomi qanday bo'lishidan qat'i nazar.
+ * o'qituvchi, `lead.view` bo'lsa sotuv, `dashboard.view` bo'lsa rahbar bo'limlari —
+ * rol nomi qanday bo'lishidan qat'i nazar. Ruxsat bo'lmasa tugma umuman chiqmaydi.
  */
 async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   if (scope.kind !== 'STAFF') return [...STUDENT_ITEMS, ...COMMON_ITEMS];
   if (!scope.actor) return COMMON_ITEMS;
   const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
-  return permissions.has(PERMISSIONS.ATTENDANCE_MARK) ? [...TEACHER_ITEMS, ...COMMON_ITEMS] : COMMON_ITEMS;
+  const items: MenuItem[] = [];
+  if (permissions.has(PERMISSIONS.DASHBOARD_VIEW)) items.push({ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) });
+  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS);
+  if (permissions.has(PERMISSIONS.LEAD_VIEW)) items.push(...SALES_ITEMS);
+  if (permissions.has(PERMISSIONS.DEBT_VIEW)) items.push({ text: '⚠️ Qarzdorlar', data: callback(OWNER_ACTIONS.debts) });
+  if (permissions.has(PERMISSIONS.STUDENT_VIEW)) items.push({ text: '🔥 Xavf ostida', data: callback(OWNER_ACTIONS.risk) });
+  if (permissions.has(PERMISSIONS.ALERT_VIEW)) items.push({ text: '🔔 Ogohlantirishlar', data: callback(OWNER_ACTIONS.alerts) });
+  return [...items, ...COMMON_ITEMS];
 }
 
 function greeting(scope: CommandScope, childName: string | null): string {
