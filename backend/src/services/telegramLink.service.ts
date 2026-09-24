@@ -118,7 +118,50 @@ export async function ownerForActor(userId: string): Promise<TelegramLinkOwner> 
   return { userId };
 }
 
+export interface TelegramHealthDto {
+  /** Token sozlanganmi va qaysi rejim */
+  enabled: boolean;
+  mode: 'polling' | 'webhook';
+  /** Bog'langan (tasdiqlangan, faol) chatlar */
+  linkedChats: number;
+  /** Oxirgi kiruvchi hodisa vaqti — bot "jim" bo'lib qolganini ko'rsatadi */
+  lastEventAt: string | null;
+  /** So'nggi 24 soat: kiruvchi hodisalar va xatolar */
+  eventsLast24h: number;
+  failedEventsLast24h: number;
+  /** Yetkazish navbati */
+  pendingDeliveries: number;
+  failedDeliveriesLast24h: number;
+  sentDeliveriesLast24h: number;
+}
+
 export const telegramLinkService = {
+  /** Bot sog'lomligi — monitoring uchun (TZ §55): navbat, xatolar, oxirgi faollik */
+  async health(now: Date = new Date()): Promise<TelegramHealthDto> {
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60_000);
+    const [linkedChats, lastEvent, eventsLast24h, failedEventsLast24h, pendingDeliveries, failedDeliveriesLast24h, sentDeliveriesLast24h] =
+      await Promise.all([
+        prisma.telegramLink.count({ where: { verifiedAt: { not: null }, isActive: true, chatId: { not: null } } }),
+        prisma.telegramEvent.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+        prisma.telegramEvent.count({ where: { createdAt: { gte: dayAgo } } }),
+        prisma.telegramEvent.count({ where: { createdAt: { gte: dayAgo }, status: 'FAILED' } }),
+        prisma.notificationDelivery.count({ where: { status: 'PENDING' } }),
+        prisma.notificationDelivery.count({ where: { status: 'FAILED', updatedAt: { gte: dayAgo } } }),
+        prisma.notificationDelivery.count({ where: { status: 'SENT', sentAt: { gte: dayAgo } } }),
+      ]);
+    return {
+      enabled: Boolean(env.TELEGRAM_BOT_TOKEN),
+      mode: env.TELEGRAM_POLLING ? 'polling' : 'webhook',
+      linkedChats,
+      lastEventAt: lastEvent?.createdAt.toISOString() ?? null,
+      eventsLast24h,
+      failedEventsLast24h,
+      pendingDeliveries,
+      failedDeliveriesLast24h,
+      sentDeliveriesLast24h,
+    };
+  },
+
   /** Mavjud bog'lanishni qaytaradi yoki yangi kod yaratadi */
   /**
    * Mavjud bog'lanishni qaytaradi yoki **yangi kod** beradi.
@@ -213,6 +256,12 @@ export const telegramLinkService = {
     const message = typed?.message;
     const chatId = message?.chat?.id;
     const text = message?.text?.trim();
+
+    // Bot **faqat shaxsiy chatda** ishlaydi. Guruh chatidan `/start <kod>` yuborilsa,
+    // bog'lanish guruhga tushib, qarz va davomat butun guruhga ketardi. Guruhdagi
+    // xabarlar e'tiborsiz qoldiriladi (javob ham yozilmaydi — botni "gapirtirish" mumkin bo'lmasin).
+    const chatType = message?.chat?.type ?? typed?.callback_query?.message?.chat?.type;
+    if (chatType && chatType !== 'private') return { linked: false };
 
     // Bog'lash — yagona amal, u **tasdiqlanmagan** chatdan keladi, shuning uchun shu yerda.
     // Qolgan hamma narsa (menyu, tugmalar, buyruqlar) `telegram/router.ts` da.

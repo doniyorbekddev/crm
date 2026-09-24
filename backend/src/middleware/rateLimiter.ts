@@ -11,13 +11,26 @@ function skipLimits(): boolean {
   return isTest && process.env.RATE_LIMIT_TEST !== 'on';
 }
 
+/**
+ * Webhook yo'llari (Telegram, to'lov provayderi) umumiy IP limitidan **chiqariladi**.
+ *
+ * Bu yo'llarga so'rov bitta manbadan — Telegram yoki provayder serverlaridan — keladi, ya'ni
+ * bitta IP butun markaz uchun ishlaydi. IP bo'yicha 300/min chegara botni 300 o'quvchi bir
+ * vaqtda tugma bosganda "o'chirib" qo'yardi; Telegram esa 429 ni ko'rib qayta yuboraveradi.
+ * Ular uchun alohida, kengroq `webhookLimiter` bor; haqiqiy himoya — imzo (secret token).
+ */
+const WEBHOOK_PATHS = ['/telegram/webhook', '/payments/webhook/'];
+function isWebhookPath(path: string): boolean {
+  return WEBHOOK_PATHS.some((prefix) => path.startsWith(prefix));
+}
+
 /** Umumiy API limiti: bitta IP’dan daqiqasiga 300 ta so‘rov. */
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 300,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  skip: skipLimits,
+  skip: (req) => skipLimits() || isWebhookPath(req.path),
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p so‘rov yuborildi. Birozdan keyin qayta urinib ko‘ring.');
   },
@@ -48,6 +61,24 @@ export const authLimiter = rateLimit({
   skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p urinish. 15 daqiqadan keyin qayta urinib ko‘ring.');
+  },
+});
+
+/**
+ * Webhook'lar uchun: bitta IP'dan daqiqasiga 1200 ta (soniyasiga 20).
+ *
+ * Bu haqiqiy trafikni cheklamaydi (Telegram bitta markaz uchun bunchalik yubormaydi), lekin
+ * sirli kalit sizib chiqqanda yoki noto'g'ri sozlangan mijoz tinmay urganda serverni himoya qiladi.
+ * Chat bo'yicha chegara botning o'zida (`telegram/rateLimit.ts`).
+ */
+export const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 1200,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skip: skipLimits,
+  handler: (_req, res) => {
+    sendError(res, 429, 'Juda ko‘p so‘rov.');
   },
 });
 

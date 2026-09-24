@@ -325,6 +325,9 @@ bildirishnomalarini (qarz, davomat, farzand ma'lumoti) o'ziga burib yuborishi mu
 **Tuzatish (2-bosqich, birinchi navbatda):** `codeExpiresAt` (15 daqiqa), `codeUsedAt`
 (bir martalik), `failedAttempts`, va `verifiedAt !== null` bo'lsa kodni rad etish.
 
+> ✅ **Tuzatildi** (PHASE 2, `238f3c0`). Urinishlar chegarasi jadval ustuni emas, xotirada —
+> CRM bitta jarayonda ishlaydi. To'liq holat: [telegram-security.md](telegram-security.md).
+
 ### Qolgan choralar
 
 | Tahdid | Chora |

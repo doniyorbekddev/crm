@@ -4,14 +4,14 @@ import { debtController, paymentController } from '../controllers/payment.contro
 import { onlinePaymentController } from '../controllers/onlinePayment.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
-import { heavyLimiter } from '../middleware/rateLimiter.js';
+import { heavyLimiter, webhookLimiter } from '../middleware/rateLimiter.js';
 
 export const paymentRouter = Router();
 
 // --- Onlayn to'lov webhooki -------------------------------------------
 // `authenticate` dan OLDIN: provayder token bilan emas, **imzo** bilan tanilади.
 // Rate limit bor — imzoni topishga urinishlarni sekinlashtiradi.
-paymentRouter.post('/webhook/:provider', heavyLimiter, onlinePaymentController.webhook);
+paymentRouter.post('/webhook/:provider', webhookLimiter, onlinePaymentController.webhook);
 
 paymentRouter.use(authenticate);
 

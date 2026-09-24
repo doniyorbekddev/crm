@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–12 bajarildi** — poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar, bildirishnomalar, ommaviy xabar, to'lov tugmasi, do'st taklifi, AI yordamchi. Qoldi: 13–15 (xavfsizlik auditi, yuklama, production).
+> Holat: **barcha 15 bosqich bajarildi.** Xavfsizlik: [telegram-security.md](telegram-security.md) · Production: [telegram-deployment.md](telegram-deployment.md)
 
 ---
 
@@ -261,6 +261,17 @@ Kimga? → [o'quvchilar | ota-onalar | guruh → tanlash → (+ota-onalar?) | ku
 | 💳 To'lash | `paymentScheduleService.get` + `onlinePaymentService.providers()` | Qoldiq va keyingi muddat. Provayder (Click/Payme) ulanmagan bo'lsa — aniq aytiladi. **Bot to'lovni o'zi tasdiqlamaydi** (TZ §36): faqat provayder webhook'i orqali CRM tasdiqlaydi. Sinov provayderi "ulangan" deb ko'rsatilmaydi |
 | 🎁 Do'st taklifi | `Student.referralCode` + `referralService.list` | Havola emas, **kod**: mavjud referral tizimi manager kodni lead kartasiga yozishi bilan ishlaydi. Takliflar holati va olingan bonus. `t.me/share/url` bilan ulashish |
 | 🤖 AI yordamchi | `aiAssistantService.ask` | `ai.assistant` ruxsati bilan. Oqim (`ai`): har matn — savol, javob CRM tool'laridan; takliflar sessiyada (callback 64 baytga sig'maydi). So'rovlar `AiQuery` jurnalida — kabinetdagi bilan bir xil |
+
+## 5g. Xavfsizlik auditi, yuklama, production (PHASE 13–15)
+
+- **Guruh chati yopildi:** bot faqat `chat.type === 'private'` da ishlaydi — guruhdan `/start <kod>`
+  bog'lanishni guruhga tushirib, qarz va davomatni hammaga ko'rsatardi.
+- **Yuklama testi haqiqiy nuqson topdi:** umumiy IP limiti (300/min) va `heavyLimiter` (30/min)
+  webhookni Telegram'ning bitta IP'si uchun cheklab, botni 30 tugmadan keyin to'xtatardi.
+  Webhook'lar umumiy limitdan chiqarildi, alohida `webhookLimiter` (1200/min) qo'yildi.
+  Natija: 300–700 update/s, p95 < 75 ms, 0 xato (`npm run telegram:load`).
+- **Monitoring:** `GET /api/telegram/health` — bog'langan chatlar, oxirgi hodisa, navbat, xatolar.
+- Hujjatlar: [telegram-security.md](telegram-security.md), [telegram-deployment.md](telegram-deployment.md).
 
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga

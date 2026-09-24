@@ -36,6 +36,11 @@ export const telegramController = {
     sendSuccess(res, { ...link, enabled: isTelegramEnabled() });
   },
 
+  /** Bot holati — monitoring (navbat, xatolar, oxirgi faollik) */
+  async health(_req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await telegramLinkService.health());
+  },
+
   async broadcastPreview(req: Request, res: Response): Promise<void> {
     const input = broadcastSchema.parse(req.body);
     sendSuccess(res, await broadcastService.preview(requireAuthUser(req), input));

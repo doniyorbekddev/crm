@@ -80,6 +80,8 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      # Productionda har doim webhook — polling faqat ishlab chiqish uchun
+      TELEGRAM_POLLING: "false"
       UPLOAD_DIR: /app/uploads
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
     # Cheklar va hujjatlar konteyner qayta yaratilganda yo'qolmasligi uchun

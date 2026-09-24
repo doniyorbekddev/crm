@@ -9,7 +9,7 @@ import { callback, grid, parseCallback, paginationRow } from '../src/telegram/ke
 import { allowChat, resetRateLimits } from '../src/telegram/rateLimit.js';
 import { processUpdates } from '../src/telegram/polling.js';
 import { telegramSessionService } from '../src/telegram/session.service.js';
-import { createUserWithToken } from './helpers/auth.js';
+import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -305,6 +305,71 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
 
     expect(await prisma.telegramLink.count()).toBe(1);
     expect([...bot.sent, ...bot.edited].at(-1)!.text).toContain('Kerakli bo‘limni tanlang');
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('Xavfsizlik: faqat shaxsiy chat va monitoring', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+    resetRateLimits();
+    vi.restoreAllMocks();
+  });
+
+  it('guruh chatidan /start <kod> bog‘lamaydi va javob ham yozmaydi', async () => {
+    const { user } = await createUserWithToken(app, { role: 'ADMIN' });
+    const link = await telegramLinkService.ensureLink({ userId: user.id });
+    const bot = captureBot();
+
+    await post({ message: { message_id: 1, chat: { id: -100_500, type: 'supergroup', title: 'Guruh' }, from: { id: 900 }, text: `/start ${link.linkCode}` } }).expect(200);
+
+    // Bog'lanish guruhga tushmadi — qarz va davomat butun guruhga ketardi
+    const saved = await prisma.telegramLink.findUniqueOrThrow({ where: { linkCode: link.linkCode } });
+    expect(saved.chatId).toBeNull();
+    expect(saved.verifiedAt).toBeNull();
+    expect(bot.sent).toHaveLength(0);
+
+    // Shaxsiy chatdan — ishlaydi
+    await post({ message: { message_id: 2, chat: { id: 4242, type: 'private', first_name: 'A' }, from: { id: 4242 }, text: `/start ${link.linkCode}` } }).expect(200);
+    expect((await prisma.telegramLink.findUniqueOrThrow({ where: { linkCode: link.linkCode } })).chatId).toBe('4242');
+  });
+
+  it('IP limiti webhookni to‘xtatmaydi — Telegram bitta IP’dan keladi', async () => {
+    await linkStudent();
+    captureBot();
+    process.env.RATE_LIMIT_TEST = 'on';
+    try {
+      // heavyLimiter 30/min edi — 40 ta so'rov avval 429 berardi; endi webhook umumiy IP limitidan chiqarilgan
+      const statuses: number[] = [];
+      for (let i = 0; i < 40; i += 1) {
+        // Har biri boshqa chat — bot ichidagi chat chegarasi aralashmasin
+        const response = await post({ callback_query: { id: 'cb', data: 'menu', from: { id: 10_000 + i }, message: { message_id: 1, chat: { id: CHAT_ID } } } });
+        statuses.push(response.status);
+      }
+      expect(statuses.every((status) => status === 200)).toBe(true);
+    } finally {
+      delete process.env.RATE_LIMIT_TEST;
+    }
+  });
+
+  it('health: navbat, hodisalar va rejim', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    await linkStudent();
+    captureBot();
+    await post(messageUpdate('/holat')).expect(200);
+
+    const health = await request(app).get('/api/telegram/health').set(bearer(token));
+    expect(health.status).toBe(200);
+    // Rejim .env dan keladi (ishlab chiqishda polling, productionda webhook) — ikkalasi ham to'g'ri
+    expect(health.body.data.linkedChats).toBe(1);
+    expect(['polling', 'webhook']).toContain(health.body.data.mode);
+    expect(typeof health.body.data.pendingDeliveries).toBe('number');
+    expect(health.body.data.eventsLast24h).toBeGreaterThanOrEqual(1);
+    expect(health.body.data.lastEventAt).not.toBeNull();
+
+    // Oddiy xodimga yopiq
+    const { token: teacher } = await createUserWithToken(app, { role: 'TEACHER', email: 'ustoz-health@local.uz' });
+    expect((await request(app).get('/api/telegram/health').set(bearer(teacher))).status).toBe(403);
   });
 });
 
