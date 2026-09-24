@@ -86,3 +86,76 @@ Failed: 0.
 ## 12. Next Phase
 
 **PHASE 2 — Student portal**: `GET /portal/dashboard` (streak, risk, keyingi dars/imtihon, kutilayotgan vazifa), vazifa detali + topshirish (matn + fayl), imtihon detali (mavzu bo‘yicha kuchli/zaif), XP sahifasi, profil tablari, sahifa testlari, E2E "vazifa topshirish".
+
+---
+
+# PHASE 2 COMPLETE — Student portal
+
+Sana: 2026-09-24. Kommit: `bee22ab`.
+
+## 1. Implemented
+
+- **Bosh sahifa** — `GET /portal/overview`: kurs progressi, risk (yumshoq: daraja + eng past 3 sabab, ball yo‘q), keyingi dars, kutilayotgan vazifalar (soni + eng yaqini), keyingi imtihon. Frontend `OverviewCards`; 4 asosiy ko‘rsatkich endi bo‘limlarga havola (Daraja → `/portal/xp`).
+- **Vazifa detali va topshirish** — `GET /portal/homework/:id` (tavsif, o‘z topshirig‘i, izoh, `canSubmit`, `isLate`), `GET /portal/homework/:id/attachment` (o‘z faylini yuklab olish). Sahifa: matn + fayl formasi, muddat o‘tgan ogohlantirish, baholangan — forma yashiriladi, ball va izoh ko‘rinadi. Topshirish mavjud `homeworkService.submitByStudent` orqali — Telegram bilan bitta mantiq (TZ §44).
+- **Imtihon detali** — `GET /portal/exams/:id`: natija + o‘z urinishlari (`examAttemptService.listForStudent`), mavzu bo‘yicha chiziqlar, zaif mavzular, javoblar va o‘qituvchi izohlari.
+- **XP sahifasi** — `/portal/xp`: daraja progressi, keyingi daraja, seriya, reyting, nishonlar, so‘nggi XP (mavjud `/portal/gamification`).
+- `buildUpcomingLessons` — darslar quruvchisi alohida funksiyaga ajratildi (bosh sahifa va `/lessons` umumiy).
+
+## 2. Changed Files
+
+Backend: `services/portal.service.ts`, `services/examAttempt.service.ts` (`listForStudent`), `controllers/portal.controller.ts`, `routes/portal.routes.ts`, `tests/portal.test.ts`.
+Frontend: `pages/portal/PortalPage.tsx`, `PortalHomeworkPage.tsx`, `PortalExamsPage.tsx`, `layouts/PortalContext.tsx` (kontekst eksporti), `services/portal.service.ts`, `types/portal.ts`, `lib/queryKeys.ts`, `routes/index.tsx`.
+E2E: `e2e/specs/portal.spec.ts`. Docs: `student-portal.md`.
+
+## 3. New Files
+
+Frontend: `pages/portal/OverviewCards.tsx`, `PortalHomeworkDetailPage.tsx`, `PortalHomeworkDetailPage.test.tsx`, `PortalExamDetailPage.tsx`, `PortalXpPage.tsx`.
+
+## 4. Database Changes
+
+Yo‘q.
+
+## 5. API Changes
+
+Yangi (hammasi `portal.student`/`portal.parent` + `requireOwnStudent`): `GET /portal/overview`, `GET /portal/homework/:id`, `GET /portal/homework/:id/attachment`, `GET /portal/exams/:id`. Mavjudlar o‘zgarmadi.
+
+## 6. Permission Changes
+
+Yo‘q.
+
+## 7. AI Changes
+
+Yo‘q.
+
+## 8. Tests
+
+| Suite | Natija |
+|---|---|
+| Backend | **691/691** ✅ (yangi 3: overview; vazifa detali + matn + PNG fayl + yuklab olish + begona 404; imtihon detali + urinish + begona 404) |
+| Frontend | **59/59** ✅ (yangi 2: topshirish formasi servis argumentlari; baholangan vazifada forma yo‘q) |
+| E2E | `portal.spec.ts` 2/2 ✅ (yangi: admin vazifa beradi → o‘quvchi bosh sahifada ko‘radi → ochadi → topshiradi → "Topshirdi") |
+| Lint / typecheck | 0 xato |
+
+Failed: 0.
+
+## 9. Security Review
+
+- Vazifa/imtihon detali va fayl — faqat o‘z topshirig‘i (`homeworkId + studentId` yozuvi; begona → 404, testda). Imtihon: o‘quvchi guruhi yoki o‘z natijasi/urinishi bo‘lgan imtihon.
+- Urinishlar: faqat o‘z javoblari; to‘g‘ri variantlar berilmaydi.
+- Fayl: `resolveStoredPath` (papkadan tashqariga chiqilmaydi), MIME faqat 4 tur, `Cache-Control: private, no-store`.
+- Risk o‘quvchiga ball va og‘irliksiz — faqat daraja va sabablar.
+
+## 10. Performance
+
+- `overview` — so‘rovlar `Promise.all`; `lessons` quruvchisi qayta ishlatiladi.
+- Frontend: bosh sahifa qo‘shimcha 1 so‘rov (`overview`), keshlanadi; detal sahifalar lazy chunk.
+
+## 11. Known Issues
+
+- Vazifada bitta fayl (PHASE 5 — ko‘p fayl, link, kod).
+- Imtihonni kabinetdan **boshlash** yo‘q (PHASE 6).
+- Alohida "profil tablari" sahifasi qilinmadi — bosh sahifa + bo‘limlar shu vazifani bajaradi.
+
+## 12. Next Phase
+
+**PHASE 3 — Parent portal**: farzand kartalari, haftalik hisobot (`/portal/weekly-report`, web + Telegram + PDF), ota-onaga to‘lov eslatmasi Telegramda.

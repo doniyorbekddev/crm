@@ -1,6 +1,6 @@
 # O‘quvchi kabineti (Student Portal)
 
-> Academy CRM 3.0 — PHASE 1 (karkas) holati. Manba: `backend/src/services/portal.service.ts`, `frontend/src/layouts/PortalLayout.tsx`, `frontend/src/pages/portal/`.
+> Academy CRM 3.0 — PHASE 2 holati. Manba: `backend/src/services/portal.service.ts`, `frontend/src/layouts/PortalLayout.tsx`, `frontend/src/pages/portal/`.
 > Bog‘liq: [parent-portal.md](parent-portal.md) · [permissions.md](permissions.md) · [security.md](security.md) · [telegram-architecture.md](telegram-architecture.md)
 
 ## 1. Nima bu
@@ -17,7 +17,9 @@ Login (/login, umumiy)
    ▼            ▼            ▼              ▼              ▼              ▼
  Bosh sahifa  Vazifalar   Imtihonlar     Davomat       To‘lovlar     Sozlamalar
  /portal      /homework   /exams         /attendance   /payments     /settings
-                                                                   + /notifications
+   │          /homework/:id /exams/:id                              + /notifications
+   └─ /xp     (detal +       (natija +
+   (XP)       topshirish)    urinishlar)
 ```
 
 ## 2. Hisob va kirish
@@ -50,12 +52,16 @@ Kabinetda **xodim ruxsatlari ishlatilmaydi**. Har so‘rovda `resolvePortalScope
 | GET | `/lessons` | 14 kunlik darslar + o‘qituvchi (faqat ism, mutaxassislik) | `LessonsCard` |
 | GET | `/curriculum` | kurs dasturi progressi | `CurriculumCard` |
 | GET | `/certificates` | sertifikatlar (bekor qilinganlar yo‘q) | `MyCertificatesCard` |
+| GET | `/overview` | kurs progressi, risk (yumshoq: daraja + sabablar), keyingi dars, kutilayotgan vazifalar, keyingi imtihon | Bosh sahifa `OverviewCards` |
 | GET | `/homework` | vazifalar ro‘yxati (holat, ball, izoh) | `/portal/homework` |
-| POST | `/homework/:id/submit` | matnli javob (1–2000) | PHASE 2 |
-| POST | `/homework/:id/attachment` | fayl (PDF/PNG/JPG/WEBP, magic-byte, ≤ `MAX_UPLOAD_MB`) | PHASE 2 |
+| GET | `/homework/:id` | vazifa detali: tavsif, o‘z topshirig‘i, izoh, `canSubmit`, `isLate` | `/portal/homework/:id` |
+| POST | `/homework/:id/submit` | matnli javob (1–2000) | detal sahifa formasi |
+| POST | `/homework/:id/attachment` | fayl (PDF/PNG/JPG/WEBP, magic-byte, ≤ `MAX_UPLOAD_MB`) | detal sahifa formasi |
+| GET | `/homework/:id/attachment` | o‘z faylini yuklab olish (stream, `no-store`) | detal sahifa |
 | GET | `/exams` | imtihon natijalari | `/portal/exams` |
+| GET | `/exams/:id` | imtihon detali: natija + o‘z urinishlari (mavzu kesimi, javoblar, izohlar) | `/portal/exams/:id` |
 | GET | `/attendance/calendar?year&month` | oylik kalendar | `/portal/attendance` |
-| GET | `/gamification` | XP, daraja, seriya, nishonlar | PHASE 2 |
+| GET | `/gamification` | XP, daraja, seriya, nishonlar, so‘nggi XP | `/portal/xp` |
 | GET | `/payments` | jadval + so‘nggi 20 to‘lov | `/portal/payments` |
 | GET/POST | `/feedback` | fikr holati / yuborish | `FeedbackCard` |
 
@@ -68,9 +74,13 @@ Umumiy (ruxsat talab qilmaydi, faqat `authenticate`): `/api/notifications/*` (ro
 | `layouts/PortalLayout.tsx` | sarlavha (brend, qo‘ng‘iroqcha, mavzu, chiqish), tablar (desktop), pastki panel (mobil), `me` so‘rovi, farzand tanlovi |
 | `layouts/PortalNav.tsx` | `PORTAL_NAV_ITEMS` — bitta ro‘yxat, ikki ko‘rinish (`PortalTabs`, `PortalBottomBar`) |
 | `layouts/PortalContext.tsx` | `usePortal()` → `{ me, activeChild, setActiveChild }`; tanlov `portal.activeChild` sozlamasida |
-| `pages/portal/PortalPage.tsx` | bosh sahifa: 4 ko‘rsatkich, to‘lov holati, hodisalar, darslar, kurs, yutuqlar, sertifikat, fikr |
-| `pages/portal/PortalHomeworkPage.tsx` | vazifalar (holat filtri, muddat, ball, izoh) |
-| `pages/portal/PortalExamsPage.tsx` | natijalar, o‘rtacha |
+| `pages/portal/PortalPage.tsx` | bosh sahifa: 4 ko‘rsatkich (bo‘limlarga havola), `OverviewCards`, to‘lov holati, hodisalar, darslar, kurs, yutuqlar, sertifikat, fikr |
+| `pages/portal/OverviewCards.tsx` | "bugun nima muhim": keyingi dars, kutilayotgan vazifa, keyingi imtihon, kurs progressi, holat (risk yumshoq so‘z bilan, `RISK_VIEW`) |
+| `pages/portal/PortalHomeworkPage.tsx` | vazifalar (holat filtri, muddat, ball, izoh) → detal |
+| `pages/portal/PortalHomeworkDetailPage.tsx` | tavsif, o‘z topshirig‘i, izoh, faylni ochish; **topshirish formasi** (matn + fayl; muddat o‘tgan ogohlantirish; baholangan — forma yo‘q) |
+| `pages/portal/PortalExamsPage.tsx` | natijalar, o‘rtacha → detal |
+| `pages/portal/PortalExamDetailPage.tsx` | natija, baho, o‘tdi/o‘tmadi, mavzu bo‘yicha chiziqlar, zaif mavzular, javoblar va izohlar |
+| `pages/portal/PortalXpPage.tsx` | daraja progressi, keyingi daraja, seriya, reyting, nishonlar, so‘nggi XP |
 | `pages/portal/PortalAttendancePage.tsx` | oylik kalendar (`AttendanceCalendarView` — xodim modali bilan umumiy) |
 | `pages/portal/PortalPaymentsPage.tsx` | shartnoma, jadval, tarix |
 | `pages/portal/PortalSettingsPage.tsx` | parol (`ChangePasswordCard` — profil bilan umumiy), bildirishnoma sozlamalari, Telegram, mavzu |
@@ -83,10 +93,10 @@ Mobil: pastki panel `fixed`, `main` ga `pb-24`; `safe-area-inset-bottom` hisobga
 
 | Tur | Fayl | Nima tekshiradi |
 |---|---|---|
-| Backend | `tests/portal.test.ts` | hisob ochish, o‘z/begona, xodim ↔ kabinet chegarasi, `/me` maydonlari, bildirishnoma kirishi, ota-ona 12 endpoint 403, imtihon urinishi endpointlari 403 |
-| Frontend | `layouts/PortalNav.test.tsx` | 6 bo‘lim ikkala ko‘rinishda, faol holat |
-| E2E | `e2e/specs/portal.spec.ts` | admin API orqali hisob ochadi → o‘quvchi kiradi → bo‘limlar → sozlamalar → bildirishnoma → xodim sahifasi yopiq |
+| Backend | `tests/portal.test.ts` | hisob ochish, o‘z/begona, xodim ↔ kabinet chegarasi, `/me` maydonlari, bildirishnoma kirishi, ota-ona 12 endpoint 403, imtihon urinishi endpointlari 403, **overview**, **vazifa detali + matn/fayl topshirish + fayl yuklab olish + begona 404**, **imtihon detali + urinish + begona 404** |
+| Frontend | `layouts/PortalNav.test.tsx`, `pages/portal/PortalHomeworkDetailPage.test.tsx` | navigatsiya; topshirish formasi servisni to‘g‘ri chaqiradi, baholangan vazifada forma yo‘q |
+| E2E | `e2e/specs/portal.spec.ts` | (1) kirish → bo‘limlar → sozlamalar → bildirishnoma → xodim sahifasi yopiq; (2) admin vazifa beradi → o‘quvchi bosh sahifada ko‘radi → ochadi → topshiradi → "Topshirdi" |
 
 ## 7. Keyingi bosqichlar (ROADMAP)
 
-PHASE 2: bosh sahifada streak/risk/keyingi dars/kutilayotgan vazifa, vazifa topshirish (matn + fayl), imtihon detali, XP sahifasi, profil tablari. PHASE 6: onlayn imtihon topshirish. PHASE 10: kabinetga in-app bildirishnomalar barcha akademik hodisalar bo‘yicha.
+PHASE 3: ota-ona ko‘rinishi va haftalik hisobot. PHASE 5: ko‘p fayl/link/kod, RETURNED holati. PHASE 6: onlayn imtihon topshirish (kabinetdan urinish boshlash). PHASE 10: kabinetga in-app bildirishnomalar barcha akademik hodisalar bo‘yicha.
