@@ -306,6 +306,7 @@ model User {
   receivedFeedback         Feedback[]             @relation("FeedbackTeacher")
   requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
   stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
+  aiQueries                AiQuery[]
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
@@ -2889,4 +2890,36 @@ model StockMovement {
   @@index([type, createdAt])
   @@index([createdAt])
   @@map("stock_movements")
+}
+
+// ---------------------------------------------------------------------
+// AI YORDAMCHI
+// ---------------------------------------------------------------------
+
+/// AI yordamchiga berilgan savol va unga qaysi "tool" javob bergani.
+///
+/// Yozuv **audit uchun**: kim nima so'ragani, qaysi ma'lumot ko'rsatilgani va savol
+/// tushunilmagan hollar (`toolKey` bo'sh) ko'rinib turadi. Javob matni ham saqlanadi —
+/// keyin "bu raqam qayerdan chiqdi?" degan savolga javob bo'ladi.
+model AiQuery {
+  id         String   @id @default(cuid())
+  userId     String?
+  question   String   @db.VarChar(500)
+  /// Qaysi tool ishlatilgani (topilmasa null)
+  toolKey    String?  @db.VarChar(50)
+  /// Toolga berilgan parametrlar (davr, filial va h.k.)
+  params     Json?
+  /// Foydalanuvchiga ko'rsatilgan javob
+  answer     String?  @db.VarChar(1000)
+  /// Javob topilmagan bo'lsa sabab
+  failure    String?  @db.VarChar(255)
+  durationMs Int?     @db.SmallInt
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([toolKey, createdAt])
+  @@index([createdAt])
+  @@map("ai_queries")
 }

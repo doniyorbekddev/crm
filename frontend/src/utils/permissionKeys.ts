@@ -100,6 +100,8 @@ export const PERMISSIONS = {
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
 
+  AI_ASSISTANT: 'ai.assistant',
+
   INVENTORY_VIEW: 'inventory.view',
   INVENTORY_MANAGE: 'inventory.manage',
 

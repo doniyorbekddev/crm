@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  Sparkles,
   Building2,
   Package,
   MessageSquareHeart,
@@ -64,6 +65,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/analytics', label: 'Analitika', icon: Activity, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/activity', label: 'Faoliyat', icon: History, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
+      { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: PERMISSIONS.AI_ASSISTANT },
     ],
   },
   {

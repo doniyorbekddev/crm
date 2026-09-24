@@ -700,3 +700,30 @@ qo'shildi. Topbar tanlagichi paydo bo'ldi (bitta filialda umuman ko'rinmaydi); "
 o'quvchi va admin o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim, 8 xarajat) tegilmadi.
 
 **PHASE 9 yakunlandi.** Inventar (ombor) va multi-branch (UI bilan birga) tayyor.
+
+### PHASE 10 — AI biznes yordamchisi (2026-09-24)
+
+**Arxitektura: savol → tool → mavjud servis → javob.** Til modeli (keyin ulansa) faqat birinchi
+qadamda — qaysi so'rov mos kelishini tanlashda ishlatiladi; ma'lumotga u hech qachon tegmaydi.
+Shuning uchun "unrestricted SQL access" imkoni yo'q va javobdagi raqamlar sahifalardagi raqamlar
+bilan bir xil (ikkala joy ham bir xil servisni chaqiradi).
+
+| Qism | Holat |
+|---|---|
+| 14 ta xavfsiz so'rov (tool): bugungi tushum, oylik tushum/foyda, davr solishtiruvi, qarzdorlik, eng daromadli kurslar, ketib qolish xavfi, managerlar natijasi, marketing kanallari, o'quvchilar soni, davomat, omborda kam qolganlar, NPS, bugungi vazifalar, yangi leadlar | ✅ |
+| **Har bir tool o'z ruxsatini e'lon qiladi** va bajarilishdan oldin tekshiriladi; ruxsat yo'q bo'lsa javob o'rniga "ruxsat yo'q" deyiladi — ma'lumot bor-yo'qligi oshkor qilinmaydi | ✅ testda tekshiriladi |
+| **Filial doirasi** tool ichida `branchAccess` orqali qo'llanadi — savol orqali boshqa filial raqamlarini ko'rib bo'lmaydi | ✅ |
+| Savolni tanish: kalit so'zlar va vaznlar (umumiy so'zlar — yarim ball). Tashqi xizmat, API kalit va internet talab qilmaydi, javob deterministik | ✅ testda tekshiriladi (spec'dagi 9 savol) |
+| Bog'liq bo'lmagan savol ("ertaga ob-havo qanday") tool tanlamaydi va taklif ro'yxati bilan qaytadi | ✅ testda tekshiriladi |
+| `AiQuery` — kim nima so'ragani, qaysi tool javob bergani va ko'rsatilgan javob yoziladi (audit va "nimani ko'p so'rashadi?" uchun); tarix faqat o'z savollarini ko'rsatadi | ✅ testda tekshiriladi |
+| Ruxsat: `ai.assistant`. Yordamchi rahbar roliga bog'lanmagan — ruxsat tool darajasida tekshirilgani uchun uni istalgan rolga berish xavfsiz | ✅ |
+| Frontend: `/assistant` sahifasi — savol maydoni, javob kartochkasi (manba va "to'liq ko'rish" havolasi), ruxsatga mos takliflar va so'nggi savollar | ✅ brauzerda tekshirildi |
+| Testlar: `tests/aiAssistant.test.ts` (10 ta) | ✅ 546 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** spec'dagi 9 savolning barchasi haqiqiy ma'lumot bilan javob oldi
+(masalan "Qancha qarzdor bor?" → "123 o'quvchida jami 63 100 000 so'm qarz bor", muddati o'tgan
+112 o'quvchi), bog'liq bo'lmagan savol esa takliflar bilan qaytdi. Tekshiruvdan keyin 9 ta AI so'rovi
+yozuvi va test admin o'chirildi.
+
+**Eslatma (LLM ulash):** model kerak bo'lsa, u faqat `matchTool` o'rnini bosadi — unga toollar ro'yxati
+va savol beriladi, u faqat tool kalitini qaytaradi. Ma'lumotga kirish yo'li o'zgarmaydi.

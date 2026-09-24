@@ -104,6 +104,8 @@ export const PERMISSIONS = {
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
 
+  AI_ASSISTANT: 'ai.assistant',
+
   INVENTORY_VIEW: 'inventory.view',
   INVENTORY_MANAGE: 'inventory.manage',
 
@@ -243,6 +245,12 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
   { key: PERMISSIONS.ANALYTICS_VIEW, module: 'analytics', description: 'Kengaytirilgan analitikani ko‘rish' },
+
+  {
+    key: PERMISSIONS.AI_ASSISTANT,
+    module: 'ai',
+    description: 'AI yordamchiga savol berish (javoblar xodimning o‘z ruxsatlari doirasida bo‘ladi)',
+  },
 
   { key: PERMISSIONS.INVENTORY_VIEW, module: 'inventory', description: 'Ombor (mahsulotlar va qoldiq) ma’lumotini ko‘rish' },
   { key: PERMISSIONS.INVENTORY_MANAGE, module: 'inventory', description: 'Mahsulot qo‘shish va ombor harakatini yozish (kirim, sotuv, hisobdan chiqarish)' },
