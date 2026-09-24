@@ -287,13 +287,22 @@ describe.skipIf(!hasTestDatabase)('Telegram bog‘lanishi va yetkazish navbati',
     await sendCommand(`/start ${link.linkCode}`);
     const sent = captureReplies();
 
+    // Ikki farzand bor — avval qaysi biri haqida ekani so'raladi
+    await sendCommand('/davomat');
+    expect(sent[0]!.text).toContain('Qaysi farzand');
+
+    // Farzand tanlangach — o'sha farzandning davomati
+    await request(app)
+      .post('/api/telegram/webhook')
+      .set('X-Telegram-Bot-Api-Secret-Token', WEBHOOK_SECRET)
+      .send({ callback_query: { id: 'cb', data: `st_child:${second.id}`, from: { id: 1 }, message: { message_id: 3, chat: { id: 555_111 } } } });
     await sendCommand('/davomat');
 
-    const text = sent[0]!.text;
-    expect(text).toContain('Ali');
-    expect(text).toContain('Vali');
-    expect(text).toContain('keldi');
-    expect(text).toContain('kelmadi');
+    const text = sent.at(-1)!.text;
+    expect(text).toContain('Davomat');
+    expect(text).toContain('❌');
+    // Boshqa farzandning yozuvi aralashmaydi
+    expect(text).not.toContain('✅ Darsga keldi');
   });
 
   it('xodim chatiga o‘quvchi ma’lumotlari berilmaydi', async () => {

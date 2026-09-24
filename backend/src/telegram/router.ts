@@ -5,8 +5,10 @@ import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
 import { MAIN_MENU, callback, parseCallback } from './keyboards.js';
 import { runCommand, showMainMenu } from './handlers/menu.js';
+import { HOMEWORK_FLOW, STUDENT_COMMANDS, handleHomeworkFlow, handleStudentAction } from './handlers/student.js';
+import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
-import type { BotContext, TelegramUpdate } from './types.js';
+import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
 
 /**
  * Telegram update'ini kerakli handlerga yo'naltiradi.
@@ -33,6 +35,24 @@ export interface RouteResult {
   action: string | null;
 }
 
+/** Xabardagi rasm (eng katta o'lchami) yoki hujjat */
+function attachmentOf(message: TelegramMessage): BotAttachment | null {
+  if (message.document?.file_id) {
+    return {
+      kind: 'document',
+      fileId: message.document.file_id,
+      fileName: message.document.file_name ?? null,
+      mimeType: message.document.mime_type ?? null,
+      size: message.document.file_size ?? null,
+    };
+  }
+  const photo = message.photo?.filter((size) => size.file_id).at(-1);
+  if (photo?.file_id) {
+    return { kind: 'photo', fileId: photo.file_id, fileName: null, mimeType: 'image/jpeg', size: photo.file_size ?? null };
+  }
+  return null;
+}
+
 /** Update'dan kontekst quradi. Chat aniqlanmasa — null (bunday update e'tiborsiz qoldiriladi). */
 function buildContext(update: TelegramUpdate): Omit<BotContext, 'scope' | 'reply' | 'render'> | null {
   const callbackQuery = update.callback_query;
@@ -41,6 +61,7 @@ function buildContext(update: TelegramUpdate): Omit<BotContext, 'scope' | 'reply
       chatId: String(callbackQuery.message.chat.id),
       telegramUserId: callbackQuery.from?.id === undefined ? null : String(callbackQuery.from.id),
       text: null,
+      attachment: null,
       callbackData: callbackQuery.data,
       callbackQueryId: callbackQuery.id ?? null,
       messageId: callbackQuery.message.message_id ?? null,
@@ -48,19 +69,21 @@ function buildContext(update: TelegramUpdate): Omit<BotContext, 'scope' | 'reply
   }
 
   const message = update.message;
-  const text = message?.text?.trim();
-  if (message?.chat?.id !== undefined && text) {
-    return {
-      chatId: String(message.chat.id),
-      telegramUserId: message.from?.id === undefined ? null : String(message.from.id),
-      text,
-      callbackData: null,
-      callbackQueryId: null,
-      messageId: message.message_id ?? null,
-    };
-  }
+  if (!message || message.chat?.id === undefined) return null;
+  const attachment = attachmentOf(message);
+  // Rasm/hujjat bilan kelgan izoh ham matn hisoblanadi
+  const text = (message.text ?? message.caption)?.trim() || null;
+  if (!text && !attachment) return null;
 
-  return null;
+  return {
+    chatId: String(message.chat.id),
+    telegramUserId: message.from?.id === undefined ? null : String(message.from.id),
+    text,
+    attachment,
+    callbackData: null,
+    callbackQueryId: null,
+    messageId: message.message_id ?? null,
+  };
 }
 
 /** Javob yuborish usullari — handler Telegram API ni bilmaydi */
@@ -200,7 +223,7 @@ export async function routeUpdate(update: TelegramUpdate): Promise<RouteResult> 
 
     const result =
       base.callbackData === null
-        ? await runCommand(context, scope, base.text ?? '')
+        ? await handleMessage(context, scope, base.text ?? '')
         : await handleCallback(context, scope, base.callbackData);
 
     await logEvent({ ...base, kind, action: result?.action ?? action, status: 'OK', durationMs: Date.now() - started });
@@ -221,9 +244,46 @@ export async function routeUpdate(update: TelegramUpdate): Promise<RouteResult> 
   }
 }
 
+/**
+ * Matnli xabar.
+ *
+ * Ochiq oqim (masalan, vazifa topshirish) bo'lsa, xabar **oqimga** ketadi — lekin
+ * buyruq yozilsa oqim bekor qilinadi: foydalanuvchi `/start` yozsa, u menyuni kutadi,
+ * "javob qabul qilindi" degan xabarni emas.
+ */
+async function handleMessage(context: BotContext, scope: NonNullable<BotContext['scope']>, text: string) {
+  const command = commandOf(text);
+  const isCommand = command.startsWith('/');
+
+  const session = scope.kind === 'STAFF' ? null : await telegramSessionService.get(context.chatId);
+  const inFlow = session !== null && session.flow !== IDLE_FLOW;
+  if (inFlow && !isCommand) {
+    if (session.flow === HOMEWORK_FLOW) return handleHomeworkFlow(context, scope, session);
+    // Noma'lum oqim — yopib, oddiy buyruq sifatida davom etadi
+    await telegramSessionService.clearFlow(context.chatId);
+  }
+  if (inFlow && isCommand) await telegramSessionService.clearFlow(context.chatId);
+
+  const studentAction = scope.kind === 'STAFF' ? undefined : STUDENT_COMMANDS[command];
+  if (studentAction) {
+    const handled = await handleStudentAction(context, scope, studentAction, null);
+    if (handled) return handled;
+  }
+  return runCommand(context, scope, text);
+}
+
 /** Tugma bosilganda. Callback ichidagi ma'lumotga ishonilmaydi — doira `scope` dan olinadi. */
 async function handleCallback(context: BotContext, scope: NonNullable<BotContext['scope']>, data: string) {
   const { action, arg } = parseCallback(data);
+
+  // Har qanday tugma ochiq oqimni yopadi (sahifa raqamidan tashqari): foydalanuvchi
+  // boshqa bo'limga o'tdi — yarim qolgan topshirish uni kutib turmasin
+  if (action !== 'noop' && scope.kind !== 'STAFF') await telegramSessionService.clearFlow(context.chatId);
+
+  if (action.startsWith('st_') && scope.kind !== 'STAFF') {
+    const handled = await handleStudentAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
 
   switch (action) {
     case MAIN_MENU:

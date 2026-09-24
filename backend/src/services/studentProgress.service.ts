@@ -406,6 +406,21 @@ export const studentProgressService = {
 
   async homework(actor: AuthUser, studentId: string): Promise<StudentHomeworkRowDto[]> {
     await studentService.getById(actor, studentId);
+    return buildStudentHomeworkRows(studentId);
+  },
+
+  async exams(actor: AuthUser, studentId: string): Promise<StudentExamRowDto[]> {
+    await studentService.getById(actor, studentId);
+    return buildStudentExamRows(studentId);
+  },
+};
+
+/**
+ * O'quvchining vazifalari. **Ruxsat tekshirmaydi** — `buildStudentProfile` kabi, chaqiruvchi
+ * tomonda egalik aniqlangan bo'lishi shart (xodim, kabinet yoki Telegram bot).
+ */
+export async function buildStudentHomeworkRows(studentId: string): Promise<StudentHomeworkRowDto[]> {
+  {
     const rows = await prisma.homeworkSubmission.findMany({
       where: { studentId, homework: { status: { not: 'DRAFT' } } },
       select: {
@@ -433,10 +448,12 @@ export const studentProgressService = {
       feedback: row.feedback,
       xpAwarded: row.xpAwarded,
     }));
-  },
+  }
+}
 
-  async exams(actor: AuthUser, studentId: string): Promise<StudentExamRowDto[]> {
-    await studentService.getById(actor, studentId);
+/** O'quvchining imtihon natijalari. Ruxsat tekshirmaydi — yuqoridagi kabi. */
+export async function buildStudentExamRows(studentId: string): Promise<StudentExamRowDto[]> {
+  {
     const rows = await prisma.examResult.findMany({
       where: { studentId },
       select: {
@@ -465,5 +482,5 @@ export const studentProgressService = {
       comment: row.comment,
       xpAwarded: row.xpAwarded,
     }));
-  },
-};
+  }
+}

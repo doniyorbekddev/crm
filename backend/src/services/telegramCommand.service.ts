@@ -27,9 +27,14 @@ export interface CommandScope {
 }
 
 const STUDENT_COMMANDS = [
-  '/qarz — qarz va keyingi to‘lov muddati',
+  '/profil — profil va daraja',
   '/darslar — yaqin 7 kundagi darslar',
-  '/davomat — oxirgi 10 dars davomati',
+  '/davomat — davomat va oylik kalendar',
+  '/vazifa — uy vazifalari va topshirish',
+  '/imtihon — imtihon natijalari',
+  '/xp — XP, seriya, reyting, nishonlar',
+  '/qarz — to‘lovlar va qarz',
+  '/sertifikat — sertifikatlar',
 ];
 
 const COMMON_COMMANDS = ['/holat — bog‘lanish holati', '/uzish — bog‘lanishni uzish', '/help — shu ro‘yxat'];
@@ -107,7 +112,7 @@ async function perStudent(scope: CommandScope, build: (studentId: string) => Pro
   return blocks.join('\n\n');
 }
 
-async function debtText(studentId: string): Promise<string> {
+export async function debtText(studentId: string): Promise<string> {
   const schedule = await paymentScheduleService.get(studentId);
   const remaining = schedule.contractTotal - schedule.paid;
 
@@ -199,9 +204,15 @@ async function attendanceText(studentId: string): Promise<string> {
  * o'quvchi buyruqlari ham turadi — xodim ularni bossa "bu buyruq o'quvchilar uchun" javobi keladi.
  */
 export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: string }> = [
-  { command: 'qarz', description: 'Qarz va keyingi to‘lov muddati' },
+  { command: 'start', description: 'Bosh menyu' },
+  { command: 'profil', description: 'Profil va daraja' },
   { command: 'darslar', description: 'Yaqin 7 kundagi darslar' },
-  { command: 'davomat', description: 'Oxirgi 10 dars davomati' },
+  { command: 'davomat', description: 'Davomat va oylik kalendar' },
+  { command: 'vazifa', description: 'Uy vazifalari va topshirish' },
+  { command: 'imtihon', description: 'Imtihon natijalari' },
+  { command: 'xp', description: 'XP, seriya, reyting' },
+  { command: 'qarz', description: 'To‘lovlar va qarz' },
+  { command: 'sertifikat', description: 'Sertifikatlar' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },

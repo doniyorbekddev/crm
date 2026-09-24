@@ -2072,6 +2072,8 @@ model HomeworkSubmission {
   submittedAt    DateTime?
   score          Int?             @db.SmallInt
   feedback       String?          @db.VarChar(500)
+  /// O'quvchining matnli javobi (Telegram yoki kabinetdan topshirilganda)
+  answerText     String?          @db.VarChar(2000)
   attachmentPath String?          @db.VarChar(500)
   gradedById     String?
   gradedAt       DateTime?

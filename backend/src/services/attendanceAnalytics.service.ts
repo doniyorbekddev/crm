@@ -166,53 +166,7 @@ export const attendanceAnalyticsService = {
       throw AppError.notFound('O‘quvchi topilmadi');
     }
 
-    const monthStart = new Date(Date.UTC(query.year, query.month - 1, 1));
-    const monthEnd = new Date(Date.UTC(query.year, query.month, 1));
-
-    const records = await prisma.attendance.findMany({
-      where: { studentId, date: { gte: monthStart, lt: monthEnd } },
-      select: { date: true, status: true, note: true, group: { select: { name: true } } },
-      orderBy: { date: 'asc' },
-    });
-
-    const byDate = new Map(records.map((record) => [toDateOnly(record.date), record]));
-    const daysInMonth = new Date(Date.UTC(query.year, query.month, 0)).getUTCDate();
-    const days: CalendarDayDto[] = [];
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const date = toDateOnly(new Date(Date.UTC(query.year, query.month - 1, day)));
-      const record = byDate.get(date);
-      days.push({
-        date,
-        status: record?.status ?? null,
-        statusLabel: record ? ATTENDANCE_STATUS_LABELS[record.status] : null,
-        note: record?.note ?? null,
-        groupName: record?.group.name ?? null,
-      });
-    }
-
-    const monthCounts = countsFrom(
-      records.reduce<Array<{ status: AttendanceStatus; count: number }>>((acc, record) => {
-        const found = acc.find((item) => item.status === record.status);
-        if (found) found.count += 1;
-        else acc.push({ status: record.status, count: 1 });
-        return acc;
-      }, []),
-    );
-    const overall = await groupedCounts({ studentId });
-
-    return {
-      year: query.year,
-      month: query.month,
-      student: {
-        id: student.id,
-        code: formatStudentNumber(student.number),
-        firstName: student.firstName,
-        lastName: student.lastName,
-      },
-      days,
-      month_: monthCounts,
-      overall,
-    };
+    return buildAttendanceCalendar(student, query.year, query.month);
   },
 
   /** Davomat statistikasi: bugun, hafta, oy, tanlangan davr va taqsimot */
@@ -451,3 +405,63 @@ export const attendanceAnalyticsService = {
     };
   },
 };
+
+/**
+ * Oylik davomat kalendari. **Ruxsat tekshirmaydi** — chaqiruvchi o'quvchiga egalikni
+ * tekshirgan bo'lishi shart (`calendar()` xodim uchun, kabinet va Telegram bot o'zi uchun).
+ */
+export async function buildAttendanceCalendar(
+  student: { id: string; number: number; firstName: string; lastName: string },
+  year: number,
+  month: number,
+): Promise<AttendanceCalendarDto> {
+  const studentId = student.id;
+  const query = { year, month };
+    const monthStart = new Date(Date.UTC(query.year, query.month - 1, 1));
+    const monthEnd = new Date(Date.UTC(query.year, query.month, 1));
+
+    const records = await prisma.attendance.findMany({
+      where: { studentId, date: { gte: monthStart, lt: monthEnd } },
+      select: { date: true, status: true, note: true, group: { select: { name: true } } },
+      orderBy: { date: 'asc' },
+    });
+
+    const byDate = new Map(records.map((record) => [toDateOnly(record.date), record]));
+    const daysInMonth = new Date(Date.UTC(query.year, query.month, 0)).getUTCDate();
+    const days: CalendarDayDto[] = [];
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = toDateOnly(new Date(Date.UTC(query.year, query.month - 1, day)));
+      const record = byDate.get(date);
+      days.push({
+        date,
+        status: record?.status ?? null,
+        statusLabel: record ? ATTENDANCE_STATUS_LABELS[record.status] : null,
+        note: record?.note ?? null,
+        groupName: record?.group.name ?? null,
+      });
+    }
+
+    const monthCounts = countsFrom(
+      records.reduce<Array<{ status: AttendanceStatus; count: number }>>((acc, record) => {
+        const found = acc.find((item) => item.status === record.status);
+        if (found) found.count += 1;
+        else acc.push({ status: record.status, count: 1 });
+        return acc;
+      }, []),
+    );
+    const overall = await groupedCounts({ studentId });
+
+    return {
+      year: query.year,
+      month: query.month,
+      student: {
+        id: student.id,
+        code: formatStudentNumber(student.number),
+        firstName: student.firstName,
+        lastName: student.lastName,
+      },
+      days,
+      month_: monthCounts,
+      overall,
+    };
+}

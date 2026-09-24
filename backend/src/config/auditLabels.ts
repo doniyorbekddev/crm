@@ -113,6 +113,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'exam.deleted': 'Imtihon o‘chirildi',
 
   'payment.created': 'To‘lov qabul qilindi',
+  'homework.submitted': 'Vazifa topshirildi',
   'telegram.linked': 'Telegram ulandi',
   'telegram.unlinked': 'Telegram uzildi',
   'payment.deleted': 'To‘lov bekor qilindi',

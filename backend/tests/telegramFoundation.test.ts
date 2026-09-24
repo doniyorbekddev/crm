@@ -164,9 +164,14 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
     expect(bot.sent).toHaveLength(1);
     expect(bot.sent[0]!.text).toContain('Kerakli bo‘limni tanlang');
     expect(dataOf(bot.sent[0]!.keyboard)).toEqual([
-      'cmd:/qarz',
+      'st_profile',
       'cmd:/darslar',
-      'cmd:/davomat',
+      'st_att',
+      'st_hw',
+      'st_ex',
+      'st_xp',
+      'st_pay',
+      'st_cert',
       'cmd:/holat',
       'cmd:/uzish',
     ]);
@@ -238,7 +243,8 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
     await post(messageUpdate('/qarz')).expect(200);
 
     const events = await prisma.telegramEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 1 });
-    expect(events[0]).toMatchObject({ kind: 'message', action: '/qarz', status: 'OK', chatId: String(CHAT_ID) });
+    // `/qarz` endi to'lovlar bo'limiga olib boradi — jurnalda bo'lim nomi turadi
+    expect(events[0]).toMatchObject({ kind: 'message', action: 'st_pay', status: 'OK', chatId: String(CHAT_ID) });
     expect(events[0]!.telegramUserId).toBe('900');
     // Jadvalda matn ustuni umuman yo'q — maxfiylik uchun
     expect(Object.keys(events[0]!)).not.toContain('text');

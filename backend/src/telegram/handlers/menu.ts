@@ -2,6 +2,7 @@ import { escapeHtml, type InlineButton } from '../../services/telegram.service.j
 import { buildCommandReply, type CommandScope } from '../../services/telegramCommand.service.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, grid } from '../keyboards.js';
 import type { BotContext, HandlerResult } from '../types.js';
+import { STUDENT_ACTIONS, activeChildName } from './student.js';
 
 /**
  * Asosiy menyu va unga ulangan buyruqlar.
@@ -14,29 +15,43 @@ import type { BotContext, HandlerResult } from '../types.js';
  * suhbat o'nlab xabar bilan to'lib ketmaydi.
  */
 
-/** Menyudagi tugma → mavjud matnli buyruq */
-const STUDENT_ITEMS: ReadonlyArray<{ text: string; command: string }> = [
-  { text: '💳 To‘lovlarim', command: '/qarz' },
-  { text: '📅 Dars jadvali', command: '/darslar' },
-  { text: '✅ Davomatim', command: '/davomat' },
+/**
+ * Menyu tugmasi: yo mavjud matnli buyruq (`cmd:/darslar`), yo bo'lim amali (`st_profile`).
+ * Ikkalasi ham routerda bir xil yo'l bilan ishlanadi.
+ */
+interface MenuItem {
+  text: string;
+  data: string;
+}
+
+/** Buyruq matni → menyu tugmasi ma'lumoti (`cmd:/darslar`) */
+const COMMAND_ACTION = 'cmd';
+
+const STUDENT_ITEMS: readonly MenuItem[] = [
+  { text: '📊 Profil', data: callback(STUDENT_ACTIONS.profile) },
+  { text: '📅 Dars jadvali', data: callback(COMMAND_ACTION, '/darslar') },
+  { text: '✅ Davomat', data: callback(STUDENT_ACTIONS.attendance) },
+  { text: '📝 Uy vazifalari', data: callback(STUDENT_ACTIONS.homework) },
+  { text: '🎯 Imtihonlar', data: callback(STUDENT_ACTIONS.exams) },
+  { text: '⭐ XP & Reyting', data: callback(STUDENT_ACTIONS.xp) },
+  { text: '💳 To‘lovlar', data: callback(STUDENT_ACTIONS.payments) },
+  { text: '📜 Sertifikatlar', data: callback(STUDENT_ACTIONS.certificates) },
 ];
 
-const COMMON_ITEMS: ReadonlyArray<{ text: string; command: string }> = [
-  { text: '🔗 Bog‘lanish holati', command: '/holat' },
-  { text: '🚫 Bog‘lanishni uzish', command: '/uzish' },
+const COMMON_ITEMS: readonly MenuItem[] = [
+  { text: '🔗 Bog‘lanish holati', data: callback(COMMAND_ACTION, '/holat') },
+  { text: '🚫 Bog‘lanishni uzish', data: callback(COMMAND_ACTION, '/uzish') },
 ];
 
-function itemsFor(scope: CommandScope): ReadonlyArray<{ text: string; command: string }> {
+function itemsFor(scope: CommandScope): readonly MenuItem[] {
   return scope.kind === 'STAFF' ? COMMON_ITEMS : [...STUDENT_ITEMS, ...COMMON_ITEMS];
 }
 
-/** Buyruq matni → menyu tugmasi ma'lumoti (`cmd:/qarz`) */
-const COMMAND_ACTION = 'cmd';
-
-function greeting(scope: CommandScope): string {
+function greeting(scope: CommandScope, childName: string | null): string {
   const name = escapeHtml(scope.label);
   if (scope.kind === 'PARENT') {
-    return `Assalomu alaykum, <b>${name}</b>!\nFarzandlaringiz: ${scope.studentIds.length} ta.\n\nKerakli bo‘limni tanlang:`;
+    const child = childName ? `\n👤 Faol farzand: <b>${escapeHtml(childName)}</b>` : `\nFarzandlaringiz: ${scope.studentIds.length} ta.`;
+    return `Assalomu alaykum, <b>${name}</b>!${child}\n\nKerakli bo‘limni tanlang:`;
   }
   if (scope.kind === 'STUDENT') {
     return `Assalomu alaykum, <b>${name}</b>!\n\nKerakli bo‘limni tanlang:`;
@@ -46,13 +61,15 @@ function greeting(scope: CommandScope): string {
 
 /** Bosh menyuni ko'rsatadi */
 export async function showMainMenu(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
-  const buttons: InlineButton[] = itemsFor(scope).map((item) => ({
-    text: item.text,
-    data: callback(COMMAND_ACTION, item.command),
-  }));
+  const buttons: InlineButton[] = itemsFor(scope).map((item) => ({ text: item.text, data: item.data }));
+  // Bir nechta farzandli ota-ona — almashtirish tugmasi
+  if (scope.kind === 'PARENT' && scope.studentIds.length > 1) {
+    buttons.unshift({ text: '👨‍👩‍👧 Farzandni tanlash', data: callback(STUDENT_ACTIONS.child) });
+  }
+  const childName = await activeChildName(context, scope);
 
   // Bosh menyuda "Bosh menyu" tugmasi keraksiz — shuning uchun `withNavigation` ishlatilmaydi
-  await context.render(greeting(scope), grid(buttons));
+  await context.render(greeting(scope, childName), grid(buttons));
   return { action: MAIN_MENU };
 }
 

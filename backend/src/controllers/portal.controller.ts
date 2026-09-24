@@ -4,7 +4,7 @@ import { portalAccountService } from '../services/portalAccount.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
-import { portalAccountSchema, portalChildQuerySchema } from '../validators/portal.validator.js';
+import { portalAccountSchema, portalCalendarQuerySchema, portalChildQuerySchema, portalHomeworkSubmitSchema } from '../validators/portal.validator.js';
 import { portalFeedbackSchema } from '../validators/feedback.validator.js';
 
 export const portalController = {
@@ -38,6 +38,50 @@ export const portalController = {
   async certificates(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.certificates(requireAuthUser(req), studentId));
+  },
+
+  async homework(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.homework(requireAuthUser(req), studentId));
+  },
+
+  async exams(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.exams(requireAuthUser(req), studentId));
+  },
+
+  async attendanceCalendar(req: Request, res: Response): Promise<void> {
+    const { studentId, year, month } = portalCalendarQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.attendanceCalendar(requireAuthUser(req), { year, month }, studentId));
+  },
+
+  async gamification(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.gamification(requireAuthUser(req), studentId));
+  },
+
+  async payments(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.payments(requireAuthUser(req), studentId));
+  },
+
+  async submitHomework(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const input = portalHomeworkSubmitSchema.parse(req.body);
+    sendCreated(res, await portalService.submitHomework(requireAuthUser(req), id, input, studentId), 'Vazifa topshirildi');
+  },
+
+  async submitHomeworkAttachment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const result = await portalService.submitHomeworkAttachment(
+      requireAuthUser(req),
+      id,
+      { buffer: req.body, fileName: req.header('x-file-name') },
+      studentId,
+    );
+    sendCreated(res, result, 'Vazifa topshirildi');
   },
 
   async feedbackState(req: Request, res: Response): Promise<void> {

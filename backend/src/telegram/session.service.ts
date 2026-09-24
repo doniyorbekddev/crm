@@ -16,6 +16,9 @@ import { prisma } from '../config/database.js';
 /** Oqim tashlab ketilgan deb hisoblanadigan muddat */
 const TTL_MS = 30 * 60_000;
 
+/** Oqim yo'q, faqat tanlov saqlanadi */
+export const IDLE_FLOW = 'idle';
+
 export interface SessionState {
   flow: string;
   step: string;
@@ -46,6 +49,22 @@ export const telegramSessionService = {
 
   /** Oqimni tugatadi yoki bekor qiladi */
   async clear(chatId: string): Promise<void> {
+    await prisma.telegramSession.deleteMany({ where: { chatId } });
+  },
+
+  /**
+   * Faqat **oqimni** yopadi, tanlangan farzand (`activeStudentId`) qoladi.
+   *
+   * Ota-ona boshqa bo'limga o'tganda yarim qolgan topshirish bekor bo'lishi kerak, lekin
+   * "qaysi farzand" degan tanlov yo'qolmasligi kerak — aks holda har tugmada qayta so'raladi.
+   */
+  async clearFlow(chatId: string, now: Date = new Date()): Promise<void> {
+    const current = await this.get(chatId, now);
+    const active = current?.data.activeStudentId;
+    if (typeof active === 'string') {
+      await this.set(chatId, { flow: IDLE_FLOW, step: '-', data: { activeStudentId: active } }, now);
+      return;
+    }
     await prisma.telegramSession.deleteMany({ where: { chatId } });
   },
 

@@ -257,7 +257,92 @@ function resolveStatus(
 // Service
 // ---------------------------------------------------------------------
 
+export interface StudentSubmitInput {
+  answerText?: string | null;
+  attachmentPath?: string | null;
+  /** Qayerdan topshirildi — audit uchun */
+  source: 'telegram' | 'portal';
+}
+
+export interface StudentSubmitResult {
+  status: SubmissionStatus;
+  submittedAt: string;
+  late: boolean;
+  xpAwarded: number;
+}
+
 export const homeworkService = {
+  /**
+   * O'quvchi vazifani **o'zi** topshiradi (Telegram yoki kabinet).
+   *
+   * Ruxsat tekshirmaydi: `studentId` chaqiruvchi tomonda egalik bilan aniqlangan bo'lishi
+   * shart. Egalik shu yerda ham tabiiy: topshiriq yozuvi faqat guruh a'zolari uchun ochiladi,
+   * shuning uchun begona vazifaga `homeworkId` bilan ham yetib bo'lmaydi.
+   *
+   * Qoidalar:
+   *  - muddatdan keyin topshirish mumkin, lekin holat LATE bo'ladi — o'qituvchi ko'radi;
+   *  - baholangan ish qayta topshirilmaydi: baho eskicha qolib javob almashsa chalkashlik;
+   *  - XP bu yerda hisoblanmaydi — mavjud gamifikatsiya hook'i chaqiriladi (bot XP hisoblamaydi).
+   */
+  async submitByStudent(studentId: string, homeworkId: string, input: StudentSubmitInput, now: Date = new Date()): Promise<StudentSubmitResult> {
+    const answerText = input.answerText?.trim() || null;
+    const attachmentPath = input.attachmentPath ?? null;
+    if (!answerText && !attachmentPath) {
+      throw AppError.unprocessable('Javob matni yoki fayl kerak', [{ field: 'answerText', message: 'Javobni kiriting' }]);
+    }
+
+    const submission = await prisma.homeworkSubmission.findUnique({
+      where: { homeworkId_studentId: { homeworkId, studentId } },
+      select: {
+        id: true,
+        status: true,
+        homework: { select: { title: true, deadline: true, status: true, group: { select: { name: true } } } },
+      },
+    });
+    if (!submission) throw AppError.notFound('Vazifa topilmadi');
+    if (submission.homework.status !== 'PUBLISHED') throw AppError.unprocessable('Bu vazifa yopilgan, topshirib bo‘lmaydi');
+    if (submission.status === 'GRADED') throw AppError.unprocessable('Vazifa allaqachon baholangan');
+
+    const late = submission.homework.deadline.getTime() < now.getTime();
+    const status: SubmissionStatus = late ? 'LATE' : 'SUBMITTED';
+
+    const xpAwarded = await prisma.$transaction(async (tx) => {
+      await tx.homeworkSubmission.update({
+        where: { id: submission.id },
+        data: {
+          status,
+          submittedAt: now,
+          ...(answerText === null ? {} : { answerText }),
+          ...(attachmentPath === null ? {} : { attachmentPath }),
+        },
+      });
+
+      // dedupeKey bilan — qayta topshirilsa yoki keyin baholansa ikki marta berilmaydi
+      const points = await gamificationHooks.onHomeworkSubmitted(tx, { studentId, submissionId: submission.id, onTime: !late });
+      await tx.homeworkSubmission.update({ where: { id: submission.id }, data: { xpAwarded: points } });
+
+      await auditService.recordInTransaction(tx, {
+        userId: null,
+        action: 'homework.submitted',
+        entityType: 'homework',
+        entityId: homeworkId,
+        metadata: {
+          studentId,
+          title: submission.homework.title,
+          group: submission.homework.group.name,
+          late,
+          source: input.source,
+          hasAttachment: attachmentPath !== null,
+        },
+        ip: null,
+        userAgent: null,
+      });
+      return points;
+    });
+
+    return { status, submittedAt: now.toISOString(), late, xpAwarded };
+  },
+
   async list(actor: AuthUser, query: HomeworkListQuery): Promise<{ items: HomeworkDto[]; total: number }> {
     const access = await getTeachingAccess(actor);
     const where = buildWhere(access, query);

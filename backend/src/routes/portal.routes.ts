@@ -3,6 +3,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { portalController } from '../controllers/portal.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAnyPermission } from '../middleware/requirePermission.js';
+import { uploadBody } from './document.routes.js';
 
 export const portalRouter = Router();
 
@@ -18,5 +19,13 @@ portalRouter.get('/schedule', portalAccess, portalController.schedule);
 portalRouter.get('/lessons', portalAccess, portalController.lessons);
 portalRouter.get('/curriculum', portalAccess, portalController.curriculum);
 portalRouter.get('/certificates', portalAccess, portalController.certificates);
+portalRouter.get('/homework', portalAccess, portalController.homework);
+// O'quvchi vazifani o'zi topshiradi: matn — JSON, fayl — xom tana (hujjatlar bilan bir xil)
+portalRouter.post('/homework/:id/submit', portalAccess, portalController.submitHomework);
+portalRouter.post('/homework/:id/attachment', portalAccess, uploadBody, portalController.submitHomeworkAttachment);
+portalRouter.get('/exams', portalAccess, portalController.exams);
+portalRouter.get('/attendance/calendar', portalAccess, portalController.attendanceCalendar);
+portalRouter.get('/gamification', portalAccess, portalController.gamification);
+portalRouter.get('/payments', portalAccess, portalController.payments);
 portalRouter.get('/feedback', portalAccess, portalController.feedbackState);
 portalRouter.post('/feedback', portalAccess, portalController.submitFeedback);

@@ -17,6 +17,12 @@ import type { PaymentScheduleDto } from './paymentSchedule.service.js';
 import { buildStudentProfile } from './studentProgress.service.js';
 import type { StudentProfileDto } from './studentProgress.service.js';
 import { studentSelect as studentDtoSelect, toStudentDto } from './student.service.js';
+import { buildStudentExamRows, buildStudentHomeworkRows } from './studentProgress.service.js';
+import { buildAttendanceCalendar } from './attendanceAnalytics.service.js';
+import { gamificationService } from './gamification.service.js';
+import { homeworkService } from './homework.service.js';
+import { detectFileType, saveFile } from '../utils/fileStorage.js';
+import { currentBusinessMonth } from '../utils/dates.js';
 
 /**
  * Kabinet (portal) — o'quvchi va ota-ona uchun.
@@ -249,6 +255,72 @@ export const portalService = {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     const { items } = await certificateService.list({ page: 1, limit: 20, studentId, includeRevoked: false } as never);
     return items;
+  },
+
+  /** Uy vazifalari ro'yxati (topshiriq holati, ball, izoh bilan) */
+  async homework(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return buildStudentHomeworkRows(studentId);
+  },
+
+  async exams(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return buildStudentExamRows(studentId);
+  },
+
+  /** Oylik davomat kalendari; oy berilmasa — joriy oy (o'quv markaz vaqti bo'yicha) */
+  async attendanceCalendar(actor: AuthUser, query: { year?: number | undefined; month?: number | undefined }, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const student = await prisma.student.findFirstOrThrow({
+      where: { id: studentId, deletedAt: null },
+      select: { id: true, number: true, firstName: true, lastName: true },
+    });
+    const current = currentBusinessMonth();
+    return buildAttendanceCalendar(student, query.year ?? current.year, query.month ?? current.month);
+  },
+
+  /** XP, daraja, seriya, reyting, nishonlar */
+  async gamification(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return gamificationService.profile(studentId);
+  },
+
+  /** To'lov jadvali + so'nggi to'lovlar tarixi */
+  async payments(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const [schedule, rows] = await Promise.all([
+      paymentScheduleService.get(studentId),
+      prisma.payment.findMany({
+        where: { studentId, deletedAt: null },
+        orderBy: { paidAt: 'desc' },
+        take: 20,
+        select: { id: true, amount: true, method: true, paidAt: true },
+      }),
+    ]);
+    return {
+      schedule,
+      history: rows.map((row) => ({ id: row.id, amount: row.amount.toNumber(), method: row.method, paidAt: row.paidAt.toISOString() })),
+    };
+  },
+
+  /** Matnli javob bilan topshirish. Egalik: `requireOwnStudent` + topshiriq yozuvi faqat guruh a'zosida */
+  async submitHomework(actor: AuthUser, homeworkId: string, input: { answerText: string }, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return homeworkService.submitByStudent(studentId, homeworkId, { answerText: input.answerText, source: 'portal' });
+  },
+
+  /** Fayl bilan topshirish — hujjatlar bilan bir xil tekshiruv: tur baytlar bo'yicha aniqlanadi */
+  async submitHomeworkAttachment(actor: AuthUser, homeworkId: string, file: { buffer: Buffer; fileName: string | undefined }, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    if (!Buffer.isBuffer(file.buffer) || file.buffer.length === 0) {
+      throw AppError.unprocessable('Fayl bo‘sh', [{ field: 'file', message: 'Faylni tanlang' }]);
+    }
+    const type = detectFileType(file.buffer);
+    if (!type) {
+      throw AppError.unprocessable('Faqat rasm (JPG, PNG, WEBP) yoki PDF qabul qilinadi', [{ field: 'file', message: 'Fayl turi qo‘llanmaydi' }]);
+    }
+    const attachmentPath = await saveFile(file.buffer, type.ext);
+    return homeworkService.submitByStudent(studentId, homeworkId, { attachmentPath, source: 'portal' });
   },
 
   /** Bugun qaysi fikrlar qoldirilgani — kabinetda formani yashirish uchun */

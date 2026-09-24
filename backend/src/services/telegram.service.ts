@@ -197,6 +197,34 @@ export const telegramService = {
     return result === true;
   },
 
+  /**
+   * Foydalanuvchi yuborgan faylni yuklab oladi (rasm yoki hujjat).
+   *
+   * Hajm **yuklashdan oldin** tekshiriladi: Telegram `getFile` da o'lchamni beradi, shuning
+   * uchun katta faylni tarmoqdan tortib, keyin rad etish shart emas. Telegram botga 20 MB
+   * gacha fayl beradi; bizning chegara esa hujjatlar bilan bir xil (`MAX_UPLOAD_MB`).
+   */
+  async downloadFile(fileId: string, maxBytes: number): Promise<{ buffer: Buffer } | { error: string }> {
+    const info = await apiCall<{ file_path?: string; file_size?: number }>('getFile', { file_id: fileId }, REQUEST_TIMEOUT_MS);
+    if (!info?.file_path) return { error: 'Faylni olib bo‘lmadi' };
+    if (info.file_size !== undefined && info.file_size > maxBytes) return { error: 'Fayl juda katta' };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS * 3);
+    try {
+      const response = await fetch(`${API_BASE}/file/bot${env.TELEGRAM_BOT_TOKEN}/${info.file_path}`, { signal: controller.signal });
+      if (!response.ok) return { error: 'Faylni yuklab bo‘lmadi' };
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length > maxBytes) return { error: 'Fayl juda katta' };
+      return { buffer };
+    } catch (error) {
+      logger.warn({ err: error }, 'Telegram faylini yuklab bo‘lmadi');
+      return { error: 'Faylni yuklab bo‘lmadi' };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
   /** Production uchun: Telegram update'larni shu manzilga yuboradi */
   async setWebhook(url: string, secretToken: string): Promise<boolean> {
     const result = await apiCall<boolean>(

@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1 (poydevor) bajarildi.**
+> Holat: **PHASE 1–3 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi boti).
 
 ---
 
@@ -134,8 +134,47 @@ ochish ortiqcha, chunki muddat o'qishda ham tekshiriladi.
 
 | Rol | Tugmalar |
 |---|---|
-| O'quvchi / Ota-ona | 💳 To'lovlarim · 📅 Dars jadvali · ✅ Davomatim · 🔗 Bog'lanish holati |
-| Xodim | 🔗 Bog'lanish holati |
+| O'quvchi / Ota-ona | 📊 Profil · 📅 Dars jadvali · ✅ Davomat · 📝 Uy vazifalari · 🎯 Imtihonlar · ⭐ XP & Reyting · 💳 To'lovlar · 📜 Sertifikatlar · 🔗 Holat · 🚫 Uzish |
+| Ota-ona (2+ farzand) | + 👨‍👩‍👧 Farzandni tanlash — tanlov sessiyada turadi, bo'limlar o'sha farzand haqida |
+| Xodim | 🔗 Bog'lanish holati · 🚫 Uzish |
+
+---
+
+## 5a. O'quvchi bo'limlari (PHASE 3)
+
+Har bo'lim `telegram/handlers/student.ts` da va **mavjud servisni** chaqiradi:
+
+| Bo'lim | Manba | Izoh |
+|---|---|---|
+| Profil | `prisma.student` + `gamificationService.profile` | ism, kod, kurs, guruh, o'qituvchi, holat, daraja |
+| Davomat | `buildAttendanceCalendar` | umumiy foiz + oylik ro'yxat, oldingi oyga o'tish; kelajak oyga tugma yo'q |
+| Uy vazifalari | `buildStudentHomeworkRows` | topshirilmaganlar birinchi, 5 talik sahifa, 🔴 muddati 2 kundan kam |
+| **Topshirish** | `homeworkService.submitByStudent` | **yangi** — matn, rasm yoki PDF; muddatdan keyin LATE; baholangan qayta topshirilmaydi; XP mavjud hook orqali |
+| Imtihonlar | `buildStudentExamRows` | ball, foiz, baho, o'tdi/o'tmadi, izoh |
+| XP | `gamificationService.profile` | daraja, progress, seriya, reyting, nishonlar, so'nggi XP |
+| Sertifikatlar | `certificateService.list` | kod, sana, ochiq tekshiruv havolasi |
+| To'lovlar | `paymentScheduleService.get` + `prisma.payment` | qarz, keyingi muddat, so'nggi 5 to'lov |
+
+**Topshirish oqimi** (`TelegramSession`, flow `hw_submit`):
+
+```text
+📤 Topshirish  →  sessiya: {homeworkId}  →  keyingi xabar (matn / rasm / PDF)
+      ↓ fayl: getFile → yuklab olish (MAX_UPLOAD_MB) → tur baytlar bo'yicha → saveFile
+      ↓ homeworkService.submitByStudent → holat, XP, audit (homework.submitted)
+✅ Vazifa topshirildi
+```
+
+- Boshqa tugma bosilsa oqim **bekor** bo'ladi (`clearFlow`), lekin ota-onaning farzand tanlovi qoladi.
+- Buyruq (`/start`, `/vazifa`) yozilsa ham oqim yopiladi — foydalanuvchi menyuni kutadi.
+- Fayl turi `docx` kabi bo'lsa rad etiladi, oqim ochiq qoladi — qaytadan yuborish mumkin.
+
+**Kabinet API** (`/api/portal/*`) ham shu servislardan foydalanadi: `homework`, `homework/:id/submit`,
+`homework/:id/attachment`, `exams`, `attendance/calendar`, `gamification`, `payments`.
+Bot va kabinet **bitta manbadan** o'qiydi va yozadi (TZ §58).
+
+**Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
+`buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga
+ajratildi — `buildStudentProfile` naqshi bo'yicha (ruxsat chaqiruvchi tomonda).
 
 Xodim CRM'ga kira oladi, o'quvchi va ota-ona — yo'q. Shuning uchun bot qiymatining katta
 qismi kabinet tomonida (TZ §57 MVP shuni tasdiqlaydi).
@@ -190,8 +229,8 @@ so'rovni qabul qilmaydi va bot jim qolardi.
 | Bosqich | Ish |
 |---|---|
 | **2** | Bog'lash xavfsizligi: kod muddati, bir martalik, urinish chegarasi, `telegramUserId` |
-| **3** | Student bot: profil, davomat kalendari, vazifa (**topshirish API si yo'q — yaratiladi**), imtihon, XP, sertifikat |
-| **4** | Parent bot: farzand tanlash |
+| ~~3~~ | ✅ Student bot — bajarildi |
+| ~~4~~ | ✅ Parent bot — farzand tanlash PHASE 3 ichida bajarildi (xavfsizlik uchun kerak edi: bo'lim birinchi farzandni jimgina ko'rsatmasin) |
 | **5** | Teacher bot: guruhlar, bugungi darslar, tezkor davomat (oqim `TelegramSession` orqali) |
 | **6–7** | Sales va Owner bot |
 | **8** | Yangi bildirishnoma turlari (homework, exam, XP, certificate) |

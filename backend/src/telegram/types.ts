@@ -19,11 +19,39 @@ export interface TelegramFrom {
   is_bot?: boolean;
 }
 
+export interface TelegramPhotoSize {
+  file_id?: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface TelegramDocument {
+  file_id?: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+}
+
 export interface TelegramMessage {
   message_id?: number;
   chat?: TelegramChat;
   from?: TelegramFrom;
   text?: string;
+  /** Rasm/hujjat bilan birga yozilgan matn */
+  caption?: string;
+  /** Rasm bir nechta o'lchamda keladi — eng kattasi olinadi */
+  photo?: TelegramPhotoSize[];
+  document?: TelegramDocument;
+}
+
+/** Foydalanuvchi yuborgan fayl (vazifa topshirish uchun) */
+export interface BotAttachment {
+  kind: 'photo' | 'document';
+  fileId: string;
+  fileName: string | null;
+  mimeType: string | null;
+  size: number | null;
 }
 
 export interface TelegramCallbackQuery {
@@ -50,8 +78,10 @@ export interface BotContext {
   chatId: string;
   /** Telegram foydalanuvchi id — guruh chatida chatId dan farq qiladi */
   telegramUserId: string | null;
-  /** Xabar matni (callback bo'lsa — null) */
+  /** Xabar matni yoki fayl izohi (callback bo'lsa — null) */
   text: string | null;
+  /** Yuborilgan rasm/hujjat — bo'lmasa null */
+  attachment: BotAttachment | null;
   /** Bosilgan tugma ma'lumoti */
   callbackData: string | null;
   /** Tugma bosilganini tasdiqlash uchun */
