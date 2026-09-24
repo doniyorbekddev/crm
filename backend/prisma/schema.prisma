@@ -2009,6 +2009,8 @@ enum QuestionDifficulty {
 
 enum AttemptStatus {
   IN_PROGRESS
+  /// Vaqt tugagach topshirilmagan urinish
+  EXPIRED
   SUBMITTED
   /// Avtomatik baholangan, lekin matnli javoblar qo'lda baholanishi kerak
   NEEDS_REVIEW
@@ -2191,6 +2193,10 @@ model Exam {
   date        DateTime   @db.Date
   maxScore    Int        @default(100) @db.SmallInt
   passScore   Int?       @db.SmallInt
+  /// Imtihon davomiyligi (daqiqa). Bo'sh — vaqt chegarasi yo'q
+  durationMinutes Int?   @db.SmallInt
+  /// Ruxsat etilgan urinishlar soni (0 — cheklanmagan)
+  maxAttempts Int        @default(0) @db.SmallInt
   xpReward    Int        @default(50)
   status      ExamStatus @default(PLANNED)
   createdAt   DateTime   @default(now())

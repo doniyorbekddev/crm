@@ -105,12 +105,17 @@ const examFieldsSchema = z.object({
     .min(1, 'Ball kamida 1 bo‘lsin')
     .max(1000, 'Ball 1000 dan oshmasligi kerak'),
   passScore: optionalField(z.coerce.number('Ball raqam bo‘lishi kerak').int().min(0).max(1000)),
+  /** Imtihon davomiyligi (daqiqa). Bo‘sh — vaqt chegarasi yo‘q */
+  durationMinutes: optionalField(z.coerce.number('Daqiqa raqam bo‘lishi kerak').int().min(1, 'Kamida 1 daqiqa').max(600, '10 soatdan oshmasin')),
+  /** Ruxsat etilgan urinishlar (0 — cheklanmagan). Standart qiymat faqat yaratishda qo‘yiladi */
+  maxAttempts: z.coerce.number('Urinishlar soni raqam bo‘lishi kerak').int().min(0).max(20, '20 tadan oshmasin'),
   xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000),
   status: z.enum(EXAM_STATUSES, 'Holat noto‘g‘ri'),
 });
 
 export const createExamSchema = examFieldsSchema.extend({
   maxScore: examFieldsSchema.shape.maxScore.default(100),
+  maxAttempts: examFieldsSchema.shape.maxAttempts.default(0),
   xpReward: examFieldsSchema.shape.xpReward.default(50),
   status: examFieldsSchema.shape.status.default('PLANNED'),
 });

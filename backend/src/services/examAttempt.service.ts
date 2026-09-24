@@ -263,13 +263,82 @@ export const examAttemptService = {
   },
 
   /**
+   * Imtihonni boshlash.
+   *
+   * Vaqt chegarasi shu yerdan boshlanadi: `startedAt` yoziladi va javob berish muddati
+   * (`deadline`) qaytariladi. Urinishlar chegarasi ham shu bosqichda tekshiriladi —
+   * o'quvchi savollarni ko'rib chiqib keyin "urinish qolmagan" degan javobni olmasin.
+   */
+  async start(actor: AuthUser, examId: string, studentId: string, client: ClientInfo): Promise<{ attemptId: string; attemptNo: number; deadline: string | null }> {
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      select: { id: true, title: true, durationMinutes: true, maxAttempts: true, questions: { select: { id: true } } },
+    });
+    if (!exam) throw AppError.notFound('Imtihon topilmadi');
+    if (exam.questions.length === 0) throw AppError.unprocessable('Imtihonga savollar biriktirilmagan');
+
+    const attempts = await prisma.examAttempt.findMany({
+      where: { examId, studentId },
+      select: { id: true, attemptNo: true, status: true, startedAt: true },
+      orderBy: { attemptNo: 'desc' },
+    });
+
+    // Tugallanmagan urinish bo'lsa — yangisini ochmaymiz, o'shani davom ettiramiz
+    const open = attempts.find((attempt) => attempt.status === 'IN_PROGRESS');
+    if (open) {
+      return {
+        attemptId: open.id,
+        attemptNo: open.attemptNo,
+        deadline: exam.durationMinutes ? new Date(open.startedAt.getTime() + exam.durationMinutes * 60_000).toISOString() : null,
+      };
+    }
+
+    const used = attempts.filter((attempt) => attempt.status !== 'EXPIRED').length;
+    if (exam.maxAttempts > 0 && used >= exam.maxAttempts) {
+      throw AppError.unprocessable(`Urinishlar tugadi: ${exam.maxAttempts} tadan ortiq topshirib bo'lmaydi`);
+    }
+
+    const attemptNo = (attempts[0]?.attemptNo ?? 0) + 1;
+    const created = await prisma.$transaction(async (tx) => {
+      const record = await tx.examAttempt.create({
+        data: { examId, studentId, attemptNo, status: 'IN_PROGRESS' },
+        select: { id: true, startedAt: true },
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'exam.attempt_started',
+        entityType: 'exam',
+        entityId: examId,
+        metadata: { attemptId: record.id, studentId, attemptNo },
+        ...client,
+      });
+      return record;
+    });
+
+    return {
+      attemptId: created.id,
+      attemptNo,
+      deadline: exam.durationMinutes ? new Date(created.startedAt.getTime() + exam.durationMinutes * 60_000).toISOString() : null,
+    };
+  },
+
+  /**
    * Javoblarni qabul qiladi va avtomatik baholaydi.
    * Matnli savollar `NEEDS_REVIEW` holatida qoladi — ularni o'qituvchi baholaydi.
+   *
+   * Vaqt chegarasi: imtihon `start` orqali boshlangan bo'lsa, muddat o'tgan javob qabul
+   * qilinmaydi — urinish `EXPIRED` bo'lib yopiladi va bu urinishlar hisobiga kirmaydi.
    */
   async submit(actor: AuthUser, examId: string, studentId: string, input: SubmitAttemptInput, client: ClientInfo): Promise<AttemptDto> {
     const exam = await prisma.exam.findUnique({
       where: { id: examId },
-      select: { id: true, passScore: true, questions: { select: { id: true, points: true, questionId: true } } },
+      select: {
+        id: true,
+        passScore: true,
+        durationMinutes: true,
+        maxAttempts: true,
+        questions: { select: { id: true, points: true, questionId: true } },
+      },
     });
     if (!exam) throw AppError.notFound('Imtihon topilmadi');
     if (exam.questions.length === 0) {
@@ -284,12 +353,29 @@ export const examAttemptService = {
     const questionById = new Map(questions.map((question) => [question.id, question]));
     const examQuestionById = new Map(exam.questions.map((item) => [item.id, item]));
 
-    const lastAttempt = await prisma.examAttempt.findFirst({
+    const previous = await prisma.examAttempt.findMany({
       where: { examId, studentId },
       orderBy: { attemptNo: 'desc' },
-      select: { attemptNo: true },
+      select: { id: true, attemptNo: true, status: true, startedAt: true },
     });
-    const attemptNo = (lastAttempt?.attemptNo ?? 0) + 1;
+    const openAttempt = previous.find((attempt) => attempt.status === 'IN_PROGRESS');
+
+    // Vaqt tugaganmi? (faqat `start` orqali boshlangan urinishda tekshiriladi)
+    if (openAttempt && exam.durationMinutes) {
+      const deadline = openAttempt.startedAt.getTime() + exam.durationMinutes * 60_000;
+      if (Date.now() > deadline) {
+        await prisma.examAttempt.update({ where: { id: openAttempt.id }, data: { status: 'EXPIRED' } });
+        throw AppError.unprocessable(`Imtihon vaqti tugadi (${exam.durationMinutes} daqiqa) — javoblar qabul qilinmadi`);
+      }
+    }
+
+    // Urinishlar chegarasi: tugallangan urinishlar sanaladi (EXPIRED hisobga olinmaydi)
+    const usedAttempts = previous.filter((attempt) => attempt.status !== 'EXPIRED' && attempt.id !== openAttempt?.id).length;
+    if (exam.maxAttempts > 0 && usedAttempts >= exam.maxAttempts) {
+      throw AppError.unprocessable(`Urinishlar tugadi: ${exam.maxAttempts} tadan ortiq topshirib bo'lmaydi`);
+    }
+
+    const attemptNo = openAttempt?.attemptNo ?? (previous[0]?.attemptNo ?? 0) + 1;
     const maxScore = exam.questions.reduce((sum, item) => sum + item.points, 0);
 
     let score = 0;
@@ -333,23 +419,29 @@ export const examAttemptService = {
     const status: AttemptStatus = needsReview ? 'NEEDS_REVIEW' : 'GRADED';
 
     const attempt = await prisma.$transaction(async (tx) => {
-      const created = await tx.examAttempt.create({
-        data: {
-          examId,
-          studentId,
-          attemptNo,
-          status,
-          submittedAt: new Date(),
-          gradedAt: needsReview ? null : new Date(),
-          gradedById: needsReview ? null : actor.id,
-          score,
-          maxScore,
-          percentage,
-          passed: exam.passScore === null ? percentage >= 60 : score >= exam.passScore,
-          answers: { create: answerRows },
-        },
-        select: attemptSelect,
-      });
+      const values = {
+        status,
+        submittedAt: new Date(),
+        gradedAt: needsReview ? null : new Date(),
+        gradedById: needsReview ? null : actor.id,
+        score,
+        maxScore,
+        percentage,
+        passed: exam.passScore === null ? percentage >= 60 : score >= exam.passScore,
+      };
+
+      // `start` orqali ochilgan urinish bo'lsa — o'shani yopamiz, yangisini ochmaymiz.
+      // Aks holda (xodim natijani qo'lda kiritsa) yangi urinish yaratiladi.
+      const created = openAttempt
+        ? await tx.examAttempt.update({
+            where: { id: openAttempt.id },
+            data: { ...values, answers: { create: answerRows } },
+            select: attemptSelect,
+          })
+        : await tx.examAttempt.create({
+            data: { examId, studentId, attemptNo, ...values, answers: { create: answerRows } },
+            select: attemptSelect,
+          });
 
       // Matnli savol bo'lmasa natija darhol yakuniy hisobotga yoziladi
       if (!needsReview) {

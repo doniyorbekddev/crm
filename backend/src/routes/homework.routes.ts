@@ -39,6 +39,7 @@ examRouter.put('/:id/results', examGrade, examController.saveResults);
 // --- Imtihon dvigateli (savollar bazasi, urinishlar) ---
 examRouter.post('/:id/questions', requirePermission(PERMISSIONS.EXAM_MANAGE), questionController.attachToExam);
 examRouter.get('/:id/questions', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.examQuestions);
+examRouter.post('/:id/attempts/:studentId/start', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.startAttempt);
 examRouter.post('/:id/attempts/:studentId', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.submitAttempt);
 examRouter.get('/:id/attempts', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempts);
 examRouter.get('/attempts/:id', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempt);

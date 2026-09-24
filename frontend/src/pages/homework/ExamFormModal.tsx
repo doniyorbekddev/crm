@@ -27,6 +27,10 @@ const schema = z
     date: z.string().min(1, 'Sanani kiriting'),
     maxScore: z.string().refine((value) => /^\d{1,4}$/.test(value) && Number(value) >= 1, 'Ball 1–1000 oralig‘ida'),
     passScore: z.string().refine((value) => value === '' || /^\d{1,4}$/.test(value), 'Butun son kiriting'),
+    durationMinutes: z
+      .string()
+      .refine((value) => value === '' || (/^\d{1,3}$/.test(value) && Number(value) >= 1 && Number(value) <= 600), '1–600 daqiqa'),
+    maxAttempts: z.string().refine((value) => /^\d{1,2}$/.test(value) && Number(value) <= 20, '0–20 oralig‘ida'),
     xpReward: z.string().refine((value) => /^\d{1,4}$/.test(value), 'XP 0–1000 oralig‘ida'),
     status: z.enum(EXAM_STATUS_ORDER),
   })
@@ -68,6 +72,8 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
       date: exam?.date ?? new Date().toISOString().slice(0, 10),
       maxScore: String(exam?.maxScore ?? 100),
       passScore: exam?.passScore === null || exam?.passScore === undefined ? '60' : String(exam.passScore),
+      durationMinutes: exam?.durationMinutes === null || exam?.durationMinutes === undefined ? '' : String(exam.durationMinutes),
+      maxAttempts: String(exam?.maxAttempts ?? 0),
       xpReward: String(exam?.xpReward ?? 50),
       status: exam?.status ?? ('PLANNED' as const),
     },
@@ -81,6 +87,8 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
         date: values.date,
         maxScore: Number(values.maxScore),
         ...(values.passScore === '' ? {} : { passScore: Number(values.passScore) }),
+        ...(values.durationMinutes === '' ? {} : { durationMinutes: Number(values.durationMinutes) }),
+        maxAttempts: Number(values.maxAttempts),
         xpReward: Number(values.xpReward),
         status: values.status,
       };
@@ -91,7 +99,7 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['title', 'groupId', 'date', 'maxScore', 'passScore', 'xpReward'])) {
+      if (!applyFieldErrors(error, setError, ['title', 'groupId', 'date', 'maxScore', 'passScore', 'xpReward', 'durationMinutes', 'maxAttempts'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -171,6 +179,17 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
           </FormField>
           <FormField label="XP mukofoti" htmlFor="exam-xp" error={errors.xpReward?.message} hint="Yuqori natija uchun">
             <Input id="exam-xp" inputMode="numeric" {...register('xpReward')} />
+          </FormField>
+          <FormField
+            label="Davomiyligi (daqiqa)"
+            htmlFor="exam-duration"
+            error={errors.durationMinutes?.message}
+            hint="Bo‘sh — vaqt chegarasi yo‘q"
+          >
+            <Input id="exam-duration" inputMode="numeric" {...register('durationMinutes')} />
+          </FormField>
+          <FormField label="Urinishlar soni" htmlFor="exam-attempts" error={errors.maxAttempts?.message} hint="0 — cheklanmagan">
+            <Input id="exam-attempts" inputMode="numeric" {...register('maxAttempts')} />
           </FormField>
         </div>
 

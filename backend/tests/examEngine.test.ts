@@ -32,6 +32,32 @@ async function createExam(token: string, groupId: string, passScore?: number) {
   return response.body.data.id as string;
 }
 
+/** Savoli biriktirilgan imtihon — vaqt va urinish chegaralarini sinash uchun */
+async function createExamWithQuestions(
+  token: string,
+  courseId: string,
+  groupId: string,
+  options: { durationMinutes?: number; maxAttempts?: number } = {},
+) {
+  const created = await request(app)
+    .post('/api/exams')
+    .set(bearer(token))
+    .send({ title: 'Chegarali imtihon', groupId, date: '2026-10-20', maxScore: 100, ...options });
+  expect(created.status).toBe(201);
+  const examId = created.body.data.id as string;
+
+  const question = await createQuestion(token, courseId, { text: '2 + 2 = ?' });
+  await request(app).post(`/api/exams/${examId}/questions`).set(bearer(token)).send({ questionIds: [question.id] });
+  const questions = await request(app).get(`/api/exams/${examId}/questions`).set(bearer(token));
+  const correctOption = question.options.find((option: { isCorrect: boolean }) => option.isCorrect).id as string;
+
+  return {
+    id: examId,
+    /** Tayyor javob — testlarda faqat chegaralar tekshiriladi, baholash emas */
+    answers: [{ examQuestionId: questions.body.data[0].examQuestionId as string, optionIds: [correctOption] }],
+  };
+}
+
 async function createQuestion(
   token: string,
   courseId: string,
@@ -310,5 +336,83 @@ describe.skipIf(!hasTestDatabase)('Imtihon dvigateli: savollar bazasi va urinish
     // 10 ball < 15 o'tish bali
     expect(submitted.body.data).toMatchObject({ score: 10, passed: false });
     expect(byManager.status).toBe(403);
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('Imtihon: vaqt va urinishlar chegarasi', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+  });
+
+  it('urinishlar chegarasi oshsa yangi urinish ochilmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const course = await createCourse('Frontend');
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id);
+    const exam = await createExamWithQuestions(token, course.id, group.id, { maxAttempts: 2 });
+
+    // Ikki marta topshiramiz
+    for (let index = 0; index < 2; index += 1) {
+      const response = await request(app)
+        .post(`/api/exams/${exam.id}/attempts/${student.id}`)
+        .set(bearer(token))
+        .send({ answers: exam.answers });
+      expect(response.status).toBe(201);
+    }
+
+    const third = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}`).set(bearer(token)).send({ answers: exam.answers });
+    expect(third.status).toBe(422);
+    expect(third.body.message).toContain('Urinishlar tugadi');
+  });
+
+  it('boshlangan imtihonda muddat qaytariladi va vaqt tugasa javob qabul qilinmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const course = await createCourse('Backend');
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id);
+    const exam = await createExamWithQuestions(token, course.id, group.id, { durationMinutes: 30 });
+
+    const started = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}/start`).set(bearer(token)).send({});
+    expect(started.status).toBe(200);
+    expect(started.body.data.deadline).toBeTruthy();
+    expect(started.body.data.attemptNo).toBe(1);
+
+    // Qayta boshlash yangi urinish ochmaydi — o'sha urinish davom etadi
+    const again = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}/start`).set(bearer(token)).send({});
+    expect(again.body.data.attemptId).toBe(started.body.data.attemptId);
+
+    // Vaqtni orqaga suramiz: urinish 31 daqiqa oldin boshlangan bo'lsin
+    await prisma.examAttempt.update({
+      where: { id: started.body.data.attemptId },
+      data: { startedAt: new Date(Date.now() - 31 * 60_000) },
+    });
+
+    const late = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}`).set(bearer(token)).send({ answers: exam.answers });
+    expect(late.status).toBe(422);
+    expect(late.body.message).toContain('vaqti tugadi');
+
+    const expired = await prisma.examAttempt.findUniqueOrThrow({ where: { id: started.body.data.attemptId } });
+    expect(expired.status).toBe('EXPIRED');
+  });
+
+  it('vaqt tugagan urinish urinishlar hisobiga kirmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const course = await createCourse('Dizayn');
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id);
+    const exam = await createExamWithQuestions(token, course.id, group.id, { durationMinutes: 10, maxAttempts: 1 });
+
+    const started = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}/start`).set(bearer(token)).send({});
+    await prisma.examAttempt.update({
+      where: { id: started.body.data.attemptId },
+      data: { startedAt: new Date(Date.now() - 20 * 60_000) },
+    });
+    await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}`).set(bearer(token)).send({ answers: exam.answers }).expect(422);
+
+    // Vaqti tugagani hisobga olinmaydi — qayta boshlash mumkin
+    const retry = await request(app).post(`/api/exams/${exam.id}/attempts/${student.id}/start`).set(bearer(token)).send({});
+    expect(retry.status).toBe(200);
+    expect(retry.body.data.attemptNo).toBe(2);
   });
 });

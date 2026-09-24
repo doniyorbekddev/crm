@@ -28,6 +28,10 @@ export interface ExamDto {
   date: string;
   maxScore: number;
   passScore: number | null;
+  /** Vaqt chegarasi (daqiqa) — bo‘sh bo‘lsa cheklanmagan */
+  durationMinutes: number | null;
+  /** Ruxsat etilgan urinishlar (0 — cheklanmagan) */
+  maxAttempts: number;
   xpReward: number;
   course: { id: string; name: string } | null;
   group: { id: string; name: string };
@@ -75,6 +79,8 @@ const examSelect = {
   date: true,
   maxScore: true,
   passScore: true,
+  durationMinutes: true,
+  maxAttempts: true,
   xpReward: true,
   groupId: true,
   course: { select: { id: true, name: true } },
@@ -127,6 +133,8 @@ function toDto(exam: ExamRecord, students: number): ExamDto {
     date: toDateOnly(exam.date),
     maxScore: exam.maxScore,
     passScore: exam.passScore,
+    durationMinutes: exam.durationMinutes,
+    maxAttempts: exam.maxAttempts,
     xpReward: exam.xpReward,
     course: exam.course,
     group: exam.group,
@@ -269,6 +277,8 @@ export const examService = {
         date: dayStart(input.date),
         maxScore: input.maxScore,
         passScore: input.passScore ?? null,
+        durationMinutes: input.durationMinutes ?? null,
+        maxAttempts: input.maxAttempts,
         xpReward: input.xpReward,
         status: input.status,
       },
@@ -307,6 +317,8 @@ export const examService = {
         ...(input.date === undefined ? {} : { date: dayStart(input.date) }),
         ...(input.maxScore === undefined ? {} : { maxScore: input.maxScore }),
         ...(input.passScore === undefined ? {} : { passScore: input.passScore }),
+        ...(input.durationMinutes === undefined ? {} : { durationMinutes: input.durationMinutes }),
+        ...(input.maxAttempts === undefined ? {} : { maxAttempts: input.maxAttempts }),
         ...(input.xpReward === undefined ? {} : { xpReward: input.xpReward }),
         ...(input.status === undefined ? {} : { status: input.status }),
       },

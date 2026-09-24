@@ -67,6 +67,10 @@ export interface Exam {
   date: string;
   maxScore: number;
   passScore: number | null;
+  /** Vaqt chegarasi (daqiqa) — bo‘sh bo‘lsa cheklanmagan */
+  durationMinutes: number | null;
+  /** Ruxsat etilgan urinishlar (0 — cheklanmagan) */
+  maxAttempts: number;
   xpReward: number;
   course: { id: string; name: string } | null;
   group: { id: string; name: string };
@@ -136,6 +140,8 @@ export interface ExamPayload {
   date: string;
   maxScore: number;
   passScore?: number;
+  durationMinutes?: number;
+  maxAttempts?: number;
   xpReward: number;
   status: ExamStatus;
 }

@@ -49,6 +49,15 @@ export const questionController = {
     sendSuccess(res, await examAttemptService.questionsForStudent(id));
   },
 
+  /** Imtihonni boshlash — vaqt chegarasi shu yerdan hisoblanadi */
+  async startAttempt(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = studentParamSchema.parse(req.params);
+    sendSuccess(res, await examAttemptService.start(requireAuthUser(req), id, studentId, getClientInfo(req)), {
+      message: 'Imtihon boshlandi',
+    });
+  },
+
   async submitAttempt(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     const { studentId } = studentParamSchema.parse(req.params);

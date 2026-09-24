@@ -916,3 +916,23 @@ Spec §11 "PDF certificate generation" — endi bor.
 (ism, kurs, sanalar, "Natija: 5 (92%)", QR kod, o'qituvchi va direktor imzo joylari); chop etish
 rejimida menyu, tugmalar va fon yo'qoldi — qog'ozga faqat hujjat tushadi. Test sertifikati va
 admin keyin o'chirildi.
+
+### PHASE 14 (4-qism) — imtihon vaqti va urinishlar chegarasi (2026-09-24)
+
+Spec §10 "Exam duration / attempt limits" — imtihon yaratilganda vaqt va urinishlar soni
+belgilanmas edi, urinish esa har safar yangi yozuv sifatida qo'shilaverardi.
+
+| Qism | Holat |
+|---|---|
+| `Exam.durationMinutes` (1–600, bo'sh — chegara yo'q) va `Exam.maxAttempts` (0–20, 0 — cheklanmagan). Ikkalasi ham bazada CHECK bilan himoyalangan | ✅ migratsiya |
+| `POST /api/exams/:id/attempts/:studentId/start` — urinishni **boshlash**: ochiq urinish bo'lsa o'shani qaytaradi (qayta ochilganda yangi urinish sarflanmaydi), bo'lmasa yangisini ochadi va `deadline` beradi | ✅ testda tekshiriladi |
+| Muddat o'tib yuborilgan javob qabul qilinmaydi — urinish `EXPIRED` holatiga o'tadi | ✅ testda tekshiriladi |
+| `EXPIRED` urinish chegaraga **kirmaydi** — texnik nosozlik tufayli o'quvchi urinishini yo'qotmasin | ✅ testda tekshiriladi |
+| Topshirish endi ochiq urinishni **yangilaydi**, ikkinchi yozuv yaratmaydi (avval har topshirish alohida urinish edi) | ✅ |
+| Formada "Davomiyligi (daqiqa)" va "Urinishlar soni" maydonlari, izohlari bilan ("Bo'sh — vaqt chegarasi yo'q", "0 — cheklanmagan") | ✅ brauzerda tekshirildi |
+| **Nuqson tuzatildi:** `maxAttempts` uchun `.default(0)` umumiy sxemada turgani uchun `PATCH` so'rovida maydon yuborilmasa ham 0 ga tushib ketardi — endi default faqat yaratishda | ✅ `partialUpdateSchemas` testi ushladi |
+| Testlar: `tests/examEngine.test.ts` (+3, jami 11 ta) | ✅ 587 test |
+
+**Brauzerda tekshirildi:** "Imtihonlar → Imtihon qo'shish" oynasida ikkala yangi maydon izohlari
+bilan ko'rindi. Tekshiruv uchun ochilgan vaqtinchalik admin hisobi (va uning sessiya/audit
+yozuvlari) keyin o'chirildi — real ma'lumotlarga tegilmadi.
