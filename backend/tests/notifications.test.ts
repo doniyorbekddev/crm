@@ -150,4 +150,110 @@ describe.skipIf(!hasTestDatabase)('Notifications API (integratsion)', () => {
     expect(list.status).toBe(401);
     expect(summary.status).toBe(401);
   });
+
+  it('muhimlik darajasi turga qarab qo‘yiladi va filtrlanadi', async () => {
+    const { user: owner, token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    await prisma.notification.createMany({
+      data: [
+        { userId: owner.id, type: 'DEBT_REMINDER', title: 'Qarz', message: 'Qarz bor', priority: 'HIGH' },
+        { userId: owner.id, type: 'NEW_LEAD', title: 'Lead', message: 'Yangi lead', priority: 'NORMAL' },
+        { userId: owner.id, type: 'DAILY_DIGEST', title: 'Xulosa', message: 'Kun yakuni', priority: 'LOW' },
+      ],
+    });
+
+    const high = await request(app).get('/api/notifications?priority=HIGH').set(bearer(token));
+    expect(high.status).toBe(200);
+    expect(high.body.data).toHaveLength(1);
+    expect(high.body.data[0]).toMatchObject({ type: 'DEBT_REMINDER', priority: 'HIGH' });
+
+    const summary = await request(app).get('/api/notifications/summary').set(bearer(token));
+    expect(summary.body.data.unread).toBe(3);
+    // SYSTEM ham HIGH, lekin bu yerda faqat qarz eslatmasi bor
+    expect(summary.body.data.unreadHigh).toBe(1);
+  });
+
+  it('sozlamada barcha turlar ko‘rinadi, tizim xabari o‘chirilmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+
+    const settings = await request(app).get('/api/notifications/settings').set(bearer(token));
+    expect(settings.status).toBe(200);
+    // Ro'yxat bazadagi enum bilan bir xil uzunlikda — yangi tur qo'shilsa o'zi paydo bo'ladi
+    expect(settings.body.data.length).toBeGreaterThanOrEqual(14);
+    // Qator yo'q — hammasi yoqilgan
+    expect(settings.body.data.every((item: { inApp: boolean; telegram: boolean }) => item.inApp && item.telegram)).toBe(true);
+
+    const system = settings.body.data.find((item: { type: string }) => item.type === 'SYSTEM');
+    expect(system).toMatchObject({ canMute: false, priority: 'HIGH' });
+
+    const locked = await request(app)
+      .put('/api/notifications/settings')
+      .set(bearer(token))
+      .send({ items: [{ type: 'SYSTEM', inApp: false, telegram: false }] });
+    expect(locked.status).toBe(422);
+  });
+
+  it('o‘chirilgan tur bo‘yicha bildirishnoma yaratilmaydi', async () => {
+    const source = await createSource();
+    const course = await createCourse();
+    const { user: manager, token: managerToken } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const { token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+
+    await request(app)
+      .put('/api/notifications/settings')
+      .set(bearer(managerToken))
+      .send({ items: [{ type: 'LEAD_ASSIGNED', inApp: false, telegram: false }] })
+      .expect(200);
+
+    const lead = await createLead({ sourceId: source.id, courseId: course.id, firstName: 'Dilnoza' });
+    await request(app).patch(`/api/leads/${lead.id}/assign`).set(bearer(adminToken)).send({ assignedToId: manager.id }).expect(200);
+
+    const list = await request(app).get('/api/notifications').set(bearer(managerToken));
+    const types = list.body.data.map((item: { type: string }) => item.type);
+    expect(types).not.toContain('LEAD_ASSIGNED');
+    // Amalning o'zi bajarilgan — faqat xabar yuborilmadi
+    expect(await prisma.lead.findUniqueOrThrow({ where: { id: lead.id }, select: { assignedToId: true } })).toMatchObject({
+      assignedToId: manager.id,
+    });
+  });
+
+  it('faqat Telegram o‘chirilsa, ilova ichidagi xabar qoladi', async () => {
+    const source = await createSource();
+    const course = await createCourse();
+    const { user: manager, token: managerToken } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const { token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+
+    await request(app)
+      .put('/api/notifications/settings')
+      .set(bearer(managerToken))
+      .send({ items: [{ type: 'LEAD_ASSIGNED', inApp: true, telegram: false }] })
+      .expect(200);
+
+    const lead = await createLead({ sourceId: source.id, courseId: course.id, firstName: 'Sevara' });
+    await request(app).patch(`/api/leads/${lead.id}/assign`).set(bearer(adminToken)).send({ assignedToId: manager.id }).expect(200);
+
+    const list = await request(app).get('/api/notifications').set(bearer(managerToken));
+    expect(list.body.data.map((item: { type: string }) => item.type)).toContain('LEAD_ASSIGNED');
+  });
+
+  it('sozlama boshqa xodimga ta’sir qilmaydi', async () => {
+    const source = await createSource();
+    const course = await createCourse();
+    const { user: muted, token: mutedToken } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const { user: other } = await createUserWithToken(app, { role: 'SALES_MANAGER', email: 'boshqa-manager@local.uz' });
+    const { token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+
+    await request(app)
+      .put('/api/notifications/settings')
+      .set(bearer(mutedToken))
+      .send({ items: [{ type: 'LEAD_ASSIGNED', inApp: false, telegram: false }] })
+      .expect(200);
+
+    const first = await createLead({ sourceId: source.id, courseId: course.id, firstName: 'Aziz' });
+    const second = await createLead({ sourceId: source.id, courseId: course.id, firstName: 'Bobur' });
+    await request(app).patch(`/api/leads/${first.id}/assign`).set(bearer(adminToken)).send({ assignedToId: muted.id }).expect(200);
+    await request(app).patch(`/api/leads/${second.id}/assign`).set(bearer(adminToken)).send({ assignedToId: other.id }).expect(200);
+
+    expect(await prisma.notification.count({ where: { userId: muted.id, type: 'LEAD_ASSIGNED' } })).toBe(0);
+    expect(await prisma.notification.count({ where: { userId: other.id, type: 'LEAD_ASSIGNED' } })).toBe(1);
+  });
 });

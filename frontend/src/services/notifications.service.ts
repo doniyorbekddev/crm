@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { NotificationItem, NotificationListParams, NotificationSummary } from '@/types/notification';
+import type { NotificationItem, NotificationListParams, NotificationSetting, NotificationSummary } from '@/types/notification';
 
 export const notificationsService = {
   async list(params: NotificationListParams): Promise<Paginated<NotificationItem>> {
@@ -16,6 +16,17 @@ export const notificationsService = {
   async summary(): Promise<NotificationSummary> {
     const response = await api.get<ApiSuccessResponse<NotificationSummary>>('/notifications/summary');
     return response.data.data;
+  },
+
+  /** Xodimning shaxsiy sozlamalari — barcha turlar ro‘yxati bilan qaytadi */
+  async settings(): Promise<NotificationSetting[]> {
+    const response = await api.get<ApiSuccessResponse<NotificationSetting[]>>('/notifications/settings');
+    return response.data.data;
+  },
+
+  async saveSettings(items: Array<{ type: string; inApp: boolean; telegram: boolean }>): Promise<MessageResult<NotificationSetting[]>> {
+    const response = await api.put<ApiSuccessResponse<NotificationSetting[]>>('/notifications/settings', { items });
+    return { data: response.data.data, message: response.data.message };
   },
 
   async markRead(id: string): Promise<NotificationItem> {

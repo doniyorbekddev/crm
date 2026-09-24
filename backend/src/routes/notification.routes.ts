@@ -9,6 +9,8 @@ notificationRouter.use(authenticate);
 
 notificationRouter.get('/', notificationController.list);
 notificationRouter.get('/summary', notificationController.summary);
+notificationRouter.get('/settings', notificationController.settings);
+notificationRouter.put('/settings', notificationController.saveSettings);
 notificationRouter.patch('/read-all', notificationController.markAllRead);
 notificationRouter.patch('/:id/read', notificationController.markRead);
 notificationRouter.delete('/read', notificationController.clearRead);

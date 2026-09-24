@@ -3,7 +3,7 @@ import { notificationService } from '../services/notification.service.js';
 import { buildPaginationMeta, sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
-import { notificationListQuerySchema } from '../validators/notification.validator.js';
+import { notificationListQuerySchema, notificationSettingsSchema } from '../validators/notification.validator.js';
 
 export const notificationController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -14,6 +14,15 @@ export const notificationController = {
 
   async summary(req: Request, res: Response): Promise<void> {
     sendSuccess(res, await notificationService.summary(requireAuthUser(req)));
+  },
+
+  async settings(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await notificationService.settings(requireAuthUser(req)));
+  },
+
+  async saveSettings(req: Request, res: Response): Promise<void> {
+    const { items } = notificationSettingsSchema.parse(req.body);
+    sendSuccess(res, await notificationService.saveSettings(requireAuthUser(req), items), { message: 'Sozlamalar saqlandi' });
   },
 
   async markRead(req: Request, res: Response): Promise<void> {

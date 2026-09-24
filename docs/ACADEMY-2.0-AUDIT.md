@@ -961,3 +961,29 @@ filialda o'zi ochildi), **qoldiq qiymati 120 000 so'mligicha qoldi** — ya'ni t
 Tarixda "Filialga yuborildi · Eski shaxar · Brauzer tekshiruvi · −4 dona · qoldiq: 6" ko'rindi.
 Tekshiruvdan keyin ikkala mahsulot, ikkala harakat va vaqtinchalik admin o'chirildi (omborda
 0 mahsulot, 0 harakat qoldi — bu foydalanuvchining boshlang'ich holati).
+
+### PHASE 14 (6-qism) — bildirishnoma sozlamalari va muhimlik darajasi (2026-09-24)
+
+Spec §6 "notification preferences" va §26 "notification priority" — ikkalasi ham yo'q edi:
+xodim hech qanday turni o'chira olmasdi va barcha xabarlar bir xil vaznda ko'rinardi.
+
+| Qism | Holat |
+|---|---|
+| `Notification.priority` (LOW / NORMAL / HIGH) — daraja **turga bog'langan**, chaqiruvchi uni yozmaydi. Aks holda bir hodisa turli joylarda turlicha baholanib, tartib ishonchsiz bo'lardi | ✅ testda tekshiriladi |
+| HIGH: kechikkan follow-up, qarzdorlik, xarajat tasdig'i, past baho, farzand darsga kelmadi, tizim xabari. LOW: kunlik xulosa | ✅ |
+| Migratsiya eski yozuvlarga ham darajani qo'yadi — jadval o'tmish bilan ziddiyatli bo'lib qolmasin | ✅ 0 ta `DROP/DELETE` |
+| `GET/PUT /api/notifications/settings` — har bir tur uchun **ilova** va **Telegram** alohida yoqib-o'chiriladi | ✅ brauzerda tekshirildi |
+| Sozlama jadvali **bo'sh boshlanadi**: qator yo'q = ikkala kanal yoqilgan. Shu sababli yangi tur qo'shilganda hech kimga migratsiya kerak emas va hech kim xabardan ayrilib qolmaydi | ✅ testda tekshiriladi |
+| **Tizim xabarlari o'chirilmaydi** (parol, ruxsat va h.k.) — ro'yxatda ko'rinadi, lekin qulflangan; o'chirishga urinish 422 beradi, chunki jimgina e'tiborsiz qoldirilsa xodim "o'chirdim" deb o'ylab yurardi | ✅ testda tekshiriladi |
+| O'chirilgan tur bo'yicha yozuv **umuman yaratilmaydi** — lekin amalning o'zi (biriktirish, to'lov) baribir bajariladi | ✅ testda tekshiriladi |
+| Faqat Telegramni o'chirish mumkin — ilova ichidagi xabar qoladi | ✅ testda tekshiriladi |
+| Sozlama shaxsiy: bir xodim o'chirgani boshqasiga ta'sir qilmaydi | ✅ testda tekshiriladi |
+| Ro'yxatda muhimlik filtri va "Muhim" nishoni; qo'ng'iroqcha muhim o'qilmagan bo'lsa qizil halqa bilan ajralib turadi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/notifications.test.ts` (+5, jami 12 ta) | ✅ 597 test, frontend 55 test |
+
+**Brauzerda tekshirildi:** "Bildirishnomalar → Sozlamalar" oynasida 14 ta tur, darajalari
+("Muhim", "Ma'lumot uchun") va "Tizim · har doim yoqiq" qulfi ko'rindi; "Kunlik xulosa"
+o'chirilib saqlandi va bazada aynan shu tur uchun qator paydo bo'ldi. Sarlavhada
+"3 ta o'qilmagan (1 tasi muhim)", "Faqat muhim" filtri bitta yozuvni qoldirdi.
+Tekshiruvdan keyin vaqtinchalik hisob, uning sozlamasi va sinov xabarlari o'chirildi —
+foydalanuvchining 56 ta haqiqiy bildirishnomasiga tegilmadi.

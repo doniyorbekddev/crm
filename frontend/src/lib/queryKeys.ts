@@ -205,6 +205,7 @@ export const queryKeys = {
     all: ['notifications'] as const,
     list: (params: NotificationListParams) => ['notifications', 'list', params] as const,
     summary: ['notifications', 'summary'] as const,
+    settings: ['notifications', 'settings'] as const,
   },
   preferences: ['preferences'] as const,
   activity: {

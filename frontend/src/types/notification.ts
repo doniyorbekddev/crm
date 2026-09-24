@@ -14,9 +14,12 @@ export type NotificationType =
   | 'NEGATIVE_FEEDBACK'
   | 'SYSTEM';
 
+export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';
+
 export interface NotificationItem {
   id: string;
   type: NotificationType;
+  priority: NotificationPriority;
   title: string;
   message: string;
   entityType: string | null;
@@ -30,11 +33,23 @@ export interface NotificationListParams {
   page: number;
   limit: number;
   type?: NotificationType;
+  priority?: NotificationPriority;
   unreadOnly?: 'true' | 'false';
+}
+
+export interface NotificationSetting {
+  type: NotificationType;
+  inApp: boolean;
+  telegram: boolean;
+  priority: NotificationPriority;
+  /** `false` — o‘chirib bo‘lmaydigan tur (tizim xabarlari) */
+  canMute: boolean;
 }
 
 export interface NotificationSummary {
   total: number;
   unread: number;
   byType: Array<{ type: NotificationType; unread: number }>;
+  /** Muhim va o‘qilmaganlar */
+  unreadHigh: number;
 }

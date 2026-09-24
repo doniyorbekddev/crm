@@ -14,7 +14,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { NotificationType } from '@/types/notification';
+import type { BadgeTone } from '@/components/ui/Badge';
+import type { NotificationPriority, NotificationType } from '@/types/notification';
 
 export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'NEW_LEAD',
@@ -109,3 +110,15 @@ export function notificationLink(entityType: string | null, entityId: string | n
       return null;
   }
 }
+
+export const NOTIFICATION_PRIORITY_LABELS: Record<NotificationPriority, string> = {
+  HIGH: 'Muhim',
+  NORMAL: 'Oddiy',
+  LOW: 'Ma’lumot uchun',
+};
+
+export const NOTIFICATION_PRIORITY_TONES: Record<NotificationPriority, BadgeTone> = {
+  HIGH: 'red',
+  NORMAL: 'gray',
+  LOW: 'blue',
+};

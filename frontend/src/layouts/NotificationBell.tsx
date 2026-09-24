@@ -82,6 +82,9 @@ export function NotificationBell() {
   };
 
   const unread = summaryQuery.data?.unread ?? 0;
+  // Muhim xabar bo'lsa qo'ng'iroqcha yonida ogohlantiruvchi nuqta turadi — raqamning o'zi
+  // "shoshilinch ish bormi?" degan savolga javob bermaydi.
+  const unreadHigh = summaryQuery.data?.unreadHigh ?? 0;
 
   return (
     <div ref={containerRef} className="relative">
@@ -90,12 +93,21 @@ export function NotificationBell() {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={unread > 0 ? `Bildirishnomalar (${unread} ta o‘qilmagan)` : 'Bildirishnomalar'}
+        aria-label={
+          unread > 0
+            ? `Bildirishnomalar (${unread} ta o‘qilmagan${unreadHigh > 0 ? `, ${unreadHigh} tasi muhim` : ''})`
+            : 'Bildirishnomalar'
+        }
         className="relative grid size-9 place-items-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
       >
         <Bell className="size-5" aria-hidden />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] leading-4 font-semibold text-white">
+          <span
+            className={cn(
+              'absolute top-1 right-1 grid min-w-4 place-items-center rounded-full px-1 text-[10px] leading-4 font-semibold text-white',
+              unreadHigh > 0 ? 'bg-red-600 ring-2 ring-red-300 dark:ring-red-900' : 'bg-brand-600',
+            )}
+          >
             {unread > 99 ? '99+' : unread}
           </span>
         )}
@@ -151,6 +163,11 @@ export function NotificationBell() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className={cn('truncate text-sm', item.isRead ? 'text-fg' : 'font-semibold text-fg')}>{item.title}</span>
+                            {item.priority === 'HIGH' && (
+                              <span className="shrink-0 rounded px-1 text-[10px] font-medium text-red-700 ring-1 ring-red-300 dark:text-red-300 dark:ring-red-800">
+                                muhim
+                              </span>
+                            )}
                             {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
                           </span>
                           <span className="mt-0.5 block line-clamp-2 text-xs text-fg-muted">{item.message}</span>

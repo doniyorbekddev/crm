@@ -1,10 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, Settings2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -17,9 +18,12 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { notificationsService } from '@/services/notifications.service';
-import type { NotificationItem, NotificationListParams, NotificationType } from '@/types/notification';
+import type { NotificationItem, NotificationListParams, NotificationPriority, NotificationType } from '@/types/notification';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
+import { NotificationSettingsModal } from './NotificationSettingsModal';
 import {
+  NOTIFICATION_PRIORITY_LABELS,
+  NOTIFICATION_PRIORITY_TONES,
   NOTIFICATION_TYPE_CLASSES,
   NOTIFICATION_TYPE_ICONS,
   NOTIFICATION_TYPE_LABELS,
@@ -37,13 +41,16 @@ export default function NotificationsPage() {
   const [readState, setReadState] = useState<'' | 'unread' | 'read'>('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [priority, setPriority] = useState<NotificationPriority | ''>('');
   const [page, setPage] = useState(1);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const params: NotificationListParams = {
     page,
     limit: PAGE_SIZE,
     ...(type ? { type } : {}),
+    ...(priority ? { priority } : {}),
     ...(readState === 'unread' ? { unreadOnly: 'true' as const } : {}),
     ...(readState === 'read' ? { readOnly: 'true' as const } : {}),
     ...(from ? { from } : {}),
@@ -122,6 +129,9 @@ export default function NotificationsPage() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className={cn('truncate text-sm', item.isRead ? 'text-fg' : 'font-semibold text-fg')}>{item.title}</p>
+            {item.priority === 'HIGH' && (
+              <Badge tone={NOTIFICATION_PRIORITY_TONES.HIGH}>{NOTIFICATION_PRIORITY_LABELS.HIGH}</Badge>
+            )}
             {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
           </div>
           <p className="mt-0.5 text-sm text-fg-muted">{item.message}</p>
@@ -171,7 +181,11 @@ export default function NotificationsPage() {
     <>
       <PageHeader
         title="Bildirishnomalar"
-        description={summary ? `${summary.unread} ta o‘qilmagan · jami ${summary.total} ta` : 'Yuklanmoqda'}
+        description={
+          summary
+            ? `${summary.unread} ta o‘qilmagan${summary.unreadHigh > 0 ? ` (${summary.unreadHigh} tasi muhim)` : ''} · jami ${summary.total} ta`
+            : 'Yuklanmoqda'
+        }
         actions={
           <div className="flex flex-wrap gap-2">
             <Button
@@ -190,6 +204,9 @@ export default function NotificationsPage() {
               onClick={() => setConfirmClear(true)}
             >
               O‘qilganlarni tozalash
+            </Button>
+            <Button variant="ghost" leftIcon={<Settings2 className="size-4" aria-hidden />} onClick={() => setSettingsOpen(true)}>
+              Sozlamalar
             </Button>
           </div>
         }
@@ -210,6 +227,17 @@ export default function NotificationsPage() {
                 {unreadByType.get(item) ? ` (${unreadByType.get(item)})` : ''}
               </option>
             ))}
+          </Select>
+          <Select
+            value={priority}
+            onChange={(event) => changeFilter(() => setPriority(event.target.value as NotificationPriority | ''))}
+            aria-label="Muhimlik darajasi"
+            wrapperClassName="sm:w-44"
+          >
+            <option value="">Barcha darajalar</option>
+            <option value="HIGH">Faqat muhim</option>
+            <option value="NORMAL">Oddiy</option>
+            <option value="LOW">Ma’lumot uchun</option>
           </Select>
           <Select
             value={readState}
@@ -271,6 +299,8 @@ export default function NotificationsPage() {
           </>
         )}
       </Card>
+
+      {settingsOpen && <NotificationSettingsModal onClose={() => setSettingsOpen(false)} />}
 
       <ConfirmDialog
         open={confirmClear}
