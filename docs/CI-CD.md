@@ -16,7 +16,7 @@ GITHUB  ──────► CI (typecheck, lint, 419 test, build, E2E)
                                                ├─ git fetch + reset --hard <sha>
                                                ├─ docker compose build     (ilova hali eski versiyada ishlaydi)
                                                ├─ baza zaxirasi
-                                               ├─ prisma migrate deploy
+                                               ├─ prisma migrate deploy + ruxsatlarni moslash
                                                ├─ docker compose up -d     (backend + frontend almashtiriladi)
                                                └─ /api/health tekshiruvi → xato bo‘lsa avtomatik rollback
 ```
@@ -150,7 +150,13 @@ docker compose -f docker-compose.prod.yml --env-file .env.production run --rm \
 `db:bootstrap` — rollar, ruxsatlar, kassalar, kategoriyalar, manbalar, sozlamalar va **bitta**
 Super Admin. Demo o‘quvchi/lead/xodim yaratmaydi. **Deploy skripti buni hech qachon
 chaqirmaydi** — har deployda yangi admin paydo bo‘lmaydi. `prisma db seed` (demo ma’lumotlar)
-serverda ishlatilmaydi; deployda faqat `prisma migrate deploy` bajariladi.
+serverda ishlatilmaydi; deployda `prisma migrate deploy` va `db:sync-permissions` bajariladi.
+
+**Nega ruxsatlarni moslash kerak:** migratsiya faqat jadval tuzilmasini yangilaydi, ruxsatlar esa
+`permissions` jadvalidagi **ma'lumot**. Yangi modul (masalan ombor yoki chegirma) qo'shilganda uning
+ruxsati bazada bo'lmasa, `requirePermission` hammani rad etadi — sahifa hatto Super Adminda ham
+ochilmaydi. `db:sync-permissions` yangi ruxsatlarni yaratadi va **faqat shu yurishda paydo bo'lganini**
+tizim rollariga qo'shadi; qo'lda o'zgartirilgan rol ruxsatlari tegilmaydi, demo ma'lumot yaratilmaydi.
 
 Parolni unutib qolsangiz: shu buyruqqa `-e ADMIN_RESET_PASSWORD=yes` qo‘shib qayta ishlatasiz.
 
@@ -258,7 +264,7 @@ Push xatosi shunday ko‘rinadi: `refusing to allow a Personal Access Token to c
 | 1 | `git fetch`, maqsad commit aniqlanadi, oldingi commit eslab qolinadi | — |
 | 2 | `docker compose build` — **ilova hali eski versiyada ishlaydi** | kod oldingi commitga qaytariladi, ilovaga tegilmaydi |
 | 3 | `./scripts/backup-db.sh` — migratsiyadan oldingi zaxira | ogohlantirish, davom etadi |
-| 4 | `docker compose run --rm migrate` → `prisma migrate deploy` | kod qaytariladi, zaxira yo‘li ko‘rsatiladi |
+| 4 | `docker compose run --rm migrate` → `prisma migrate deploy` + `db:sync-permissions` | kod qaytariladi, zaxira yo‘li ko‘rsatiladi |
 | 5 | `docker compose up -d --no-build` — backend/frontend almashtiriladi | — |
 | 6 | `/api/health` tekshiruvi (40 × 3 s = 2 daqiqa) | avtomatik rollback: oldingi commit qayta yig‘iladi va ko‘tariladi |
 | 7 | image'lar SHA bilan teglanadi, `.deploy/last-good` yoziladi, eski image'lar tozalanadi | — |

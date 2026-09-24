@@ -9,7 +9,7 @@
 #   1. git fetch va maqsad commitni aniqlash (oldingi commit eslab qolinadi)
 #   2. docker image'larni yig'ish — ilova hali eski versiyada ishlab turadi
 #   3. migratsiyadan oldin baza zaxirasi
-#   4. prisma migrate deploy (ilova qayta ishga tushishidan OLDIN)
+#   4. prisma migrate deploy + ruxsatlarni moslash (ilova qayta ishga tushishidan OLDIN)
 #   5. konteynerlarni yangi image'lar bilan almashtirish
 #   6. sog'liq tekshiruvi; muvaffaqiyatsiz bo'lsa — oldingi commitga avtomatik qaytish
 #
@@ -111,7 +111,7 @@ else
 fi
 
 # --- 4. Migratsiyalar (ilova qayta ishga tushishidan oldin) ------------
-say "Prisma migratsiyalari (migrate deploy)..."
+say "Prisma migratsiyalari va ruxsatlarni moslash..."
 if ! dc run --rm migrate; then
   warn "Migratsiya muvaffaqiyatsiz — kod oldingi commitga qaytariladi."
   git reset --hard "$PREVIOUS"

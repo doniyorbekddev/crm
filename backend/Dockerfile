@@ -29,7 +29,11 @@ RUN npm run build --workspace @crm/backend
 # ---------------------------------------------------------------------
 FROM build AS migrator
 WORKDIR /app/backend
-CMD ["npx", "prisma", "migrate", "deploy"]
+# Migratsiya — jadval tuzilmasi; ruxsatlar esa ma'lumot (`permissions` jadvalidagi yozuvlar).
+# Yangi modul qo'shilganda uning ruxsati bazada bo'lmasa, sahifa hech kimda ochilmaydi —
+# shuning uchun har deployda ikkalasi birga bajariladi. Skript idempotent: demo ma'lumot
+# yaratmaydi va qo'lda o'zgartirilgan rol ruxsatlariga tegmaydi.
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:sync-permissions"]
 
 # ---------------------------------------------------------------------
 # Yakuniy image
