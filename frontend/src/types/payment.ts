@@ -60,6 +60,8 @@ export interface PaymentListParams {
   groupId?: string;
   managerId?: string;
   method?: PaymentMethod;
+  /** Filial filtri (Topbar tanlovidan) */
+  branchId?: string;
   from?: string;
   to?: string;
   includeDeleted?: 'true' | 'false';

@@ -9,7 +9,7 @@ import type { CreateGroupInput, GroupListQuery, UpdateGroupInput } from '../vali
 import { auditService } from './audit.service.js';
 import { scheduleConflictService } from './scheduleConflict.service.js';
 import type { ScheduleConflict } from './scheduleConflict.service.js';
-import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
 import type { BranchAccess } from './branchAccess.js';
 import { permissionService } from './permission.service.js';
 
@@ -103,7 +103,7 @@ async function getGroupAccess(actor: AuthUser): Promise<GroupAccess> {
 
 function buildWhere(access: GroupAccess, query: Partial<GroupListQuery>): Prisma.GroupWhereInput {
   const conditions: Prisma.GroupWhereInput[] = [];
-  if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
+  conditions.push(branchFilter(access.branch, query.branchId));
   if (access.onlyOwnGroups) conditions.push({ teacherId: access.userId });
   if (query.courseId) conditions.push({ courseId: query.courseId });
   if (query.teacherId) conditions.push({ teacherId: query.teacherId });

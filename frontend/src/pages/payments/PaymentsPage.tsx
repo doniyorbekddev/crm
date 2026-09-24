@@ -17,6 +17,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
+import { useBranchParam } from '@/store/branch.store';
 import { paymentsService } from '@/services/payments.service';
 import type { PaymentItem, PaymentListParams, PaymentMethod, PaymentStatsParams } from '@/types/payment';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
@@ -68,7 +69,9 @@ export default function PaymentsPage() {
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
+  const branchParam = useBranchParam();
   const params: PaymentListParams = {
+    ...branchParam,
     ...filters,
     page,
     limit: PAGE_SIZE,

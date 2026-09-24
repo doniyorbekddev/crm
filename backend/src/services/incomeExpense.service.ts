@@ -15,7 +15,8 @@ import type {
   VoidMoneyInput,
 } from '../validators/incomeExpense.validator.js';
 import { auditService } from './audit.service.js';
-import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
+import type { BranchAccess } from './branchAccess.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
@@ -223,8 +224,10 @@ function toOccurredAt(value: string | undefined): Date {
   return value ? new Date(`${value}T12:00:00.000Z`) : new Date();
 }
 
-function buildWhere(query: MoneyListQuery, dateField: 'receivedAt' | 'spentAt'): Record<string, unknown> {
+function buildWhere(query: MoneyListQuery, dateField: 'receivedAt' | 'spentAt', branch?: BranchAccess): Record<string, unknown> {
   const conditions: Record<string, unknown>[] = [];
+  // Filial doirasi — o'qishda ham qo'llanadi (yozishda `resolveBranchId` bor edi)
+  if (branch) conditions.push(branchFilter(branch, query.branchId));
   if (query.categoryId) conditions.push({ categoryId: query.categoryId });
   if (query.accountId) conditions.push({ accountId: query.accountId });
   if (query.method) conditions.push({ method: query.method });
@@ -270,8 +273,8 @@ async function resolveAccountId(
 // ---------------------------------------------------------------------
 
 export const incomeService = {
-  async list(query: MoneyListQuery): Promise<{ items: MoneyEntryDto[]; total: number }> {
-    const where = buildWhere(query, 'receivedAt') as Prisma.IncomeWhereInput;
+  async list(actor: AuthUser, query: MoneyListQuery): Promise<{ items: MoneyEntryDto[]; total: number }> {
+    const where = buildWhere(query, 'receivedAt', await getBranchAccess(actor)) as Prisma.IncomeWhereInput;
     const items = await prisma.income.findMany({
       where,
       select: incomeSelect,
@@ -283,8 +286,8 @@ export const incomeService = {
   },
 
   /** Filtrga mos tushumlar yig‘indisi (bekor qilinganlar hisobga olinmaydi) */
-  async stats(query: MoneyListQuery): Promise<MoneyStatsDto> {
-    const where = { ...(buildWhere(query, 'receivedAt') as Prisma.IncomeWhereInput), transaction: { status: 'COMPLETED' as const } };
+  async stats(actor: AuthUser, query: MoneyListQuery): Promise<MoneyStatsDto> {
+    const where = { ...(buildWhere(query, 'receivedAt', await getBranchAccess(actor)) as Prisma.IncomeWhereInput), transaction: { status: 'COMPLETED' as const } };
     const grouped = await prisma.income.groupBy({
       by: ['categoryId'],
       where,
@@ -420,9 +423,9 @@ export const expenseService = {
     return toExpenseDto(expense);
   },
 
-  async list(query: MoneyListQuery): Promise<{ items: MoneyEntryDto[]; total: number }> {
+  async list(actor: AuthUser, query: MoneyListQuery): Promise<{ items: MoneyEntryDto[]; total: number }> {
     const where = {
-      ...(buildWhere(query, 'spentAt') as Prisma.ExpenseWhereInput),
+      ...(buildWhere(query, 'spentAt', await getBranchAccess(actor)) as Prisma.ExpenseWhereInput),
       ...(query.status ? { status: query.status } : {}),
     };
     const items = await prisma.expense.findMany({
@@ -435,8 +438,8 @@ export const expenseService = {
     return { items: items.map(toExpenseDto), total };
   },
 
-  async stats(query: MoneyListQuery): Promise<MoneyStatsDto> {
-    const where = { ...(buildWhere(query, 'spentAt') as Prisma.ExpenseWhereInput), transaction: { status: 'COMPLETED' as const } };
+  async stats(actor: AuthUser, query: MoneyListQuery): Promise<MoneyStatsDto> {
+    const where = { ...(buildWhere(query, 'spentAt', await getBranchAccess(actor)) as Prisma.ExpenseWhereInput), transaction: { status: 'COMPLETED' as const } };
     const grouped = await prisma.expense.groupBy({
       by: ['categoryId'],
       where,

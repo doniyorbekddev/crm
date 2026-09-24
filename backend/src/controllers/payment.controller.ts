@@ -25,13 +25,13 @@ export const paymentController = {
 
   async list(req: Request, res: Response): Promise<void> {
     const query = paymentListQuerySchema.parse(req.query);
-    const { items, total } = await paymentService.list(query);
+    const { items, total } = await paymentService.list(requireAuthUser(req), query);
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
   async stats(req: Request, res: Response): Promise<void> {
     const query = paymentStatsQuerySchema.parse(req.query);
-    sendSuccess(res, await paymentService.stats(query));
+    sendSuccess(res, await paymentService.stats(requireAuthUser(req), query));
   },
 
   async getById(req: Request, res: Response): Promise<void> {

@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  Building2,
   Package,
   MessageSquareHeart,
   Gift,
@@ -111,6 +112,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/employees', label: 'Xodimlar', icon: IdCard, permission: PERMISSIONS.EMPLOYEE_VIEW },
       { to: '/users', label: 'Foydalanuvchilar', icon: Users, permission: PERMISSIONS.USER_VIEW },
+      { to: '/branches', label: 'Filiallar', icon: Building2, permission: PERMISSIONS.BRANCH_MANAGE },
       { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
       { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
     ],

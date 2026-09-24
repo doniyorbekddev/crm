@@ -675,3 +675,28 @@ Tekshiruvdan keyin mahsulot, harakatlar va test tushumlari **moliyaviy daftar qo
 **Nuqson tuzatildi:** `tests/security.test.ts` dagi so'rov ID testi `/api/health` ga tayanardi va
 to'liq to'plam bilan birga ishlaganda (81 ta parallel ishchi, baza band) beqaror edi. Endi bazaga
 tegmaydigan yo'l ishlatiladi — sarlavha baribir marshrutdan oldin qo'yiladi.
+
+### PHASE 9 (2-qism) — multi-branch UI va o'qishdagi izolyatsiyani yakunlash (2026-09-24)
+
+**Topilgan nuqson (PHASE 1.5 dan qolgan bo'shliq):** filial izolyatsiyasi **yozishda** bor edi
+(`resolveBranchId`), lekin **o'qishda** bir necha ro'yxatda yo'q edi — moliya (tushum, xarajat),
+to'lovlar va xodimlar ro'yxati barcha filiallarni ko'rsatardi. Bitta filial ishlayotganda bu
+bilinmasdi, lekin ikkinchi filial ochilishi bilan boshqa filialning puli ko'rinib qolardi.
+
+| Qism | Holat |
+|---|---|
+| `incomeService` / `expenseService` — `list` va `stats` endi `actor` oladi va `branchFilter` qo'llaydi | ✅ testda tekshiriladi |
+| `paymentService.list` / `stats` — filial doirasi qo'shildi | ✅ |
+| `employeeService.list` — filial doirasi qo'shildi | ✅ testda tekshiriladi |
+| O'quvchilar, guruhlar — `branchId` so'rov parametri qabul qilinadi (avval faqat izolyatsiya bor edi, filtr yo'q edi) | ✅ |
+| Boshqa filialni so'rash — 403 (`assertBranchAccess`) | ✅ testda tekshiriladi |
+| Frontend: Topbar'da filial tanlash — **bir nechta filial bo'lsagina ko'rinadi**, tanlov `localStorage` da saqlanadi va ro'yxat so'rovlariga `branchId` bo'lib ketadi | ✅ brauzerda tekshirildi |
+| `/branches` sahifasi: filial qo'shish/tahrirlash, har filialdagi xodim, o'quvchi va guruh soni; asosiy filial belgilanadi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/branchIsolation.test.ts` (5 ta) | ✅ 536 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** ikkinchi filial ("Chilonzor (test)") yaratilib, unga bitta o'quvchi
+qo'shildi. Topbar tanlagichi paydo bo'ldi (bitta filialda umuman ko'rinmaydi); "Barcha filiallar"da
+124 o'quvchi, filial tanlanganda 1 ta; xarajatlar 8 → 0 ga o'zgardi. Tekshiruvdan keyin test filiali,
+o'quvchi va admin o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim, 8 xarajat) tegilmadi.
+
+**PHASE 9 yakunlandi.** Inventar (ombor) va multi-branch (UI bilan birga) tayyor.

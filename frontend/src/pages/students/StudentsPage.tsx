@@ -20,6 +20,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
+import { useBranchParam } from '@/store/branch.store';
 import { studentsService } from '@/services/students.service';
 import type { RiskLevel, StudentItem, StudentListParams, StudentStatus, StudentSummaryParams } from '@/types/student';
 import { formatDate, formatMoney, formatPhone } from '@/utils/format';
@@ -78,9 +79,11 @@ export default function StudentsPage() {
   const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('createdAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const branchParam = useBranchParam();
 
   const [sortBy, sortOrder] = sort.split(':') as [StudentListParams['sortBy'], StudentListParams['sortOrder']];
   const summaryParams: StudentSummaryParams = {
+    ...branchParam,
     ...(search ? { search } : {}),
     ...(courseId ? { courseId } : {}),
   };

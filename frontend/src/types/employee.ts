@@ -60,6 +60,7 @@ export interface EmployeeListParams {
   status?: EmployeeStatus;
   position?: EmployeePosition;
   department?: string;
+  branchId?: string;
 }
 
 export interface EmployeePayload {

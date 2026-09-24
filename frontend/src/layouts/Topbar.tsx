@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useUiStore } from '@/store/ui.store';
+import { BranchSelect } from './BranchSelect';
 import { NotificationBell } from './NotificationBell';
 import { UserMenu } from './UserMenu';
 
@@ -64,6 +65,7 @@ export function Topbar() {
         >
           <Search className="size-5" aria-hidden />
         </button>
+        <BranchSelect />
         <NotificationBell />
         <ThemeToggle />
         <UserMenu />

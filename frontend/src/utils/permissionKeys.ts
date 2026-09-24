@@ -97,6 +97,9 @@ export const PERMISSIONS = {
 
   ANALYTICS_VIEW: 'analytics.view',
 
+  BRANCH_VIEW_ALL: 'branch.view_all',
+  BRANCH_MANAGE: 'branch.manage',
+
   INVENTORY_VIEW: 'inventory.view',
   INVENTORY_MANAGE: 'inventory.manage',
 

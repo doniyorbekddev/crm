@@ -26,6 +26,8 @@ export const paymentListQuerySchema = paginationQuerySchema.extend({
     .default('false')
     .transform((value) => value === 'true'),
   sortBy: z.enum(['paidAt', 'amount', 'number']).default('paidAt'),
+  /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
+  branchId: optionalField(idSchema),
 });
 
 export const createPaymentSchema = z.object({
@@ -92,6 +94,7 @@ export const paymentStatsQuerySchema = z.object({
   managerId: idSchema.optional(),
   method: z.enum(PAYMENT_METHODS).optional(),
   studentId: idSchema.optional(),
+  branchId: idSchema.optional(),
 });
 
 export type PaymentListQuery = z.infer<typeof paymentListQuerySchema>;

@@ -17,6 +17,8 @@ export const groupListQuerySchema = paginationQuerySchema.extend({
   teacherId: idSchema.optional(),
   status: z.enum(GROUP_STATUSES, 'Holat noto‘g‘ri').optional(),
   sortBy: z.enum(['name', 'startDate', 'createdAt']).default('startDate'),
+  /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
+  branchId: optionalField(idSchema),
 });
 
 const groupFieldsSchema = z.object({

@@ -62,6 +62,10 @@ export const queryKeys = {
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
   },
+  branches: {
+    all: ['branches'] as const,
+    list: ['branches', 'list'] as const,
+  },
   inventory: {
     all: ['inventory'] as const,
     list: (params: ProductListParams) => ['inventory', 'list', params] as const,

@@ -25,6 +25,8 @@ export const studentListQuerySchema = paginationQuerySchema.extend({
   courseId: idSchema.optional(),
   groupId: idSchema.optional(),
   sortBy: z.enum(['createdAt', 'firstName', 'startDate', 'number']).default('createdAt'),
+  /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
+  branchId: optionalField(idSchema),
 });
 
 const studentFieldsSchema = z.object({

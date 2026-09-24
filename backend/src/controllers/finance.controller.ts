@@ -91,13 +91,13 @@ export const financeController = {
 export const incomeController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = moneyListQuerySchema.parse(req.query);
-    const { items, total } = await incomeService.list(query);
+    const { items, total } = await incomeService.list(requireAuthUser(req), query);
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
   async stats(req: Request, res: Response): Promise<void> {
     const query = moneyListQuerySchema.parse(req.query);
-    sendSuccess(res, await incomeService.stats(query));
+    sendSuccess(res, await incomeService.stats(requireAuthUser(req), query));
   },
 
   async create(req: Request, res: Response): Promise<void> {
@@ -140,13 +140,13 @@ export const incomeController = {
 export const expenseController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = moneyListQuerySchema.parse(req.query);
-    const { items, total } = await expenseService.list(query);
+    const { items, total } = await expenseService.list(requireAuthUser(req), query);
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
   async stats(req: Request, res: Response): Promise<void> {
     const query = moneyListQuerySchema.parse(req.query);
-    sendSuccess(res, await expenseService.stats(query));
+    sendSuccess(res, await expenseService.stats(requireAuthUser(req), query));
   },
 
   async create(req: Request, res: Response): Promise<void> {

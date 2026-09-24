@@ -57,6 +57,8 @@ export interface StudentListParams {
   riskLevel?: RiskLevel;
   courseId?: string;
   groupId?: string;
+  /** Filial filtri (Topbar'dagi tanlovdan keladi) */
+  branchId?: string;
   sortBy?: 'createdAt' | 'firstName' | 'startDate' | 'number';
   sortOrder?: 'asc' | 'desc';
 }

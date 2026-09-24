@@ -27,6 +27,8 @@ export const moneyListQuerySchema = paginationQuerySchema.extend({
   from: dateOnlySchema.optional(),
   to: dateOnlySchema.optional(),
   sortBy: z.enum(['date', 'amount', 'number']).default('date'),
+  /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
+  branchId: optionalField(idSchema),
 });
 
 const moneyFieldsSchema = z.object({

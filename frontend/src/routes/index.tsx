@@ -221,6 +221,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.BRANCH_MANAGE} />
+                    ),
+                    children: [
+                      {
+                        path: "branches",
+                        lazy: lazyComponent(
+                          () => import("@/pages/branches/BranchesPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.INVENTORY_VIEW} />
                     ),
                     children: [

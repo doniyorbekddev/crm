@@ -16,6 +16,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
+import { useBranchParam } from '@/store/branch.store';
 import { employeesService } from '@/services/employees.service';
 import type { Employee, EmployeeListParams, EmployeePosition, EmployeeStatus } from '@/types/employee';
 import {
@@ -55,8 +56,10 @@ export default function EmployeesPage() {
   const [position, setPosition] = useState<EmployeePosition | ''>('');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const branchParam = useBranchParam();
 
   const params: EmployeeListParams = {
+    ...branchParam,
     page,
     limit: PAGE_SIZE,
     ...(search ? { search } : {}),

@@ -52,7 +52,7 @@ export const employeeController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = employeeListQuerySchema.parse(req.query);
     const can = await visibility(req);
-    const { items, total } = await employeeService.list(query, can.salary, can.sensitive);
+    const { items, total } = await employeeService.list(requireAuthUser(req), query, can.salary, can.sensitive);
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 

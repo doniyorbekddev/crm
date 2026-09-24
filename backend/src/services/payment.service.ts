@@ -14,6 +14,8 @@ import type {
   PaymentStatsQuery,
 } from '../validators/payment.validator.js';
 import { auditService } from './audit.service.js';
+import { branchFilter, getBranchAccess } from './branchAccess.js';
+import type { BranchAccess } from './branchAccess.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
 import { debtStatusOf } from './student.service.js';
@@ -166,8 +168,10 @@ function nextDayStart(value: string): Date {
   return new Date(dayStart(value).getTime() + 86_400_000);
 }
 
-function buildPaymentWhere(query: Partial<PaymentListQuery>): Prisma.PaymentWhereInput {
+function buildPaymentWhere(query: Partial<PaymentListQuery>, branch?: BranchAccess): Prisma.PaymentWhereInput {
   const conditions: Prisma.PaymentWhereInput[] = [];
+  // Filial doirasi: barcha filialni ko'ra olmaydigan xodim faqat o'zinikini ko'radi
+  if (branch) conditions.push(branchFilter(branch, query.branchId));
   if (!query.includeDeleted) conditions.push({ deletedAt: null });
   if (query.studentId) conditions.push({ studentId: query.studentId });
   if (query.courseId) conditions.push({ courseId: query.courseId });
@@ -240,8 +244,8 @@ async function recalculateDebt(tx: Prisma.TransactionClient, studentId: string):
 }
 
 export const paymentService = {
-  async list(query: PaymentListQuery): Promise<{ items: PaymentDto[]; total: number }> {
-    const where = buildPaymentWhere(query);
+  async list(actor: AuthUser, query: PaymentListQuery): Promise<{ items: PaymentDto[]; total: number }> {
+    const where = buildPaymentWhere(query, await getBranchAccess(actor));
     const items = await prisma.payment.findMany({
       where,
       select: paymentSelect,
@@ -298,8 +302,8 @@ export const paymentService = {
   },
 
   /** Filtrga mos to‘lovlar yig‘indisi va usullar kesimi (sahifalashdan qat’i nazar) */
-  async stats(query: PaymentStatsQuery): Promise<PaymentStatsDto> {
-    const where = buildPaymentWhere({ ...query, includeDeleted: false });
+  async stats(actor: AuthUser, query: PaymentStatsQuery): Promise<PaymentStatsDto> {
+    const where = buildPaymentWhere({ ...query, includeDeleted: false }, await getBranchAccess(actor));
     const grouped = await prisma.payment.groupBy({
       by: ['method'],
       where,

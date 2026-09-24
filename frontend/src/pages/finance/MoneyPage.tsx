@@ -20,6 +20,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
+import { useBranchParam } from '@/store/branch.store';
 import { expensesService, incomesService } from '@/services/finance.service';
 import type { ExpenseStatus, MoneyEntry, MoneyListParams } from '@/types/finance';
 import { EXPENSE_STATUS_LABELS, EXPENSE_STATUS_ORDER, EXPENSE_STATUS_TONES } from '@/utils/financeLabels';
@@ -66,8 +67,10 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
   const [voidError, setVoidError] = useState<string | null>(null);
+  const branchParam = useBranchParam();
 
   const filters = {
+    ...branchParam,
     ...(search ? { search } : {}),
     ...(categoryId ? { categoryId } : {}),
     ...(from ? { from } : {}),

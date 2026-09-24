@@ -206,6 +206,8 @@ export interface MoneyListParams extends FinanceRangeParams {
   method?: PaymentMethod;
   responsibleId?: string;
   status?: ExpenseStatus;
+  /** Filial filtri (Topbar tanlovidan) */
+  branchId?: string;
   sortBy?: 'date' | 'amount' | 'number';
   sortOrder?: 'asc' | 'desc';
 }

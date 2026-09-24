@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { employeesOnLeaveToday } from './employeeLeave.service.js';
+import { branchFilter } from './branchAccess.js';
 import type { EmployeePosition, EmployeeStatus, Prisma, SalaryPeriodStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
@@ -199,8 +200,13 @@ function assertDates(status: EmployeeStatus, hireDate: Date, terminationDate: Da
 
 export const employeeService = {
   /** `salaryVisible: false` — maosh summalari (salary.view ruxsatisiz) qaytarilmaydi */
-  async list(query: EmployeeListQuery, salaryVisible = true, sensitiveVisible = false): Promise<{ items: EmployeeDto[]; total: number }> {
-    const conditions: Prisma.EmployeeWhereInput[] = [];
+  async list(
+    actor: AuthUser,
+    query: EmployeeListQuery,
+    salaryVisible = true,
+    sensitiveVisible = false,
+  ): Promise<{ items: EmployeeDto[]; total: number }> {
+    const conditions: Prisma.EmployeeWhereInput[] = [branchFilter(await getBranchAccess(actor), query.branchId)];
     if (query.status) conditions.push({ status: query.status });
     if (query.position) conditions.push({ position: query.position });
     if (query.department) conditions.push({ department: query.department });

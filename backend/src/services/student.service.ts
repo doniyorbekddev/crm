@@ -15,7 +15,7 @@ import type {
   UpdateStudentStatusInput,
 } from '../validators/student.validator.js';
 import { auditService } from './audit.service.js';
-import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
 import type { BranchAccess } from './branchAccess.js';
 import { getLeadAccess, visibleLeadFilter } from './leadAccess.js';
 import { notificationService } from './notification.service.js';
@@ -181,7 +181,7 @@ async function getStudentAccess(actor: AuthUser): Promise<StudentAccess> {
 
 function buildWhere(access: StudentAccess, query: Partial<StudentListQuery>): Prisma.StudentWhereInput {
   const conditions: Prisma.StudentWhereInput[] = [];
-  if (!access.branch.canViewAll) conditions.push({ branchId: access.branch.branchId });
+  conditions.push(branchFilter(access.branch, query.branchId));
   if (access.onlyOwnGroups) conditions.push({ group: { teacherId: access.userId } });
   if (query.status) conditions.push({ status: query.status });
   if (query.riskLevel) conditions.push({ riskLevel: query.riskLevel });
