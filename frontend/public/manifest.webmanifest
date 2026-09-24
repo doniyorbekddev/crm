@@ -1,0 +1,33 @@
+{
+  "name": "IT-Academy CRM",
+  "short_name": "CRM",
+  "description": "O‘quv markaz boshqaruv tizimi: davomat, to‘lovlar, leadlar va hisobotlar",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#3354ec",
+  "lang": "uz",
+  "dir": "ltr",
+  "categories": ["business", "education", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Davomat", "short_name": "Davomat", "url": "/attendance" },
+    { "name": "To‘lovlar", "short_name": "To‘lov", "url": "/payments" },
+    { "name": "Leadlar", "short_name": "Leadlar", "url": "/leads" }
+  ]
+}

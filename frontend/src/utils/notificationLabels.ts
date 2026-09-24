@@ -1,4 +1,18 @@
-import { AlertTriangle, BadgeCheck, BellRing, CalendarClock, GraduationCap, HandCoins, Info, Newspaper, Target, UserCheck, Wallet } from 'lucide-react';
+import {
+  AlertTriangle,
+  BadgeCheck,
+  BellRing,
+  CalendarClock,
+  CalendarX,
+  GraduationCap,
+  HandCoins,
+  Info,
+  MessageSquareWarning,
+  Newspaper,
+  Target,
+  UserCheck,
+  Wallet,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NotificationType } from '@/types/notification';
 
@@ -13,6 +27,9 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'TRIAL_LESSON_REMINDER',
   'EXPENSE_APPROVAL',
   'DAILY_DIGEST',
+  'CHILD_ABSENT',
+  'PAYMENT_DUE_SOON',
+  'NEGATIVE_FEEDBACK',
   'SYSTEM',
 ];
 
@@ -27,6 +44,9 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   TRIAL_LESSON_REMINDER: 'Sinov darsi',
   EXPENSE_APPROVAL: 'Xarajat tasdig‘i',
   DAILY_DIGEST: 'Kunlik xulosa',
+  CHILD_ABSENT: 'Farzand darsga kelmadi',
+  PAYMENT_DUE_SOON: 'To‘lov muddati yaqin',
+  NEGATIVE_FEEDBACK: 'Past baho bilan fikr',
   SYSTEM: 'Tizim',
 };
 
@@ -41,6 +61,9 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   TRIAL_LESSON_REMINDER: BellRing,
   EXPENSE_APPROVAL: BadgeCheck,
   DAILY_DIGEST: Newspaper,
+  CHILD_ABSENT: CalendarX,
+  PAYMENT_DUE_SOON: CalendarClock,
+  NEGATIVE_FEEDBACK: MessageSquareWarning,
   SYSTEM: Info,
 };
 
@@ -52,6 +75,9 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   FOLLOW_UP_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   FOLLOW_UP_OVERDUE: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   NEW_STUDENT: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
+  CHILD_ABSENT: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  PAYMENT_DUE_SOON: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  NEGATIVE_FEEDBACK: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   DEBT_REMINDER: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   TRIAL_LESSON_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   EXPENSE_APPROVAL: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',

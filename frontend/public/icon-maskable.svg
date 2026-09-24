@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Maskable ikonka: chekkalarida "xavfsiz zona" bor, shuning uchun fon to'liq to'ldiriladi -->
+  <rect width="64" height="64" fill="#3354ec"/>
+  <path d="M22 24h20M22 32h20M22 40h12" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+</svg>

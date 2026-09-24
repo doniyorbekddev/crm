@@ -770,3 +770,23 @@ ajratilgan); saqlash muddati oynasi ochilib, qiymat saqlandi. Tekshiruvdan keyin
 (390 000) va qarzdorlik asl holatiga qaytarildi, sozlama standart holatga tushirildi, test admin o'chirildi.
 
 **PHASE 11 yakunlandi.** Avtomatlashtirish dvigateli, Audit 2.0 va rate limit testlari tayyor.
+
+### PHASE 12 — PWA, qidiruv, bildirishnoma markazi va komponent testlari (2026-09-24)
+
+| Qism | Holat |
+|---|---|
+| **PWA (F13 yopildi):** `manifest.webmanifest` (standalone, o'zbekcha nom, maskable ikonka, "Davomat / To'lovlar / Leadlar" yorliqlari) va qo'lda yozilgan xizmat ishchisi | ✅ brauzerda tekshirildi |
+| Xizmat ishchisi qoidalari: **API hech qachon keshlanmaydi** (moliya va davomat eskirmasligi kerak), sahifa ochilishi — avval tarmoq, ishlamasa keshdagi qobiq; statik fayllar keshdan, fonda yangilanadi | ✅ |
+| Yangi versiya chiqqanda majburan yangilanmaydi — bir marta "Yangilash" taklifi ko'rsatiladi (xodim forma to'ldirayotgan bo'lishi mumkin) | ✅ |
+| Faqat production qurilishida ro'yxatdan o'tadi — `dev` rejimida kesh ishni chalkashtirmaydi | ✅ |
+| **Global qidiruvga sertifikatlar qo'shildi** (raqam `CRT-2026-000007`, o'quvchi yoki kurs nomi bo'yicha); tekshiruv kaliti qidiruvda ishlatilmaydi | ✅ testda tekshiriladi |
+| Qidiruv natijalari ruxsat bo'yicha filtrlanadi — o'quvchi ko'rish huquqi yo'q xodimga sertifikat guruhi umuman qaytarilmaydi | ✅ testda tekshiriladi |
+| **Nuqson tuzatildi:** bildirishnoma turlari ro'yxati qo'lda yozilgani uchun eskirgandi — yangi turlar (`CHILD_ABSENT`, `PAYMENT_DUE_SOON`, `NEGATIVE_FEEDBACK`, `DAILY_DIGEST`) bo'yicha filtrlash **422 xato** berardi. Endi ro'yxat Prisma enumidan olinadi | ✅ testda tekshiriladi |
+| Bildirishnoma markazi filtrlari to'ldirildi: o'qilgan / o'qilmagan / hammasi va sana oralig'i | ✅ brauzerda tekshirildi |
+| **F3 yopildi — frontend komponent testlari:** `jsdom` + Testing Library qo'shildi, vitest ikkita "project" ga bo'lindi (sof funksiyalar — `node`, komponentlar — `jsdom`) | ✅ |
+| Komponent testlari: `Pagination` (9 ta — oraliq hisobi, chegaralar, bloklash, qisqartirilgan ro'yxat), `ConfirmDialog` (5 ta — Escape, jarayon ketayotganda yopilmasligi), `Badge` (3 ta) | ✅ 55 frontend test |
+| Testlar: backend 567 (`tests/searchNotifications.test.ts` — 4 ta), frontend 55, E2E 14/14 | ✅ typecheck va build toza |
+
+**Brauzerda tekshirildi (telefon o'lchamida):** manifest, xizmat ishchisi va maskable ikonka to'g'ri
+yetkazildi; bildirishnomalarda o'qilgan/o'qilmagan va sana filtrlari ishladi, yangi tur bo'yicha
+filtr endi xato bermaydi. Tekshiruvdan keyin test admin va 2 ta test bildirishnomasi o'chirildi.

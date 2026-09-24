@@ -9,6 +9,9 @@ export type NotificationType =
   | 'TRIAL_LESSON_REMINDER'
   | 'EXPENSE_APPROVAL'
   | 'DAILY_DIGEST'
+  | 'CHILD_ABSENT'
+  | 'PAYMENT_DUE_SOON'
+  | 'NEGATIVE_FEEDBACK'
   | 'SYSTEM';
 
 export interface NotificationItem {

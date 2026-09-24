@@ -63,11 +63,25 @@ function toDto(notification: NotificationRecord): NotificationDto {
   };
 }
 
+function dayStart(date: string): Date {
+  return new Date(`${date}T00:00:00.000Z`);
+}
+
 function buildWhere(userId: string, query: Partial<NotificationListQuery>): Prisma.NotificationWhereInput {
   return {
     userId,
     ...(query.unreadOnly ? { readAt: null } : {}),
+    ...(query.readOnly ? { readAt: { not: null } } : {}),
     ...(query.type ? { type: query.type } : {}),
+    ...(query.from || query.to
+      ? {
+          createdAt: {
+            ...(query.from ? { gte: dayStart(query.from) } : {}),
+            // "to" kuni ham kiradi — shuning uchun keyingi kun boshigacha
+            ...(query.to ? { lt: new Date(dayStart(query.to).getTime() + 86_400_000) } : {}),
+          },
+        }
+      : {}),
   };
 }
 

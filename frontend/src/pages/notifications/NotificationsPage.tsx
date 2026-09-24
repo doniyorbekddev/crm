@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
+import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getErrorMessage } from '@/lib/api';
@@ -32,7 +33,10 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
 
   const [type, setType] = useState<NotificationType | ''>('');
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  /** '' — hammasi, 'unread' — o‘qilmagan, 'read' — o‘qilgan */
+  const [readState, setReadState] = useState<'' | 'unread' | 'read'>('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -40,7 +44,10 @@ export default function NotificationsPage() {
     page,
     limit: PAGE_SIZE,
     ...(type ? { type } : {}),
-    ...(unreadOnly ? { unreadOnly: 'true' as const } : {}),
+    ...(readState === 'unread' ? { unreadOnly: 'true' as const } : {}),
+    ...(readState === 'read' ? { readOnly: 'true' as const } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
   };
 
   const listQuery = useQuery({
@@ -204,14 +211,33 @@ export default function NotificationsPage() {
               </option>
             ))}
           </Select>
-          <label className="flex items-center gap-2 text-sm text-fg-muted">
-            <input
-              type="checkbox"
-              checked={unreadOnly}
-              onChange={(event) => changeFilter(() => setUnreadOnly(event.target.checked))}
-              className="size-4 rounded border-border text-brand-600 focus:ring-brand-500"
+          <Select
+            value={readState}
+            onChange={(event) => changeFilter(() => setReadState(event.target.value as '' | 'unread' | 'read'))}
+            aria-label="O‘qilganlik holati"
+            wrapperClassName="sm:w-48"
+          >
+            <option value="">O‘qilgan va o‘qilmagan</option>
+            <option value="unread">Faqat o‘qilmaganlar</option>
+            <option value="read">Faqat o‘qilganlar</option>
+          </Select>
+          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
+            <span className="sr-only sm:not-sr-only">Sana</span>
+            <Input
+              type="date"
+              value={from}
+              aria-label="Boshlanish sanasi"
+              className="h-9 w-40"
+              onChange={(event) => changeFilter(() => setFrom(event.target.value))}
             />
-            Faqat o‘qilmaganlar
+            <span aria-hidden>—</span>
+            <Input
+              type="date"
+              value={to}
+              aria-label="Tugash sanasi"
+              className="h-9 w-40"
+              onChange={(event) => changeFilter(() => setTo(event.target.value))}
+            />
           </label>
         </div>
 
@@ -227,7 +253,7 @@ export default function NotificationsPage() {
           <EmptyState
             icon={Bell}
             title="Bildirishnoma yo‘q"
-            description={unreadOnly ? 'Hammasi o‘qilgan' : 'Yangi hodisalar shu yerda paydo bo‘ladi'}
+            description={readState === 'unread' ? 'Hammasi o‘qilgan' : 'Yangi hodisalar shu yerda paydo bo‘ladi'}
           />
         ) : (
           <>

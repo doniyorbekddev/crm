@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { toast } from 'sonner';
 import { App } from './App';
+import { applyServiceWorkerUpdate, registerServiceWorker } from './lib/pwa';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -14,3 +16,12 @@ createRoot(rootElement).render(
     <App />
   </StrictMode>,
 );
+
+// Yangi versiya tayyor bo'lsa — bir marta taklif. Majburan yangilamaymiz: xodim
+// o'sha payt forma to'ldirayotgan bo'lishi mumkin.
+registerServiceWorker(() => {
+  toast('Yangi versiya tayyor', {
+    duration: Infinity,
+    action: { label: 'Yangilash', onClick: applyServiceWorkerUpdate },
+  });
+});

@@ -3,6 +3,7 @@ import { formatLeadNumber } from '../config/leadLabels.js';
 import { formatPaymentNumber } from '../config/paymentLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { STUDENT_STATUS_LABELS, formatStudentNumber } from '../config/studentLabels.js';
+import { certificateCode } from './certificate.service.js';
 import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { permissionService } from './permission.service.js';
@@ -11,7 +12,17 @@ import { moneyUz } from '../utils/money.js';
 /** Har bir bo‘limdan ko‘rsatiladigan natijalar soni */
 const PER_GROUP = 5;
 
-export type SearchGroupKey = 'leads' | 'students' | 'parents' | 'teachers' | 'courses' | 'groups' | 'users' | 'payments' | 'transactions';
+export type SearchGroupKey =
+  | 'leads'
+  | 'students'
+  | 'parents'
+  | 'teachers'
+  | 'courses'
+  | 'groups'
+  | 'users'
+  | 'payments'
+  | 'transactions'
+  | 'certificates';
 
 export interface SearchHit {
   id: string;
@@ -420,6 +431,41 @@ export const searchService = {
             subtitle: `${user.role.name} · ${user.email}`,
             code: null,
             url: '/users',
+          })),
+        });
+      }
+    }
+
+    // --- Sertifikatlar ---
+    // Raqam (CRT-2026-000001) yoki o'quvchi ismi bo'yicha. Tekshiruv kaliti (`verifyToken`)
+    // qidiruvda ishlatilmaydi — u faqat ochiq tekshiruv sahifasi uchun.
+    if (permissions.has(PERMISSIONS.STUDENT_VIEW)) {
+      const numeric = Number(query.replace(/^crt[-\s]*\d{4}[-\s]*/i, '').replace(/\D/g, ''));
+      const certificateNumber = Number.isInteger(numeric) && numeric > 0 && numeric < 2_000_000_000 ? numeric : null;
+      const certificates = await prisma.certificate.findMany({
+        where: {
+          OR: [
+            { studentName: { contains: query, mode: 'insensitive' } },
+            { courseName: { contains: query, mode: 'insensitive' } },
+            // "CRT-2026-000007" yoki shunchaki "7" — raqam qismi ajratib olinadi
+            ...(certificateNumber === null ? [] : [{ number: certificateNumber }]),
+          ],
+        },
+        select: { id: true, number: true, studentName: true, courseName: true, issuedAt: true, revokedAt: true, studentId: true },
+        orderBy: { issuedAt: 'desc' },
+        take: PER_GROUP,
+      });
+
+      if (certificates.length > 0) {
+        groups.push({
+          key: 'certificates',
+          label: 'Sertifikatlar',
+          hits: certificates.map((certificate) => ({
+            id: certificate.id,
+            title: certificate.studentName,
+            subtitle: `${certificate.courseName}${certificate.revokedAt ? ' · bekor qilingan' : ''}`,
+            code: certificateCode(certificate.number, certificate.issuedAt),
+            url: `/students/${certificate.studentId}`,
           })),
         });
       }
