@@ -3,6 +3,7 @@ import { disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { startAlertsJob } from './jobs/alerts.job.js';
 import { startLeadScoreJob } from './jobs/leadScore.job.js';
+import { startAutomationJob } from './jobs/automation.job.js';
 import { startNotificationDeliveryJob } from './jobs/notificationDelivery.job.js';
 import { startStudentRiskJob } from './jobs/studentRisk.job.js';
 import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
@@ -23,6 +24,7 @@ const stopAlerts = startAlertsJob();
 const stopStudentRisk = startStudentRiskJob();
 const stopDelivery = startNotificationDeliveryJob();
 const stopLeadScore = startLeadScoreJob();
+const stopAutomation = startAutomationJob();
 const stopRecurringExpenses = startRecurringExpensesJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
@@ -47,6 +49,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopStudentRisk();
   stopDelivery();
   stopLeadScore();
+  stopAutomation();
   stopRecurringExpenses();
   stopDailyDigest();
 

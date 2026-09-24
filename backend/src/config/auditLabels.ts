@@ -44,6 +44,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'employee.leave_approved': 'Ta’til tasdiqlandi',
   'employee.leave_rejected': 'Ta’til arizasi rad etildi',
   'employee.leave_cancelled': 'Ta’til bekor qilindi',
+  'automation.rule_updated': 'Avtomatlashtirish qoidasi o‘zgartirildi',
   'inventory.product_created': 'Mahsulot qo‘shildi',
   'inventory.product_updated': 'Mahsulot tahrirlandi',
   'inventory.category_saved': 'Mahsulot turkumi saqlandi',

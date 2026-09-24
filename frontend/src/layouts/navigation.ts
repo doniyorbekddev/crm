@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  Workflow,
   Sparkles,
   Building2,
   Package,
@@ -66,6 +67,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/activity', label: 'Faoliyat', icon: History, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
       { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: PERMISSIONS.AI_ASSISTANT },
+      { to: '/automation', label: 'Avtomatlashtirish', icon: Workflow, permission: PERMISSIONS.ALERT_VIEW },
     ],
   },
   {

@@ -307,6 +307,7 @@ model User {
   requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
   stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
   aiQueries                AiQuery[]
+  savedAutomations         AutomationRule[]       @relation("AutomationUpdatedBy")
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
@@ -2922,4 +2923,86 @@ model AiQuery {
   @@index([toolKey, createdAt])
   @@index([createdAt])
   @@map("ai_queries")
+}
+
+// ---------------------------------------------------------------------
+// AVTOMATLASHTIRISH
+// ---------------------------------------------------------------------
+
+/// Qoida qaysi holatda ishga tushadi
+enum AutomationTrigger {
+  /// O'quvchi ketma-ket N marta darsga kelmadi
+  STUDENT_ABSENT_STREAK
+  /// To'lov muddatiga N kun qoldi
+  PAYMENT_DUE_SOON
+  /// To'lov muddati o'tdi
+  PAYMENT_OVERDUE
+  /// O'quvchining xavf darajasi kritik
+  STUDENT_RISK_CRITICAL
+  /// Follow-up muddati o'tib ketdi
+  FOLLOWUP_OVERDUE
+  /// Omborda mahsulot chegaradan kam qoldi
+  STOCK_BELOW_MIN
+  /// O'quvchi kursni tugatdi — sertifikat berish mumkin
+  CERTIFICATE_ELIGIBLE
+}
+
+/// Bildirishnoma kimga boradi
+enum AutomationAudience {
+  /// Tegishli ruxsatga ega xodimlar (masalan `debt.view`)
+  STAFF
+  /// Leadning yoki o'quvchining mas'ul xodimi
+  RESPONSIBLE
+  /// O'quvchining o'zi (kabinet hisobi bo'lsa)
+  STUDENT
+  /// Ota-ona (kabinet hisobi bo'lsa)
+  PARENT
+}
+
+/// Avtomatlashtirish qoidasi. Kalit bo'yicha takrorlanmaydi — sozlamalar tahrirlanadi,
+/// yangi qoida yaratilmaydi, shuning uchun tarix chalkashmaydi.
+model AutomationRule {
+  id          String             @id @default(cuid())
+  key         String             @unique @db.VarChar(50)
+  name        String             @db.VarChar(120)
+  description String?            @db.VarChar(255)
+  trigger     AutomationTrigger
+  audience    AutomationAudience @default(STAFF)
+  /// Qoida parametrlari: {absences: 2} yoki {daysBefore: 3}
+  params      Json?
+  isActive    Boolean            @default(true)
+  lastRunAt   DateTime?
+  /// Oxirgi yurishda nechta holat topilgani
+  lastMatched Int                @default(0)
+  updatedById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  updatedBy User?           @relation("AutomationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  runs      AutomationRun[]
+
+  @@index([isActive, trigger])
+  @@map("automation_rules")
+}
+
+/// Qoidaning bitta yurishi. Nechta holat topilgani, nechta bildirishnoma yuborilgani va
+/// xatolik bo'lsa sababi yoziladi — "nega xabar kelmadi?" degan savolga javob shu yerda.
+model AutomationRun {
+  id            String   @id @default(cuid())
+  ruleId        String
+  startedAt     DateTime @default(now())
+  durationMs    Int?
+  /// Shartga mos kelgan holatlar soni
+  matched       Int      @default(0)
+  /// Yuborilgan bildirishnomalar (takrorlanganlari hisobga olinmaydi)
+  notified      Int      @default(0)
+  /// Takroriy bo'lgani uchun o'tkazib yuborilganlar
+  skipped       Int      @default(0)
+  error         String?  @db.VarChar(500)
+
+  rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId, startedAt])
+  @@index([startedAt])
+  @@map("automation_runs")
 }

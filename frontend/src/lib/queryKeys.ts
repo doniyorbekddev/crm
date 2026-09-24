@@ -7,6 +7,7 @@ import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams 
 import type { ReferralListParams } from '@/types/referral';
 import type { FeedbackListParams } from '@/types/feedback';
 import type { MovementListParams, ProductListParams } from '@/types/inventory';
+import type { AutomationRunParams } from '@/types/automation';
 import type { LeaveListParams } from '@/types/employee';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
@@ -61,6 +62,11 @@ export const queryKeys = {
     notes: (id: string) => ['leads', 'notes', id] as const,
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
+  },
+  automation: {
+    all: ['automation'] as const,
+    list: ['automation', 'list'] as const,
+    runs: (params: AutomationRunParams) => ['automation', 'runs', params] as const,
   },
   ai: {
     all: ['ai'] as const,

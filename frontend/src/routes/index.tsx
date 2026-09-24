@@ -221,6 +221,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.ALERT_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "automation",
+                        lazy: lazyComponent(
+                          () => import("@/pages/automation/AutomationPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.AI_ASSISTANT} />
                     ),
                     children: [

@@ -727,3 +727,24 @@ yozuvi va test admin o'chirildi.
 
 **Eslatma (LLM ulash):** model kerak bo'lsa, u faqat `matchTool` o'rnini bosadi — unga toollar ro'yxati
 va savol beriladi, u faqat tool kalitini qaytaradi. Ma'lumotga kirish yo'li o'zgarmaydi.
+
+### PHASE 11 (1-qism) — avtomatlashtirish dvigateli (2026-09-24)
+
+| Qism | Holat |
+|---|---|
+| `AutomationRule` — sozlanadigan qoidalar: ketma-ket kelmaslik, to'lov muddati yaqinlashdi/o'tdi, kritik xavf, kechikkan follow-up, omborda kam qoldi, sertifikat berish mumkin | ✅ |
+| Qoidani **o'chirib qo'yish** va **parametrini o'zgartirish** mumkin (2 marta emas, 3 marta) — kod o'zgarmaydi | ✅ testda tekshiriladi |
+| `AutomationRun` — har yurish: nechta holat topilgani, nechta xabar ketgani, xatolik bo'lsa sababi. Bitta qoidadagi xatolik qolganlarini to'xtatmaydi | ✅ testda tekshiriladi |
+| **Takror xabar yo'q:** `dedupeKey` da sana bor, shuning uchun qoida har 30 daqiqada ishlasa ham odam kuniga bir marta xabar oladi | ✅ testda tekshiriladi |
+| Xabar mavjud `notificationService` orqali ketadi — Telegram yetkazish navbati ham avtomatik ishlaydi, yangi kanal kodi yozilmadi | ✅ |
+| Ketma-ketlik to'g'ri hisoblanadi: oxirgi dars "kelgan" bo'lsa zanjir uziladi | ✅ testda tekshiriladi |
+| Job har 30 daqiqada ishlaydi, server ko'tarilganda darhol bir marta | ✅ |
+| Frontend: `/automation` sahifasi — qoidalar (yoqish/o'chirish, parametr), "Hozir ishga tushirish" va so'nggi yurishlar jurnali | ✅ brauzerda tekshirildi |
+| Testlar: `tests/automation.test.ts` (9 ta) | ✅ 555 test, E2E 14/14, typecheck va build toza |
+
+**Brauzer tekshiruvida topilgan nuqson va tuzatish:** birinchi yurishda xodimlarga **113 ta alohida
+bildirishnoma** ketdi (har bir qarzdor uchun bittadan). Bu bildirishnomalar ro'yxatini foydasiz qiladi.
+Endi xodimga **kuniga bitta yig'ma xabar** boradi ("112 o'quvchida muddati o'tgan to'lov bor — jami
+X so'm, masalan: A, B, C…"), o'quvchi va ota-onaga esa aynan o'ziga tegishli xabar boradi.
+Tekshiruvdan keyin 359 ta test bildirishnomasi, 18 yurish va test admin o'chirildi, qoida
+parametrlari standart holatga qaytarildi.
