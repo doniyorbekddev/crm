@@ -2,7 +2,10 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, ScrollText, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { ExportMenu } from '@/components/ExportMenu';
+import { Clock } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { Button } from '@/components/ui/Button';
+import { RetentionModal } from './RetentionModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -127,6 +130,8 @@ function MetadataView({ metadata }: { metadata: unknown }) {
 
 export default function AuditLogPage() {
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
+  const canManageSettings = usePermission(PERMISSIONS.SETTINGS_MANAGE);
+  const [retentionOpen, setRetentionOpen] = useState(false);
   const { exporting, run: runExport } = useExport();
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -207,6 +212,9 @@ export default function AuditLogPage() {
 
         {open && (
           <div className="space-y-2 border-t border-border bg-surface-muted/60 px-4 py-3 pl-11">
+            {isRecord(log.before) || isRecord(log.after) ? (
+              <ChangesView before={isRecord(log.before) ? log.before : {}} after={isRecord(log.after) ? log.after : {}} />
+            ) : null}
             <MetadataView metadata={log.metadata} />
             <p className="text-[11px] break-all text-fg-subtle">
               {log.user?.email && `${log.user.email} · `}
@@ -225,7 +233,13 @@ export default function AuditLogPage() {
         title="Audit jurnali"
         description="Kim, nimani va qachon o‘zgartirgani — IP manzili bilan"
         actions={
-          canExport ? (
+          <>
+            {canManageSettings && (
+              <Button variant="secondary" leftIcon={<Clock className="size-4" aria-hidden />} onClick={() => setRetentionOpen(true)}>
+                Saqlash muddati
+              </Button>
+            )}
+            {canExport ? (
             <ExportMenu
               loading={exporting}
               disabled={!logsQuery.data || logsQuery.data.items.length === 0}
@@ -238,7 +252,8 @@ export default function AuditLogPage() {
                 )
               }
             />
-          ) : undefined
+          ) : null}
+          </>
         }
       />
 
@@ -345,6 +360,8 @@ export default function AuditLogPage() {
           </>
         )}
       </Card>
+
+      {retentionOpen && <RetentionModal onClose={() => setRetentionOpen(false)} />}
     </>
   );
 }

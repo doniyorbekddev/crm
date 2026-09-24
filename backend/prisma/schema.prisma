@@ -1214,8 +1214,12 @@ model AuditLog {
   entityId   String?  @db.VarChar(50)
   ip         String?  @db.VarChar(64)
   userAgent  String?  @db.VarChar(500)
-  /// O‘zgarishdan oldingi va keyingi qiymatlar
+  /// Amal bilan bog'liq qo'shimcha ma'lumot (qaysi yozuv, qancha summa va h.k.)
   metadata   Json?
+  /// O'zgarishdan oldingi qiymatlar — faqat tahrirlash amallarida to'ldiriladi
+  before     Json?
+  /// O'zgarishdan keyingi qiymatlar
+  after      Json?
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)

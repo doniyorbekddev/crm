@@ -267,12 +267,9 @@ export const documentService = {
         action: 'document.updated',
         entityType: owner.key,
         entityId: owner.id,
-        metadata: {
-          document: id,
-          name: document.originalName,
-          before: { category: document.category, title: document.title, expiresAt: dateOnly(document.expiresAt) },
-          after: { category: record.category, title: record.title, expiresAt: dateOnly(record.expiresAt) },
-        },
+        metadata: { document: id, name: document.originalName },
+        before: { category: document.category, title: document.title, expiresAt: dateOnly(document.expiresAt) },
+        after: { category: record.category, title: record.title, expiresAt: dateOnly(record.expiresAt) },
         ...client,
       });
       return record;

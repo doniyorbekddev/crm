@@ -16,7 +16,14 @@ export interface AuditEntry {
   entityId?: string | null;
   ip?: string | null;
   userAgent?: string | null;
+  /** Amal bilan bog'liq qo'shimcha ma'lumot */
   metadata?: Prisma.InputJsonValue;
+  /**
+   * O'zgarishdan oldingi va keyingi qiymatlar. Tahrirlash amallarida shu ikki maydon
+   * to'ldiriladi — jurnal "nima o'zgardi?" degan savolga metadata ichini titkilamasdan javob beradi.
+   */
+  before?: Prisma.InputJsonValue;
+  after?: Prisma.InputJsonValue;
 }
 
 function toCreateData(entry: AuditEntry): Prisma.AuditLogUncheckedCreateInput {
@@ -28,6 +35,8 @@ function toCreateData(entry: AuditEntry): Prisma.AuditLogUncheckedCreateInput {
     ip: entry.ip ?? null,
     userAgent: entry.userAgent ?? null,
     ...(entry.metadata !== undefined ? { metadata: entry.metadata } : {}),
+    ...(entry.before !== undefined ? { before: entry.before } : {}),
+    ...(entry.after !== undefined ? { after: entry.after } : {}),
   };
 }
 
@@ -50,6 +59,98 @@ export const auditService = {
   },
 };
 
+/**
+ * Audit jurnali saqlash muddati.
+ *
+ * Jurnal cheksiz o'smasligi kerak, lekin **muhim amallar** (to'lov, maosh, rol o'zgarishi va h.k.)
+ * uzoqroq saqlanadi: ular tekshiruvda kerak bo'ladi. Oddiy yozuvlar belgilangan kundan keyin
+ * o'chiriladi — buni faqat tizim (job) qiladi, foydalanuvchi uchun o'chirish amali yo'q.
+ */
+export const AUDIT_SETTINGS_KEY = 'audit.settings';
+
+export interface AuditSettings {
+  /** Oddiy yozuvlar shuncha kundan keyin o'chiriladi (0 — hech qachon) */
+  retentionDays: number;
+  /** Muhim amallar shuncha kun saqlanadi */
+  criticalRetentionDays: number;
+}
+
+export const DEFAULT_AUDIT_SETTINGS: AuditSettings = { retentionDays: 365, criticalRetentionDays: 1825 };
+
+export async function loadAuditSettings(): Promise<AuditSettings> {
+  const row = await prisma.setting.findUnique({ where: { key: AUDIT_SETTINGS_KEY }, select: { value: true } });
+  const saved = (row?.value ?? {}) as Partial<AuditSettings>;
+  const clamp = (value: unknown, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.min(Math.round(value), 3650) : fallback;
+  return {
+    retentionDays: clamp(saved.retentionDays, DEFAULT_AUDIT_SETTINGS.retentionDays),
+    criticalRetentionDays: clamp(saved.criticalRetentionDays, DEFAULT_AUDIT_SETTINGS.criticalRetentionDays),
+  };
+}
+
+/**
+ * Muddati o'tgan yozuvlarni o'chiradi. Job orqali kuniga bir marta chaqiriladi.
+ * Muhim amallar alohida (uzunroq) muddat bilan tekshiriladi.
+ */
+export async function cleanupAuditLogs(now: Date = new Date()): Promise<{ deleted: number }> {
+  const settings = await loadAuditSettings();
+  const DAY_MS = 86_400_000;
+  let deleted = 0;
+
+  if (settings.retentionDays > 0) {
+    const cutoff = new Date(now.getTime() - settings.retentionDays * DAY_MS);
+    const result = await prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: cutoff }, action: { notIn: [...AUDIT_CRITICAL_ACTIONS] } },
+    });
+    deleted += result.count;
+  }
+  if (settings.criticalRetentionDays > 0) {
+    const cutoff = new Date(now.getTime() - settings.criticalRetentionDays * DAY_MS);
+    const result = await prisma.auditLog.deleteMany({
+      where: { createdAt: { lt: cutoff }, action: { in: [...AUDIT_CRITICAL_ACTIONS] } },
+    });
+    deleted += result.count;
+  }
+  return { deleted };
+}
+
+export interface AuditSettingsDto extends AuditSettings {
+  updatedAt: string | null;
+}
+
+export const auditSettingsService = {
+  async get(): Promise<AuditSettingsDto> {
+    const row = await prisma.setting.findUnique({ where: { key: AUDIT_SETTINGS_KEY }, select: { updatedAt: true } });
+    return { ...(await loadAuditSettings()), updatedAt: row?.updatedAt.toISOString() ?? null };
+  },
+
+  async save(actor: { id: string }, input: AuditSettings, client: { ip: string | null; userAgent: string | null }): Promise<AuditSettingsDto> {
+    const before = await loadAuditSettings();
+    await prisma.$transaction(async (tx) => {
+      await tx.setting.upsert({
+        where: { key: AUDIT_SETTINGS_KEY },
+        update: { value: input as unknown as Prisma.InputJsonValue, updatedById: actor.id },
+        create: {
+          key: AUDIT_SETTINGS_KEY,
+          value: input as unknown as Prisma.InputJsonValue,
+          description: 'Audit jurnali saqlash muddati',
+          updatedById: actor.id,
+        },
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'audit.settings_updated',
+        entityType: 'settings',
+        entityId: AUDIT_SETTINGS_KEY,
+        before: { ...before },
+        after: { ...input },
+        ...client,
+      });
+    });
+    return this.get();
+  },
+};
+
 // ---------------------------------------------------------------------
 // Audit jurnalini o‘qish (audit.view ruxsati bilan)
 // ---------------------------------------------------------------------
@@ -62,6 +163,8 @@ const auditSelect = {
   ip: true,
   userAgent: true,
   metadata: true,
+  before: true,
+  after: true,
   createdAt: true,
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
 } satisfies Prisma.AuditLogSelect;
@@ -78,6 +181,9 @@ export interface AuditLogDto {
   ip: string | null;
   userAgent: string | null;
   metadata: Prisma.JsonValue;
+  /** O‘zgarishdan oldingi va keyingi qiymatlar (tahrirlash amallarida) */
+  before: Prisma.JsonValue;
+  after: Prisma.JsonValue;
   isCritical: boolean;
   createdAt: string;
   user: { id: string; firstName: string; lastName: string; email: string } | null;
@@ -98,6 +204,8 @@ function toAuditDto(log: AuditRecord): AuditLogDto {
     id: log.id,
     action: log.action,
     actionLabel: auditActionLabel(log.action),
+    before: log.before,
+    after: log.after,
     entityType: log.entityType,
     entityLabel: auditEntityLabel(log.entityType),
     entityId: log.entityId,

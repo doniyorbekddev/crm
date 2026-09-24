@@ -143,10 +143,8 @@ export const roleService = {
       action: 'role.updated',
       entityType: 'role',
       entityId: id,
-      metadata: {
-        from: { name: role.name, description: role.description },
-        to: { name: updated.name, description: updated.description },
-      },
+      before: { name: role.name, description: role.description },
+      after: { name: updated.name, description: updated.description },
       ...client,
     });
     return toRoleDto(updated);
@@ -178,7 +176,11 @@ export const roleService = {
           action: 'role.permissions_updated',
           entityType: 'role',
           entityId: id,
+          // metadata — tez o'qish uchun farq; before/after — to'liq ro'yxat (tekshiruvchi
+          // "o'sha paytda nima bor edi?" deb so'raganda kerak bo'ladi)
           metadata: { role: role.key, added, removed },
+          before: { permissions: [...before].sort() },
+          after: { permissions: [...after].sort() },
           ...client,
         });
       }

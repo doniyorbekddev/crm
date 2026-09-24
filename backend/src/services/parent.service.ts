@@ -323,10 +323,8 @@ export const parentService = {
         action: 'parent.updated',
         entityType: 'parent',
         entityId: id,
-        metadata: {
-          before: { firstName: parent.firstName, lastName: parent.lastName, phone: parent.phone },
-          after: { firstName: input.firstName ?? parent.firstName, lastName: input.lastName ?? parent.lastName, phone: input.phone ?? parent.phone },
-        },
+        before: { firstName: parent.firstName, lastName: parent.lastName, phone: parent.phone },
+        after: { firstName: input.firstName ?? parent.firstName, lastName: input.lastName ?? parent.lastName, phone: input.phone ?? parent.phone },
         ...client,
       });
     });

@@ -748,3 +748,25 @@ Endi xodimga **kuniga bitta yig'ma xabar** boradi ("112 o'quvchida muddati o'tga
 X so'm, masalan: A, B, C…"), o'quvchi va ota-onaga esa aynan o'ziga tegishli xabar boradi.
 Tekshiruvdan keyin 359 ta test bildirishnomasi, 18 yurish va test admin o'chirildi, qoida
 parametrlari standart holatga qaytarildi.
+
+### PHASE 11 (2-qism) — Audit 2.0, saqlash muddati va rate limit testlari (2026-09-24)
+
+| Qism | Holat |
+|---|---|
+| `AuditLog.before` / `AuditLog.after` — alohida ustunlar (avval `metadata` ichida edi). Migratsiya mavjud yozuvlardagi qiymatlarni ko'chirdi — ma'lumot yo'qolmadi | ✅ |
+| 9 ta servis yangi ustunlarga o'tkazildi: o'quvchi, xodim, o'qituvchi, ota-ona, hujjat, maosh izohi, takroriy xarajat, xarajat chegarasi, rol va ruxsatlar | ✅ |
+| **Rol ruxsatlari o'zgarganda to'liq ro'yxat saqlanadi** (`before.permissions` / `after.permissions`), metadata'da esa qisqa farq (`added`/`removed`) — tekshiruvchi "o'sha paytda nima bor edi?" deb so'raganda javob bor | ✅ testda tekshiriladi |
+| Muhim amallar ro'yxati kengaytirildi: chegirma, referal bonusi, o'quvchi holati/guruhi, xodim o'zgarishi, avtomatlashtirish va audit sozlamasi | ✅ |
+| **Saqlash muddati:** oddiy yozuvlar (standart 365 kun) va muhim amallar (standart 5 yil) alohida sozlanadi; tozalashni faqat tizim (kunlik job) qiladi | ✅ testda tekshiriladi |
+| **Audit yozuvini qo'lda o'chirib bo'lmaydi** — bunday API yo'q (DELETE 404 qaytaradi) | ✅ testda tekshiriladi |
+| Sozlamani o'zgartirish `settings.manage` ruxsatini talab qiladi va o'zgarish auditga tushadi | ✅ testda tekshiriladi |
+| Frontend: audit yozuvida "Oldin / Keyin" farq jadvali (o'zgargan maydonlar ajratib ko'rsatiladi) va "Saqlash muddati" oynasi | ✅ brauzerda tekshirildi |
+| **F4 yopildi — rate limit testlari:** limitlar testlarda o'chirilgan edi, shuning uchun ular umuman sinalmagan. Endi test `RATE_LIMIT_TEST=on` bilan ularni yoqadi va brute-force himoyasi tekshiriladi | ✅ `tests/rateLimit.test.ts` (2 ta) |
+| Testlar: `tests/auditRetention.test.ts` (6 ta) + `tests/rateLimit.test.ts` (2 ta) | ✅ 563 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** o'quvchining shartnoma narxi o'zgartirildi → audit jurnalida "Oldin 390000 /
+Keyin 391000" farq jadvali ko'rindi (o'zgarmagan maydonlar ham kontekst uchun turadi, o'zgargani
+ajratilgan); saqlash muddati oynasi ochilib, qiymat saqlandi. Tekshiruvdan keyin shartnoma narxi
+(390 000) va qarzdorlik asl holatiga qaytarildi, sozlama standart holatga tushirildi, test admin o'chirildi.
+
+**PHASE 11 yakunlandi.** Avtomatlashtirish dvigateli, Audit 2.0 va rate limit testlari tayyor.

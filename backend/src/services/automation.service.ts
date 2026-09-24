@@ -483,11 +483,9 @@ export const automationService = {
         action: 'automation.rule_updated',
         entityType: 'settings',
         entityId: record.id,
-        metadata: {
-          key,
-          before: { isActive: rule.isActive, params: rule.params },
-          after: { isActive: record.isActive, params: record.params },
-        },
+        metadata: { key },
+        before: { isActive: rule.isActive, params: rule.params } as never,
+        after: { isActive: record.isActive, params: record.params } as never,
         ...client,
       });
       return record;

@@ -478,7 +478,8 @@ export const studentService = {
         action: 'student.updated',
         entityType: 'student',
         entityId: id,
-        metadata: { priceFrom: student.contractPrice.toNumber(), priceTo: contractPrice },
+        before: { contractPrice: student.contractPrice.toNumber(), status: student.status, groupId: student.group?.id ?? null },
+        after: { contractPrice, status: record.status, groupId: input.groupId ?? null },
         ...client,
       });
       return record;

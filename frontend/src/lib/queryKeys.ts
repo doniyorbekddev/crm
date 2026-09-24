@@ -205,6 +205,7 @@ export const queryKeys = {
     all: ['audit'] as const,
     list: (params: AuditListParams) => ['audit', 'list', params] as const,
     filters: ['audit', 'filters'] as const,
+    settings: ['audit', 'settings'] as const,
   },
   search: {
     all: ['search'] as const,

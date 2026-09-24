@@ -246,6 +246,17 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'finance.transaction_voided',
   'income.voided',
   'expense.voided',
+
+  'discount.granted',
+  'discount.revoked',
+  'referral.rewarded',
+  'student.archived',
+  'student.status_changed',
+  'student.group_changed',
+  'employee.updated',
+  'employee.leave_approved',
+  'automation.rule_updated',
+  'audit.settings_updated',
 ];
 
 export function auditActionLabel(action: string): string {

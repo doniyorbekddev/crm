@@ -1,13 +1,24 @@
 import type { Request, Response } from 'express';
-import { auditLogService, auditService, exportAuditTable } from '../services/audit.service.js';
+import { auditLogService, auditService, auditSettingsService, exportAuditTable } from '../services/audit.service.js';
 import { buildPaginationMeta, sendSuccess } from '../utils/apiResponse.js';
 import { businessDateString } from '../utils/dates.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { sendTable } from '../utils/tableExport.js';
-import { auditListQuerySchema } from '../validators/audit.validator.js';
+import { auditListQuerySchema, auditSettingsSchema } from '../validators/audit.validator.js';
 import { exportFormatSchema } from '../validators/common.validator.js';
 
 export const auditController = {
+  async settings(_req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await auditSettingsService.get());
+  },
+
+  async saveSettings(req: Request, res: Response): Promise<void> {
+    const input = auditSettingsSchema.parse(req.body);
+    sendSuccess(res, await auditSettingsService.save(requireAuthUser(req), input, getClientInfo(req)), {
+      message: 'Saqlash muddati yangilandi',
+    });
+  },
+
   async list(req: Request, res: Response): Promise<void> {
     const query = auditListQuerySchema.parse(req.query);
     const { items, total } = await auditLogService.list(query);

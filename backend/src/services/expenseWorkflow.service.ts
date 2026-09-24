@@ -115,7 +115,8 @@ export const expenseWorkflowService = {
         action: 'expense.threshold_changed',
         entityType: 'setting',
         entityId: THRESHOLD_KEY,
-        metadata: { before, after: input.approvalThreshold },
+        before: { approvalThreshold: before },
+        after: { approvalThreshold: input.approvalThreshold },
         ...client,
       });
     });

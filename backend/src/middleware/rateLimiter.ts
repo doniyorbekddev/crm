@@ -2,13 +2,22 @@ import { rateLimit } from 'express-rate-limit';
 import { isTest } from '../config/env.js';
 import { sendError } from '../utils/apiResponse.js';
 
+/**
+ * Testlarda limitlar o'chirilgan — aks holda har bir test bir-birining hisobini to'ldirib
+ * yuborardi. Lekin limitlarning **o'zini** ham sinash kerak, shuning uchun test
+ * `RATE_LIMIT_TEST=on` qo'yib ularni vaqtincha yoqishi mumkin (har so'rovda tekshiriladi).
+ */
+function skipLimits(): boolean {
+  return isTest && process.env.RATE_LIMIT_TEST !== 'on';
+}
+
 /** Umumiy API limiti: bitta IP’dan daqiqasiga 300 ta so‘rov. */
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 300,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p so‘rov yuborildi. Birozdan keyin qayta urinib ko‘ring.');
   },
@@ -23,7 +32,7 @@ export const passwordResetLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Parolni tiklash so‘rovlari juda ko‘p. Bir soatdan keyin qayta urinib ko‘ring.');
   },
@@ -36,7 +45,7 @@ export const authLimiter = rateLimit({
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  skip: () => isTest,
+  skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p urinish. 15 daqiqadan keyin qayta urinib ko‘ring.');
   },
@@ -51,7 +60,7 @@ export const heavyLimiter = rateLimit({
   limit: 30,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  skip: () => isTest,
+  skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p so‘rov yuborildi. Bir daqiqadan keyin qayta urinib ko‘ring.');
   },

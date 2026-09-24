@@ -28,3 +28,11 @@ export const auditListQuerySchema = paginationQuerySchema
   });
 
 export type AuditListQuery = z.infer<typeof auditListQuerySchema>;
+
+/** Saqlash muddati: 0 — cheksiz, aks holda kunlar soni */
+export const auditSettingsSchema = z.object({
+  retentionDays: z.coerce.number().int().min(0, 'Manfiy bo‘lmaydi').max(3650, '10 yildan oshmasin'),
+  criticalRetentionDays: z.coerce.number().int().min(0).max(3650, '10 yildan oshmasin'),
+});
+
+export type AuditSettingsInput = z.infer<typeof auditSettingsSchema>;

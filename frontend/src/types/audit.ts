@@ -9,6 +9,9 @@ export interface AuditLogItem {
   userAgent: string | null;
   /** Amalga oid qo‘shimcha ma’lumot ("oldin/keyin", sabab, summa va h.k.) */
   metadata: unknown;
+  /** O‘zgarishdan oldingi va keyingi qiymatlar (tahrirlash amallarida) */
+  before: unknown;
+  after: unknown;
   isCritical: boolean;
   createdAt: string;
   user: { id: string; firstName: string; lastName: string; email: string } | null;

@@ -156,11 +156,9 @@ export const recurringExpenseService = {
         action: 'expense.recurring_updated',
         entityType: 'recurringExpense',
         entityId: id,
-        metadata: {
-          name: existing.name,
-          before: { amount: existing.amount.toNumber(), isActive: existing.isActive },
-          after: { amount: input.amount ?? existing.amount.toNumber(), isActive: input.isActive ?? existing.isActive },
-        },
+        metadata: { name: existing.name },
+        before: { amount: existing.amount.toNumber(), isActive: existing.isActive },
+        after: { amount: input.amount ?? existing.amount.toNumber(), isActive: input.isActive ?? existing.isActive },
         ...client,
       });
     });

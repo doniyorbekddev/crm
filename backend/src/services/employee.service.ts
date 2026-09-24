@@ -350,15 +350,13 @@ export const employeeService = {
         action: 'employee.updated',
         entityType: 'employee',
         entityId: id,
-        metadata: {
-          name: `${existing.firstName} ${existing.lastName}`,
-          before,
-          after: {
-            position: input.position ?? existing.position,
-            baseSalary: input.baseSalary ?? before.baseSalary,
-            status,
-            terminationDate: terminationDate ? toDateOnly(terminationDate) : null,
-          },
+        metadata: { name: `${existing.firstName} ${existing.lastName}` },
+        before,
+        after: {
+          position: input.position ?? existing.position,
+          baseSalary: input.baseSalary ?? before.baseSalary,
+          status,
+          terminationDate: terminationDate ? toDateOnly(terminationDate) : null,
         },
         ...client,
       });

@@ -1011,12 +1011,9 @@ export const salaryService = {
         action: 'salary.note_updated',
         entityType: 'salary',
         entityId: id,
-        metadata: {
-          payee: payeeName(period),
-          period: formatSalaryPeriod(period.year, period.month),
-          before: period.note,
-          after: input.note || null,
-        },
+        metadata: { payee: payeeName(period), period: formatSalaryPeriod(period.year, period.month) },
+        before: { note: period.note },
+        after: { note: input.note || null },
         ...client,
       });
     });
