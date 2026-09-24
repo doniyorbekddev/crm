@@ -47,6 +47,31 @@ export const MONTH_NAMES = [
   'Dekabr',
 ] as const;
 
+/** O'quv markaz mintaqasidagi sana-vaqt → UTC `Date` (masalan, vazifa muddati uchun) */
+export function localToUtc(year: number, month: number, day: number, hour = 0, minute = 0): Date {
+  return new Date(Date.UTC(year, month - 1, day, hour, minute) - OFFSET_MS);
+}
+
+/**
+ * Foydalanuvchi yozgan sanani o'qiydi: `25.12.2026`, `25.12.2026 18:00`, `25.12` (joriy yil).
+ * Vaqt berilmasa — kun oxiri (23:59), chunki muddat odatda "shu kungacha" degani.
+ */
+export function parseLocalDateTime(text: string, now: Date = new Date()): Date | null {
+  const match = /^(\d{1,2})[./](\d{1,2})(?:[./](\d{4}))?(?:\s+(\d{1,2}):(\d{2}))?$/.exec(text.trim());
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = match[3] ? Number(match[3]) : shifted(now).getUTCFullYear();
+  const hour = match[4] ? Number(match[4]) : 23;
+  const minute = match[5] ? Number(match[5]) : 59;
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+  const result = localToUtc(year, month, day, hour, minute);
+  // 31.02 kabi sanalar oyni "ag'darib" yuboradi — bunday kiritish rad etiladi
+  const check = new Date(result.getTime() + OFFSET_MS);
+  if (check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
+  return result;
+}
+
 export function monthTitle(year: number, month: number): string {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }

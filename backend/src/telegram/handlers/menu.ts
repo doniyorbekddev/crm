@@ -3,6 +3,9 @@ import { buildCommandReply, type CommandScope } from '../../services/telegramCom
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, grid } from '../keyboards.js';
 import type { BotContext, HandlerResult } from '../types.js';
 import { STUDENT_ACTIONS, activeChildName } from './student.js';
+import { TEACHER_ACTIONS } from './teacher.js';
+import { PERMISSIONS } from '../../config/permissions.js';
+import { permissionService } from '../../services/permission.service.js';
 
 /**
  * Asosiy menyu va unga ulangan buyruqlar.
@@ -43,8 +46,21 @@ const COMMON_ITEMS: readonly MenuItem[] = [
   { text: '🚫 Bog‘lanishni uzish', data: callback(COMMAND_ACTION, '/uzish') },
 ];
 
-function itemsFor(scope: CommandScope): readonly MenuItem[] {
-  return scope.kind === 'STAFF' ? COMMON_ITEMS : [...STUDENT_ITEMS, ...COMMON_ITEMS];
+/** Davomat olish huquqi bo'lgan xodim (o'qituvchi, admin) uchun */
+const TEACHER_ITEMS: readonly MenuItem[] = [
+  { text: '📅 Bugungi darslar', data: callback(TEACHER_ACTIONS.today) },
+  { text: '📚 Guruhlarim', data: callback(TEACHER_ACTIONS.groups) },
+];
+
+/**
+ * Menyu rolga qarab emas, **ruxsatga** qarab quriladi (TZ §5): `attendance.mark` bo'lsa
+ * o'qituvchi bo'limlari ko'rinadi — rol nomi qanday bo'lishidan qat'i nazar.
+ */
+async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
+  if (scope.kind !== 'STAFF') return [...STUDENT_ITEMS, ...COMMON_ITEMS];
+  if (!scope.actor) return COMMON_ITEMS;
+  const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
+  return permissions.has(PERMISSIONS.ATTENDANCE_MARK) ? [...TEACHER_ITEMS, ...COMMON_ITEMS] : COMMON_ITEMS;
 }
 
 function greeting(scope: CommandScope, childName: string | null): string {
@@ -56,12 +72,12 @@ function greeting(scope: CommandScope, childName: string | null): string {
   if (scope.kind === 'STUDENT') {
     return `Assalomu alaykum, <b>${name}</b>!\n\nKerakli bo‘limni tanlang:`;
   }
-  return `Assalomu alaykum, <b>${name}</b>!\nBu chat xodim hisobiga bog‘langan — eslatmalar shu yerga keladi.`;
+  return `Assalomu alaykum, <b>${name}</b>!\nBu chat xodim hisobiga bog‘langan — eslatmalar shu yerga keladi.\n\nKerakli bo‘limni tanlang:`;
 }
 
 /** Bosh menyuni ko'rsatadi */
 export async function showMainMenu(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
-  const buttons: InlineButton[] = itemsFor(scope).map((item) => ({ text: item.text, data: item.data }));
+  const buttons: InlineButton[] = (await itemsFor(scope)).map((item) => ({ text: item.text, data: item.data }));
   // Bir nechta farzandli ota-ona — almashtirish tugmasi
   if (scope.kind === 'PARENT' && scope.studentIds.length > 1) {
     buttons.unshift({ text: '👨‍👩‍👧 Farzandni tanlash', data: callback(STUDENT_ACTIONS.child) });

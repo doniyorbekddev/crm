@@ -200,7 +200,9 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
 
     await post(messageUpdate('/start')).expect(200);
 
-    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['cmd:/holat', 'cmd:/uzish']);
+    // Admin davomat olish huquqiga ega — o'qituvchi bo'limlari chiqadi, o'quvchi bo'limlari yo'q
+    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['tc_today', 'tc_groups', 'cmd:/holat', 'cmd:/uzish']);
+    expect(dataOf(bot.sent[0]!.keyboard).some((data) => data.startsWith('st_'))).toBe(false);
   });
 
   it('noma’lum callback bosh menyuga qaytaradi', async () => {

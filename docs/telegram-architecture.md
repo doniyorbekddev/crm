@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–3 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi boti).
+> Holat: **PHASE 1–5 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona boti, o'qituvchi boti).
 
 ---
 
@@ -136,7 +136,8 @@ ochish ortiqcha, chunki muddat o'qishda ham tekshiriladi.
 |---|---|
 | O'quvchi / Ota-ona | 📊 Profil · 📅 Dars jadvali · ✅ Davomat · 📝 Uy vazifalari · 🎯 Imtihonlar · ⭐ XP & Reyting · 💳 To'lovlar · 📜 Sertifikatlar · 🔗 Holat · 🚫 Uzish |
 | Ota-ona (2+ farzand) | + 👨‍👩‍👧 Farzandni tanlash — tanlov sessiyada turadi, bo'limlar o'sha farzand haqida |
-| Xodim | 🔗 Bog'lanish holati · 🚫 Uzish |
+| Xodim (`attendance.mark` ruxsati bilan) | 📅 Bugungi darslar · 📚 Guruhlarim · 🔗 Holat · 🚫 Uzish |
+| Boshqa xodim | 🔗 Holat · 🚫 Uzish |
 
 ---
 
@@ -171,6 +172,32 @@ Har bo'lim `telegram/handlers/student.ts` da va **mavjud servisni** chaqiradi:
 **Kabinet API** (`/api/portal/*`) ham shu servislardan foydalanadi: `homework`, `homework/:id/submit`,
 `homework/:id/attachment`, `exams`, `attendance/calendar`, `gamification`, `payments`.
 Bot va kabinet **bitta manbadan** o'qiydi va yozadi (TZ §58).
+
+## 5b. O'qituvchi bo'limlari (PHASE 5)
+
+`telegram/handlers/teacher.ts`. Farqi: xodim uchun `scope.actor` — CRM'dagi **haqiqiy `AuthUser`**
+(`User` + rol). Bot xodim nomidan mavjud servislarni chaqiradi, shuning uchun ruxsat va
+"faqat o'z guruhlari" qoidasi CRM'dagi bilan aynan bir xil — botda alohida tekshiruv yo'q (TZ §5).
+Menyu ham rol nomiga emas, **ruxsatga** qarab quriladi: `attendance.mark` bo'lsa o'qituvchi bo'limlari.
+
+| Bo'lim | Servis | Izoh |
+|---|---|---|
+| Guruhlarim | `groupService.list` | faol guruhlar, 8 talik sahifa; o'qituvchi faqat o'zinikini ko'radi |
+| Bugungi darslar | `attendanceAnalyticsService.teacherOverview` | dars kuni bo'lgan guruhlar, `davomat 2/12`, bugun kelmaganlar |
+| O'quvchilar | `attendanceService.getSheet` | faol o'quvchilar va telefon |
+| **Tezkor davomat** | `attendanceService.mark` | quyida |
+| **Vazifa berish** | `homeworkService.create` | sarlavha → muddat → tavsif → tasdiq; topshiriqlar CRM servisida ochiladi |
+
+**Tezkor davomat** (`TelegramSession`, flow `attendance`): varaq ochilganda belgilanmaganlar
+**"keldi"** deb boshlanadi — 30 kishilik guruhda o'qituvchi 30 emas, 2–3 ta tugma bosadi.
+Har tugma ✅ → ❌ → ⏰ → 📝 aylanadi, xabar o'rniga yangilanadi. «💾 Saqlash» —
+`attendanceService.mark`: XP, seriya, ota-onaga xabar, audit (`userAgent: telegram-bot`) o'sha yerda.
+Oqim ichidagi tugmalar (`tc_tog`, `tc_save`, `tc_hwok`) sessiyani yopmaydi; qolgan har qanday tugma yopadi.
+
+Servis xatosi (`AppError`: guruh topilmadi, ruxsat yo'q) foydalanuvchiga **o'z matni** bilan
+ko'rsatiladi — bu kutilgan holat, umumiy "Xatolik yuz berdi" emas.
+
+Bloklangan (`status ≠ ACTIVE`) xodimning bog'lanishi yopiladi — CRM'ga kira olmagani kabi botda ham ishlamaydi.
 
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga
@@ -231,7 +258,7 @@ so'rovni qabul qilmaydi va bot jim qolardi.
 | **2** | Bog'lash xavfsizligi: kod muddati, bir martalik, urinish chegarasi, `telegramUserId` |
 | ~~3~~ | ✅ Student bot — bajarildi |
 | ~~4~~ | ✅ Parent bot — farzand tanlash PHASE 3 ichida bajarildi (xavfsizlik uchun kerak edi: bo'lim birinchi farzandni jimgina ko'rsatmasin) |
-| **5** | Teacher bot: guruhlar, bugungi darslar, tezkor davomat (oqim `TelegramSession` orqali) |
+| ~~5~~ | ✅ Teacher bot — bajarildi |
 | **6–7** | Sales va Owner bot |
 | **8** | Yangi bildirishnoma turlari (homework, exam, XP, certificate) |
 | **9** | Broadcast |

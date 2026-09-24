@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import type { AuthUser } from '../types/auth.js';
 import { escapeHtml } from './telegram.service.js';
 import { paymentScheduleService } from './paymentSchedule.service.js';
 import { moneyUz } from '../utils/money.js';
@@ -24,6 +25,12 @@ export interface CommandScope {
   kind: 'STUDENT' | 'PARENT' | 'STAFF';
   label: string;
   studentIds: string[];
+  /**
+   * Xodim uchun — CRM'dagi haqiqiy foydalanuvchi. Bot xodim nomidan **mavjud servislarni**
+   * chaqiradi, shuning uchun ruxsat va guruh egaligi CRM'dagi bilan aynan bir xil (TZ §5).
+   * O'quvchi/ota-ona uchun null: ularda hisob bo'lmasligi mumkin.
+   */
+  actor: AuthUser | null;
 }
 
 const STUDENT_COMMANDS = [
@@ -43,6 +50,7 @@ function helpText(scope: CommandScope): string {
   const lines = ['<b>Mavjud buyruqlar</b>', ''];
   if (scope.kind === 'STAFF') {
     lines.push('Bu chat xodim hisobiga bog‘langan — eslatmalar shu yerga keladi.', '');
+    lines.push('/bugun — bugungi darslar va davomat', '/guruhlar — guruhlarim, o‘quvchilar, vazifa berish', '');
   } else {
     lines.push(...STUDENT_COMMANDS);
   }
@@ -62,7 +70,7 @@ export async function resolveCommandScope(link: {
       select: { id: true, firstName: true, lastName: true },
     });
     if (!student) return null;
-    return { kind: 'STUDENT', label: `${student.firstName} ${student.lastName}`, studentIds: [student.id] };
+    return { kind: 'STUDENT', label: `${student.firstName} ${student.lastName}`, studentIds: [student.id], actor: null };
   }
 
   if (link.parentId) {
@@ -76,16 +84,26 @@ export async function resolveCommandScope(link: {
       where: { id: { in: parent.students.map((row) => row.studentId) }, deletedAt: null },
       select: { id: true },
     });
-    return { kind: 'PARENT', label: `${parent.firstName} ${parent.lastName}`, studentIds: students.map((row) => row.id) };
+    return { kind: 'PARENT', label: `${parent.firstName} ${parent.lastName}`, studentIds: students.map((row) => row.id), actor: null };
   }
 
   if (link.userId) {
+    // Bloklangan xodim bot orqali ham ishlay olmasin — CRM'ga kira olmagani kabi
     const user = await prisma.user.findFirst({
-      where: { id: link.userId, deletedAt: null },
-      select: { firstName: true, lastName: true },
+      where: { id: link.userId, deletedAt: null, status: 'ACTIVE' },
+      select: { id: true, email: true, firstName: true, lastName: true, roleId: true, branchId: true, role: { select: { key: true } } },
     });
     if (!user) return null;
-    return { kind: 'STAFF', label: `${user.firstName} ${user.lastName}`, studentIds: [] };
+    const actor: AuthUser = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      roleId: user.roleId,
+      roleKey: user.role.key,
+      branchId: user.branchId,
+    };
+    return { kind: 'STAFF', label: `${user.firstName} ${user.lastName}`, studentIds: [], actor };
   }
 
   return null;
@@ -213,6 +231,8 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'xp', description: 'XP, seriya, reyting' },
   { command: 'qarz', description: 'To‘lovlar va qarz' },
   { command: 'sertifikat', description: 'Sertifikatlar' },
+  { command: 'bugun', description: 'Bugungi darslar (o‘qituvchi)' },
+  { command: 'guruhlar', description: 'Guruhlarim (o‘qituvchi)' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },

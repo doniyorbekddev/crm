@@ -6,6 +6,14 @@ import { logger } from '../utils/logger.js';
 import { MAIN_MENU, callback, parseCallback } from './keyboards.js';
 import { runCommand, showMainMenu } from './handlers/menu.js';
 import { HOMEWORK_FLOW, STUDENT_COMMANDS, handleHomeworkFlow, handleStudentAction } from './handlers/student.js';
+import {
+  ATTENDANCE_FLOW,
+  HOMEWORK_CREATE_FLOW,
+  TEACHER_COMMANDS,
+  TEACHER_FLOW_ACTIONS,
+  handleHomeworkCreateFlow,
+  handleTeacherAction,
+} from './handlers/teacher.js';
 import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
 import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
@@ -255,18 +263,24 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   const command = commandOf(text);
   const isCommand = command.startsWith('/');
 
-  const session = scope.kind === 'STAFF' ? null : await telegramSessionService.get(context.chatId);
+  const session = await telegramSessionService.get(context.chatId);
   const inFlow = session !== null && session.flow !== IDLE_FLOW;
   if (inFlow && !isCommand) {
-    if (session.flow === HOMEWORK_FLOW) return handleHomeworkFlow(context, scope, session);
-    // Noma'lum oqim — yopib, oddiy buyruq sifatida davom etadi
-    await telegramSessionService.clearFlow(context.chatId);
+    if (session.flow === HOMEWORK_FLOW && scope.kind !== 'STAFF') return handleHomeworkFlow(context, scope, session);
+    if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
+    // Davomat varag'i matn kutmaydi — tugmalar bilan ishlanadi; matn oddiy buyruq kabi ketadi
+    if (session.flow !== ATTENDANCE_FLOW) await telegramSessionService.clearFlow(context.chatId);
   }
   if (inFlow && isCommand) await telegramSessionService.clearFlow(context.chatId);
 
   const studentAction = scope.kind === 'STAFF' ? undefined : STUDENT_COMMANDS[command];
   if (studentAction) {
     const handled = await handleStudentAction(context, scope, studentAction, null);
+    if (handled) return handled;
+  }
+  const teacherAction = scope.actor ? TEACHER_COMMANDS[command] : undefined;
+  if (teacherAction) {
+    const handled = await handleTeacherAction(context, scope, teacherAction, null);
     if (handled) return handled;
   }
   return runCommand(context, scope, text);
@@ -276,12 +290,17 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
 async function handleCallback(context: BotContext, scope: NonNullable<BotContext['scope']>, data: string) {
   const { action, arg } = parseCallback(data);
 
-  // Har qanday tugma ochiq oqimni yopadi (sahifa raqamidan tashqari): foydalanuvchi
-  // boshqa bo'limga o'tdi — yarim qolgan topshirish uni kutib turmasin
-  if (action !== 'noop' && scope.kind !== 'STAFF') await telegramSessionService.clearFlow(context.chatId);
+  // Har qanday tugma ochiq oqimni yopadi: foydalanuvchi boshqa bo'limga o'tdi — yarim qolgan
+  // ish uni kutib turmasin. Istisno — oqimning o'z tugmalari (sahifa raqami, davomat belgisi,
+  // saqlash, tasdiqlash).
+  if (action !== 'noop' && !TEACHER_FLOW_ACTIONS.has(action)) await telegramSessionService.clearFlow(context.chatId);
 
   if (action.startsWith('st_') && scope.kind !== 'STAFF') {
     const handled = await handleStudentAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
+  if (action.startsWith('tc_') && scope.actor) {
+    const handled = await handleTeacherAction(context, scope, action, arg);
     if (handled) return handled;
   }
 
