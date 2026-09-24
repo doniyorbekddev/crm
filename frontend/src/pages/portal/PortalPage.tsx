@@ -2,7 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, GraduationCap, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { TelegramLinkCard } from '@/components/TelegramLinkCard';
+import { AchievementsCard } from './AchievementsCard';
+import { CurriculumCard } from './CurriculumCard';
 import { FeedbackCard } from './FeedbackCard';
+import { LessonsCard } from './LessonsCard';
+import { MyCertificatesCard } from './MyCertificatesCard';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -202,6 +206,14 @@ export function PortalPage() {
               </CardContent>
             </Card>
           </div>
+
+          <LessonsCard studentId={activeChild} />
+
+          <CurriculumCard studentId={activeChild} />
+
+          {profileQuery.data && <AchievementsCard profile={profileQuery.data} />}
+
+          <MyCertificatesCard studentId={activeChild} />
 
           <TelegramLinkCard />
 

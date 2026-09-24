@@ -879,3 +879,21 @@ qarz (650 000) va naqd kassa (−2 250 000) asl holatiga qaytdi, sinov kaliti `.
 **Click/Payme ulash uchun qoladi:** `src/services/payments/` ichida bitta fayl — `clickProvider`
 (imzoni Click qoidasi bo'yicha tekshirish va webhook tanasini o'qish) va `PROVIDERS` ro'yxatiga
 bitta qator. Qolgan hamma narsa (takrorlanish, kvitansiya, qarz, audit) o'zgarmaydi.
+
+### PHASE 14 (2-qism) — kabinetni to'ldirish (2026-09-24)
+
+Spec §4 va §5 dagi ro'yxatdan yetishmayotgan beshta bo'lim qo'shildi.
+
+| Qism | Holat |
+|---|---|
+| **Kelgusi darslar** — guruh jadvalidan keyingi 14 kun (8 ta darsgacha). Bekor qilingan dars "bekor qilingan" deb ko'rinadi — o'quvchi bekorga kelmasin | ✅ brauzerda tekshirildi |
+| **O'qituvchi ma'lumoti** — ism va yo'nalish. Telefon va email **ataylab berilmaydi** (kabinet — o'quvchi uchun, xodim ma'lumotlari uchun emas) | ✅ testda tekshiriladi |
+| **Kurs dasturi progressi** — modullar bo'yicha foiz va o'tilgan mavzular soni | ✅ |
+| **Yutuqlar** — nishonlar va reyting o'rni. Ma'lumot profil so'rovida allaqachon kelardi, qo'shimcha so'rov yo'q | ✅ |
+| **Sertifikatlar** — QR kod bilan (ochiq tekshiruv sahifasiga olib boradi). Sertifikat bo'lmasa kartochka umuman ko'rinmaydi | ✅ |
+| Barcha yangi endpointlar egalik tekshiruvidan o'tadi: begona `studentId` so'ralsa 403 | ✅ testda tekshiriladi |
+| Testlar: `tests/portal.test.ts` (+2, jami 9 ta) | ✅ 582 test |
+
+**Brauzerda tekshirildi (telefon o'lchamida):** kabinetda "Kelgusi darslar" (o'qituvchi ismi, sana,
+vaqt, guruh), "Kurs dasturi", "Yutuqlar", "To'lov holati", "Fikringiz" va Telegram bo'limlari
+ko'rindi. Tekshiruvdan keyin kabinet hisobi va test admin o'chirildi.

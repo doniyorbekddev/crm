@@ -172,3 +172,76 @@ describe.skipIf(!hasTestDatabase)('Kabinet (portal) — o‘quvchi va ota-ona', 
     expect(ownerMe.status).toBe(403);
   });
 });
+
+describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertifikatlar', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+  });
+
+  it('kelgusi darslar va o‘qituvchi ko‘rinadi, telefon ko‘rsatilmaydi', async () => {
+    const admin = await createUserWithToken(app, { role: 'ADMIN' });
+    const teacher = await createUserWithToken(app, { role: 'TEACHER', email: 'ustoz-kabinet@local.uz' });
+    const course = await createCourse('Frontend');
+    const group = await createGroup({ courseId: course.id, teacherId: teacher.user.id, scheduleDays: ['MONDAY', 'WEDNESDAY', 'FRIDAY'] });
+    const student = await createStudent(course.id, group.id, 'Darsli');
+    const { token } = await openStudentPortal(admin.token, student.id, 'darslar@portal.uz');
+
+    const response = await request(app).get('/api/portal/lessons').set(bearer(token));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.group.name).toBe(group.name);
+    expect(response.body.data.teacher.name).toContain(teacher.user.firstName);
+    expect(response.body.data.lessons.length).toBeGreaterThan(0);
+    expect(response.body.data.lessons[0]).toHaveProperty('startTime');
+    // O'qituvchining telefoni va emaili kabinetga chiqmaydi
+    expect(JSON.stringify(response.body)).not.toContain(teacher.user.email);
+  });
+
+  it('kurs progressi va sertifikatlar faqat o‘ziniki', async () => {
+    const admin = await createUserWithToken(app, { role: 'ADMIN' });
+    const course = await createCourse('Backend');
+    const group = await createGroup({ courseId: course.id });
+    const mine = await createStudent(course.id, group.id, 'Meniki');
+    const other = await createStudent(course.id, group.id, 'Begona');
+
+    await prisma.certificate.createMany({
+      data: [
+        {
+          studentId: mine.id,
+          courseId: course.id,
+          studentName: 'Meniki Test',
+          courseName: 'Backend',
+          issuedAt: new Date(),
+          startDate: new Date(),
+          completionDate: new Date(),
+          verifyToken: 'c'.repeat(32),
+        },
+        {
+          studentId: other.id,
+          courseId: course.id,
+          studentName: 'Begona Test',
+          courseName: 'Backend',
+          issuedAt: new Date(),
+          startDate: new Date(),
+          completionDate: new Date(),
+          verifyToken: 'd'.repeat(32),
+        },
+      ],
+    });
+
+    const { token } = await openStudentPortal(admin.token, mine.id, 'sertifikat@portal.uz');
+
+    const certificates = await request(app).get('/api/portal/certificates').set(bearer(token));
+    expect(certificates.status).toBe(200);
+    expect(certificates.body.data).toHaveLength(1);
+    expect(certificates.body.data[0].studentName).toBe('Meniki Test');
+
+    // Begona o'quvchi so'ralsa — rad etiladi
+    const foreign = await request(app).get('/api/portal/certificates').query({ studentId: other.id }).set(bearer(token));
+    expect(foreign.status).toBe(403);
+
+    const curriculum = await request(app).get('/api/portal/curriculum').set(bearer(token));
+    expect(curriculum.status).toBe(200);
+  });
+});

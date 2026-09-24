@@ -22,6 +22,24 @@ export const portalController = {
     sendSuccess(res, await portalService.schedule(requireAuthUser(req), studentId));
   },
 
+  /** Kelgusi darslar va o'qituvchi */
+  async lessons(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.lessons(requireAuthUser(req), studentId));
+  },
+
+  /** Kurs dasturi bo'yicha progress */
+  async curriculum(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.curriculum(requireAuthUser(req), studentId));
+  },
+
+  /** O'quvchining sertifikatlari */
+  async certificates(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.certificates(requireAuthUser(req), studentId));
+  },
+
   async feedbackState(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.feedbackState(requireAuthUser(req), studentId));

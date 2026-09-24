@@ -5,6 +5,10 @@ import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { permissionService } from './permission.service.js';
 import { feedbackService } from './feedback.service.js';
+import { certificateService } from './certificate.service.js';
+import { curriculumService } from './curriculum.service.js';
+import { businessDateString, startOfBusinessDay } from '../utils/dates.js';
+import type { WeekDay } from '../generated/prisma/client.js';
 import type { FeedbackDto } from './feedback.service.js';
 import type { FeedbackType } from '../generated/prisma/client.js';
 import type { PortalFeedbackBody } from '../validators/feedback.validator.js';
@@ -110,6 +114,22 @@ async function requireOwnStudent(actor: AuthUser, requestedId?: string): Promise
   return requestedId;
 }
 
+export interface PortalLessonDto {
+  date: string;
+  startTime: string;
+  endTime: string;
+  room: string | null;
+  status: 'PLANNED' | 'HELD' | 'CANCELLED';
+  topic?: string | null;
+}
+
+export interface PortalLessonsDto {
+  group: { id: string; name: string; course: string } | null;
+  /** O'qituvchi haqida faqat ism va yo'nalish — telefon va email ko'rsatilmaydi */
+  teacher: { name: string; specialization: string | null } | null;
+  lessons: PortalLessonDto[];
+}
+
 export const portalService = {
   async me(actor: AuthUser): Promise<PortalMeDto> {
     const scope = await resolveScope(actor);
@@ -136,6 +156,99 @@ export const portalService = {
   async schedule(actor: AuthUser, requestedStudentId?: string): Promise<PaymentScheduleDto> {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     return paymentScheduleService.get(studentId);
+  },
+
+  /**
+   * Kelgusi darslar: guruh jadvalidan keyingi 14 kun ichidagi darslar.
+   *
+   * Rejalashtirilgan dars seansi (`AttendanceSession`) bo'lsa, uning holati ham qo'shiladi —
+   * bekor qilingan dars ro'yxatda "bekor qilingan" deb ko'rinadi, o'quvchi bekorga kelmasin.
+   */
+  async lessons(actor: AuthUser, requestedStudentId?: string): Promise<PortalLessonsDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const student = await prisma.student.findFirstOrThrow({
+      where: { id: studentId, deletedAt: null },
+      select: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            scheduleDays: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            endDate: true,
+            roomRef: { select: { name: true } },
+            room: true,
+            teacher: { select: { firstName: true, lastName: true, teacherProfile: { select: { specialization: true } } } },
+            course: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    const group = student.group;
+    if (!group || group.status !== 'ACTIVE') {
+      return { group: null, teacher: null, lessons: [] };
+    }
+
+    const now = new Date();
+    const today = startOfBusinessDay(now);
+    const lessons: PortalLessonDto[] = [];
+    const weekdayNames: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
+    // Keyingi 14 kunni ko'rib chiqamiz — jadval haftalik takrorlanadi
+    for (let offset = 0; offset < 14 && lessons.length < 8; offset += 1) {
+      const date = new Date(today.getTime() + offset * 86_400_000);
+      const weekday = weekdayNames[date.getUTCDay()]!;
+      if (!group.scheduleDays.includes(weekday)) continue;
+      if (group.endDate && date > group.endDate) break;
+      lessons.push({
+        date: businessDateString(date),
+        startTime: group.startTime,
+        endTime: group.endTime,
+        room: group.roomRef?.name ?? group.room ?? null,
+        status: 'PLANNED',
+      });
+    }
+
+    // Rejalashtirilgan seanslar holatini qo'shamiz (bekor qilingan darslar ko'rinsin)
+    const sessions = await prisma.attendanceSession.findMany({
+      where: { groupId: group.id, date: { gte: today } },
+      // `topic` — matn (eski usul), `topicRef` — kurrikulum mavzusi
+      select: { date: true, status: true, topic: true, curriculumTopic: { select: { title: true } } },
+    });
+    const byDate = new Map(sessions.map((session) => [businessDateString(session.date), session]));
+    for (const lesson of lessons) {
+      const session = byDate.get(lesson.date);
+      if (!session) continue;
+      lesson.status = session.status;
+      lesson.topic = session.curriculumTopic?.title ?? session.topic ?? null;
+    }
+
+    return {
+      group: { id: group.id, name: group.name, course: group.course.name },
+      teacher: group.teacher
+        ? {
+            name: `${group.teacher.firstName} ${group.teacher.lastName}`,
+            specialization: group.teacher.teacherProfile?.specialization ?? null,
+          }
+        : null,
+      lessons,
+    };
+  },
+
+  /** Kurs dasturi bo'yicha progress — o'quvchi qaysi mavzularni o'tganini ko'radi */
+  async curriculum(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return curriculumService.studentProgress(studentId);
+  },
+
+  /** O'quvchining sertifikatlari (bekor qilinganlari ko'rsatilmaydi) */
+  async certificates(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const { items } = await certificateService.list({ page: 1, limit: 20, studentId, includeRevoked: false } as never);
+    return items;
   },
 
   /** Bugun qaysi fikrlar qoldirilgani — kabinetda formani yashirish uchun */

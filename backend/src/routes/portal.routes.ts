@@ -15,5 +15,8 @@ const portalAccess = requireAnyPermission(PERMISSIONS.PORTAL_STUDENT, PERMISSION
 portalRouter.get('/me', portalAccess, portalController.me);
 portalRouter.get('/profile', portalAccess, portalController.profile);
 portalRouter.get('/schedule', portalAccess, portalController.schedule);
+portalRouter.get('/lessons', portalAccess, portalController.lessons);
+portalRouter.get('/curriculum', portalAccess, portalController.curriculum);
+portalRouter.get('/certificates', portalAccess, portalController.certificates);
 portalRouter.get('/feedback', portalAccess, portalController.feedbackState);
 portalRouter.post('/feedback', portalAccess, portalController.submitFeedback);

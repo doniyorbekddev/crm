@@ -153,6 +153,9 @@ export const queryKeys = {
     me: ['portal', 'me'] as const,
     profile: (studentId: string) => ['portal', 'profile', studentId] as const,
     schedule: (studentId: string) => ['portal', 'schedule', studentId] as const,
+    lessons: (studentId: string) => ['portal', 'lessons', studentId] as const,
+    curriculum: (studentId: string) => ['portal', 'curriculum', studentId] as const,
+    certificates: (studentId: string) => ['portal', 'certificates', studentId] as const,
   },
   students: {
     all: ['students'] as const,

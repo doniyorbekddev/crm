@@ -27,3 +27,19 @@ export interface PortalAccount {
   /** Vaqtinchalik parol — faqat yaratish javobida ko‘rinadi */
   temporaryPassword: string;
 }
+
+export interface PortalLesson {
+  date: string;
+  startTime: string;
+  endTime: string;
+  room: string | null;
+  status: 'PLANNED' | 'HELD' | 'CANCELLED';
+  topic?: string | null;
+}
+
+export interface PortalLessons {
+  group: { id: string; name: string; course: string } | null;
+  /** O‘qituvchi haqida faqat ism va yo‘nalish — aloqa ma’lumotlari ko‘rsatilmaydi */
+  teacher: { name: string; specialization: string | null } | null;
+  lessons: PortalLesson[];
+}
