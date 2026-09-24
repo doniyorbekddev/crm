@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–8 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar botlari, o'quvchi bildirishnomalari).
+> Holat: **PHASE 1–9 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar botlari, bildirishnomalar, ommaviy xabar).
 
 ---
 
@@ -231,6 +231,27 @@ hisobga olinadi); Telegram — `studentId`/`parentId` bo'yicha, hisob shart emas
 Chaqiruvchi faqat **id** beradi — matn, manzil va `dedupeKey` bitta joyda (bir xil ball qayta
 qo'yilsa takror xabar ketmaydi).
 
+## 5e. Ommaviy xabar — broadcast (PHASE 9)
+
+`services/broadcast.service.ts` + `handlers/broadcast.ts` + REST (`/api/telegram/broadcasts`).
+Yangi ruxsat: **`broadcast.send`** (admin, rahbar). Menyuda «📢 Xabar yuborish», buyruq `/xabar`.
+
+```text
+Kimga? → [o'quvchilar | ota-onalar | guruh → tanlash → (+ota-onalar?) | kurs | o'qituvchilar | xodimlar]
+      → matn (2000 belgigacha)
+      → oldindan ko'rish: «Guruh: A guruh — 23 ta chat» + matn
+      → ✅ Yuborish / ❌ Bekor
+      → TelegramBroadcast yozuvi + NotificationDelivery navbati (bir tranzaksiyada) + audit
+```
+
+- **Navbat orqali**, to'g'ridan-to'g'ri emas: Telegram chegarasi, qayta urinish, "chat bloklagan" —
+  hammasi mavjud yetkazish mexanizmida (TZ §26, §54). Statistika (yuborildi / kutmoqda / yetmadi)
+  navbatdan `broadcastId` bo'yicha hisoblanadi — alohida hisoblagich yo'q.
+- **Filial doirasi**: auditoriya `branchAccess` bilan cheklanadi — filial admini boshqa filialga yoza olmaydi.
+- Faqat tasdiqlangan, faol chatlar; bo'sh auditoriya — 422, yozuv yaratilmaydi.
+- Matn HTML rejimida ketadi — foydalanuvchi yozgan `<` belgisi `escapeHtml` bilan xavfsizlanadi.
+- Rasm/fayl bilan yuborish hozircha yo'q — navbat matnli; keyingi bosqichda `fileId` qo'shish mumkin.
+
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga
 ajratildi — `buildStudentProfile` naqshi bo'yicha (ruxsat chaqiruvchi tomonda).
@@ -293,4 +314,4 @@ so'rovni qabul qilmaydi va bot jim qolardi.
 | ~~5~~ | ✅ Teacher bot — bajarildi |
 | ~~6–7~~ | ✅ Sotuv va rahbar botlari — bajarildi |
 | ~~8~~ | ✅ Bildirishnoma turlari — bajarildi |
-| **9** | Broadcast |
+| ~~9~~ | ✅ Broadcast — bajarildi |

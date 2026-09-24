@@ -5,6 +5,9 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import { AppError } from '../utils/AppError.js';
+import { broadcastService } from '../services/broadcast.service.js';
+import { broadcastSchema } from '../validators/broadcast.validator.js';
+import { getClientInfo } from '../utils/requestContext.js';
 
 export const telegramController = {
   /** Joriy foydalanuvchining bog‘lanish holati va ulash havolasi */
@@ -31,6 +34,21 @@ export const telegramController = {
     const { id } = idParamSchema.parse(req.params);
     const link = await telegramLinkService.ensureLink({ studentId: id });
     sendSuccess(res, { ...link, enabled: isTelegramEnabled() });
+  },
+
+  async broadcastPreview(req: Request, res: Response): Promise<void> {
+    const input = broadcastSchema.parse(req.body);
+    sendSuccess(res, await broadcastService.preview(requireAuthUser(req), input));
+  },
+
+  async broadcastSend(req: Request, res: Response): Promise<void> {
+    const input = broadcastSchema.parse(req.body);
+    const result = await broadcastService.send(requireAuthUser(req), input, getClientInfo(req));
+    sendSuccess(res, result, { message: `Xabar ${result.recipients} ta chatga navbatga qo‘yildi` });
+  },
+
+  async broadcastList(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await broadcastService.list(requireAuthUser(req)));
   },
 
   /**

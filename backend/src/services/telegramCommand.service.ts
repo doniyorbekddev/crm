@@ -57,6 +57,7 @@ function helpText(scope: CommandScope): string {
       '/leadlar — leadlarim va statusni o‘zgartirish',
       '/followup — follow-uplar',
       '/qarzdorlar — eng katta qarzdorlar',
+      '/xabar — ommaviy xabar yuborish',
       '(bo‘limlar ruxsatingizga qarab ochiladi)',
       '',
     );
@@ -246,6 +247,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'leadlar', description: 'Leadlarim (sotuv)' },
   { command: 'followup', description: 'Follow-uplar (sotuv)' },
   { command: 'qarzdorlar', description: 'Qarzdorlar (rahbar)' },
+  { command: 'xabar', description: 'Ommaviy xabar (admin)' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },

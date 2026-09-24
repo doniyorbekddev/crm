@@ -6,6 +6,7 @@ import { STUDENT_ACTIONS, activeChildName } from './student.js';
 import { TEACHER_ACTIONS } from './teacher.js';
 import { SALES_ACTIONS } from './sales.js';
 import { OWNER_ACTIONS } from './owner.js';
+import { BROADCAST_ACTIONS } from './broadcast.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import { permissionService } from '../../services/permission.service.js';
 
@@ -76,6 +77,7 @@ async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   if (permissions.has(PERMISSIONS.DEBT_VIEW)) items.push({ text: '⚠️ Qarzdorlar', data: callback(OWNER_ACTIONS.debts) });
   if (permissions.has(PERMISSIONS.STUDENT_VIEW)) items.push({ text: '🔥 Xavf ostida', data: callback(OWNER_ACTIONS.risk) });
   if (permissions.has(PERMISSIONS.ALERT_VIEW)) items.push({ text: '🔔 Ogohlantirishlar', data: callback(OWNER_ACTIONS.alerts) });
+  if (permissions.has(PERMISSIONS.BROADCAST_SEND)) items.push({ text: '📢 Xabar yuborish', data: callback(BROADCAST_ACTIONS.start) });
   return [...items, ...COMMON_ITEMS];
 }
 

@@ -56,6 +56,8 @@ export const PERMISSIONS = {
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
+  /** Telegram orqali ommaviy xabar yuborish */
+  BROADCAST_SEND: 'broadcast.send',
   AUDIT_VIEW: 'audit.view',
 
   // --- O'quv markaz modullari ---
@@ -198,6 +200,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
 
   { key: PERMISSIONS.ROLE_MANAGE, module: 'roles', description: 'Rollar va permissionlarni boshqarish' },
   { key: PERMISSIONS.SETTINGS_MANAGE, module: 'settings', description: 'CRM sozlamalarini boshqarish' },
+  { key: PERMISSIONS.BROADCAST_SEND, module: 'settings', description: 'Telegram orqali ommaviy xabar yuborish' },
   { key: PERMISSIONS.AUDIT_VIEW, module: 'audit', description: 'Audit logni ko‘rish' },
 
   { key: PERMISSIONS.TEACHER_VIEW, module: 'teachers', description: 'O‘qituvchilarni ko‘rish' },
