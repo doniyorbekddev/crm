@@ -73,11 +73,27 @@ Tartib muhim — har biri o'zidan keyingisini himoya qiladi:
 | 6 | Xato | Foydalanuvchiga faqat "Xatolik yuz berdi", haqiqiy xato `TelegramEvent.error` va logda (TZ §46) |
 | 7 | Maxfiylik | `TelegramEvent` da **foydalanuvchi matni saqlanmaydi** — faqat buyruq nomi va holati |
 
-### ⚠️ Ochiq nuqson — PHASE 2 da tuzatiladi
+### Bog'lash kodi (PHASE 2 da mustahkamlandi)
 
-Bog'lash kodi hozir **muddatsiz va bir martalik emas**; `verifiedAt` tekshirilmaydi.
-Kodni ko'rgan boshqa chat o'zini bog'lab, foydalanuvchining bildirishnomalarini burib
-yuborishi mumkin. Batafsil: [TELEGRAM-BOT-AUDIT.md §12](TELEGRAM-BOT-AUDIT.md).
+Avval kod **muddatsiz va bir martalik emas** edi, `verifiedAt` tekshirilmasdi — kodni
+ko'rgan boshqa chat o'zini bog'lab, foydalanuvchining bildirishnomalarini burib yuborishi
+mumkin edi. Endi:
+
+| Chora | Qanday |
+|---|---|
+| **Muddat** | Kod 15 daqiqa amal qiladi. Muddati o'tsa, CRM sahifasi ochilganda **yangisi** beriladi |
+| **Bir martalik** | `codeUsedAt` to'lgach kod ishlamaydi — o'sha kod bilan ikkinchi chat bog'lana olmaydi |
+| **Replay** | Tasdiqlangan bog'lanish (`verifiedAt`) kodni butunlay yopadi |
+| **Brute-force** | 5 ta ketma-ket noto'g'ri kod → chat 15 daqiqaga bloklanadi. To'g'ri kod hisoblagichni nolga tushiradi |
+| **Bir xil javob** | "Topilmadi", "ishlatilgan" va "muddati o'tgan" — uchalasiga **bir xil** matn, kod bor-yo'qligi bildirilmaydi |
+| **Kim bog'ladi** | `telegramUserId` saqlanadi (guruh chatida `chatId` dan farq qiladi) |
+| **Audit** | `telegram.linked` / `telegram.unlinked` — TZ §33 |
+| **Tozalash** | Ishlatilmagan, muddati o'tgan kodlar kunlik jobda o'chiriladi |
+
+> **Migratsiyada `now()` ishlatilmaydi.** `codeExpiresAt` — `TIMESTAMP` (mintaqasiz), Prisma
+> uni UTC deb o'qiydi. Baza mintaqasi UTC dan farq qilsa (bizda `Asia/Tashkent`), `now()`
+> kodni "eskirgan" emas, **5 soat kelajakka** qo'yib yuborardi. Shuning uchun aniq
+> o'tmishdagi sana yoziladi.
 
 ---
 

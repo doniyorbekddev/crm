@@ -94,6 +94,13 @@ export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 
             <code className="block rounded-lg border border-border bg-surface-muted p-3 font-mono text-sm text-fg">
               /start {linkQuery.data.linkCode}
             </code>
+            {linkQuery.data.codeExpiresAt && (
+              // Kod muddatli: u ekran suratidan tarqalib ketsa ham abadiy ishlamasin
+              <p className="text-xs text-fg-subtle">
+                Kod {formatDateTime(linkQuery.data.codeExpiresAt)} gacha amal qiladi. Muddati o‘tsa, shu sahifani
+                yangilang — yangi kod beriladi.
+              </p>
+            )}
             {linkQuery.data.deepLink && (
               <a
                 href={linkQuery.data.deepLink}

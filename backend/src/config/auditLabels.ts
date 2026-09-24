@@ -113,6 +113,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'exam.deleted': 'Imtihon o‘chirildi',
 
   'payment.created': 'To‘lov qabul qilindi',
+  'telegram.linked': 'Telegram ulandi',
+  'telegram.unlinked': 'Telegram uzildi',
   'payment.deleted': 'To‘lov bekor qilindi',
   'payment.refunded': 'To‘lov qaytarildi',
   'expense.requested': 'Xarajat tasdiqqa yuborildi',
@@ -183,6 +185,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
+  telegram_link: 'Telegram bog‘lanishi',
   /** Kirish/chiqish amallari ham foydalanuvchi obyektiga yoziladi */
   user: 'Xodim',
   audit: 'Audit jurnali',

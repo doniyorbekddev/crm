@@ -1,4 +1,5 @@
 import { cleanupAuditLogs } from '../services/audit.service.js';
+import { telegramLinkService } from '../services/telegramLink.service.js';
 import { telegramSessionService } from '../telegram/session.service.js';
 import { logger } from '../utils/logger.js';
 
@@ -25,6 +26,10 @@ async function runOnce(): Promise<void> {
     // alohida job ochish ortiqcha: yozuvlar oz va muddati o'qishda ham tekshiriladi.
     const sessions = await telegramSessionService.purgeExpired(new Date());
     if (sessions > 0) logger.info({ sessions }, 'Muddati o‘tgan Telegram oqimlari tozalandi');
+
+    // Ishlatilmagan, muddati o'tgan bog'lash kodlari ham qolib ketmasin
+    const codes = await telegramLinkService.purgeExpiredCodes(new Date());
+    if (codes > 0) logger.info({ codes }, 'Muddati o‘tgan Telegram kodlari tozalandi');
   } catch (error) {
     logger.error({ err: error }, 'Audit tozalash jobida xatolik');
   } finally {

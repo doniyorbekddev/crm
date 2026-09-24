@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { telegramService } from '../services/telegram.service.js';
 import { resolveCommandScope } from '../services/telegramCommand.service.js';
+import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
 import { MAIN_MENU, callback, parseCallback } from './keyboards.js';
 import { runCommand, showMainMenu } from './handlers/menu.js';
@@ -180,6 +181,16 @@ export async function routeUpdate(update: TelegramUpdate): Promise<RouteResult> 
 
     if (action === UNLINK_CONFIRM) {
       await prisma.telegramLink.delete({ where: { id: link.id } });
+      // TZ §33: uzish ham audit qilinadi — bog'lash bilan bir xil darajada muhim
+      await auditService.record({
+        userId: link.userId,
+        action: 'telegram.unlinked',
+        entityType: 'telegram_link',
+        entityId: link.id,
+        metadata: { chatId: base.chatId, source: 'bot' },
+        ip: null,
+        userAgent: null,
+      });
       await context.render(
         'Bog‘lanish uzildi. Eslatmalar endi bu chatga kelmaydi.\nQayta ulash uchun CRM’dan yangi havola oling.',
       );

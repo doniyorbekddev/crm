@@ -16,7 +16,7 @@ export const telegramController = {
 
   async unlink(req: Request, res: Response): Promise<void> {
     const actor = requireAuthUser(req);
-    await telegramLinkService.unlink(await ownerForActor(actor.id));
+    await telegramLinkService.unlink(await ownerForActor(actor.id), actor.id);
     sendSuccess(res, null, { message: 'Telegram uzildi' });
   },
 

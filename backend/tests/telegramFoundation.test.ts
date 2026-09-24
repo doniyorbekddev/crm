@@ -378,3 +378,155 @@ describe.skipIf(!hasTestDatabase)('Telegram polling (sinov rejimi)', () => {
     expect(next).toBe(100);
   });
 });
+
+describe('Bog‘lash urinishlari chegarasi (sof funksiya)', () => {
+  it('ketma-ket xatodan keyin chat bloklanadi va vaqt o‘tgach ochiladi', async () => {
+    const { allowLinkAttempt, registerFailedLinkAttempt, resetAllLinkAttempts, resetLinkAttempts } = await import(
+      '../src/telegram/linkAttempts.js'
+    );
+    resetAllLinkAttempts();
+    const now = Date.now();
+
+    for (let i = 0; i < 4; i += 1) {
+      registerFailedLinkAttempt('chat-a', now);
+      expect(allowLinkAttempt('chat-a', now)).toBe(true);
+    }
+    // Beshinchi xato — blok
+    registerFailedLinkAttempt('chat-a', now);
+    expect(allowLinkAttempt('chat-a', now)).toBe(false);
+
+    // Boshqa chat ta'sirlanmaydi
+    expect(allowLinkAttempt('chat-b', now)).toBe(true);
+
+    // Blok muddati o'tgach ochiladi
+    expect(allowLinkAttempt('chat-a', now + 16 * 60_000)).toBe(true);
+
+    // To'g'ri kod kiritgan odam oldingi xatolari uchun jazolanmaydi
+    registerFailedLinkAttempt('chat-c', now);
+    resetLinkAttempts('chat-c');
+    for (let i = 0; i < 4; i += 1) registerFailedLinkAttempt('chat-c', now);
+    expect(allowLinkAttempt('chat-c', now)).toBe(true);
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('Bog‘lash kodi xavfsizligi', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+    resetRateLimits();
+    const { resetAllLinkAttempts } = await import('../src/telegram/linkAttempts.js');
+    resetAllLinkAttempts();
+    vi.restoreAllMocks();
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  /** Xodim uchun yangi kod */
+  async function freshCode() {
+    const { user } = await createUserWithToken(app, { role: 'ADMIN' });
+    const link = await telegramLinkService.ensureLink({ userId: user.id });
+    return { userId: user.id, code: link.linkCode, expiresAt: link.codeExpiresAt };
+  }
+
+  it('kod muddat bilan beriladi', async () => {
+    const { expiresAt } = await freshCode();
+
+    expect(expiresAt).not.toBeNull();
+    const remaining = new Date(expiresAt!).getTime() - Date.now();
+    // 15 daqiqa — havolani ochib botga o'tishga yetarli, lekin abadiy emas
+    expect(remaining).toBeGreaterThan(10 * 60_000);
+    expect(remaining).toBeLessThanOrEqual(15 * 60_000);
+  });
+
+  it('muddati o‘tgan kod ishlamaydi', async () => {
+    const { code } = await freshCode();
+    await prisma.telegramLink.update({ where: { linkCode: code }, data: { codeExpiresAt: new Date(Date.now() - 1000) } });
+    const bot = captureBot();
+
+    await post(messageUpdate(`/start ${code}`)).expect(200);
+
+    expect(bot.sent[0]!.text).toContain('eskirgan');
+    expect(await prisma.telegramLink.count({ where: { verifiedAt: { not: null } } })).toBe(0);
+  });
+
+  it('kod bir martalik — ikkinchi chat u bilan bog‘lana olmaydi', async () => {
+    const { code } = await freshCode();
+    const bot = captureBot();
+
+    // Birinchi chat bog'lanadi
+    await post(messageUpdate(`/start ${code}`, 111_111)).expect(200);
+    const first = await prisma.telegramLink.findUniqueOrThrow({ where: { linkCode: code } });
+    expect(first.chatId).toBe('111111');
+
+    // Ikkinchi chat o'sha kod bilan urinadi — bu ilgari bog'lanishni o'g'irlar edi
+    await post(messageUpdate(`/start ${code}`, 222_222)).expect(200);
+
+    const after = await prisma.telegramLink.findUniqueOrThrow({ where: { linkCode: code } });
+    expect(after.chatId).toBe('111111');
+    expect(bot.sent.at(-1)!.text).toContain('eskirgan');
+  });
+
+  it('bog‘lanish va uzish audit jurnaliga yoziladi', async () => {
+    const { userId, code } = await freshCode();
+    captureBot();
+
+    await post(messageUpdate(`/start ${code}`)).expect(200);
+    const linked = await prisma.auditLog.findFirst({ where: { action: 'telegram.linked' } });
+    expect(linked).toMatchObject({ entityType: 'telegram_link', userId });
+
+    await post(messageUpdate('/uzish')).expect(200);
+    await post(callbackUpdate('unlink_yes')).expect(200);
+    const unlinked = await prisma.auditLog.findFirst({ where: { action: 'telegram.unlinked' } });
+    expect(unlinked).toMatchObject({ entityType: 'telegram_link' });
+  });
+
+  it('bog‘lagan Telegram foydalanuvchisi saqlanadi', async () => {
+    const { code } = await freshCode();
+    captureBot();
+
+    await post(messageUpdate(`/start ${code}`)).expect(200);
+
+    const saved = await prisma.telegramLink.findUniqueOrThrow({ where: { linkCode: code } });
+    // Guruh chatida `chatId` va foydalanuvchi id bir xil emas — kim bog'laganini bilish kerak
+    expect(saved.telegramUserId).toBe('900');
+    expect(saved.codeUsedAt).not.toBeNull();
+  });
+
+  it('amal qilayotgan kod sahifa qayta ochilganda o‘zgarmaydi', async () => {
+    const { userId, code } = await freshCode();
+
+    const again = await telegramLinkService.ensureLink({ userId });
+
+    // Aks holda foydalanuvchi nusxalagan havola keyin ishlamay qolardi
+    expect(again.linkCode).toBe(code);
+  });
+
+  it('muddati o‘tgan kod sahifa ochilganda yangilanadi', async () => {
+    const { userId, code } = await freshCode();
+    await prisma.telegramLink.update({ where: { linkCode: code }, data: { codeExpiresAt: new Date(Date.now() - 1000) } });
+
+    const again = await telegramLinkService.ensureLink({ userId });
+
+    expect(again.linkCode).not.toBe(code);
+    // Eski yozuv qayta ishlatiladi — "bitta egaga bitta bog'lanish" qoidasi buzilmaydi
+    expect(await prisma.telegramLink.count({ where: { userId } })).toBe(1);
+  });
+
+  it('ishlatilmagan eski kodlar tozalanadi, bog‘langanlari qoladi', async () => {
+    const { code } = await freshCode();
+    await prisma.telegramLink.update({ where: { linkCode: code }, data: { codeExpiresAt: new Date(Date.now() - 1000) } });
+
+    const { user: other } = await createUserWithToken(app, { role: 'TEACHER', email: 'ustoz-tg@local.uz' });
+    const live = await telegramLinkService.ensureLink({ userId: other.id });
+    captureBot();
+    await post(messageUpdate(`/start ${live.linkCode}`, 333_333)).expect(200);
+
+    const removed = await telegramLinkService.purgeExpiredCodes();
+
+    expect(removed).toBe(1);
+    expect(await prisma.telegramLink.count()).toBe(1);
+    expect((await prisma.telegramLink.findFirstOrThrow()).verifiedAt).not.toBeNull();
+  });
+});

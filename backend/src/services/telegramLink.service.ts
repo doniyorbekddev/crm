@@ -3,7 +3,9 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
+import { auditService } from './audit.service.js';
 import { telegramService } from './telegram.service.js';
+import { allowLinkAttempt, registerFailedLinkAttempt, resetLinkAttempts } from '../telegram/linkAttempts.js';
 import { routeUpdate } from '../telegram/router.js';
 import type { TelegramUpdate } from '../telegram/types.js';
 
@@ -21,6 +23,14 @@ import type { TelegramUpdate } from '../telegram/types.js';
 
 const LINK_CODE_BYTES = 8;
 
+/**
+ * Kod shuncha vaqt amal qiladi.
+ *
+ * Qisqa bo'lishi shart: kod CRM sahifasida ochiq ko'rinadi va ekran surati orqali
+ * tarqalishi mumkin. 15 daqiqa — havolani ochib, botga o'tishga yetarli.
+ */
+const CODE_TTL_MS = 15 * 60_000;
+
 export interface TelegramLinkOwner {
   userId?: string | null;
   studentId?: string | null;
@@ -34,6 +44,8 @@ export interface TelegramLinkDto {
   chatTitle: string | null;
   verifiedAt: string | null;
   isActive: boolean;
+  /** Kod shu vaqtgacha amal qiladi (bog'langandan keyin — null) */
+  codeExpiresAt: string | null;
   /** Foydalanuvchiga ko'rsatiladigan havola: https://t.me/<bot>?start=<kod> */
   deepLink: string | null;
 }
@@ -45,7 +57,9 @@ function toDto(row: {
   chatTitle: string | null;
   verifiedAt: Date | null;
   isActive: boolean;
+  codeExpiresAt: Date | null;
 }): TelegramLinkDto {
+  const linked = row.verifiedAt !== null;
   return {
     id: row.id,
     linkCode: row.linkCode,
@@ -53,9 +67,21 @@ function toDto(row: {
     chatTitle: row.chatTitle,
     verifiedAt: row.verifiedAt?.toISOString() ?? null,
     isActive: row.isActive,
+    // Bog'langandan keyin kod ahamiyatsiz — muddatini ko'rsatish chalkashtiradi
+    codeExpiresAt: linked ? null : (row.codeExpiresAt?.toISOString() ?? null),
     deepLink: env.TELEGRAM_BOT_USERNAME ? `https://t.me/${env.TELEGRAM_BOT_USERNAME}?start=${row.linkCode}` : null,
   };
 }
+
+const linkSelect = {
+  id: true,
+  linkCode: true,
+  chatId: true,
+  chatTitle: true,
+  verifiedAt: true,
+  isActive: true,
+  codeExpiresAt: true,
+} as const;
 
 function ownerWhere(owner: TelegramLinkOwner) {
   if (owner.userId) return { userId: owner.userId };
@@ -94,34 +120,81 @@ export async function ownerForActor(userId: string): Promise<TelegramLinkOwner> 
 
 export const telegramLinkService = {
   /** Mavjud bog'lanishni qaytaradi yoki yangi kod yaratadi */
-  async ensureLink(owner: TelegramLinkOwner): Promise<TelegramLinkDto> {
+  /**
+   * Mavjud bog'lanishni qaytaradi yoki **yangi kod** beradi.
+   *
+   * Kod har safar yangilanmaydi: sahifa ochilgan sayin yangi kod berilsa, foydalanuvchi
+   * havolani nusxalab, keyin qaytib kelganda eskisi ishlamay qolardi. Shuning uchun amal
+   * qilayotgan kod qaytariladi, **muddati o'tgani** esa almashtiriladi.
+   */
+  async ensureLink(owner: TelegramLinkOwner, now: Date = new Date()): Promise<TelegramLinkDto> {
     const where = ownerWhere(owner);
     const existing = await prisma.telegramLink.findFirst({
       where,
       orderBy: { createdAt: 'desc' },
-      select: { id: true, linkCode: true, chatId: true, chatTitle: true, verifiedAt: true, isActive: true },
+      select: linkSelect,
     });
-    if (existing) return toDto(existing);
 
-    const created = await prisma.telegramLink.create({
-      data: { ...where, linkCode: randomBytes(LINK_CODE_BYTES).toString('hex') },
-      select: { id: true, linkCode: true, chatId: true, chatTitle: true, verifiedAt: true, isActive: true },
-    });
-    return toDto(created);
+    // Allaqachon bog'langan — kod bilan ishimiz yo'q
+    if (existing?.verifiedAt) return toDto(existing);
+
+    const stillValid = existing?.codeExpiresAt !== null && existing?.codeExpiresAt !== undefined && existing.codeExpiresAt > now;
+    if (existing && stillValid) return toDto(existing);
+
+    const fresh = {
+      linkCode: randomBytes(LINK_CODE_BYTES).toString('hex'),
+      codeExpiresAt: new Date(now.getTime() + CODE_TTL_MS),
+      codeUsedAt: null,
+    };
+
+    // Eski yozuv qayta ishlatiladi: yangisini yaratish "bitta egaga bitta bog'lanish"
+    // qoidasini buzardi va eski kod ham amal qilib qolardi.
+    const saved = existing
+      ? await prisma.telegramLink.update({ where: { id: existing.id }, data: fresh, select: linkSelect })
+      : await prisma.telegramLink.create({ data: { ...where, ...fresh }, select: linkSelect });
+
+    return toDto(saved);
   },
 
   async status(owner: TelegramLinkOwner): Promise<TelegramLinkDto | null> {
     const existing = await prisma.telegramLink.findFirst({
       where: ownerWhere(owner),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, linkCode: true, chatId: true, chatTitle: true, verifiedAt: true, isActive: true },
+      select: linkSelect,
     });
     return existing ? toDto(existing) : null;
   },
 
   /** Bog'lanishni uzish — yozuv o'chiriladi, keyin yangi kod olish mumkin */
-  async unlink(owner: TelegramLinkOwner): Promise<void> {
-    await prisma.telegramLink.deleteMany({ where: ownerWhere(owner) });
+  async unlink(owner: TelegramLinkOwner, actorId?: string | null): Promise<void> {
+    const where = ownerWhere(owner);
+    const rows = await prisma.telegramLink.findMany({ where, select: { id: true, chatId: true } });
+    await prisma.telegramLink.deleteMany({ where });
+
+    for (const row of rows) {
+      await auditService.record({
+        userId: actorId ?? null,
+        action: 'telegram.unlinked',
+        entityType: 'telegram_link',
+        entityId: row.id,
+        metadata: { chatId: row.chatId, source: 'crm' },
+        ip: null,
+        userAgent: null,
+      });
+    }
+  },
+
+  /**
+   * Ishlatilmagan, muddati o'tgan kodlarni tozalaydi.
+   *
+   * Bog'lanmagan yozuv omborda turib qolsa, unda eski kod ham qolib ketardi.
+   * Tasdiqlangan bog'lanishlarga tegilmaydi.
+   */
+  async purgeExpiredCodes(now: Date = new Date()): Promise<number> {
+    const result = await prisma.telegramLink.deleteMany({
+      where: { verifiedAt: null, codeExpiresAt: { lte: now } },
+    });
+    return result.count;
   },
 
   /**
@@ -150,35 +223,79 @@ export const telegramLinkService = {
     }
 
     const code = match[1]!;
-    const link = await prisma.telegramLink.findUnique({
-      where: { linkCode: code },
-      select: { id: true, verifiedAt: true },
-    });
-    if (!link) {
-      await telegramService.sendMessage(String(chatId), 'Kod topilmadi yoki eskirgan. CRM’dan yangi havola oling.');
+    const chat = String(chatId);
+
+    // Ketma-ket noto'g'ri kod — kod izlashga urinish. Chat vaqtincha bloklanadi.
+    if (!allowLinkAttempt(chat)) {
+      await telegramService.sendMessage(chat, 'Juda ko‘p urinish. Biroz kuting va qaytadan urinib ko‘ring.');
       return { linked: false };
     }
 
+    const now = new Date();
+    const link = await prisma.telegramLink.findUnique({
+      where: { linkCode: code },
+      select: { id: true, verifiedAt: true, codeExpiresAt: true, codeUsedAt: true, userId: true, studentId: true, parentId: true },
+    });
+
+    // Uch holatda ham **bir xil** javob beriladi: kod bor-yo'qligini bildirib qo'ymaslik uchun.
+    //  - kod topilmadi;
+    //  - kod allaqachon ishlatilgan (bir martalik — replay himoyasi);
+    //  - kod muddati o'tgan yoki muddatsiz eski yozuv.
+    const unusable =
+      !link ||
+      link.verifiedAt !== null ||
+      link.codeUsedAt !== null ||
+      link.codeExpiresAt === null ||
+      link.codeExpiresAt <= now;
+
+    if (unusable) {
+      // Bu yerda ham hisoblanadi: to'g'ri kodni topgan odam bloklanmasin, izlagan bloklansin
+      registerFailedLinkAttempt(chat);
+      await telegramService.sendMessage(chat, 'Kod topilmadi yoki eskirgan. CRM’dan yangi havola oling.');
+      return { linked: false };
+    }
+
+    resetLinkAttempts(chat);
+
     // Shu chat boshqa yozuvga bog'langan bo'lsa — eskisi uziladi (bitta chat = bitta egasi)
     await prisma.telegramLink.updateMany({
-      where: { chatId: String(chatId), id: { not: link.id } },
+      where: { chatId: chat, id: { not: link.id } },
       data: { chatId: null, verifiedAt: null },
     });
+
+    const telegramUserId = message?.from?.id === undefined ? null : String(message.from.id);
 
     await prisma.telegramLink.update({
       where: { id: link.id },
       data: {
-        chatId: String(chatId),
+        chatId: chat,
         chatTitle: (message?.chat?.first_name ?? message?.chat?.title ?? null)?.slice(0, 150) ?? null,
-        verifiedAt: new Date(),
+        telegramUserId,
+        verifiedAt: now,
+        // Kod ishlatildi — endi u bilan boshqa chat bog'lana olmaydi
+        codeUsedAt: now,
+        lastSeenAt: now,
         isActive: true,
       },
     });
 
-    await telegramService.sendMessage(
-      String(chatId),
-      'Telegram muvaffaqiyatli ulandi. Endi eslatmalar shu yerga keladi.',
-    );
+    // TZ §33: bog'lash audit qilinadi — kim, qachon, qaysi chat
+    await auditService.record({
+      userId: link.userId,
+      action: 'telegram.linked',
+      entityType: 'telegram_link',
+      entityId: link.id,
+      metadata: {
+        chatId: chat,
+        telegramUserId,
+        ...(link.studentId ? { studentId: link.studentId } : {}),
+        ...(link.parentId ? { parentId: link.parentId } : {}),
+      },
+      ip: null,
+      userAgent: null,
+    });
+
+    await telegramService.sendMessage(chat, 'Telegram muvaffaqiyatli ulandi. Endi eslatmalar shu yerga keladi.');
     logger.info({ linkId: link.id }, 'Telegram bog‘lanishi tasdiqlandi');
     return { linked: true };
   },

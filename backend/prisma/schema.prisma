@@ -1132,6 +1132,14 @@ model TelegramLink {
   chatId     String?   @unique @db.VarChar(64)
   /// Bir martalik bog'lash kodi
   linkCode   String    @unique @db.VarChar(32)
+  /// Kod shu vaqtdan keyin ishlamaydi — o'g'irlangan kod abadiy amal qilmasin
+  codeExpiresAt DateTime?
+  /// Kod ishlatilgan vaqt. To'lgan bo'lsa kod qayta ishlatilmaydi (replay himoyasi)
+  codeUsedAt DateTime?
+  /// Bog'lagan Telegram foydalanuvchisi — guruh chatida `chatId` dan farq qiladi
+  telegramUserId String? @db.VarChar(64)
+  /// Oxirgi faollik — ishlatilmayotgan bog'lanishlarni topish uchun
+  lastSeenAt DateTime?
   userId     String?
   studentId  String?
   parentId   String?
