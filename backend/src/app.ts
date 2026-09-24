@@ -40,8 +40,21 @@ export function createApp(): Express {
       exposedHeaders: ['X-Request-Id', 'Content-Disposition'],
     }),
   );
-  // Fayl yuklash alohida endpoint orqali bo‘ladi — JSON tanasi kichik bo‘lishi kerak
-  app.use(express.json({ limit: '256kb' }));
+  // Fayl yuklash alohida endpoint orqali bo‘ladi — JSON tanasi kichik bo‘lishi kerak.
+  //
+  // `verify` — to‘lov webhooklari uchun **xom tana** saqlanadi: imzo aynan yuborilgan baytlardan
+  // hisoblanadi, JSON qayta serializatsiya qilinsa (probel, kalitlar tartibi) imzo mos kelmay qoladi.
+  // Faqat webhook yo‘lida saqlanadi — qolgan so‘rovlarda ortiqcha xotira ishlatilmaydi.
+  app.use(
+    express.json({
+      limit: '256kb',
+      verify: (req, _res, buf) => {
+        if (req.url?.startsWith('/api/payments/webhook/')) {
+          (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
+        }
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: false, limit: '256kb', parameterLimit: 50 }));
   app.use(cookieParser());
   app.use(requestLogger);

@@ -340,8 +340,15 @@ export const paymentService = {
    * - bitta o‘quvchiga parallel so‘rovlar qarz qatorini qulflab ketma-ket bajariladi, qarz qayta tekshiriladi;
    * - oxirgi daqiqalarda xuddi shu summa xuddi shu to‘lov kuni bilan qabul qilingan bo‘lsa, `confirmDuplicate` bo‘lmaguncha 409 qaytadi.
    */
+  /**
+   * To'lov qabul qilish.
+   *
+   * `actor` — to'lovni qabul qilgan xodim. **Onlayn to'lovda `null`**: pulni hech kim qo'lda
+   * qabul qilmagan, shuning uchun kvitansiyada buxgalter ko'rsatilmaydi va audit egasiz yoziladi
+   * (webhook tafsilotlari `payment.online_received` yozuvida qoladi).
+   */
   async create(
-    actor: AuthUser,
+    actor: AuthUser | null,
     input: CreatePaymentInput,
     client: ClientInfo,
   ): Promise<{ payment: PaymentDto; replayed: boolean }> {
@@ -437,7 +444,7 @@ export const paymentService = {
           paidAt: input.paidAt ?? new Date(),
           comment: input.comment ?? null,
           managerId: student.lead?.assignedToId ?? null,
-          accountantId: actor.id,
+          accountantId: actor?.id ?? null,
           // O'qituvchi foizi to'lov paytidagi guruhga bog'lanadi
           groupId: student.groupId,
           teacherId: student.group?.teacherId ?? null,
@@ -459,20 +466,20 @@ export const paymentService = {
         categoryName: STUDENT_PAYMENT_CATEGORY,
         entityType: 'payment',
         entityId: payment.id,
-        createdById: actor.id,
+        createdById: actor?.id ?? null,
         branchId: student.branchId,
       });
       await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
       await commissionService.accrueForPayment(
         tx,
         { id: payment.id, amount: input.amount, paidAt: payment.paidAt, teacherId: payment.teacherId },
-        actor.id,
+        actor?.id ?? null,
       );
 
       const { remaining } = await recalculateDebt(tx, student.id);
 
       const managerId = student.lead?.assignedToId;
-      if (managerId && managerId !== actor.id) {
+      if (managerId && managerId !== actor?.id) {
         await notificationService.createInTransaction(tx, {
           userId: managerId,
           type: 'NEW_PAYMENT',
@@ -485,7 +492,7 @@ export const paymentService = {
       }
 
       await auditService.recordInTransaction(tx, {
-        userId: actor.id,
+        userId: actor?.id ?? null,
         action: 'payment.created',
         entityType: 'payment',
         entityId: payment.id,

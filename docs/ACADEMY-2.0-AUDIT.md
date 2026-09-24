@@ -850,3 +850,32 @@ takrorlanadi.
 - **89 ta ruxsat** (boshida 66 edi), har biri backendda tekshiriladi
 - Har bosqich **haqiqiy brauzerda** (Chrome) tekshirildi; tekshiruv ma'lumotlari keyin o'chirildi —
   markazning haqiqiy ma'lumoti (123 o'quvchi, 9 xodim, 10 lead, 8 xarajat) o'zgarmadi
+
+### PHASE 14 (1-qism) — onlayn to'lov arxitekturasi (2026-09-24)
+
+Spec §7 "Payment abstraction layer" — provayder kalitlari bo'lmasa ham **arxitektura** talab qilingan edi.
+Endi u bor va to'liq sinaladi: Click/Payme ulanganda faqat bitta fayl (provayder) yoziladi.
+
+| Qism | Holat |
+|---|---|
+| `PaymentProvider` interfeysi: `isConfigured`, `verifySignature(xom tana, sarlavhalar)`, `parseWebhook`, `successResponse` | ✅ |
+| `PaymentIntent` — provayder bilan yozishma hayot tsikli (PENDING → PAID/CANCELLED/FAILED). `Payment` esa faqat pul **kelganida** yaratiladi | ✅ |
+| **Imzo xom tanadan tekshiriladi:** `express.json({ verify })` faqat webhook yo'lida xom tanani saqlaydi — JSON qayta serializatsiya qilinsa imzo mos kelmay qolardi | ✅ testda tekshiriladi |
+| **Sozlanmagan provayder yo'li yopiq** (503) — "tasodifan ochiq qolgan endpoint" xavfi yo'q | ✅ brauzerda tekshirildi |
+| **Takroriy webhook:** `(provider, externalId)` unikal + `Payment.idempotencyKey` shu kalitdan tuziladi — xabar necha marta kelsa ham kvitansiya bitta | ✅ testda tekshiriladi |
+| **Summa mosligi:** provayder boshqa summa yuborsa to'lov yozilmaydi, so'rov `FAILED` bo'ladi | ✅ testda tekshiriladi |
+| **Pul yo'li bitta:** kvitansiyani mavjud `paymentService.create` yaratadi — qarz, komissiya, bildirishnoma va audit oddiy to'lov bilan bir xil | ✅ |
+| `paymentService.create` endi `actor: AuthUser \| null` qabul qiladi: onlayn to'lovni xodim qabul qilmaydi, shuning uchun kvitansiyada buxgalter bo'sh va audit egasiz | ✅ testda tekshiriladi |
+| Kvitansiya yozilmasa (masalan moliyaviy oy yopiq) so'rov `FAILED` bo'lib ro'yxatda qoladi va provayderga 200 qaytariladi — qayta yuborish ham xuddi shu xatoga uchraydi | ✅ |
+| `SANDBOX` provayderi — HMAC-SHA256 imzo bilan. Butun oqimni Click/Payme kalitlarisiz sinash imkonini beradi | ✅ |
+| Frontend: "To'lovlar" sahifasida onlayn to'lovlar kartochkasi (holat filtri, provayder, xatolik sababi); provayder sozlanmagan bo'lsa shuni aytadi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/onlinePayment.test.ts` (8 ta) | ✅ 580 test, E2E 14/14 |
+
+**Brauzerda tekshirildi:** imzosiz so'rov 401 oldi; to'g'ri imzo bilan kvitansiya (PM-000026, 50 000 so'm)
+yaratildi va qarz kamaydi; takroriy xabar ikkinchi kvitansiya yaratmadi; UI da so'rov "To'landi"
+holatida ko'rindi. Tekshiruvdan keyin to'lov daftar qoidasi bo'yicha bekor qilinib olib tashlandi —
+qarz (650 000) va naqd kassa (−2 250 000) asl holatiga qaytdi, sinov kaliti `.env` dan olib tashlandi.
+
+**Click/Payme ulash uchun qoladi:** `src/services/payments/` ichida bitta fayl — `clickProvider`
+(imzoni Click qoidasi bo'yicha tekshirish va webhook tanasini o'qish) va `PROVIDERS` ro'yxatiga
+bitta qator. Qolgan hamma narsa (takrorlanish, kvitansiya, qarz, audit) o'zgarmaydi.

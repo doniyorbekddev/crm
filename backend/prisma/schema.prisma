@@ -308,6 +308,7 @@ model User {
   stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
   aiQueries                AiQuery[]
   savedAutomations         AutomationRule[]       @relation("AutomationUpdatedBy")
+  createdPaymentIntents    PaymentIntent[]        @relation("PaymentIntentCreatedBy")
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
@@ -868,6 +869,7 @@ model Student {
   discounts         StudentDiscount[]
   feedback          Feedback[]
   stockMovements    StockMovement[]
+  paymentIntents    PaymentIntent[]
   referralsMade     Referral[]                @relation("ReferralReferrer")
   referredBy        Referral?                 @relation("ReferralReferred")
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
@@ -978,6 +980,8 @@ model StudentGroupChange {
 
 model Payment {
   id             String        @id @default(cuid())
+  /// Onlayn to'lovdan kelgan bo'lsa — qaysi so'rovdan
+  intent         PaymentIntent?
   /// Kvitansiya raqami
   number         Int           @unique @default(autoincrement())
   studentId      String
@@ -3009,4 +3013,66 @@ model AutomationRun {
   @@index([ruleId, startedAt])
   @@index([startedAt])
   @@map("automation_runs")
+}
+
+// ---------------------------------------------------------------------
+// ONLAYN TO'LOV (provayder abstraksiyasi)
+// ---------------------------------------------------------------------
+
+/// To'lov provayderi. `SANDBOX` — sinov uchun: imzo HMAC-SHA256 bilan tekshiriladi,
+/// shuning uchun butun oqimni haqiqiy provayder kalitlarisiz sinab ko'rish mumkin.
+enum PaymentProviderKey {
+  CLICK
+  PAYME
+  UZUM
+  SANDBOX
+}
+
+/// To'lov so'rovining holati.
+///  PENDING   — yaratildi, provayderdan javob kutilmoqda
+///  PAID      — provayder to'lovni tasdiqladi va `Payment` yozildi
+///  CANCELLED — foydalanuvchi bekor qildi
+///  FAILED    — provayder rad etdi
+///  REFUNDED  — provayder orqali qaytarildi
+enum PaymentIntentStatus {
+  PENDING
+  PAID
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+/// Onlayn to'lov so'rovi (intent).
+///
+/// **Nega alohida jadval:** `Payment` — pul **kelganini** bildiradigan yozuv, uni faqat
+/// tasdiqlangan to'lovda yaratamiz. Provayder bilan yozishmaning o'zi (so'rov yaratildi, kutildi,
+/// bekor qilindi) alohida hayot tsikliga ega — u shu yerda saqlanadi. Webhook ikki marta kelsa
+/// `externalId` unikaligi ikkinchi `Payment` yaratilishiga yo'l qo'ymaydi.
+model PaymentIntent {
+  id           String              @id @default(cuid())
+  provider     PaymentProviderKey
+  /// Provayderdagi tranzaksiya raqami — takroriy webhookni aniqlash kaliti
+  externalId   String              @db.VarChar(120)
+  studentId    String
+  amount       Decimal             @db.Decimal(14, 2)
+  status       PaymentIntentStatus @default(PENDING)
+  /// To'lov tasdiqlangach yaratilgan kvitansiya
+  paymentId    String?             @unique
+  /// Provayderdan kelgan xom ma'lumot (tekshiruv va nizo hal qilish uchun)
+  payload      Json?
+  failureText  String?             @db.VarChar(255)
+  /// Kim yaratgan (CRM ichidan yaratilsa); webhookdan kelsa bo'sh
+  createdById  String?
+  paidAt       DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation("PaymentIntentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalId])
+  @@index([studentId, createdAt])
+  @@index([status, createdAt])
+  @@map("payment_intents")
 }

@@ -34,6 +34,8 @@ export default defineConfig({
       CLIENT_URL: 'http://localhost:5173',
       // Telegram: token yo'q (o'chirilgan rejim), lekin webhook imzosi tekshiriladigan bo'lsin
       TELEGRAM_WEBHOOK_SECRET: 'test-telegram-webhook-secret',
+      // Onlayn to'lov oqimini haqiqiy imzo bilan sinash uchun
+      PAYMENT_SANDBOX_SECRET: 'test-payment-sandbox-secret',
       SMTP_HOST: '',
       // Testlar yuklagan fayllar loyiha papkasiga emas, vaqtinchalik papkaga yoziladi
       UPLOAD_DIR: path.join(os.tmpdir(), 'crm-test-uploads'),

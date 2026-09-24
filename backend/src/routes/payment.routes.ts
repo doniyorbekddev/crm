@@ -1,13 +1,24 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { debtController, paymentController } from '../controllers/payment.controller.js';
+import { onlinePaymentController } from '../controllers/onlinePayment.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { heavyLimiter } from '../middleware/rateLimiter.js';
 
 export const paymentRouter = Router();
 
+// --- Onlayn to'lov webhooki -------------------------------------------
+// `authenticate` dan OLDIN: provayder token bilan emas, **imzo** bilan tanilади.
+// Rate limit bor — imzoni topishga urinishlarni sekinlashtiradi.
+paymentRouter.post('/webhook/:provider', heavyLimiter, onlinePaymentController.webhook);
+
 paymentRouter.use(authenticate);
+
+// Onlayn to'lov so'rovlari (CRM ichidan)
+paymentRouter.get('/online/providers', requirePermission(PERMISSIONS.PAYMENT_VIEW), onlinePaymentController.providers);
+paymentRouter.get('/online/intents', requirePermission(PERMISSIONS.PAYMENT_VIEW), onlinePaymentController.list);
+paymentRouter.post('/online/intents', requirePermission(PERMISSIONS.PAYMENT_CREATE), onlinePaymentController.createIntent);
 
 paymentRouter.get('/', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentController.list);
 paymentRouter.get('/stats', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentController.stats);

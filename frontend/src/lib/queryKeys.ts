@@ -8,6 +8,7 @@ import type { ReferralListParams } from '@/types/referral';
 import type { FeedbackListParams } from '@/types/feedback';
 import type { MovementListParams, ProductListParams } from '@/types/inventory';
 import type { AutomationRunParams } from '@/types/automation';
+import type { IntentListParams } from '@/types/onlinePayment';
 import type { LeaveListParams } from '@/types/employee';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
@@ -62,6 +63,11 @@ export const queryKeys = {
     notes: (id: string) => ['leads', 'notes', id] as const,
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
+  },
+  onlinePayments: {
+    all: ['online-payments'] as const,
+    providers: ['online-payments', 'providers'] as const,
+    list: (params: IntentListParams) => ['online-payments', 'list', params] as const,
   },
   automation: {
     all: ['automation'] as const,

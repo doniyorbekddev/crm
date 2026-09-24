@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { Ban, Plus, Undo2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
+import { OnlinePaymentsCard } from './OnlinePaymentsCard';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -373,6 +374,7 @@ export default function PaymentsPage() {
           }}
         />
       )}
+      <OnlinePaymentsCard />
     </>
   );
 }

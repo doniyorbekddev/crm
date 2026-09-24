@@ -70,6 +70,8 @@ const envSchema = z
     TELEGRAM_WEBHOOK_SECRET: optionalString,
     /// Bot foydalanuvchi nomi — kabinetdagi "Telegramni ulash" havolasi uchun (masalan: markaz_crm_bot)
     TELEGRAM_BOT_USERNAME: optionalString,
+    /** Sinov to'lov provayderi uchun imzo kaliti — bo'sh bo'lsa provayder o'chiq */
+    PAYMENT_SANDBOX_SECRET: optionalString,
   })
   .refine((values) => values.JWT_SECRET !== values.JWT_REFRESH_SECRET, {
     message: 'JWT_SECRET va JWT_REFRESH_SECRET bir-biridan farq qilishi kerak',
