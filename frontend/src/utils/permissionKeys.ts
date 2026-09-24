@@ -121,8 +121,5 @@ export const PERMISSIONS = {
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
+/** Super Admin roli maxsus: uni tahrirlab bo‘lmaydi (rollar sahifasida qulf belgisi) */
 export const SUPER_ADMIN_ROLE_KEY = 'SUPER_ADMIN';
-export const OWNER_ROLE_KEY = 'OWNER';
-
-/** Butun markaz ko‘rsatkichlarini ko‘ra oladigan rollar */
-export const EXECUTIVE_ROLE_KEYS: readonly string[] = [SUPER_ADMIN_ROLE_KEY, OWNER_ROLE_KEY];

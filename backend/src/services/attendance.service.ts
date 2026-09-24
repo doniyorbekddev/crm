@@ -221,7 +221,19 @@ export const attendanceService = {
       ).map((student) => [student.id, `${student.firstName} ${student.lastName}`]),
     );
 
-    await prisma.$transaction(async (tx) => {
+    // Ota-onalar tranzaksiyadan **oldin** o'qiladi: aks holda 30 kishilik guruhda
+    // tranzaksiya ichida 30 ta qo'shimcha so'rov ketardi va qulf uzoq ushlanardi.
+    const parentLinks = await prisma.studentParent.findMany({
+      where: { studentId: { in: ids } },
+      select: { studentId: true, parentId: true },
+    });
+    const parentsByStudent = new Map<string, string[]>();
+    for (const link of parentLinks) {
+      parentsByStudent.set(link.studentId, [...(parentsByStudent.get(link.studentId) ?? []), link.parentId]);
+    }
+
+    await prisma.$transaction(
+      async (tx) => {
       const sessionId = await attendanceSessionService.ensureSession(tx, {
         groupId,
         date: input.date,
@@ -274,16 +286,12 @@ export const attendanceService = {
           }
 
           // Ota-onalar: CRM hisobi bo'lmasligi mumkin, shuning uchun to'g'ridan-to'g'ri kanalga
-          const parents = await tx.studentParent.findMany({
-            where: { studentId: record.studentId },
-            select: { parentId: true },
-          });
-          for (const link of parents) {
+          for (const parentId of parentsByStudent.get(record.studentId) ?? []) {
             await notificationService.notifyExternalInTransaction(tx, {
               title: 'Farzandingiz darsga kelmadi',
               message,
-              parentId: link.parentId,
-              dedupeKey: `absence:${saved.id}:parent:${link.parentId}`,
+              parentId,
+              dedupeKey: `absence:${saved.id}:parent:${parentId}`,
             });
           }
           // O'quvchining o'ziga ham (Telegramni ulagan bo'lsa)
@@ -303,7 +311,11 @@ export const attendanceService = {
         metadata: { group: group.name, date: toDateOnly(input.date), count: input.records.length },
         ...client,
       });
-    });
+      },
+      // Katta guruhda (30+ o'quvchi) har biriga XP va ketma-ketlik qayta hisoblanadi —
+      // standart 5 soniya chegarasi yetmay qolishi mumkin.
+      { timeout: 30_000 },
+    );
 
     return this.getSheet(actor, groupId, input.date);
   },

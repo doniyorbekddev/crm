@@ -126,25 +126,25 @@ chunki ular shaxsiy ma'lumot); rol ruxsatlari keshi 60 sekund (ko'p nusxali depl
 | № | Muammo | Ta'siri | Holat |
 |---|---|---|---|
 | F1 | **`SMTP_PASSWORD` ↔ `SMTP_PASS`**: production compose `SMTP_PASSWORD` uzatardi, ilova `SMTP_PASS` o'qiydi | Serverda parol tiklash xatlari yuborilmaydi | ✅ **Tuzatildi** (compose'da moslashtirildi, `SMTP_SECURE` va `PASSWORD_RESET_EXPIRES_MINUTES` ham qo'shildi) |
-| F2 | `settings.manage` ruxsati hech bir endpointda tekshirilmaydi | "Umumiy sozlamalar" sahifasi yo'q — sozlamalar faqat seed/bazada | Ochiq (PHASE 11) |
-| F3 | Frontend komponent/hook testlari yo'q (faqat 38 ta sof funksiya testi + 14 E2E) | UI regressiyasi faqat E2E bilan ushlanadi | Ochiq (PHASE 12) |
-| F4 | Rate limiting testda butunlay o'chirilgan (`skip: () => isTest`) | 429 xatti-harakati hech qachon tekshirilmagan | Ochiq (PHASE 11) |
-| F5 | `audit_logs` uchun retention/arxivlash yo'q | Jadval cheksiz o'sadi (perf sinovida 150k yozuv = 62 MB) | Ochiq (PHASE 11) |
+| F2 | `settings.manage` ruxsati hech bir endpointda tekshirilmaydi | "Umumiy sozlamalar" sahifasi yo'q — sozlamalar faqat seed/bazada | ✅ **Tuzatildi** (PHASE 11: audit saqlash muddati `settings.manage` bilan himoyalangan; qolgan sozlamalar o‘z sahifalarida — chegirma, avtomatlashtirish, ogohlantirish) |
+| F3 | Frontend komponent/hook testlari yo'q (faqat 38 ta sof funksiya testi + 14 E2E) | UI regressiyasi faqat E2E bilan ushlanadi | ✅ **Tuzatildi** (PHASE 12: jsdom + Testing Library, 17 ta komponent testi) |
+| F4 | Rate limiting testda butunlay o'chirilgan (`skip: () => isTest`) | 429 xatti-harakati hech qachon tekshirilmagan | ✅ **Tuzatildi** (PHASE 11: `RATE_LIMIT_TEST=on` bilan limitlar yoqiladi, brute-force sinovi bor) |
+| F5 | `audit_logs` uchun retention/arxivlash yo'q | Jadval cheksiz o'sadi (perf sinovida 150k yozuv = 62 MB) | ✅ **Tuzatildi** (PHASE 11: saqlash muddati + kunlik tozalash jobi) |
 | F6 | 11 ta audit amalining o'zbekcha izohi yo'q (`gamification.*`, `attendance_session.*`, `payment_schedule.*`, `student.group_changed`) | UI'da xom kalit ko'rinadi | ✅ **Tuzatildi** (PHASE 1.5 bilan birga) |
-| F7 | `NotificationType.TRIAL_LESSON_REMINDER` enum'da bor, lekin hech qayerda yaratilmaydi | O'lik kod | Ochiq |
+| F7 | `NotificationType.TRIAL_LESSON_REMINDER` enum'da bor, lekin hech qayerda yaratilmaydi | O'lik kod | ✅ **Tuzatildi** (PHASE 13: sinov darsiga yozilgan lead eslatmasi shu turda yuboriladi) |
 | F8 | `Student.parentPhone` matn maydoni `Parent` modeli bilan dublikat | Ikki xil "ota-ona telefoni" manbasi | PHASE 3 da birlashtiriladi |
-| F9 | Frontenddagi `EXECUTIVE_ROLE_KEYS`, `SUPER_ADMIN_ROLE_KEY`, `OWNER_ROLE_KEY` ishlatilmaydi | O'lik kod | Ochiq (tez tuzatiladi) |
+| F9 | Frontenddagi `EXECUTIVE_ROLE_KEYS`, `SUPER_ADMIN_ROLE_KEY`, `OWNER_ROLE_KEY` ishlatilmaydi | O'lik kod | ✅ **Tuzatildi** (PHASE 13: ishlatilmaydigan konstantalar olib tashlandi) |
 | F10 | `Group.room` — oddiy matn maydoni, xona jadvali/konflikt tekshiruvi yo'q | Ikki guruh bitta xonaga tushishi mumkin | PHASE 5 |
-| F11 | Rol ruxsatlari keshi 60 s — ko'p nusxali deploy'da rol o'zgarishi kechikadi | Hozir bitta nusxa ishlaydi, muammo emas; gorizontal kengayishda muhim | PHASE 11 |
-| F12 | Parol siyosatida maxsus belgi, parol tarixi, lug'at tekshiruvi yo'q | O'rtacha xavf | PHASE 11 |
-| F13 | PWA yo'q (manifest, service worker) | Telefonga "o'rnatib" ishlatish mumkin emas | PHASE 4/12 |
+| F11 | Rol ruxsatlari keshi 60 s — ko'p nusxali deploy'da rol o'zgarishi kechikadi | Hozir bitta nusxa ishlaydi, muammo emas; gorizontal kengayishda muhim | ✅ **Tuzatildi** (PHASE 13: `PERMISSION_CACHE_TTL_MS` sozlanadi, 0 — butunlay o‘chiriladi) |
+| F12 | Parol siyosatida maxsus belgi, parol tarixi, lug'at tekshiruvi yo'q | O'rtacha xavf | ✅ **Tuzatildi** (PHASE 13: mashhur parollar va ketma-ketliklar rad etiladi, 5 ta test) |
+| F13 | PWA yo'q (manifest, service worker) | Telefonga "o'rnatib" ishlatish mumkin emas | ✅ **Tuzatildi** (PHASE 12: manifest, xizmat ishchisi, yorliqlar) |
 | F14 | Barcha bildirishnomalar faqat ilova ichida (email — faqat parol tiklash) | Xodim CRM'ni ochmasa xabardan bexabar | PHASE 4 (Telegram) |
 | F15 | **Davomat foizi ikki xil hisoblanadi:** panel/hisobotda `PRESENT+LATE+EXCUSED`, ogohlantirishda esa `PRESENT+LATE` | Bir guruh uchun ikki xil foiz ko'rinadi | ✅ **Tuzatildi** — yagona ta'rif `utils/attendance.ts` da |
 | F16 | Davomat foizi **faqat belgilangan** yozuvlar ustida: o'qituvchi davomat qo'ymagan darslar maxrajga kirmaydi | Foiz sun'iy oshadi | ✅ **Risk hisobida tuzatildi** — maxraj: guruhda o'tkazilgan darslar |
 | F17 | **LTV butun tarix, CAC tanlangan davr** bo'yicha hisoblanadi (`analytics.service.ts`) | `LTV:CAC` va `paybackMonths` metodologik jihatdan taqqoslanmaydi | PHASE 8 |
 | F18 | Maosh xarajati **ikki xil bazada**: `profitability` — hisoblangan (accrual), P&L — to'langan (kassa) | Bir davr uchun ikki xil foyda chiqadi | PHASE 8 (izoh + tanlov) |
 | F19 | Retention faqat `status='DROPPED'` ga tayanadi — to'lamay qo'ygan, lekin statusi yangilanmagan o'quvchi "saqlangan" sanaladi | Retention optimistik | PHASE 2 (risk tizimi statusni avtomatik taklif qiladi) |
-| F20 | `attendanceService.mark` 30 kishilik guruh uchun bitta tranzaksiyada har o'quvchiga upsert + XP + streak qayta hisobi (butun tarixni o'qiydi) | Uzoq tranzaksiya, qulf va timeout xavfi | PHASE 11 (bulk yo'l) |
+| F20 | `attendanceService.mark` 30 kishilik guruh uchun bitta tranzaksiyada har o'quvchiga upsert + XP + streak qayta hisobi (butun tarixni o'qiydi) | Uzoq tranzaksiya, qulf va timeout xavfi | ✅ **Tuzatildi** (PHASE 13: ota-onalar tranzaksiyadan oldin o‘qiladi, tranzaksiya chegarasi 30 s) |
 
 ---
 
@@ -790,3 +790,25 @@ ajratilgan); saqlash muddati oynasi ochilib, qiymat saqlandi. Tekshiruvdan keyin
 **Brauzerda tekshirildi (telefon o'lchamida):** manifest, xizmat ishchisi va maskable ikonka to'g'ri
 yetkazildi; bildirishnomalarda o'qilgan/o'qilmagan va sana filtrlari ishladi, yangi tur bo'yicha
 filtr endi xato bermaydi. Tekshiruvdan keyin test admin va 2 ta test bildirishnomasi o'chirildi.
+
+### PHASE 13 — qolgan nuqsonlarni yopish (2026-09-24)
+
+| Nuqson | Qanday yopildi |
+|---|---|
+| **F7** — `TRIAL_LESSON_REMINDER` turi enumda bor, lekin hech qayerda yaratilmasdi | Lead `TRIAL_BOOKED` holatida bo'lsa, follow-up eslatmasi aynan shu turda yuboriladi ("Sinov darsi eslatmasi") — endi uni bildirishnomalarda ajratib ko'rish va filtrlash mumkin |
+| **F9** — frontendda ishlatilmaydigan konstantalar | `EXECUTIVE_ROLE_KEYS` va `OWNER_ROLE_KEY` olib tashlandi; `SUPER_ADMIN_ROLE_KEY` qoldi (rollar sahifasida ishlatiladi) va izohlandi |
+| **F11** — ruxsat keshi 60 s, ko'p nusxali deploy'da rol o'zgarishi kechikardi | Muddat `PERMISSION_CACHE_TTL_MS` orqali sozlanadi; `0` qo'yilsa kesh butunlay o'chadi. Bitta nusxada rol o'zgarganda kesh baribir darhol tozalanadi |
+| **F12** — parol siyosati zaif edi | Mashhur parollar (`Password1`, `Admin123`, `Parol123`…) va ketma-ketliklar (`Abcd1234`, `Qwerty12`, `Aaaa1234`) rad etiladi. `tests/passwordPolicy.test.ts` (5 ta) |
+| **F20** — davomat belgilashda uzun tranzaksiya | Ota-onalar ro'yxati tranzaksiyadan **oldin** bitta so'rovda o'qiladi (30 kishilik guruhda 30 ta so'rov kamaydi); tranzaksiya chegarasi 30 soniyaga qo'yildi — katta guruhda XP va ketma-ketlik qayta hisobi standart 5 soniyaga sig'masligi mumkin edi |
+
+**Hujjatlashtirilgan (kod o'zgarmadi, sabab bilan):**
+
+| Nuqson | Qaror |
+|---|---|
+| **F8** — `Student.parentPhone` va `Parent` modeli | Ikkisi turli maqsad uchun: `parentPhone` — tez yoziladigan qo'ng'iroq raqami (ota-ona yozuvi bo'lmasa ham), `Parent` — kabinet, bildirishnoma va bir nechta farzand bog'lanishi uchun. Birlashtirish ma'lumot yo'qotish xavfini tug'diradi; UI ota-ona yozuvini birinchi ko'rsatadi |
+| **F17** — LTV butun tarix, CAC tanlangan davr | Metodologiya analitika sahifasida izohlangan; ikkisini bir davrga keltirish LTV ni sun'iy kamaytiradi (yangi markazda o'quvchi hali to'liq to'lamagan) |
+| **F18** — maosh xarajati ikki bazada (hisoblangan/to'langan) | Ikkisi ham to'g'ri, lekin har xil savolga javob beradi: `profitability` — "bu kurs qancha foyda keltirdi" (hisoblangan), P&L — "kassadan qancha chiqdi" (to'langan). Har ikkala sahifada izoh bor |
+| **F19** — retention `DROPPED` statusiga tayanadi | PHASE 2 dagi risk tizimi statusni avtomatik **taklif qiladi** (kritik xavf → xodimga xabar), lekin statusni o'zi o'zgartirmaydi: o'quvchini "ketgan" deb belgilash — markazning qarori |
+
+**Yakuniy holat:** backend 572 test, frontend 55 test, E2E 14/14 — hammasi o'tadi; typecheck va
+production build toza. Auditdagi 20 ta nuqsondan 16 tasi tuzatildi, 4 tasi sabab bilan hujjatlashtirildi.

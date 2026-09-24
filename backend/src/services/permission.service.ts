@@ -1,7 +1,13 @@
 import { prisma } from '../config/database.js';
 
 /** Rol ruxsatlari har so‘rovda bazadan o‘qilmasligi uchun qisqa muddatli kesh. */
-const CACHE_TTL_MS = 60_000;
+/**
+ * Rol ruxsatlari keshi. Rol o'zgarganda kesh darhol tozalanadi (`invalidate`), shuning uchun
+ * bitta nusxada muddat umuman sezilmaydi. Bir nechta nusxa (bir necha server) ishlayotganda esa
+ * boshqa nusxadagi kesh shu muddatgacha eskirgan bo'lishi mumkin — shuning uchun muddat
+ * sozlanadigan qilingan (`PERMISSION_CACHE_TTL_MS`), kerak bo'lsa 0 qo'yib butunlay o'chiriladi.
+ */
+const CACHE_TTL_MS = Number(process.env.PERMISSION_CACHE_TTL_MS ?? 60_000);
 
 interface CacheEntry {
   permissions: ReadonlySet<string>;
@@ -22,7 +28,7 @@ export const permissionService = {
       select: { permission: { select: { key: true } } },
     });
     const permissions: ReadonlySet<string> = new Set(rows.map((row) => row.permission.key));
-    cache.set(roleId, { permissions, expiresAt: Date.now() + CACHE_TTL_MS });
+    if (CACHE_TTL_MS > 0) cache.set(roleId, { permissions, expiresAt: Date.now() + CACHE_TTL_MS });
     return permissions;
   },
 

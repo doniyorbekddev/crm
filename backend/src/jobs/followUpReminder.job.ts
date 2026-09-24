@@ -10,7 +10,7 @@ const followUpSelect = {
   title: true,
   dueAt: true,
   assignedToId: true,
-  lead: { select: { id: true, number: true, firstName: true, lastName: true } },
+  lead: { select: { id: true, number: true, firstName: true, lastName: true, status: true } },
 } as const;
 
 function leadLabel(lead: { number: number; firstName: string; lastName: string | null }): string {
@@ -29,13 +29,16 @@ export async function sendDueReminders(now: Date): Promise<number> {
   for (const item of items) {
     const userId = item.assignedToId;
     if (!userId) continue;
+    // Lead sinov darsiga yozilgan bo'lsa — eslatma aynan sinov darsi haqida. Shu sababli
+    // alohida tur ishlatiladi: bildirishnomalar ro'yxatida uni ajratib ko'rish va filtrlash mumkin.
+    const isTrial = item.lead.status === 'TRIAL_BOOKED';
     await prisma.$transaction(async (tx) => {
       await tx.notification.createMany({
         data: [
           {
             userId,
-            type: 'FOLLOW_UP_REMINDER',
-            title: 'Follow-up eslatmasi',
+            type: isTrial ? 'TRIAL_LESSON_REMINDER' : 'FOLLOW_UP_REMINDER',
+            title: isTrial ? 'Sinov darsi eslatmasi' : 'Follow-up eslatmasi',
             message: `${leadLabel(item.lead)}: ${item.title}`,
             entityType: 'followUp',
             entityId: item.id,
