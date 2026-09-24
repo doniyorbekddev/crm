@@ -4,6 +4,7 @@ import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 import { telegramService } from './telegram.service.js';
+import { buildCommandReply, resolveCommandScope } from './telegramCommand.service.js';
 
 /**
  * Telegram chatini CRM yozuviga bog'lash.
@@ -90,6 +91,36 @@ export async function ownerForActor(userId: string): Promise<TelegramLinkOwner> 
   return { userId };
 }
 
+/**
+ * Bog'langan chatdan kelgan buyruqqa javob beradi.
+ *
+ * Chat tasdiqlanmagan yoki o'chirilgan bo'lsa — hech qanday ma'lumot berilmaydi.
+ */
+async function handleCommand(chatId: string, text: string): Promise<void> {
+  const link = await prisma.telegramLink.findFirst({
+    where: { chatId, isActive: true, verifiedAt: { not: null } },
+    select: { id: true, userId: true, studentId: true, parentId: true },
+  });
+  if (!link) {
+    await telegramService.sendMessage(chatId, 'Bog‘lash uchun CRM’dagi havoladan foydalaning.');
+    return;
+  }
+
+  const scope = await resolveCommandScope(link);
+  if (!scope) {
+    // Egasi o'chirilgan (masalan, o'quvchi arxivlangan) — bog'lanish ham yopiladi
+    await prisma.telegramLink.update({ where: { id: link.id }, data: { isActive: false } });
+    await telegramService.sendMessage(chatId, 'Bog‘lanish egasi topilmadi. CRM’dan yangi havola oling.');
+    return;
+  }
+
+  const { reply, unlink } = await buildCommandReply(scope, text);
+  if (unlink) {
+    await prisma.telegramLink.delete({ where: { id: link.id } });
+  }
+  await telegramService.sendMessage(chatId, reply);
+}
+
 export const telegramLinkService = {
   /** Mavjud bog'lanishni qaytaradi yoki yangi kod yaratadi */
   async ensureLink(owner: TelegramLinkOwner): Promise<TelegramLinkDto> {
@@ -123,8 +154,15 @@ export const telegramLinkService = {
   },
 
   /**
-   * Telegramdan kelgan xabarni qayta ishlaydi. Faqat `/start <kod>` qo'llab-quvvatlanadi —
-   * bot bilan suhbat emas, shunchaki bog'lash nuqtasi.
+   * Telegramdan kelgan xabarni qayta ishlaydi.
+   *
+   * Ikki holat bor:
+   *  1. `/start <kod>` — bog'lash. Bu **tasdiqlanmagan** chatdan keladi, shuning uchun shu yerda;
+   *  2. boshqa buyruqlar — faqat allaqachon bog'langan chat uchun, javobi
+   *     `telegramCommand.service.ts` da tayyorlanadi.
+   *
+   * Bog'lanmagan chatdan kelgan boshqa har qanday matnga faqat "havoladan foydalaning" deb
+   * javob beriladi: bot begona odamga na ma'lumot, na buyruqlar ro'yxatini ko'rsatmaydi.
    */
   async handleUpdate(update: unknown): Promise<{ linked: boolean }> {
     const message = (update as { message?: { chat?: { id?: number | string; first_name?: string; title?: string }; text?: string } })
@@ -135,7 +173,7 @@ export const telegramLinkService = {
 
     const match = /^\/start\s+([A-Za-z0-9]{4,32})$/.exec(text);
     if (!match) {
-      await telegramService.sendMessage(String(chatId), 'Bog‘lash uchun CRM’dagi havoladan foydalaning.');
+      await handleCommand(String(chatId), text);
       return { linked: false };
     }
 

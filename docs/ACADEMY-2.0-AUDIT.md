@@ -1029,3 +1029,28 @@ Bildirishnomalar **150 000 yozuvda** o'lchandi: qo'ng'iroqcha har sahifada chaqi
 shuning uchun u sekinlashsa butun ilova sekinlashardi. Yangi
 `(userId, priority, readAt)` indeksi ishlayapti. Hajm `perfSeed.ts` ga qo'shildi —
 o'lchov keyin ham takrorlanadi. Barcha so'rovlar 110 ms dan past.
+
+### PHASE 14 (8-qism) — Telegram botning interaktiv buyruqlari (2026-09-24)
+
+Spec §6 — bot faqat xabar **yuborardi**. Ota-ona "qarzim qancha?" yoki "ertaga dars bormi?"
+degan savolga javob olish uchun kabinetga kirishi kerak edi; telefonda bu og'ir.
+
+| Qism | Holat |
+|---|---|
+| `/qarz` — shartnoma, to'langan, qoldiq, kechikkan summa va keyingi muddat | ✅ testda tekshiriladi |
+| `/darslar` — yaqin 7 kundagi darslar; bekor qilingani "❌ bekor qilingan" deb ko'rinadi | ✅ |
+| `/davomat` — oxirgi 10 dars va foiz | ✅ testda tekshiriladi |
+| `/holat`, `/uzish`, `/help` — bog'lanishni boshqarish | ✅ testda tekshiriladi |
+| **Ma'lumot doirasi chat egasiga qattiq bog'langan:** o'quvchi — o'zi, ota-ona — faqat o'z farzandlari. Chatdan hech qanday ID qabul qilinmaydi, shuning uchun begona yozuvni so'rashning yo'li yo'q | ✅ testda tekshiriladi |
+| **Bog'lanmagan chatga buyruqlar ro'yxati ham ko'rsatilmaydi** — begona odam bot nimalar qila olishini bilmaydi | ✅ testda tekshiriladi |
+| Xodim chatiga o'quvchi ma'lumotlari berilmaydi: CRM ruxsatlari bu yerda takrorlanmaydi, chalkashlik bo'lmasin | ✅ testda tekshiriladi |
+| `/uzish` — yozuv o'chiriladi va chat yana "begona" bo'ladi | ✅ testda tekshiriladi |
+| Egasi o'chirilgan bo'lsa (o'quvchi arxivlangan) bog'lanish yopiladi | ✅ |
+| Telegram menyusi (`setMyCommands`) ishga tushishda kod bilan sinxronlanadi — BotFather'da qo'lda kiritish shart emas. Token yo'q bo'lsa jimgina o'tadi va server baribir ko'tariladi | ✅ |
+| CRM'dagi Telegram kartochkasida buyruqlar ro'yxati: kabinetda to'liq, xodimda faqat bog'lanish buyruqlari | ✅ brauzerda tekshirildi |
+| Testlar: `tests/telegram.test.ts` (+6, jami 16 ta) | ✅ 603 test, frontend 55 test |
+
+**Brauzerda tekshirildi:** profil sahifasidagi Telegram kartochkasi "Ulangan" holatida
+"/holat" va "/uzish" ni ko'rsatdi (xodim ro'yxati). Tekshiruv uchun ochilgan vaqtinchalik
+hisob va uning bog'lanishi keyin o'chirildi — foydalanuvchining 3 ta haqiqiy Telegram
+bog'lanishiga tegilmadi.

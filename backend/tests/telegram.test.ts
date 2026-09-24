@@ -19,6 +19,31 @@ function startUpdate(code: string, chatId = 555_111) {
   return { message: { chat: { id: chatId, first_name: 'Ota' }, text: `/start ${code}` } };
 }
 
+/** Bog'langan chatdan kelgan oddiy buyruq */
+function commandUpdate(text: string, chatId = 555_111) {
+  return { message: { chat: { id: chatId, first_name: 'Ota' }, text } };
+}
+
+/**
+ * Botning javobini ushlaydi: `sendMessage` chaqiruvlari yozib boriladi.
+ * Token sozlanmagani uchun haqiqiy so'rov ketmaydi — faqat matn tekshiriladi.
+ */
+function captureReplies() {
+  const sent: Array<{ chatId: string; text: string }> = [];
+  vi.spyOn(telegram.telegramService, 'sendMessage').mockImplementation(async (chatId: string, text: string) => {
+    sent.push({ chatId, text });
+    return { ok: true, retryable: false };
+  });
+  return sent;
+}
+
+async function sendCommand(text: string, chatId = 555_111) {
+  return request(app)
+    .post('/api/telegram/webhook')
+    .set('X-Telegram-Bot-Api-Secret-Token', WEBHOOK_SECRET)
+    .send(commandUpdate(text, chatId));
+}
+
 async function createStudentWithParent(name = 'Farzand') {
   const course = await createCourse();
   const group = await createGroup({ courseId: course.id });
@@ -209,5 +234,107 @@ describe.skipIf(!hasTestDatabase)('Telegram bog‘lanishi va yetkazish navbati',
     await request(app).post(`/api/groups/${group.id}/attendance`).set(bearer(token)).send(payload);
 
     expect(await prisma.notificationDelivery.count({ where: { telegramLinkId: link.id } })).toBe(1);
+  });
+
+  it('bog‘lanmagan chatga buyruqlar ro‘yxati ko‘rsatilmaydi', async () => {
+    const sent = captureReplies();
+
+    await sendCommand('/qarz', 777_000);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.text).toContain('havoladan foydalaning');
+    // Begona odam bot nimalar qila olishini ham bilmaydi
+    expect(sent[0]!.text).not.toContain('/davomat');
+  });
+
+  it('/qarz — o‘quvchiga faqat o‘z qarzi ko‘rsatiladi', async () => {
+    const { student } = await createStudentWithParent('Sardor');
+    await prisma.paymentInstallment.create({
+      data: { studentId: student.id, sequence: 1, dueDate: new Date('2026-07-01'), amount: 1_000_000 },
+    });
+    const link = await telegramLinkService.ensureLink({ studentId: student.id });
+    await sendCommand(`/start ${link.linkCode}`);
+    const sent = captureReplies();
+
+    await sendCommand('/qarz');
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.text).toContain('Shartnoma');
+    expect(sent[0]!.text).toContain('Kechikkan');
+  });
+
+  it('/davomat — ota-onaga har bir farzand alohida ko‘rinadi', async () => {
+    const first = await createStudentWithParent('Ali');
+    const second = await prisma.student.create({
+      data: {
+        firstName: 'Vali',
+        lastName: 'Test',
+        phone: '+998901234599',
+        courseId: first.student.courseId,
+        groupId: first.group.id,
+        contractPrice: 500_000,
+        startDate: new Date('2026-06-01'),
+        parents: { create: [{ parentId: first.parent.id }] },
+      },
+    });
+    await prisma.attendance.createMany({
+      data: [
+        { studentId: first.student.id, groupId: first.group.id, date: new Date('2026-09-20'), status: 'PRESENT' },
+        { studentId: second.id, groupId: first.group.id, date: new Date('2026-09-20'), status: 'ABSENT' },
+      ],
+    });
+    const link = await telegramLinkService.ensureLink({ parentId: first.parent.id });
+    await sendCommand(`/start ${link.linkCode}`);
+    const sent = captureReplies();
+
+    await sendCommand('/davomat');
+
+    const text = sent[0]!.text;
+    expect(text).toContain('Ali');
+    expect(text).toContain('Vali');
+    expect(text).toContain('keldi');
+    expect(text).toContain('kelmadi');
+  });
+
+  it('xodim chatiga o‘quvchi ma’lumotlari berilmaydi', async () => {
+    const { user } = await createUserWithToken(app, { role: 'ADMIN' });
+    const link = await telegramLinkService.ensureLink({ userId: user.id });
+    await sendCommand(`/start ${link.linkCode}`);
+    const sent = captureReplies();
+
+    await sendCommand('/qarz');
+    await sendCommand('/help');
+
+    expect(sent[0]!.text).toContain('o‘quvchi va ota-onalar uchun');
+    // Xodimga o'quvchi buyruqlari taklif ham qilinmaydi
+    expect(sent[1]!.text).not.toContain('/davomat');
+    expect(sent[1]!.text).toContain('/holat');
+  });
+
+  it('/uzish bog‘lanishni o‘chiradi', async () => {
+    const { user } = await createUserWithToken(app, { role: 'ADMIN' });
+    const link = await telegramLinkService.ensureLink({ userId: user.id });
+    await sendCommand(`/start ${link.linkCode}`);
+    const sent = captureReplies();
+
+    await sendCommand('/uzish');
+
+    expect(sent[0]!.text).toContain('uzildi');
+    expect(await prisma.telegramLink.count()).toBe(0);
+    // Uzilgandan keyin chat yana begona: ma'lumot berilmaydi
+    await sendCommand('/qarz');
+    expect(sent[1]!.text).toContain('havoladan foydalaning');
+  });
+
+  it('noma’lum buyruqqa yordam matni qaytadi', async () => {
+    const { student } = await createStudentWithParent('Nodir');
+    const link = await telegramLinkService.ensureLink({ studentId: student.id });
+    await sendCommand(`/start ${link.linkCode}`);
+    const sent = captureReplies();
+
+    await sendCommand('/nimadir');
+
+    expect(sent[0]!.text).toContain('Bunday buyruq yo‘q');
+    expect(sent[0]!.text).toContain('/qarz');
   });
 });

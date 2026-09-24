@@ -11,6 +11,8 @@ import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
+import { telegramService } from './services/telegram.service.js';
+import { BOT_COMMAND_MENU } from './services/telegramCommand.service.js';
 import { logger } from './utils/logger.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -37,6 +39,8 @@ const server = app.listen(env.PORT, (error?: Error) => {
     process.exit(1);
   }
   logger.info(`CRM API ishga tushdi: http://localhost:${env.PORT}/api (${env.NODE_ENV})`);
+  // Bot menyusi kod bilan bir xil bo'lib tursin (token yo'q bo'lsa jimgina o'tadi)
+  void telegramService.setMyCommands(BOT_COMMAND_MENU);
 });
 
 let shuttingDown = false;

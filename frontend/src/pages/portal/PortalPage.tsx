@@ -215,7 +215,7 @@ export function PortalPage() {
 
           <MyCertificatesCard studentId={activeChild} />
 
-          <TelegramLinkCard />
+          <TelegramLinkCard audience="portal" />
 
           <FeedbackCard studentId={activeChild} />
 

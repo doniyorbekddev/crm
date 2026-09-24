@@ -12,11 +12,29 @@ import { queryKeys } from '@/lib/queryKeys';
 import { telegramService } from '@/services/telegram.service';
 import { formatDateTime } from '@/utils/format';
 
+/** Botning buyruqlari — serverdagi `BOT_COMMAND_MENU` bilan bir xil tartibda */
+const PORTAL_COMMANDS = [
+  ['/qarz', 'qarz va keyingi to‘lov muddati'],
+  ['/darslar', 'yaqin 7 kundagi darslar'],
+  ['/davomat', 'oxirgi 10 dars davomati'],
+  ['/holat', 'bog‘lanish holati'],
+  ['/uzish', 'bog‘lanishni uzish'],
+] as const;
+
+const STAFF_COMMANDS = [
+  ['/holat', 'bog‘lanish holati'],
+  ['/uzish', 'bog‘lanishni uzish'],
+] as const;
+
 /**
  * Telegramni ulash. Bot tokeni sozlanmagan bo‘lsa ham ko‘rinadi — kod beriladi,
  * lekin xabar yuborilmasligi haqida ogohlantiriladi.
+ *
+ * `audience` — buyruqlar ro‘yxati kimga ko‘rsatilishi. Kabinetda o‘quvchi/ota-ona
+ * buyruqlari bor, xodimda esa faqat bog‘lanishni boshqarish: ma’lumot buyruqlari
+ * xodim chatida ishlamaydi va ularni taklif qilish chalkashlik bo‘lardi.
  */
-export function TelegramLinkCard() {
+export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 'portal' }) {
   const queryClient = useQueryClient();
   const linkQuery = useQuery({ queryKey: queryKeys.telegram.me, queryFn: () => telegramService.myLink() });
 
@@ -48,6 +66,16 @@ export function TelegramLinkCard() {
               <span className="text-xs text-fg-muted">{formatDateTime(linkQuery.data.verifiedAt)}</span>
             </div>
             <p className="text-sm text-fg-muted">Eslatmalar Telegramga ham yuboriladi.</p>
+            <div className="rounded-lg border border-border bg-surface-muted p-3">
+              <p className="mb-2 text-xs font-medium text-fg-muted">Botga yuborish mumkin bo‘lgan buyruqlar</p>
+              <ul className="space-y-1">
+                {(audience === 'portal' ? PORTAL_COMMANDS : STAFF_COMMANDS).map(([command, description]) => (
+                  <li key={command} className="text-sm text-fg-muted">
+                    <code className="font-mono text-fg">{command}</code> — {description}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <Button variant="secondary" onClick={() => unlink.mutate()} loading={unlink.isPending}>
               Uzish
             </Button>

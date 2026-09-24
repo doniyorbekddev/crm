@@ -29,6 +29,32 @@ export function escapeHtml(value: string): string {
 }
 
 export const telegramService = {
+  /**
+   * Telegramdagi buyruqlar menyusini yangilaydi (chatdagi "Menu" tugmasi).
+   *
+   * Har ishga tushishda chaqiriladi: ro'yxat kodda o'zgarsa, menyu ham o'zi yangilanadi va
+   * uni qo'lda BotFather orqali kiritish kerak bo'lmaydi. Token yo'q bo'lsa — jimgina o'tadi.
+   */
+  async setMyCommands(commands: ReadonlyArray<{ command: string; description: string }>): Promise<boolean> {
+    if (!env.TELEGRAM_BOT_TOKEN) return false;
+    try {
+      const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/setMyCommands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commands }),
+      });
+      if (!response.ok) {
+        logger.warn({ status: response.status }, 'Telegram buyruqlar menyusi yangilanmadi');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      // Menyu — qulaylik, u yangilanmagani uchun server ishga tushmay qolmasligi kerak
+      logger.warn({ err: error }, 'Telegram buyruqlar menyusi yangilanmadi');
+      return false;
+    }
+  },
+
   async sendMessage(chatId: string, text: string): Promise<TelegramSendResult> {
     if (!env.TELEGRAM_BOT_TOKEN) {
       logger.info({ chatId, text: text.slice(0, 120) }, 'Telegram o‘chirilgan — xabar yuborilmadi');
