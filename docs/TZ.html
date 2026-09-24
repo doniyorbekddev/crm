@@ -103,7 +103,7 @@
 <tr><td>7</td><td>Onlayn to'lov abstraksiyasi, webhook, imzo, idempotentlik</td><td><span class="s ok">✅</span></td><td>Bu sessiyada: <code>PaymentIntent</code>, provayder interfeysi, sandbox, HMAC; Click/Payme kaliti kelganda 1 fayl</td></tr>
 <tr><td>8</td><td>Xonalar, jadval, to'qnashuv</td><td><span class="s ok">✅</span></td><td><code>Room</code> (sig'im, jihozlar), 4 shartli to'qnashuv</td></tr>
 <tr><td>9</td><td>Kurrikulum</td><td><span class="s ok">✅</span></td><td>Modul → mavzu, progress</td></tr>
-<tr><td>10</td><td>Imtihon dvigateli: savollar bazasi, qiyinlik, <b>tasodifiy savollar</b>, vaqt, urinishlar, qayta topshirish, avto/qo'lda baholash</td><td><span class="s warn">qisman</span></td><td>Bank, qiyinlik, mavzu, vaqt va urinishlar (bu sessiyada), avtomatik/qo'lda baholash bor. <b>Tasodifiy savol tanlash koddan topilmadi</b> — savollar imtihonga qo'lda biriktiriladi</td></tr>
+<tr><td>10</td><td>Imtihon dvigateli: savollar bazasi, qiyinlik, <b>tasodifiy savollar</b>, vaqt, urinishlar, qayta topshirish, avto/qo'lda baholash</td><td><span class="s warn">qisman</span></td><td>Bank, qiyinlik, mavzu, vaqt va urinishlar (bu sessiyada), avtomatik/qo'lda baholash bor. Tasodifiy tanlash <b>bor</b> (imtihonga biriktirishda: soni + mavzu + qiyinlik, <code>examAttempt.service.ts</code>). Yo'q: har o'quvchiga alohida variant, blueprint, savol tartibini aralashtirish</td></tr>
 <tr><td>11</td><td>Sertifikat + PDF + QR tekshiruv</td><td><span class="s ok">✅</span></td><td>Bu sessiyada chop etish / PDF sahifasi</td></tr>
 <tr><td>12–16</td><td>Lead skoring, avtomatik taqsimot, voronka, referral, chegirma</td><td><span class="s ok">✅</span></td><td><code>DiscountType</code> 7 tur (FAMILY…FIRST_PAYMENT), stacking, chegara</td></tr>
 <tr><td>17–19</td><td>HR, o'qituvchi analitikasi, fikr/NPS</td><td><span class="s ok">✅</span></td><td>Maxfiy ma'lumot ruxsati, anonim fikr, salbiy fikr xabari</td></tr>
@@ -217,7 +217,7 @@
 <tr><td>2</td><td>promt.md §13</td><td>Admin yangi nishon yaratishi (hozir faqat tahrirlash/berish)</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
 <tr><td>3</td><td>promt.md §45</td><td>Jadvallarda ustun ko'rinishini boshqarish</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
 <tr><td>4</td><td>promt.md §66</td><td>Business overview: "bugun", "hafta", "o'tgan oy", "ixtiyoriy oraliq"</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>5</td><td>promt2.md §10</td><td>Imtihonga tasodifiy savol tanlash</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
+<tr><td>5</td><td>promt2.md §10</td><td>Har o'quvchiga alohida tasodifiy variant (tanlashning o'zi bor)</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
 <tr><td>6</td><td>promt2.md §26</td><td>Bildirishnoma turi nomlari (INFO/SUCCESS/WARNING/CRITICAL) — ma'no bajarilgan, nom farq qiladi</td><td>—</td><td class="small">hujjatlashtirilgan</td></tr>
 <tr><td>7</td><td>telegramBot.md §12</td><td>Onlayn imtihonni botdan boshlash</td><td>katta</td><td><span class="s warn">o'rta</span></td></tr>
 <tr><td>8</td><td>telegramBot.md §19</td><td>O'qituvchi botdan vazifaga fayl biriktirishi</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
