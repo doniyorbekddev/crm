@@ -5,6 +5,7 @@ import { AppError } from '../utils/AppError.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { AttachQuestionsInput, GradeAttemptInput, SubmitAttemptInput } from '../validators/question.validator.js';
 import { auditService } from './audit.service.js';
+import { notifyExamResultForAttempt } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
 
 /**
@@ -519,6 +520,7 @@ export const examAttemptService = {
 
       if (!pending) {
         await syncExamResult(tx, finalRecord, actor.id);
+        await notifyExamResultForAttempt(tx, attemptId);
       }
 
       await auditService.recordInTransaction(tx, {

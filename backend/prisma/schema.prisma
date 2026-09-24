@@ -204,6 +204,16 @@ enum NotificationType {
   PAYMENT_DUE_SOON
   /// Xodimga: past baho bilan fikr keldi
   NEGATIVE_FEEDBACK
+  /// O'quvchi/ota-onaga: yangi uy vazifasi e'lon qilindi
+  HOMEWORK_CREATED
+  /// O'quvchi/ota-onaga: vazifa baholandi
+  HOMEWORK_GRADED
+  /// O'quvchi/ota-onaga: imtihon natijasi chiqdi
+  EXAM_RESULT
+  /// O'quvchiga: yangi darajaga ko'tarildi
+  LEVEL_UP
+  /// O'quvchi/ota-onaga: sertifikat berildi
+  CERTIFICATE_ISSUED
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.

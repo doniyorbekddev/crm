@@ -26,6 +26,11 @@ export const NOTIFICATION_PRIORITY: Record<NotificationType, NotificationPriorit
   CHILD_ABSENT: NotificationPriority.HIGH,
   PAYMENT_DUE_SOON: NotificationPriority.NORMAL,
   NEGATIVE_FEEDBACK: NotificationPriority.HIGH,
+  HOMEWORK_CREATED: NotificationPriority.NORMAL,
+  HOMEWORK_GRADED: NotificationPriority.NORMAL,
+  EXAM_RESULT: NotificationPriority.NORMAL,
+  LEVEL_UP: NotificationPriority.LOW,
+  CERTIFICATE_ISSUED: NotificationPriority.NORMAL,
 };
 
 /**

@@ -1,6 +1,10 @@
 import {
   AlertTriangle,
+  Award,
   BadgeCheck,
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
   BellRing,
   CalendarClock,
   CalendarX,
@@ -31,6 +35,11 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'CHILD_ABSENT',
   'PAYMENT_DUE_SOON',
   'NEGATIVE_FEEDBACK',
+  'HOMEWORK_CREATED',
+  'HOMEWORK_GRADED',
+  'EXAM_RESULT',
+  'LEVEL_UP',
+  'CERTIFICATE_ISSUED',
   'SYSTEM',
 ];
 
@@ -48,6 +57,11 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   CHILD_ABSENT: 'Farzand darsga kelmadi',
   PAYMENT_DUE_SOON: 'To‘lov muddati yaqin',
   NEGATIVE_FEEDBACK: 'Past baho bilan fikr',
+  HOMEWORK_CREATED: 'Yangi uy vazifasi',
+  HOMEWORK_GRADED: 'Vazifa baholandi',
+  EXAM_RESULT: 'Imtihon natijasi',
+  LEVEL_UP: 'Yangi daraja',
+  CERTIFICATE_ISSUED: 'Sertifikat berildi',
   SYSTEM: 'Tizim',
 };
 
@@ -65,6 +79,11 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   CHILD_ABSENT: CalendarX,
   PAYMENT_DUE_SOON: CalendarClock,
   NEGATIVE_FEEDBACK: MessageSquareWarning,
+  HOMEWORK_CREATED: BookOpen,
+  HOMEWORK_GRADED: ClipboardCheck,
+  EXAM_RESULT: Target,
+  LEVEL_UP: Sparkles,
+  CERTIFICATE_ISSUED: Award,
   SYSTEM: Info,
 };
 
@@ -79,6 +98,11 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   CHILD_ABSENT: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   PAYMENT_DUE_SOON: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   NEGATIVE_FEEDBACK: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
+  HOMEWORK_CREATED: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300',
+  HOMEWORK_GRADED: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300',
+  EXAM_RESULT: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
+  LEVEL_UP: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  CERTIFICATE_ISSUED: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300',
   DEBT_REMINDER: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   TRIAL_LESSON_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   EXPENSE_APPROVAL: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',

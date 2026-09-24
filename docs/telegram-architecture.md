@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–7 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv va rahbar botlari).
+> Holat: **PHASE 1–8 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar botlari, o'quvchi bildirishnomalari).
 
 ---
 
@@ -214,6 +214,23 @@ Bloklangan (`status ≠ ACTIVE`) xodimning bog'lanishi yopiladi — CRM'ga kira 
 | Xavf ostida | `studentService.atRisk` | daraja va sog'lomlik bahosi |
 | Ogohlantirishlar | `alertService.list` (ochiq) | `alert.view` botda tekshiriladi |
 
+## 5d. O'quvchi/ota-ona bildirishnomalari (PHASE 8)
+
+Beshta yangi tur — `services/studentNotify.service.ts` orqali, **asosiy amal bilan bir tranzaksiyada**:
+
+| Tur | Qachon | Kimga | Qayerdan chaqiriladi |
+|---|---|---|---|
+| `HOMEWORK_CREATED` | vazifa e'lon qilinganda | guruhdagi har faol o'quvchi + ota-onasi | `homeworkService.create` |
+| `HOMEWORK_GRADED` | ball qo'yilganda | o'quvchi + ota-ona | `homeworkService.bulkGrade` |
+| `EXAM_RESULT` | natija kiritilganda / urinish baholanganda | o'quvchi + ota-ona | `examService.saveResults`, `examAttemptService.grade` |
+| `LEVEL_UP` | XP darajani oshirganda | faqat o'quvchi | `gamification.awardXp` — XP qayerdan kelmasin |
+| `CERTIFICATE_ISSUED` | sertifikat berilganda | o'quvchi + ota-ona | `certificateService.issue` |
+
+Ikki kanal: kabinet hisobi bo'lsa — ilova ichida (foydalanuvchining tur bo'yicha sozlamasi
+hisobga olinadi); Telegram — `studentId`/`parentId` bo'yicha, hisob shart emas.
+Chaqiruvchi faqat **id** beradi — matn, manzil va `dedupeKey` bitta joyda (bir xil ball qayta
+qo'yilsa takror xabar ketmaydi).
+
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga
 ajratildi — `buildStudentProfile` naqshi bo'yicha (ruxsat chaqiruvchi tomonda).
@@ -275,5 +292,5 @@ so'rovni qabul qilmaydi va bot jim qolardi.
 | ~~4~~ | ✅ Parent bot — farzand tanlash PHASE 3 ichida bajarildi (xavfsizlik uchun kerak edi: bo'lim birinchi farzandni jimgina ko'rsatmasin) |
 | ~~5~~ | ✅ Teacher bot — bajarildi |
 | ~~6–7~~ | ✅ Sotuv va rahbar botlari — bajarildi |
-| **8** | Yangi bildirishnoma turlari (homework, exam, XP, certificate) |
+| ~~8~~ | ✅ Bildirishnoma turlari — bajarildi |
 | **9** | Broadcast |

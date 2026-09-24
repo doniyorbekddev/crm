@@ -12,6 +12,11 @@ export type NotificationType =
   | 'CHILD_ABSENT'
   | 'PAYMENT_DUE_SOON'
   | 'NEGATIVE_FEEDBACK'
+  | 'HOMEWORK_CREATED'
+  | 'HOMEWORK_GRADED'
+  | 'EXAM_RESULT'
+  | 'LEVEL_UP'
+  | 'CERTIFICATE_ISSUED'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';

@@ -7,6 +7,7 @@ import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CertificateListQuery, IssueCertificateInput, RevokeCertificateInput } from '../validators/certificate.validator.js';
 import { auditService } from './audit.service.js';
+import { notifyCertificateIssued } from './studentNotify.service.js';
 
 /**
  * Sertifikatlar.
@@ -197,6 +198,7 @@ export const certificateService = {
         metadata: { certificateId: created.id, number: created.number, percentage },
         ...client,
       });
+      await notifyCertificateIssued(tx, created.id);
       return created;
     });
 

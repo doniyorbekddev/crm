@@ -12,6 +12,7 @@ import type {
   UpdateExamInput,
 } from '../validators/homework.validator.js';
 import { auditService } from './audit.service.js';
+import { notifyExamResult } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
 import { assertGroupVisible, getTeachingAccess } from './homework.service.js';
 import type { TeachingAccess } from './homework.service.js';
@@ -417,6 +418,7 @@ export const examService = {
           percentage,
         });
         await tx.examResult.update({ where: { id: result.id }, data: { xpAwarded: points } });
+        await notifyExamResult(tx, { examId: id, studentId: record.studentId });
       }
 
       // Hamma o‘quvchi baholansa — imtihon yakunlangan hisoblanadi

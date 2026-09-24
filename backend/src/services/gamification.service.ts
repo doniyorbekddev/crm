@@ -12,6 +12,7 @@ import type {
   UpdateXpRuleInput,
 } from '../validators/gamification.validator.js';
 import { auditService } from './audit.service.js';
+import { notifyLevelUp } from './studentNotify.service.js';
 
 /** Davomat holatiga mos XP qoidasi (qoida bazadan olinadi) */
 const ATTENDANCE_RULE_BY_STATUS: Partial<Record<AttendanceStatus, string>> = {
@@ -156,7 +157,13 @@ async function awardXp(tx: Prisma.TransactionClient, input: AwardXpInput): Promi
       },
     });
   }
+  // Daraja o'zgarganini shu yerda ushlaymiz: XP qayerdan kelmasin (davomat, vazifa, imtihon),
+  // yangi darajaga chiqqan o'quvchi bir marta xabar oladi
+  const before = await tx.gamificationProfile.findUnique({ where: { studentId: input.studentId }, select: { levelNumber: true } });
   const profile = await recalculateProfile(tx, input.studentId);
+  if (profile.levelNumber > (before?.levelNumber ?? 1)) {
+    await notifyLevelUp(tx, input.studentId, profile.levelNumber);
+  }
   return profile.totalXp;
 }
 

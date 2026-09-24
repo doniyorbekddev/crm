@@ -14,6 +14,7 @@ import type {
   UpdateHomeworkInput,
 } from '../validators/homework.validator.js';
 import { auditService } from './audit.service.js';
+import { notifyHomeworkCreated, notifyHomeworkGraded } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
 import { permissionService } from './permission.service.js';
 
@@ -387,6 +388,8 @@ export const homeworkService = {
       });
 
       const students = input.status === 'PUBLISHED' ? await ensureSubmissions(tx, homework.id, group.id) : 0;
+      // O'quvchi va ota-onaga xabar — shu tranzaksiyada, e'lon bekor bo'lsa xabar ham ketmaydi
+      if (input.status === 'PUBLISHED') await notifyHomeworkCreated(tx, homework.id);
 
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
@@ -524,6 +527,9 @@ export const homeworkService = {
             onTime: status !== 'LATE',
           });
           await tx.homeworkSubmission.update({ where: { id: submission.id }, data: { xpAwarded: points } });
+        }
+        if (record.score !== undefined) {
+          await notifyHomeworkGraded(tx, { homeworkId: id, studentId: record.studentId, score: record.score, feedback: record.feedback ?? null });
         }
       }
 
