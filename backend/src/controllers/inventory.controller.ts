@@ -9,6 +9,7 @@ import {
   productListQuerySchema,
   productSchema,
   stockMovementSchema,
+  stockTransferSchema,
 } from '../validators/inventory.validator.js';
 
 export const inventoryController = {
@@ -53,5 +54,11 @@ export const inventoryController = {
   async move(req: Request, res: Response): Promise<void> {
     const input = stockMovementSchema.parse(req.body);
     sendCreated(res, await inventoryService.move(requireAuthUser(req), input, getClientInfo(req)), 'Ombor harakati yozildi');
+  },
+
+  async transfer(req: Request, res: Response): Promise<void> {
+    const input = stockTransferSchema.parse(req.body);
+    const result = await inventoryService.transfer(requireAuthUser(req), input, getClientInfo(req));
+    sendCreated(res, result, 'Tovar ko‘chirildi');
   },
 };

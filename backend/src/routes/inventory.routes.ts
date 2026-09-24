@@ -17,5 +17,6 @@ inventoryRouter.put('/categories', manage, inventoryController.saveCategory);
 inventoryRouter.get('/stats', view, inventoryController.stats);
 inventoryRouter.get('/movements', view, inventoryController.movements);
 inventoryRouter.post('/movements', manage, inventoryController.move);
+inventoryRouter.post('/transfers', manage, inventoryController.transfer);
 inventoryRouter.get('/', view, inventoryController.list);
 inventoryRouter.put('/', manage, inventoryController.save);

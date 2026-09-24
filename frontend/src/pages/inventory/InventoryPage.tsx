@@ -21,12 +21,18 @@ import type { Product } from '@/types/inventory';
 import { formatMoney, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { MovementModal } from './MovementModal';
+import { TransferModal } from './TransferModal';
 import { MovementsHistory } from './MovementsHistory';
 import { ProductFormModal } from './ProductFormModal';
 
 const PAGE_SIZE = 20;
 
-type Dialog = { type: 'product'; product?: Product } | { type: 'move'; product: Product } | { type: 'history'; product?: Product } | null;
+type Dialog =
+  | { type: 'product'; product?: Product }
+  | { type: 'move'; product: Product }
+  | { type: 'transfer'; product: Product }
+  | { type: 'history'; product?: Product }
+  | null;
 
 function StatCard({ icon: Icon, label, value, tone }: { icon: typeof Package; label: string; value: string; tone?: 'bad' }) {
   return (
@@ -196,6 +202,9 @@ export default function InventoryPage() {
                               <Button size="sm" variant="secondary" onClick={() => setDialog({ type: 'move', product })}>
                                 Harakat
                               </Button>
+                              <Button size="sm" variant="ghost" disabled={product.quantity === 0} onClick={() => setDialog({ type: 'transfer', product })}>
+                                Ko‘chirish
+                              </Button>
                               <Button size="sm" variant="ghost" onClick={() => setDialog({ type: 'product', product })}>
                                 Tahrir
                               </Button>
@@ -229,6 +238,7 @@ export default function InventoryPage() {
         />
       )}
       {dialog?.type === 'move' && <MovementModal product={dialog.product} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog?.type === 'transfer' && <TransferModal product={dialog.product} onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog?.type === 'history' && <MovementsHistory product={dialog.product} onClose={() => setDialog(null)} />}
     </>
   );

@@ -49,6 +49,14 @@ export const stockMovementSchema = z.object({
     .optional(),
 });
 
+/** Filiallararo ko'chirish — pul yozuvi yo'q, shuning uchun `money` maydoni ham yo'q */
+export const stockTransferSchema = z.object({
+  productId: idSchema,
+  toBranchId: idSchema,
+  quantity: z.coerce.number().int().min(1, 'Miqdor kamida 1').max(100_000, 'Miqdor juda katta'),
+  reason: optionalField(z.string().trim().max(255, 'Sabab juda uzun')),
+});
+
 export const productListQuerySchema = paginationQuerySchema.extend({
   categoryId: optionalField(idSchema),
   branchId: optionalField(idSchema),
@@ -71,5 +79,6 @@ export const inventoryStatsQuerySchema = z.object({ branchId: optionalField(idSc
 
 export type ProductInput = z.infer<typeof productSchema>;
 export type StockMovementInput = z.infer<typeof stockMovementSchema>;
+export type StockTransferInput = z.infer<typeof stockTransferSchema>;
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
 export type MovementListQuery = z.infer<typeof movementListQuerySchema>;

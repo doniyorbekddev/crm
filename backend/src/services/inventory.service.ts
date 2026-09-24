@@ -127,6 +127,8 @@ export interface StockMovementDto {
   product: { id: string; sku: string; name: string; unit: string };
   student: { id: string; name: string } | null;
   createdBy: string | null;
+  /** Ko'chirishda ikkinchi filial (TRANSFER_IN/OUT uchun) */
+  counterpartBranchId: string | null;
   /** Pul yozuvi bilan bog'langanmi */
   hasMoneyRecord: boolean;
   createdAt: string;
@@ -144,6 +146,7 @@ function toMovementDto(record: MovementRecord): StockMovementDto {
     product: record.product,
     student: record.student ? { id: record.student.id, name: `${record.student.firstName} ${record.student.lastName}` } : null,
     createdBy: record.createdBy ? `${record.createdBy.firstName} ${record.createdBy.lastName}` : null,
+    counterpartBranchId: record.counterpartBranchId,
     hasMoneyRecord: record.incomeId !== null || record.expenseId !== null,
     createdAt: record.createdAt.toISOString(),
   };
@@ -168,6 +171,21 @@ export interface MovementInput {
   decrease?: boolean | undefined;
   /** Pulni shu harakat bilan birga yozish (tushum/xarajat kategoriyasi) */
   money?: { categoryId: string; method: 'CASH' | 'CARD' | 'TRANSFER' | 'ONLINE'; accountId?: string | undefined } | undefined;
+}
+
+export interface TransferInput {
+  productId: string;
+  /** Qabul qiluvchi filial */
+  toBranchId: string;
+  quantity: number;
+  reason?: string | undefined;
+}
+
+export interface TransferResult {
+  /** Jo'natuvchi filialdagi chiqim yozuvi */
+  out: StockMovementDto;
+  /** Qabul qiluvchi filialdagi kirim yozuvi */
+  in: StockMovementDto;
 }
 
 export const inventoryService = {
@@ -331,6 +349,15 @@ export const inventoryService = {
 
     if (input.quantity <= 0) throw AppError.unprocessable('Miqdor noldan katta bo‘lsin', [{ field: 'quantity', message: 'Noto‘g‘ri miqdor' }]);
 
+    // Ko'chirish bu yerdan yozilmaydi: bitta tomonlama yozuv qilinsa, tovar "yo'qolib qoladi"
+    // (bir filialdan chiqdi, ikkinchisiga kirmadi). Shuning uchun faqat `transfer()` orqali —
+    // u ikkala yozuvni bitta tranzaksiyada qiladi.
+    if (input.type === 'TRANSFER_IN' || input.type === 'TRANSFER_OUT') {
+      throw AppError.unprocessable('Ko‘chirish alohida amal orqali qilinadi', [
+        { field: 'type', message: 'Filiallararo ko‘chirish uchun "Ko‘chirish" amalidan foydalaning' },
+      ]);
+    }
+
     const signed = input.type === 'ADJUSTMENT' && input.decrease ? -input.quantity : directionOf(input.type, input.quantity);
     const balanceAfter = product.quantity + signed;
     if (balanceAfter < 0) {
@@ -428,5 +455,143 @@ export const inventoryService = {
     });
 
     return toMovementDto(created);
+  },
+
+  /**
+   * Filiallararo ko'chirish — **bitta tranzaksiyada ikkita yozuv**.
+   *
+   * Nega alohida amal: oddiy harakat orqali TRANSFER_OUT yozilsa, ikkinchi filialdagi kirim
+   * unutilishi yoki xato tufayli yozilmay qolishi mumkin edi — tovar hisobdan "yo'qolardi".
+   * Bu yerda chiqim, kirim va ikkala qoldiq bir vaqtda yoziladi: yo hammasi, yo hech nima.
+   *
+   * Qoidalar:
+   *  - Xodim **ikkala filialni** ham ko'ra olishi kerak (aks holda o'zi ko'rmaydigan omborga
+   *    tovar surib yuborishi mumkin bo'lardi).
+   *  - Qabul qiluvchi filialda shu kodli (SKU) mahsulot bo'lmasa, **o'sha nom va turkum bilan**
+   *    nol qoldiqda ochiladi — aks holda ko'chirish har safar qo'lda tayyorgarlik talab qilardi.
+   *  - Pul yozuvi yaratilmaydi: markaz ichidagi harakat daromad ham, xarajat ham emas.
+   *  - Mavjud mahsulotning tannarxi o'zgartirilmaydi — qabul qiluvchi filialning o'z xarid
+   *    tarixi buzilmasin. Yangi ochilgan mahsulot jo'natuvchining tannarxini oladi.
+   */
+  async transfer(actor: AuthUser, input: TransferInput, client: ClientInfo): Promise<TransferResult> {
+    const access = await getBranchAccess(actor);
+    const product = await prisma.product.findUnique({
+      where: { id: input.productId },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        branchId: true,
+        quantity: true,
+        cost: true,
+        price: true,
+        unit: true,
+        categoryId: true,
+        minQuantity: true,
+        note: true,
+      },
+    });
+    if (!product) throw AppError.notFound('Mahsulot topilmadi');
+    assertBranchAccess(access, product.branchId);
+    assertBranchAccess(access, input.toBranchId);
+
+    if (input.toBranchId === product.branchId) {
+      throw AppError.unprocessable('Filial bir xil', [{ field: 'toBranchId', message: 'Boshqa filialni tanlang' }]);
+    }
+    const target = await prisma.branch.findFirst({ where: { id: input.toBranchId, isActive: true }, select: { id: true, name: true } });
+    if (!target) throw AppError.unprocessable('Filial topilmadi', [{ field: 'toBranchId', message: 'Filialni tanlang' }]);
+
+    const unitPrice = product.cost.toNumber();
+    const totalAmount = Math.round(unitPrice * input.quantity);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Qoldiq tranzaksiya ichida qayta o'qiladi: ikki xodim bir vaqtda ko'chirsa,
+      // tashqarida o'qilgan qoldiq eskirgan bo'lishi mumkin.
+      const source = await tx.product.findUniqueOrThrow({ where: { id: product.id }, select: { quantity: true } });
+      const outBalance = source.quantity - input.quantity;
+      if (outBalance < 0) {
+        throw AppError.unprocessable(`Omborda yetarli emas: ${source.quantity} ${product.name} qolgan`);
+      }
+
+      let destination = await tx.product.findFirst({
+        where: { branchId: input.toBranchId, sku: product.sku },
+        select: { id: true, quantity: true, isActive: true },
+      });
+      if (!destination) {
+        destination = await tx.product.create({
+          data: {
+            branchId: input.toBranchId,
+            sku: product.sku,
+            name: product.name,
+            categoryId: product.categoryId,
+            unit: product.unit,
+            price: product.price,
+            cost: product.cost,
+            minQuantity: product.minQuantity,
+            note: product.note,
+            quantity: 0,
+          },
+          select: { id: true, quantity: true, isActive: true },
+        });
+      }
+
+      const outMovement = await tx.stockMovement.create({
+        data: {
+          productId: product.id,
+          type: 'TRANSFER_OUT',
+          quantity: input.quantity,
+          balanceAfter: outBalance,
+          unitPrice,
+          totalAmount,
+          reason: input.reason ?? null,
+          counterpartBranchId: input.toBranchId,
+          createdById: actor.id,
+        },
+        select: movementSelect,
+      });
+      await tx.product.update({ where: { id: product.id }, data: { quantity: outBalance } });
+
+      const inBalance = destination.quantity + input.quantity;
+      const inMovement = await tx.stockMovement.create({
+        data: {
+          productId: destination.id,
+          type: 'TRANSFER_IN',
+          quantity: input.quantity,
+          balanceAfter: inBalance,
+          unitPrice,
+          totalAmount,
+          reason: input.reason ?? null,
+          counterpartBranchId: product.branchId,
+          createdById: actor.id,
+        },
+        select: movementSelect,
+      });
+      // Tovar kelgan mahsulot yopiq turgan bo‘lsa ochiladi — aks holda qoldiq ro'yxatda ko'rinmaydi
+      await tx.product.update({
+        where: { id: destination.id },
+        data: { quantity: inBalance, ...(destination.isActive ? {} : { isActive: true }) },
+      });
+
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'inventory.stock_transferred',
+        entityType: 'product',
+        entityId: product.id,
+        metadata: {
+          sku: product.sku,
+          quantity: input.quantity,
+          fromBranchId: product.branchId,
+          toBranchId: input.toBranchId,
+          toProductId: destination.id,
+          outMovementId: outMovement.id,
+          inMovementId: inMovement.id,
+        },
+        ...client,
+      });
+
+      return { out: outMovement, in: inMovement };
+    });
+
+    return { out: toMovementDto(result.out), in: toMovementDto(result.in) };
   },
 };

@@ -167,4 +167,96 @@ describe.skipIf(!hasTestDatabase)('Inventar (ombor)', () => {
       .send({ productId: product.id, type: 'SALE', quantity: 1 })
       .expect(403);
   });
+
+  it('filiallararo ko‘chirish ikkala filialda bitta tranzaksiyada yoziladi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const second = await prisma.branch.create({ data: { key: 'chilonzor', name: 'Chilonzor filiali', sortOrder: 1 } });
+    const product = await createProduct(token);
+    await request(app).post('/api/products/movements').set(bearer(token)).send({ productId: product.id, type: 'PURCHASE', quantity: 10 }).expect(201);
+
+    const transfer = await request(app)
+      .post('/api/products/transfers')
+      .set(bearer(token))
+      .send({ productId: product.id, toBranchId: second.id, quantity: 4, reason: 'Filialda tugab qolgan' });
+
+    expect(transfer.status).toBe(201);
+    expect(transfer.body.data.out).toMatchObject({ type: 'TRANSFER_OUT', quantity: 4, balanceAfter: 6, counterpartBranchId: second.id });
+    expect(transfer.body.data.in).toMatchObject({ type: 'TRANSFER_IN', quantity: 4, balanceAfter: 4 });
+
+    // Qabul qiluvchi filialda shu kodli mahsulot o'zi ochiladi
+    const destination = await prisma.product.findFirstOrThrow({ where: { branchId: second.id, sku: 'KITOB-01' } });
+    expect(destination.quantity).toBe(4);
+    expect(destination.name).toBe('Ingliz tili darsligi');
+    const source = await prisma.product.findUniqueOrThrow({ where: { id: product.id } });
+    expect(source.quantity).toBe(6);
+
+    // Markaz ichidagi harakat — pul yozuvi yaratilmaydi
+    expect(await prisma.transaction.count()).toBe(0);
+    // Jami qoldiq o'zgarmaydi: tovar yo'qolmadi
+    expect(source.quantity + destination.quantity).toBe(10);
+  });
+
+  it('qoldiq yetmasa ko‘chirish butunlay bekor bo‘ladi — yarim yozuv qolmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const second = await prisma.branch.create({ data: { key: 'yunusobod', name: 'Yunusobod filiali', sortOrder: 1 } });
+    const product = await createProduct(token);
+    await request(app).post('/api/products/movements').set(bearer(token)).send({ productId: product.id, type: 'PURCHASE', quantity: 2 }).expect(201);
+
+    const failed = await request(app)
+      .post('/api/products/transfers')
+      .set(bearer(token))
+      .send({ productId: product.id, toBranchId: second.id, quantity: 5 });
+
+    expect(failed.status).toBe(422);
+    expect(failed.body.message).toContain('yetarli emas');
+    // Na chiqim, na kirim, na yangi mahsulot yaratilmagan
+    expect(await prisma.stockMovement.count({ where: { type: { in: ['TRANSFER_IN', 'TRANSFER_OUT'] } } })).toBe(0);
+    expect(await prisma.product.count({ where: { branchId: second.id } })).toBe(0);
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).quantity).toBe(2);
+  });
+
+  it('oddiy harakat orqali ko‘chirish yozib bo‘lmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const product = await createProduct(token);
+    await request(app).post('/api/products/movements').set(bearer(token)).send({ productId: product.id, type: 'PURCHASE', quantity: 5 }).expect(201);
+
+    const oneSided = await request(app)
+      .post('/api/products/movements')
+      .set(bearer(token))
+      .send({ productId: product.id, type: 'TRANSFER_OUT', quantity: 2 });
+
+    expect(oneSided.status).toBe(422);
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).quantity).toBe(5);
+  });
+
+  it('o‘zi ko‘rmaydigan filialga ko‘chira olmaydi', async () => {
+    const { token: adminToken } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const second = await prisma.branch.create({ data: { key: 'sergeli', name: 'Sergeli filiali', sortOrder: 1 } });
+    const product = await createProduct(adminToken);
+    await request(app).post('/api/products/movements').set(bearer(adminToken)).send({ productId: product.id, type: 'PURCHASE', quantity: 10 }).expect(201);
+
+    // Filialga biriktirilgan buxgalter faqat o'z filialini ko'radi
+    const { token } = await createUserWithToken(app, { role: 'ACCOUNTANT', email: 'buxgalter-ombor@local.uz' });
+
+    await request(app)
+      .post('/api/products/transfers')
+      .set(bearer(token))
+      .send({ productId: product.id, toBranchId: second.id, quantity: 1 })
+      .expect(403);
+
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).quantity).toBe(10);
+  });
+
+  it('bir xil filialga ko‘chirish rad etiladi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'SUPER_ADMIN' });
+    const product = await createProduct(token);
+    await request(app).post('/api/products/movements').set(bearer(token)).send({ productId: product.id, type: 'PURCHASE', quantity: 3 }).expect(201);
+
+    const same = await request(app)
+      .post('/api/products/transfers')
+      .set(bearer(token))
+      .send({ productId: product.id, toBranchId: 'branch_main', quantity: 1 });
+
+    expect(same.status).toBe(422);
+  });
 });

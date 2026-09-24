@@ -10,6 +10,8 @@ import type {
   ProductPayload,
   StockMovement,
   StockMovementPayload,
+  StockTransferPayload,
+  StockTransferResult,
 } from '@/types/inventory';
 
 function withMessage<T>(response: { data: ApiSuccessResponse<T> }): MessageResult<T> {
@@ -57,5 +59,10 @@ export const inventoryService = {
 
   async move(payload: StockMovementPayload): Promise<MessageResult<StockMovement>> {
     return withMessage(await api.post<ApiSuccessResponse<StockMovement>>('/products/movements', payload));
+  },
+
+  /** Filiallararo ko‘chirish — serverda chiqim va kirim bitta tranzaksiyada yoziladi */
+  async transfer(payload: StockTransferPayload): Promise<MessageResult<StockTransferResult>> {
+    return withMessage(await api.post<ApiSuccessResponse<StockTransferResult>>('/products/transfers', payload));
   },
 };

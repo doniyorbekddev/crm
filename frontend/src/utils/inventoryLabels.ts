@@ -1,16 +1,13 @@
 import type { BadgeTone } from '@/components/ui/Badge';
 import type { StockMovementType } from '@/types/inventory';
 
-/** Kirim avval, keyin chiqim — formada shu tartibda ko‘rinadi */
-export const STOCK_MOVEMENT_ORDER: readonly StockMovementType[] = [
-  'PURCHASE',
-  'SALE',
-  'RETURN',
-  'DAMAGE',
-  'TRANSFER_IN',
-  'TRANSFER_OUT',
-  'ADJUSTMENT',
-];
+/**
+ * Kirim avval, keyin chiqim — formada shu tartibda ko‘rinadi.
+ *
+ * `TRANSFER_IN`/`TRANSFER_OUT` ataylab yo‘q: filiallararo ko‘chirish alohida amal
+ * (ikkala filialda bitta tranzaksiyada yoziladi), qo‘lda bir tomonlama yozilmaydi.
+ */
+export const STOCK_MOVEMENT_ORDER: readonly StockMovementType[] = ['PURCHASE', 'SALE', 'RETURN', 'DAMAGE', 'ADJUSTMENT'];
 
 export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
   PURCHASE: 'Kirim (xarid)',

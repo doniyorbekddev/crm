@@ -936,3 +936,28 @@ belgilanmas edi, urinish esa har safar yangi yozuv sifatida qo'shilaverardi.
 **Brauzerda tekshirildi:** "Imtihonlar → Imtihon qo'shish" oynasida ikkala yangi maydon izohlari
 bilan ko'rindi. Tekshiruv uchun ochilgan vaqtinchalik admin hisobi (va uning sessiya/audit
 yozuvlari) keyin o'chirildi — real ma'lumotlarga tegilmadi.
+
+### PHASE 14 (5-qism) — filiallararo atomik ko'chirish (2026-09-24)
+
+Spec §20 "Branch-to-branch transfer" — `TRANSFER_IN`/`TRANSFER_OUT` turlari bor edi, lekin
+ular oddiy harakat sifatida **bir tomonlama** yozilardi: tovar bir filialdan chiqib,
+ikkinchisiga kirmay qolishi mumkin edi. `counterpartBranchId` ustuni hech qachon to'ldirilmasdi.
+
+| Qism | Holat |
+|---|---|
+| `POST /api/products/transfers` — chiqim, kirim va **ikkala qoldiq bitta tranzaksiyada**: yo hammasi, yo hech nima | ✅ testda tekshiriladi |
+| Qoldiq tranzaksiya **ichida** qayta o'qiladi — ikki xodim bir vaqtda ko'chirsa, eskirgan qoldiq bo'yicha minusga tushmaydi | ✅ |
+| Qabul qiluvchi filialda shu kodli mahsulot bo'lmasa, o'sha nom, turkum va tannarx bilan nol qoldiqda **o'zi ochiladi** | ✅ brauzerda tekshirildi |
+| Mavjud mahsulotning tannarxi o'zgartirilmaydi — qabul qiluvchi filialning o'z xarid tarixi buzilmasin. Yangi ochilgani jo'natuvchining tannarxini oladi | ✅ |
+| Xodim **ikkala filialni** ham ko'ra olishi shart, aks holda 403 — o'zi ko'rmaydigan omborga tovar surib yuborilmasin | ✅ testda tekshiriladi |
+| Pul yozuvi yaratilmaydi: markaz ichidagi harakat daromad ham, xarajat ham emas | ✅ testda tekshiriladi |
+| **Nuqson yopildi:** oddiy harakat oynasidan `TRANSFER_IN`/`TRANSFER_OUT` olib tashlandi va server ularni 422 bilan rad etadi — bir tomonlama yozuv endi mumkin emas | ✅ testda tekshiriladi |
+| `counterpartBranchId` endi yoziladi va tarixda filial nomi ko'rinadi ("Filialga yuborildi · Eski shaxar") | ✅ brauzerda tekshirildi |
+| Testlar: `tests/inventory.test.ts` (+5, jami 14 ta) | ✅ 592 test, frontend 55 test |
+
+**Brauzerda tekshirildi:** "Ombor → Ko'chirish" oynasida filial tanlandi, 4 dona ko'chirildi —
+"Tovar ko'chirildi — bu filialda qoldiq: 6 dona", mahsulot turlari 1 dan 2 ga chiqdi (ikkinchi
+filialda o'zi ochildi), **qoldiq qiymati 120 000 so'mligicha qoldi** — ya'ni tovar yo'qolmadi.
+Tarixda "Filialga yuborildi · Eski shaxar · Brauzer tekshiruvi · −4 dona · qoldiq: 6" ko'rindi.
+Tekshiruvdan keyin ikkala mahsulot, ikkala harakat va vaqtinchalik admin o'chirildi (omborda
+0 mahsulot, 0 harakat qoldi — bu foydalanuvchining boshlang'ich holati).

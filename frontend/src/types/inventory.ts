@@ -53,6 +53,8 @@ export interface StockMovement {
   product: { id: string; sku: string; name: string; unit: string };
   student: { id: string; name: string } | null;
   createdBy: string | null;
+  /** Ko‘chirishda ikkinchi filial */
+  counterpartBranchId: string | null;
   hasMoneyRecord: boolean;
   createdAt: string;
 }
@@ -67,6 +69,18 @@ export interface StockMovementPayload {
   decrease?: boolean;
   /** Pul yozuvini ham yaratish */
   money?: { categoryId: string; method: 'CASH' | 'CARD' | 'TRANSFER' | 'ONLINE'; accountId?: string };
+}
+
+export interface StockTransferPayload {
+  productId: string;
+  toBranchId: string;
+  quantity: number;
+  reason?: string;
+}
+
+export interface StockTransferResult {
+  out: StockMovement;
+  in: StockMovement;
 }
 
 export interface InventoryStats {

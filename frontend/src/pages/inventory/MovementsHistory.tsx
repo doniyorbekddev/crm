@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { inventoryService } from '@/services/inventory.service';
 import type { Product } from '@/types/inventory';
 import { formatDateTime, formatMoney, formatNumber } from '@/utils/format';
+import { branchesService } from '@/services/branches.service';
 import { STOCK_INCOMING, STOCK_MOVEMENT_LABELS, STOCK_MOVEMENT_TONES } from '@/utils/inventoryLabels';
 
 const PAGE_SIZE = 20;
@@ -25,6 +26,11 @@ export function MovementsHistory({ product, onClose }: { product?: Product; onCl
     queryFn: () => inventoryService.movements(params),
     placeholderData: keepPreviousData,
   });
+
+  // Ko'chirish yozuvida "qaysi filial bilan" degan savol darrov tug'iladi — shuning uchun
+  // filial nomi ko'rsatiladi. Ro'yxat kichik va keshlangan, qo'shimcha yuk bermaydi.
+  const branchesQuery = useQuery({ queryKey: queryKeys.branches.list, queryFn: branchesService.list, staleTime: 5 * 60_000 });
+  const branchName = (id: string | null) => (id ? (branchesQuery.data ?? []).find((branch) => branch.id === id)?.name : undefined);
 
   return (
     <Modal
@@ -58,6 +64,7 @@ export function MovementsHistory({ product, onClose }: { product?: Product; onCl
                       {formatDateTime(movement.createdAt)}
                       {movement.createdBy ? ` · ${movement.createdBy}` : ''}
                       {movement.student ? ` · ${movement.student.name}` : ''}
+                      {branchName(movement.counterpartBranchId) ? ` · ${branchName(movement.counterpartBranchId)}` : ''}
                       {movement.reason ? ` · ${movement.reason}` : ''}
                     </p>
                   </div>
