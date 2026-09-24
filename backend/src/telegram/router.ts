@@ -17,6 +17,7 @@ import {
 import { LEAD_LOST_FLOW, SALES_COMMANDS, handleLeadLostFlow, handleSalesAction } from './handlers/sales.js';
 import { OWNER_COMMANDS, handleOwnerAction } from './handlers/owner.js';
 import { BROADCAST_COMMANDS, BROADCAST_FLOW, BROADCAST_FLOW_ACTIONS, handleBroadcastAction, handleBroadcastFlow } from './handlers/broadcast.js';
+import { AI_FLOW, EXTRA_FLOW_ACTIONS, EXTRA_STAFF_COMMANDS, EXTRA_STUDENT_COMMANDS, handleAiFlow, handleExtraAction } from './handlers/extras.js';
 import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
 import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
@@ -273,24 +274,26 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
     if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
     if (session.flow === LEAD_LOST_FLOW && scope.actor) return handleLeadLostFlow(context, scope, session);
     if (session.flow === BROADCAST_FLOW && scope.actor) return handleBroadcastFlow(context, scope, session);
+    if (session.flow === AI_FLOW && scope.actor) return handleAiFlow(context, scope, session);
     // Davomat varag'i matn kutmaydi — tugmalar bilan ishlanadi; matn oddiy buyruq kabi ketadi
     if (session.flow !== ATTENDANCE_FLOW) await telegramSessionService.clearFlow(context.chatId);
   }
   if (inFlow && isCommand) await telegramSessionService.clearFlow(context.chatId);
 
-  const studentAction = scope.kind === 'STAFF' ? undefined : STUDENT_COMMANDS[command];
+  const studentAction = scope.kind === 'STAFF' ? undefined : (STUDENT_COMMANDS[command] ?? EXTRA_STUDENT_COMMANDS[command]);
   if (studentAction) {
-    const handled = await handleStudentAction(context, scope, studentAction, null);
+    const handled = (await handleStudentAction(context, scope, studentAction, null)) ?? (await handleExtraAction(context, scope, studentAction, null));
     if (handled) return handled;
   }
   if (scope.actor) {
-    const staffAction = TEACHER_COMMANDS[command] ?? SALES_COMMANDS[command] ?? OWNER_COMMANDS[command] ?? BROADCAST_COMMANDS[command];
+    const staffAction = TEACHER_COMMANDS[command] ?? SALES_COMMANDS[command] ?? OWNER_COMMANDS[command] ?? BROADCAST_COMMANDS[command] ?? EXTRA_STAFF_COMMANDS[command];
     if (staffAction) {
       const handled =
         (await handleTeacherAction(context, scope, staffAction, null)) ??
         (await handleSalesAction(context, scope, staffAction, null)) ??
         (await handleOwnerAction(context, scope, staffAction)) ??
-        (await handleBroadcastAction(context, scope, staffAction, null));
+        (await handleBroadcastAction(context, scope, staffAction, null)) ??
+        (await handleExtraAction(context, scope, staffAction, null));
       if (handled) return handled;
     }
   }
@@ -304,12 +307,16 @@ async function handleCallback(context: BotContext, scope: NonNullable<BotContext
   // Har qanday tugma ochiq oqimni yopadi: foydalanuvchi boshqa bo'limga o'tdi — yarim qolgan
   // ish uni kutib turmasin. Istisno — oqimning o'z tugmalari (sahifa raqami, davomat belgisi,
   // saqlash, tasdiqlash).
-  if (action !== 'noop' && !TEACHER_FLOW_ACTIONS.has(action) && !BROADCAST_FLOW_ACTIONS.has(action)) {
+  if (action !== 'noop' && !TEACHER_FLOW_ACTIONS.has(action) && !BROADCAST_FLOW_ACTIONS.has(action) && !EXTRA_FLOW_ACTIONS.has(action)) {
     await telegramSessionService.clearFlow(context.chatId);
   }
 
   if (action.startsWith('st_') && scope.kind !== 'STAFF') {
-    const handled = await handleStudentAction(context, scope, action, arg);
+    const handled = (await handleStudentAction(context, scope, action, arg)) ?? (await handleExtraAction(context, scope, action, arg));
+    if (handled) return handled;
+  }
+  if (action.startsWith('ai_') && scope.actor) {
+    const handled = await handleExtraAction(context, scope, action, arg);
     if (handled) return handled;
   }
   if (action.startsWith('tc_') && scope.actor) {

@@ -1,7 +1,7 @@
 # Telegram bot — arxitektura
 
 > Audit: [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) · TZ: `telegramBot.md`
-> Holat: **PHASE 1–9 bajarildi** (poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar botlari, bildirishnomalar, ommaviy xabar).
+> Holat: **PHASE 1–12 bajarildi** — poydevor, bog'lash xavfsizligi, o'quvchi/ota-ona, o'qituvchi, sotuv, rahbar, bildirishnomalar, ommaviy xabar, to'lov tugmasi, do'st taklifi, AI yordamchi. Qoldi: 13–15 (xavfsizlik auditi, yuklama, production).
 
 ---
 
@@ -251,6 +251,16 @@ Kimga? → [o'quvchilar | ota-onalar | guruh → tanlash → (+ota-onalar?) | ku
 - Faqat tasdiqlangan, faol chatlar; bo'sh auditoriya — 422, yozuv yaratilmaydi.
 - Matn HTML rejimida ketadi — foydalanuvchi yozgan `<` belgisi `escapeHtml` bilan xavfsizlanadi.
 - Rasm/fayl bilan yuborish hozircha yo'q — navbat matnli; keyingi bosqichda `fileId` qo'shish mumkin.
+
+## 5f. To'lov tugmasi, do'st taklifi, AI yordamchi (PHASE 10–12)
+
+`handlers/extras.ts`:
+
+| Bo'lim | Servis | Izoh |
+|---|---|---|
+| 💳 To'lash | `paymentScheduleService.get` + `onlinePaymentService.providers()` | Qoldiq va keyingi muddat. Provayder (Click/Payme) ulanmagan bo'lsa — aniq aytiladi. **Bot to'lovni o'zi tasdiqlamaydi** (TZ §36): faqat provayder webhook'i orqali CRM tasdiqlaydi. Sinov provayderi "ulangan" deb ko'rsatilmaydi |
+| 🎁 Do'st taklifi | `Student.referralCode` + `referralService.list` | Havola emas, **kod**: mavjud referral tizimi manager kodni lead kartasiga yozishi bilan ishlaydi. Takliflar holati va olingan bonus. `t.me/share/url` bilan ulashish |
+| 🤖 AI yordamchi | `aiAssistantService.ask` | `ai.assistant` ruxsati bilan. Oqim (`ai`): har matn — savol, javob CRM tool'laridan; takliflar sessiyada (callback 64 baytga sig'maydi). So'rovlar `AiQuery` jurnalida — kabinetdagi bilan bir xil |
 
 **Refaktoring:** `studentProgress` va `attendanceAnalytics` dagi actor-ga bog'liq metodlar
 `buildStudentHomeworkRows`, `buildStudentExamRows`, `buildAttendanceCalendar` quruvchilariga

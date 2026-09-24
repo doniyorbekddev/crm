@@ -584,7 +584,7 @@ export async function showPayments(context: BotContext, scope: CommandScope): Pr
     }
   }
 
-  await context.render(lines.join('\n'), [menuRow()]);
+  await context.render(lines.join('\n'), [[{ text: '💳 To‘lash', data: callback('st_paynow') }], menuRow()]);
   return { action: STUDENT_ACTIONS.payments };
 }
 

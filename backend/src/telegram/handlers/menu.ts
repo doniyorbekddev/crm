@@ -7,6 +7,7 @@ import { TEACHER_ACTIONS } from './teacher.js';
 import { SALES_ACTIONS } from './sales.js';
 import { OWNER_ACTIONS } from './owner.js';
 import { BROADCAST_ACTIONS } from './broadcast.js';
+import { EXTRA_ACTIONS } from './extras.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import { permissionService } from '../../services/permission.service.js';
 
@@ -42,6 +43,7 @@ const STUDENT_ITEMS: readonly MenuItem[] = [
   { text: '⭐ XP & Reyting', data: callback(STUDENT_ACTIONS.xp) },
   { text: '💳 To‘lovlar', data: callback(STUDENT_ACTIONS.payments) },
   { text: '📜 Sertifikatlar', data: callback(STUDENT_ACTIONS.certificates) },
+  { text: '🎁 Do‘st taklifi', data: callback(EXTRA_ACTIONS.referral) },
 ];
 
 const COMMON_ITEMS: readonly MenuItem[] = [
@@ -78,6 +80,7 @@ async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   if (permissions.has(PERMISSIONS.STUDENT_VIEW)) items.push({ text: '🔥 Xavf ostida', data: callback(OWNER_ACTIONS.risk) });
   if (permissions.has(PERMISSIONS.ALERT_VIEW)) items.push({ text: '🔔 Ogohlantirishlar', data: callback(OWNER_ACTIONS.alerts) });
   if (permissions.has(PERMISSIONS.BROADCAST_SEND)) items.push({ text: '📢 Xabar yuborish', data: callback(BROADCAST_ACTIONS.start) });
+  if (permissions.has(PERMISSIONS.AI_ASSISTANT)) items.push({ text: '🤖 AI yordamchi', data: callback(EXTRA_ACTIONS.aiStart) });
   return [...items, ...COMMON_ITEMS];
 }
 

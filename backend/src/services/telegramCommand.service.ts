@@ -42,6 +42,7 @@ const STUDENT_COMMANDS = [
   '/xp — XP, seriya, reyting, nishonlar',
   '/qarz — to‘lovlar va qarz',
   '/sertifikat — sertifikatlar',
+  '/taklif — do‘st taklifi kodi va bonuslar',
 ];
 
 const COMMON_COMMANDS = ['/holat — bog‘lanish holati', '/uzish — bog‘lanishni uzish', '/help — shu ro‘yxat'];
@@ -58,6 +59,7 @@ function helpText(scope: CommandScope): string {
       '/followup — follow-uplar',
       '/qarzdorlar — eng katta qarzdorlar',
       '/xabar — ommaviy xabar yuborish',
+      '/ai — AI yordamchi (savol-javob)',
       '(bo‘limlar ruxsatingizga qarab ochiladi)',
       '',
     );
@@ -241,6 +243,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'xp', description: 'XP, seriya, reyting' },
   { command: 'qarz', description: 'To‘lovlar va qarz' },
   { command: 'sertifikat', description: 'Sertifikatlar' },
+  { command: 'taklif', description: 'Do‘st taklifi' },
   { command: 'panel', description: 'Ko‘rsatkichlar (rahbar)' },
   { command: 'bugun', description: 'Bugungi darslar (o‘qituvchi)' },
   { command: 'guruhlar', description: 'Guruhlarim (o‘qituvchi)' },
@@ -248,6 +251,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'followup', description: 'Follow-uplar (sotuv)' },
   { command: 'qarzdorlar', description: 'Qarzdorlar (rahbar)' },
   { command: 'xabar', description: 'Ommaviy xabar (admin)' },
+  { command: 'ai', description: 'AI yordamchi (rahbar)' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },
