@@ -141,7 +141,14 @@ TELEGRAM_WEBHOOK_SECRET=<openssl rand -hex 32>
 TELEGRAM_POLLING=true
 ```
 
+Sozlamani tekshirish (**token chiqarilmaydi** — faqat bot nomi va webhook holati):
+
+```bash
+npm run telegram:check --workspace backend
+```
+
 Serverni qayta ishga tushirsangiz, logda `Telegram polling rejimi ishga tushdi` chiqadi.
+`.env` o'zgarishini `node --watch` ko'rmaydi — serverni **qo'lda** qayta ishga tushiring.
 Polling boshlanishida webhook **o'chiriladi**: Telegram bitta botda ikkalasini qabul qilmaydi
 (`getUpdates` 409 bilan rad etiladi).
 
