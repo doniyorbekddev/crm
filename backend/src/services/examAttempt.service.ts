@@ -566,6 +566,16 @@ export const examAttemptService = {
     return toAttemptDto(attempt);
   },
 
+  /** O'quvchining o'z urinishlari — kabinet uchun; egalikni chaqiruvchi (`portal.service`) tekshiradi */
+  async listForStudent(examId: string, studentId: string): Promise<AttemptDto[]> {
+    const rows = await prisma.examAttempt.findMany({
+      where: { examId, studentId },
+      orderBy: { attemptNo: 'desc' },
+      select: attemptSelect,
+    });
+    return rows.map(toAttemptDto);
+  },
+
   async listForExam(actor: AuthUser, examId: string): Promise<AttemptDto[]> {
     await requireVisibleExam(actor, examId);
     const rows = await prisma.examAttempt.findMany({

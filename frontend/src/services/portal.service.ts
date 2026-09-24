@@ -1,7 +1,18 @@
 import { api } from '@/lib/api';
 import type { ApiSuccessResponse } from '@/types/api';
 import type { MessageResult } from '@/services/auth.service';
-import type { HomeworkSubmitPayload, PortalLessons, PortalMe, PortalPayments, PortalProfile, PortalSchedule } from '@/types/portal';
+import type {
+  HomeworkSubmitPayload,
+  PortalExamDetail,
+  PortalHomeworkDetail,
+  PortalLessons,
+  PortalMe,
+  PortalOverview,
+  PortalPayments,
+  PortalProfile,
+  PortalSchedule,
+} from '@/types/portal';
+import { downloadFile } from '@/lib/download';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
 import type { Certificate } from '@/types/certificate';
 import type { StudentExamRow, StudentHomeworkRow } from '@/types/studentProfile';
@@ -44,6 +55,27 @@ export const portalService = {
 
   async certificates(studentId?: string): Promise<Certificate[]> {
     const response = await api.get<ApiSuccessResponse<Certificate[]>>('/portal/certificates', { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** Bosh sahifa qo‘shimcha ko‘rsatkichlari (risk, keyingi dars/imtihon, kutilayotgan vazifa) */
+  async overview(studentId?: string): Promise<PortalOverview> {
+    const response = await api.get<ApiSuccessResponse<PortalOverview>>('/portal/overview', { params: { studentId } });
+    return response.data.data;
+  },
+
+  async homeworkDetail(homeworkId: string, studentId?: string): Promise<PortalHomeworkDetail> {
+    const response = await api.get<ApiSuccessResponse<PortalHomeworkDetail>>(`/portal/homework/${homeworkId}`, { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** O‘zi yuklagan faylni yuklab olish */
+  downloadHomeworkAttachment(homeworkId: string, fallbackName: string, studentId?: string): Promise<void> {
+    return downloadFile(`/portal/homework/${homeworkId}/attachment`, { studentId }, fallbackName);
+  },
+
+  async examDetail(examId: string, studentId?: string): Promise<PortalExamDetail> {
+    const response = await api.get<ApiSuccessResponse<PortalExamDetail>>(`/portal/exams/${examId}`, { params: { studentId } });
     return response.data.data;
   },
 

@@ -1,6 +1,10 @@
 import type { StudentProfile } from './studentProfile';
 import type { PaymentSchedule } from './paymentSchedule';
 import type { PaymentMethod } from './payment';
+import type { ExamStatus, HomeworkStatus, SubmissionStatus } from './homework';
+import type { RiskLevel } from './student';
+import type { ExamAttempt } from './question';
+import type { StudentExamRow } from './studentProfile';
 
 export interface PortalChild {
   studentId: string;
@@ -64,4 +68,57 @@ export interface PortalPayments {
 
 export interface HomeworkSubmitPayload {
   answerText: string;
+}
+
+export interface PortalOverview {
+  /** Kurs dasturi bo‘yicha progress 0–100; dastur yo‘q — null */
+  courseProgress: number | null;
+  /** Yumshoq ko‘rinish: daraja va sabablar, ball yo‘q */
+  risk: { level: RiskLevel; reasons: string[] } | null;
+  nextLesson: PortalLesson | null;
+  pendingHomework: { count: number; next: { homeworkId: string; title: string; deadline: string } | null };
+  nextExam: { examId: string; title: string; date: string } | null;
+}
+
+export interface PortalHomeworkDetail {
+  homework: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: HomeworkStatus;
+    assignedAt: string;
+    deadline: string;
+    maxPoints: number;
+    xpReward: number;
+    groupName: string;
+    courseName: string | null;
+    teacherName: string | null;
+  };
+  submission: {
+    status: SubmissionStatus;
+    submittedAt: string | null;
+    score: number | null;
+    feedback: string | null;
+    answerText: string | null;
+    hasAttachment: boolean;
+    xpAwarded: number;
+    gradedAt: string | null;
+  };
+  canSubmit: boolean;
+  isLate: boolean;
+}
+
+export interface PortalExamDetail {
+  exam: {
+    id: string;
+    title: string;
+    description: string | null;
+    date: string;
+    maxScore: number;
+    passScore: number | null;
+    status: ExamStatus;
+    groupName: string;
+  };
+  result: StudentExamRow | null;
+  attempts: ExamAttempt[];
 }

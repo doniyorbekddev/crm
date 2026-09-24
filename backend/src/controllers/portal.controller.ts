@@ -1,4 +1,8 @@
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import type { Request, Response } from 'express';
+import { AppError } from '../utils/AppError.js';
+import { contentDisposition } from '../utils/fileStorage.js';
 import { portalService } from '../services/portal.service.js';
 import { portalAccountService } from '../services/portalAccount.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
@@ -82,6 +86,43 @@ export const portalController = {
       studentId,
     );
     sendCreated(res, result, 'Vazifa topshirildi');
+  },
+
+  async overview(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.overview(requireAuthUser(req), studentId));
+  },
+
+  async homeworkDetail(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.homeworkDetail(requireAuthUser(req), id, studentId));
+  },
+
+  /** O'z faylini yuklab olish — hujjatlar bilan bir xil oqim (stream, no-store) */
+  async homeworkAttachment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const file = await portalService.homeworkAttachment(requireAuthUser(req), id, studentId);
+    let size: number;
+    try {
+      size = (await stat(file.absolutePath)).size;
+    } catch {
+      throw AppError.notFound('Fayl saqlash joyida topilmadi');
+    }
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Length', String(size));
+    res.setHeader('Content-Disposition', contentDisposition(file.fileName));
+    res.setHeader('Cache-Control', 'private, no-store');
+    const stream = createReadStream(file.absolutePath);
+    stream.on('error', () => res.destroy());
+    stream.pipe(res);
+  },
+
+  async examDetail(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.examDetail(requireAuthUser(req), id, studentId));
   },
 
   async feedbackState(req: Request, res: Response): Promise<void> {

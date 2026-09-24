@@ -24,6 +24,11 @@ import { homeworkService } from './homework.service.js';
 import { detectFileType, saveFile } from '../utils/fileStorage.js';
 import { currentBusinessMonth } from '../utils/dates.js';
 import { ownerForActor, telegramLinkService } from './telegramLink.service.js';
+import { examAttemptService } from './examAttempt.service.js';
+import type { AttemptDto } from './examAttempt.service.js';
+import type { StudentExamRowDto } from './studentProgress.service.js';
+import { resolveStoredPath } from '../utils/fileStorage.js';
+import type { ExamStatus, HomeworkStatus, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
 
 /**
  * Kabinet (portal) — o'quvchi va ota-ona uchun.
@@ -141,6 +146,159 @@ export interface PortalLessonsDto {
   lessons: PortalLessonDto[];
 }
 
+/**
+ * Bosh sahifa uchun qo'shimcha ko'rsatkichlar — profil (`/profile`) bilan birga ishlatiladi.
+ * Risk **yumshoq** ko'rinishda: daraja va sabablar, ball emas (o'quvchini qo'rqitmaslik uchun).
+ */
+export interface PortalOverviewDto {
+  /** Kurs dasturi bo'yicha progress, 0–100; dastur yo'q bo'lsa null */
+  courseProgress: number | null;
+  risk: { level: RiskLevel; reasons: string[] } | null;
+  nextLesson: PortalLessonDto | null;
+  pendingHomework: { count: number; next: { homeworkId: string; title: string; deadline: string } | null };
+  nextExam: { examId: string; title: string; date: string } | null;
+}
+
+export interface PortalHomeworkDetailDto {
+  homework: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: HomeworkStatus;
+    assignedAt: string;
+    deadline: string;
+    maxPoints: number;
+    xpReward: number;
+    groupName: string;
+    courseName: string | null;
+    teacherName: string | null;
+  };
+  submission: {
+    status: SubmissionStatus;
+    submittedAt: string | null;
+    score: number | null;
+    feedback: string | null;
+    answerText: string | null;
+    hasAttachment: boolean;
+    xpAwarded: number;
+    gradedAt: string | null;
+  };
+  /** Topshirish (yoki qayta topshirish) mumkinmi — baholanmagan va vazifa ochiq */
+  canSubmit: boolean;
+  /** Muddat o'tgan — topshirsa LATE bo'ladi */
+  isLate: boolean;
+}
+
+export interface PortalExamDetailDto {
+  exam: {
+    id: string;
+    title: string;
+    description: string | null;
+    date: string;
+    maxScore: number;
+    passScore: number | null;
+    status: ExamStatus;
+    groupName: string;
+  };
+  result: StudentExamRowDto | null;
+  /** O'quvchining o'z urinishlari (javoblari bilan) — mavzu kesimi shu yerdan */
+  attempts: AttemptDto[];
+}
+
+/** Saqlangan fayl kengaytmasi → MIME (faqat `detectFileType` qabul qiladigan turlar) */
+const MIME_BY_EXT: Record<string, string> = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  webp: 'image/webp',
+};
+
+/** `riskFactors` JSON dan sabablar: past balli omillar birinchi */
+function riskReasons(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is { label: string; value: string; score: number } =>
+      typeof item === 'object' && item !== null && typeof (item as { score?: unknown }).score === 'number' && (item as { score: number }).score < 60,
+    )
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((item) => `${item.label}: ${item.value}`);
+}
+
+/** Guruh jadvalidan keyingi 14 kundagi darslar (bosh sahifa va dashboard uchun umumiy) */
+async function buildUpcomingLessons(studentId: string): Promise<PortalLessonsDto> {
+  const student = await prisma.student.findFirstOrThrow({
+    where: { id: studentId, deletedAt: null },
+    select: {
+      group: {
+        select: {
+          id: true,
+          name: true,
+          scheduleDays: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          endDate: true,
+          roomRef: { select: { name: true } },
+          room: true,
+          teacher: { select: { firstName: true, lastName: true, teacherProfile: { select: { specialization: true } } } },
+          course: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  const group = student.group;
+  if (!group || group.status !== 'ACTIVE') {
+    return { group: null, teacher: null, lessons: [] };
+  }
+
+  const now = new Date();
+  const today = startOfBusinessDay(now);
+  const lessons: PortalLessonDto[] = [];
+  const weekdayNames: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
+  // Keyingi 14 kunni ko'rib chiqamiz — jadval haftalik takrorlanadi
+  for (let offset = 0; offset < 14 && lessons.length < 8; offset += 1) {
+    const date = new Date(today.getTime() + offset * 86_400_000);
+    const weekday = weekdayNames[date.getUTCDay()]!;
+    if (!group.scheduleDays.includes(weekday)) continue;
+    if (group.endDate && date > group.endDate) break;
+    lessons.push({
+      date: businessDateString(date),
+      startTime: group.startTime,
+      endTime: group.endTime,
+      room: group.roomRef?.name ?? group.room ?? null,
+      status: 'PLANNED',
+    });
+  }
+
+  // Rejalashtirilgan seanslar holatini qo'shamiz (bekor qilingan darslar ko'rinsin)
+  const sessions = await prisma.attendanceSession.findMany({
+    where: { groupId: group.id, date: { gte: today } },
+    // `topic` — matn (eski usul), `topicRef` — kurrikulum mavzusi
+    select: { date: true, status: true, topic: true, curriculumTopic: { select: { title: true } } },
+  });
+  const byDate = new Map(sessions.map((session) => [businessDateString(session.date), session]));
+  for (const lesson of lessons) {
+    const session = byDate.get(lesson.date);
+    if (!session) continue;
+    lesson.status = session.status;
+    lesson.topic = session.curriculumTopic?.title ?? session.topic ?? null;
+  }
+
+  return {
+    group: { id: group.id, name: group.name, course: group.course.name },
+    teacher: group.teacher
+      ? {
+          name: `${group.teacher.firstName} ${group.teacher.lastName}`,
+          specialization: group.teacher.teacherProfile?.specialization ?? null,
+        }
+      : null,
+    lessons,
+  };
+}
+
 export const portalService = {
   async me(actor: AuthUser): Promise<PortalMeDto> {
     const scope = await resolvePortalScope(actor);
@@ -187,76 +345,7 @@ export const portalService = {
    */
   async lessons(actor: AuthUser, requestedStudentId?: string): Promise<PortalLessonsDto> {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
-    const student = await prisma.student.findFirstOrThrow({
-      where: { id: studentId, deletedAt: null },
-      select: {
-        group: {
-          select: {
-            id: true,
-            name: true,
-            scheduleDays: true,
-            startTime: true,
-            endTime: true,
-            status: true,
-            endDate: true,
-            roomRef: { select: { name: true } },
-            room: true,
-            teacher: { select: { firstName: true, lastName: true, teacherProfile: { select: { specialization: true } } } },
-            course: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    const group = student.group;
-    if (!group || group.status !== 'ACTIVE') {
-      return { group: null, teacher: null, lessons: [] };
-    }
-
-    const now = new Date();
-    const today = startOfBusinessDay(now);
-    const lessons: PortalLessonDto[] = [];
-    const weekdayNames: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-
-    // Keyingi 14 kunni ko'rib chiqamiz — jadval haftalik takrorlanadi
-    for (let offset = 0; offset < 14 && lessons.length < 8; offset += 1) {
-      const date = new Date(today.getTime() + offset * 86_400_000);
-      const weekday = weekdayNames[date.getUTCDay()]!;
-      if (!group.scheduleDays.includes(weekday)) continue;
-      if (group.endDate && date > group.endDate) break;
-      lessons.push({
-        date: businessDateString(date),
-        startTime: group.startTime,
-        endTime: group.endTime,
-        room: group.roomRef?.name ?? group.room ?? null,
-        status: 'PLANNED',
-      });
-    }
-
-    // Rejalashtirilgan seanslar holatini qo'shamiz (bekor qilingan darslar ko'rinsin)
-    const sessions = await prisma.attendanceSession.findMany({
-      where: { groupId: group.id, date: { gte: today } },
-      // `topic` — matn (eski usul), `topicRef` — kurrikulum mavzusi
-      select: { date: true, status: true, topic: true, curriculumTopic: { select: { title: true } } },
-    });
-    const byDate = new Map(sessions.map((session) => [businessDateString(session.date), session]));
-    for (const lesson of lessons) {
-      const session = byDate.get(lesson.date);
-      if (!session) continue;
-      lesson.status = session.status;
-      lesson.topic = session.curriculumTopic?.title ?? session.topic ?? null;
-    }
-
-    return {
-      group: { id: group.id, name: group.name, course: group.course.name },
-      teacher: group.teacher
-        ? {
-            name: `${group.teacher.firstName} ${group.teacher.lastName}`,
-            specialization: group.teacher.teacherProfile?.specialization ?? null,
-          }
-        : null,
-      lessons,
-    };
+    return buildUpcomingLessons(studentId);
   },
 
   /** Kurs dasturi bo'yicha progress — o'quvchi qaysi mavzularni o'tganini ko'radi */
@@ -336,6 +425,182 @@ export const portalService = {
     }
     const attachmentPath = await saveFile(file.buffer, type.ext);
     return homeworkService.submitByStudent(studentId, homeworkId, { attachmentPath, source: 'portal' });
+  },
+
+  /** Bosh sahifa: kurs progressi, risk, keyingi dars, kutilayotgan vazifalar, keyingi imtihon */
+  async overview(actor: AuthUser, requestedStudentId?: string): Promise<PortalOverviewDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const now = new Date();
+    const today = startOfBusinessDay(now);
+    const [student, curriculum, lessons, pendingCount, nextPending, nextExam] = await Promise.all([
+      prisma.student.findFirstOrThrow({
+        where: { id: studentId, deletedAt: null },
+        select: { groupId: true, riskLevel: true, riskFactors: true },
+      }),
+      curriculumService.studentProgress(studentId),
+      buildUpcomingLessons(studentId),
+      prisma.homeworkSubmission.count({ where: { studentId, status: 'PENDING', homework: { status: 'PUBLISHED' } } }),
+      prisma.homeworkSubmission.findFirst({
+        where: { studentId, status: 'PENDING', homework: { status: 'PUBLISHED', deadline: { gte: now } } },
+        orderBy: { homework: { deadline: 'asc' } },
+        select: { homework: { select: { id: true, title: true, deadline: true } } },
+      }),
+      prisma.student
+        .findFirst({ where: { id: studentId }, select: { groupId: true } })
+        .then((row) =>
+          row?.groupId
+            ? prisma.exam.findFirst({
+                where: { groupId: row.groupId, status: 'PLANNED', date: { gte: today } },
+                orderBy: { date: 'asc' },
+                select: { id: true, title: true, date: true },
+              })
+            : null,
+        ),
+    ]);
+
+    return {
+      courseProgress: curriculum ? curriculum.percent : null,
+      risk: student.riskLevel ? { level: student.riskLevel, reasons: riskReasons(student.riskFactors) } : null,
+      nextLesson: lessons.lessons.find((lesson) => lesson.status !== 'CANCELLED') ?? null,
+      pendingHomework: {
+        count: pendingCount,
+        next: nextPending
+          ? { homeworkId: nextPending.homework.id, title: nextPending.homework.title, deadline: nextPending.homework.deadline.toISOString() }
+          : null,
+      },
+      nextExam: nextExam ? { examId: nextExam.id, title: nextExam.title, date: businessDateString(nextExam.date) } : null,
+    };
+  },
+
+  /**
+   * Bitta vazifa: tavsif, muddat, o'z topshirig'i va izoh.
+   * Egalik: topshiriq yozuvi (`homeworkId` + `studentId`) — begona vazifa uchun yozuv yo'q → 404.
+   */
+  async homeworkDetail(actor: AuthUser, homeworkId: string, requestedStudentId?: string): Promise<PortalHomeworkDetailDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const row = await prisma.homeworkSubmission.findUnique({
+      where: { homeworkId_studentId: { homeworkId, studentId } },
+      select: {
+        status: true,
+        submittedAt: true,
+        score: true,
+        feedback: true,
+        answerText: true,
+        attachmentPath: true,
+        xpAwarded: true,
+        gradedAt: true,
+        homework: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            assignedAt: true,
+            deadline: true,
+            maxPoints: true,
+            xpReward: true,
+            group: { select: { name: true } },
+            course: { select: { name: true } },
+            teacher: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+    if (!row) throw AppError.notFound('Vazifa topilmadi');
+    const { homework } = row;
+    return {
+      homework: {
+        id: homework.id,
+        title: homework.title,
+        description: homework.description,
+        status: homework.status,
+        assignedAt: homework.assignedAt.toISOString(),
+        deadline: homework.deadline.toISOString(),
+        maxPoints: homework.maxPoints,
+        xpReward: homework.xpReward,
+        groupName: homework.group.name,
+        courseName: homework.course?.name ?? null,
+        teacherName: homework.teacher ? `${homework.teacher.firstName} ${homework.teacher.lastName}` : null,
+      },
+      submission: {
+        status: row.status,
+        submittedAt: row.submittedAt?.toISOString() ?? null,
+        score: row.score,
+        feedback: row.feedback,
+        answerText: row.answerText,
+        hasAttachment: row.attachmentPath !== null,
+        xpAwarded: row.xpAwarded,
+        gradedAt: row.gradedAt?.toISOString() ?? null,
+      },
+      canSubmit: homework.status === 'PUBLISHED' && row.status !== 'GRADED',
+      isLate: homework.deadline.getTime() < Date.now(),
+    };
+  },
+
+  /** O'quvchining o'zi yuklagan faylni qaytarish — faqat o'z topshirig'i */
+  async homeworkAttachment(
+    actor: AuthUser,
+    homeworkId: string,
+    requestedStudentId?: string,
+  ): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const row = await prisma.homeworkSubmission.findUnique({
+      where: { homeworkId_studentId: { homeworkId, studentId } },
+      select: { attachmentPath: true, homework: { select: { title: true } } },
+    });
+    if (!row?.attachmentPath) throw AppError.notFound('Fayl topilmadi');
+    const ext = row.attachmentPath.split('.').pop()?.toLowerCase() ?? '';
+    return {
+      absolutePath: resolveStoredPath(row.attachmentPath),
+      fileName: `${row.homework.title}.${ext}`,
+      mimeType: MIME_BY_EXT[ext] ?? 'application/octet-stream',
+    };
+  },
+
+  /**
+   * Bitta imtihon: natija va o'z urinishlari (mavzu kesimi bilan).
+   * Egalik: imtihon o'quvchi guruhiniki yoki unda o'quvchining natijasi/urinishi bor.
+   */
+  async examDetail(actor: AuthUser, examId: string, requestedStudentId?: string): Promise<PortalExamDetailDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const student = await prisma.student.findFirstOrThrow({ where: { id: studentId, deletedAt: null }, select: { groupId: true } });
+    const exam = await prisma.exam.findFirst({
+      where: {
+        id: examId,
+        OR: [
+          ...(student.groupId ? [{ groupId: student.groupId }] : []),
+          { results: { some: { studentId } } },
+          { attempts: { some: { studentId } } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        date: true,
+        maxScore: true,
+        passScore: true,
+        status: true,
+        group: { select: { name: true } },
+      },
+    });
+    if (!exam) throw AppError.notFound('Imtihon topilmadi');
+
+    const [rows, attempts] = await Promise.all([buildStudentExamRows(studentId), examAttemptService.listForStudent(examId, studentId)]);
+    return {
+      exam: {
+        id: exam.id,
+        title: exam.title,
+        description: exam.description,
+        date: businessDateString(exam.date),
+        maxScore: exam.maxScore,
+        passScore: exam.passScore,
+        status: exam.status,
+        groupName: exam.group.name,
+      },
+      result: rows.find((row) => row.examId === examId) ?? null,
+      attempts,
+    };
   },
 
   /** Bugun qaysi fikrlar qoldirilgani — kabinetda formani yashirish uchun */

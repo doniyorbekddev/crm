@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Wallet } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { OverviewCards } from './OverviewCards';
 import { AchievementsCard } from './AchievementsCard';
 import { CurriculumCard } from './CurriculumCard';
 import { FeedbackCard } from './FeedbackCard';
@@ -17,13 +19,23 @@ import { portalService } from '@/services/portal.service';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { INSTALLMENT_STATUS_LABELS, INSTALLMENT_STATUS_TONES } from '@/utils/scheduleLabels';
 
-function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-4">
+function Tile({ label, value, hint, to }: { label: string; value: string; hint?: string; to?: string }) {
+  const body = (
+    <>
       <p className="text-sm text-fg-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-fg">{value}</p>
       {hint && <p className="mt-1 text-xs text-fg-subtle">{hint}</p>}
-    </div>
+    </>
+  );
+  return to ? (
+    <Link
+      to={to}
+      className="block rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+    >
+      {body}
+    </Link>
+  ) : (
+    <div className="rounded-xl border border-border bg-surface p-4">{body}</div>
   );
 }
 
@@ -66,23 +78,29 @@ export function PortalPage() {
               label="Daraja"
               value={`${profile.gamification.level.number}-daraja`}
               hint={`${formatNumber(profile.gamification.totalXp)} XP · ${profile.gamification.streak.current} kun ketma-ket`}
+              to="/portal/xp"
             />
             <Tile
               label="Davomat"
               value={`${profile.attendance.rate}%`}
               hint={`${formatNumber(profile.attendance.total)} dars · ${formatNumber(profile.attendance.absent)} ta qoldirgan`}
+              to="/portal/attendance"
             />
             <Tile
               label="Uy vazifasi"
               value={`${profile.homework.rate}%`}
               hint={`${formatNumber(profile.homework.submitted)}/${formatNumber(profile.homework.assigned)} topshirilgan`}
+              to="/portal/homework"
             />
             <Tile
               label="Imtihonlar"
               value={profile.exams.count ? `${profile.exams.averagePercent}%` : '—'}
               hint={profile.exams.count ? `${formatNumber(profile.exams.count)} ta imtihon` : 'Hali imtihon yo‘q'}
+              to="/portal/exams"
             />
           </div>
+
+          <OverviewCards studentId={activeChild} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>

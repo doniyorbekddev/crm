@@ -17,7 +17,8 @@ export interface PortalContextValue {
   setActiveChild: (studentId: string) => void;
 }
 
-const PortalContext = createContext<PortalContextValue | null>(null);
+/** Testlarda to‘g‘ridan-to‘g‘ri qiymat berish uchun eksport qilinadi */
+export const PortalContext = createContext<PortalContextValue | null>(null);
 
 function parseChildId(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;

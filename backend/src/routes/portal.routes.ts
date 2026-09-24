@@ -19,11 +19,15 @@ portalRouter.get('/schedule', portalAccess, portalController.schedule);
 portalRouter.get('/lessons', portalAccess, portalController.lessons);
 portalRouter.get('/curriculum', portalAccess, portalController.curriculum);
 portalRouter.get('/certificates', portalAccess, portalController.certificates);
+portalRouter.get('/overview', portalAccess, portalController.overview);
 portalRouter.get('/homework', portalAccess, portalController.homework);
+portalRouter.get('/homework/:id', portalAccess, portalController.homeworkDetail);
+portalRouter.get('/homework/:id/attachment', portalAccess, portalController.homeworkAttachment);
 // O'quvchi vazifani o'zi topshiradi: matn — JSON, fayl — xom tana (hujjatlar bilan bir xil)
 portalRouter.post('/homework/:id/submit', portalAccess, portalController.submitHomework);
 portalRouter.post('/homework/:id/attachment', portalAccess, uploadBody, portalController.submitHomeworkAttachment);
 portalRouter.get('/exams', portalAccess, portalController.exams);
+portalRouter.get('/exams/:id', portalAccess, portalController.examDetail);
 portalRouter.get('/attendance/calendar', portalAccess, portalController.attendanceCalendar);
 portalRouter.get('/gamification', portalAccess, portalController.gamification);
 portalRouter.get('/payments', portalAccess, portalController.payments);

@@ -77,9 +77,27 @@ export const router = createBrowserRouter([
                         ),
                       },
                       {
+                        path: "homework/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalHomeworkDetailPage"),
+                        ),
+                      },
+                      {
                         path: "exams",
                         lazy: lazyComponent(
                           () => import("@/pages/portal/PortalExamsPage"),
+                        ),
+                      },
+                      {
+                        path: "exams/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalExamDetailPage"),
+                        ),
+                      },
+                      {
+                        path: "xp",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalXpPage"),
                         ),
                       },
                       {

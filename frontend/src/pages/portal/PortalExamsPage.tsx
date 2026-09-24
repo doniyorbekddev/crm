@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { FileCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -40,7 +41,9 @@ export default function PortalExamsPage() {
             {rows.map((row) => (
               <li key={row.examId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-fg">{row.title}</p>
+                  <Link to={`/portal/exams/${row.examId}`} className="block truncate font-medium text-fg hover:underline">
+                    {row.title}
+                  </Link>
                   <p className="text-xs text-fg-muted">
                     {row.groupName} · {formatDate(row.date)}
                     {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}

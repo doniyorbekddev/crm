@@ -335,4 +335,127 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
     const attempts = await request(app).get(`/api/exams/${examId}/attempts`).set(bearer(token));
     expect([start.status, questions.status, attempts.status]).toEqual([403, 403, 403]);
   });
+
+  it('bosh sahifa ko‘rsatkichlari: kutilayotgan vazifa, keyingi imtihon, risk, keyingi dars', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id, scheduleDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] });
+    const student = await createStudent(course.id, group.id, 'Umumiy');
+    await prisma.student.update({
+      where: { id: student.id },
+      data: {
+        riskLevel: 'AT_RISK',
+        healthScore: 45,
+        riskFactors: [
+          { key: 'attendance', label: 'Davomat', score: 30, weight: 30, value: '58%', hint: 'x' },
+          { key: 'debt', label: 'Qarz', score: 90, weight: 20, value: '0 so‘m', hint: 'y' },
+        ],
+      },
+    });
+    const homework = await prisma.homework.create({
+      data: { title: 'Kutilayotgan', groupId: group.id, deadline: new Date(Date.now() + 2 * 86_400_000), status: 'PUBLISHED' },
+    });
+    await prisma.homeworkSubmission.create({ data: { homeworkId: homework.id, studentId: student.id } });
+    const exam = await prisma.exam.create({
+      data: { title: 'Kelgusi imtihon', groupId: group.id, date: new Date(Date.now() + 5 * 86_400_000), maxScore: 100, status: 'PLANNED' },
+    });
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token } = await openStudentPortal(admin, student.id, 'umumiy@portal.uz');
+
+    const overview = await request(app).get('/api/portal/overview').set(bearer(token));
+    expect(overview.status).toBe(200);
+    expect(overview.body.data).toMatchObject({
+      courseProgress: null,
+      risk: { level: 'AT_RISK', reasons: ['Davomat: 58%'] },
+      pendingHomework: { count: 1, next: { homeworkId: homework.id, title: 'Kutilayotgan' } },
+      nextExam: { examId: exam.id, title: 'Kelgusi imtihon' },
+    });
+    expect(overview.body.data.nextLesson).not.toBeNull();
+  });
+
+  it('vazifa detali, topshirish (matn va fayl), o‘z faylini yuklab olish; begona vazifa — 404', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const otherGroup = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id, 'Topshiruvchi');
+    const stranger = await createStudent(course.id, otherGroup.id, 'Begona');
+    const homework = await prisma.homework.create({
+      data: { title: 'Mashq', description: 'Bajaring', groupId: group.id, deadline: new Date(Date.now() + 86_400_000), status: 'PUBLISHED', maxPoints: 50 },
+    });
+    await prisma.homeworkSubmission.create({ data: { homeworkId: homework.id, studentId: student.id } });
+    const foreignHomework = await prisma.homework.create({
+      data: { title: 'Begona vazifa', groupId: otherGroup.id, deadline: new Date(Date.now() + 86_400_000), status: 'PUBLISHED' },
+    });
+    await prisma.homeworkSubmission.create({ data: { homeworkId: foreignHomework.id, studentId: stranger.id } });
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token } = await openStudentPortal(admin, student.id, 'topshiruvchi@portal.uz');
+
+    const before = await request(app).get(`/api/portal/homework/${homework.id}`).set(bearer(token));
+    expect(before.status).toBe(200);
+    expect(before.body.data).toMatchObject({
+      homework: { title: 'Mashq', maxPoints: 50, groupName: group.name },
+      submission: { status: 'PENDING', hasAttachment: false, answerText: null },
+      canSubmit: true,
+      isLate: false,
+    });
+
+    const noFile = await request(app).get(`/api/portal/homework/${homework.id}/attachment`).set(bearer(token));
+    expect(noFile.status).toBe(404);
+
+    const submitted = await request(app).post(`/api/portal/homework/${homework.id}/submit`).set(bearer(token)).send({ answerText: 'Mening javobim' });
+    expect(submitted.status).toBe(201);
+
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(16, 1)]);
+    const uploaded = await request(app)
+      .post(`/api/portal/homework/${homework.id}/attachment`)
+      .set(bearer(token))
+      .set('Content-Type', 'image/png')
+      .set('X-File-Name', 'rasm.png')
+      .send(png);
+    expect(uploaded.status).toBe(201);
+
+    const after = await request(app).get(`/api/portal/homework/${homework.id}`).set(bearer(token));
+    expect(after.body.data.submission).toMatchObject({ status: 'SUBMITTED', answerText: 'Mening javobim', hasAttachment: true });
+
+    const download = await request(app).get(`/api/portal/homework/${homework.id}/attachment`).set(bearer(token)).buffer(true);
+    expect(download.status).toBe(200);
+    expect(download.headers['content-type']).toBe('image/png');
+    expect(download.headers['content-disposition']).toContain('Mashq.png');
+
+    const foreign = await request(app).get(`/api/portal/homework/${foreignHomework.id}`).set(bearer(token));
+    const foreignFile = await request(app).get(`/api/portal/homework/${foreignHomework.id}/attachment`).set(bearer(token));
+    expect([foreign.status, foreignFile.status]).toEqual([404, 404]);
+  });
+
+  it('imtihon detali: natija va o‘z urinishlari mavzu kesimi bilan; begona imtihon — 404', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const otherGroup = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id, 'Imtihonchi');
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const examResponse = await request(app).post('/api/exams').set(bearer(admin)).send({ title: 'Oraliq', groupId: group.id, date: '2026-10-01', maxScore: 100 });
+    const examId = examResponse.body.data.id as string;
+    const foreignExam = await request(app).post('/api/exams').set(bearer(admin)).send({ title: 'Begona', groupId: otherGroup.id, date: '2026-10-01', maxScore: 100 });
+    const question = await request(app)
+      .post('/api/questions')
+      .set(bearer(admin))
+      .send({ courseId: course.id, text: 'Ikki qo‘shuv ikki nechchi?', type: 'SINGLE_CHOICE', points: 10, options: [{ text: '4', isCorrect: true }, { text: '5' }] });
+    await request(app).post(`/api/exams/${examId}/questions`).set(bearer(admin)).send({ questionIds: [question.body.data.id] });
+    const questions = await request(app).get(`/api/exams/${examId}/questions`).set(bearer(admin));
+    const correct = question.body.data.options.find((option: { isCorrect: boolean }) => option.isCorrect).id as string;
+    await request(app)
+      .post(`/api/exams/${examId}/attempts/${student.id}`)
+      .set(bearer(admin))
+      .send({ answers: [{ examQuestionId: questions.body.data[0].examQuestionId, optionIds: [correct] }] });
+
+    const { token } = await openStudentPortal(admin, student.id, 'imtihon-detal@portal.uz');
+    const detail = await request(app).get(`/api/portal/exams/${examId}`).set(bearer(token));
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.exam).toMatchObject({ title: 'Oraliq', groupName: group.name });
+    expect(detail.body.data.result).toMatchObject({ examId, percentage: 100 });
+    expect(detail.body.data.attempts).toHaveLength(1);
+    expect(detail.body.data.attempts[0]).toMatchObject({ status: 'GRADED', percentage: 100, studentId: student.id });
+
+    const foreign = await request(app).get(`/api/portal/exams/${foreignExam.body.data.id}`).set(bearer(token));
+    expect(foreign.status).toBe(404);
+  });
 });

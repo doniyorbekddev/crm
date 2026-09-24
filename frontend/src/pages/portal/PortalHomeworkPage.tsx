@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { BookOpenCheck } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -19,10 +20,7 @@ import { SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_ORDER, SUBMISSION_STATUS_TO
 /** Kutilayotganlar yuqorida, muddati yaqini birinchi */
 const STATUS_WEIGHT: Record<SubmissionStatus, number> = { PENDING: 0, LATE: 1, SUBMITTED: 2, GRADED: 3, MISSED: 4 };
 
-/**
- * Uy vazifalari ro‘yxati. Topshirish oqimi (matn/fayl) — keyingi bosqichda;
- * hozircha holat, muddat, ball va o‘qituvchi izohi ko‘rinadi.
- */
+/** Uy vazifalari ro‘yxati — holat filtri bilan; topshirish detal sahifasida */
 export default function PortalHomeworkPage() {
   const { activeChild } = usePortal();
   const [status, setStatus] = useState<SubmissionStatus | ''>('');
@@ -73,7 +71,9 @@ export default function PortalHomeworkPage() {
               return (
                 <li key={row.homeworkId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-fg">{row.title}</p>
+                    <Link to={`/portal/homework/${row.homeworkId}`} className="block truncate font-medium text-fg hover:underline">
+                      {row.title}
+                    </Link>
                     <p className="text-xs text-fg-muted">
                       {row.groupName} · muddat:{' '}
                       <span className={cn(overdue && 'text-red-600 dark:text-red-400')}>
