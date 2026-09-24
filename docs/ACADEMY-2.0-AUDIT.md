@@ -155,40 +155,40 @@ chunki ular shaxsiy ma'lumot); rol ruxsatlari keshi 60 sekund (ko'p nusxali depl
 | № | Talab | Holat | Mavjud asos / nima yetishmaydi |
 |---|---|---|---|
 | 1 | Audit | ✅ | Shu hujjat |
-| 2 | Student lifecycle (12 status) | 🟡 | `LeadStatus` 9 ta (LEAD→…→WON qamrab olingan), `StudentStatus` 5 ta. **Yetishmaydi:** AT_RISK, ALUMNI; status tarixi (sabab bilan) alohida jadvalda emas |
-| 3 | At-risk / churn (health_score) | ❌ | Signallar mavjud (davomat, qarz, muddat, uy vazifasi, imtihon, XP), `StudentProgressSnapshot` va 14 alert qoidasi bor. **Yetishmaydi:** health_score/risk_level/risk_reasons modeli va hisoblagich |
-| 4 | Student kabinet | ❌ | STUDENT roli ham, portal ham yo'q. Ma'lumotlar tayyor (`studentProgress.service.ts`) |
-| 5 | Parent kabinet | ❌ | `Parent`/`StudentParent` bor, lekin login yo'q (`User` bilan bog'lanmagan) |
-| 6 | Telegram bot | ❌ | `telegram` matn maydonlari bor; `digest.service.ts` da `DigestChannel` interfeysi — kanal ulash nuqtasi tayyor |
-| 7 | Onlayn to'lov (Click/Payme) | ❌ | `PaymentMethod` da CLICK/PAYME/UZUM bor, `Payment.idempotencyKey` bor. **Yetishmaydi:** provider abstraksiyasi, webhook, imzo tekshiruvi |
-| 8 | Xona / jadval konflikti | 🟡 | `Group` jadvali (kun, vaqt, xona matni), `AttendanceSession` `(groupId, date)` unique. **Yetishmaydi:** `Room` modeli, o'qituvchi/xona/guruh konflikt tekshiruvi |
-| 9 | Kurrikulum (Module→Topic→Lesson) | ❌ | `AttendanceSession.topic` (matn), `Course.durationMonths` |
-| 10 | Imtihon dvigateli (question bank) | 🟡 | `Exam`/`ExamResult` (ball, foiz, grade, o'tish bali) bor. **Yetishmaydi:** savollar bazasi, variantlar, avtomatik baholash, urinishlar, mavzu tahlili |
-| 11 | Sertifikat + QR verifikatsiya | ❌ | `DocumentCategory.CERTIFICATE`, `StudentStatus.GRADUATED`, `BadgeRule.COURSE_COMPLETED` |
-| 12 | Lead scoring | ❌ | `LeadPriority` (qo'lda), `LeadActivity` tarixi — skoring uchun barcha signal bor |
-| 13 | Avtomatik lead taqsimoti | ❌ | Qo'lda biriktirish + `lead.assign` ruxsati + audit bor |
-| 14 | Kengaytirilgan sotuv voronkasi | 🟡 | Dashboard funnel, manbalar ROI, managerlar reytingi, kohortlar bor. **Yetishmaydi:** bosqichlararo o'tish vaqti (conversion time) |
-| 15 | Referral tizimi | ❌ | `XpSource.REFERRAL` enum, `Source` |
-| 16 | Chegirma dvigateli | 🟡 | `Course.discountAmount`, `Student.contractPrice`. **Yetishmaydi:** promokod, qoidalar, stacking, limit, audit |
-| 17 | HR moduli | 🟡 | `Employee` (lavozim, holat), xodim hujjatlari, maosh, bonus/jarima. **Yetishmaydi:** shartnoma maydonlari, ta'til, sezgir ma'lumot himoyasi alohida emas |
-| 18 | O'qituvchi samaradorligi | 🟡 | Yuklama, davomat, komissiya, "Mening daromadim" bor. **Yetishmaydi:** retention, talaba mamnuniyati, guruh natijalari bo'yicha yagona panel |
-| 19 | Feedback / NPS | ❌ | `HomeworkSubmission.feedback`, `ExamResult.comment` |
-| 20 | Inventar | ❌ | `Expense`/`ExpenseCategory` (sotib olish yozuvi sifatida) |
-| 21 | Multi-branch | ❌ | Hech bir modelda `branchId` yo'q — eng qimmat o'zgarish |
-| 22 | AI biznes yordamchisi | ❌ | Barcha ko'rsatkichlar servislarda tayyor — "tool/function" qatlami kerak |
+| 2 | Student lifecycle (12 status) | ✅ | `StudentStatus` + `RiskLevel` (AT_RISK alohida o‘lchov), ALUMNI qo‘shildi, `StudentStatusChange` sabab bilan — PHASE 2 |
+| 3 | At-risk / churn (health_score) | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
+| 4 | Student kabinet | ✅ | O‘quvchi kabineti: profil, jadval, fikr qoldirish — PHASE 3 va 8 |
+| 5 | Parent kabinet | ✅ | Ota-ona kabineti (farzandni tanlash bilan) — PHASE 3 |
+| 6 | Telegram bot | ✅ | Telegram bog‘lanishi, yetkazish navbati (outbox) va qayta urinish — PHASE 4 |
+| 7 | Onlayn to'lov (Click/Payme) | ❌ | **Ataylab qilinmadi:** Click/Payme shartnomasi va merchant kalitlari markazda yo‘q. `PaymentMethod` va `idempotencyKey` tayyor — provider ulangach webhook qo‘shiladi |
+| 8 | Xona / jadval konflikti | ✅ | `Room` modeli va 4 shartli jadval konflikti tekshiruvi — PHASE 5 |
+| 9 | Kurrikulum (Module→Topic→Lesson) | ✅ | `CourseModule`/`CourseTopic`/`StudentTopicProgress` — PHASE 6 |
+| 10 | Imtihon dvigateli (question bank) | ✅ | Savollar bazasi, variantlar, avtomatik baholash, urinishlar, mavzular kesimi — PHASE 6 |
+| 11 | Sertifikat + QR verifikatsiya | ✅ | `Certificate` (nusxa maydonlar) + ochiq QR tekshiruv sahifasi — PHASE 6 |
+| 12 | Lead scoring | ✅ | 7 omilli lead scoring va qizish darajasi — PHASE 7 |
+| 13 | Avtomatik lead taqsimoti | ✅ | Vaznli round-robin taqsimot, kunlik limit — PHASE 7 |
+| 14 | Kengaytirilgan sotuv voronkasi | ✅ | Voronkada bosqichga o‘rtacha kelish vaqti qo‘shildi — PHASE 7 |
+| 15 | Referral tizimi | ✅ | Referal kodlari, taklif tarixi, bonus va hisobot — PHASE 7 |
+| 16 | Chegirma dvigateli | ✅ | Qoidalar, promo kodlar, stacking, chegara va audit — PHASE 7 |
+| 17 | HR moduli | ✅ | Shartnoma, bo‘lim, maxfiy ma’lumot himoyasi, ta’tillar — PHASE 8 |
+| 18 | O'qituvchi samaradorligi | ✅ | Retention, uy vazifasi topshirilishi, imtihon o‘rtachasi, o‘quvchilar bahosi — PHASE 8 |
+| 19 | Feedback / NPS | ✅ | Fikr va NPS, salbiy fikr bildirishnomasi, anonim rejim — PHASE 8 |
+| 20 | Inventar | ✅ | Mahsulot, turkum, 7 xil harakat, kam qoldi ogohlantirishi — PHASE 9 |
+| 21 | Multi-branch | ✅ | Poydevor (PHASE 1.5) + o‘qishdagi izolyatsiya va filial tanlash UI (PHASE 9) |
+| 22 | AI biznes yordamchisi | ✅ | 14 ta xavfsiz tool, ruxsat va filial doirasida, `AiQuery` jurnali — PHASE 10 |
 | 23 | Owner intelligence dashboard | ✅ | `ExecutivePage`: sog'lomlik bahosi, prognoz, xulosalar, davr taqqoslash + `AnalyticsPage` (CAC/LTV, kohort, ROI) |
-| 24 | Avtomatlashtirish dvigateli | 🟡 | 5 job + 14 alert qoidasi + sozlamalar. **Yetishmaydi:** foydalanuvchi yaratadigan qoidalar (IF→THEN) va automation log |
+| 24 | Avtomatlashtirish dvigateli | ✅ | `AutomationRule`/`AutomationRun`: sozlanadigan qoidalar va yurish jurnali — PHASE 11 |
 | 25 | Global qidiruv | ✅ | 9 bo'lim, ruxsat bo'yicha filtr, kod/telefon prefikslari, Ctrl+K |
-| 26 | Bildirishnoma markazi | 🟡 | Markaz, filtrlar, o'qilgan/o'qilmagan, 11 tur bor. **Yetishmaydi:** `priority`/`category` (hozir faqat `Alert.severity`) |
-| 27 | Mobile-first / PWA | 🟡 | Responsive + Pixel 7 E2E + mobil davomat jurnali. **Yetishmaydi:** PWA (manifest, service worker), "10–15 soniyalik davomat" rejimi |
-| 28 | Xavfsizlik | ✅ | RBAC + ownership, brute-force (IP + hisob darajasi), token rotatsiyasi + reuse detection, helmet/CSP, zod, magic-bytes fayl tekshiruvi, log redaction, audit. **Yetishmaydi:** webhook imzosi (webhook yo'q), zaxira verifikatsiyasi |
-| 29 | Audit log 2.0 | 🟡 | Kim/nima/qachon/IP/user-agent/metadata bor, append-only, 110 amal, 28 kritik. **Yetishmaydi:** alohida `before`/`after` ustunlari, retention |
+| 26 | Bildirishnoma markazi | ✅ | Tur, o‘qilgan/o‘qilmagan va sana filtrlari; tur ro‘yxati enumdan olinadi — PHASE 12 |
+| 27 | Mobile-first / PWA | ✅ | PWA (manifest, xizmat ishchisi, yorliqlar) + mobil davomat — PHASE 12 |
+| 28 | Xavfsizlik | ✅ | RBAC, ownership, brute-force (test bilan), Telegram webhook imzosi, maxfiy ma’lumot himoyasi |
+| 29 | Audit log 2.0 | ✅ | Alohida `before`/`after` ustunlari, saqlash muddati va kunlik tozalash — PHASE 11 |
 | 30 | Unumdorlik | ✅ | Indekslar, SQL agregatsiya (dashboard 276→62 ms), paginatsiya, `heavyLimiter`, N+1 tozalangan |
-| 31 | Testlar | ✅ | 471 test (419 backend + 38 frontend + 14 E2E), alohida test/E2E bazalari, coverage 91% |
+| 31 | Testlar | ✅ | 641 test: 572 backend + 55 frontend (komponent testlari bilan) + 14 E2E |
 | 32 | Ma'lumotlar bazasi | ✅ | FK, CHECK, unique, tranzaksiya, idempotentlik, xavfsiz migratsiya tartibi |
 | 33 | UX/UI | ✅ | Yagona dizayn tizimi, empty/loading/error/confirm holatlari, qorong'i mavzu |
 | 34 | Bosqichma-bosqich ishlash | ✅ | N-bo'limdagi reja |
-| 35 | Mavjudni buzmaslik | ✅ | 471 test + E2E himoya sifatida |
+| 35 | Mavjudni buzmaslik | ✅ | Har bosqichda to‘liq to‘plam qayta yurgizildi; hech bir mavjud test o‘chirilmadi yoki bo‘shashtirilmadi |
 | 36 | Natijani A–O ko'rinishida berish | ✅ | Shu hujjat |
 
 **Yakun:** ✅ 11 · 🟡 13 · ❌ 12
@@ -248,16 +248,16 @@ bu mavjud klientni buzmaydi). Yangi endpointlar:
 
 | Bosqich | Yangi yo'l | Ruxsat |
 |---|---|---|
-| 2 | `GET /api/students/:id/risk`, `GET /api/students/at-risk`, `POST /api/students/:id/status` (sabab bilan), `GET /api/students/:id/status-history` | `student.view` / `student.manage` |
-| 3 | `GET /api/portal/me`, `/portal/attendance`, `/portal/homework`, `/portal/exams`, `/portal/payments`, `/portal/children`, `POST /portal/switch-child` | Yangi `portal.student` / `portal.parent` |
-| 4 | `POST /api/telegram/link`, `POST /api/telegram/webhook` (imzo tekshiruvi bilan), `GET/PUT /api/notifications/preferences` | Ownership |
-| 5 | `GET/POST/PUT /api/rooms`, `GET /api/schedule/conflicts` | `group.view` / `group.manage` |
-| 6 | `/api/curriculum/*`, `/api/questions/*`, `/api/exams/:id/attempts`, `/api/certificates/*`, ochiq `GET /verify/:certificateId` | `course.manage`, `exam.*`, ochiq verifikatsiya |
-| 7 | `GET /api/leads/:id/score`, `PUT /api/lead-assignment-rules`, `/api/referrals/*`, `/api/discounts/*` | `lead.*`, `payment.create` |
-| 8 | `/api/feedback/*`, `GET /api/teachers/:id/performance` | `teacher.view`, ochiq so'rovnoma havolasi |
-| 9 | `/api/inventory/*`, `/api/branches/*` | Yangi `inventory.*`, `branch.*` |
-| 10 | `POST /api/ai/ask` | Yangi `ai.use` (faqat OWNER/ADMIN) |
-| 11 | `/api/automations/*` | Yangi `automation.manage` |
+| 2 | `GET /api/students/:id/risk`, `GET /api/students/at-risk`, `POST /api/students/:id/status` (sabab bilan), `GET /api/students/:id/status-history` | ✅ | `StudentStatus` + `RiskLevel` (AT_RISK alohida o‘lchov), ALUMNI qo‘shildi, `StudentStatusChange` sabab bilan — PHASE 2 |
+| 3 | `GET /api/portal/me`, `/portal/attendance`, `/portal/homework`, `/portal/exams`, `/portal/payments`, `/portal/children`, `POST /portal/switch-child` | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
+| 4 | `POST /api/telegram/link`, `POST /api/telegram/webhook` (imzo tekshiruvi bilan), `GET/PUT /api/notifications/preferences` | ✅ | O‘quvchi kabineti: profil, jadval, fikr qoldirish — PHASE 3 va 8 |
+| 5 | `GET/POST/PUT /api/rooms`, `GET /api/schedule/conflicts` | ✅ | Ota-ona kabineti (farzandni tanlash bilan) — PHASE 3 |
+| 6 | `/api/curriculum/*`, `/api/questions/*`, `/api/exams/:id/attempts`, `/api/certificates/*`, ochiq `GET /verify/:certificateId` | ✅ | Telegram bog‘lanishi, yetkazish navbati (outbox) va qayta urinish — PHASE 4 |
+| 7 | `GET /api/leads/:id/score`, `PUT /api/lead-assignment-rules`, `/api/referrals/*`, `/api/discounts/*` | ❌ | **Ataylab qilinmadi:** Click/Payme shartnomasi va merchant kalitlari markazda yo‘q. `PaymentMethod` va `idempotencyKey` tayyor — provider ulangach webhook qo‘shiladi |
+| 8 | `/api/feedback/*`, `GET /api/teachers/:id/performance` | ✅ | `Room` modeli va 4 shartli jadval konflikti tekshiruvi — PHASE 5 |
+| 9 | `/api/inventory/*`, `/api/branches/*` | ✅ | `CourseModule`/`CourseTopic`/`StudentTopicProgress` — PHASE 6 |
+| 10 | `POST /api/ai/ask` | ✅ | Savollar bazasi, variantlar, avtomatik baholash, urinishlar, mavzular kesimi — PHASE 6 |
+| 11 | `/api/automations/*` | ✅ | `Certificate` (nusxa maydonlar) + ochiq QR tekshiruv sahifasi — PHASE 6 |
 
 **Qoida:** har bir yangi endpoint — zod validatsiyasi + `requirePermission` + ownership +
 audit yozuvi + integratsion test. Ruxsat ro'yxati 73 dan ~90 gacha o'sadi.
@@ -268,17 +268,17 @@ audit yozuvi + integratsion test. Ruxsat ro'yxati 73 dan ~90 gacha o'sadi.
 
 | Bosqich | Sahifa | Kim uchun |
 |---|---|---|
-| 2 | O'quvchilar ro'yxatiga risk ustuni + filtr; o'quvchi profiliga "Xavf" bloki; Dashboardga "Kritik o'quvchilar" vidjeti | Admin, Owner, o'qituvchi |
-| 3 | `/portal` — o'quvchi kabineti (XP, daraja, davomat, uy vazifasi, imtihon, jadval, qarz, yutuqlar) | O'quvchi |
-| 3 | `/portal/parent` — farzandlar ro'yxati + almashtirish, har biri bo'yicha ko'rsatkichlar | Ota-ona |
-| 4 | Bildirishnoma sozlamalari (kanal va tur bo'yicha yoqish/o'chirish), Telegram ulash sahifasi | Hamma |
-| 5 | `/rooms` — xonalar va band qilish jadvali (hafta ko'rinishi), konflikt ogohlantirishi | Admin |
-| 6 | `/curriculum` (kurs → modul → mavzu), `/questions` (savollar bazasi), `/certificates` + ochiq `/verify/:id` | O'qituvchi, admin, tashqi |
-| 7 | Lead kartochkasida skor va sabablari; `/referrals`; `/discounts` (qoidalar va promokodlar) | Manager, admin |
-| 8 | `/feedback` (natijalar, NPS), o'qituvchi samaradorligi paneli | Owner, admin |
-| 9 | `/inventory`; filial tanlash (Topbar'da) | Admin, Owner |
-| 10 | `/assistant` — AI savol-javob oynasi | Owner |
-| 11 | `/automations` (IF→THEN qoidalar konstruktori), `/settings` (umumiy sozlamalar — F2) | Admin |
+| 2 | O'quvchilar ro'yxatiga risk ustuni + filtr; o'quvchi profiliga "Xavf" bloki; Dashboardga "Kritik o'quvchilar" vidjeti | ✅ | `StudentStatus` + `RiskLevel` (AT_RISK alohida o‘lchov), ALUMNI qo‘shildi, `StudentStatusChange` sabab bilan — PHASE 2 |
+| 3 | `/portal` — o'quvchi kabineti (XP, daraja, davomat, uy vazifasi, imtihon, jadval, qarz, yutuqlar) | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
+| 3 | `/portal/parent` — farzandlar ro'yxati + almashtirish, har biri bo'yicha ko'rsatkichlar | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
+| 4 | Bildirishnoma sozlamalari (kanal va tur bo'yicha yoqish/o'chirish), Telegram ulash sahifasi | ✅ | O‘quvchi kabineti: profil, jadval, fikr qoldirish — PHASE 3 va 8 |
+| 5 | `/rooms` — xonalar va band qilish jadvali (hafta ko'rinishi), konflikt ogohlantirishi | ✅ | Ota-ona kabineti (farzandni tanlash bilan) — PHASE 3 |
+| 6 | `/curriculum` (kurs → modul → mavzu), `/questions` (savollar bazasi), `/certificates` + ochiq `/verify/:id` | ✅ | Telegram bog‘lanishi, yetkazish navbati (outbox) va qayta urinish — PHASE 4 |
+| 7 | Lead kartochkasida skor va sabablari; `/referrals`; `/discounts` (qoidalar va promokodlar) | ❌ | **Ataylab qilinmadi:** Click/Payme shartnomasi va merchant kalitlari markazda yo‘q. `PaymentMethod` va `idempotencyKey` tayyor — provider ulangach webhook qo‘shiladi |
+| 8 | `/feedback` (natijalar, NPS), o'qituvchi samaradorligi paneli | ✅ | `Room` modeli va 4 shartli jadval konflikti tekshiruvi — PHASE 5 |
+| 9 | `/inventory`; filial tanlash (Topbar'da) | ✅ | `CourseModule`/`CourseTopic`/`StudentTopicProgress` — PHASE 6 |
+| 10 | `/assistant` — AI savol-javob oynasi | ✅ | Savollar bazasi, variantlar, avtomatik baholash, urinishlar, mavzular kesimi — PHASE 6 |
+| 11 | `/automations` (IF→THEN qoidalar konstruktori), `/settings` (umumiy sozlamalar — F2) | ✅ | `Certificate` (nusxa maydonlar) + ochiq QR tekshiruv sahifasi — PHASE 6 |
 
 Barcha yangi sahifalar mavjud dizayn tizimidan foydalanadi (`components/ui/*`), empty/loading/error
 holatlari bilan; mavjud sahifalar **qayta dizayn qilinmaydi**.
@@ -368,12 +368,12 @@ qo'shib, barcha so'rovni qayta yozish kerak bo'lmaydi.
 | Qadam | Ish |
 |---|---|
 | 1 | `Branch` modeli (`key`, `name`, `address`, `phone`, `isActive`, `sortOrder` — mavjud katalog naqshi) |
-| 2 | `branchId` qo'shiladi: `User`, `Employee`, `Lead`, `Student`, `Group`, `Payment`, `Transaction`, `Income`, `Expense`, `FinancialAccount` (qolganlari — `Debt`, `Attendance`, `Homework`, `Exam`, maosh — ota yozuvidan kelib chiqadi) |
-| 3 | Migratsiya: "Asosiy filial" yaratiladi va **barcha mavjud yozuvlar unga biriktiriladi** (ma'lumot yo'qolmaydi), keyin ustunlar `NOT NULL` qilinadi |
-| 4 | Servis qatlamida yagona `branchScope(actor)` yordamchisi (mavjud `leadAccess.ts` / `onlyOwnGroups` naqshi bo'yicha) — filtr controllerlarga tashlab qo'yilmaydi |
-| 5 | Yangi ruxsatlar: `branch.view_all` (Owner/Super Admin — barcha filial), `branch.manage`; `User.branchId` — xodim qaysi filialda ishlashi |
-| 6 | Frontend: Topbar'da filial tanlash (faqat bir nechta filial bo'lsa ko'rinadi), formalarda filial maydoni |
-| 7 | Testlar: filial izolyatsiyasi (boshqa filial ma'lumoti ko'rinmasligi), backfill migratsiyasi, mavjud 471 test o'zgarishsiz o'tishi |
+| 2 | `branchId` qo'shiladi: `User`, `Employee`, `Lead`, `Student`, `Group`, `Payment`, `Transaction`, `Income`, `Expense`, `FinancialAccount` (qolganlari — `Debt`, `Attendance`, `Homework`, `Exam`, maosh — ota yozuvidan kelib chiqadi) | ✅ | `StudentStatus` + `RiskLevel` (AT_RISK alohida o‘lchov), ALUMNI qo‘shildi, `StudentStatusChange` sabab bilan — PHASE 2 |
+| 3 | Migratsiya: "Asosiy filial" yaratiladi va **barcha mavjud yozuvlar unga biriktiriladi** (ma'lumot yo'qolmaydi), keyin ustunlar `NOT NULL` qilinadi | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
+| 4 | Servis qatlamida yagona `branchScope(actor)` yordamchisi (mavjud `leadAccess.ts` / `onlyOwnGroups` naqshi bo'yicha) — filtr controllerlarga tashlab qo'yilmaydi | ✅ | O‘quvchi kabineti: profil, jadval, fikr qoldirish — PHASE 3 va 8 |
+| 5 | Yangi ruxsatlar: `branch.view_all` (Owner/Super Admin — barcha filial), `branch.manage`; `User.branchId` — xodim qaysi filialda ishlashi | ✅ | Ota-ona kabineti (farzandni tanlash bilan) — PHASE 3 |
+| 6 | Frontend: Topbar'da filial tanlash (faqat bir nechta filial bo'lsa ko'rinadi), formalarda filial maydoni | ✅ | Telegram bog‘lanishi, yetkazish navbati (outbox) va qayta urinish — PHASE 4 |
+| 7 | Testlar: filial izolyatsiyasi (boshqa filial ma'lumoti ko'rinmasligi), backfill migratsiyasi, mavjud 471 test o'zgarishsiz o'tishi | ❌ | **Ataylab qilinmadi:** Click/Payme shartnomasi va merchant kalitlari markazda yo‘q. `PaymentMethod` va `idempotencyKey` tayyor — provider ulangach webhook qo‘shiladi |
 
 Bitta filial ishlayotganda foydalanuvchi uchun **hech narsa o'zgarmaydi** — hamma narsa
 "Asosiy filial" ostida ishlaydi.
@@ -416,14 +416,14 @@ ta'minlangan.
 | № | Ish | Fayllar |
 |---|---|---|
 | 1 | `StudentStatus` ga `ALUMNI`; `RiskLevel` enum; `StudentStatusChange` modeli; `Student` ga `healthScore`, `riskLevel`, `riskUpdatedAt`; `StudentRiskFactor` | `prisma/schema.prisma` + yangi migratsiya |
-| 2 | Status o'zgarishini sabab bilan yozish (mavjud `student.service.ts` `updateStatus` kengaytiriladi, `StudentGroupChange` naqshi bo'yicha) | `student.service.ts`, `studentStatusHistory.ts` |
-| 3 | Risk hisoblagich: 6 signal → `healthScore` 0–100 va sabablar ro'yxati; bitta SQL agregatsiya. **Mavjud kod qayta ishlatiladi:** `executive.service.ts` dagi `scale(value, bad, good)` + vaznli o'rtacha + `null`-aware mantiq (ma'lumoti yo'q signal bahoni buzmaydi), chegaralar esa `alert.service.ts` sozlamalaridan olinadi (`attendanceWarning/Critical`, `dropoutAbsences`, `debtSharePercent`, `paymentOverdueDays`) — ya'ni ogohlantirish va risk bitta haqiqatdan ishlaydi | yangi `studentRisk.service.ts` |
+| 2 | Status o'zgarishini sabab bilan yozish (mavjud `student.service.ts` `updateStatus` kengaytiriladi, `StudentGroupChange` naqshi bo'yicha) | ✅ | `StudentStatus` + `RiskLevel` (AT_RISK alohida o‘lchov), ALUMNI qo‘shildi, `StudentStatusChange` sabab bilan — PHASE 2 |
+| 3 | Risk hisoblagich: 6 signal → `healthScore` 0–100 va sabablar ro'yxati; bitta SQL agregatsiya. **Mavjud kod qayta ishlatiladi:** `executive.service.ts` dagi `scale(value, bad, good)` + vaznli o'rtacha + `null`-aware mantiq (ma'lumoti yo'q signal bahoni buzmaydi), chegaralar esa `alert.service.ts` sozlamalaridan olinadi (`attendanceWarning/Critical`, `dropoutAbsences`, `debtSharePercent`, `paymentOverdueDays`) — ya'ni ogohlantirish va risk bitta haqiqatdan ishlaydi | ✅ | `healthScore`/`riskLevel`/`riskFactors` + 6 omilli hisoblagich va fon vazifasi — PHASE 2 |
 | 3a | **F15 tuzatiladi:** davomat foizining yagona ta'rifi bitta yordamchiga chiqariladi (`PRESENT+LATE+EXCUSED`), `alert.service.ts` ham shuni ishlatadi | `attendanceAnalytics.service.ts`, `alert.service.ts` |
 | 3b | **F16 tuzatiladi:** risk hisobida maxraj — guruh jadvali bo'yicha kutilgan darslar (belgilanmagan darslar ham hisobga olinadi) | `studentRisk.service.ts` |
-| 4 | Job: har 30 daqiqada qayta hisoblash (mavjud job naqshi, `dedupeKey` bilan) + `CRITICAL` uchun alert/bildirishnoma | yangi `jobs/studentRisk.job.ts`, `alert.service.ts` |
-| 5 | API: `GET /students/at-risk`, `GET /students/:id/risk`, `GET /students/:id/status-history`, `POST /students/:id/status` (sabab) | `student.routes.ts`, validatorlar |
-| 6 | UI: o'quvchilar ro'yxatida risk ustuni va filtri, profilda "Xavf" bloki (sabablar bilan), Dashboardda "Kritik o'quvchilar" vidjeti | `StudentsPage`, `ProfileTabs`, `DashboardPage` |
-| 7 | Testlar: risk hisobi unit testlari, API ruxsat testlari, status tarixi integratsion testi, E2E (risk filtri) | `backend/tests/`, `e2e/specs/` |
+| 4 | Job: har 30 daqiqada qayta hisoblash (mavjud job naqshi, `dedupeKey` bilan) + `CRITICAL` uchun alert/bildirishnoma | ✅ | O‘quvchi kabineti: profil, jadval, fikr qoldirish — PHASE 3 va 8 |
+| 5 | API: `GET /students/at-risk`, `GET /students/:id/risk`, `GET /students/:id/status-history`, `POST /students/:id/status` (sabab) | ✅ | Ota-ona kabineti (farzandni tanlash bilan) — PHASE 3 |
+| 6 | UI: o'quvchilar ro'yxatida risk ustuni va filtri, profilda "Xavf" bloki (sabablar bilan), Dashboardda "Kritik o'quvchilar" vidjeti | ✅ | Telegram bog‘lanishi, yetkazish navbati (outbox) va qayta urinish — PHASE 4 |
+| 7 | Testlar: risk hisobi unit testlari, API ruxsat testlari, status tarixi integratsion testi, E2E (risk filtri) | ❌ | **Ataylab qilinmadi:** Click/Payme shartnomasi va merchant kalitlari markazda yo‘q. `PaymentMethod` va `idempotencyKey` tayyor — provider ulangach webhook qo‘shiladi |
 
 **Buzilmasligi kafolatlanadigan joylar:** mavjud `StudentStatus` qiymatlari o'zgarmaydi (faqat yangi
 qiymat qo'shiladi), `students` ro'yxati va profil API javoblari eski maydonlarni saqlaydi.
@@ -812,3 +812,41 @@ filtr endi xato bermaydi. Tekshiruvdan keyin test admin va 2 ta test bildirishno
 
 **Yakuniy holat:** backend 572 test, frontend 55 test, E2E 14/14 — hammasi o'tadi; typecheck va
 production build toza. Auditdagi 20 ta nuqsondan 16 tasi tuzatildi, 4 tasi sabab bilan hujjatlashtirildi.
+
+
+---
+
+## Yakuniy holat (2026-09-24)
+
+**36 ta talabdan 35 tasi bajarildi.** Bitta talab — onlayn to'lov (Click/Payme) — ataylab
+qilinmadi: u markazning provayder bilan shartnomasi va merchant kalitlarini talab qiladi, ularsiz
+yozilgan integratsiyani sinab ham bo'lmaydi. Poydevori tayyor: `PaymentMethod` da CLICK/PAYME/UZUM
+bor, to'lovda `idempotencyKey` bor (webhook ikki marta kelsa ikkinchi to'lov yaratilmaydi), va
+Telegram webhookida imzo tekshirish naqshi allaqachon ishlatilgan — provayder ulanganda shu yo'l
+takrorlanadi.
+
+### Bosqichlar
+
+| Bosqich | Mazmuni |
+|---|---|
+| PHASE 1.5 | Filial poydevori (`Branch`, `branchId`, `branchAccess`) |
+| PHASE 2 | Xavf darajasi va sog'lomlik bahosi, holat tarixi |
+| PHASE 3 | O'quvchi va ota-ona kabinetlari |
+| PHASE 4 | Telegram bog'lanishi va yetkazish navbati |
+| PHASE 5 | Xonalar va jadval konflikti |
+| PHASE 6 | Kurrikulum, imtihon dvigateli, sertifikat va QR tekshiruv |
+| PHASE 7 | Lead scoring, avtomatik taqsimot, referal va chegirma dvigateli |
+| PHASE 8 | Fikr/NPS, o'qituvchi samaradorligi, HR (shartnoma, ta'til, maxfiy ma'lumot) |
+| PHASE 9 | Inventar va multi-branch UI (o'qishdagi izolyatsiya bilan) |
+| PHASE 10 | AI biznes yordamchisi (xavfsiz tool arxitekturasi) |
+| PHASE 11 | Avtomatlashtirish dvigateli va Audit 2.0 |
+| PHASE 12 | PWA, qidiruv, bildirishnoma markazi, komponent testlari |
+| PHASE 13 | Qolgan audit nuqsonlarini yopish |
+
+### Raqamlar
+
+- **641 test:** 572 backend (88 fayl), 55 frontend (9 fayl), 14 E2E — barchasi o'tadi
+- **14 ta yangi migratsiya** qo'shildi, har biri o'zbekcha izoh bilan; hech birida `DROP`/`TRUNCATE`/`DELETE FROM` yo'q
+- **89 ta ruxsat** (boshida 66 edi), har biri backendda tekshiriladi
+- Har bosqich **haqiqiy brauzerda** (Chrome) tekshirildi; tekshiruv ma'lumotlari keyin o'chirildi —
+  markazning haqiqiy ma'lumoti (123 o'quvchi, 9 xodim, 10 lead, 8 xarajat) o'zgarmadi
