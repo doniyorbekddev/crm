@@ -1206,6 +1206,61 @@ model Notification {
   @@map("notifications")
 }
 
+/// Telegram botdagi ko'p qadamli oqim holati.
+///
+/// Telegram suhbat holatini saqlamaydi: har xabar alohida keladi. Davomat olish yoki
+/// ommaviy xabar yozish kabi bir necha qadamli ishlar uchun "qayerda to'xtaganimiz" shu
+/// yerda turadi. Yozuv **muddatli**: yarim qolgan oqim abadiy osilib qolmaydi.
+model TelegramSession {
+  chatId    String   @id @db.VarChar(64)
+  /// Oqim nomi, masalan: attendance, broadcast
+  flow      String   @db.VarChar(50)
+  /// Oqim ichidagi qadam
+  step      String   @db.VarChar(50)
+  /// Qadamlar orasida saqlanadigan ma'lumot (tanlangan guruh, sana va h.k.)
+  data      Json     @default("{}")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("telegram_sessions")
+}
+
+/// Kiruvchi Telegram hodisasi natijasi
+enum TelegramEventStatus {
+  OK
+  /// Tanilmagan yoki e'tiborsiz qoldirilgan xabar
+  IGNORED
+  /// Chat chegaradan oshdi
+  THROTTLED
+  FAILED
+}
+
+/// Kiruvchi Telegram update jurnali.
+///
+/// Chiquvchi xabarlar `NotificationDelivery` da yoziladi, kiruvchilari esa hech qayerda
+/// yozilmasdi — "bot javob bermadi" degan shikoyatni tekshirishning iloji yo'q edi.
+/// Xabar **matni saqlanmaydi**: faqat buyruq nomi, holati va vaqti — maxfiylik uchun.
+model TelegramEvent {
+  id             String              @id @default(cuid())
+  chatId         String?             @db.VarChar(64)
+  telegramUserId String?             @db.VarChar(64)
+  /// message yoki callback_query
+  kind           String              @db.VarChar(30)
+  /// Buyruq yoki callback harakati (foydalanuvchi matni emas)
+  action         String?             @db.VarChar(100)
+  status         TelegramEventStatus @default(OK)
+  /// Xato matni — foydalanuvchiga ko'rsatilmaydi, faqat tekshirish uchun
+  error          String?             @db.VarChar(500)
+  durationMs     Int?
+  createdAt      DateTime            @default(now())
+
+  @@index([chatId, createdAt])
+  @@index([createdAt])
+  @@map("telegram_events")
+}
+
 /// Xodimning bildirishnoma sozlamasi: qaysi turni ilovada va Telegramda olishni xohlaydi.
 ///
 /// Yozuv **faqat foydalanuvchi standartni o‘zgartirsa** yaratiladi — qator yo‘q bo‘lsa,
