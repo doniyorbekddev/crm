@@ -31,9 +31,11 @@ async function main(): Promise<void> {
   const { alertService } = await import('../src/services/alert.service.js');
   const { reportService } = await import('../src/services/report.service.js');
   const { auditLogService } = await import('../src/services/audit.service.js');
+  const { notificationService } = await import('../src/services/notification.service.js');
   const { currentBusinessMonth } = await import('../src/utils/dates.js');
   const { reportQuerySchema } = await import('../src/validators/report.validator.js');
   const { auditListQuerySchema } = await import('../src/validators/audit.validator.js');
+  const { notificationListQuerySchema } = await import('../src/validators/notification.validator.js');
   const { cashFlowQuerySchema, financeRangeQuerySchema } = await import('../src/validators/finance.validator.js');
   const { activityQuerySchema } = await import('../src/validators/activity.validator.js');
   const { analyticsRangeQuerySchema, cohortQuerySchema, profitabilityQuerySchema } = await import('../src/validators/analytics.validator.js');
@@ -82,6 +84,9 @@ async function main(): Promise<void> {
     ['report payments kunlik', () => reportService.build('payments', reportQuerySchema.parse({ ...range12, groupBy: 'day' }))],
     ['report teachers', () => reportService.build('teachers', reportQuerySchema.parse(range12))],
     ['report debts', () => reportService.build('debts', reportQuerySchema.parse({}))],
+    // PHASE 14: qo'ng'iroqcha har sahifada chaqiriladi — sekinlashsa butun ilova sekinlashadi
+    ['notification: qo‘ng‘iroqcha xulosasi', () => notificationService.summary(actor)],
+    ['notification: 1-sahifa', () => notificationService.list(actor, notificationListQuerySchema.parse({}))],
     ['audit: 1-sahifa', () => auditLogService.list(auditListQuerySchema.parse({}))],
     ['audit: filtrlar', () => auditLogService.filters()],
     [

@@ -987,3 +987,45 @@ o'chirilib saqlandi va bazada aynan shu tur uchun qator paydo bo'ldi. Sarlavhada
 "3 ta o'qilmagan (1 tasi muhim)", "Faqat muhim" filtri bitta yozuvni qoldirdi.
 Tekshiruvdan keyin vaqtinchalik hisob, uning sozlamasi va sinov xabarlari o'chirildi —
 foydalanuvchining 56 ta haqiqiy bildirishnomasiga tegilmadi.
+
+### PHASE 14 (7-qism) — zaxira tekshiruvi va unumdorlik o'lchovi (2026-09-24)
+
+Spec §28 "backup verification" va §30 "performance" — ikkalasi ham ochiq qolgan edi:
+zaxira **olinardi**, lekin tiklanishini hech kim sinamasdi; unumdorlik esa 13 ta yangi
+jadval qo'shilgandan keyin qayta o'lchanmagandi.
+
+#### §28 — `scripts/verify-backup.sh`
+
+| Qism | Holat |
+|---|---|
+| Nusxa **vaqtinchalik `crm_verify_<vaqt>` bazasiga tiklanadi**, tekshiriladi va baza o'chiriladi. Ishchi bazaga tegilmaydi — nom tasodifan mos kelsa ham skript to'xtaydi | ✅ mahalliy bazada sinab ko'rildi |
+| Vaqtinchalik baza `trap ... EXIT` bilan o'chiriladi — skript xato bilan to'xtasa ham qolib ketmaydi | ✅ tekshirildi (qolgan baza: 0) |
+| `gzip -t` — buzilgan arxiv tiklashga urinmasdan ushlanadi | ✅ chiqish kodi 1 |
+| Tiklangandan keyin sanaladi: jadvallar (< 20 bo'lsa xato), foydalanuvchilar (0 bo'lsa xato), tugallanmagan migratsiya (bo'lsa xato) | ✅ bo'sh dumpda 3 ta xato berdi |
+| Koddagi oxirgi migratsiya nusxada yo'q bo'lsa — ogohlantirish (zaxira deploydan oldin olingan bo'lishi mumkin) | ✅ |
+| Serverda `docker compose`, ishlab chiqishda mahalliy `psql` — bir xil skript ikkala muhitda ishlaydi, shuning uchun uni sinab ko'rish mumkin | ✅ |
+| Cron: `0 4 * * 1` — haftalik. Muammo bo'lsa chiqish kodi 1, cron uni log faylda ko'rsatadi | ✅ hujjatlarda |
+
+**Sinov natijasi:** haqiqiy nusxa — 90 jadval, 18 foydalanuvchi, 37 migratsiya, natija ✓;
+buzilgan arxiv — ✗ (kod 1); bo'sh dump — ✗ (kod 1).
+
+#### §30 — o'lchov qayta chopildi (2 418 o'quvchi, 85 076 tranzaksiya, 150 004 audit yozuvi)
+
+Yangi ustun va indekslar eski so'rovlarni sekinlashtirmaganini tasdiqlash uchun.
+
+| So'rov | Mediana |
+|---|---|
+| `dashboard.summary` | 65 ms |
+| `executive`: joriy oy / 12 oy | 90 / 106 ms |
+| `finance.cashFlow` 12 oy | 57 ms |
+| `analytics.unitEconomics` 12 oy | 80 ms |
+| `alerts.evaluate` (14 qoida) | 75 ms |
+| `report payments` kunlik | 89 ms |
+| **`notification` qo'ng'iroqcha xulosasi** | **1 ms** |
+| **`notification` 1-sahifa** | **4 ms** |
+| `audit`: 1-sahifa | 10 ms |
+
+Bildirishnomalar **150 000 yozuvda** o'lchandi: qo'ng'iroqcha har sahifada chaqiriladi,
+shuning uchun u sekinlashsa butun ilova sekinlashardi. Yangi
+`(userId, priority, readAt)` indeksi ishlayapti. Hajm `perfSeed.ts` ga qo'shildi —
+o'lchov keyin ham takrorlanadi. Barcha so'rovlar 110 ms dan past.

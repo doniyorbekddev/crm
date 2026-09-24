@@ -230,7 +230,12 @@ Faylning oxiriga (har kuni soat 03:00 da):
 
 ```cron
 0 3 * * * cd /opt/sales-crm && ./scripts/backup-db.sh >> /var/log/crm-backup.log 2>&1
+0 4 * * 1 cd /opt/sales-crm && ./scripts/verify-backup.sh >> /var/log/crm-backup.log 2>&1
 ```
+
+Ikkinchi qator — haftalik tekshiruv: u oxirgi nusxani **vaqtinchalik bazaga tiklab ko‘radi** va
+darrov o‘chiradi. Zaxira fayli buzilgan bo‘lsa, buni kerak bo‘lgan kunda emas, dushanba kuni
+log faylidan bilib olasiz. Ishchi bazaga tegmaydi.
 
 Cheklar va hujjatlar fayllari alohida zaxiralanadi — [DEPLOYMENT.md, 5-bo‘lim](DEPLOYMENT.md).
 Zaxirani vaqti-vaqti bilan boshqa joyga (o‘z kompyuteringiz yoki bulut) ko‘chirib turing.

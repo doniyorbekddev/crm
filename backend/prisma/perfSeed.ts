@@ -20,6 +20,8 @@ import type {
   AttendanceStatus,
   DebtStatus,
   LeadStatus,
+  NotificationPriority,
+  NotificationType,
   PaymentMethod,
   StudentStatus,
   SubmissionStatus,
@@ -52,6 +54,8 @@ const SCALE = {
   xp: 60_000,
   homeworkPerGroup: 40,
   examsPerGroup: 8,
+  /** Bildirishnomalar — qo'ng'iroqcha har sahifada chaqiriladi, shuning uchun yillik hajmda o'lchanadi */
+  notifications: 150_000,
 };
 
 const DAY = 86_400_000;
@@ -371,6 +375,37 @@ async function main(): Promise<void> {
     }),
   );
   await insert('maosh davrlari', periods, (chunk) => prisma.teacherSalaryPeriod.createMany({ data: chunk }));
+
+  // --- Bildirishnomalar ---
+  // Qo'ng'iroqcha xulosasi va ro'yxati har sahifa ochilganda so'raladi, shuning uchun ular
+  // bir yillik hajmda o'lchanishi kerak. Turlar va darajalar aralash: filtrlar ham sinaladi.
+  const staffIds = [...teachers, ...managers].map((user) => user.id);
+  const NOTIFICATION_MIX: ReadonlyArray<{ type: NotificationType; priority: NotificationPriority }> = [
+    { type: 'NEW_LEAD', priority: 'NORMAL' },
+    { type: 'LEAD_ASSIGNED', priority: 'NORMAL' },
+    { type: 'NEW_PAYMENT', priority: 'NORMAL' },
+    { type: 'FOLLOW_UP_REMINDER', priority: 'NORMAL' },
+    { type: 'FOLLOW_UP_OVERDUE', priority: 'HIGH' },
+    { type: 'DEBT_REMINDER', priority: 'HIGH' },
+    { type: 'DAILY_DIGEST', priority: 'LOW' },
+    { type: 'NEW_STUDENT', priority: 'NORMAL' },
+  ];
+  const notifications = Array.from({ length: SCALE.notifications }, (_, index) => {
+    const mix = NOTIFICATION_MIX[index % NOTIFICATION_MIX.length]!;
+    return {
+      userId: staffIds[index % staffIds.length]!,
+      type: mix.type,
+      priority: mix.priority,
+      title: `Sinov xabari ${index + 1}`,
+      message: `Unumdorlik o'lchovi uchun yozuv ${index + 1}`,
+      entityType: 'lead',
+      entityId: `perf-${index}`,
+      // Har to'rtinchisi o'qilmagan — o'qilmaganlar bo'yicha filtr bo'sh natija bermasin
+      readAt: index % 4 === 0 ? null : new Date(now.getTime() - (index % 100) * 3_600_000),
+      createdAt: new Date(now.getTime() - (index % 20_000) * 300_000),
+    };
+  });
+  await insert('bildirishnomalar', notifications, (chunk) => prisma.notification.createMany({ data: chunk }), 5_000);
 
   console.log('\nPerf seed yakunlandi. Kirish: owner@example.com / Owner123! (oddiy seed hisoblari ham ishlaydi)');
 }

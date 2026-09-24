@@ -178,18 +178,25 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 
 ```bash
 ./scripts/backup-db.sh                     # backups/crm-<sana>.sql.gz, 30 kun saqlanadi
+./scripts/verify-backup.sh                 # oxirgi nusxani tiklab ko‘radi (ishchi bazaga tegmaydi)
 ./scripts/restore-db.sh backups/crm-2026-09-12_03-00.sql.gz
 ```
 
-Kunlik avtomatik zaxira (soat 03:00):
+Kunlik avtomatik zaxira (soat 03:00) va haftalik tekshiruv (dushanba 04:00):
 
 ```bash
 crontab -e
 0 3 * * * cd /opt/sales-crm && ./scripts/backup-db.sh >> /var/log/crm-backup.log 2>&1
+0 4 * * 1 cd /opt/sales-crm && ./scripts/verify-backup.sh >> /var/log/crm-backup.log 2>&1
 ```
 
+> **Zaxira olinayotgani uning tiklanishini bildirmaydi.** Fayl yarim yozilgan, gzip buzilgan yoki
+> dump bo‘sh bo‘lishi mumkin — buni faqat haqiqiy tiklash ko‘rsatadi. `verify-backup.sh` aynan
+> shuni qiladi: nusxani **vaqtinchalik `crm_verify_<vaqt>` bazasiga** tiklaydi, jadvallar,
+> foydalanuvchilar va migratsiyalarni sanaydi, so‘ng o‘sha bazani o‘chiradi. Ishchi bazaga
+> hech qachon tegmaydi. Muammo bo‘lsa chiqish kodi 1 bo‘ladi — cron xatoni log faylida ko‘rsatadi.
+>
 > Zaxirani boshqa serverga ham nusxalang (`rsync`, S3 va h.k.) — bitta serverdagi nusxa zaxira hisoblanmaydi.
-> Tiklashni **kamida yiliga bir marta** sinab ko‘ring.
 
 ---
 

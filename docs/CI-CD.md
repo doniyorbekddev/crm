@@ -32,7 +32,7 @@ Serverdagi katalog (mavjud tuzilma saqlangan):
 │   ├── deploy.sh                ← har bir deploy (Actions shuni chaqiradi)
 │   ├── rollback.sh              ← qo‘lda orqaga qaytish
 │   └── nginx/crm.conf.example   ← host Nginx namunasi
-├── scripts/{backup-db.sh,restore-db.sh}
+├── scripts/{backup-db.sh,verify-backup.sh,restore-db.sh}
 ├── backups/                     ← baza zaxiralari (git'da yo‘q)
 └── .deploy/                     ← last-good commit, deploy tarixi, qulf (git'da yo‘q)
 ```
