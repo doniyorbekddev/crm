@@ -70,6 +70,14 @@ const envSchema = z
     TELEGRAM_WEBHOOK_SECRET: optionalString,
     /// Bot foydalanuvchi nomi — kabinetdagi "Telegramni ulash" havolasi uchun (masalan: markaz_crm_bot)
     TELEGRAM_BOT_USERNAME: optionalString,
+    /**
+     * Sinov rejimi: bot Telegramdan yangiliklarni **o'zi so'rab** turadi (long polling).
+     *
+     * Ishlab chiqishda kerak: `localhost` ga Telegram webhook yubora olmaydi, tunnel esa
+     * ortiqcha tayyorgarlik. Productionda **webhook** ishlatiladi — u tezroq va bitta
+     * botda ikkalasi birga ishlamaydi (Telegram `getUpdates` ni 409 bilan rad etadi).
+     */
+    TELEGRAM_POLLING: booleanString,
     /** Sinov to'lov provayderi uchun imzo kaliti — bo'sh bo'lsa provayder o'chiq */
     PAYMENT_SANDBOX_SECRET: optionalString,
   })

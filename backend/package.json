@@ -2,7 +2,7 @@
   "name": "@crm/backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Sales CRM REST API — Express + TypeScript + Prisma + PostgreSQL",
+  "description": "Sales CRM REST API \u2014 Express + TypeScript + Prisma + PostgreSQL",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -32,7 +32,8 @@
     "test:coverage": "vitest run --coverage",
     "db:perf-seed": "tsx prisma/perfSeed.ts",
     "db:perf-seed:finance": "tsx prisma/perfSeedFinance.ts",
-    "perf:bench": "tsx prisma/perfBenchmark.ts"
+    "perf:bench": "tsx prisma/perfBenchmark.ts",
+    "telegram:webhook": "tsx scripts/telegramWebhook.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

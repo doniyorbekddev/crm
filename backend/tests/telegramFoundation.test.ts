@@ -7,6 +7,7 @@ import * as telegram from '../src/services/telegram.service.js';
 import type { InlineKeyboard } from '../src/services/telegram.service.js';
 import { callback, grid, parseCallback, paginationRow } from '../src/telegram/keyboards.js';
 import { allowChat, resetRateLimits } from '../src/telegram/rateLimit.js';
+import { processUpdates } from '../src/telegram/polling.js';
 import { telegramSessionService } from '../src/telegram/session.service.js';
 import { createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
@@ -298,5 +299,50 @@ describe.skipIf(!hasTestDatabase)('Telegram oqim holati (session)', () => {
 
     expect(await prisma.telegramSession.count({ where: { chatId: 'c3' } })).toBe(1);
     expect(await telegramSessionService.get('c3')).toMatchObject({ flow: 'broadcast' });
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('Telegram polling (sinov rejimi)', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+    resetRateLimits();
+    vi.restoreAllMocks();
+  });
+
+  it('offset oxirgi update bo‘yicha suriladi', async () => {
+    await linkStudent();
+    captureBot();
+
+    const next = await processUpdates([{ ...messageUpdate('/holat'), update_id: 41 }, { ...messageUpdate('/holat'), update_id: 42 }], 0);
+
+    // Telegram `offset` dan kichiklarini o'chiradi — u faqat ishlangandan keyin suriladi
+    expect(next).toBe(43);
+  });
+
+  it('bitta update xato bersa ham qolganlari ishlanadi va offset suriladi', async () => {
+    await linkStudent();
+    const bot = captureBot();
+    // Birinchi xabar ishlovchisi yiqiladi
+    vi.spyOn(prisma.telegramLink, 'findFirst').mockRejectedValueOnce(new Error('tarmoq uzildi'));
+
+    const next = await processUpdates([{ ...messageUpdate('/holat'), update_id: 7 }, { ...messageUpdate('/holat'), update_id: 8 }], 0);
+
+    // Xato bergan xabarda offset to'xtab qolsa, u abadiy takrorlanardi
+    expect(next).toBe(9);
+    expect(bot.sent.length + bot.edited.length).toBeGreaterThan(0);
+  });
+
+  it('bo‘sh partiyada offset o‘zgarmaydi', async () => {
+    expect(await processUpdates([], 15)).toBe(15);
+  });
+
+  it('update_id yo‘q bo‘lsa offset orqaga ketmaydi', async () => {
+    await linkStudent();
+    captureBot();
+
+    const next = await processUpdates([messageUpdate('/holat')], 100);
+
+    expect(next).toBe(100);
   });
 });

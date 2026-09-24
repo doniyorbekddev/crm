@@ -13,6 +13,7 @@ import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
 import { telegramService } from './services/telegram.service.js';
 import { BOT_COMMAND_MENU } from './services/telegramCommand.service.js';
+import { startTelegramPolling } from './telegram/polling.js';
 import { logger } from './utils/logger.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -32,6 +33,8 @@ const stopAuditCleanup = startAuditCleanupJob();
 const stopRecurringExpenses = startRecurringExpensesJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
+// Sinov rejimi: webhook o'rniga botning o'zi Telegramdan so'rab turadi (ishlab chiqishda)
+const stopTelegramPolling = env.TELEGRAM_POLLING ? startTelegramPolling() : () => undefined;
 
 const server = app.listen(env.PORT, (error?: Error) => {
   if (error) {
@@ -58,6 +61,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopAutomation();
   stopAuditCleanup();
   stopRecurringExpenses();
+  stopTelegramPolling();
   stopDailyDigest();
 
   const forceExitTimer = setTimeout(() => {

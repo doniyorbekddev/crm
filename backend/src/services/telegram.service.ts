@@ -83,6 +83,40 @@ async function request(method: string, payload: Record<string, unknown>): Promis
   }
 }
 
+/**
+ * Telegram API dan **ma'lumot** olish (yuborish emas).
+ *
+ * `request()` dan farqi: u faqat "yuborildimi" ni qaytaradi, bu esa javob tanasini beradi —
+ * `getUpdates` uchun kerak. Timeout alohida beriladi, chunki long polling ataylab uzoq kutadi.
+ */
+async function apiCall<T>(method: string, payload: Record<string, unknown>, timeoutMs: number): Promise<T | null> {
+  if (!env.TELEGRAM_BOT_TOKEN) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const body = (await response.json().catch(() => null)) as { ok?: boolean; result?: T; description?: string } | null;
+    if (!response.ok || body?.ok !== true) {
+      logger.warn({ method, status: response.status, description: body?.description }, 'Telegram API xatosi');
+      return null;
+    }
+    return body.result ?? null;
+  } catch (error) {
+    // Long pollingda timeout normal holat — kutish tugadi, yangilik yo'q
+    if (error instanceof Error && error.name === 'AbortError') return null;
+    logger.warn({ method, err: error }, 'Telegram API ga ulanib bo‘lmadi');
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const telegramService = {
   /**
    * Telegramdagi buyruqlar menyusini yangilaydi (chatdagi "Menu" tugmasi).
@@ -135,6 +169,42 @@ export const telegramService = {
       callback_query_id: callbackQueryId,
       ...(text ? { text, show_alert: false } : {}),
     });
+  },
+
+  /**
+   * Yangi update'larni so'raydi (long polling).
+   *
+   * `offset` — oldingi eng katta `update_id + 1`. Telegram shu raqamdan kichiklarini
+   * **o'chiradi**, shuning uchun offset faqat update ishlangandan keyin suriladi: dastur
+   * to'xtab qolsa, ishlanmagan xabar yo'qolmaydi.
+   */
+  async getUpdates(offset: number, timeoutSeconds: number): Promise<unknown[]> {
+    const result = await apiCall<unknown[]>(
+      'getUpdates',
+      { offset, timeout: timeoutSeconds, allowed_updates: ['message', 'callback_query'] },
+      // Telegram `timeout` soniya kutadi; biz undan biroz ko'proq kutamiz
+      (timeoutSeconds + 10) * 1_000,
+    );
+    return result ?? [];
+  },
+
+  /**
+   * Webhook'ni o'chiradi — polling bilan webhook **birga ishlamaydi** (Telegram
+   * `getUpdates` ni 409 bilan rad etadi). Sinov rejimi boshlanishida chaqiriladi.
+   */
+  async deleteWebhook(): Promise<boolean> {
+    const result = await apiCall<boolean>('deleteWebhook', { drop_pending_updates: false }, REQUEST_TIMEOUT_MS);
+    return result === true;
+  },
+
+  /** Production uchun: Telegram update'larni shu manzilga yuboradi */
+  async setWebhook(url: string, secretToken: string): Promise<boolean> {
+    const result = await apiCall<boolean>(
+      'setWebhook',
+      { url, secret_token: secretToken, allowed_updates: ['message', 'callback_query'] },
+      REQUEST_TIMEOUT_MS,
+    );
+    return result === true;
   },
 
   async sendMessage(chatId: string, text: string, keyboard?: InlineKeyboard): Promise<TelegramSendResult> {

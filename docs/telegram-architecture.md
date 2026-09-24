@@ -126,7 +126,43 @@ qismi kabinet tomonida (TZ §57 MVP shuni tasdiqlaydi).
 
 ---
 
-## 6. Keyingi bosqichlar
+## 6. Ishga tushirish
+
+### Sinov (mahalliy kompyuter) — polling
+
+Telegram `localhost` ga webhook yubora olmaydi, shuning uchun sinovda bot yangiliklarni
+**o'zi so'rab** turadi. Tunnel, ochiq manzil va HTTPS kerak emas.
+
+```bash
+# backend/.env
+TELEGRAM_BOT_TOKEN=<@BotFather bergan token>
+TELEGRAM_BOT_USERNAME=<bot username, @ belgisisiz>
+TELEGRAM_WEBHOOK_SECRET=<openssl rand -hex 32>
+TELEGRAM_POLLING=true
+```
+
+Serverni qayta ishga tushirsangiz, logda `Telegram polling rejimi ishga tushdi` chiqadi.
+Polling boshlanishida webhook **o'chiriladi**: Telegram bitta botda ikkalasini qabul qilmaydi
+(`getUpdates` 409 bilan rad etiladi).
+
+### Production — webhook
+
+```bash
+TELEGRAM_POLLING=false            # majburiy
+
+npm run telegram:webhook --workspace backend -- https://crm.markaz.uz
+npm run telegram:webhook --workspace backend -- --delete     # bekor qilish
+```
+
+Skript `TELEGRAM_WEBHOOK_SECRET` ni ham uzatadi — usiz webhook controlleri **hech qanday**
+so'rovni qabul qilmaydi va bot jim qolardi.
+
+> **Token — parol bilan barobar.** U faqat `.env` da turadi, `.gitignore` da, logga
+> yozilmaydi va terminalga chiqarilmaydi.
+
+---
+
+## 7. Keyingi bosqichlar
 
 | Bosqich | Ish |
 |---|---|
