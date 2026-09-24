@@ -163,7 +163,13 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
 
     expect(bot.sent).toHaveLength(1);
     expect(bot.sent[0]!.text).toContain('Kerakli bo‘limni tanlang');
-    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['cmd:/qarz', 'cmd:/darslar', 'cmd:/davomat', 'cmd:/holat']);
+    expect(dataOf(bot.sent[0]!.keyboard)).toEqual([
+      'cmd:/qarz',
+      'cmd:/darslar',
+      'cmd:/davomat',
+      'cmd:/holat',
+      'cmd:/uzish',
+    ]);
   });
 
   it('tugma bosilganda javob o‘sha xabarning o‘rniga yoziladi va tugma tasdiqlanadi', async () => {
@@ -189,7 +195,7 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
 
     await post(messageUpdate('/start')).expect(200);
 
-    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['cmd:/holat']);
+    expect(dataOf(bot.sent[0]!.keyboard)).toEqual(['cmd:/holat', 'cmd:/uzish']);
   });
 
   it('noma’lum callback bosh menyuga qaytaradi', async () => {
@@ -253,15 +259,41 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
     expect(failed?.error).toContain('baza yiqildi');
   });
 
-  it('/uzish bog‘lanishni o‘chiradi va chat yana begona bo‘ladi', async () => {
+  it('/uzish darhol o‘chirmaydi — avval tasdiq so‘raydi', async () => {
     await linkStudent();
     const bot = captureBot();
 
-    await post(callbackUpdate('cmd:/uzish')).expect(200);
+    await post(messageUpdate('/uzish')).expect(200);
+
+    // Telegram `/uzish` ni bosiladigan havola qilib ko'rsatadi — tasodifan bosilsa
+    // bog'lanish yo'qolmasligi kerak
+    expect(await prisma.telegramLink.count()).toBe(1);
+    const shown = [...bot.sent, ...bot.edited].at(-1)!;
+    expect(shown.text).toContain('uzasizmi');
+    expect(dataOf(shown.keyboard)).toEqual(['unlink_yes', 'menu']);
+  });
+
+  it('tasdiqlangandan keyin bog‘lanish o‘chadi va chat yana begona bo‘ladi', async () => {
+    await linkStudent();
+    const bot = captureBot();
+
+    await post(messageUpdate('/uzish')).expect(200);
+    await post(callbackUpdate('unlink_yes')).expect(200);
 
     expect(await prisma.telegramLink.count()).toBe(0);
     await post(messageUpdate('/holat')).expect(200);
     expect(bot.sent.at(-1)!.text).toContain('havoladan foydalaning');
+  });
+
+  it('bekor qilinsa bog‘lanish joyida qoladi', async () => {
+    await linkStudent();
+    const bot = captureBot();
+
+    await post(messageUpdate('/uzish')).expect(200);
+    await post(callbackUpdate('menu')).expect(200);
+
+    expect(await prisma.telegramLink.count()).toBe(1);
+    expect([...bot.sent, ...bot.edited].at(-1)!.text).toContain('Kerakli bo‘limni tanlang');
   });
 });
 

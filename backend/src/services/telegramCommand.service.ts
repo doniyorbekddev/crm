@@ -233,7 +233,9 @@ export async function buildCommandReply(
           : scope.kind === 'STUDENT'
             ? `o‘quvchi: ${escapeHtml(scope.label)}`
             : `xodim: ${escapeHtml(scope.label)}`;
-      return { reply: `Bog‘langan — ${who}.\nUzish uchun: /uzish`, unlink: false };
+      // `/uzish` ataylab yozilmaydi: Telegram uni bosiladigan havola qilib ko'rsatadi va
+      // tasodifan bosilib ketardi. Uzish — menyudagi alohida qadam, tasdiq bilan.
+      return { reply: `Bog‘langan — ${who}.`, unlink: false };
     }
 
     case '/uzish':

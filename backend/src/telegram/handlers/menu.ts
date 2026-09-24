@@ -23,6 +23,7 @@ const STUDENT_ITEMS: ReadonlyArray<{ text: string; command: string }> = [
 
 const COMMON_ITEMS: ReadonlyArray<{ text: string; command: string }> = [
   { text: '🔗 Bog‘lanish holati', command: '/holat' },
+  { text: '🚫 Bog‘lanishni uzish', command: '/uzish' },
 ];
 
 function itemsFor(scope: CommandScope): ReadonlyArray<{ text: string; command: string }> {

@@ -2,7 +2,7 @@ import { prisma } from '../config/database.js';
 import { telegramService } from '../services/telegram.service.js';
 import { resolveCommandScope } from '../services/telegramCommand.service.js';
 import { logger } from '../utils/logger.js';
-import { MAIN_MENU, parseCallback } from './keyboards.js';
+import { MAIN_MENU, callback, parseCallback } from './keyboards.js';
 import { runCommand, showMainMenu } from './handlers/menu.js';
 import { allowChat } from './rateLimit.js';
 import type { BotContext, TelegramUpdate } from './types.js';
@@ -24,6 +24,8 @@ import type { BotContext, TelegramUpdate } from './types.js';
 const NOT_LINKED_REPLY = 'Bog‘lash uchun CRM’dagi havoladan foydalaning.';
 
 const UNLINK_COMMAND = '/uzish';
+/** Tasdiqlangan uzish — faqat shu tugma haqiqatan o'chiradi */
+const UNLINK_CONFIRM = 'unlink_yes';
 
 export interface RouteResult {
   handled: boolean;
@@ -162,8 +164,21 @@ export async function routeUpdate(update: TelegramUpdate): Promise<RouteResult> 
     // Menyu tugmasi buyruqni `cmd:/uzish` ko'rinishida yuboradi — ikkala yo'l ham bir xil amalga olib borsin
     const command = parsed === null ? action : parsed.action === 'cmd' ? commandOf(parsed.arg ?? '') : null;
 
-    // Uzish — yagona buzuvchi amal, shuning uchun routerda: javob berishdan oldin bog'lanish o'chiriladi
+    // Uzish — yagona buzuvchi amal, shuning uchun routerda va **ikki qadamda**.
+    // Telegram `/uzish` matnini bosiladigan havola qilib ko'rsatadi, ya'ni uni tasodifan
+    // bosish juda oson. Shuning uchun avval tasdiq so'raladi (TZ §47).
     if (command === UNLINK_COMMAND) {
+      await context.render('Bog‘lanishni uzasizmi?\n\nEslatmalar bu chatga kelmay qoladi.', [
+        [
+          { text: '✅ Ha, uzilsin', data: callback(UNLINK_CONFIRM) },
+          { text: '❌ Bekor qilish', data: callback(MAIN_MENU) },
+        ],
+      ]);
+      await logEvent({ ...base, kind, action: 'unlink_ask', status: 'OK', durationMs: Date.now() - started });
+      return { handled: true, action: 'unlink_ask' };
+    }
+
+    if (action === UNLINK_CONFIRM) {
       await prisma.telegramLink.delete({ where: { id: link.id } });
       await context.render(
         'Bog‘lanish uzildi. Eslatmalar endi bu chatga kelmaydi.\nQayta ulash uchun CRM’dan yangi havola oling.',

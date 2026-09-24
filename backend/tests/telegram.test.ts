@@ -311,19 +311,27 @@ describe.skipIf(!hasTestDatabase)('Telegram bog‘lanishi va yetkazish navbati',
     expect(sent[1]!.text).toContain('/holat');
   });
 
-  it('/uzish bog‘lanishni o‘chiradi', async () => {
+  it('/uzish tasdiqdan keyin bog‘lanishni o‘chiradi', async () => {
     const { user } = await createUserWithToken(app, { role: 'ADMIN' });
     const link = await telegramLinkService.ensureLink({ userId: user.id });
     await sendCommand(`/start ${link.linkCode}`);
     const sent = captureReplies();
 
+    // Birinchi qadam — tasdiq so'raladi, bog'lanish hali joyida
     await sendCommand('/uzish');
+    expect(sent[0]!.text).toContain('uzasizmi');
+    expect(await prisma.telegramLink.count()).toBe(1);
 
-    expect(sent[0]!.text).toContain('uzildi');
+    // Ikkinchi qadam — tasdiqlash tugmasi
+    await request(app)
+      .post('/api/telegram/webhook')
+      .set('X-Telegram-Bot-Api-Secret-Token', WEBHOOK_SECRET)
+      .send({ callback_query: { id: 'cb', data: 'unlink_yes', from: { id: 1 }, message: { message_id: 3, chat: { id: 555_111 } } } });
+
     expect(await prisma.telegramLink.count()).toBe(0);
     // Uzilgandan keyin chat yana begona: ma'lumot berilmaydi
     await sendCommand('/qarz');
-    expect(sent[1]!.text).toContain('havoladan foydalaning');
+    expect(sent.at(-1)!.text).toContain('havoladan foydalaning');
   });
 
   it('noma’lum buyruqqa yordam matni qaytadi', async () => {
