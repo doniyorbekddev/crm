@@ -2,7 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
-import { bearer, createUserWithToken } from './helpers/auth.js';
+import { bearer, createUserWithToken, loginAs } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -167,5 +167,51 @@ describe.skipIf(!hasTestDatabase)('Sertifikatlar va ochiq tekshiruv', () => {
     expect(byAdmin.status).toBe(201);
     // Ko'rish o'qituvchiga ochiq
     expect(listByTeacher.status).toBe(200);
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('Sertifikatni chop etish uchun olish', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+  });
+
+  it('xodim istalgan sertifikatni oladi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const course = await createCourse('Frontend');
+    const group = await createGroup({ courseId: course.id });
+    const student = await createStudent(course.id, group.id);
+    const issued = await request(app).post('/api/certificates').set(bearer(token)).send({ studentId: student.id, percentage: 88 });
+
+    const response = await request(app).get(`/api/certificates/${issued.body.data.id}`).set(bearer(token));
+
+    expect(response.status).toBe(200);
+    // Chop etish uchun kerakli barcha maydonlar
+    expect(response.body.data).toMatchObject({ studentName: 'Aziz Karimov', courseName: 'Frontend', percentage: 88 });
+    expect(response.body.data.startDate).toBeTruthy();
+    expect(response.body.data.verifyToken).toHaveLength(32);
+  });
+
+  it('kabinet foydalanuvchisi faqat o‘z sertifikatini oladi', async () => {
+    const admin = await createUserWithToken(app, { role: 'ADMIN' });
+    const course = await createCourse('Backend');
+    const group = await createGroup({ courseId: course.id });
+    const mine = await createStudent(course.id, group.id, 'Meniki');
+    const other = await createStudent(course.id, group.id, 'Begona');
+
+    const myCertificate = await request(app).post('/api/certificates').set(bearer(admin.token)).send({ studentId: mine.id });
+    const otherCertificate = await request(app).post('/api/certificates').set(bearer(admin.token)).send({ studentId: other.id });
+
+    const account = await request(app)
+      .post(`/api/students/${mine.id}/portal-account`)
+      .set(bearer(admin.token))
+      .send({ email: 'chop@portal.uz' });
+    const studentToken = await loginAs(app, 'chop@portal.uz', account.body.data.temporaryPassword);
+
+    const own = await request(app).get(`/api/certificates/${myCertificate.body.data.id}`).set(bearer(studentToken));
+    expect(own.status).toBe(200);
+
+    const foreign = await request(app).get(`/api/certificates/${otherCertificate.body.data.id}`).set(bearer(studentToken));
+    expect(foreign.status).toBe(403);
   });
 });

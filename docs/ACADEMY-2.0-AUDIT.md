@@ -897,3 +897,22 @@ Spec §4 va §5 dagi ro'yxatdan yetishmayotgan beshta bo'lim qo'shildi.
 **Brauzerda tekshirildi (telefon o'lchamida):** kabinetda "Kelgusi darslar" (o'qituvchi ismi, sana,
 vaqt, guruh), "Kurs dasturi", "Yutuqlar", "To'lov holati", "Fikringiz" va Telegram bo'limlari
 ko'rindi. Tekshiruvdan keyin kabinet hisobi va test admin o'chirildi.
+
+### PHASE 14 (3-qism) — sertifikatni chop etish / PDF (2026-09-24)
+
+Spec §11 "PDF certificate generation" — endi bor.
+
+| Qism | Holat |
+|---|---|
+| Chop etishga tayyor sertifikat sahifasi `/certificates/:id/print` (A4, albom yo'nalishi): markaz nomi, o'quvchi ismi, kurs, sanalar, natija, sertifikat raqami, QR kod va imzo joylari | ✅ brauzerda tekshirildi |
+| **PDF alohida kutubxonasiz:** brauzerning "Chop etish → PDF sifatida saqlash" imkoniyati aynan shu sahifani PDF qiladi. Shu sababli ekrandagi va qog'ozdagi ko'rinish bir xil, loyihaga og'ir bog'liqlik (puppeteer/pdfkit) qo'shilmadi | ✅ |
+| **Nuqson tuzatildi:** chop etishda CRM menyusi va yuqori paneli ham qog'ozga tushardi — endi `AppLayout` ularni chop etishda yashiradi va chetki bo'shliqlarni olib tashlaydi | ✅ brauzerda tekshirildi |
+| `GET /api/certificates/:id` — ruxsat qoidasi: `student.view` huquqi bor xodim istalganini oladi, kabinet foydalanuvchisi **faqat o'ziniki** (begona — 403) | ✅ testda tekshiriladi |
+| Ochiq tekshiruv javobi **kengaytirilmadi** — u PHASE 6 qaroriga ko'ra ataylab minimal (telefon, ID, foiz yo'q). Chop etish autentifikatsiyalangan yo'l orqali ishlaydi | ✅ mavjud test buzilmadi |
+| Havolalar: o'quvchi profilidagi sertifikat kartochkasida va kabinetdagi "Sertifikatlar" bo'limida "Chop etish / PDF" | ✅ |
+| Testlar: `tests/certificates.test.ts` (+2, jami 9 ta) | ✅ 584 test, E2E 14/14 |
+
+**Brauzerda tekshirildi:** CRT-2026-000002 sertifikati chop etish sahifasida to'liq ko'rindi
+(ism, kurs, sanalar, "Natija: 5 (92%)", QR kod, o'qituvchi va direktor imzo joylari); chop etish
+rejimida menyu, tugmalar va fon yo'qoldi — qog'ozga faqat hujjat tushadi. Test sertifikati va
+admin keyin o'chirildi.

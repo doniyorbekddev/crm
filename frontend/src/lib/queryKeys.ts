@@ -129,6 +129,7 @@ export const queryKeys = {
     all: ['certificates'] as const,
     list: (params: Record<string, unknown>) => ['certificates', 'list', params] as const,
     verify: (token: string) => ['certificates', 'verify', token] as const,
+     detail: (id: string) => ['certificates', 'detail', id] as const,
   },
   questions: {
     all: ['questions'] as const,

@@ -259,6 +259,12 @@ export const router = createBrowserRouter([
                     ],
                   },
                   {
+                    path: "certificates/:id/print",
+                    lazy: lazyComponent(
+                      () => import("@/pages/certificates/CertificatePrintPage"),
+                    ),
+                  },
+                  {
                     element: (
                       <PermissionGate permission={PERMISSIONS.INVENTORY_VIEW} />
                     ),

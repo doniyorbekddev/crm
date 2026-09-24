@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../config/database.js';
-import type { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { AppError } from '../utils/AppError.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
@@ -232,6 +232,22 @@ export const certificateService = {
    * Ochiq tekshiruv — autentifikatsiyasiz. Faqat hujjatni tasdiqlash uchun zarur
    * minimal ma'lumot qaytariladi: telefon, email, ID va moliyaviy ma'lumot yo'q.
    */
+  /**
+   * Chop etish uchun to'liq ma'lumot.
+   *
+   * Ruxsat qoidasi: `student.view` huquqi bo'lgan xodim istalgan sertifikatni oladi;
+   * kabinet foydalanuvchisi esa **faqat o'ziga (yoki farzandiga) tegishlisini**.
+   * Ochiq tekshiruv javobi kengaytirilmadi — u ataylab minimal (PHASE 6 qarori).
+   */
+  async getForActor(id: string, allowedStudentIds: readonly string[] | null): Promise<CertificateDto> {
+    const record = await prisma.certificate.findUnique({ where: { id }, select: certificateSelect });
+    if (!record) throw AppError.notFound('Sertifikat topilmadi');
+    if (allowedStudentIds !== null && !allowedStudentIds.includes(record.studentId)) {
+      throw AppError.forbidden('Bu sertifikat sizga tegishli emas');
+    }
+    return toDto(record);
+  },
+
   async verify(token: string): Promise<CertificateVerificationDto | null> {
     const record = await prisma.certificate.findUnique({ where: { verifyToken: token }, select: certificateSelect });
     if (!record) return null;

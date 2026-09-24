@@ -13,5 +13,7 @@ certificateRouter.get('/verify/:token', heavyLimiter, certificateController.veri
 
 certificateRouter.use(authenticate);
 certificateRouter.get('/', requirePermission(PERMISSIONS.STUDENT_VIEW), certificateController.list);
+// Bitta sertifikat — chop etish uchun. Ruxsat servis ichida tekshiriladi: xodim yoki egasi.
+certificateRouter.get('/:id', certificateController.getById);
 certificateRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), certificateController.issue);
 certificateRouter.post('/:id/revoke', requirePermission(PERMISSIONS.STUDENT_MANAGE), certificateController.revoke);

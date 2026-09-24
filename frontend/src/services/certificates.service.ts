@@ -4,6 +4,12 @@ import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type { Certificate, CertificateVerification } from '@/types/certificate';
 
 export const certificatesService = {
+  /** Bitta sertifikat — chop etish sahifasi uchun (xodim yoki egasi) */
+  async getById(id: string): Promise<Certificate> {
+    const response = await api.get<ApiSuccessResponse<Certificate>>(`/certificates/${id}`);
+    return response.data.data;
+  },
+
   async list(params: { page: number; limit: number; studentId?: string }): Promise<Paginated<Certificate>> {
     const response = await api.get<ApiSuccessResponse<Certificate[]>>('/certificates', { params });
     const items = response.data.data;

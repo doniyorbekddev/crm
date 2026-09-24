@@ -65,7 +65,7 @@ function toChild(row: Prisma.StudentGetPayload<{ select: typeof studentSelect }>
 }
 
 /** Foydalanuvchi kabinetda qaysi o'quvchilarni ko'ra oladi */
-async function resolveScope(actor: AuthUser): Promise<{ kind: 'STUDENT' | 'PARENT'; fullName: string; studentIds: string[] }> {
+export async function resolvePortalScope(actor: AuthUser): Promise<{ kind: 'STUDENT' | 'PARENT'; fullName: string; studentIds: string[] }> {
   const permissions = await permissionService.getRolePermissions(actor.roleId);
 
   if (permissions.has(PERMISSIONS.PORTAL_STUDENT)) {
@@ -103,7 +103,7 @@ async function resolveScope(actor: AuthUser): Promise<{ kind: 'STUDENT' | 'PAREN
 
 /** So'ralgan o'quvchi haqiqatan shu foydalanuvchiga tegishlimi — har safar tekshiriladi */
 async function requireOwnStudent(actor: AuthUser, requestedId?: string): Promise<string> {
-  const scope = await resolveScope(actor);
+  const scope = await resolvePortalScope(actor);
   if (scope.studentIds.length === 0) {
     throw AppError.forbidden('Hisobga farzand biriktirilmagan');
   }
@@ -132,7 +132,7 @@ export interface PortalLessonsDto {
 
 export const portalService = {
   async me(actor: AuthUser): Promise<PortalMeDto> {
-    const scope = await resolveScope(actor);
+    const scope = await resolvePortalScope(actor);
     const rows = await prisma.student.findMany({
       where: { id: { in: scope.studentIds }, deletedAt: null },
       select: studentSelect,

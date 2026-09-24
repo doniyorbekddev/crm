@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Award } from 'lucide-react';
+import { Award, Printer } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { QrCode } from '@/components/QrCode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -46,6 +47,13 @@ export function MyCertificatesCard({ studentId }: { studentId?: string }) {
                     Berilgan: {formatDate(certificate.issuedAt)}
                     {certificate.grade ? ` · baho: ${certificate.grade}` : ''}
                   </p>
+                  <Link
+                    to={`/certificates/${certificate.id}/print`}
+                    className="mt-1 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Chop etish / PDF
+                    <Printer className="size-3" aria-hidden />
+                  </Link>
                 </div>
               </li>
             ))}

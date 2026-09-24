@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Award, ExternalLink } from 'lucide-react';
+import { Award, ExternalLink, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { QrCode } from '@/components/QrCode';
 import { Badge } from '@/components/ui/Badge';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -86,6 +87,13 @@ export function CertificatesCard({ studentId }: { studentId: string }) {
                     Tekshirish sahifasi
                     <ExternalLink className="size-3" aria-hidden />
                   </a>
+                  <Link
+                    to={`/certificates/${certificate.id}/print`}
+                    className="mt-1 ml-3 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    Chop etish / PDF
+                    <Printer className="size-3" aria-hidden />
+                  </Link>
                 </div>
                 <QrCode value={verifyUrl(certificate.verifyToken)} size={72} className="shrink-0 rounded" />
               </li>
