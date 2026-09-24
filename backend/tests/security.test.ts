@@ -22,15 +22,17 @@ describe('Xavfsizlik sozlamalari', () => {
   });
 
   it('har bir javobga so‘rov ID beradi', async () => {
-    const generated = await request(app).get('/api/health');
-    const passed = await request(app).get('/api/health').set('X-Request-Id', 'test-request-1234');
+    // Bazaga tegmaydigan yo'l ishlatiladi: sarlavha marshrutdan oldin qo'yiladi, shuning uchun
+    // 404 javob ham yetarli — va test to'liq to'plam bilan birga ishlaganda bazaga bog'liq bo'lmaydi.
+    const generated = await request(app).get('/api/__no-such-route');
+    const passed = await request(app).get('/api/__no-such-route').set('X-Request-Id', 'test-request-1234');
 
     expect(generated.headers['x-request-id']).toMatch(/^[\w-]{8,100}$/);
     expect(passed.headers['x-request-id']).toBe('test-request-1234');
   });
 
   it('noto‘g‘ri formatdagi so‘rov ID ni qabul qilmaydi', async () => {
-    const response = await request(app).get('/api/health').set('X-Request-Id', 'bad id with spaces');
+    const response = await request(app).get('/api/__no-such-route').set('X-Request-Id', 'bad id with spaces');
 
     expect(response.headers['x-request-id']).not.toBe('bad id with spaces');
   });

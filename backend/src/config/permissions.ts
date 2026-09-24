@@ -104,6 +104,9 @@ export const PERMISSIONS = {
   BRANCH_VIEW_ALL: 'branch.view_all',
   BRANCH_MANAGE: 'branch.manage',
 
+  INVENTORY_VIEW: 'inventory.view',
+  INVENTORY_MANAGE: 'inventory.manage',
+
   FEEDBACK_VIEW: 'feedback.view',
   FEEDBACK_MANAGE: 'feedback.manage',
 
@@ -240,6 +243,9 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
   { key: PERMISSIONS.ANALYTICS_VIEW, module: 'analytics', description: 'Kengaytirilgan analitikani ko‘rish' },
+
+  { key: PERMISSIONS.INVENTORY_VIEW, module: 'inventory', description: 'Ombor (mahsulotlar va qoldiq) ma’lumotini ko‘rish' },
+  { key: PERMISSIONS.INVENTORY_MANAGE, module: 'inventory', description: 'Mahsulot qo‘shish va ombor harakatini yozish (kirim, sotuv, hisobdan chiqarish)' },
 
   { key: PERMISSIONS.FEEDBACK_VIEW, module: 'feedback', description: 'O‘quvchilar fikri va NPS hisobotini ko‘rish' },
   {
@@ -451,6 +457,8 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.TEACHER_VIEW,
       PERMISSIONS.DISCOUNT_VIEW,
       PERMISSIONS.REFERRAL_VIEW,
+      PERMISSIONS.INVENTORY_VIEW,
+      PERMISSIONS.INVENTORY_MANAGE,
     ],
   },
 ];

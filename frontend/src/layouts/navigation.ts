@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  Package,
   MessageSquareHeart,
   Gift,
   HelpCircle,
@@ -101,6 +102,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/incomes', label: 'Tushumlar', icon: TrendingUp, permission: PERMISSIONS.INCOME_VIEW },
       { to: '/expenses', label: 'Xarajatlar', icon: TrendingDown, permission: PERMISSIONS.EXPENSE_VIEW },
       { to: '/salaries', label: 'Maoshlar', icon: Wallet2, permission: PERMISSIONS.SALARY_VIEW },
+      { to: '/inventory', label: 'Ombor', icon: Package, permission: PERMISSIONS.INVENTORY_VIEW },
       { to: '/reports', label: 'Hisobotlar', icon: FileSpreadsheet, permission: PERMISSIONS.REPORT_VIEW },
     ],
   },

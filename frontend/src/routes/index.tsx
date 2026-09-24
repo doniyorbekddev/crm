@@ -221,6 +221,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.INVENTORY_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "inventory",
+                        lazy: lazyComponent(
+                          () => import("@/pages/inventory/InventoryPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.FEEDBACK_VIEW} />
                     ),
                     children: [

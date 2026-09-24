@@ -97,6 +97,9 @@ export const PERMISSIONS = {
 
   ANALYTICS_VIEW: 'analytics.view',
 
+  INVENTORY_VIEW: 'inventory.view',
+  INVENTORY_MANAGE: 'inventory.manage',
+
   FEEDBACK_VIEW: 'feedback.view',
   FEEDBACK_MANAGE: 'feedback.manage',
 

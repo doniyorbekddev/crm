@@ -648,3 +648,30 @@ o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim) tegilmadi.
 **PHASE 8 yakunlandi.** Fikr-mulohaza va NPS, o'qituvchi samaradorligi hamda HR (shartnoma, maxfiy
 ma'lumot, ta'til) tayyor. Brauzer tekshiruvidan keyin test yozuvlari (1 xodim, 1 ta'til, test admin)
 o'chirildi — haqiqiy ma'lumot (123 o'quvchi, 9 xodim, 1 HR xodimi) tegilmadi.
+
+### PHASE 9 (1-qism) — inventar (ombor) (2026-09-24)
+
+| Qism | Holat |
+|---|---|
+| `ProductCategory` — turkumlar katalogi (migratsiyada 5 ta standart turkum: Kitoblar, Forma, Kantselyariya, Texnika, Boshqa) | ✅ |
+| `Product` — kod (filial ichida takrorlanmas), nom, o'lchov birligi, sotish narxi, tannarx, qoldiq va "kam qoldi" chegarasi | ✅ |
+| `StockMovement` — 7 tur: kirim, sotuv, qaytarish, yaroqsizga chiqarish, filialdan/filialga, inventarizatsiya | ✅ |
+| **Harakat o'chirilmaydi:** xato teskari harakat bilan tuzatiladi; har yozuvda `balanceAfter` saqlanadi, shuning uchun tarix qayta hisoblanmaydi | ✅ |
+| **Minusga tushmaydi:** qoldiq yetmasa chiqim rad etiladi va qancha qolganini aytadi | ✅ testda tekshiriladi |
+| **Pul alohida, lekin bir joyda:** sotuv/xarid bilan birga tushum/xarajat yozish mumkin — u mavjud moliya servisi orqali ketadi, ya'ni daftarda **aynan bitta** `Transaction` bo'ladi | ✅ testda tekshiriladi |
+| Xaridda tannarx oxirgi narxga yangilanadi; qoldiq qiymati tannarx bo'yicha hisoblanadi | ✅ |
+| "Kam qoldi" va "tugagan" statistikasi; filial bo'yicha izolyatsiya (`branchAccess` orqali) | ✅ |
+| Har bir harakat va mahsulot o'zgarishi auditga tushadi | ✅ |
+| Ruxsatlar: `inventory.view` / `inventory.manage` (buxgalterga ikkalasi berildi) | ✅ testda tekshiriladi |
+| Frontend: `/inventory` sahifasi (statistika, qidiruv, turkum filtri, "faqat kam qolganlar"), mahsulot formasi, harakat oynasi (pul yozuvi bilan), harakatlar tarixi | ✅ brauzerda tekshirildi |
+| Testlar: `tests/inventory.test.ts` (9 ta) | ✅ 531 test, E2E 14/14, typecheck va build toza |
+
+**Brauzerda tekshirildi:** mahsulot qo'shildi → 20 dona kirim (tannarx yangilandi) → 2 dona sotuv
+(tushum avtomatik yozildi va "Tushumlar" sahifasida ko'rindi) → 14 dona hisobdan chiqarish
+("Kam qoldi" belgisi paydo bo'ldi) → tarixda uchala harakat sababi va qoldig'i bilan ko'rindi.
+Tekshiruvdan keyin mahsulot, harakatlar va test tushumlari **moliyaviy daftar qoidasi bo'yicha**
+(avval bekor qilib, keyin) olib tashlandi — naqd kassa qoldig'i asl holatiga qaytdi.
+
+**Nuqson tuzatildi:** `tests/security.test.ts` dagi so'rov ID testi `/api/health` ga tayanardi va
+to'liq to'plam bilan birga ishlaganda (81 ta parallel ishchi, baza band) beqaror edi. Endi bazaga
+tegmaydigan yo'l ishlatiladi — sarlavha baribir marshrutdan oldin qo'yiladi.

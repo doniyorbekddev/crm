@@ -6,6 +6,7 @@ import type { LeaderboardParams } from '@/types/gamification';
 import type { AttendanceRankingParams, AttendanceStatsParams, SessionListParams } from '@/types/attendanceAnalytics';
 import type { ReferralListParams } from '@/types/referral';
 import type { FeedbackListParams } from '@/types/feedback';
+import type { MovementListParams, ProductListParams } from '@/types/inventory';
 import type { LeaveListParams } from '@/types/employee';
 import type { CallListParams } from '@/types/call';
 import type { ChartPeriod, ExecutiveParams, ManagerPeriod } from '@/types/dashboard';
@@ -60,6 +61,13 @@ export const queryKeys = {
     notes: (id: string) => ['leads', 'notes', id] as const,
     score: (id: string) => ['leads', 'score', id] as const,
     assignmentRules: ['leads', 'assignment-rules'] as const,
+  },
+  inventory: {
+    all: ['inventory'] as const,
+    list: (params: ProductListParams) => ['inventory', 'list', params] as const,
+    stats: ['inventory', 'stats'] as const,
+    categories: (includeInactive: boolean) => ['inventory', 'categories', includeInactive] as const,
+    movements: (params: MovementListParams) => ['inventory', 'movements', params] as const,
   },
   feedback: {
     all: ['feedback'] as const,

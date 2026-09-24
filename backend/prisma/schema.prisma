@@ -305,6 +305,7 @@ model User {
   rewardedReferrals        Referral[]             @relation("ReferralRewardedBy")
   receivedFeedback         Feedback[]             @relation("FeedbackTeacher")
   requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
+  stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
 
@@ -426,6 +427,7 @@ model Branch {
   accounts     FinancialAccount[]
   rooms        Room[]
   feedback     Feedback[]
+  products     Product[]
 
   @@map("branches")
 }
@@ -863,6 +865,7 @@ model Student {
   certificates      Certificate[]
   discounts         StudentDiscount[]
   feedback          Feedback[]
+  stockMovements    StockMovement[]
   referralsMade     Referral[]                @relation("ReferralReferrer")
   referredBy        Referral?                 @relation("ReferralReferred")
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
@@ -2786,4 +2789,104 @@ model Feedback {
   @@index([branchId])
   @@index([handledAt])
   @@map("feedback")
+}
+
+// ---------------------------------------------------------------------
+// INVENTAR (OMBOR)
+// ---------------------------------------------------------------------
+
+/// Mahsulot turkumi: Kitoblar, Forma, Texnika, Kantselyariya...
+model ProductCategory {
+  id        String   @id @default(cuid())
+  key       String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0) @db.SmallInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([isActive, sortOrder])
+  @@map("product_categories")
+}
+
+/// Ombordagi mahsulot. `quantity` — harakatlardan hisoblangan joriy qoldiq (kesh qiymat):
+/// har bir `StockMovement` uni bitta tranzaksiyada yangilaydi, shuning uchun ro'yxat tez ochiladi.
+model Product {
+  id          String   @id @default(cuid())
+  /// Filial ichida takrorlanmas kod: KITOB-01
+  sku         String   @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  categoryId  String
+  /// O'lchov birligi: dona, komplekt, quti
+  unit        String   @default("dona") @db.VarChar(20)
+  /// Sotish narxi va tannarx (oxirgi kirimdan)
+  price       Decimal  @default(0) @db.Decimal(14, 2)
+  cost        Decimal  @default(0) @db.Decimal(14, 2)
+  /// Joriy qoldiq
+  quantity    Int      @default(0)
+  /// Shu miqdordan kam qolsa "kam qoldi" deb belgilanadi (0 — kuzatilmaydi)
+  minQuantity Int      @default(0) @db.SmallInt
+  isActive    Boolean  @default(true)
+  note        String?  @db.VarChar(500)
+  branchId    String   @default("branch_main")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category  ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  branch    Branch          @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  @@unique([branchId, sku])
+  @@index([branchId, isActive])
+  @@index([categoryId])
+  @@index([quantity])
+  @@map("products")
+}
+
+/// Ombor harakati turi. Kirim: PURCHASE, RETURN, TRANSFER_IN, ADJUSTMENT (musbat);
+/// chiqim: SALE, DAMAGE, TRANSFER_OUT, ADJUSTMENT (manfiy).
+enum StockMovementType {
+  PURCHASE
+  SALE
+  RETURN
+  DAMAGE
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+}
+
+/// Ombor harakati — **hech qachon o'chirilmaydi**. Xato yozuv teskari harakat bilan tuzatiladi,
+/// shunda qoldiq tarixi to'liq qoladi (moliyaviy daftar bilan bir xil tamoyil).
+model StockMovement {
+  id          String            @id @default(cuid())
+  productId   String
+  type        StockMovementType
+  /// Har doim musbat; yo'nalishni `type` belgilaydi
+  quantity    Int
+  /// Harakatdan keyingi qoldiq — tarixni qayta hisoblamasdan o'qish uchun
+  balanceAfter Int
+  /// Bir dona narxi (kirimda tannarx, sotuvda sotish narxi)
+  unitPrice   Decimal           @default(0) @db.Decimal(14, 2)
+  totalAmount Decimal           @default(0) @db.Decimal(14, 2)
+  reason      String?           @db.VarChar(255)
+  /// Sotuv kimga qilingani (ixtiyoriy)
+  studentId   String?
+  /// Ko'chirishda ikkinchi filial
+  counterpartBranchId String?
+  /// Pul yozuvi shu harakat bilan birga yaratilgan bo'lsa
+  incomeId    String?           @unique
+  expenseId   String?           @unique
+  createdById String?
+  createdAt   DateTime          @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation("StockMovementCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([type, createdAt])
+  @@index([createdAt])
+  @@map("stock_movements")
 }
