@@ -908,3 +908,63 @@ Yuk testi natijalari — [observability.md §4](observability.md). IP limiti (30
 ## 12. Next Phase
 
 **PHASE 15 — To‘liq E2E oqimlar (§64–66)**, qo‘shimcha frontend testlar, `docs/testing.md`.
+
+---
+
+# PHASE 15 COMPLETE — To‘liq E2E oqimlar va testlash
+
+Sana: 2026-09-25. Batafsil: [testing.md](testing.md).
+
+## 1. Implemented
+
+- **§64 vazifa oqimi (E2E)**: o‘qituvchi beradi → o‘quvchi ko‘radi, topshiradi → o‘qituvchi ko‘radi → AI tekshiruv → o‘qituvchi baholaydi → o‘quvchi va ota-ona natijani ko‘radi → Telegram navbati.
+- **§65 imtihon oqimi (E2E)**: blueprint (mavzu, bankni tekshirish) → o‘quvchi taymer bilan topshiradi → avto baholash → esse qo‘lda baholanadi → natija, progress, AI tahlil, ota-onaga ilova + Telegram.
+- **§66 AI oqimi (E2E)**: past natija → risk, kuzatuv, tavsiya → guruh remedial rejasi → o‘qituvchi tasdiqlaydi → o‘quvchi takrorlash testi → mavzu o‘zlashtirishi oshadi.
+- Oqimlar **UI orqali**, rollar ketma-ket; API faqat boshlang‘ich ma’lumot uchun.
+- **Topilgan va tuzatilgan xato**: onlayn urinish natijasi `ExamResult` ga xom ball bilan yozilardi, o‘tish bali ham xom ball bilan solishtirilardi — 100% olgan o‘quvchi "O‘tmadi" (4/100). Endi nisbat bo‘yicha (`isAttemptPassed`) va imtihon shkalasida (`toExamScale`) — uch joyda bitta funksiya.
+- Eski yozuvlar uchun `npm run db:backfill-exam-scale` (standart — faqat hisobot, `--apply` bilan yozadi; idempotent). Dev bazada tuzatiladigan yozuv yo‘q.
+- **E2E izolyatsiyasi**: E2E serveri dev `.env` dagi haqiqiy bot tokeni va polling bilan ishlayotgan edi — endi token, polling, Anthropic va Sentry kalitlari bo‘sh.
+- Frontend testlari: qo‘lda baholash oynasi, bildirishnoma havolalari (har havola haqiqiy marshrutga), fakt/kuzatuv/tavsiya ro‘yxati.
+
+## 2–3. Files
+
+Backend: `services/examAttempt.service.ts`, `services/examTaking.service.ts`; yangi `prisma/examResultScaleBackfill.ts`, `prisma/backfillExamResultScale.ts`; `package.json`; testlar `onlineExam.test.ts` (+1 regressiya, backfill), `examEngine.test.ts`.
+Frontend: yangi `AttemptReviewModal.test.tsx`, `InsightList.test.tsx`, `notificationLabels.test.ts`.
+E2E: yangi `e2e/flows.ts`, `e2e/specs/flows.spec.ts`; `fixtures.ts` (`loginWithTemporaryPassword` umumiy), `portal.spec.ts`, `playwright.config.ts`. Docs: `testing.md` (yangi).
+
+## 4. Database Changes
+
+Sxema o‘zgarmadi. Ixtiyoriy ma’lumot tuzatish skripti (faqat `UPDATE exam_results.score`, qo‘lda natijalarga tegmaydi).
+
+## 5. API Changes
+
+Javob shakli o‘zgarmadi. `ExamResult.score` onlayn urinishlar uchun endi imtihon shkalasida (oflayn natijalar bilan bir xil).
+
+## 6. Permission Changes
+
+Yo‘q.
+
+## 7. AI Changes
+
+Yo‘q (E2E AI yakuniy qaror qabul qilmasligini tasdiqlaydi — reja faqat tasdiqdan keyin yaratiladi).
+
+## 8. Tests
+
+Backend **790** (+1), frontend **104/104** (+8), E2E **31/31** (+3). Ikki mavjud tasdiq xato xatti-harakatni qayd etgan edi (100% olgan o‘quvchi o‘tmaydi; natija xom ballda) — to‘g‘ri qiymatlarga yangilandi, qat‘iyligi saqlangan, o‘tmaslik holati haqiqiy 50% < 60% misoli bilan.
+Eslatma: mashina yuklanganda (fseventsd) ayrim backend testlari 5 s limitda tasodifiy vaqt tugashi bilan yiqildi — alohida qayta ishga tushirilganda o‘tadi; kod bilan bog‘liq emas.
+
+## 9. Security Review
+
+- Oqimlarda begona rol tekshiruvi: o‘quvchi va ota-ona faqat o‘z natijasini ko‘radi; E2E tashqi xizmatlarga ulanmaydi.
+
+## 10. Performance
+
+Oqimlar ~10–15 s har biri; to‘liq E2E ~2.2 daq.
+
+## 11. Known Issues
+
+- Production’da onlayn imtihonlar ishlatilgan bo‘lsa — deploydan keyin `npm run db:backfill-exam-scale` (avval hisobot, keyin `--apply`, oldin `pg_dump`).
+
+## 12. Next Phase
+
+**PHASE 16 — Production va hujjatlar (§69)**: architecture, deployment, testing, qolgan hujjatlar; yakuniy audit.

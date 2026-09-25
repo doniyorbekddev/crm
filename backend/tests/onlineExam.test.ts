@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { backfillExamResultScale } from '../prisma/examResultScaleBackfill.js';
 import { examTakingService } from '../src/services/examTaking.service.js';
 import { bearer, createUserWithToken, loginWithTemporaryPassword } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
@@ -90,6 +91,44 @@ describe.skipIf(!hasTestDatabase)('Onlayn imtihon (PHASE 6)', () => {
     await prisma.$disconnect();
   });
 
+  it('o‘tish bali imtihon shkalasida: 4 ballik test 100 ballik imtihonda (passScore 60) — nisbat bo‘yicha', async () => {
+    const { admin, token, course, group, student } = await setup();
+    const questions = [];
+    for (const index of [1, 2, 3, 4]) {
+      questions.push(await createQuestion(token, course.id, { text: `Savol raqami ${index}`, options: [{ text: 'Ha', isCorrect: true }, { text: 'Yo‘q' }] }));
+    }
+    const examId = await createOnlineExam(token, group.id, { passScore: 60 });
+    await attach(token, examId, questions.map((question) => question.id));
+    const studentToken = await portalToken(admin, student.id);
+
+    const view = (await request(app).post(`/api/portal/exams/${examId}/start`).set(bearer(studentToken))).body.data;
+    // 4 tadan 2 tasi to'g'ri → 50% < 60% → o'tmadi; natija jadvalida 50/100
+    for (const [index, question] of (view.questions as ViewQuestion[]).entries()) {
+      const option = question.options.find((row) => row.text === (index < 2 ? 'Ha' : 'Yo‘q'))!;
+      await request(app).put(`/api/portal/attempts/${view.attemptId}/answers/${question.id}`).set(bearer(studentToken)).send({ optionIds: [option.id] });
+    }
+    const failed = await request(app).post(`/api/portal/attempts/${view.attemptId}/submit`).set(bearer(studentToken));
+    expect(failed.body.data.summary).toMatchObject({ score: 2, maxScore: 4, percentage: 50, passed: false });
+    expect(await prisma.examResult.findFirst({ where: { examId, studentId: student.id }, select: { score: true, percentage: true } })).toEqual({ score: 50, percentage: 50 });
+
+    // Hammasi to'g'ri → 4/4 (100%) o'tdi — xom ball (4) o'tish bali (60) bilan solishtirilmaydi
+    const second = (await request(app).post(`/api/portal/exams/${examId}/start`).set(bearer(studentToken))).body.data;
+    for (const question of second.questions as ViewQuestion[]) {
+      await request(app).put(`/api/portal/attempts/${second.attemptId}/answers/${question.id}`).set(bearer(studentToken)).send({ optionIds: [question.options.find((row) => row.text === 'Ha')!.id] });
+    }
+    const passed = await request(app).post(`/api/portal/attempts/${second.attemptId}/submit`).set(bearer(studentToken));
+    expect(passed.body.data.summary).toMatchObject({ score: 4, maxScore: 4, percentage: 100, passed: true });
+    expect(await prisma.examResult.findFirst({ where: { examId, studentId: student.id }, select: { score: true, percentage: true } })).toEqual({ score: 100, percentage: 100 });
+
+    // Eski (tuzatishdan oldingi) yozuv: xom ball — backfill imtihon shkalasiga o'tkazadi, takror ishga tushirish xavfsiz
+    await prisma.examResult.updateMany({ where: { examId, studentId: student.id }, data: { score: 4 } });
+    expect(await backfillExamResultScale(prisma, false)).toEqual({ checked: 1, changed: 1 });
+    expect((await prisma.examResult.findFirstOrThrow({ where: { examId, studentId: student.id } })).score).toBe(4);
+    expect(await backfillExamResultScale(prisma, true)).toEqual({ checked: 1, changed: 1 });
+    expect((await prisma.examResult.findFirstOrThrow({ where: { examId, studentId: student.id } })).score).toBe(100);
+    expect(await backfillExamResultScale(prisma, true)).toEqual({ checked: 1, changed: 0 });
+  });
+
   it('to‘liq oqim: boshlash → kalitsiz savollar → avtosaqlash → topshirish → natija va tushuntirish', async () => {
     const { admin, token, course, group, student } = await setup();
     const single = await createQuestion(token, course.id, {
@@ -145,9 +184,9 @@ describe.skipIf(!hasTestDatabase)('Onlayn imtihon (PHASE 6)', () => {
     const graded = submitted.body.data.questions.find((question: ViewQuestion) => question.type === 'SINGLE_CHOICE');
     expect(graded.result).toMatchObject({ isCorrect: true, correctOptionIds: [correctSingle], explanation: 'length xossasi elementlar sonini beradi' });
 
-    // Natija mavjud hisobotlar jadvaliga tushadi
+    // Natija mavjud hisobotlar jadvaliga **imtihon shkalasida** tushadi (4/4 → 100/100)
     const result = await prisma.examResult.findUnique({ where: { examId_studentId: { examId, studentId: student.id } } });
-    expect(result).toMatchObject({ score: 4, percentage: 100, grade: '5' });
+    expect(result).toMatchObject({ score: 100, percentage: 100, grade: '5' });
     expect((await request(app).post(`/api/portal/attempts/${view.attemptId}/submit`).set(bearer(studentToken))).status).toBe(422);
     const audit = await prisma.auditLog.findMany({ where: { entityId: examId, action: { in: ['exam.attempt_started', 'exam.attempt_submitted'] } } });
     expect(audit).toHaveLength(2);

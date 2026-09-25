@@ -25,6 +25,7 @@
     "db:clear-demo": "tsx prisma/clearDemoData.ts",
     "db:clear-finance": "tsx prisma/clearFinanceData.ts",
     "db:backfill-schedules": "tsx prisma/backfillPaymentSchedules.ts",
+    "db:backfill-exam-scale": "tsx prisma/backfillExamResultScale.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "test:unit": "vitest run tests/unit",

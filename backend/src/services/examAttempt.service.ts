@@ -416,6 +416,7 @@ export const examAttemptService = {
       select: {
         id: true,
         passScore: true,
+        maxScore: true,
         durationMinutes: true,
         maxAttempts: true,
         questions: { select: { id: true, points: true, questionId: true } },
@@ -502,7 +503,7 @@ export const examAttemptService = {
         score,
         maxScore,
         percentage,
-        passed: exam.passScore === null ? percentage >= 60 : score >= exam.passScore,
+        passed: isAttemptPassed(score, maxScore, exam),
       };
 
       // `start` orqali ochilgan urinish bo'lsa — o'shani yopamiz, yangisini ochmaymiz.
@@ -595,7 +596,7 @@ export const examAttemptService = {
       });
 
       const percentage = record.maxScore === 0 ? 0 : Math.round((score / record.maxScore) * 100);
-      const passed = record.exam.passScore === null ? percentage >= 60 : score >= record.exam.passScore;
+      const passed = isAttemptPassed(score, record.maxScore, record.exam);
       const finalRecord = await tx.examAttempt.update({
         where: { id: attemptId },
         data: { percentage, passed },
@@ -667,18 +668,38 @@ export const examAttemptService = {
 };
 
 /**
+ * O'tish bali **imtihon shkalasida** (`exam.maxScore`) beriladi, urinish esa savollar ballari
+ * yig'indisida (`attempt.maxScore`) hisoblanadi — ular farq qilishi mumkin (blueprint, 4 ballik test
+ * 100 ballik imtihonda). Shuning uchun nisbat solishtiriladi: score/attemptMax ≥ passScore/examMax.
+ */
+export function isAttemptPassed(score: number, attemptMax: number, exam: { passScore: number | null; maxScore: number }): boolean {
+  const percentage = attemptMax === 0 ? 0 : Math.round((score / attemptMax) * 100);
+  if (exam.passScore === null) return percentage >= 60;
+  if (attemptMax === 0) return false;
+  return score * exam.maxScore >= exam.passScore * attemptMax;
+}
+
+/** Urinish ballini imtihon shkalasiga o'tkazadi (`ExamResult.score` — `exam.maxScore` dan) */
+export function toExamScale(score: number, attemptMax: number, examMax: number): number {
+  if (attemptMax === 0) return 0;
+  return Math.round((score / attemptMax) * examMax);
+}
+
+/**
  * Urinish natijasini `ExamResult` ga yozadi — mavjud hisobotlar, XP va analitika
  * shu jadvalga tayanadi, shuning uchun yangi dvigatel ularni buzmaydi.
  */
 export async function syncExamResult(tx: Prisma.TransactionClient, attempt: AttemptRecord, actorId: string | null): Promise<void> {
   const grade = attempt.percentage >= 90 ? '5' : attempt.percentage >= 75 ? '4' : attempt.percentage >= 60 ? '3' : '2';
+  // Hisobotlar, xabarlar va o'tish bali `score / exam.maxScore` deb o'qiydi — xom ball emas
+  const score = toExamScale(attempt.score, attempt.maxScore, attempt.exam.maxScore);
   const result = await tx.examResult.upsert({
     where: { examId_studentId: { examId: attempt.examId, studentId: attempt.studentId } },
-    update: { score: attempt.score, percentage: attempt.percentage, grade, gradedById: actorId, gradedAt: new Date() },
+    update: { score, percentage: attempt.percentage, grade, gradedById: actorId, gradedAt: new Date() },
     create: {
       examId: attempt.examId,
       studentId: attempt.studentId,
-      score: attempt.score,
+      score,
       percentage: attempt.percentage,
       grade,
       gradedById: actorId,

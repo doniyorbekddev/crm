@@ -55,6 +55,12 @@ export default defineConfig({
         CLIENT_URL: `http://localhost:${WEB_PORT}`,
         UPLOAD_DIR: path.join(os.tmpdir(), 'crm-e2e-uploads'),
         SMTP_HOST: '',
+        // Haqiqiy botga hech qachon ulanmasin (dev .env dagi token/polling bosib o'tiladi —
+        // dotenv mavjud o'zgaruvchini almashtirmaydi). Telegram navbati baribir yoziladi va tekshiriladi.
+        TELEGRAM_BOT_TOKEN: '',
+        TELEGRAM_POLLING: 'false',
+        ANTHROPIC_API_KEY: '',
+        SENTRY_DSN: '',
         JWT_SECRET: process.env.JWT_SECRET ?? 'e2e-access-secret-0123456789-abcdefghijklmnop',
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? 'e2e-refresh-secret-0123456789-abcdefghijklmnop',
       },

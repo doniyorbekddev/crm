@@ -165,7 +165,8 @@ describe.skipIf(!hasTestDatabase)('Imtihon dvigateli: savollar bazasi va urinish
     expect(JSON.stringify(questions.body.data)).not.toContain('isCorrect');
     // Yakuniy natija mavjud jadvalga yozildi — hisobotlar buzilmaydi
     const result = await prisma.examResult.findFirstOrThrow({ where: { examId, studentId: student.id } });
-    expect(result).toMatchObject({ score: 10, percentage: 50, grade: '2' });
+    // Imtihon shkalasida: 10/20 → 50/100
+    expect(result).toMatchObject({ score: 50, percentage: 50, grade: '2' });
   });
 
   it('bir nechta javobli savolda to‘plam aynan mos kelishi kerak', async () => {
@@ -315,26 +316,27 @@ describe.skipIf(!hasTestDatabase)('Imtihon dvigateli: savollar bazasi va urinish
     const course = await createCourse();
     const group = await createGroup({ courseId: course.id });
     const student = await createStudent(course.id, group.id);
-    const examId = await createExam(token, group.id, 15);
+    // O'tish bali imtihon shkalasida (60/100); savollar jami 20 ball — nisbat solishtiriladi
+    const examId = await createExam(token, group.id, 60);
     const question = await createQuestion(token, course.id, { text: 'Savol matni', points: 10 });
-    await request(app).post(`/api/exams/${examId}/questions`).set(bearer(token)).send({ questionIds: [question.id] });
+    const second = await createQuestion(token, course.id, { text: 'Ikkinchi savol matni', points: 10 });
+    await request(app).post(`/api/exams/${examId}/questions`).set(bearer(token)).send({ questionIds: [question.id, second.id] });
     const questions = await request(app).get(`/api/exams/${examId}/questions`).set(bearer(token));
+    const byText = (text: string) => questions.body.data.find((row: { text: string }) => row.text === text).examQuestionId as string;
 
     const submitted = await request(app)
       .post(`/api/exams/${examId}/attempts/${student.id}`)
       .set(bearer(token))
       .send({
         answers: [
-          {
-            examQuestionId: questions.body.data[0].examQuestionId,
-            optionIds: [question.options.find((option: { isCorrect: boolean }) => option.isCorrect).id],
-          },
+          { examQuestionId: byText('Savol matni'), optionIds: [question.options.find((option: { isCorrect: boolean }) => option.isCorrect).id] },
+          { examQuestionId: byText('Ikkinchi savol matni'), optionIds: [second.options.find((option: { isCorrect: boolean }) => !option.isCorrect).id] },
         ],
       });
     const byManager = await request(app).get('/api/questions').set(bearer(sales));
 
-    // 10 ball < 15 o'tish bali
-    expect(submitted.body.data).toMatchObject({ score: 10, passed: false });
+    // 10/20 = 50% < 60% o'tish bali
+    expect(submitted.body.data).toMatchObject({ score: 10, maxScore: 20, percentage: 50, passed: false });
     expect(byManager.status).toBe(403);
   });
 });

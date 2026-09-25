@@ -1,6 +1,6 @@
 import type { APIRequestContext, Page } from '@playwright/test';
 import { API_PORT } from '../env';
-import { USERS, expect, test } from '../fixtures';
+import { USERS, expect, loginWithTemporaryPassword, test } from '../fixtures';
 
 const API = `http://localhost:${API_PORT}/api`;
 
@@ -49,28 +49,6 @@ async function openStudentPortal(request: APIRequestContext): Promise<PortalCred
     };
   }
   throw new Error('Kabinet ochish uchun bo‘sh o‘quvchi topilmadi');
-}
-
-const NEW_PASSWORD = 'MeningParolim2026';
-
-/**
- * Vaqtinchalik parol bilan kiradi: tizim avval parolni almashtirish sahifasiga olib boradi,
- * yangi parol o'rnatilgach kabinetga o'tadi.
- */
-async function loginWithTemporaryPassword(page: Page, login: string, password: string): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('Login', { exact: true }).fill(login);
-  await page.getByLabel('Parol', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Kirish', exact: true }).click();
-  await expect(page).toHaveURL(/\/change-password$/);
-  // Parol almashtirilmaguncha kabinet ochilmaydi
-  await page.goto('/portal');
-  await expect(page).toHaveURL(/\/change-password$/);
-  await page.getByLabel('Joriy parol', { exact: true }).fill(password);
-  await page.getByLabel('Yangi parol', { exact: true }).fill(NEW_PASSWORD);
-  await page.getByLabel('Yangi parolni takrorlang', { exact: true }).fill(NEW_PASSWORD);
-  await page.getByRole('button', { name: 'Parolni saqlash' }).click();
-  await expect(page).toHaveURL(/\/portal$/);
 }
 
 async function loginAsStudent(page: Page, credentials: PortalCredentials): Promise<void> {

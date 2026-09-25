@@ -5,7 +5,7 @@ import { detectFileType, saveFile } from '../utils/fileStorage.js';
 import { auditService } from './audit.service.js';
 import { BlueprintShortageError, generateVariant, shuffle } from './examBlueprint.js';
 import type { Blueprint } from './examBlueprint.js';
-import { MANUAL_QUESTION_TYPES, attemptSelect, gradeAnswer, syncExamResult } from './examAttempt.service.js';
+import { MANUAL_QUESTION_TYPES, attemptSelect, gradeAnswer, isAttemptPassed, syncExamResult } from './examAttempt.service.js';
 import type { AnswerKey } from './examAttempt.service.js';
 import { notifyExamResultForAttempt } from './studentNotify.service.js';
 import { masteryService } from './mastery.service.js';
@@ -241,7 +241,7 @@ async function finalize(attemptId: string, actorUserId: string | null, reason: '
       status: true,
       examId: true,
       studentId: true,
-      exam: { select: { passScore: true } },
+      exam: { select: { passScore: true, maxScore: true } },
       questions: { select: { examQuestionId: true, points: true, snapshot: true, answerKey: true, examQuestion: { select: { questionId: true } } } },
       answers: { select: { examQuestionId: true, optionIds: true, text: true, filePath: true } },
     },
@@ -260,7 +260,7 @@ async function finalize(attemptId: string, actorUserId: string | null, reason: '
   });
   const maxScore = attempt.questions.reduce((sum, row) => sum + row.points, 0);
   const percentage = maxScore === 0 ? 0 : Math.round((score / maxScore) * 100);
-  const passed = attempt.exam.passScore === null ? percentage >= 60 : score >= attempt.exam.passScore;
+  const passed = isAttemptPassed(score, maxScore, attempt.exam);
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {

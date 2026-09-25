@@ -31,6 +31,29 @@ export async function logout(page: Page, user: SeedUser): Promise<void> {
   await expect(page).toHaveURL(/\/login/);
 }
 
+/** Kabinet foydalanuvchisi yangi parolni shu qiymatga almashtiradi */
+export const PORTAL_PASSWORD = 'MeningParolim2026';
+
+/**
+ * Vaqtinchalik parol bilan kiradi: tizim avval parolni almashtirish sahifasiga olib boradi,
+ * yangi parol o'rnatilgach kabinetga o'tadi.
+ */
+export async function loginWithTemporaryPassword(page: Page, login: string, password: string): Promise<void> {
+  await page.goto('/login');
+  await page.getByLabel('Login', { exact: true }).fill(login);
+  await page.getByLabel('Parol', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Kirish', exact: true }).click();
+  await expect(page).toHaveURL(/\/change-password$/);
+  // Parol almashtirilmaguncha kabinet ochilmaydi
+  await page.goto('/portal');
+  await expect(page).toHaveURL(/\/change-password$/);
+  await page.getByLabel('Joriy parol', { exact: true }).fill(password);
+  await page.getByLabel('Yangi parol', { exact: true }).fill(PORTAL_PASSWORD);
+  await page.getByLabel('Yangi parolni takrorlang', { exact: true }).fill(PORTAL_PASSWORD);
+  await page.getByRole('button', { name: 'Parolni saqlash' }).click();
+  await expect(page).toHaveURL(/\/portal$/);
+}
+
 /** Takrorlanmas harfli yorliq — ism maydonlari raqam qabul qilmaydi */
 export function uniqueLetters(length = 6): string {
   return String(Date.now())
