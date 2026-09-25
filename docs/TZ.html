@@ -81,20 +81,73 @@
 <tr><td>69–70</td><td>Hujjatlar, faza hisobot formati</td><td><span class="s ok">✅</span></td><td>13 majburiy hujjat + 5 qo'shimcha; <code>PHASE-REPORTS-3.0.md</code> — har faza §70 formatida</td></tr>
 <tr><td>74–77</td><td>Production sifati, yakuniy oqim, rahbar uchun bitta panel, product printsipi</td><td><span class="s ok">✅</span></td><td>§76: "Akademiya holati" kartasi — 15 yo'nalish bitta panelda, bo'limga havola bilan</td></tr>
 </table>
-<div class="box">
-<b>Ochiq qolgan (kichik, ataylab yoki keyingi ish):</b>
+<h3>0.1. Fazalar bo'yicha bajarilgan ishlar</h3>
+<table>
+<tr><th style="width:44px">Faza</th><th style="width:150px">Yo'nalish</th><th>Nima qilindi</th><th style="width:120px">Commit</th></tr>
+<tr><td>1</td><td><b>Kabinet asosi</b></td><td>O'quvchi va ota-ona xodimlar bilan bitta auth mexanizmi orqali kiradi; kabinet karkasi; o'qituvchi doirasi yagona modulga (<code>teachingAccess.ts</code>) yig'ildi; imtihon urinishidagi egalik xatosi tuzatildi</td><td><code>f8027aa</code></td></tr>
+<tr><td>2</td><td><b>O'quvchi kabineti</b></td><td>Bosh sahifa ko'rsatkichlari, vazifa topshirish, imtihon detali, XP; o'quvchi ID raqami (ST-000045) bilan kirish, guruhga ommaviy kabinet ochish, parolni tiklash</td><td><code>bee22ab, 03b3433</code></td></tr>
+<tr><td>3</td><td><b>Ota-ona kabineti</b></td><td>Telefon bilan kirish, farzandlar orasida almashish, haftalik hisobot, vaqtinchalik paroldan keyin majburiy almashtirish</td><td><code>7d4f04a</code></td></tr>
+<tr><td>4</td><td><b>LMS</b></td><td>Modul → mavzu → dars, materiallar (havola, fayl), kabinetda "Kurs" bo'limi, "O'rgandim" belgisi, dars sessiyasiga mavzu</td><td><code>2de2a65</code></td></tr>
+<tr><td>5</td><td><b>Uy vazifasi</b></td><td>Kimga: guruh / tanlangan / bitta o'quvchi; qoralama; ko'p fayl, havola, kod; izoh bilan qaytarish; rubrika; muddat eslatmasi</td><td><code>63d5918</code></td></tr>
+<tr><td>6</td><td><b>Baholash 2.0</b></td><td>Imtihon turlari, 8 turdagi savollar banki, blueprint (har o'quvchiga alohida variant), kabinetdan onlayn topshirish: taymer, avtosaqlash, avto + qo'lda baholash</td><td><code>3d1858b</code></td></tr>
+<tr><td>7</td><td><b>Progress</b></td><td>Mavzu o'zlashtirishi (<code>TopicMastery</code>), sozlanadigan chegaralar, tungi qayta hisob, oylik snapshot, kabinetda "Progress"</td><td><code>239fc5f</code></td></tr>
+<tr><td>8</td><td><b>O'qituvchi markazi</b></td><td>Guruh kartalari va jadvali, xavf ostidagilar, kengaytirilgan xavf sabablari (imtihon trendi, topshirilmagan vazifa, faollik, kirish)</td><td><code>e911964</code></td></tr>
+<tr><td>9</td><td><b>AI akademik markaz</b></td><td>Qoidalar rejimi + ixtiyoriy Claude; o'quvchi va guruh tahlili, vazifa tekshiruvi, o'xshashlik, remedial reja, ota-ona xulosasi; <b>yakuniy qaror o'qituvchida</b></td><td><code>295486e</code></td></tr>
+<tr><td>10</td><td><b>Bildirishnomalar</b></td><td>Imtihon e'loni, past natija, kechikish, xavf oshdi; kabinet havolalari kabinet sahifalariga</td><td><code>f29505b</code></td></tr>
+<tr><td>11</td><td><b>Telegram 2.0</b></td><td>Botda onlayn imtihon, qidiruv, sozlamalar, KPI, hisobotlar, marketing, media, qo'ng'iroq va follow-up</td><td><code>d3533c2</code></td></tr>
+<tr><td>12</td><td><b>Qidiruv va analitika</b></td><td>Rolga mos qidiruv (kabinetda ham), akademik analitika: kurs, guruh, o'qituvchi kesimi, CSV</td><td><code>06baae3</code></td></tr>
+<tr><td>13</td><td><b>Avtomatlashtirish</b></td><td>Qoida quruvchisi (trigger → shart → amal, kanal, jadval, sinov), "Ishlarim" sahifasi</td><td><code>cfa0c67</code></td></tr>
+<tr><td>14</td><td><b>Xavfsizlik va kuzatuv</b></td><td>440+ endpoint avtomatik testi; qarz va ogohlantirishlar filial doirasida; Prometheus <code>/metrics</code>, Sentry (backend + frontend); yuk testi; dialoglarda fokus tutqichi</td><td><code>d7d9e2f</code></td></tr>
+<tr><td>15</td><td><b>To'liq E2E oqimlar</b></td><td>Vazifa, imtihon va AI oqimlari brauzerda o'qituvchi → o'quvchi → ota-ona; <code>docs/testing.md</code></td><td><code>503ce5b</code></td></tr>
+<tr><td>16</td><td><b>Production va hujjatlar</b></td><td>Direktor paneliga "Akademiya holati" (15 yo'nalish); production konfiguratsiya tuzatildi; <code>architecture.md</code>, <code>deployment.md</code>, ushbu hisobot</td><td><code>eb5ef4a</code></td></tr>
+</table>
+
+<h3>0.2. Ish davomida topilgan va tuzatilgan xatolar</h3>
+<table>
+<tr><th>Xato</th><th>Oqibati</th><th>Tuzatish</th></tr>
+<tr><td>Onlayn imtihon natijasi xom ballda yozilardi (4 ballik test 100 ballik imtihonda → 4/100)</td><td>100% olgan o'quvchi "O'tmadi" deb chiqardi, ota-onaga noto'g'ri ball ketardi</td><td>O'tish bali nisbat bilan, natija imtihon shkalasida; eski yozuvlar uchun <code>db:backfill-exam-scale</code>. E2E oqimlar topdi</td></tr>
+<tr><td>Production konfiguratsiyasi AI, Sentry va metrika sozlamalarini serverga uzatmas edi</td><td>Deploydan keyin bu funksiyalar jimgina o'chiq qolardi</td><td><code>docker-compose.prod.yml</code>, frontend <code>Dockerfile</code>, <code>.env.production.example</code></td></tr>
+<tr><td>E2E testlar dev <code>.env</code> dagi haqiqiy bot tokeni bilan ishlardi</td><td>Test serveri haqiqiy botga ulanardi</td><td>E2E serverida token, polling, AI va Sentry kalitlari bo'sh</td></tr>
+<tr><td>Qarzdorlar va ogohlantirishlar filial doirasisiz edi</td><td>Filial admini boshqa filial ma'lumotini ko'rardi</td><td>Veb, bot va AI toolda filial doirasi; test bilan</td></tr>
+<tr><td>O'qituvchi doirasi qoidasi 7 servisda alohida nusxa</td><td>Qoida bir joyda o'zgarsa, boshqasida eski qolardi</td><td>Bitta modul (<code>teachingAccess.ts</code>), xatti-harakat o'zgarmadi</td></tr>
+<tr><td><code>/metrics</code> ASCII bo'lmagan tokenda 500 qaytarardi</td><td>Server xatosi</td><td>Bayt uzunligi solishtiriladi, 404</td></tr>
+<tr><td>Ichma-ich oynada Esc ikkala oynani yopardi</td><td>Tasdiq oynasi bilan birga forma ham yopilardi</td><td>Faqat ustki oyna yopiladi; fokus ochgan tugmaga qaytadi</td></tr>
+<tr><td>Kabinet bildirishnomalari xodim sahifalariga olib borardi; ommaviy xabar matni ikki marta ekranlangan edi</td><td>Ruxsatsiz sahifa, buzilgan matn</td><td>Kabinet havolalari, bir marta ekranlash</td></tr>
+</table>
+
+<h3>0.3. Tekshiruv natijalari</h3>
+<table>
+<tr><th>To'plam</th><th>Natija</th></tr>
+<tr><td>Backend (unit + integratsion, haqiqiy PostgreSQL)</td><td>793 / 793</td></tr>
+<tr><td>Frontend (komponent)</td><td>105 / 105</td></tr>
+<tr><td>E2E (brauzer, ko'p rolli oqimlar)</td><td>32 / 32</td></tr>
+<tr><td>Lint va typecheck</td><td>0 xato (frontendda 1 eski ogohlantirish)</td></tr>
+<tr><td>Yuk testi (9 og'ir endpoint, 10 parallel)</td><td>p95 ≤ 61 ms (chegara 800 ms)</td></tr>
+</table>
+<p class="small">Kompyuter qattiq yuklanganda ayrim backend testlari 5 soniya limitdan oshishi mumkin; qayta ishga tushirilganda o'tadi — kod xatosi emas.</p>
+
+<h3>0.4. Siz qilishingiz kerak</h3>
+<div class="box bad">
+<ol>
+<li><b>Chatda oshkor bo'lgan Telegram bot tokenini @BotFather'da <code>/revoke</code> qiling</b> — eng muhimi.</li>
+<li>Serverga deploy qiling — qadamlar <code>docs/deployment.md §4.1</code> da.</li>
+<li>Ixtiyoriy: <code>.env.production</code> ga <code>ANTHROPIC_API_KEY</code>, Sentry DSN va <code>METRICS_TOKEN</code> (kamida 24 belgi). Kalitsiz ham tizim ishlaydi — AI qoidalar rejimida.</li>
+<li>Production'da onlayn imtihonlar oldin ishlatilgan bo'lsa — deploydan keyin: zaxira nusxa → <code>npm run db:backfill-exam-scale</code> (hisobot) → <code>--apply</code> bilan qayta.</li>
+</ol>
+</div>
+
+<h3>0.5. Ataylab ochiq qoldirilganlar (kerak bo'lsa keyin qilinadi)</h3>
 <ul>
 <li>Dasturlash vazifasidagi kod ishga tushirilmaydi — faqat statik tekshiruv (xavfsiz sandbox alohida infratuzilma talab qiladi).</li>
-<li>Haftalik hisobot va sertifikat PDF — brauzer chop etish orqali (serverda PDF generatori yo'q).</li>
-<li>Fayl javoblari faqat PDF/rasm; boshqa formatlar — havola orqali.</li>
-<li>Rahbar paneli va direktor ko'rsatkichlari markaz bo'yicha (filialga bog'langan admin ham umumiy sonlarni ko'radi — mavjud direktor paneli bilan bir xil).</li>
-<li>Production'da onlayn imtihonlar ishlatilgan bo'lsa — deploydan keyin <code>npm run db:backfill-exam-scale</code> (avval hisobot).</li>
+<li>Haftalik hisobot va sertifikat PDF'i brauzerning chop etish funksiyasi orqali (serverda PDF generatori yo'q).</li>
+<li>Fayl javoblari faqat PDF va rasm; boshqa formatlar havola orqali.</li>
+<li>Filialga biriktirilgan admin ham direktor panelida butun markaz sonlarini ko'radi (avvalgi xatti-harakat bilan bir xil).</li>
+<li>Telegram uchun xodimlar sahifasi yo'q — paneldagi Telegram plitkasi havolasiz.</li>
+<li>Yuk testi kichik seed bazada o'tkazildi; katta hajmda qayta o'lchash tavsiya etiladi (<code>db:perf-seed</code>).</li>
 </ul>
-</div>
-<div class="box">
-<b>Production uchun sizdan kerak:</b> <code>ANTHROPIC_API_KEY</code> (ixtiyoriy — kalitsiz qoidalar rejimi ishlaydi), Sentry DSN va <code>METRICS_TOKEN</code> (ixtiyoriy),
-Telegram bot tokeni — <b>oldin chatda oshkor bo'lgan token @BotFather'da <code>/revoke</code> qilinishi kerak</b>. Yangilash tartibi: <code>docs/deployment.md §4.1</code>.
-</div>
+
+<h3>0.6. Batafsil hujjatlar</h3>
+<p><code>docs/architecture.md</code> (§0 — 3.0 umumiy ko'rinishi), <code>docs/deployment.md</code> (§4.1 — 3.0 ga yangilash), <code>docs/testing.md</code>, <code>docs/security.md</code>, <code>docs/observability.md</code>, modul hujjatlari (student-portal, parent-portal, lms, homework, assessment, progress, teacher-control, ai-academic, notifications, telegram, academic-analytics, automation, permissions), har faza hisoboti — <code>docs/PHASE-REPORTS-3.0.md</code>.</p>
 
 <h2>1. Umumiy baho (promt.md, promt2.md, telegramBot.md — 2026-09-24)</h2>
 <div class="kpi">
