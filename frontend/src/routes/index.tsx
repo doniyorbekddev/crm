@@ -466,6 +466,10 @@ export const router = createBrowserRouter([
                     ],
                   },
                   {
+                    path: "tasks",
+                    lazy: lazyComponent(() => import("@/pages/tasks/TasksPage")),
+                  },
+                  {
                     element: (
                       <PermissionGate permission={[PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ATTENDANCE_MARK]} />
                     ),

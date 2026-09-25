@@ -51,3 +51,26 @@ test('rahbar akademik analitikada kesimlarni almashtiradi va jadvalni ko‘radi'
   await expect(page.getByRole('tab', { name: 'Guruhlar' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('columnheader', { name: 'Retention' })).toBeVisible();
 });
+
+/** PHASE 13 — avtomatlashtirish quruvchisi */
+test('rahbar qoida quradi, sinab ko‘radi va saqlaydi; o‘qituvchi "Ishlarim"ni ochadi', async ({ page }) => {
+  await login(page, 'owner');
+  await page.goto('/automation');
+  await page.getByRole('button', { name: 'Yangi qoida' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Yangi avtomatlashtirish' });
+  const name = `E2E qoida ${Date.now()}`;
+  await dialog.getByLabel('Nomi').fill(name);
+  await dialog.getByLabel('Qachon (trigger)').selectOption('HOMEWORK_COMPLETION_LOW');
+  await dialog.getByRole('button', { name: 'Sinab ko‘rish' }).click();
+  await expect(dialog.getByText(/ta holat mos keladi/)).toBeVisible();
+  await dialog.getByLabel('Ish yaratish', { exact: true }).check();
+  await dialog.getByRole('button', { name: 'Saqlash' }).click();
+  await expect(page.getByText(name)).toBeVisible();
+  await expect(page.getByText(/Vazifa topshirish past → Xabar yuborish, Ish yaratish/).first()).toBeVisible();
+});
+
+test('o‘qituvchi "Ishlarim" sahifasini ochadi', async ({ page }) => {
+  await login(page, 'teacher');
+  await page.getByRole('link', { name: 'Ishlarim', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Ishlarim' })).toBeVisible();
+});

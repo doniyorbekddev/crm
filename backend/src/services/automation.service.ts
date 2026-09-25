@@ -2,7 +2,11 @@ import { prisma } from '../config/database.js';
 import { notifyStudentAudience } from './studentNotify.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { PermissionKey } from '../config/permissions.js';
-import type { AutomationAudience, AutomationTrigger, Prisma } from '../generated/prisma/client.js';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import type { AutomationAudience, AutomationSchedule, AutomationTrigger, Prisma } from '../generated/prisma/client.js';
+import { actionSchema, computeNextRun, conditionsSchema, evaluateTrigger, isBuilderTrigger, ownerOf, runActions } from './automationBuilder.js';
+import type { BuilderAction, BuilderRuleInput } from './automationBuilder.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { businessDateString, startOfBusinessDay } from '../utils/dates.js';
@@ -44,6 +48,14 @@ export interface AutomationRuleDto {
   isActive: boolean;
   lastRunAt: string | null;
   lastMatched: number;
+  /** TZ §51 quruvchi: admin yaratgan qoida */
+  isCustom: boolean;
+  conditions: Record<string, unknown> | null;
+  actions: BuilderAction[] | null;
+  schedule: AutomationSchedule | null;
+  scheduleHour: number | null;
+  scheduleWeekday: number | null;
+  nextRunAt: string | null;
 }
 
 export interface AutomationRunDto {
@@ -69,6 +81,14 @@ const ruleSelect = {
   isActive: true,
   lastRunAt: true,
   lastMatched: true,
+  isCustom: true,
+  conditions: true,
+  actions: true,
+  schedule: true,
+  scheduleHour: true,
+  scheduleWeekday: true,
+  nextRunAt: true,
+  createdById: true,
 } satisfies Prisma.AutomationRuleSelect;
 
 type RuleRecord = Prisma.AutomationRuleGetPayload<{ select: typeof ruleSelect }>;
@@ -85,6 +105,13 @@ function toRuleDto(record: RuleRecord): AutomationRuleDto {
     isActive: record.isActive,
     lastRunAt: record.lastRunAt?.toISOString() ?? null,
     lastMatched: record.lastMatched,
+    isCustom: record.isCustom,
+    conditions: (record.conditions as Record<string, unknown> | null) ?? null,
+    actions: (record.actions as BuilderAction[] | null) ?? null,
+    schedule: record.schedule,
+    scheduleHour: record.scheduleHour,
+    scheduleWeekday: record.scheduleWeekday,
+    nextRunAt: record.nextRunAt?.toISOString() ?? null,
   };
 }
 
@@ -103,6 +130,12 @@ const STAFF_PERMISSION: Record<AutomationTrigger, PermissionKey> = {
   FOLLOWUP_OVERDUE: PERMISSIONS.FOLLOWUP_VIEW,
   STOCK_BELOW_MIN: PERMISSIONS.INVENTORY_VIEW,
   CERTIFICATE_ELIGIBLE: PERMISSIONS.STUDENT_MANAGE,
+  // Akademik triggerlar — faqat maxsus (quruvchi) qoidalarda, amallar o'zi auditoriyani belgilaydi
+  HOMEWORK_COMPLETION_LOW: PERMISSIONS.STUDENT_VIEW,
+  EXAM_SCORE_LOW: PERMISSIONS.STUDENT_VIEW,
+  MASTERY_LOW: PERMISSIONS.STUDENT_VIEW,
+  NO_LOGIN_DAYS: PERMISSIONS.STUDENT_VIEW,
+  NO_SUBMISSION_DAYS: PERMISSIONS.STUDENT_VIEW,
 };
 
 async function staffIdsFor(permission: PermissionKey): Promise<string[]> {
@@ -117,6 +150,18 @@ interface RuleOutcome {
   matched: number;
   notified: number;
   skipped: number;
+  actionsDone?: number;
+}
+
+/** TZ §50–51: maxsus qoida — trigger → shart → amallar (quruvchi moduli orqali) */
+async function runCustom(rule: RuleRecord, now: Date): Promise<RuleOutcome> {
+  if (!isBuilderTrigger(rule.trigger)) return { matched: 0, notified: 0, skipped: 0 };
+  const conditions = conditionsSchema.safeParse(rule.conditions ?? {});
+  const actions = z.array(actionSchema).safeParse(rule.actions ?? []);
+  if (!conditions.success || !actions.success) throw new Error('Qoida sozlamasi noto‘g‘ri (shart yoki amal)');
+  const subjects = await evaluateTrigger(rule.trigger, conditions.data, now);
+  const outcome = await runActions(rule, actions.data, subjects, await ownerOf(rule.createdById), now);
+  return { matched: subjects.length, notified: outcome.notified, skipped: 0, actionsDone: outcome.actionsDone };
 }
 
 /** Bitta xabarni kerakli odamlarga yuboradi va nechtasi yangi ekanini qaytaradi */
@@ -406,6 +451,7 @@ async function runCertificateEligible(rule: RuleRecord, now: Date): Promise<Rule
 }
 
 async function execute(rule: RuleRecord, now: Date): Promise<RuleOutcome> {
+  if (rule.isCustom) return runCustom(rule, now);
   switch (rule.trigger) {
     case 'STUDENT_ABSENT_STREAK':
       return runAbsentStreak(rule, now);
@@ -421,6 +467,9 @@ async function execute(rule: RuleRecord, now: Date): Promise<RuleOutcome> {
       return runStockBelowMin(rule, now);
     case 'CERTIFICATE_ELIGIBLE':
       return runCertificateEligible(rule, now);
+    default:
+      // Akademik triggerlar faqat maxsus qoidalarda ishlaydi
+      return { matched: 0, notified: 0, skipped: 0 };
   }
 }
 
@@ -502,9 +551,101 @@ export const automationService = {
     return toRuleDto(saved);
   },
 
+  /** TZ §51: yangi maxsus qoida (quruvchi) */
+  async create(actor: AuthUser, input: BuilderRuleInput, client: ClientInfo): Promise<AutomationRuleDto> {
+    await assertConditionScope(input.conditions);
+    const key = `custom_${randomUUID().slice(0, 8)}`;
+    const created = await prisma.$transaction(async (tx) => {
+      const record = await tx.automationRule.create({
+        data: {
+          key,
+          name: input.name,
+          description: input.description ?? null,
+          trigger: input.trigger,
+          audience: 'STAFF',
+          isCustom: true,
+          conditions: input.conditions as Prisma.InputJsonValue,
+          actions: input.actions as unknown as Prisma.InputJsonValue,
+          schedule: input.schedule,
+          scheduleHour: input.scheduleHour,
+          scheduleWeekday: input.scheduleWeekday,
+          nextRunAt: computeNextRun(input.schedule, input.scheduleHour, input.scheduleWeekday),
+          isActive: input.isActive,
+          createdById: actor.id,
+          updatedById: actor.id,
+        },
+        select: ruleSelect,
+      });
+      await auditService.recordInTransaction(tx, { userId: actor.id, action: 'automation.rule_created', entityType: 'settings', entityId: record.id, metadata: { key, trigger: input.trigger, actions: input.actions.map((action) => action.type) }, ...client });
+      return record;
+    });
+    return toRuleDto(created);
+  },
+
+  /** Maxsus qoidani to'liq tahrirlash (tizim qoidasi — faqat `update`) */
+  async updateCustom(actor: AuthUser, key: string, input: BuilderRuleInput, client: ClientInfo): Promise<AutomationRuleDto> {
+    const rule = await prisma.automationRule.findUnique({ where: { key }, select: { id: true, isCustom: true, conditions: true, actions: true } });
+    if (!rule) throw AppError.notFound('Qoida topilmadi');
+    if (!rule.isCustom) throw AppError.unprocessable('Tizim qoidasi faqat yoqish/o‘chirish va parametr bilan sozlanadi');
+    await assertConditionScope(input.conditions);
+    const saved = await prisma.$transaction(async (tx) => {
+      const record = await tx.automationRule.update({
+        where: { key },
+        data: {
+          name: input.name,
+          description: input.description ?? null,
+          trigger: input.trigger,
+          conditions: input.conditions as Prisma.InputJsonValue,
+          actions: input.actions as unknown as Prisma.InputJsonValue,
+          schedule: input.schedule,
+          scheduleHour: input.scheduleHour,
+          scheduleWeekday: input.scheduleWeekday,
+          nextRunAt: computeNextRun(input.schedule, input.scheduleHour, input.scheduleWeekday),
+          isActive: input.isActive,
+          updatedById: actor.id,
+        },
+        select: ruleSelect,
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'automation.rule_updated',
+        entityType: 'settings',
+        entityId: record.id,
+        metadata: { key },
+        before: { conditions: rule.conditions, actions: rule.actions } as never,
+        after: { conditions: record.conditions, actions: record.actions } as never,
+        ...client,
+      });
+      return record;
+    });
+    return toRuleDto(saved);
+  },
+
+  /** Maxsus qoidani o'chirish (tizim qoidalari o'chirilmaydi — faqat to'xtatiladi) */
+  async remove(actor: AuthUser, key: string, client: ClientInfo): Promise<void> {
+    const rule = await prisma.automationRule.findUnique({ where: { key }, select: { id: true, isCustom: true, name: true } });
+    if (!rule) throw AppError.notFound('Qoida topilmadi');
+    if (!rule.isCustom) throw AppError.unprocessable('Tizim qoidasini o‘chirib bo‘lmaydi — uni to‘xtating');
+    await prisma.$transaction(async (tx) => {
+      await tx.automationRule.delete({ where: { key } });
+      await auditService.recordInTransaction(tx, { userId: actor.id, action: 'automation.rule_deleted', entityType: 'settings', entityId: rule.id, metadata: { key, name: rule.name }, ...client });
+    });
+  },
+
+  /** Sinov (dry-run): nechta holat mos keladi va namunalar — amal bajarilmaydi */
+  async test(input: Pick<BuilderRuleInput, 'trigger' | 'conditions'>): Promise<{ matched: number; sample: Array<{ name: string; group: string | null; detail: string }> }> {
+    await assertConditionScope(input.conditions);
+    const subjects = await evaluateTrigger(input.trigger, input.conditions);
+    return { matched: subjects.length, sample: subjects.slice(0, 10).map((subject) => ({ name: subject.name, group: subject.groupName, detail: subject.detail })) };
+  },
+
   /** Barcha faol qoidalarni bir marta ishga tushiradi (job va qo'lda sinash uchun) */
   async runAll(now: Date = new Date()): Promise<{ rules: number; notified: number }> {
-    const rules = await prisma.automationRule.findMany({ where: { isActive: true }, select: ruleSelect });
+    // Maxsus qoidalar o'z jadvali bo'yicha (nextRunAt); tizim qoidalari — har yurishda
+    const rules = await prisma.automationRule.findMany({
+      where: { isActive: true, OR: [{ isCustom: false }, { nextRunAt: null }, { nextRunAt: { lte: now } }] },
+      select: ruleSelect,
+    });
     let notified = 0;
 
     for (const rule of rules) {
@@ -512,6 +653,7 @@ export const automationService = {
       try {
         const outcome = await execute(rule, now);
         notified += outcome.notified;
+        const nextRunAt = rule.isCustom && rule.schedule ? computeNextRun(rule.schedule, rule.scheduleHour ?? 9, rule.scheduleWeekday ?? 1, now) : undefined;
         await prisma.$transaction([
           prisma.automationRun.create({
             data: {
@@ -520,9 +662,10 @@ export const automationService = {
               matched: outcome.matched,
               notified: outcome.notified,
               skipped: outcome.skipped,
+              actionsDone: outcome.actionsDone ?? 0,
             },
           }),
-          prisma.automationRule.update({ where: { id: rule.id }, data: { lastRunAt: new Date(), lastMatched: outcome.matched } }),
+          prisma.automationRule.update({ where: { id: rule.id }, data: { lastRunAt: new Date(), lastMatched: outcome.matched, ...(nextRunAt ? { nextRunAt } : {}) } }),
         ]);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -537,6 +680,16 @@ export const automationService = {
     return { rules: rules.length, notified };
   },
 };
+
+/** Shartdagi kurs/guruh mavjudmi (noto'g'ri id bilan qoida jimgina "hech kim" topmasin) */
+async function assertConditionScope(conditions: BuilderRuleInput['conditions']): Promise<void> {
+  if (conditions.courseId && !(await prisma.course.findUnique({ where: { id: conditions.courseId }, select: { id: true } }))) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'conditions.courseId', message: 'Kurs topilmadi' }]);
+  }
+  if (conditions.groupId && !(await prisma.group.findUnique({ where: { id: conditions.groupId }, select: { id: true } }))) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'conditions.groupId', message: 'Guruh topilmadi' }]);
+  }
+}
 
 /** Test va job uchun: bugungi kun boshlanishi (biznes vaqti bo'yicha) */
 export const automationInternals = { startOfBusinessDay, staffIdsFor };

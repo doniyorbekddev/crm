@@ -44,6 +44,7 @@ import { userRouter } from './user.routes.js';
 import { masteryRouter } from './mastery.routes.js';
 import { teachingRouter } from './teaching.routes.js';
 import { academicAnalyticsRouter } from './academicAnalytics.routes.js';
+import { taskRouter } from './task.routes.js';
 
 /** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
 export const apiRouter = Router();
@@ -87,6 +88,7 @@ apiRouter.use('/rubrics', rubricRouter);
 apiRouter.use('/exams', examRouter);
 apiRouter.use('/mastery', masteryRouter);
 apiRouter.use('/teaching', teachingRouter);
+apiRouter.use('/tasks', taskRouter);
 apiRouter.use('/gamification', gamificationRouter);
 apiRouter.use('/teachers', teacherRouter);
 apiRouter.use('/salaries', salaryRouter);

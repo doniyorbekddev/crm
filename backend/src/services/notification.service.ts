@@ -176,14 +176,18 @@ export const notificationService = {
     await this.createManyInTransaction(tx, [input]);
   },
 
-  /** Bir nechta xodimga bir xil xabar (masalan, yangi lead haqida barcha managerlarga) */
-  async createManyInTransaction(tx: Prisma.TransactionClient, inputs: NotificationInput[]): Promise<void> {
+  /**
+   * Bir nechta xodimga bir xil xabar (masalan, yangi lead haqida barcha managerlarga).
+   * `channels` — avtomatlashtirish qoidasi kanalni cheklashi mumkin (TZ §51 "Channel");
+   * foydalanuvchi sozlamasi baribir ustun (o'chirgan kanaliga yuborilmaydi).
+   */
+  async createManyInTransaction(tx: Prisma.TransactionClient, inputs: NotificationInput[], channels: { inApp: boolean; telegram: boolean } = { inApp: true, telegram: true }): Promise<void> {
     if (inputs.length === 0) return;
     const allowed = await applySettings(tx, inputs);
-    if (allowed.inApp.length > 0) {
+    if (channels.inApp && allowed.inApp.length > 0) {
       await tx.notification.createMany({ data: allowed.inApp.map(toCreateData), skipDuplicates: true });
     }
-    await enqueueExternal(tx, allowed.telegram);
+    if (channels.telegram) await enqueueExternal(tx, allowed.telegram);
   },
 
   /**

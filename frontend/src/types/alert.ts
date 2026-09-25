@@ -14,7 +14,8 @@ export type AlertType =
   | 'CASH_SHORTAGE'
   | 'PENDING_EXPENSE_APPROVAL'
   | 'DOCUMENT_EXPIRING'
-  | 'PAYMENT_OVERDUE';
+  | 'PAYMENT_OVERDUE'
+  | 'ACADEMIC_RISK';
 export type AlertSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 /** Kritik — yuqori, ogohlantirish — o‘rta, ma’lumot va yutuq — past */
 export type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW';

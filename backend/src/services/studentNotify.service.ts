@@ -31,6 +31,8 @@ interface FamilyEvent {
   parents: boolean;
   /** O'quvchining o'ziga yuborilsinmi (standart — ha; "faqat ota-onaga" xabarlar uchun false) */
   student?: boolean;
+  /** Kanal cheklovi (avtomatlashtirish qoidasi): standart — ikkalasi */
+  channels?: { inApp: boolean; telegram: boolean };
 }
 
 /** Nechta qabul qiluvchiga navbatga qo'yildi (ilova ichidagi + Telegram chatlar) */
@@ -45,7 +47,9 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
   const parentRows = event.parents ? student.parents.map((row) => row.parent) : [];
 
   // Ilova ichida — hisobi borlarga (sozlama shu yerda tekshiriladi)
+  const channels = event.channels ?? { inApp: true, telegram: true };
   const userIds = [includeStudent ? student.userId : null, ...parentRows.map((parent) => parent.userId)].filter((id): id is string => Boolean(id));
+  if (!channels.inApp && !channels.telegram) return 0;
   await notificationService.createManyInTransaction(
     tx,
     userIds.map((userId) => ({
@@ -57,10 +61,13 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
       entityId: event.entityId,
       dedupeKey: `${event.dedupeKey}:u:${userId}`,
     })),
+    // Kabinet hisobining Telegrami pastda (studentId/parentId bo'yicha) — bu yerda faqat ilova
+    { inApp: channels.inApp, telegram: false },
   );
 
   // Telegram — bog'langan chatlarga (kabinet hisobi bo'lmasa ham)
-  let queued = userIds.length;
+  let queued = channels.inApp ? userIds.length : 0;
+  if (!channels.telegram) return queued;
   if (includeStudent) {
     queued += await notificationService.notifyExternalInTransaction(tx, {
       title: event.title,
@@ -283,9 +290,11 @@ export async function notifyStudentAudience(
     entityType: string;
     entityId: string;
     dedupeKey: string;
+    channels?: { inApp: boolean; telegram: boolean };
   },
 ): Promise<number> {
   return notifyFamily(tx, {
+    ...(input.channels ? { channels: input.channels } : {}),
     studentId: input.studentId,
     type: input.type,
     title: input.title,

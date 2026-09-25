@@ -350,7 +350,10 @@ model User {
   createdLessons           Lesson[]               @relation("LessonCreatedBy")
   createdRubrics           Rubric[]               @relation("RubricCreatedBy")
 
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  branch                 Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  tasksAssigned          Task[]           @relation("TaskAssignee")
+  tasksCreated           Task[]           @relation("TaskCreatedBy")
+  automationRulesCreated AutomationRule[] @relation("AutomationCreatedBy")
 
   @@index([branchId])
   @@index([roleId])
@@ -1674,6 +1677,8 @@ enum AlertType {
   PENDING_EXPENSE_APPROVAL
   DOCUMENT_EXPIRING
   PAYMENT_OVERDUE
+  /// Avtomatlashtirish qoidasi yaratgan akademik xavf (TZ §50)
+  ACADEMIC_RISK
 }
 
 enum AlertSeverity {
@@ -3464,6 +3469,60 @@ enum AutomationTrigger {
   STOCK_BELOW_MIN
   /// O'quvchi kursni tugatdi — sertifikat berish mumkin
   CERTIFICATE_ELIGIBLE
+  /// TZ 3.0 §50: vazifa topshirish ulushi chegaradan past
+  HOMEWORK_COMPLETION_LOW
+  /// Imtihon natijasi chegaradan past
+  EXAM_SCORE_LOW
+  /// Mavzu o'zlashtirishi chegaradan past
+  MASTERY_LOW
+  /// Kabinetga N kundan beri kirmagan
+  NO_LOGIN_DAYS
+  /// N kundan beri vazifa topshirmagan
+  NO_SUBMISSION_DAYS
+}
+
+/// Maxsus qoida qachon ishlaydi (TZ §51 "Schedule"). Tizim qoidalarida null — har yurishda
+enum AutomationSchedule {
+  HOURLY
+  DAILY
+  WEEKLY
+}
+
+/// Avtomatlashtirish yoki xodim yaratgan ish (TZ §51 "Create Task")
+enum TaskStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+/// Xodim uchun ish: kim, nima, qachongacha. Qoida yaratgan bo'lsa `ruleId` va `dedupeKey` bor —
+/// bir holat uchun ikki marta yaratilmaydi.
+model Task {
+  id          String     @id @default(cuid())
+  title       String     @db.VarChar(200)
+  description String?    @db.VarChar(2000)
+  status      TaskStatus @default(OPEN)
+  assigneeId  String
+  dueAt       DateTime?
+  /// Bog'liq ob'ekt: student / group / homework ...
+  entityType  String?    @db.VarChar(30)
+  entityId    String?    @db.VarChar(50)
+  /// Web'da ochiladigan sahifa (masalan /students/<id>)
+  link        String?    @db.VarChar(200)
+  ruleId      String?
+  dedupeKey   String?    @unique @db.VarChar(200)
+  createdById String?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  assignee  User            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  createdBy User?           @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  rule      AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([assigneeId, status, dueAt])
+  @@index([status, createdAt])
+  @@map("tasks")
 }
 
 /// Bildirishnoma kimga boradi
@@ -3481,24 +3540,37 @@ enum AutomationAudience {
 /// Avtomatlashtirish qoidasi. Kalit bo'yicha takrorlanmaydi — sozlamalar tahrirlanadi,
 /// yangi qoida yaratilmaydi, shuning uchun tarix chalkashmaydi.
 model AutomationRule {
-  id          String             @id @default(cuid())
-  key         String             @unique @db.VarChar(50)
-  name        String             @db.VarChar(120)
-  description String?            @db.VarChar(255)
-  trigger     AutomationTrigger
-  audience    AutomationAudience @default(STAFF)
+  id              String              @id @default(cuid())
+  key             String              @unique @db.VarChar(50)
+  name            String              @db.VarChar(120)
+  description     String?             @db.VarChar(255)
+  trigger         AutomationTrigger
+  audience        AutomationAudience  @default(STAFF)
   /// Qoida parametrlari: {absences: 2} yoki {daysBefore: 3}
-  params      Json?
-  isActive    Boolean            @default(true)
-  lastRunAt   DateTime?
+  params          Json?
+  isActive        Boolean             @default(true)
+  lastRunAt       DateTime?
   /// Oxirgi yurishda nechta holat topilgani
-  lastMatched Int                @default(0)
-  updatedById String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  lastMatched     Int                 @default(0)
+  /// TZ §51: admin yaratgan qoida (tizim qoidasidan farqli — o'chirish mumkin)
+  isCustom        Boolean             @default(false)
+  /// Shartlar: {threshold, days, courseId, groupId, ...} — zod bilan tekshiriladi
+  conditions      Json?
+  /// Amallar: [{type: NOTIFY|CREATE_TASK|CREATE_ALERT|ASSIGN_HOMEWORK|RECOMMEND_QUIZ, ...}]
+  actions         Json?
+  schedule        AutomationSchedule?
+  scheduleHour    Int?                @db.SmallInt
+  scheduleWeekday Int?                @db.SmallInt
+  nextRunAt       DateTime?
+  createdById     String?
+  updatedById     String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   updatedBy User?           @relation("AutomationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdBy User?           @relation("AutomationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   runs      AutomationRun[]
+  tasks     Task[]
 
   @@index([isActive, trigger])
   @@map("automation_rules")
@@ -3507,17 +3579,19 @@ model AutomationRule {
 /// Qoidaning bitta yurishi. Nechta holat topilgani, nechta bildirishnoma yuborilgani va
 /// xatolik bo'lsa sababi yoziladi — "nega xabar kelmadi?" degan savolga javob shu yerda.
 model AutomationRun {
-  id         String   @id @default(cuid())
-  ruleId     String
-  startedAt  DateTime @default(now())
-  durationMs Int?
+  id          String   @id @default(cuid())
+  ruleId      String
+  startedAt   DateTime @default(now())
+  durationMs  Int?
   /// Shartga mos kelgan holatlar soni
-  matched    Int      @default(0)
+  matched     Int      @default(0)
   /// Yuborilgan bildirishnomalar (takrorlanganlari hisobga olinmaydi)
-  notified   Int      @default(0)
+  notified    Int      @default(0)
   /// Takroriy bo'lgani uchun o'tkazib yuborilganlar
-  skipped    Int      @default(0)
-  error      String?  @db.VarChar(500)
+  skipped     Int      @default(0)
+  /// Maxsus qoida: bajarilgan amallar (ish, ogohlantirish, vazifa qoralamasi...)
+  actionsDone Int      @default(0)
+  error       String?  @db.VarChar(500)
 
   rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 

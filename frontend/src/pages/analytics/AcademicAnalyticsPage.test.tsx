@@ -6,7 +6,7 @@ import type { AcademicAnalytics } from '@/types/academicAnalytics';
 import AcademicAnalyticsPage from './AcademicAnalyticsPage';
 
 vi.mock('recharts', async () => {
-  const actual = await vi.importActual<typeof import('recharts')>('recharts');
+  const actual = await vi.importActual<Record<string, unknown>>('recharts');
   return { ...actual, ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div style={{ width: 400, height: 200 }}>{children}</div> };
 });
 vi.mock('@/lib/csv', () => ({ toCsv: vi.fn(() => 'csv'), downloadCsv: vi.fn() }));

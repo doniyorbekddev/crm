@@ -1,4 +1,5 @@
 import {
+  ListTodo,
   LineChart,
   Presentation,
   BadgePercent,
@@ -86,6 +87,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     title: 'O‘quv jarayoni',
     items: [
       { to: '/teaching', label: 'O‘qituvchi markazi', icon: Presentation, permission: PERMISSIONS.ATTENDANCE_MARK },
+      { to: '/tasks', label: 'Ishlarim', icon: ListTodo },
       { to: '/academic-analytics', label: 'Akademik analitika', icon: LineChart, permission: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ATTENDANCE_MARK] },
       { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
       { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },

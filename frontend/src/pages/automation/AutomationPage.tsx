@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Play, Workflow } from 'lucide-react';
+import { Pencil, Play, Plus, Trash2, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -18,6 +18,9 @@ import { automationService } from '@/services/automation.service';
 import type { AutomationAudience } from '@/types/automation';
 import { formatDateTime, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import type { AutomationRule, BuilderTrigger } from '@/types/automation';
+import { ACTION_LABELS, AutomationBuilderModal, BUILDER_TRIGGER_LABELS } from './AutomationBuilderModal';
 
 const PARAM_LABELS: Record<string, string> = {
   absences: 'Ketma-ket kelmaslik soni',
@@ -44,6 +47,8 @@ export default function AutomationPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.ALERT_MANAGE);
   const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [builder, setBuilder] = useState<{ rule?: AutomationRule } | null>(null);
+  const [deleting, setDeleting] = useState<AutomationRule | null>(null);
 
   const rulesQuery = useQuery({ queryKey: queryKeys.automation.list, queryFn: automationService.list });
   const runParams = { page: 1, limit: 15 };
@@ -58,6 +63,16 @@ export default function AutomationPage() {
       automationService.update(key, payload),
     onSuccess: (result) => {
       toast.success(result.message);
+      refresh();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  const remove = useMutation({
+    mutationFn: (key: string) => automationService.remove(key),
+    onSuccess: (message) => {
+      toast.success(message);
+      setDeleting(null);
       refresh();
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -79,14 +94,19 @@ export default function AutomationPage() {
         description="Shart bajarilganda tizim o‘zi xabar beradi — qoidalarni shu yerda sozlaysiz"
         actions={
           canManage && (
-            <Button
-              variant="secondary"
-              leftIcon={<Play className="size-4" aria-hidden />}
-              loading={runNow.isPending}
-              onClick={() => runNow.mutate()}
-            >
-              Hozir ishga tushirish
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setBuilder({})}>
+                Yangi qoida
+              </Button>
+              <Button
+                variant="secondary"
+                leftIcon={<Play className="size-4" aria-hidden />}
+                loading={runNow.isPending}
+                onClick={() => runNow.mutate()}
+              >
+                Hozir ishga tushirish
+              </Button>
+            </div>
           )
         }
       />
@@ -114,9 +134,15 @@ export default function AutomationPage() {
                       <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-fg">
                         {rule.name}
                         <Badge tone={rule.isActive ? 'green' : 'gray'}>{rule.isActive ? 'Yoqilgan' : 'O‘chirilgan'}</Badge>
-                        <Badge tone="gray">{AUDIENCE_LABELS[rule.audience]}</Badge>
+                        {rule.isCustom ? <Badge tone="purple">Maxsus</Badge> : <Badge tone="gray">{AUDIENCE_LABELS[rule.audience]}</Badge>}
                       </p>
                       {rule.description && <p className="text-xs text-fg-subtle">{rule.description}</p>}
+                      {rule.isCustom && (
+                        <p className="text-xs text-fg-muted">
+                          {BUILDER_TRIGGER_LABELS[rule.trigger as BuilderTrigger]?.label ?? rule.trigger} → {(rule.actions ?? []).map((action) => ACTION_LABELS[action.type]).join(', ')}
+                          {rule.nextRunAt ? ` · keyingi: ${formatDateTime(rule.nextRunAt)}` : ''}
+                        </p>
+                      )}
                       <p className="text-xs text-fg-subtle">
                         {rule.lastRunAt
                           ? `Oxirgi yurish: ${formatDateTime(rule.lastRunAt)} · ${formatNumber(rule.lastMatched)} ta holat`
@@ -162,6 +188,16 @@ export default function AutomationPage() {
                         </Button>
                       )}
 
+                      {rule.isCustom && canManage && (
+                        <>
+                          <Button size="sm" variant="secondary" leftIcon={<Pencil className="size-4" aria-hidden />} onClick={() => setBuilder({ rule })}>
+                            Tahrirlash
+                          </Button>
+                          <Button size="sm" variant="ghost" aria-label={`${rule.name} — o‘chirish`} onClick={() => setDeleting(rule)}>
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        </>
+                      )}
                       <label className="flex items-center gap-2 pb-2 text-sm text-fg">
                         <Checkbox
                           checked={rule.isActive}
@@ -215,6 +251,25 @@ export default function AutomationPage() {
           )}
         </CardContent>
       </Card>
+      {builder && (
+        <AutomationBuilderModal
+          {...(builder.rule ? { rule: builder.rule } : {})}
+          onClose={() => setBuilder(null)}
+          onSaved={() => {
+            setBuilder(null);
+            refresh();
+          }}
+        />
+      )}
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Qoida o‘chirilsinmi?"
+        description={deleting ? `«${deleting.name}» o‘chiriladi. Yaratilgan ishlar va ogohlantirishlar saqlanib qoladi.` : ''}
+        confirmLabel="O‘chirish"
+        loading={remove.isPending}
+        onConfirm={() => deleting && remove.mutate(deleting.key)}
+        onCancel={() => setDeleting(null)}
+      />
     </>
   );
 }

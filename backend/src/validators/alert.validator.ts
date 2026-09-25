@@ -16,6 +16,8 @@ export const ALERT_TYPES = [
   'PENDING_EXPENSE_APPROVAL',
   'DOCUMENT_EXPIRING',
   'PAYMENT_OVERDUE',
+  // Avtomatlashtirish qoidasi yaratadi (TZ 3.0 §50) — o'zi yopilmaydi, xodim hal qiladi
+  'ACADEMIC_RISK',
 ] as const;
 export const ALERT_SEVERITIES = ['INFO', 'SUCCESS', 'WARNING', 'CRITICAL'] as const;
 export const TARGET_TYPES = ['LEADS', 'SALES', 'REVENUE'] as const;

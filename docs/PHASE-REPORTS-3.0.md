@@ -791,3 +791,62 @@ Backend **772/772** (+5), frontend **87/87** (+1), E2E **26/26** (+2). Lint/type
 ## 12. Next Phase
 
 **PHASE 13 — Automation builder** (§50–51): akademik trigger/harakatlar (past natija, topshirmagan, xavf oshdi → xabar, vazifa/remedial taklif, vazifa (Task) yaratish), qoidalar muharriri.
+
+---
+
+# PHASE 13 COMPLETE — Automation builder
+
+Sana: 2026-09-26. Batafsil: [automation.md](automation.md).
+
+## 1. Implemented
+
+- **§50** EVENT → CONDITION → ACTION: 7 akademik trigger (3 darsga kelmadi, vazifa past, imtihon past, o‘zlashtirish past, kirmagan, topshirmagan, xavf kritik).
+- **§51 quruvchi**: Trigger, Condition (chegara, davr, kurs/guruh), Action (xabar, Telegram, ish, ogohlantirish, vazifa qoralamasi, quiz tavsiyasi), Channel (ilova/Telegram/ikkalasi), Schedule (soat/kun/hafta).
+- Sinov (dry-run), takrorlanmaslik, yurish tarixi (`actionsDone`), tizim qoidalari himoyasi.
+- **Task** modeli va "Ishlarim" sahifasi.
+- Mavjud dvigatel qayta yozilmadi: tizim qoidalari o‘zgarmasdan ishlaydi, maxsus qoidalar shu yurishga qo‘shildi.
+
+## 2–3. Files
+
+Backend yangi: `services/automationBuilder.ts`, `services/task.service.ts`, `routes/task.routes.ts`, `tests/automationBuilder.test.ts`, migratsiya `20260926200000_automation_builder`. O‘zgargan: `automation.service.ts` (maxsus qoidalar, create/updateCustom/remove/test, jadval), `controllers/automation.controller.ts`, `routes/automation.routes.ts`, `notification.service.ts` va `studentNotify.service.ts` (kanal cheklovi), `validators/alert.validator.ts` (`ACADEMIC_RISK`), `middleware/requirePermission.ts` (`requireStaff`), `routes/index.ts`, `schema.prisma`.
+Frontend yangi: `pages/automation/AutomationBuilderModal(.test)`, `pages/tasks/TasksPage(.test)`, `services/task.service.ts`, `types/task.ts`. O‘zgargan: `AutomationPage`, `types/automation.ts`, `services/automation.service.ts`, `types/alert.ts`, `utils/alertLabels.ts`, `layouts/navigation.ts`, `routes/index.tsx`; PHASE 12 testidagi lint xatosi tuzatildi. E2E: `teaching.spec.ts`. Docs: `automation.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`, faqat qo‘shish) `AutomationTrigger` +5, `AlertType` + `ACADEMIC_RISK`, enumlar `AutomationSchedule`, `TaskStatus`; `automation_rules` + isCustom, conditions, actions, schedule, scheduleHour, scheduleWeekday, nextRunAt, createdById; `automation_runs.actionsDone`; jadval `tasks`.
+
+## 5. API Changes
+
+Yangi: `POST /automation`, `PUT /automation/custom/:key`, `DELETE /automation/:key`, `POST /automation/test`, `GET/PATCH /tasks`. Qoida DTO kengaydi (moslik saqlangan).
+
+## 6. Permission Changes
+
+Yo‘q (qoidalar — `alert.manage`; ishlar — har xodim o‘ziniki, rahbar hammasi).
+
+## 7. AI Changes
+
+Quiz tavsiyasi AI remedial rejasiga yo‘naltiradi (PHASE 9).
+
+## 8. Tests
+
+Backend **777/777** (+5), frontend **89/89** (+2), E2E **28/28** (+2). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Noma’lum amal (`RUN_SQL`), trigger, qo‘shimcha shart maydoni, bo‘sh amallar, mavjud bo‘lmagan guruh — 422 (test).
+- Tizim qoidasini o‘chirish/to‘liq tahrirlash — 422; o‘qituvchi qoida yarata olmaydi — 403.
+- Ish holatini faqat ijrochi yoki rahbar o‘zgartiradi (begona — 404); kabinetga yopiq.
+
+## 10. Performance
+
+- Maxsus qoidalar faqat vaqti kelganda (`nextRunAt`) ishlaydi; triggerlar `groupBy`/indeksli so‘rovlar.
+- Takror tekshiruv `dedupeKey` unikal indekslari bilan (qo‘shimcha so‘rovsiz).
+
+## 11. Known Issues
+
+- Qoida tahririda guruh filtri faqat API orqali (UI’da kurs filtri); kerak bo‘lsa keyin qo‘shiladi.
+- "Rahbarlarga" auditoriyasi `student.manage` ruxsatli xodimlar.
+
+## 12. Next Phase
+
+**PHASE 14 — Security + performance**: Sentry (ixtiyoriy DSN), `/metrics`, qarz/ogohlantirish filial doirasi, yuk testi, focus trap (modal), sekin so‘rovlar tahlili.

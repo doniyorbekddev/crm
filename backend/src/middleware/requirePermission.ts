@@ -34,3 +34,22 @@ export function requireAnyPermission(...candidates: PermissionKey[]): RequestHan
     next(AppError.forbidden());
   };
 }
+
+/**
+ * Faqat xodimlar (kabinet hisobi — o'quvchi/ota-ona — emas). Masalan xodim ishlari:
+ * alohida ruxsat talab qilmaydi (har kim o'zinikini ko'radi), lekin kabinetga tegishli emas.
+ */
+export function requireStaff(): RequestHandler {
+  return async (req, _res, next) => {
+    if (!req.user) {
+      next(AppError.unauthorized());
+      return;
+    }
+    const granted = await permissionService.getRolePermissions(req.user.roleId);
+    if (granted.has('portal.student') || granted.has('portal.parent')) {
+      next(AppError.forbidden());
+      return;
+    }
+    next();
+  };
+}

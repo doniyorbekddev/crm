@@ -15,6 +15,7 @@ export const ALERT_TYPE_LABELS: Record<AlertType, string> = {
   CASH_SHORTAGE: 'Mablag‘ yetishmasligi',
   PENDING_EXPENSE_APPROVAL: 'Kutib qolgan tasdiq',
   DOCUMENT_EXPIRING: 'Hujjat muddati',
+  ACADEMIC_RISK: 'Akademik xavf',
   PAYMENT_OVERDUE: 'Kechikkan to‘lovlar',
 };
 
@@ -26,6 +27,7 @@ export const ALERT_TYPE_ORDER: readonly AlertType[] = [
   'PAYMENT_OVERDUE',
   'CONVERSION_DROP',
   'LOW_ATTENDANCE',
+  'ACADEMIC_RISK',
   'UNPAID_SALARY',
   'BUDGET_EXCEEDED',
   'PENDING_EXPENSE_APPROVAL',
@@ -60,6 +62,7 @@ export const ALERT_TYPE_DESCRIPTIONS: Record<AlertType, string> = {
   CASH_SHORTAGE: '30 kunlik prognozda majburiyatlarga mablag‘ yetmaydi',
   PENDING_EXPENSE_APPROVAL: 'Xarajat belgilangan kundan ortiq tasdiq kutmoqda',
   DOCUMENT_EXPIRING: 'O‘qituvchi yoki xodim shartnomasi, pasporti muddati tugamoqda yoki o‘tgan',
+  ACADEMIC_RISK: 'Avtomatlashtirish qoidasi aniqlagan akademik xavf (davomat, vazifa, natija) — xodim hal qiladi',
   PAYMENT_OVERDUE: 'O‘quvchilar to‘lov jadvalidagi muddatdan belgilangan kundan ortiq kechikdi',
 };
 

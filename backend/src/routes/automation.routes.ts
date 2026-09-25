@@ -16,5 +16,9 @@ const view = requirePermission(PERMISSIONS.ALERT_VIEW);
 
 automationRouter.get('/', view, automationController.list);
 automationRouter.get('/runs', view, automationController.runs);
+automationRouter.post('/', manage, automationController.create);
+automationRouter.post('/test', manage, heavyLimiter, automationController.test);
+automationRouter.put('/custom/:key', manage, automationController.updateCustom);
+automationRouter.delete('/:key', manage, automationController.remove);
 automationRouter.put('/:key', manage, automationController.update);
 automationRouter.post('/run', manage, heavyLimiter, automationController.run);
