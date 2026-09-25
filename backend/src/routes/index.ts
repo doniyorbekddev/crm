@@ -45,12 +45,15 @@ import { masteryRouter } from './mastery.routes.js';
 import { teachingRouter } from './teaching.routes.js';
 import { academicAnalyticsRouter } from './academicAnalytics.routes.js';
 import { taskRouter } from './task.routes.js';
+import { publicRouter, settingsRouter } from './settings.routes.js';
 
 /** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
 export const apiRouter = Router();
 
 apiRouter.use('/health', healthRouter);
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/public', publicRouter);
+apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/users', userRouter);
 apiRouter.use('/roles', roleRouter);
 apiRouter.use('/permissions', permissionRouter);

@@ -1,4 +1,5 @@
 import {
+  Landmark,
   ListTodo,
   LineChart,
   Presentation,
@@ -124,6 +125,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/users', label: 'Foydalanuvchilar', icon: Users, permission: PERMISSIONS.USER_VIEW },
       { to: '/branches', label: 'Filiallar', icon: Building2, permission: PERMISSIONS.BRANCH_MANAGE },
       { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
+      { to: '/settings/academy', label: 'Markaz ma’lumotlari', icon: Landmark, permission: PERMISSIONS.SETTINGS_MANAGE },
       { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
     ],
   },

@@ -8,7 +8,12 @@ import { contentDisposition } from './fileStorage.js';
  * Saqlangan faylni oqim bilan yuboradi (hujjat, vazifa fayli, dars materiali — hammasi shu yo'l).
  * Egalik va ruxsat chaqiruvchi servisda tekshirilgan bo'lishi kerak.
  */
-export async function sendStoredFile(res: Response, file: { absolutePath: string; fileName: string; mimeType: string }): Promise<void> {
+export async function sendStoredFile(
+  res: Response,
+  file: { absolutePath: string; fileName: string; mimeType: string },
+  /** Ochiq, versiyalangan fayllar (logo) uchun keshlash; standart — keshlanmaydi */
+  cacheControl = 'private, no-store',
+): Promise<void> {
   let size: number;
   try {
     size = (await stat(file.absolutePath)).size;
@@ -18,7 +23,7 @@ export async function sendStoredFile(res: Response, file: { absolutePath: string
   res.setHeader('Content-Type', file.mimeType);
   res.setHeader('Content-Length', String(size));
   res.setHeader('Content-Disposition', contentDisposition(file.fileName));
-  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Cache-Control', cacheControl);
   const stream = createReadStream(file.absolutePath);
   stream.on('error', () => res.destroy());
   stream.pipe(res);

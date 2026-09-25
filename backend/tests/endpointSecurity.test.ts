@@ -64,6 +64,9 @@ const PUBLIC = new Set([
   'POST /api/payments/webhook/:provider',
   // Sertifikatni QR orqali tekshirish — tasodifiy token, faqat ism/kurs/sana, heavyLimiter
   'GET /api/certificates/verify/:token',
+  // Brend (nom, logo, valyuta, til) — login sahifasi kirishdan oldin ko'rsatadi; maxfiy maydon yo'q (test bilan)
+  'GET /api/public/branding',
+  'GET /api/public/branding/logo',
 ]);
 
 /** Kirgan har bir foydalanuvchi uchun (ruxsatsiz) — faqat o'ziga tegishli ma'lumot */

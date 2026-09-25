@@ -708,6 +708,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.SETTINGS_MANAGE} />
+                    ),
+                    children: [
+                      {
+                        path: "settings/academy",
+                        lazy: lazyComponent(
+                          () => import("@/pages/settings/AcademySettingsPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.AUDIT_VIEW} />
                     ),
                     children: [

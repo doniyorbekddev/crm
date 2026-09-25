@@ -1,13 +1,28 @@
 import { useEffect } from 'react';
+import { appEnv } from '@/lib/env';
 
-const BASE_TITLE = 'Sales CRM';
+/** Markaz nomi (sozlamadan, `useBrandingSync` yangilaydi); yuklanguncha — build nomi */
+let baseTitle = appEnv.appName;
+let pageTitle = '';
 
-/** Brauzer tabidagi sarlavhani sahifa nomiga moslaydi: "Leadlar · Sales CRM" */
+function apply(): void {
+  document.title = pageTitle ? `${pageTitle} · ${baseTitle}` : baseTitle;
+}
+
+export function setBaseTitle(name: string): void {
+  if (!name || name === baseTitle) return;
+  baseTitle = name;
+  apply();
+}
+
+/** Brauzer tabidagi sarlavhani sahifa nomiga moslaydi: "Leadlar · IT-Academy" */
 export function useDocumentTitle(title: string): void {
   useEffect(() => {
-    document.title = title ? `${title} · ${BASE_TITLE}` : BASE_TITLE;
+    pageTitle = title;
+    apply();
     return () => {
-      document.title = BASE_TITLE;
+      pageTitle = '';
+      apply();
     };
   }, [title]);
 }

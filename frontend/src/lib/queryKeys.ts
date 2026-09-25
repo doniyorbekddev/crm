@@ -30,6 +30,10 @@ import type { UserListParams, UserSummaryParams } from '@/types/user';
 
 /** React Query kalitlari bir joyda — invalidatsiya aniq va xatosiz bo‘lishi uchun. */
 export const queryKeys = {
+  settings: {
+    academy: ['settings', 'academy'] as const,
+    branding: ['settings', 'branding'] as const,
+  },
   auth: {
     me: ['auth', 'me'] as const,
   },
