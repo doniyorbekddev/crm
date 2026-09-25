@@ -29,6 +29,8 @@ import type { AttemptDto } from './examAttempt.service.js';
 import type { StudentExamRowDto } from './studentProgress.service.js';
 import { resolveStoredPath } from '../utils/fileStorage.js';
 import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
+import { lessonService } from './lesson.service.js';
+import type { LessonDto, LessonTreeDto } from './lesson.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
 import type { ExamStatus, HomeworkStatus, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
 
@@ -528,6 +530,37 @@ export const portalService = {
         };
       }),
     );
+  },
+
+  // ---------------------------------------------------------------
+  // LMS (TZ §12–14): kurs dasturi, darslar, materiallar
+  // ---------------------------------------------------------------
+
+  /** O'z kursining nashr qilingan darslari (modul → mavzu → dars) va o'quvchi tugatganlari */
+  async course(actor: AuthUser, requestedStudentId?: string): Promise<LessonTreeDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return lessonService.treeForStudent(studentId);
+  },
+
+  /** Bitta dars. O'quvchining o'zi ochsa — "ko'rildi" yoziladi; ota-ona ko'rsa — yo'q */
+  async lesson(actor: AuthUser, lessonId: string, requestedStudentId?: string): Promise<LessonDto & { completed: boolean }> {
+    const scope = await resolvePortalScope(actor);
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return lessonService.lessonForStudent(studentId, lessonId, scope.kind === 'STUDENT');
+  },
+
+  /** "Darsni o'rgandim" — faqat o'quvchining o'zi (ota-ona farzandi o'rniga belgilamaydi) */
+  async setLessonCompleted(actor: AuthUser, lessonId: string, completed: boolean): Promise<{ completed: boolean }> {
+    const scope = await resolvePortalScope(actor);
+    if (scope.kind !== 'STUDENT') throw AppError.forbidden('Darsni faqat o‘quvchining o‘zi belgilaydi');
+    return lessonService.setCompleted(scope.studentIds[0]!, lessonId, completed);
+  },
+
+  /** Dars materiali fayli — faqat o'z kursidagi nashr qilingan dars */
+  async lessonMaterial(actor: AuthUser, materialId: string, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const student = await prisma.student.findFirstOrThrow({ where: { id: studentId, deletedAt: null }, select: { courseId: true } });
+    return lessonService.materialFile(materialId, student.courseId);
   },
 
   /** Haftalik hisobot (TZ §11) — o'z farzandi/o'zi uchun */

@@ -25,6 +25,8 @@ export const PERMISSIONS = {
 
   COURSE_VIEW: 'course.view',
   COURSE_MANAGE: 'course.manage',
+  /// LMS darslari va materiallari (o'qituvchi — o'zi o'qitadigan kurslar)
+  LESSON_MANAGE: 'lesson.manage',
 
   GROUP_VIEW: 'group.view',
   GROUP_MANAGE: 'group.manage',
@@ -157,6 +159,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
 
   { key: PERMISSIONS.COURSE_VIEW, module: 'courses', description: 'Kurslarni ko‘rish' },
   { key: PERMISSIONS.COURSE_MANAGE, module: 'courses', description: 'Kurs yaratish, tahrirlash, o‘chirish' },
+  { key: PERMISSIONS.LESSON_MANAGE, module: 'courses', description: 'LMS darslari va materiallarini yaratish (o‘qituvchi — o‘z kurslarida)' },
 
   { key: PERMISSIONS.GROUP_VIEW, module: 'groups', description: 'Guruhlarni ko‘rish' },
   { key: PERMISSIONS.GROUP_MANAGE, module: 'groups', description: 'Guruh yaratish, tahrirlash, o‘chirish' },
@@ -415,6 +418,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
       PERMISSIONS.COURSE_VIEW,
+      PERMISSIONS.LESSON_MANAGE,
       PERMISSIONS.GROUP_VIEW,
       PERMISSIONS.STUDENT_VIEW,
       PERMISSIONS.ATTENDANCE_VIEW,

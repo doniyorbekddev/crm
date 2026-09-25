@@ -20,6 +20,9 @@ export const weeklyReportQuerySchema = portalChildQuerySchema.extend({
     .optional(),
 });
 
+/** "Darsni o'rgandim" belgisi */
+export const lessonCompleteSchema = z.object({ completed: z.boolean().default(true) });
+
 /** O'quvchining matnli javobi */
 export const portalHomeworkSubmitSchema = z.object({
   answerText: z.string().trim().min(1, 'Javobni kiriting').max(2000, 'Javob 2000 belgidan oshmasin'),

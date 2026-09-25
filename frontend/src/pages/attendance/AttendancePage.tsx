@@ -17,6 +17,7 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService } from '@/services/attendance.service';
+import { curriculumService } from '@/services/curriculum.service';
 import { groupsService } from '@/services/groups.service';
 import type { AttendanceStatus } from '@/types/attendance';
 import { formatSchedule } from '@/utils/courseLabels';
@@ -56,6 +57,8 @@ export default function AttendancePage() {
   const [date, setDate] = useState(todayValue);
   /** Saqlanmagan o‘zgarishlar: studentId → holat */
   const [draft, setDraft] = useState<Record<string, AttendanceStatus>>({});
+  /** Shu darsda o‘tilgan kurs mavzusi (LMS) — kelganlar progressi yangilanadi */
+  const [topicId, setTopicId] = useState('');
 
   const groupsQuery = useQuery({
     queryKey: queryKeys.groups.list({ page: 1, limit: GROUP_PAGE_SIZE, status: 'ACTIVE' }),
@@ -73,16 +76,32 @@ export default function AttendancePage() {
   });
 
   const sheet = sheetQuery.data;
+  const courseId = groups.find((group) => group.id === groupId)?.course.id ?? '';
+  const curriculumQuery = useQuery({
+    queryKey: queryKeys.curriculum.course(courseId),
+    queryFn: () => curriculumService.forCourse(courseId),
+    enabled: Boolean(courseId) && canMark,
+    staleTime: 60_000,
+  });
+  const topics = (curriculumQuery.data?.modules ?? []).flatMap((module) => module.topics.filter((topic) => topic.isActive).map((topic) => ({ ...topic, moduleTitle: module.title })));
 
   const save = useMutation({
     mutationFn: () =>
       attendanceService.mark(groupId, {
         date,
-        records: Object.entries(draft).map(([studentId, status]) => ({ studentId, status })),
+        ...(topicId ? { topicId } : {}),
+        // Mavzu tanlansa, faqat o'zgarganlar emas — barcha belgilangan o'quvchilar yuboriladi (progress uchun)
+        records: topicId && sheet
+          ? sheet.students
+              .map((row) => ({ studentId: row.studentId, status: draft[row.studentId] ?? row.status }))
+              .filter((row): row is { studentId: string; status: AttendanceStatus } => row.status !== null)
+          : Object.entries(draft).map(([studentId, status]) => ({ studentId, status })),
       }),
     onSuccess: (result) => {
       toast.success(result.message);
       setDraft({});
+      setTopicId('');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.curriculum.all });
       queryClient.setQueryData(queryKeys.attendance.sheet(groupId, date), result.data);
       void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
     },
@@ -92,6 +111,7 @@ export default function AttendancePage() {
   const changeSelection = (apply: () => void) => {
     apply();
     setDraft({});
+    setTopicId('');
   };
 
   const markAllPresent = () => {
@@ -174,8 +194,18 @@ export default function AttendancePage() {
                 Hammasi keldi
               </Button>
             )}
+            {canMark && topics.length > 0 && (
+              <Select value={topicId} onChange={(event) => setTopicId(event.target.value)} aria-label="O‘tilgan mavzu" wrapperClassName="sm:w-56">
+                <option value="">O‘tilgan mavzu (ixtiyoriy)</option>
+                {topics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.moduleTitle} · {topic.title}
+                  </option>
+                ))}
+              </Select>
+            )}
             {canMark && (
-              <Button onClick={() => save.mutate()} loading={save.isPending} disabled={pendingCount === 0}>
+              <Button onClick={() => save.mutate()} loading={save.isPending} disabled={pendingCount === 0 && !topicId}>
                 Saqlash{pendingCount > 0 ? ` (${pendingCount})` : ''}
               </Button>
             )}

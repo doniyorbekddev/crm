@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, GraduationCap, Layers, Pencil, Plus, Target, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -145,6 +146,10 @@ export default function CoursesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold text-fg">{course.name}</h2>
+                    <Link to={`/courses/${course.id}/lessons`} className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-300">
+                      <BookOpen className="size-3" aria-hidden />
+                      Darslar (LMS)
+                    </Link>
                     <p className="mt-1 text-xs text-fg-muted">
                       {COURSE_CATEGORY_LABELS[course.category]} · {course.durationMonths} oy
                     </p>

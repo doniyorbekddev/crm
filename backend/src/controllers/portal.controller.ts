@@ -1,8 +1,5 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
 import type { Request, Response } from 'express';
-import { AppError } from '../utils/AppError.js';
-import { contentDisposition } from '../utils/fileStorage.js';
+import { sendStoredFile } from '../utils/sendStoredFile.js';
 import { portalService } from '../services/portal.service.js';
 import { portalAccountService } from '../services/portalAccount.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
@@ -15,6 +12,7 @@ import {
   portalChildQuerySchema,
   portalHomeworkSubmitSchema,
   studentPortalAccountSchema,
+  lessonCompleteSchema,
   weeklyReportQuerySchema,
 } from '../validators/portal.validator.js';
 import { portalFeedbackSchema } from '../validators/feedback.validator.js';
@@ -120,20 +118,32 @@ export const portalController = {
   async homeworkAttachment(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     const { studentId } = portalChildQuerySchema.parse(req.query);
-    const file = await portalService.homeworkAttachment(requireAuthUser(req), id, studentId);
-    let size: number;
-    try {
-      size = (await stat(file.absolutePath)).size;
-    } catch {
-      throw AppError.notFound('Fayl saqlash joyida topilmadi');
-    }
-    res.setHeader('Content-Type', file.mimeType);
-    res.setHeader('Content-Length', String(size));
-    res.setHeader('Content-Disposition', contentDisposition(file.fileName));
-    res.setHeader('Cache-Control', 'private, no-store');
-    const stream = createReadStream(file.absolutePath);
-    stream.on('error', () => res.destroy());
-    stream.pipe(res);
+    await sendStoredFile(res, await portalService.homeworkAttachment(requireAuthUser(req), id, studentId));
+  },
+
+  async course(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.course(requireAuthUser(req), studentId));
+  },
+
+  async lesson(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.lesson(requireAuthUser(req), id, studentId));
+  },
+
+  async completeLesson(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { completed } = lessonCompleteSchema.parse(req.body ?? {});
+    sendSuccess(res, await portalService.setLessonCompleted(requireAuthUser(req), id, completed), {
+      message: completed ? 'Dars o‘rganildi deb belgilandi' : 'Belgi olib tashlandi',
+    });
+  },
+
+  async lessonMaterial(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    await sendStoredFile(res, await portalService.lessonMaterial(requireAuthUser(req), id, studentId));
   },
 
   async examDetail(req: Request, res: Response): Promise<void> {

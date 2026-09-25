@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { lessonRouter } from './lesson.routes.js';
 import { alertRouter, targetRouter } from './alert.routes.js';
 import { analyticsRouter } from './analytics.routes.js';
 import { attendanceRouter, attendanceSessionRouter } from './attendance.routes.js';
@@ -65,6 +66,7 @@ apiRouter.use('/feedback', feedbackRouter);
 apiRouter.use('/products', inventoryRouter);
 apiRouter.use('/ai', aiRouter);
 apiRouter.use('/automation', automationRouter);
+apiRouter.use('/lessons', lessonRouter);
 apiRouter.use('/curriculum', curriculumRouter);
 apiRouter.use('/questions', questionRouter);
 apiRouter.use('/rooms', roomRouter);

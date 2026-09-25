@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { assertTopicForGroup, startTopicForAttendees } from './curriculum.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { AttendanceSessionStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -21,6 +22,7 @@ const sessionSelect = {
   note: true,
   status: true,
   createdAt: true,
+  curriculumTopic: { select: { id: true, title: true } },
   group: { select: { id: true, name: true, course: { select: { id: true, name: true } } } },
   teacher: { select: { id: true, firstName: true, lastName: true } },
   _count: { select: { attendances: true } },
@@ -34,6 +36,8 @@ export interface AttendanceSessionDto {
   startTime: string | null;
   endTime: string | null;
   topic: string | null;
+  /** Kurs dasturidagi mavzu (LMS) */
+  curriculumTopic: { id: string; title: string } | null;
   note: string | null;
   status: AttendanceSessionStatus;
   markedCount: number;
@@ -60,6 +64,7 @@ function toDto(session: SessionRecord): AttendanceSessionDto {
     startTime: session.startTime,
     endTime: session.endTime,
     topic: session.topic,
+    curriculumTopic: session.curriculumTopic,
     note: session.note,
     status: session.status,
     markedCount: session._count.attendances,
@@ -67,6 +72,16 @@ function toDto(session: SessionRecord): AttendanceSessionDto {
     group: session.group,
     teacher: session.teacher,
   };
+}
+
+/** Seansga mavzu biriktirildi — allaqachon belgilangan kelganlar progressi yangilanadi */
+async function applyTopicToAttendees(sessionId: string, topicId: string, actorId: string): Promise<void> {
+  const attendees = await prisma.attendance.findMany({
+    where: { sessionId, status: { in: ['PRESENT', 'LATE'] } },
+    select: { studentId: true },
+  });
+  if (attendees.length === 0) return;
+  await prisma.$transaction((tx) => startTopicForAttendees(tx, { topicId, studentIds: attendees.map((row) => row.studentId), markedById: actorId }));
 }
 
 export async function getSessionAccess(actor: AuthUser): Promise<SessionAccess> {
@@ -142,6 +157,7 @@ export const attendanceSessionService = {
   async create(actor: AuthUser, input: CreateSessionInput, client: ClientInfo): Promise<AttendanceSessionDto> {
     const access = await getSessionAccess(actor);
     const group = await assertGroupVisible(access, input.groupId);
+    if (input.topicId) await assertTopicForGroup(input.topicId, input.groupId);
 
     const existing = await prisma.attendanceSession.findUnique({
       where: { groupId_date: { groupId: input.groupId, date: input.date } },
@@ -152,6 +168,7 @@ export const attendanceSessionService = {
       startTime: input.startTime ?? null,
       endTime: input.endTime ?? null,
       topic: input.topic ?? null,
+      ...(input.topicId === undefined ? {} : { topicId: input.topicId }),
       note: input.note ?? null,
       status: input.status,
     };
@@ -169,6 +186,8 @@ export const attendanceSessionService = {
           select: sessionSelect,
         });
 
+    if (input.topicId && session.status === 'HELD') await applyTopicToAttendees(session.id, input.topicId, actor.id);
+
     await auditService.record({
       userId: actor.id,
       action: existing ? 'attendance_session.updated' : 'attendance_session.created',
@@ -184,10 +203,12 @@ export const attendanceSessionService = {
   async update(actor: AuthUser, id: string, input: UpdateSessionInput, client: ClientInfo): Promise<AttendanceSessionDto> {
     const access = await getSessionAccess(actor);
     const session = await findVisibleSession(access, id);
+    if (input.topicId) await assertTopicForGroup(input.topicId, session.group.id);
 
     const updated = await prisma.attendanceSession.update({
       where: { id },
       data: {
+        ...(input.topicId === undefined ? {} : { topicId: input.topicId }),
         ...(input.startTime === undefined ? {} : { startTime: input.startTime ?? null }),
         ...(input.endTime === undefined ? {} : { endTime: input.endTime ?? null }),
         ...(input.topic === undefined ? {} : { topic: input.topic ?? null }),
@@ -196,6 +217,8 @@ export const attendanceSessionService = {
       },
       select: sessionSelect,
     });
+
+    if (input.topicId && updated.status === 'HELD') await applyTopicToAttendees(id, input.topicId, actor.id);
 
     await auditService.record({
       userId: actor.id,
@@ -234,13 +257,16 @@ export const attendanceSessionService = {
    */
   async ensureSession(
     tx: Prisma.TransactionClient,
-    input: { groupId: string; date: Date; teacherId: string | null; markedById: string },
+    input: { groupId: string; date: Date; teacherId: string | null; markedById: string; topicId?: string | null },
   ): Promise<string> {
     const existing = await tx.attendanceSession.findUnique({
       where: { groupId_date: { groupId: input.groupId, date: input.date } },
       select: { id: true },
     });
-    if (existing) return existing.id;
+    if (existing) {
+      if (input.topicId) await tx.attendanceSession.update({ where: { id: existing.id }, data: { topicId: input.topicId } });
+      return existing.id;
+    }
 
     const created = await tx.attendanceSession.create({
       data: {
@@ -249,6 +275,7 @@ export const attendanceSessionService = {
         teacherId: input.teacherId,
         markedById: input.markedById,
         status: 'HELD',
+        topicId: input.topicId ?? null,
       },
       select: { id: true },
     });

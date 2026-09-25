@@ -1,12 +1,9 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
 import type { Request, Response } from 'express';
 import { documentService } from '../services/document.service.js';
 import type { DocumentOwner } from '../services/document.service.js';
-import { AppError } from '../utils/AppError.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
-import { contentDisposition } from '../utils/fileStorage.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
+import { sendStoredFile } from '../utils/sendStoredFile.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import { staffDocumentMetaSchema, updateDocumentSchema } from '../validators/document.validator.js';
 
@@ -42,18 +39,7 @@ export const documentController = {
   async download(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     const file = await documentService.download(requireAuthUser(req), id, getClientInfo(req));
-    try {
-      await stat(file.absolutePath);
-    } catch {
-      throw AppError.notFound('Fayl saqlash joyida topilmadi');
-    }
-    res.setHeader('Content-Type', file.mimeType);
-    res.setHeader('Content-Length', String(file.size));
-    res.setHeader('Content-Disposition', contentDisposition(file.originalName));
-    res.setHeader('Cache-Control', 'private, no-store');
-    const stream = createReadStream(file.absolutePath);
-    stream.on('error', () => res.destroy());
-    stream.pipe(res);
+    await sendStoredFile(res, { absolutePath: file.absolutePath, fileName: file.originalName, mimeType: file.mimeType });
   },
 
   async update(req: Request, res: Response): Promise<void> {

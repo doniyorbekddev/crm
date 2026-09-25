@@ -129,6 +129,37 @@ async function assertCanMark(actor: AuthUser, studentIds: string[]): Promise<voi
   }
 }
 
+/**
+ * Dars sessiyasiga bog'langan kurs mavzusi shu guruh kursiniki ekanini tekshiradi
+ * (begona kurs mavzusi bilan progress buzilmasin).
+ */
+export async function assertTopicForGroup(topicId: string, groupId: string): Promise<void> {
+  const [topic, group] = await Promise.all([
+    prisma.courseTopic.findFirst({ where: { id: topicId, isActive: true }, select: { module: { select: { courseId: true } } } }),
+    prisma.group.findUnique({ where: { id: groupId }, select: { courseId: true } }),
+  ]);
+  if (!topic || !group || topic.module.courseId !== group.courseId) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'topicId', message: 'Mavzu bu guruh kursiga tegishli emas' }]);
+  }
+}
+
+/**
+ * Darsda mavzu o'tildi: kelgan (PRESENT/LATE) o'quvchilarda mavzu "o'rganilmoqda" bo'ladi.
+ * Allaqachon boshlangan yoki tugatilgan mavzu **o'zgarmaydi** (`skipDuplicates`) —
+ * "tugatildi" ni faqat o'qituvchi qo'yadi.
+ */
+export async function startTopicForAttendees(
+  tx: Prisma.TransactionClient,
+  input: { topicId: string; studentIds: string[]; markedById: string },
+): Promise<number> {
+  if (input.studentIds.length === 0) return 0;
+  const result = await tx.studentTopicProgress.createMany({
+    data: input.studentIds.map((studentId) => ({ studentId, topicId: input.topicId, status: 'IN_PROGRESS' as const, markedById: input.markedById })),
+    skipDuplicates: true,
+  });
+  return result.count;
+}
+
 export const curriculumService = {
   /** Kurs dasturi — modul va mavzular bilan */
   async forCourse(courseId: string, includeInactive = false): Promise<CurriculumDto> {

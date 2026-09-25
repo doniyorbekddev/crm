@@ -101,6 +101,18 @@ export const router = createBrowserRouter([
                         ),
                       },
                       {
+                        path: "course",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalCoursePage"),
+                        ),
+                      },
+                      {
+                        path: "course/lessons/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalLessonPage"),
+                        ),
+                      },
+                      {
                         path: "weekly-report",
                         lazy: lazyComponent(
                           () => import("@/pages/portal/PortalWeeklyReportPage"),
@@ -268,6 +280,12 @@ export const router = createBrowserRouter([
                         path: "courses",
                         lazy: lazyComponent(
                           () => import("@/pages/courses/CoursesPage"),
+                        ),
+                      },
+                      {
+                        path: "courses/:id/lessons",
+                        lazy: lazyComponent(
+                          () => import("@/pages/courses/CourseLessonsPage"),
                         ),
                       },
                     ],

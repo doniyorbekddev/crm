@@ -38,6 +38,8 @@ export interface AttendanceSheet {
 
 export interface MarkAttendancePayload {
   date: string;
+  /** O‘tilgan kurs mavzusi (LMS) — kelganlarda "o‘rganilmoqda" bo‘ladi */
+  topicId?: string;
   records: Array<{ studentId: string; status: AttendanceStatus; note?: string }>;
 }
 

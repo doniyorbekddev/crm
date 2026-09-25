@@ -136,6 +136,11 @@ export const queryKeys = {
     list: (params: Record<string, unknown>) => ['questions', 'list', params] as const,
     attempts: (examId: string) => ['questions', 'attempts', examId] as const,
   },
+  lessons: {
+    all: ['lessons'] as const,
+    tree: (courseId: string, includeArchived: boolean) => ['lessons', 'tree', courseId, includeArchived] as const,
+    detail: (id: string) => ['lessons', 'detail', id] as const,
+  },
   curriculum: {
     all: ['curriculum'] as const,
     course: (courseId: string) => ['curriculum', 'course', courseId] as const,
@@ -160,6 +165,8 @@ export const queryKeys = {
     overview: (studentId: string) => ['portal', 'overview', studentId] as const,
     children: ['portal', 'children'] as const,
     weeklyReport: (studentId: string, week: string) => ['portal', 'weekly-report', studentId, week] as const,
+    course: (studentId: string) => ['portal', 'course', studentId] as const,
+    lesson: (studentId: string, lessonId: string) => ['portal', 'course', studentId, lessonId] as const,
     homework: (studentId: string) => ['portal', 'homework', studentId] as const,
     homeworkDetail: (studentId: string, homeworkId: string) => ['portal', 'homework', studentId, homeworkId] as const,
     exams: (studentId: string) => ['portal', 'exams', studentId] as const,

@@ -15,6 +15,7 @@ import type {
   WeeklyReport,
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
+import type { LessonMaterial, LessonTree, PortalLessonDetail } from '@/types/lesson';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
 import type { Certificate } from '@/types/certificate';
 import type { StudentExamRow, StudentHomeworkRow } from '@/types/studentProfile';
@@ -70,6 +71,27 @@ export const portalService = {
   async children(): Promise<PortalChildSummary[]> {
     const response = await api.get<ApiSuccessResponse<PortalChildSummary[]>>('/portal/children');
     return response.data.data;
+  },
+
+  /** Kurs dasturi: nashr qilingan darslar va o‘quvchi tugatganlari */
+  async course(studentId?: string): Promise<LessonTree> {
+    const response = await api.get<ApiSuccessResponse<LessonTree>>('/portal/course', { params: { studentId } });
+    return response.data.data;
+  },
+
+  async lesson(lessonId: string, studentId?: string): Promise<PortalLessonDetail> {
+    const response = await api.get<ApiSuccessResponse<PortalLessonDetail>>(`/portal/course/lessons/${lessonId}`, { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** "Darsni o‘rgandim" — faqat o‘quvchining o‘zi */
+  async completeLesson(lessonId: string, completed: boolean): Promise<MessageResult<{ completed: boolean }>> {
+    const response = await api.post<ApiSuccessResponse<{ completed: boolean }>>(`/portal/course/lessons/${lessonId}/complete`, { completed });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  downloadLessonMaterial(material: LessonMaterial, studentId?: string): Promise<void> {
+    return downloadFile(`/portal/course/materials/${material.id}/download`, { studentId }, material.originalName ?? material.title);
   },
 
   /** Haftalik hisobot; `week` — hafta ichidagi sana (bo‘lmasa joriy hafta) */

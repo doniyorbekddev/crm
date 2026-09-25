@@ -14,6 +14,8 @@ export const attendanceQuerySchema = z.object({
 
 export const markAttendanceSchema = z.object({
   date: dateOnlySchema,
+  /** Shu darsda o'tilgan kurs mavzusi (ixtiyoriy) — kelganlar progressi yangilanadi */
+  topicId: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().trim().min(1).max(50).optional()),
   records: z
     .array(
       z.object({

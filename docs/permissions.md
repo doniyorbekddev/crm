@@ -1,7 +1,7 @@
 # Ruxsatlar (RBAC) — rol × ruxsat matritsasi
 
 > **Avtomatik yaratilgan** — manba: `backend/src/config/permissions.ts`. Qo‘lda tahrirlamang — `npm run docs:permissions --workspace backend` bilan qayta yarating.
-> Sana: 2026-09-24. Ruxsatlar: 90 ta, tizim rollari: 9 ta.
+> Sana: 2026-09-25. Ruxsatlar: 91 ta, tizim rollari: 9 ta.
 
 ## Qanday ishlaydi
 
@@ -14,12 +14,12 @@
 
 | Kalit | Nomi | Tavsif | Ruxsatlar soni |
 |---|---|---|---|
-| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 87 |
-| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 86 |
-| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 78 |
+| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 88 |
+| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 87 |
+| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 79 |
 | `SALES_MANAGER` | Sales Manager | Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish | 21 |
 | `CALL_CENTER` | Call Center | Leadlar, qo‘ng‘iroqlar va follow-up | 14 |
-| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 16 |
+| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 17 |
 | `STUDENT` | O‘quvchi (kabinet) | Faqat o‘z davomati, uy vazifasi, imtihonlari, XP va to‘lovlari | 1 |
 | `PARENT` | Ota-ona (kabinet) | Faqat o‘z farzandlarining ma’lumotlari | 1 |
 | `ACCOUNTANT` | Buxgalter | To‘lovlar, qarzdorlik va moliyaviy hisobotlar | 28 |
@@ -47,6 +47,7 @@ Qisqartmalar: SA = Super Admin · OWN = Direktor (Owner) · ADM = Admin · SM = 
 | follow-ups | `followup.delete` | Follow-upni o‘chirish | ✅ | ✅ | ✅ | ✅ | ✅ | · | · | · | · |
 | courses | `course.view` | Kurslarni ko‘rish | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | · | · | ✅ |
 | courses | `course.manage` | Kurs yaratish, tahrirlash, o‘chirish | ✅ | ✅ | ✅ | · | · | · | · | · | · |
+| courses | `lesson.manage` | LMS darslari va materiallarini yaratish (o‘qituvchi — o‘z kurslarida) | ✅ | ✅ | ✅ | · | · | ✅ | · | · | · |
 | groups | `group.view` | Guruhlarni ko‘rish | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | · | · | ✅ |
 | groups | `group.manage` | Guruh yaratish, tahrirlash, o‘chirish | ✅ | ✅ | ✅ | · | · | · | · | · | · |
 | students | `student.view` | O‘quvchilarni ko‘rish | ✅ | ✅ | ✅ | ✅ | · | ✅ | · | · | ✅ |

@@ -230,47 +230,47 @@ enum NotificationPriority {
 // ---------------------------------------------------------------------
 
 model User {
-  id                String     @id @default(cuid())
-  firstName         String     @db.VarChar(100)
-  lastName          String     @db.VarChar(100)
-  email             String     @unique @db.VarChar(255)
-  phone             String?    @db.VarChar(32)
-  passwordHash      String
-  status            UserStatus @default(PENDING)
-  roleId            String
-  lastLoginAt       DateTime?
-  passwordChangedAt DateTime?
+  id                 String     @id @default(cuid())
+  firstName          String     @db.VarChar(100)
+  lastName           String     @db.VarChar(100)
+  email              String     @unique @db.VarChar(255)
+  phone              String?    @db.VarChar(32)
+  passwordHash       String
+  status             UserStatus @default(PENDING)
+  roleId             String
+  lastLoginAt        DateTime?
+  passwordChangedAt  DateTime?
   /// Vaqtinchalik parol (kabinet ochilganda yoki xodim tiklaganda) — birinchi kirishda almashtirilishi shart
-  mustChangePassword Boolean   @default(false)
-  branchId          String     @default("branch_main")
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  deletedAt         DateTime?
+  mustChangePassword Boolean    @default(false)
+  branchId           String     @default("branch_main")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  deletedAt          DateTime?
 
-  role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  assignedLeads       Lead[]               @relation("LeadAssignee")
-  createdLeads        Lead[]               @relation("LeadCreator")
-  leadActivities      LeadActivity[]
-  leadNotes           LeadNote[]
-  calls               Call[]
-  assignedFollowUps   FollowUp[]           @relation("FollowUpAssignee")
-  createdFollowUps    FollowUp[]           @relation("FollowUpCreator")
-  taughtCourses       Course[]
-  taughtGroups        Group[]
-  createdStudents     Student[]
-  managedPayments     Payment[]            @relation("PaymentManager")
-  acceptedPayments    Payment[]            @relation("PaymentAccountant")
-  deletedPayments     Payment[]            @relation("PaymentDeletedBy")
-  markedAttendances   Attendance[]
-  uploadedDocuments   Document[]
-  deletedDocuments    Document[]           @relation("DocumentDeletedBy")
-  notifications       Notification[]
+  role                 Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  assignedLeads        Lead[]                @relation("LeadAssignee")
+  createdLeads         Lead[]                @relation("LeadCreator")
+  leadActivities       LeadActivity[]
+  leadNotes            LeadNote[]
+  calls                Call[]
+  assignedFollowUps    FollowUp[]            @relation("FollowUpAssignee")
+  createdFollowUps     FollowUp[]            @relation("FollowUpCreator")
+  taughtCourses        Course[]
+  taughtGroups         Group[]
+  createdStudents      Student[]
+  managedPayments      Payment[]             @relation("PaymentManager")
+  acceptedPayments     Payment[]             @relation("PaymentAccountant")
+  deletedPayments      Payment[]             @relation("PaymentDeletedBy")
+  markedAttendances    Attendance[]
+  uploadedDocuments    Document[]
+  deletedDocuments     Document[]            @relation("DocumentDeletedBy")
+  notifications        Notification[]
   notificationSettings NotificationSetting[]
-  broadcasts          TelegramBroadcast[]  @relation("BroadcastCreator")
-  auditLogs           AuditLog[]
-  updatedSettings     Setting[]
+  broadcasts           TelegramBroadcast[]   @relation("BroadcastCreator")
+  auditLogs            AuditLog[]
+  updatedSettings      Setting[]
 
   // O'quv markaz modullari
   preferences              UserPreference[]
@@ -334,6 +334,8 @@ model User {
   createdPaymentIntents    PaymentIntent[]        @relation("PaymentIntentCreatedBy")
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
+  taughtLessons            Lesson[]               @relation("LessonTeacher")
+  createdLessons           Lesson[]               @relation("LessonCreatedBy")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -692,6 +694,7 @@ model CourseTopic {
   progress  StudentTopicProgress[]
   sessions  AttendanceSession[]
   questions Question[]
+  lessons   Lesson[]
 
   @@index([moduleId, sortOrder])
   @@map("course_topics")
@@ -717,6 +720,87 @@ model StudentTopicProgress {
   @@unique([studentId, topicId])
   @@index([topicId, status])
   @@map("student_topic_progress")
+}
+
+/// LMS darsi holati: qoralama o'quvchiga ko'rinmaydi, arxiv — yangi o'quvchilarga ham
+enum LessonStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LessonMaterialKind {
+  FILE
+  LINK
+  VIDEO
+}
+
+/// LMS darsi (TZ 3.0 §14): Kurs → Modul → Mavzu → **Dars** → Material.
+/// Dars sessiyasi (`AttendanceSession`) — jadvaldagi mashg'ulot; bu esa o'quv kontenti.
+model Lesson {
+  id              String       @id @default(cuid())
+  topicId         String
+  title           String       @db.VarChar(200)
+  /// Qisqa tavsif (ro'yxatda ko'rinadi)
+  description     String?      @db.VarChar(1000)
+  /// Dars matni (konspekt) — oddiy matn, paragraf bilan
+  content         String?
+  teacherId       String?
+  durationMinutes Int?         @db.SmallInt
+  videoUrl        String?      @db.VarChar(500)
+  sortOrder       Int          @default(0)
+  status          LessonStatus @default(DRAFT)
+  publishedAt     DateTime?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  topic     CourseTopic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  teacher   User?            @relation("LessonTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  createdBy User?            @relation("LessonCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  materials LessonMaterial[]
+  progress  LessonProgress[]
+
+  @@index([topicId, status, sortOrder])
+  @@index([status, publishedAt])
+  @@map("lessons")
+}
+
+/// Dars materiali: fayl (PDF/rasm — hujjatlar bilan bir xil siyosat), havola yoki video havola
+model LessonMaterial {
+  id           String             @id @default(cuid())
+  lessonId     String
+  kind         LessonMaterialKind
+  title        String             @db.VarChar(200)
+  url          String?            @db.VarChar(1000)
+  storagePath  String?            @db.VarChar(500)
+  originalName String?            @db.VarChar(255)
+  mimeType     String?            @db.VarChar(100)
+  size         Int?
+  sortOrder    Int                @default(0)
+  createdAt    DateTime           @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId, sortOrder])
+  @@map("lesson_materials")
+}
+
+/// O'quvchi darsni ochgan/tugatgan payt — kurs progressi va faollik uchun
+model LessonProgress {
+  id            String    @id @default(cuid())
+  lessonId      String
+  studentId     String
+  firstViewedAt DateTime  @default(now())
+  lastViewedAt  DateTime  @default(now())
+  completedAt   DateTime?
+
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+  @@index([studentId, lastViewedAt])
+  @@map("lesson_progress")
 }
 
 model Course {
@@ -893,6 +977,7 @@ model Student {
   feedback          Feedback[]
   stockMovements    StockMovement[]
   paymentIntents    PaymentIntent[]
+  lessonProgress    LessonProgress[]
   referralsMade     Referral[]                @relation("ReferralReferrer")
   referredBy        Referral?                 @relation("ReferralReferred")
   user              User?                     @relation("StudentPortalAccount", fields: [userId], references: [id], onDelete: SetNull)
@@ -1002,17 +1087,17 @@ model StudentGroupChange {
 }
 
 model Payment {
-  id             String        @id @default(cuid())
+  id             String         @id @default(cuid())
   /// Onlayn to'lovdan kelgan bo'lsa — qaysi so'rovdan
   intent         PaymentIntent?
   /// Kvitansiya raqami
-  number         Int           @unique @default(autoincrement())
+  number         Int            @unique @default(autoincrement())
   studentId      String
   /// To‘lov paytidagi kurs (snapshot)
   courseId       String
-  amount         Decimal       @db.Decimal(14, 2)
+  amount         Decimal        @db.Decimal(14, 2)
   method         PaymentMethod
-  paidAt         DateTime      @default(now())
+  paidAt         DateTime       @default(now())
   comment        String?
   /// Sotuvni amalga oshirgan manager (manager performance hisobotlari uchun)
   managerId      String?
@@ -1020,17 +1105,17 @@ model Payment {
   accountantId   String?
   deletedAt      DateTime?
   deletedById    String?
-  deleteReason   String?       @db.VarChar(255)
+  deleteReason   String?        @db.VarChar(255)
   /// Moliyaviy daftardagi yozuv (tushum ikki marta hisoblanmasligi uchun)
-  transactionId  String?       @unique
+  transactionId  String?        @unique
   /// Formadan kelgan so‘rov kaliti: tarmoq qayta urinishi yoki ikki marta bosish yangi to‘lov yaratmaydi
-  idempotencyKey String?       @unique @db.VarChar(64)
+  idempotencyKey String?        @unique @db.VarChar(64)
   /// To‘lov paytidagi guruh va o‘qituvchi — o‘quvchi keyin boshqa guruhga o‘tsa ham foiz shu o‘qituvchiga qoladi
   groupId        String?
   teacherId      String?
-  branchId       String        @default("branch_main")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  branchId       String         @default("branch_main")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   transaction       Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   student           Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
@@ -1141,29 +1226,29 @@ model Document {
 /// aynan bittasi to'ldiriladi (baza darajasidagi CHECK bilan kafolatlanadi).
 /// Bog'lash `/start <linkCode>` orqali: kod CRM'da beriladi, bot uni webhookda qabul qiladi.
 model TelegramLink {
-  id         String    @id @default(cuid())
+  id             String    @id @default(cuid())
   /// Telegram chat identifikatori (bog'langandan keyin to'ladi)
-  chatId     String?   @unique @db.VarChar(64)
+  chatId         String?   @unique @db.VarChar(64)
   /// Bir martalik bog'lash kodi
-  linkCode   String    @unique @db.VarChar(32)
+  linkCode       String    @unique @db.VarChar(32)
   /// Kod shu vaqtdan keyin ishlamaydi — o'g'irlangan kod abadiy amal qilmasin
-  codeExpiresAt DateTime?
+  codeExpiresAt  DateTime?
   /// Kod ishlatilgan vaqt. To'lgan bo'lsa kod qayta ishlatilmaydi (replay himoyasi)
-  codeUsedAt DateTime?
+  codeUsedAt     DateTime?
   /// Bog'lagan Telegram foydalanuvchisi — guruh chatida `chatId` dan farq qiladi
-  telegramUserId String? @db.VarChar(64)
+  telegramUserId String?   @db.VarChar(64)
   /// Oxirgi faollik — ishlatilmayotgan bog'lanishlarni topish uchun
-  lastSeenAt DateTime?
-  userId     String?
-  studentId  String?
-  parentId   String?
+  lastSeenAt     DateTime?
+  userId         String?
+  studentId      String?
+  parentId       String?
   /// Telegramdagi ismi — xodim kimga yuborilayotganini ko'rishi uchun
-  chatTitle  String?   @db.VarChar(150)
-  verifiedAt DateTime?
+  chatTitle      String?   @db.VarChar(150)
+  verifiedAt     DateTime?
   /// Foydalanuvchi xabarlarni o'chirib qo'ygan bo'lsa
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user       User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   student    Student?               @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -1199,8 +1284,8 @@ model NotificationDelivery {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
-  telegramLink TelegramLink? @relation(fields: [telegramLinkId], references: [id], onDelete: SetNull)
+  notification Notification?      @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  telegramLink TelegramLink?      @relation(fields: [telegramLinkId], references: [id], onDelete: SetNull)
   broadcast    TelegramBroadcast? @relation(fields: [broadcastId], references: [id], onDelete: SetNull)
 
   @@index([status, nextAttemptAt])
@@ -1217,12 +1302,12 @@ model Notification {
   priority   NotificationPriority @default(NORMAL)
   title      String               @db.VarChar(200)
   message    String
-  entityType String?          @db.VarChar(50)
-  entityId   String?          @db.VarChar(50)
+  entityType String?              @db.VarChar(50)
+  entityId   String?              @db.VarChar(50)
   /// Bir xil eslatma ikki marta yuborilmasligi uchun (masalan: followup-overdue:<id>)
-  dedupeKey  String?          @unique @db.VarChar(150)
+  dedupeKey  String?              @unique @db.VarChar(150)
   readAt     DateTime?
-  createdAt  DateTime         @default(now())
+  createdAt  DateTime             @default(now())
 
   user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries NotificationDelivery[]
@@ -1330,10 +1415,10 @@ model NotificationSetting {
   userId    String
   type      NotificationType
   /// Ilova ichidagi qo‘ng‘iroqchada ko‘rinadimi
-  inApp     Boolean  @default(true)
+  inApp     Boolean          @default(true)
   /// Telegramga yuborilsinmi
-  telegram  Boolean  @default(true)
-  updatedAt DateTime @updatedAt
+  telegram  Boolean          @default(true)
+  updatedAt DateTime         @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2332,23 +2417,23 @@ model Certificate {
 }
 
 model Exam {
-  id          String     @id @default(cuid())
-  title       String     @db.VarChar(200)
-  description String?
-  courseId    String?
-  groupId     String
-  teacherId   String?
-  date        DateTime   @db.Date
-  maxScore    Int        @default(100) @db.SmallInt
-  passScore   Int?       @db.SmallInt
+  id              String     @id @default(cuid())
+  title           String     @db.VarChar(200)
+  description     String?
+  courseId        String?
+  groupId         String
+  teacherId       String?
+  date            DateTime   @db.Date
+  maxScore        Int        @default(100) @db.SmallInt
+  passScore       Int?       @db.SmallInt
   /// Imtihon davomiyligi (daqiqa). Bo'sh — vaqt chegarasi yo'q
-  durationMinutes Int?   @db.SmallInt
+  durationMinutes Int?       @db.SmallInt
   /// Ruxsat etilgan urinishlar soni (0 — cheklanmagan)
-  maxAttempts Int        @default(0) @db.SmallInt
-  xpReward    Int        @default(50)
-  status      ExamStatus @default(PLANNED)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  maxAttempts     Int        @default(0) @db.SmallInt
+  xpReward        Int        @default(50)
+  status          ExamStatus @default(PLANNED)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   course    Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
   group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -2575,36 +2660,36 @@ enum EmployeeStatus {
 /// O‘qituvchidan tashqari xodimlar (administrator, buxgalter, farrosh...). Tizim akkaunti ixtiyoriy.
 /// Maoshi TeacherSalaryPeriod (umumiy payroll davri) orqali hisoblanadi.
 model Employee {
-  id              String           @id @default(cuid())
-  userId          String?          @unique
-  firstName       String           @db.VarChar(100)
-  lastName        String           @db.VarChar(100)
-  phone           String?          @db.VarChar(32)
-  email           String?          @db.VarChar(255)
+  id                String           @id @default(cuid())
+  userId            String?          @unique
+  firstName         String           @db.VarChar(100)
+  lastName          String           @db.VarChar(100)
+  phone             String?          @db.VarChar(32)
+  email             String?          @db.VarChar(255)
   /// Bo'lim: "Sotuv", "O'quv bo'limi", "Buxgalteriya" — markaz o'zi nomlaydi
-  department      String?          @db.VarChar(100)
-  position        EmployeePosition
+  department        String?          @db.VarChar(100)
+  position          EmployeePosition
   /// Oylik belgilangan maosh (oy o‘rtasida kirgan/ketganda kunlarga proporsional)
-  baseSalary      Decimal          @default(0) @db.Decimal(14, 2)
-  status          EmployeeStatus   @default(ACTIVE)
-  hireDate        DateTime         @db.Date
-  terminationDate DateTime?        @db.Date
+  baseSalary        Decimal          @default(0) @db.Decimal(14, 2)
+  status            EmployeeStatus   @default(ACTIVE)
+  hireDate          DateTime         @db.Date
+  terminationDate   DateTime?        @db.Date
   /// Mehnat shartnomasi
-  contractNumber    String?        @unique @db.VarChar(50)
-  contractStartDate DateTime?      @db.Date
+  contractNumber    String?          @unique @db.VarChar(50)
+  contractStartDate DateTime?        @db.Date
   /// Muddatsiz shartnomada bo'sh qoladi
-  contractEndDate   DateTime?      @db.Date
+  contractEndDate   DateTime?        @db.Date
   /// Maxfiy ma'lumot — `employee.sensitive` ruxsati bo'lmasa javobda qaytarilmaydi
-  birthDate         DateTime?      @db.Date
-  address           String?        @db.VarChar(255)
-  passportNumber    String?        @db.VarChar(32)
-  emergencyContact  String?        @db.VarChar(120)
-  emergencyPhone    String?        @db.VarChar(32)
-  note            String?          @db.VarChar(500)
-  createdById     String?
-  branchId        String           @default("branch_main")
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  birthDate         DateTime?        @db.Date
+  address           String?          @db.VarChar(255)
+  passportNumber    String?          @db.VarChar(32)
+  emergencyContact  String?          @db.VarChar(120)
+  emergencyPhone    String?          @db.VarChar(32)
+  note              String?          @db.VarChar(500)
+  createdById       String?
+  branchId          String           @default("branch_main")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   user          User?                 @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
   createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -2641,21 +2726,21 @@ enum LeaveStatus {
 /// Xodimning ta'til/dam olish arizasi. Tasdiqlangan ta'til xodim holatini **o'zgartirmaydi** —
 /// "bugun ta'tilda" degan javob sanalardan hisoblanadi, shunda qo'lda qo'yilgan holat buzilmaydi.
 model EmployeeLeave {
-  id           String      @id @default(cuid())
-  employeeId   String
-  type         LeaveType
-  startDate    DateTime    @db.Date
-  endDate      DateTime    @db.Date
+  id            String      @id @default(cuid())
+  employeeId    String
+  type          LeaveType
+  startDate     DateTime    @db.Date
+  endDate       DateTime    @db.Date
   /// Kunlar soni (ikkala chekka kun ham kiradi) — yozuvda muzlatiladi
-  days         Int         @db.SmallInt
-  reason       String?     @db.VarChar(255)
-  status       LeaveStatus @default(PENDING)
+  days          Int         @db.SmallInt
+  reason        String?     @db.VarChar(255)
+  status        LeaveStatus @default(PENDING)
   requestedById String?
-  decidedById  String?
-  decidedAt    DateTime?
-  decisionNote String?     @db.VarChar(255)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  decidedById   String?
+  decidedAt     DateTime?
+  decisionNote  String?     @db.VarChar(255)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   requestedBy User?    @relation("LeaveRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
@@ -2921,24 +3006,24 @@ enum FeedbackType {
 /// so'rovga ikki marta javob bermasligi va statistika to'g'ri bo'lishi uchun; lekin
 /// ismi xodimga **ko'rsatilmaydi** (`isAnonymous`).
 model Feedback {
-  id            String       @id @default(cuid())
-  studentId     String
-  type          FeedbackType
-  teacherId     String?
-  courseId      String?
-  groupId       String?
+  id          String       @id @default(cuid())
+  studentId   String
+  type        FeedbackType
+  teacherId   String?
+  courseId    String?
+  groupId     String?
   /// 1–5 yulduz (NPS uchun null)
-  rating        Int?         @db.SmallInt
+  rating      Int?         @db.SmallInt
   /// 0–10 tavsiya ehtimoli (faqat NPS uchun)
-  npsScore      Int?         @db.SmallInt
-  comment       String?      @db.VarChar(1000)
-  isAnonymous   Boolean      @default(false)
+  npsScore    Int?         @db.SmallInt
+  comment     String?      @db.VarChar(1000)
+  isAnonymous Boolean      @default(false)
   /// Past baho bilan ishlanganmi (xodim ko'rib chiqdi)
-  handledAt     DateTime?
-  handledById   String?
-  handleNote    String?      @db.VarChar(500)
-  branchId      String       @default("branch_main")
-  createdAt     DateTime     @default(now())
+  handledAt   DateTime?
+  handledById String?
+  handleNote  String?      @db.VarChar(500)
+  branchId    String       @default("branch_main")
+  createdAt   DateTime     @default(now())
 
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   teacher   User?   @relation("FeedbackTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
@@ -3024,26 +3109,26 @@ enum StockMovementType {
 /// Ombor harakati — **hech qachon o'chirilmaydi**. Xato yozuv teskari harakat bilan tuzatiladi,
 /// shunda qoldiq tarixi to'liq qoladi (moliyaviy daftar bilan bir xil tamoyil).
 model StockMovement {
-  id          String            @id @default(cuid())
-  productId   String
-  type        StockMovementType
+  id                  String            @id @default(cuid())
+  productId           String
+  type                StockMovementType
   /// Har doim musbat; yo'nalishni `type` belgilaydi
-  quantity    Int
+  quantity            Int
   /// Harakatdan keyingi qoldiq — tarixni qayta hisoblamasdan o'qish uchun
-  balanceAfter Int
+  balanceAfter        Int
   /// Bir dona narxi (kirimda tannarx, sotuvda sotish narxi)
-  unitPrice   Decimal           @default(0) @db.Decimal(14, 2)
-  totalAmount Decimal           @default(0) @db.Decimal(14, 2)
-  reason      String?           @db.VarChar(255)
+  unitPrice           Decimal           @default(0) @db.Decimal(14, 2)
+  totalAmount         Decimal           @default(0) @db.Decimal(14, 2)
+  reason              String?           @db.VarChar(255)
   /// Sotuv kimga qilingani (ixtiyoriy)
-  studentId   String?
+  studentId           String?
   /// Ko'chirishda ikkinchi filial
   counterpartBranchId String?
   /// Pul yozuvi shu harakat bilan birga yaratilgan bo'lsa
-  incomeId    String?           @unique
-  expenseId   String?           @unique
-  createdById String?
-  createdAt   DateTime          @default(now())
+  incomeId            String?           @unique
+  expenseId           String?           @unique
+  createdById         String?
+  createdAt           DateTime          @default(now())
 
   product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
@@ -3150,17 +3235,17 @@ model AutomationRule {
 /// Qoidaning bitta yurishi. Nechta holat topilgani, nechta bildirishnoma yuborilgani va
 /// xatolik bo'lsa sababi yoziladi — "nega xabar kelmadi?" degan savolga javob shu yerda.
 model AutomationRun {
-  id            String   @id @default(cuid())
-  ruleId        String
-  startedAt     DateTime @default(now())
-  durationMs    Int?
+  id         String   @id @default(cuid())
+  ruleId     String
+  startedAt  DateTime @default(now())
+  durationMs Int?
   /// Shartga mos kelgan holatlar soni
-  matched       Int      @default(0)
+  matched    Int      @default(0)
   /// Yuborilgan bildirishnomalar (takrorlanganlari hisobga olinmaydi)
-  notified      Int      @default(0)
+  notified   Int      @default(0)
   /// Takroriy bo'lgani uchun o'tkazib yuborilganlar
-  skipped       Int      @default(0)
-  error         String?  @db.VarChar(500)
+  skipped    Int      @default(0)
+  error      String?  @db.VarChar(500)
 
   rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
@@ -3203,23 +3288,23 @@ enum PaymentIntentStatus {
 /// bekor qilindi) alohida hayot tsikliga ega — u shu yerda saqlanadi. Webhook ikki marta kelsa
 /// `externalId` unikaligi ikkinchi `Payment` yaratilishiga yo'l qo'ymaydi.
 model PaymentIntent {
-  id           String              @id @default(cuid())
-  provider     PaymentProviderKey
+  id          String              @id @default(cuid())
+  provider    PaymentProviderKey
   /// Provayderdagi tranzaksiya raqami — takroriy webhookni aniqlash kaliti
-  externalId   String              @db.VarChar(120)
-  studentId    String
-  amount       Decimal             @db.Decimal(14, 2)
-  status       PaymentIntentStatus @default(PENDING)
+  externalId  String              @db.VarChar(120)
+  studentId   String
+  amount      Decimal             @db.Decimal(14, 2)
+  status      PaymentIntentStatus @default(PENDING)
   /// To'lov tasdiqlangach yaratilgan kvitansiya
-  paymentId    String?             @unique
+  paymentId   String?             @unique
   /// Provayderdan kelgan xom ma'lumot (tekshiruv va nizo hal qilish uchun)
-  payload      Json?
-  failureText  String?             @db.VarChar(255)
+  payload     Json?
+  failureText String?             @db.VarChar(255)
   /// Kim yaratgan (CRM ichidan yaratilsa); webhookdan kelsa bo'sh
-  createdById  String?
-  paidAt       DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  createdById String?
+  paidAt      DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
   payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)

@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { assertTopicForGroup, startTopicForAttendees } from './curriculum.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import type { AttendanceStatus, Prisma, StudentStatus, WeekDay } from '../generated/prisma/client.js';
@@ -184,6 +185,8 @@ export const attendanceService = {
     const access = await getAttendanceAccess(actor);
     const group = await findVisibleGroup(access, groupId);
 
+    if (input.topicId) await assertTopicForGroup(input.topicId, groupId);
+
     const ids = input.records.map((record) => record.studentId);
     if (new Set(ids).size !== ids.length) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
@@ -239,7 +242,17 @@ export const attendanceService = {
         date: input.date,
         teacherId: group.teacherId,
         markedById: actor.id,
+        topicId: input.topicId ?? null,
       });
+
+      // Mavzu tanlangan bo'lsa — kelganlarda "o'rganilmoqda" (LMS progressi)
+      if (input.topicId) {
+        await startTopicForAttendees(tx, {
+          topicId: input.topicId,
+          studentIds: input.records.filter((record) => record.status === 'PRESENT' || record.status === 'LATE').map((record) => record.studentId),
+          markedById: actor.id,
+        });
+      }
 
       for (const record of input.records) {
         const saved = await tx.attendance.upsert({

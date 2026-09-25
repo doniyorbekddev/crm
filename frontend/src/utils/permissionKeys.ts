@@ -21,6 +21,7 @@ export const PERMISSIONS = {
 
   COURSE_VIEW: 'course.view',
   COURSE_MANAGE: 'course.manage',
+  LESSON_MANAGE: 'lesson.manage',
 
   GROUP_VIEW: 'group.view',
   GROUP_MANAGE: 'group.manage',

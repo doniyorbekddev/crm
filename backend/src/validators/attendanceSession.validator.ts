@@ -43,6 +43,8 @@ const sessionFieldsSchema = z.object({
     (value) => (value === '' || value === null ? undefined : value),
     z.string().trim().max(500, 'Izoh juda uzun').optional(),
   ),
+  /** Kurs dasturidagi mavzu (LMS) — o'tilgan dars bo'lsa kelganlar progressi yangilanadi */
+  topicId: z.string().trim().min(1).max(50).nullable().optional(),
   status: z.enum(SESSION_STATUSES, 'Holat noto‘g‘ri'),
 });
 

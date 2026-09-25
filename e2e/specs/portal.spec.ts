@@ -10,6 +10,7 @@ interface PortalCredentials {
   studentName: string;
   studentId: string;
   groupId: string | null;
+  courseId: string;
   headers: { Authorization: string };
 }
 
@@ -25,6 +26,7 @@ async function openStudentPortal(request: APIRequestContext): Promise<PortalCred
     firstName: string;
     lastName: string;
     group: { id: string } | null;
+    course: { id: string };
   }>;
   // Vazifa berish uchun guruhi bor o'quvchi kerak; oldingi test hisob ochgan bo'lsa (409) — keyingisi olinadi
   const candidates = [...students.filter((item) => item.group), ...students.filter((item) => !item.group)];
@@ -42,6 +44,7 @@ async function openStudentPortal(request: APIRequestContext): Promise<PortalCred
       studentName: `${student.firstName} ${student.lastName}`,
       studentId: student.id,
       groupId: student.group?.id ?? null,
+      courseId: student.course.id,
       headers,
     };
   }
@@ -204,5 +207,36 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await expect(page.getByRole('heading', { name: 'Davomat' })).toBeVisible();
     await page.getByRole('button', { name: 'Oldingi' }).click();
     await expect(page.getByRole('button', { name: 'Joriy hafta' })).toBeEnabled();
+  });
+
+  test('LMS: admin dars joylaydi, o‘quvchi "Kurs" bo‘limida ochadi va "O‘rgandim" deb belgilaydi (PHASE 4)', async ({ page, request }) => {
+    const credentials = await openStudentPortal(request);
+    const { headers, courseId } = credentials;
+    const stamp = Date.now();
+    const module = await request.post(`${API}/courses/${courseId}/modules`, { headers, data: { title: `E2E modul ${stamp}` } });
+    expect(module.status()).toBe(201);
+    const topic = await request.post(`${API}/curriculum/modules/${(await module.json()).data.id as string}/topics`, { headers, data: { title: 'E2E mavzu' } });
+    const lessonTitle = `E2E dars ${stamp}`;
+    const lesson = await request.post(`${API}/curriculum/topics/${(await topic.json()).data.id as string}/lessons`, {
+      headers,
+      data: { title: lessonTitle, content: 'Birinchi paragraf.\n\nIkkinchi paragraf.', status: 'PUBLISHED' },
+    });
+    expect(lesson.status()).toBe(201);
+    await request.post(`${API}/lessons/${(await lesson.json()).data.id as string}/materials`, {
+      headers,
+      data: { kind: 'LINK', title: 'MDN hujjati', url: 'https://developer.mozilla.org' },
+    });
+
+    await loginAsStudent(page, credentials);
+    await page.getByRole('navigation', { name: 'Kabinet bo‘limlari' }).first().getByRole('link', { name: 'Kurs' }).click();
+    await page.getByRole('link', { name: new RegExp(lessonTitle) }).click();
+    await expect(page.getByRole('heading', { level: 1, name: lessonTitle })).toBeVisible();
+    await expect(page.getByText('Ikkinchi paragraf.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ochish' })).toHaveAttribute('href', 'https://developer.mozilla.org');
+
+    await page.getByRole('button', { name: 'O‘rgandim' }).click();
+    await expect(page.getByRole('button', { name: 'O‘rganildi' })).toBeVisible();
+    await page.getByRole('link', { name: 'Kurs darslari' }).click();
+    await expect(page.getByLabel('O‘rganilgan').first()).toBeVisible();
   });
 });

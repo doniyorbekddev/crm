@@ -236,3 +236,65 @@ Yo‘q (haftalik xulosa deterministik; PHASE 9 da AI matni qo‘shiladi).
 ## 12. Next Phase
 
 **PHASE 4 — LMS foundation**: `Lesson` (mavzu → dars, DRAFT/PUBLISHED/ARCHIVED, video/fayl/resurs), `LessonMaterial`, dars sessiyasi mavzusi → progress avtomat, kabinetda "Kurs" bo‘limi.
+
+---
+
+# PHASE 4 COMPLETE — LMS foundation
+
+Sana: 2026-09-25. Batafsil: [lms.md](lms.md).
+
+## 1. Implemented
+
+- **Dars (Lesson)** — TZ §14 ning barcha maydonlari: nom, tavsif, konspekt, o‘qituvchi, mavzu, davomiylik, video, fayllar, resurslar, tartib, `publishedAt`; holat DRAFT/PUBLISHED/ARCHIVED.
+- **Materiallar** — fayl (mavjud fayl siyosati), havola, video; yuklab olish; xavfli havolalar rad.
+- **O‘qituvchi doirasi** — yangi `lesson.manage`; o‘qituvchi faqat o‘z kurslarida, admin — hammasida.
+- **Kabinetda "Kurs"** — faqat o‘z kursining nashr qilingan darslari; dars sahifasi (YouTube embed, konspekt, materiallar); "O‘rgandim" (`LessonProgress`) va kurs darslari progressi; ota-ona ko‘radi, belgilamaydi.
+- **Dars sessiyasi → progress** — davomatda "O‘tilgan mavzu" tanlansa kelganlarda `IN_PROGRESS` (schema izohidagi, lekin kodda yo‘q bo‘lgan bog‘lanish amalga oshirildi).
+- Mobil kabinet navigatsiyasi: 4 asosiy + "Yana" (bo‘limlar 9 taga yetdi).
+- Fayl berish yagona yordamchida (`sendStoredFile`) — hujjat, vazifa fayli, material.
+
+## 2–3. Files
+
+Backend yangi: `services/lesson.service.ts`, `controllers/lesson.controller.ts`, `routes/lesson.routes.ts`, `validators/lesson.validator.ts`, `utils/sendStoredFile.ts`, `tests/lessons.test.ts`, migration `20260925120000_lms_lessons`. O‘zgargan: `schema.prisma`, `config/permissions.ts`, `services/portal.service.ts`, `curriculum.service.ts`, `attendance.service.ts`, `attendanceSession.service.ts`, `controllers/portal.controller.ts`, `document.controller.ts`, routes (`index`, `course`, `curriculum`, `portal`), validators (`attendance`, `attendanceSession`, `portal`).
+Frontend yangi: `pages/courses/CourseLessonsPage.tsx`, `LessonEditorModal.tsx`, `pages/portal/PortalCoursePage.tsx`, `PortalLessonPage.tsx`, `components/lesson/LessonBody.tsx`, `services/lessons.service.ts`, `types/lesson.ts`, `utils/lessonLabels(.test).ts`. O‘zgargan: `CoursesPage`, `AttendancePage`, `PortalNav(.test)`, `routes/index.tsx`, `services/portal.service.ts`, `lib/queryKeys.ts`, `types/attendance.ts`, `utils/permissionKeys.ts`. E2E: `portal.spec.ts`. Docs: `lms.md`, `permissions.md`.
+
+## 4. Database Changes
+
+`lessons`, `lesson_materials`, `lesson_progress`; enumlar `LessonStatus`, `LessonMaterialKind`. Hammasi yangi jadval — mavjud ma’lumot o‘zgarmaydi. (`schema.prisma` `prisma format` bilan tekislandi — faqat bo‘shliqlar.)
+
+## 5. API Changes
+
+Yangi: 7 ta xodim + 4 ta kabinet endpointi (lms.md §6). Kengaygan: davomat va seans `topicId` (ixtiyoriy), seans DTO `curriculumTopic`.
+
+## 6. Permission Changes
+
+`lesson.manage` (91-ruxsat) — TEACHER, SUPER_ADMIN, OWNER, ADMIN. `npm run db:sync-permissions` bilan qo‘llandi.
+
+## 7. AI Changes
+
+Yo‘q.
+
+## 8. Tests
+
+Backend **710/710** (+5 `lessons.test.ts`), frontend **65/65** (+3 lessonLabels, +2 nav), E2E **19/19** (+1 LMS). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Tahrirlash doirasi servisda (o‘qituvchi begona kursda — 403), kabinetda faqat PUBLISHED + o‘z kursi (begona dars/material — 404).
+- Havolalar faqat http(s); YouTube embed faqat qat’iy regex bilan (`[\w-]{6,20}`) va `youtube-nocookie`; dars matni HTML sifatida render qilinmaydi (XSS yo‘q).
+- Fayl: magic-byte, `resolveStoredPath`, `no-store`.
+- Ota-ona farzandi nomidan "o‘rgandim" qo‘ya olmaydi (403).
+
+## 10. Performance
+
+- Daraxt bitta so‘rovda (modul → mavzu → dars + `_count`), indeks `lessons(topicId,status,sortOrder)`.
+- Kabinet progressi: bitta `lesson_progress` so‘rovi, indeks `(studentId, lastViewedAt)`.
+
+## 11. Known Issues
+
+- Faqat PDF/rasm fayl (mavjud siyosat); boshqa formatlar havola sifatida.
+- Dars matni oddiy matn (Markdown/rich-text yo‘q — xavfsizlik va soddalik uchun).
+
+## 12. Next Phase
+
+**PHASE 5 — Daily homework**: target (guruh/tanlangan/bitta), mavzu/dars/qiyinlik, ko‘p fayl + link + kod, IN_PROGRESS/RETURNED, o‘qituvchi javobni ko‘radi, rubric, deadline eslatma, MISSED job.
