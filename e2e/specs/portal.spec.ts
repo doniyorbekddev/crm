@@ -239,4 +239,47 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await page.getByRole('link', { name: 'Kurs darslari' }).click();
     await expect(page.getByLabel('O‘rganilgan').first()).toBeVisible();
   });
+  test('onlayn imtihon: o‘quvchi boshlaydi, javob beradi, topshiradi va natijani ko‘radi (PHASE 6)', async ({ page, request }) => {
+    const credentials = await openStudentPortal(request);
+    expect(credentials.groupId, 'o‘quvchi guruhda bo‘lishi kerak').not.toBeNull();
+    const { headers } = credentials;
+    const stamp = Date.now();
+    const question = await request.post(`${API}/questions`, {
+      headers,
+      data: {
+        courseId: credentials.courseId,
+        text: `E2E savol ${stamp}: 2 + 2 nechiga teng?`,
+        explanation: 'Oddiy qo‘shish',
+        options: [{ text: 'To‘rt', isCorrect: true }, { text: 'Besh' }],
+      },
+    });
+    expect(question.status()).toBe(201);
+    const title = `E2E onlayn test ${stamp}`;
+    const exam = await request.post(`${API}/exams`, {
+      headers,
+      data: { title, groupId: credentials.groupId, date: new Date().toISOString().slice(0, 10), isOnline: true, type: 'DAILY_QUIZ', durationMinutes: 30 },
+    });
+    expect(exam.status()).toBe(201);
+    const examId = (await exam.json()).data.id as string;
+    expect((await request.post(`${API}/exams/${examId}/questions`, { headers, data: { questionIds: [(await question.json()).data.id as string] } })).status()).toBe(200);
+
+    await loginAsStudent(page, credentials);
+    await page.goto('/portal/exams');
+    const row = page.getByRole('listitem').filter({ hasText: title });
+    await row.getByRole('button', { name: 'Boshlash' }).click();
+    await expect(page).toHaveURL(/\/portal\/attempts\//);
+    await expect(page.getByRole('timer', { name: 'Qolgan vaqt' })).toBeVisible();
+
+    await page.getByRole('radio', { name: 'To‘rt' }).check();
+    await expect(page.getByText('Saqlandi')).toBeVisible();
+    // Sahifa yangilansa ham javob saqlanib qoladi
+    await page.reload();
+    await expect(page.getByRole('radio', { name: 'To‘rt' })).toBeChecked();
+
+    await page.getByRole('button', { name: 'Topshirish' }).first().click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Topshirish' }).click();
+    await expect(page.getByText('100%')).toBeVisible();
+    await expect(page.getByText('O‘tdi')).toBeVisible();
+    await expect(page.getByText('Tushuntirish: Oddiy qo‘shish')).toBeVisible();
+  });
 });

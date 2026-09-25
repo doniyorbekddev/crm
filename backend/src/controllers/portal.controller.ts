@@ -9,6 +9,7 @@ import {
   bulkParentPortalAccountsSchema,
   bulkPortalAccountsSchema,
   portalCalendarQuerySchema,
+  portalExamAnswerSchema,
   portalChildQuerySchema,
   portalHomeworkSubmitSchema,
   studentPortalAccountSchema,
@@ -186,6 +187,41 @@ export const portalController = {
     const { id } = idParamSchema.parse(req.params);
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.examDetail(requireAuthUser(req), id, studentId));
+  },
+
+  async availableExams(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.availableExams(requireAuthUser(req), studentId));
+  },
+
+  async startExam(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await portalService.startExam(requireAuthUser(req), id), { message: 'Imtihon boshlandi' });
+  },
+
+  async attempt(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.attempt(requireAuthUser(req), id, studentId));
+  },
+
+  async saveExamAnswer(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const questionId = idParamSchema.parse({ id: req.params.questionId }).id;
+    const input = portalExamAnswerSchema.parse(req.body ?? {});
+    sendSuccess(res, await portalService.saveExamAnswer(requireAuthUser(req), id, questionId, input));
+  },
+
+  async saveExamAnswerFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const questionId = idParamSchema.parse({ id: req.params.questionId }).id;
+    sendSuccess(res, await portalService.saveExamAnswerFile(requireAuthUser(req), id, questionId, req.body), { message: 'Fayl saqlandi' });
+  },
+
+  async submitExam(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const view = await portalService.submitExam(requireAuthUser(req), id);
+    sendSuccess(res, view, { message: view.status === 'NEEDS_REVIEW' ? 'Topshirildi — ayrim javoblarni o‘qituvchi tekshiradi' : 'Imtihon topshirildi' });
   },
 
   async feedbackState(req: Request, res: Response): Promise<void> {

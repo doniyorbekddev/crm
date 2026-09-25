@@ -2,7 +2,9 @@ import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type {
+  BlueprintPreview,
   Exam,
+  ExamBlueprint,
   ExamDetail,
   ExamListParams,
   ExamPayload,
@@ -144,6 +146,12 @@ export const examsService = {
   async remove(id: string): Promise<MessageResult<{ id: string }>> {
     const response = await api.delete<ApiSuccessResponse<{ id: string }>>(`/exams/${id}`);
     return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Blueprint bo'yicha bankda savol yetarlimi — saqlashdan oldin */
+  async previewBlueprint(groupId: string, blueprint: ExamBlueprint): Promise<BlueprintPreview> {
+    const response = await api.post<ApiSuccessResponse<BlueprintPreview>>('/exams/blueprint/preview', { groupId, blueprint });
+    return response.data.data;
   },
 
   async saveResults(id: string, records: ExamResultRecord[]): Promise<MessageResult<ExamDetail>> {

@@ -4,6 +4,7 @@ import { questionService } from '../services/question.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
+import { sendStoredFile } from '../utils/sendStoredFile.js';
 import {
   attachQuestionsSchema,
   createQuestionSchema,
@@ -77,6 +78,12 @@ export const questionController = {
   async attempt(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await examAttemptService.getById(requireAuthUser(req), id));
+  },
+
+  async answerFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const answerId = idParamSchema.parse({ id: req.params.answerId }).id;
+    await sendStoredFile(res, await examAttemptService.answerFile(requireAuthUser(req), id, answerId));
   },
 
   async gradeAttempt(req: Request, res: Response): Promise<void> {

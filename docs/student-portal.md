@@ -64,6 +64,9 @@ Kabinetda **xodim ruxsatlari ishlatilmaydi**. Har so‘rovda `resolvePortalScope
 | GET | `/homework/:id/attachment` | o‘z faylini yuklab olish (stream, `no-store`) | detal sahifa |
 | GET | `/exams` | imtihon natijalari | `/portal/exams` |
 | GET | `/exams/:id` | imtihon detali: natija + o‘z urinishlari (mavzu kesimi, javoblar, izohlar) | `/portal/exams/:id` |
+| GET | `/exams/available` | onlayn imtihonlar (oyna, urinishlar, boshlash mumkinmi) | `/portal/exams` "Onlayn imtihonlar" |
+| POST | `/exams/:id/start` | onlayn imtihonni boshlash (faqat o‘quvchi) | `/portal/attempts/:id` |
+| GET/PUT/POST | `/attempts/:id`, `/attempts/:id/answers/:questionId(/file)`, `/attempts/:id/submit` | urinish, avtosaqlash, fayl, topshirish — [assessment.md](assessment.md) | `/portal/attempts/:id` |
 | GET | `/attendance/calendar?year&month` | oylik kalendar | `/portal/attendance` |
 | GET | `/gamification` | XP, daraja, seriya, nishonlar, so‘nggi XP | `/portal/xp` |
 | GET | `/payments` | jadval + so‘nggi 20 to‘lov | `/portal/payments` |
@@ -103,4 +106,4 @@ Mobil: pastki panel `fixed`, `main` ga `pb-24`; `safe-area-inset-bottom` hisobga
 
 ## 7. Keyingi bosqichlar (ROADMAP)
 
-PHASE 3: ota-ona ko‘rinishi va haftalik hisobot. PHASE 5: ko‘p fayl/link/kod, RETURNED holati. PHASE 6: onlayn imtihon topshirish (kabinetdan urinish boshlash). PHASE 10: kabinetga in-app bildirishnomalar barcha akademik hodisalar bo‘yicha.
+PHASE 3: ota-ona ko‘rinishi va haftalik hisobot. PHASE 5: ko‘p fayl/link/kod, RETURNED holati. PHASE 6: onlayn imtihon topshirish — **bajarildi** ([assessment.md](assessment.md)). PHASE 10: kabinetga in-app bildirishnomalar barcha akademik hodisalar bo‘yicha.

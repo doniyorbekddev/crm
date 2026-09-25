@@ -1,12 +1,21 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
 import { httpUrlSchema } from './lesson.validator.js';
+import { blueprintSchema } from '../services/examBlueprint.js';
 
 export const HOMEWORK_STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED'] as const;
 export const SUBMISSION_STATUSES = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'LATE', 'GRADED', 'RETURNED', 'MISSED'] as const;
 export const HOMEWORK_TARGETS = ['GROUP', 'SELECTED', 'INDIVIDUAL'] as const;
 export const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
 export const EXAM_STATUSES = ['PLANNED', 'HELD', 'GRADED', 'CANCELLED'] as const;
+export const EXAM_TYPES = ['DAILY_QUIZ', 'WEEKLY_TEST', 'MONTHLY_EXAM', 'MIDTERM', 'FINAL', 'PRACTICE', 'DIAGNOSTIC'] as const;
+
+/** ISO sana-vaqt (topshirish oynasi) */
+const isoDateTime = z
+  .string()
+  .trim()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Sana-vaqt noto‘g‘ri')
+  .transform((value) => new Date(value));
 
 const idSchema = z.string().trim().min(1).max(50);
 
@@ -179,6 +188,14 @@ const examFieldsSchema = z.object({
   maxAttempts: z.coerce.number('Urinishlar soni raqam bo‘lishi kerak').int().min(0).max(20, '20 tadan oshmasin'),
   xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000),
   status: z.enum(EXAM_STATUSES, 'Holat noto‘g‘ri'),
+  /** Assessment 2.0 (TZ §21, §25) */
+  type: z.enum(EXAM_TYPES, 'Imtihon turi noto‘g‘ri').optional(),
+  isOnline: z.boolean().optional(),
+  startAt: isoDateTime.nullable().optional(),
+  endAt: isoDateTime.nullable().optional(),
+  shuffleQuestions: z.boolean().optional(),
+  shuffleOptions: z.boolean().optional(),
+  blueprint: blueprintSchema.nullable().optional(),
 });
 
 export const createExamSchema = examFieldsSchema.extend({
@@ -217,3 +234,9 @@ export type ExamListQuery = z.infer<typeof examListQuerySchema>;
 export type CreateExamInput = z.infer<typeof createExamSchema>;
 export type UpdateExamInput = z.infer<typeof updateExamSchema>;
 export type SaveExamResultsInput = z.infer<typeof saveExamResultsSchema>;
+
+/** Blueprint oldindan ko'rish (imtihon hali saqlanmagan bo'lishi mumkin — guruh bo'yicha) */
+export const blueprintPreviewSchema = z.object({
+  groupId: z.string().trim().min(1, 'Guruhni tanlang').max(50),
+  blueprint: blueprintSchema,
+});

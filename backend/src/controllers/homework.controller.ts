@@ -17,6 +17,7 @@ import {
   saveExamResultsSchema,
   updateExamSchema,
   updateHomeworkSchema,
+  blueprintPreviewSchema,
 } from '../validators/homework.validator.js';
 
 export const homeworkController = {
@@ -121,6 +122,11 @@ export const homeworkController = {
 };
 
 export const examController = {
+  async previewBlueprint(req: Request, res: Response): Promise<void> {
+    const { groupId, blueprint } = blueprintPreviewSchema.parse(req.body);
+    sendSuccess(res, await examService.previewBlueprint(requireAuthUser(req), groupId, blueprint));
+  },
+
   async list(req: Request, res: Response): Promise<void> {
     const query = examListQuerySchema.parse(req.query);
     const { items, total } = await examService.list(requireAuthUser(req), query);

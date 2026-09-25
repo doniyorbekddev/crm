@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { Difficulty, ExamStatus, HomeworkStatus, HomeworkTarget, SubmissionStatus } from '@/types/homework';
+import type { Difficulty, ExamStatus, ExamType, HomeworkStatus, HomeworkTarget, SubmissionStatus } from '@/types/homework';
 
 export const HOMEWORK_STATUS_ORDER: readonly HomeworkStatus[] = ['DRAFT', 'PUBLISHED', 'CLOSED'];
 
@@ -66,6 +66,18 @@ export const EXAM_STATUS_LABELS: Record<ExamStatus, string> = {
   HELD: 'O‘tkazildi',
   GRADED: 'Baholandi',
   CANCELLED: 'Bekor qilingan',
+};
+
+export const EXAM_TYPE_ORDER: readonly ExamType[] = ['DAILY_QUIZ', 'WEEKLY_TEST', 'MONTHLY_EXAM', 'MIDTERM', 'FINAL', 'PRACTICE', 'DIAGNOSTIC'];
+
+export const EXAM_TYPE_LABELS: Record<ExamType, string> = {
+  DAILY_QUIZ: 'Kunlik quiz',
+  WEEKLY_TEST: 'Haftalik test',
+  MONTHLY_EXAM: 'Oylik imtihon',
+  MIDTERM: 'Oraliq imtihon',
+  FINAL: 'Yakuniy imtihon',
+  PRACTICE: 'Mashq testi',
+  DIAGNOSTIC: 'Diagnostik test',
 };
 
 export const EXAM_STATUS_TONES: Record<ExamStatus, BadgeTone> = {

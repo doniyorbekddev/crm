@@ -360,3 +360,70 @@ Backend **718/718** (+8), frontend **68/68** (+3), E2E **19/19**. Lint/typecheck
 ## 12. Next Phase
 
 **PHASE 6 — Assessment 2.0**: imtihon turlari, savol turlari (TRUE_FALSE, SHORT/LONG_TEXT, CODE, FILE_UPLOAD), teglar/izoh, blueprint (mavzu % × qiyinlik %), har o‘quvchiga alohida variant + snapshot, savol/javob tartibini aralashtirish, startAt/endAt, **o‘quvchi o‘zi topshiradi** (kabinet + bot), qisman ball, `EXAM_SCHEDULED`.
+
+---
+
+# PHASE 6 COMPLETE — Assessment 2.0
+
+Sana: 2026-09-25. Batafsil: [assessment.md](assessment.md).
+
+## 1. Implemented
+
+- **§21** imtihon turlari (7 ta), ro‘yxat va formada.
+- **§22** savol turlari: `TRUE_FALSE`, `SHORT_TEXT` (qabul qilinadigan javoblar, mos kelmasa o‘qituvchiga), `LONG_TEXT`, `CODE`, `FILE_UPLOAD`; `explanation`, `tags`. Eski `TEXT` saqlandi.
+- **§23** har o‘quvchiga bankdan alohida tasodifiy variant (`crypto.randomInt`), qiyinlik bo‘yicha taqsimlash.
+- **§24** blueprint: mavzu % × qiyinlik %, ikki bosqichli aniq taqsimlash, yetmasa to‘ldirish qoidasi va aniq xato, saqlashdan oldin "Bankni tekshirish".
+- **§25** `startAt/endAt` oynasi, davomiylik, `maxAttempts`, savol va variant tartibini aralashtirish, **snapshot** (`attempt_questions`: matn, variant tartibi, ball, javob kaliti).
+- **O‘quvchi imtihonni o‘zi topshiradi**: boshlash/davom ettirish, avtosaqlash, taymer, topshirish, natija + tushuntirish; vaqt tugasa avtomatik topshirish (ochilganda va har daqiqalik job).
+- O‘qituvchi uchun **baholash oynasi** (oldin "Baholash kerak" belgisi bor edi, lekin UI yo‘q edi — audit topilmasi): esse/kod/fayl, ball + izoh.
+- Baholash qoidasi bitta joyda (`gradeAnswer`) — xodim va kabinet urinishlari uchun bir xil (TZ §0.2 "takroriy biznes-mantiq yo‘q").
+
+## 2–3. Files
+
+Backend yangi: `services/examBlueprint.ts`, `services/examTaking.service.ts`, `jobs/examAttempt.job.ts`, `tests/unit/examBlueprint.test.ts`, `tests/onlineExam.test.ts`, migration `20260925180000_assessment_v2`. O‘zgargan: `schema.prisma`, `services/exam.service.ts`, `examAttempt.service.ts`, `question.service.ts`, `portal.service.ts`, `homework.service.ts` (MIME yordamchisi umumiy `fileStorage` ga), `controllers/portal.controller.ts`, `homework.controller.ts`, `question.controller.ts`, `routes/portal.routes.ts`, `homework.routes.ts`, `validators/homework.validator.ts`, `question.validator.ts`, `portal.validator.ts`, `utils/fileStorage.ts`, `server.ts`.
+Frontend yangi: `pages/homework/BlueprintEditor(.test)`, `AttemptReviewModal`, `pages/portal/PortalAttemptPage(.test)`, `OnlineExamsCard`, `pages/questions/QuestionFormModal.test`, `utils/questionLabels.ts`. O‘zgargan: `ExamFormModal`, `ExamQuestionsModal`, `ExamsPage`, `QuestionFormModal`, `QuestionsPage`, `PortalExamsPage`, `components/ui/Checkbox` (ixtiyoriy `label`), `routes/index.tsx`, `services/homework.service.ts`, `questions.service.ts`, `portal.service.ts`, `types/homework.ts`, `question.ts`, `portal.ts`, `utils/homeworkLabels.ts`, `lib/queryKeys.ts`. E2E: `portal.spec.ts`. Docs: `assessment.md`, `student-portal.md`.
+
+## 4. Database Changes
+
+Migration `20260925180000_assessment_v2` (oldin `pg_dump`, faqat qo‘shish): enum `ExamType`; `QuestionType` + TRUE_FALSE, SHORT_TEXT, LONG_TEXT, CODE, FILE_UPLOAD; `exams` + type (default MONTHLY_EXAM), isOnline (false), startAt, endAt, shuffleQuestions, shuffleOptions, blueprint; `questions` + explanation, tags, acceptedAnswers; `exam_answers` + filePath; yangi `attempt_questions` (unique attemptId+examQuestionId). Mavjud imtihonlar o‘zgarmaydi (oflayn, eski tur).
+
+## 5. API Changes
+
+Yangi: 2 xodim, 6 kabinet endpointi ([assessment.md §7](assessment.md)). Kengaygan (moslik saqlangan): imtihon va savol yaratish/tahrirlash, urinish DTO (`questionType`, `hasFile`, snapshot matn/ball). Kabinet urinishi boshlanmagan (IN_PROGRESS) holatda xodim baholay olmaydi — 422.
+
+## 6. Permission Changes
+
+Yo‘q. Rejadagi `exam.start` kerak bo‘lmadi: `portal.student` + egalik + "faqat o‘quvchining o‘zi" tekshiruvi.
+
+## 7. AI Changes
+
+Yo‘q (AI tekshiruv yordamchisi — PHASE 9).
+
+## 8. Tests
+
+Backend **732/732** (+14: blueprint unit 7, onlayn imtihon 7), frontend **77/77** (+9), E2E **20/20** (+1: o‘quvchi onlayn imtihon topshiradi). Lint/typecheck 0 xato (1 eski ogohlantirish).
+
+## 9. Security Review
+
+- Javob kaliti, `isCorrect`, tushuntirish va qabul qilinadigan javoblar o‘quvchiga **topshirilgunga qadar yuborilmaydi** (testda JSON tekshiriladi); NEEDS_REVIEW holatida ham to‘g‘ri javob yashirin.
+- Imtihon faqat o‘quvchi guruhida, onlayn va ochiq bo‘lsa ko‘rinadi; begona o‘quvchi — 404; ota-ona boshlay/javob bera olmaydi — 403.
+- Javob validatsiyasi: variant snapshotdagi savolga tegishli bo‘lishi, bitta javobli savolda bitta variant; fayl turi baytlar bo‘yicha.
+- Muddatdan keyingi javob qabul qilinmaydi; urinish chegarasi serverda.
+- Variant tasodifi kriptografik; baholash faqat serverda, snapshot kaliti bo‘yicha.
+- Fayl javobi: faqat o‘z guruhi o‘qituvchisi (begonasi — 404), `no-store`.
+
+## 10. Performance
+
+- Variant generatsiyasi xotirada (bank bir so‘rovda), snapshot `createMany`.
+- Job: har daqiqa, ≤ 500 ochiq urinish, faqat kabinet (snapshotli) urinishlari; parallel yurish bloklangan.
+- Avtosaqlash: matn 800 ms debounce, variant — darhol; bitta `upsert`.
+
+## 11. Known Issues
+
+- Blueprint variant savollari `exam_questions` ga qo‘shiladi (javoblar shu jadvalga bog‘langan) — "Savollar" ro‘yxatida barcha o‘quvchilar variantlarining birlashmasi ko‘rinadi.
+- Brauzer yopilganda "tab almashtirish" nazorati (proctoring) yo‘q — TZ talab qilmaydi.
+- Tarmoq uzilsa saqlanmagan javob "Saqlanmadi" deb ko‘rsatiladi; keyingi o‘zgarishda qayta yuboriladi (lokal navbat yo‘q).
+
+## 12. Next Phase
+
+**PHASE 7 — Progress / mastery**: `topic_mastery` (0–100, NOT_STARTED/LEARNING/PRACTICING/MASTERED), sozlanadigan chegaralar 40/60/80, manbalar (imtihon mavzu kesimi, mavzuli vazifa, davomat), qayta hisoblash hooklari, oylik `StudentProgressSnapshot` job, profil/kabinet/guruh ko‘rinishlari.

@@ -46,6 +46,8 @@ const examManage = requirePermission(PERMISSIONS.EXAM_MANAGE);
 const examGrade = requirePermission(PERMISSIONS.EXAM_GRADE);
 
 examRouter.get('/', examView, examController.list);
+// Blueprint oldindan ko'rish — imtihon yaratishdan oldin ham (:id dan oldin)
+examRouter.post('/blueprint/preview', examManage, examController.previewBlueprint);
 examRouter.get('/:id', examView, examController.getById);
 examRouter.post('/', examManage, examController.create);
 examRouter.put('/:id', examManage, examController.update);
@@ -59,4 +61,5 @@ examRouter.post('/:id/attempts/:studentId/start', requirePermission(PERMISSIONS.
 examRouter.post('/:id/attempts/:studentId', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.submitAttempt);
 examRouter.get('/:id/attempts', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempts);
 examRouter.get('/attempts/:id', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempt);
+examRouter.get('/attempts/:id/answers/:answerId/file', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.answerFile);
 examRouter.post('/attempts/:id/grade', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.gradeAttempt);

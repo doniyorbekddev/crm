@@ -18,6 +18,7 @@ import { questionsService } from '@/services/questions.service';
 import type { Question, QuestionDifficulty } from '@/types/question';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { QuestionFormModal } from './QuestionFormModal';
+import { QUESTION_TYPE_SHORT } from '@/utils/questionLabels';
 
 const PAGE_SIZE = 20;
 
@@ -26,11 +27,6 @@ const DIFFICULTY_TONES: Record<QuestionDifficulty, 'green' | 'yellow' | 'red'> =
   EASY: 'green',
   MEDIUM: 'yellow',
   HARD: 'red',
-};
-const TYPE_LABELS: Record<Question['type'], string> = {
-  SINGLE_CHOICE: 'Bitta javob',
-  MULTIPLE_CHOICE: 'Bir nechta javob',
-  TEXT: 'Matnli',
 };
 
 export default function QuestionsPage() {
@@ -160,7 +156,7 @@ export default function QuestionsPage() {
                       </div>
                     </TD>
                     <TD className="text-fg-muted">{question.topicTitle ?? '—'}</TD>
-                    <TD className="text-fg-muted">{TYPE_LABELS[question.type]}</TD>
+                    <TD className="text-fg-muted">{QUESTION_TYPE_SHORT[question.type]}</TD>
                     <TD className="tabular-nums">{question.points}</TD>
                     <TD className="text-right">
                       {canManage && (

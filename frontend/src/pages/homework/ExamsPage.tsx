@@ -24,7 +24,7 @@ import { groupsService } from '@/services/groups.service';
 import { examsService } from '@/services/homework.service';
 import type { Exam, ExamListParams, ExamStatus } from '@/types/homework';
 import { formatDate, formatNumber } from '@/utils/format';
-import { EXAM_STATUS_LABELS, EXAM_STATUS_ORDER, EXAM_STATUS_TONES } from '@/utils/homeworkLabels';
+import { EXAM_STATUS_LABELS, EXAM_STATUS_ORDER, EXAM_STATUS_TONES, EXAM_TYPE_LABELS } from '@/utils/homeworkLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { ExamFormModal } from './ExamFormModal';
 import { ExamResultsModal } from './ExamResultsModal';
@@ -175,7 +175,8 @@ export default function ExamsPage() {
                         <p className="font-medium text-fg">{exam.title}</p>
                         <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
                           <Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
-                          {exam.maxScore} ball
+                          {exam.isOnline && <Badge tone="purple">Onlayn</Badge>}
+                          {EXAM_TYPE_LABELS[exam.type]} · {exam.maxScore} ball
                         </p>
                       </TD>
                       <TD>

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
@@ -16,8 +16,17 @@ import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { groupsService } from '@/services/groups.service';
 import { examsService } from '@/services/homework.service';
-import type { Exam } from '@/types/homework';
-import { EXAM_STATUS_LABELS, EXAM_STATUS_ORDER } from '@/utils/homeworkLabels';
+import { Checkbox } from '@/components/ui/Checkbox';
+import type { Exam, ExamBlueprint } from '@/types/homework';
+import { EXAM_STATUS_LABELS, EXAM_STATUS_ORDER, EXAM_TYPE_LABELS, EXAM_TYPE_ORDER } from '@/utils/homeworkLabels';
+import { fromDateTimeInputValue, toDateTimeInputValue } from '@/utils/format';
+import { BlueprintEditor, blueprintDraftFrom, blueprintFromDraft } from './BlueprintEditor';
+
+function sameBlueprint(a: ExamBlueprint | null, b: ExamBlueprint | null): boolean {
+  const canonical = (value: ExamBlueprint | null) =>
+    value ? JSON.stringify({ total: value.total, topics: value.topics.map((topic) => [topic.topicId, topic.percent]), difficulty: value.difficulty ?? null }) : 'null';
+  return canonical(a) === canonical(b);
+}
 
 const schema = z
   .object({
@@ -33,6 +42,16 @@ const schema = z
     maxAttempts: z.string().refine((value) => /^\d{1,2}$/.test(value) && Number(value) <= 20, '0–20 oralig‘ida'),
     xpReward: z.string().refine((value) => /^\d{1,4}$/.test(value), 'XP 0–1000 oralig‘ida'),
     status: z.enum(EXAM_STATUS_ORDER),
+    type: z.enum(EXAM_TYPE_ORDER),
+    isOnline: z.boolean(),
+    startAt: z.string(),
+    endAt: z.string(),
+    shuffleQuestions: z.boolean(),
+    shuffleOptions: z.boolean(),
+  })
+  .refine((values) => !values.startAt || !values.endAt || new Date(values.startAt) < new Date(values.endAt), {
+    path: ['endAt'],
+    message: 'Tugash vaqti boshlanishdan keyin bo‘lsin',
   })
   .refine((values) => values.passScore === '' || Number(values.passScore) <= Number(values.maxScore), {
     path: ['passScore'],
@@ -50,6 +69,7 @@ interface ExamFormModalProps {
 export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const isEdit = Boolean(exam);
+  const [blueprintDraft, setBlueprintDraft] = useState(() => blueprintDraftFrom(exam?.blueprint));
 
   const groupsQuery = useQuery({
     queryKey: queryKeys.groups.list({ page: 1, limit: 100, status: 'ACTIVE' }),
@@ -62,6 +82,7 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -76,11 +97,23 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
       maxAttempts: String(exam?.maxAttempts ?? 0),
       xpReward: String(exam?.xpReward ?? 50),
       status: exam?.status ?? ('PLANNED' as const),
+      type: exam?.type ?? ('MONTHLY_EXAM' as const),
+      isOnline: exam?.isOnline ?? false,
+      startAt: toDateTimeInputValue(exam?.startAt),
+      endAt: toDateTimeInputValue(exam?.endAt),
+      shuffleQuestions: exam?.shuffleQuestions ?? false,
+      shuffleOptions: exam?.shuffleOptions ?? false,
     },
   });
+  const isOnline = useWatch({ control, name: 'isOnline' });
+  const selectedGroupId = useWatch({ control, name: 'groupId' });
+  const courseId = exam ? (exam.course?.id ?? null) : ((groupsQuery.data?.items ?? []).find((group) => group.id === selectedGroupId)?.course.id ?? null);
 
   const save = useMutation({
     mutationFn: (values: FormValues) => {
+      const blueprint = blueprintFromDraft(blueprintDraft);
+      if (blueprint.error) throw new Error(blueprint.error);
+      const blueprintChanged = !sameBlueprint(blueprint.value, exam?.blueprint ?? null);
       const payload = {
         title: values.title,
         ...(values.description ? { description: values.description } : {}),
@@ -91,6 +124,14 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
         maxAttempts: Number(values.maxAttempts),
         xpReward: Number(values.xpReward),
         status: values.status,
+        type: values.type,
+        isOnline: values.isOnline,
+        startAt: fromDateTimeInputValue(values.startAt) ?? null,
+        endAt: fromDateTimeInputValue(values.endAt) ?? null,
+        shuffleQuestions: values.shuffleQuestions,
+        shuffleOptions: values.shuffleOptions,
+        // Blueprint faqat o'zgarganda yuboriladi — urinishlar boshlangach server uni qulflaydi
+        ...(blueprintChanged ? { blueprint: blueprint.value } : {}),
       };
       return exam ? examsService.update(exam.id, payload) : examsService.create({ ...payload, groupId: values.groupId });
     },
@@ -99,7 +140,7 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['title', 'groupId', 'date', 'maxScore', 'passScore', 'xpReward', 'durationMinutes', 'maxAttempts'])) {
+      if (!applyFieldErrors(error, setError, ['title', 'groupId', 'date', 'maxScore', 'passScore', 'xpReward', 'durationMinutes', 'maxAttempts', 'startAt', 'endAt'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -158,6 +199,16 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
           </FormField>
         )}
 
+        <FormField label="Turi" htmlFor="exam-type">
+          <Select id="exam-type" {...register('type')}>
+            {EXAM_TYPE_ORDER.map((type) => (
+              <option key={type} value={type}>
+                {EXAM_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Sana" htmlFor="exam-date" error={errors.date?.message} required>
             <Input id="exam-date" type="date" {...register('date')} />
@@ -192,6 +243,26 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
             <Input id="exam-attempts" inputMode="numeric" {...register('maxAttempts')} />
           </FormField>
         </div>
+
+        <fieldset className="space-y-3 rounded-lg border border-border p-3">
+          <legend className="px-1 text-sm font-medium text-fg">Onlayn topshirish</legend>
+          <Checkbox label="O‘quvchilar kabinetdan o‘zi topshiradi" {...register('isOnline')} />
+          {isOnline && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField label="Ochiladi" htmlFor="exam-start" error={errors.startAt?.message} hint="Bo‘sh — darhol">
+                  <Input id="exam-start" type="datetime-local" {...register('startAt')} />
+                </FormField>
+                <FormField label="Yopiladi" htmlFor="exam-end" error={errors.endAt?.message} hint="Bo‘sh — muddatsiz">
+                  <Input id="exam-end" type="datetime-local" invalid={Boolean(errors.endAt)} {...register('endAt')} />
+                </FormField>
+              </div>
+              <Checkbox label="Savollar tartibini aralashtirish" {...register('shuffleQuestions')} />
+              <Checkbox label="Variantlar tartibini aralashtirish" {...register('shuffleOptions')} />
+              <BlueprintEditor draft={blueprintDraft} onChange={setBlueprintDraft} courseId={courseId} groupId={exam?.group.id ?? (selectedGroupId || null)} />
+            </>
+          )}
+        </fieldset>
 
         <FormField label="Tavsif" htmlFor="exam-description" error={errors.description?.message} hint="Ixtiyoriy">
           <Textarea id="exam-description" rows={2} {...register('description')} />

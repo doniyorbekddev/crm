@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
 
-export const QUESTION_TYPES = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT'] as const;
+export const QUESTION_TYPES = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT', 'TRUE_FALSE', 'SHORT_TEXT', 'LONG_TEXT', 'CODE', 'FILE_UPLOAD'] as const;
+/** Variantli (avtomatik baholanadigan) turlar */
+export const CHOICE_TYPES: readonly string[] = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE'];
 export const QUESTION_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
@@ -20,6 +22,10 @@ const questionFieldsSchema = z.object({
   difficulty: z.enum(QUESTION_DIFFICULTIES, 'Murakkablik noto‘g‘ri').default('MEDIUM'),
   points: z.coerce.number().int().min(1, 'Ball kamida 1').max(100, 'Ball juda katta').default(1),
   answerHint: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
+  explanation: optionalField(z.string().trim().max(1000, 'Tushuntirish juda uzun')),
+  tags: z.array(z.string().trim().min(1).max(40)).max(10, 'Ko‘pi bilan 10 ta teg').default([]),
+  /** SHORT_TEXT: qabul qilinadigan javoblar */
+  acceptedAnswers: z.array(z.string().trim().min(1).max(200)).max(10, 'Ko‘pi bilan 10 ta javob').default([]),
   isActive: z.boolean().default(true),
   options: z.array(optionSchema).max(10, 'Variantlar juda ko‘p').default([]),
 });
@@ -29,11 +35,17 @@ const questionFieldsSchema = z.object({
  * bitta javobli savolda esa aynan bitta to‘g‘ri variant bo‘ladi.
  */
 function validateOptions(value: z.infer<typeof questionFieldsSchema>, ctx: z.RefinementCtx): void {
-  if (value.type === 'TEXT') {
+  if (!CHOICE_TYPES.includes(value.type)) {
     if (value.options.length > 0) {
       ctx.addIssue({ code: 'custom', path: ['options'], message: 'Matnli savolda variant bo‘lmaydi' });
     }
+    if (value.type === 'SHORT_TEXT' && value.acceptedAnswers.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['acceptedAnswers'], message: 'Qisqa javobli savolda kamida bitta to‘g‘ri javob kiriting' });
+    }
     return;
+  }
+  if (value.type === 'TRUE_FALSE' && value.options.length !== 2) {
+    ctx.addIssue({ code: 'custom', path: ['options'], message: 'To‘g‘ri/noto‘g‘ri savolida aynan 2 variant bo‘ladi' });
   }
   const correct = value.options.filter((option) => option.isCorrect).length;
   if (value.options.length < 2) {
@@ -42,7 +54,7 @@ function validateOptions(value: z.infer<typeof questionFieldsSchema>, ctx: z.Ref
   if (correct === 0) {
     ctx.addIssue({ code: 'custom', path: ['options'], message: 'Kamida bitta to‘g‘ri variant belgilang' });
   }
-  if (value.type === 'SINGLE_CHOICE' && correct > 1) {
+  if ((value.type === 'SINGLE_CHOICE' || value.type === 'TRUE_FALSE') && correct > 1) {
     ctx.addIssue({ code: 'custom', path: ['options'], message: 'Bitta javobli savolda faqat bitta to‘g‘ri variant bo‘ladi' });
   }
 }

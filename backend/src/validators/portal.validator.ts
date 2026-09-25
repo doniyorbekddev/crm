@@ -60,3 +60,9 @@ export const bulkParentPortalAccountsSchema = bulkPortalAccountsSchema.extend({
 export type BulkParentPortalAccountsInput = z.infer<typeof bulkParentPortalAccountsSchema>;
 
 export type PortalChildQuery = z.infer<typeof portalChildQuerySchema>;
+
+/** Onlayn imtihon javobi (avtosaqlash): variant(lar) yoki matn/kod */
+export const portalExamAnswerSchema = z.object({
+  optionIds: z.array(z.string().trim().min(1).max(50)).max(20).optional(),
+  text: z.string().max(20000, 'Javob juda uzun').nullable().optional(),
+});

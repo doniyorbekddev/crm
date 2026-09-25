@@ -15,6 +15,10 @@ import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { questionsService } from '@/services/questions.service';
 import type { Exam } from '@/types/homework';
+import type { ExamAttempt } from '@/types/question';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
+import { AttemptReviewModal } from './AttemptReviewModal';
 
 /**
  * Imtihonga savollarni biriktirish va urinish natijalarini ko'rish.
@@ -24,6 +28,8 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
   const queryClient = useQueryClient();
   const [count, setCount] = useState('10');
   const [formError, setFormError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<ExamAttempt | null>(null);
+  const canGrade = usePermission(PERMISSIONS.EXAM_GRADE);
 
   const attemptsQuery = useQuery({
     queryKey: queryKeys.questions.attempts(exam.id),
@@ -97,7 +103,15 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-semibold tabular-nums text-fg">{attempt.percentage}%</span>
                   <Badge tone={attempt.passed ? 'green' : 'red'}>{attempt.passed ? 'O‘tdi' : 'O‘tmadi'}</Badge>
-                  {attempt.status === 'NEEDS_REVIEW' && <Badge tone="yellow">Baholash kerak</Badge>}
+                  {attempt.status === 'IN_PROGRESS' && <Badge tone="blue">Topshirilmoqda</Badge>}
+                  {attempt.status === 'NEEDS_REVIEW' &&
+                    (canGrade ? (
+                      <Button variant="secondary" onClick={() => setReviewing(attempt)}>
+                        Baholash
+                      </Button>
+                    ) : (
+                      <Badge tone="yellow">Baholash kerak</Badge>
+                    ))}
                 </div>
               </div>
 
@@ -129,6 +143,18 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
             </li>
           ))}
         </ul>
+      )}
+
+      {reviewing && (
+        <AttemptReviewModal
+          attempt={reviewing}
+          onClose={() => setReviewing(null)}
+          onGraded={() => {
+            setReviewing(null);
+            void queryClient.invalidateQueries({ queryKey: queryKeys.questions.attempts(exam.id) });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.exams.all });
+          }}
+        />
       )}
     </Modal>
   );

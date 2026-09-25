@@ -38,6 +38,13 @@ portalRouter.get('/homework/:id/materials/:attachmentId', portalAccess, portalCo
 portalRouter.post('/homework/:id/submit', portalAccess, portalController.submitHomework);
 portalRouter.post('/homework/:id/attachment', portalAccess, uploadBody, portalController.submitHomeworkAttachment);
 portalRouter.get('/exams', portalAccess, portalController.exams);
+// Onlayn imtihon (TZ §21–25): boshlash → avtosaqlash → topshirish. "available" — :id dan oldin
+portalRouter.get('/exams/available', portalAccess, portalController.availableExams);
+portalRouter.post('/exams/:id/start', portalAccess, portalController.startExam);
+portalRouter.get('/attempts/:id', portalAccess, portalController.attempt);
+portalRouter.put('/attempts/:id/answers/:questionId', portalAccess, portalController.saveExamAnswer);
+portalRouter.post('/attempts/:id/answers/:questionId/file', portalAccess, uploadBody, portalController.saveExamAnswerFile);
+portalRouter.post('/attempts/:id/submit', portalAccess, portalController.submitExam);
 portalRouter.get('/exams/:id', portalAccess, portalController.examDetail);
 portalRouter.get('/attendance/calendar', portalAccess, portalController.attendanceCalendar);
 portalRouter.get('/gamification', portalAccess, portalController.gamification);

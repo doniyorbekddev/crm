@@ -5,6 +5,22 @@ export type SubmissionStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'LATE' 
 export type HomeworkTarget = 'GROUP' | 'SELECTED' | 'INDIVIDUAL';
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type ExamStatus = 'PLANNED' | 'HELD' | 'GRADED' | 'CANCELLED';
+export type ExamType = 'DAILY_QUIZ' | 'WEEKLY_TEST' | 'MONTHLY_EXAM' | 'MIDTERM' | 'FINAL' | 'PRACTICE' | 'DIAGNOSTIC';
+export type BlueprintDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+
+/** Savollar bankidan variant: mavzu ulushi × qiyinlik ulushi (TZ §23–24) */
+export interface ExamBlueprint {
+  total: number;
+  topics: Array<{ topicId: string; percent: number }>;
+  difficulty?: Record<BlueprintDifficulty, number>;
+}
+
+export interface BlueprintPreview {
+  poolSize: number;
+  feasible: boolean;
+  message: string | null;
+  cells: Array<{ topicId: string | null; topicTitle: string; difficulty: BlueprintDifficulty | null; target: number; available: number }>;
+}
 
 export interface HomeworkStats {
   students: number;
@@ -140,6 +156,15 @@ export interface Exam {
   /** Ruxsat etilgan urinishlar (0 — cheklanmagan) */
   maxAttempts: number;
   xpReward: number;
+  type: ExamType;
+  /** O'quvchi kabinetdan o'zi topshiradi */
+  isOnline: boolean;
+  startAt: string | null;
+  endAt: string | null;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  blueprint: ExamBlueprint | null;
+  questionCount: number;
   course: { id: string; name: string } | null;
   group: { id: string; name: string };
   teacher: PersonRef | null;
@@ -218,6 +243,13 @@ export interface ExamPayload {
   maxAttempts?: number;
   xpReward: number;
   status: ExamStatus;
+  type?: ExamType;
+  isOnline?: boolean;
+  startAt?: string | null;
+  endAt?: string | null;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  blueprint?: ExamBlueprint | null;
 }
 
 export interface GradeRecord {

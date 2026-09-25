@@ -24,6 +24,9 @@ const questionSelect = {
   difficulty: true,
   points: true,
   answerHint: true,
+  explanation: true,
+  tags: true,
+  acceptedAnswers: true,
   isActive: true,
   createdAt: true,
   topic: { select: { id: true, title: true } },
@@ -51,6 +54,11 @@ export interface QuestionDto {
   difficulty: QuestionDifficulty;
   points: number;
   answerHint: string | null;
+  /** Natijadan keyin ko'rsatiladigan tushuntirish */
+  explanation: string | null;
+  tags: string[];
+  /** SHORT_TEXT javob kaliti — faqat xodimga */
+  acceptedAnswers: string[];
   isActive: boolean;
   createdAt: string;
   /** Nechta imtihonda ishlatilgan */
@@ -69,6 +77,9 @@ export function toQuestionDto(record: QuestionRecord, includeAnswers = true): Qu
     difficulty: record.difficulty,
     points: record.points,
     answerHint: includeAnswers ? record.answerHint : null,
+    explanation: includeAnswers ? record.explanation : null,
+    tags: record.tags,
+    acceptedAnswers: includeAnswers ? record.acceptedAnswers : [],
     isActive: record.isActive,
     createdAt: record.createdAt.toISOString(),
     usedInExams: record._count.examQuestions,
@@ -131,6 +142,9 @@ export const questionService = {
           difficulty: input.difficulty,
           points: input.points,
           answerHint: input.answerHint ?? null,
+          explanation: input.explanation ?? null,
+          tags: input.tags,
+          acceptedAnswers: input.acceptedAnswers,
           isActive: input.isActive,
           createdById: actor.id,
           options: {
@@ -174,6 +188,9 @@ export const questionService = {
           difficulty: input.difficulty,
           points: input.points,
           answerHint: input.answerHint ?? null,
+          explanation: input.explanation ?? null,
+          tags: input.tags,
+          acceptedAnswers: input.acceptedAnswers,
           isActive: input.isActive,
           options: {
             create: input.options.map((option, index) => ({

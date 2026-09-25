@@ -2322,7 +2322,25 @@ model Rubric {
 enum QuestionType {
   SINGLE_CHOICE
   MULTIPLE_CHOICE
+  /// Eski "matnli" savol — uzun javob sifatida qo'lda baholanadi
   TEXT
+  TRUE_FALSE
+  /// Qisqa javob: qabul qilinadigan javoblardan biriga mos kelsa — avtomatik
+  SHORT_TEXT
+  LONG_TEXT
+  CODE
+  FILE_UPLOAD
+}
+
+/// Baholash turi (TZ §21)
+enum ExamType {
+  DAILY_QUIZ
+  WEEKLY_TEST
+  MONTHLY_EXAM
+  MIDTERM
+  FINAL
+  PRACTICE
+  DIAGNOSTIC
 }
 
 enum QuestionDifficulty {
@@ -2344,20 +2362,25 @@ enum AttemptStatus {
 /// Savollar bazasi. Savol kursga (va ixtiyoriy ravishda mavzuga) tegishli bo'ladi —
 /// shunda imtihon natijasini mavzular kesimida tahlil qilish mumkin.
 model Question {
-  id          String             @id @default(cuid())
-  courseId    String
-  topicId     String?
-  text        String             @db.VarChar(1000)
-  type        QuestionType       @default(SINGLE_CHOICE)
-  difficulty  QuestionDifficulty @default(MEDIUM)
+  id              String             @id @default(cuid())
+  courseId        String
+  topicId         String?
+  text            String             @db.VarChar(1000)
+  type            QuestionType       @default(SINGLE_CHOICE)
+  difficulty      QuestionDifficulty @default(MEDIUM)
   /// Standart ball — imtihonga qo'shilganda o'zgartirish mumkin
-  points      Int                @default(1) @db.SmallInt
+  points          Int                @default(1) @db.SmallInt
   /// Matnli savol uchun namunaviy javob (o'qituvchiga yordam)
-  answerHint  String?            @db.VarChar(500)
-  isActive    Boolean            @default(true)
-  createdById String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  answerHint      String?            @db.VarChar(500)
+  /// Natijadan keyin o'quvchiga ko'rsatiladigan tushuntirish
+  explanation     String?            @db.VarChar(1000)
+  tags            String[]           @default([])
+  /// SHORT_TEXT uchun qabul qilinadigan javoblar (katta-kichik harf va bo'sh joy e'tiborsiz)
+  acceptedAnswers String[]           @default([])
+  isActive        Boolean            @default(true)
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   topic         CourseTopic?     @relation(fields: [topicId], references: [id], onDelete: SetNull)
@@ -2394,9 +2417,10 @@ model ExamQuestion {
   points     Int    @db.SmallInt
   sortOrder  Int    @default(0)
 
-  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answers  ExamAnswer[]
+  exam             Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question         Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers          ExamAnswer[]
+  attemptQuestions AttemptQuestion[]
 
   @@unique([examId, questionId])
   @@index([examId, sortOrder])
@@ -2424,10 +2448,11 @@ model ExamAttempt {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  exam     Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student  Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  gradedBy User?        @relation(fields: [gradedById], references: [id], onDelete: SetNull)
-  answers  ExamAnswer[]
+  exam      Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student   Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy  User?             @relation(fields: [gradedById], references: [id], onDelete: SetNull)
+  answers   ExamAnswer[]
+  questions AttemptQuestion[]
 
   @@unique([examId, studentId, attemptNo])
   @@index([examId, status])
@@ -2444,6 +2469,8 @@ model ExamAnswer {
   optionIds      String[]
   /// Matnli javob
   text           String?  @db.VarChar(2000)
+  /// FILE_UPLOAD savoliga javob fayli
+  filePath       String?  @db.VarChar(500)
   /// Avtomatik yoki qo'lda baholangan ball
   score          Int      @default(0) @db.SmallInt
   /// `null` — hali baholanmagan (matnli javob)
@@ -2459,6 +2486,28 @@ model ExamAnswer {
   @@unique([attemptId, examQuestionId])
   @@index([questionId])
   @@map("exam_answers")
+}
+
+/// Urinish boshlangandagi savol **snapshoti** (TZ §25): tartib, variantlar tartibi, matn va
+/// javob kaliti muzlatiladi — savol keyin tahrirlansa ham urinish o'zgarmaydi.
+model AttemptQuestion {
+  id             String   @id @default(cuid())
+  attemptId      String
+  examQuestionId String
+  sortOrder      Int
+  points         Int      @db.SmallInt
+  /// O'quvchiga ko'rinadigan qism: {text, type, options:[{id,text}]}
+  snapshot       Json
+  /// Faqat serverda: {correctOptionIds, acceptedAnswers}
+  answerKey      Json
+  createdAt      DateTime @default(now())
+
+  attempt      ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examQuestion ExamQuestion @relation(fields: [examQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, examQuestionId])
+  @@index([attemptId, sortOrder])
+  @@map("attempt_questions")
 }
 
 /// Kurs yakunlangani haqidagi sertifikat.
@@ -2508,23 +2557,33 @@ model Certificate {
 }
 
 model Exam {
-  id              String     @id @default(cuid())
-  title           String     @db.VarChar(200)
-  description     String?
-  courseId        String?
-  groupId         String
-  teacherId       String?
-  date            DateTime   @db.Date
-  maxScore        Int        @default(100) @db.SmallInt
-  passScore       Int?       @db.SmallInt
+  id               String     @id @default(cuid())
+  title            String     @db.VarChar(200)
+  description      String?
+  courseId         String?
+  groupId          String
+  teacherId        String?
+  date             DateTime   @db.Date
+  maxScore         Int        @default(100) @db.SmallInt
+  passScore        Int?       @db.SmallInt
   /// Imtihon davomiyligi (daqiqa). Bo'sh — vaqt chegarasi yo'q
-  durationMinutes Int?       @db.SmallInt
+  durationMinutes  Int?       @db.SmallInt
   /// Ruxsat etilgan urinishlar soni (0 — cheklanmagan)
-  maxAttempts     Int        @default(0) @db.SmallInt
-  xpReward        Int        @default(50)
-  status          ExamStatus @default(PLANNED)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  maxAttempts      Int        @default(0) @db.SmallInt
+  xpReward         Int        @default(50)
+  status           ExamStatus @default(PLANNED)
+  type             ExamType   @default(MONTHLY_EXAM)
+  /// O'quvchi kabinetdan o'zi topshiradi
+  isOnline         Boolean    @default(false)
+  /// Topshirish oynasi (bo'lmasa — cheklanmagan)
+  startAt          DateTime?
+  endAt            DateTime?
+  shuffleQuestions Boolean    @default(false)
+  shuffleOptions   Boolean    @default(false)
+  /// Blueprint: {total, topics:[{topicId,percent}], difficulty:{EASY,MEDIUM,HARD}} — har o'quvchiga alohida variant
+  blueprint        Json?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   course    Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
   group     Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)

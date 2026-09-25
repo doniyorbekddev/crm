@@ -1,9 +1,9 @@
 import type { StudentProfile } from './studentProfile';
 import type { PaymentSchedule } from './paymentSchedule';
 import type { PaymentMethod } from './payment';
-import type { Difficulty, ExamStatus, HomeworkAttachment, HomeworkStatus, RubricCriterion, SubmissionFile, SubmissionStatus } from './homework';
+import type { Difficulty, ExamStatus, ExamType, HomeworkAttachment, HomeworkStatus, RubricCriterion, SubmissionFile, SubmissionStatus } from './homework';
 import type { RiskLevel } from './student';
-import type { ExamAttempt } from './question';
+import type { AttemptStatus, ExamAttempt, QuestionType } from './question';
 import type { StudentExamRow } from './studentProfile';
 
 export interface PortalChild {
@@ -205,4 +205,46 @@ export interface WeeklyReport {
   topics: { strong: string[]; weak: string[] };
   feedback: Array<{ source: 'homework' | 'exam'; title: string; text: string; author: string | null; date: string }>;
   summary: string[];
+}
+
+/** Onlayn topshiriladigan imtihon (TZ §21–25) */
+export interface AvailableExam {
+  examId: string;
+  title: string;
+  type: ExamType;
+  startAt: string | null;
+  endAt: string | null;
+  durationMinutes: number | null;
+  maxAttempts: number;
+  attemptsUsed: number;
+  openAttemptId: string | null;
+  questionCount: number;
+  canStart: boolean;
+  /** Boshlab bo'lmasa — sababi */
+  reason: string | null;
+  lastResult: { percentage: number; status: AttemptStatus } | null;
+}
+
+export interface AttemptQuestionView {
+  id: string;
+  order: number;
+  text: string;
+  type: QuestionType;
+  points: number;
+  options: Array<{ id: string; text: string }>;
+  answer: { optionIds: string[]; text: string | null; hasFile: boolean };
+  /** Faqat topshirilgandan keyin */
+  result?: { score: number; isCorrect: boolean | null; correctOptionIds: string[]; explanation: string | null; feedback: string | null };
+}
+
+export interface AttemptView {
+  attemptId: string;
+  examId: string;
+  examTitle: string;
+  examType: ExamType;
+  status: AttemptStatus;
+  startedAt: string;
+  deadline: string | null;
+  questions: AttemptQuestionView[];
+  summary: { score: number; maxScore: number; percentage: number; passed: boolean } | null;
 }

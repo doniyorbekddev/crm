@@ -15,6 +15,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { curriculumService } from '@/services/curriculum.service';
 import { questionsService } from '@/services/questions.service';
 import type { Question, QuestionDifficulty, QuestionType } from '@/types/question';
+import { DIFFICULTY_LABELS, QUESTION_TYPE_LABELS, isChoiceQuestion } from '@/utils/questionLabels';
 
 interface Draft {
   text: string;
@@ -28,17 +29,15 @@ interface QuestionFormModalProps {
   onSaved: () => void;
 }
 
-const TYPE_LABELS: Record<QuestionType, string> = {
-  SINGLE_CHOICE: 'Bitta to‘g‘ri javob',
-  MULTIPLE_CHOICE: 'Bir nechta to‘g‘ri javob',
-  TEXT: 'Matnli javob (qo‘lda baholanadi)',
-};
+const TRUE_FALSE_OPTIONS: Draft[] = [
+  { text: 'To‘g‘ri', isCorrect: true },
+  { text: 'Noto‘g‘ri', isCorrect: false },
+];
 
-const DIFFICULTY_LABELS: Record<QuestionDifficulty, string> = {
-  EASY: 'Oson',
-  MEDIUM: 'O‘rtacha',
-  HARD: 'Qiyin',
-};
+/** "a, b\nc" → ["a", "b", "c"] — teglar va qabul qilinadigan javoblar uchun */
+function splitList(value: string, separator: RegExp): string[] {
+  return [...new Set(value.split(separator).map((item) => item.trim()).filter(Boolean))];
+}
 
 export function QuestionFormModal({ question, courses, onClose, onSaved }: QuestionFormModalProps) {
   const [courseId, setCourseId] = useState(question?.courseId ?? courses[0]?.id ?? '');
@@ -53,7 +52,11 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
       { text: '', isCorrect: false },
     ],
   );
+  const [explanation, setExplanation] = useState(question?.explanation ?? '');
+  const [tags, setTags] = useState((question?.tags ?? []).join(', '));
+  const [accepted, setAccepted] = useState((question?.acceptedAnswers ?? []).join('\n'));
   const [formError, setFormError] = useState<string | null>(null);
+  const choice = isChoiceQuestion(type);
 
   const curriculumQuery = useQuery({
     queryKey: queryKeys.curriculum.course(courseId),
@@ -72,7 +75,10 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
         difficulty,
         points: Number(points),
         ...(topicId ? { topicId } : {}),
-        options: type === 'TEXT' ? [] : options.filter((option) => option.text.trim()).map((option) => ({ text: option.text.trim(), isCorrect: option.isCorrect })),
+        ...(explanation.trim() ? { explanation: explanation.trim() } : {}),
+        tags: splitList(tags, /,/),
+        acceptedAnswers: type === 'SHORT_TEXT' ? splitList(accepted, /\n/) : [],
+        options: choice ? options.filter((option) => option.text.trim()).map((option) => ({ text: option.text.trim(), isCorrect: option.isCorrect })) : [],
       };
       return question ? questionsService.update(question.id, payload) : questionsService.create({ ...payload, courseId });
     },
@@ -83,12 +89,19 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
     onError: (error) => setFormError(getErrorMessage(error)),
   });
 
+  function changeType(next: QuestionType) {
+    setType(next);
+    // To'g'ri/noto'g'ri — variantlar qat'iy, faqat qaysi biri to'g'ri tanlanadi
+    if (next === 'TRUE_FALSE') setOptions(TRUE_FALSE_OPTIONS);
+    else if (type === 'TRUE_FALSE') setOptions([{ text: '', isCorrect: true }, { text: '', isCorrect: false }]);
+  }
+
   function setOption(index: number, patch: Partial<Draft>) {
     setOptions((current) =>
       current.map((option, position) => {
         if (position !== index) {
           // Bitta javobli savolda faqat bitta variant to'g'ri bo'ladi
-          return type === 'SINGLE_CHOICE' && patch.isCorrect ? { ...option, isCorrect: false } : option;
+          return type !== 'MULTIPLE_CHOICE' && patch.isCorrect ? { ...option, isCorrect: false } : option;
         }
         return { ...option, ...patch };
       }),
@@ -149,8 +162,8 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
 
         <div className="grid gap-4 sm:grid-cols-3">
           <FormField label="Turi" htmlFor="question-type">
-            <Select id="question-type" value={type} onChange={(event) => setType(event.target.value as QuestionType)}>
-              {Object.entries(TYPE_LABELS).map(([value, label]) => (
+            <Select id="question-type" value={type} onChange={(event) => changeType(event.target.value as QuestionType)}>
+              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -175,9 +188,9 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
           </FormField>
         </div>
 
-        {type !== 'TEXT' && (
+        {choice && (
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">Variantlar</p>
+            <p className="mb-2 text-sm font-medium text-fg">{type === 'TRUE_FALSE' ? 'To‘g‘ri javobni belgilang' : 'Variantlar'}</p>
             <ul className="space-y-2">
               {options.map((option, index) => (
                 <li key={index} className="flex items-center gap-2">
@@ -190,9 +203,10 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
                     value={option.text}
                     placeholder={`${index + 1}-variant`}
                     aria-label={`${index + 1}-variant matni`}
+                    readOnly={type === 'TRUE_FALSE'}
                     onChange={(event) => setOption(index, { text: event.target.value })}
                   />
-                  {options.length > 2 && (
+                  {options.length > 2 && type !== 'TRUE_FALSE' && (
                     <Button
                       variant="ghost"
                       aria-label={`${index + 1}-variantni o‘chirish`}
@@ -204,17 +218,41 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
                 </li>
               ))}
             </ul>
-            <Button
-              variant="secondary"
-              className="mt-2"
-              leftIcon={<Plus className="size-4" aria-hidden />}
-              disabled={options.length >= 10}
-              onClick={() => setOptions((current) => [...current, { text: '', isCorrect: false }])}
-            >
-              Variant qo‘shish
-            </Button>
+            {type !== 'TRUE_FALSE' && (
+              <Button
+                variant="secondary"
+                className="mt-2"
+                leftIcon={<Plus className="size-4" aria-hidden />}
+                disabled={options.length >= 10}
+                onClick={() => setOptions((current) => [...current, { text: '', isCorrect: false }])}
+              >
+                Variant qo‘shish
+              </Button>
+            )}
           </div>
         )}
+
+        {type === 'SHORT_TEXT' && (
+          <FormField
+            label="Qabul qilinadigan javoblar"
+            htmlFor="question-accepted"
+            hint="Har qatorga bitta. Katta-kichik harf va ortiqcha bo‘shliq hisobga olinmaydi; mos kelmagan javobni o‘qituvchi ko‘radi"
+          >
+            <Textarea id="question-accepted" rows={3} value={accepted} onChange={(event) => setAccepted(event.target.value)} />
+          </FormField>
+        )}
+
+        {!choice && type !== 'SHORT_TEXT' && (
+          <Alert tone="info">Bu turdagi javobni o‘qituvchi tekshiradi — urinish “Baholash kerak” holatiga o‘tadi.</Alert>
+        )}
+
+        <FormField label="Tushuntirish" htmlFor="question-explanation" hint="Natija e’lon qilingach o‘quvchiga ko‘rsatiladi (ixtiyoriy)">
+          <Textarea id="question-explanation" rows={2} value={explanation} onChange={(event) => setExplanation(event.target.value)} />
+        </FormField>
+
+        <FormField label="Teglar" htmlFor="question-tags" hint="Vergul bilan: massiv, sikl">
+          <Input id="question-tags" value={tags} onChange={(event) => setTags(event.target.value)} />
+        </FormField>
       </div>
     </Modal>
   );

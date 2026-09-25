@@ -13,6 +13,8 @@ import type {
   PortalSchedule,
   PortalChildSummary,
   WeeklyReport,
+  AttemptView,
+  AvailableExam,
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
 import type { LessonMaterial, LessonTree, PortalLessonDetail } from '@/types/lesson';
@@ -109,6 +111,39 @@ export const portalService = {
   /** O‘zi yuklagan faylni yuklab olish */
   downloadHomeworkAttachment(homeworkId: string, fallbackName: string, studentId?: string): Promise<void> {
     return downloadFile(`/portal/homework/${homeworkId}/attachment`, { studentId }, fallbackName);
+  },
+
+  /** Onlayn topshiriladigan imtihonlar */
+  async availableExams(studentId?: string): Promise<AvailableExam[]> {
+    const response = await api.get<ApiSuccessResponse<AvailableExam[]>>('/portal/exams/available', { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** Boshlash yoki ochiq urinishni davom ettirish */
+  async startExam(examId: string): Promise<AttemptView> {
+    const response = await api.post<ApiSuccessResponse<AttemptView>>(`/portal/exams/${examId}/start`);
+    return response.data.data;
+  },
+
+  async attempt(attemptId: string, studentId?: string): Promise<AttemptView> {
+    const response = await api.get<ApiSuccessResponse<AttemptView>>(`/portal/attempts/${attemptId}`, { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** Avtosaqlash — topshirmaydi */
+  async saveExamAnswer(attemptId: string, questionId: string, payload: { optionIds?: string[]; text?: string | null }): Promise<void> {
+    await api.put(`/portal/attempts/${attemptId}/answers/${questionId}`, payload);
+  },
+
+  async uploadExamAnswerFile(attemptId: string, questionId: string, file: File): Promise<void> {
+    await api.post(`/portal/attempts/${attemptId}/answers/${questionId}/file`, file, {
+      headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) },
+    });
+  },
+
+  async submitExam(attemptId: string): Promise<MessageResult<AttemptView>> {
+    const response = await api.post<ApiSuccessResponse<AttemptView>>(`/portal/attempts/${attemptId}/submit`);
+    return { data: response.data.data, message: response.data.message };
   },
 
   async examDetail(examId: string, studentId?: string): Promise<PortalExamDetail> {

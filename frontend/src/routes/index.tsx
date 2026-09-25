@@ -101,6 +101,12 @@ export const router = createBrowserRouter([
                         ),
                       },
                       {
+                        path: "attempts/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalAttemptPage"),
+                        ),
+                      },
+                      {
                         path: "course",
                         lazy: lazyComponent(
                           () => import("@/pages/portal/PortalCoursePage"),

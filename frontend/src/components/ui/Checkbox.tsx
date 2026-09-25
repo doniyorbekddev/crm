@@ -5,16 +5,18 @@ import { cn } from '@/lib/cn';
 export interface CheckboxProps extends Omit<ComponentProps<'input'>, 'type' | 'ref'> {
   /** Guruhdagi ba’zi elementlar tanlangan holat (—) */
   indeterminate?: boolean;
+  /** Berilsa — belgi yonida bosiladigan yozuv (label ichida) */
+  label?: string;
 }
 
-export function Checkbox({ indeterminate = false, className, ...props }: CheckboxProps) {
+export function Checkbox({ indeterminate = false, className, label, ...props }: CheckboxProps) {
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
 
-  return (
+  const input = (
     <input
       ref={ref}
       type="checkbox"
@@ -25,5 +27,12 @@ export function Checkbox({ indeterminate = false, className, ...props }: Checkbo
       )}
       {...props}
     />
+  );
+  if (!label) return input;
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+      {input}
+      <span>{label}</span>
+    </label>
   );
 }

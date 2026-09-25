@@ -13,8 +13,9 @@ import { queryKeys } from '@/lib/queryKeys';
 import { portalService } from '@/services/portal.service';
 import { formatDate } from '@/utils/format';
 import { GRADE_TONES } from '@/utils/homeworkLabels';
+import { OnlineExamsCard } from './OnlineExamsCard';
 
-/** Imtihon natijalari. Onlayn topshirish — Assessment 2.0 bosqichida qo‘shiladi. */
+/** Onlayn imtihonlar (kabinetdan topshirish) va imtihon natijalari */
 export default function PortalExamsPage() {
   const { activeChild } = usePortal();
   const query = useQuery({ queryKey: queryKeys.portal.exams(activeChild), queryFn: () => portalService.exams(activeChild) });
@@ -28,6 +29,8 @@ export default function PortalExamsPage() {
         title="Imtihonlar"
         description={average === null ? 'Natijalar kiritilganda shu yerda ko‘rinadi' : `${rows.length} ta imtihon · o‘rtacha ${average}%`}
       />
+
+      <OnlineExamsCard />
 
       <Card>
         {query.isPending ? (

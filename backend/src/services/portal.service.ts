@@ -31,6 +31,8 @@ import type { StudentExamRowDto } from './studentProgress.service.js';
 import { resolveStoredPath } from '../utils/fileStorage.js';
 import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
 import { lessonService } from './lesson.service.js';
+import { examTakingService } from './examTaking.service.js';
+import type { AttemptViewDto, AvailableExamDto } from './examTaking.service.js';
 import type { LessonDto, LessonTreeDto } from './lesson.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
 import type { ExamStatus, HomeworkStatus, QuestionDifficulty, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
@@ -86,6 +88,13 @@ function toChild(row: Prisma.StudentGetPayload<{ select: typeof studentSelect }>
 }
 
 /** Foydalanuvchi kabinetda qaysi o'quvchilarni ko'ra oladi */
+/** Amal faqat o'quvchi hisobining o'zi uchun (imtihon topshirish, dars belgisi) */
+async function requireSelfStudent(actor: AuthUser): Promise<string> {
+  const scope = await resolvePortalScope(actor);
+  if (scope.kind !== 'STUDENT' || !scope.studentIds[0]) throw AppError.forbidden('Imtihonni faqat o‘quvchining o‘zi topshiradi');
+  return scope.studentIds[0];
+}
+
 export async function resolvePortalScope(actor: AuthUser): Promise<{ kind: 'STUDENT' | 'PARENT'; fullName: string; studentIds: string[] }> {
   const permissions = await permissionService.getRolePermissions(actor.roleId);
 
@@ -406,6 +415,42 @@ export const portalService = {
   async exams(actor: AuthUser, requestedStudentId?: string) {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     return buildStudentExamRows(studentId);
+  },
+
+  /** Onlayn topshiriladigan imtihonlar (ota-ona ham ko'radi, lekin boshlay olmaydi) */
+  async availableExams(actor: AuthUser, requestedStudentId?: string): Promise<AvailableExamDto[]> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return examTakingService.available(studentId);
+  },
+
+  /** Imtihonni boshlash — faqat o'quvchining o'zi (ota-ona farzandi o'rniga topshirmaydi) */
+  async startExam(actor: AuthUser, examId: string): Promise<AttemptViewDto> {
+    const studentId = await requireSelfStudent(actor);
+    return examTakingService.start(studentId, examId, actor.id);
+  },
+
+  /** Urinishni ko'rish. Ota-ona faqat yakunlangan urinishni ko'radi */
+  async attempt(actor: AuthUser, attemptId: string, requestedStudentId?: string): Promise<AttemptViewDto> {
+    const scope = await resolvePortalScope(actor);
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const view = await examTakingService.view(studentId, attemptId);
+    if (scope.kind !== 'STUDENT' && view.status === 'IN_PROGRESS') throw AppError.forbidden('Imtihon hali yakunlanmagan');
+    return view;
+  },
+
+  async saveExamAnswer(actor: AuthUser, attemptId: string, questionId: string, input: { optionIds?: string[] | undefined; text?: string | null | undefined }) {
+    const studentId = await requireSelfStudent(actor);
+    return examTakingService.saveAnswer(studentId, attemptId, questionId, { optionIds: input.optionIds ?? [], text: input.text ?? null });
+  },
+
+  async saveExamAnswerFile(actor: AuthUser, attemptId: string, questionId: string, buffer: unknown) {
+    const studentId = await requireSelfStudent(actor);
+    return examTakingService.saveAnswerFile(studentId, attemptId, questionId, buffer);
+  },
+
+  async submitExam(actor: AuthUser, attemptId: string): Promise<AttemptViewDto> {
+    const studentId = await requireSelfStudent(actor);
+    return examTakingService.submit(studentId, attemptId, actor.id);
   },
 
   /** Oylik davomat kalendari; oy berilmasa — joriy oy (o'quv markaz vaqti bo'yicha) */

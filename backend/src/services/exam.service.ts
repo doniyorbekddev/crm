@@ -1,6 +1,9 @@
 import { prisma } from '../config/database.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
-import type { ExamStatus, Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { ExamStatus, ExamType } from '../generated/prisma/client.js';
+import type { Blueprint } from './examBlueprint.js';
+import { BlueprintShortageError, generateVariant, planCells } from './examBlueprint.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { toSkipTake } from '../utils/pagination.js';
@@ -34,6 +37,14 @@ export interface ExamDto {
   /** Ruxsat etilgan urinishlar (0 — cheklanmagan) */
   maxAttempts: number;
   xpReward: number;
+  type: ExamType;
+  isOnline: boolean;
+  startAt: string | null;
+  endAt: string | null;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  blueprint: Blueprint | null;
+  questionCount: number;
   course: { id: string; name: string } | null;
   group: { id: string; name: string };
   teacher: { id: string; firstName: string; lastName: string } | null;
@@ -82,6 +93,14 @@ const examSelect = {
   passScore: true,
   durationMinutes: true,
   maxAttempts: true,
+  type: true,
+  isOnline: true,
+  startAt: true,
+  endAt: true,
+  shuffleQuestions: true,
+  shuffleOptions: true,
+  blueprint: true,
+  _count: { select: { questions: true } },
   xpReward: true,
   groupId: true,
   course: { select: { id: true, name: true } },
@@ -136,6 +155,14 @@ function toDto(exam: ExamRecord, students: number): ExamDto {
     passScore: exam.passScore,
     durationMinutes: exam.durationMinutes,
     maxAttempts: exam.maxAttempts,
+    type: exam.type,
+    isOnline: exam.isOnline,
+    startAt: exam.startAt?.toISOString() ?? null,
+    endAt: exam.endAt?.toISOString() ?? null,
+    shuffleQuestions: exam.shuffleQuestions,
+    shuffleOptions: exam.shuffleOptions,
+    blueprint: (exam.blueprint as Blueprint | null) ?? null,
+    questionCount: exam._count.questions,
     xpReward: exam.xpReward,
     course: exam.course,
     group: exam.group,
@@ -231,7 +258,66 @@ async function findVisible(access: TeachingAccess, id: string): Promise<ExamReco
 // Service
 // ---------------------------------------------------------------------
 
+/** Topshirish oynasi: tugash boshlanishdan keyin bo'lishi kerak */
+function assertWindow(startAt: Date | null, endAt: Date | null): void {
+  if (startAt && endAt && endAt.getTime() <= startAt.getTime()) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'endAt', message: 'Tugash vaqti boshlanishdan keyin bo‘lishi kerak' }]);
+  }
+}
+
+/** Blueprint mavzulari imtihon kursiga tegishlimi */
+async function assertBlueprintTopics(courseId: string, blueprint: Blueprint): Promise<void> {
+  if (blueprint.topics.length === 0) return;
+  const found = await prisma.courseTopic.count({ where: { id: { in: blueprint.topics.map((topic) => topic.topicId) }, module: { courseId } } });
+  if (found !== blueprint.topics.length) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'blueprint', message: 'Blueprint mavzulari imtihon kursiga tegishli emas' }]);
+  }
+}
+
+export interface BlueprintPreviewDto {
+  poolSize: number;
+  feasible: boolean;
+  message: string | null;
+  cells: Array<{ topicId: string | null; topicTitle: string; difficulty: string | null; target: number; available: number }>;
+}
+
 export const examService = {
+  /**
+   * Blueprint oldindan ko'rish: har mavzu × qiyinlik katagida kerakli va bankdagi savollar soni.
+   * `feasible` — haqiqiy variant generatsiyasi bilan tekshiriladi (to'ldirish qoidalari hisobga olinadi).
+   */
+  async previewBlueprint(actor: AuthUser, groupId: string, blueprint: Blueprint): Promise<BlueprintPreviewDto> {
+    const access = await getTeachingAccess(actor);
+    const group = await assertGroupVisible(access, groupId);
+    await assertBlueprintTopics(group.courseId, blueprint);
+    const pool = await prisma.question.findMany({ where: { courseId: group.courseId, isActive: true }, select: { id: true, topicId: true, difficulty: true } });
+    const topics = await prisma.courseTopic.findMany({ where: { id: { in: blueprint.topics.map((topic) => topic.topicId) } }, select: { id: true, title: true } });
+    const titles = new Map(topics.map((topic) => [topic.id, topic.title]));
+    const allowed = blueprint.topics.length > 0 ? new Set(blueprint.topics.map((topic) => topic.topicId)) : null;
+    const eligible = pool.filter((question) => allowed === null || (question.topicId !== null && allowed.has(question.topicId)));
+    let feasible = true;
+    let message: string | null = null;
+    try {
+      generateVariant(pool, blueprint);
+    } catch (error) {
+      if (!(error instanceof BlueprintShortageError)) throw error;
+      feasible = false;
+      message = error.message;
+    }
+    return {
+      poolSize: eligible.length,
+      feasible,
+      message,
+      cells: planCells(blueprint, eligible).map((cell) => ({
+        topicId: cell.topicId,
+        topicTitle: cell.topicId ? (titles.get(cell.topicId) ?? 'Mavzu') : 'Barcha mavzular',
+        difficulty: cell.difficulty,
+        target: cell.target,
+        available: cell.available,
+      })),
+    };
+  },
+
   async list(actor: AuthUser, query: ExamListQuery): Promise<{ items: ExamDto[]; total: number }> {
     const access = await getTeachingAccess(actor);
     const where = buildWhere(access, query);
@@ -268,8 +354,18 @@ export const examService = {
       ]);
     }
 
+    assertWindow(input.startAt ?? null, input.endAt ?? null);
+    if (input.blueprint) await assertBlueprintTopics(group.courseId, input.blueprint);
+
     const exam = await prisma.exam.create({
       data: {
+        type: input.type ?? 'MONTHLY_EXAM',
+        isOnline: input.isOnline ?? false,
+        startAt: input.startAt ?? null,
+        endAt: input.endAt ?? null,
+        shuffleQuestions: input.shuffleQuestions ?? false,
+        shuffleOptions: input.shuffleOptions ?? false,
+        ...(input.blueprint ? { blueprint: input.blueprint } : {}),
         title: input.title,
         description: input.description ?? null,
         groupId: group.id,
@@ -310,9 +406,28 @@ export const examService = {
       throw AppError.conflict('Natijalar kiritilgan — maksimal ballni o‘zgartirib bo‘lmaydi');
     }
 
+    const startAt = input.startAt === undefined ? exam.startAt : input.startAt;
+    const endAt = input.endAt === undefined ? exam.endAt : input.endAt;
+    assertWindow(startAt, endAt);
+    if (input.blueprint) {
+      const owner = await prisma.exam.findUniqueOrThrow({ where: { id }, select: { courseId: true, group: { select: { courseId: true } } } });
+      await assertBlueprintTopics(owner.courseId ?? owner.group.courseId, input.blueprint);
+    }
+    // Boshlangan imtihonda variant qoidasi o'zgarmaydi — o'quvchilar teng sharoitda bo'lsin
+    if (input.blueprint !== undefined && (await prisma.examAttempt.count({ where: { examId: id } })) > 0) {
+      throw AppError.unprocessable('Imtihon boshlangan — blueprintni o‘zgartirib bo‘lmaydi');
+    }
+
     await prisma.exam.update({
       where: { id },
       data: {
+        ...(input.type === undefined ? {} : { type: input.type }),
+        ...(input.isOnline === undefined ? {} : { isOnline: input.isOnline }),
+        ...(input.startAt === undefined ? {} : { startAt: input.startAt }),
+        ...(input.endAt === undefined ? {} : { endAt: input.endAt }),
+        ...(input.shuffleQuestions === undefined ? {} : { shuffleQuestions: input.shuffleQuestions }),
+        ...(input.shuffleOptions === undefined ? {} : { shuffleOptions: input.shuffleOptions }),
+        ...(input.blueprint === undefined ? {} : { blueprint: input.blueprint ?? Prisma.DbNull }),
         ...(input.title === undefined ? {} : { title: input.title }),
         ...(input.description === undefined ? {} : { description: input.description }),
         ...(input.date === undefined ? {} : { date: dayStart(input.date) }),

@@ -1,7 +1,8 @@
 import { prisma } from '../config/database.js';
-import type { AttemptStatus, Prisma } from '../generated/prisma/client.js';
+import type { AttemptStatus, Prisma, QuestionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
+import { mimeForStoredPath, resolveStoredPath } from '../utils/fileStorage.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { AttachQuestionsInput, GradeAttemptInput, SubmitAttemptInput } from '../validators/question.validator.js';
 import { auditService } from './audit.service.js';
@@ -31,8 +32,11 @@ export interface AttemptAnswerDto {
   isCorrect: boolean | null;
   optionIds: string[];
   text: string | null;
+  questionType: QuestionType;
+  /** FILE_UPLOAD javobiga fayl yuklangan */
+  hasFile: boolean;
   feedback: string | null;
-  /** Matnli javob — qo'lda baholanadi */
+  /** Qo'lda baholanadi */
   needsReview: boolean;
 }
 
@@ -69,7 +73,7 @@ export interface AttemptDto {
 const WEAK_THRESHOLD = 60;
 const STRONG_THRESHOLD = 85;
 
-const attemptSelect = {
+export const attemptSelect = {
   id: true,
   examId: true,
   studentId: true,
@@ -90,6 +94,7 @@ const attemptSelect = {
       questionId: true,
       optionIds: true,
       text: true,
+      filePath: true,
       score: true,
       isCorrect: true,
       feedback: true,
@@ -97,9 +102,16 @@ const attemptSelect = {
       question: { select: { text: true, type: true, topicId: true, topic: { select: { title: true } } } },
     },
   },
+  // Kabinetdan topshirilgan urinish: savol matni va bali boshlangandagi holatda (snapshot)
+  questions: { select: { examQuestionId: true, points: true, snapshot: true } },
 } satisfies Prisma.ExamAttemptSelect;
 
-type AttemptRecord = Prisma.ExamAttemptGetPayload<{ select: typeof attemptSelect }>;
+/** Urinishdagi savol bali: snapshot bo'lsa — boshlangandagi, aks holda imtihondagi joriy ball */
+function answerPoints(record: AttemptRecord, answer: AttemptRecord['answers'][number]): number {
+  return record.questions.find((row) => row.examQuestionId === answer.examQuestionId)?.points ?? answer.examQuestion.points;
+}
+
+export type AttemptRecord = Prisma.ExamAttemptGetPayload<{ select: typeof attemptSelect }>;
 
 function buildTopics(record: AttemptRecord): { topics: TopicBreakdownDto[]; strong: string[]; weak: string[] } {
   const buckets = new Map<string, TopicBreakdownDto>();
@@ -113,7 +125,7 @@ function buildTopics(record: AttemptRecord): { topics: TopicBreakdownDto[]; stro
       percent: 0,
     };
     entry.score += answer.score;
-    entry.maxScore += answer.examQuestion.points;
+    entry.maxScore += answerPoints(record, answer);
     buckets.set(key, entry);
   }
 
@@ -128,7 +140,7 @@ function buildTopics(record: AttemptRecord): { topics: TopicBreakdownDto[]; stro
   };
 }
 
-function toAttemptDto(record: AttemptRecord): AttemptDto {
+export function toAttemptDto(record: AttemptRecord): AttemptDto {
   const { topics, strong, weak } = buildTopics(record);
   return {
     id: record.id,
@@ -144,20 +156,26 @@ function toAttemptDto(record: AttemptRecord): AttemptDto {
     passed: record.passed,
     startedAt: record.startedAt.toISOString(),
     submittedAt: record.submittedAt?.toISOString() ?? null,
-    answers: record.answers.map((answer) => ({
-      id: answer.id,
-      examQuestionId: answer.examQuestionId,
-      questionId: answer.questionId,
-      questionText: answer.question.text,
-      topicTitle: answer.question.topic?.title ?? null,
-      points: answer.examQuestion.points,
-      score: answer.score,
-      isCorrect: answer.isCorrect,
-      optionIds: answer.optionIds,
-      text: answer.text,
-      feedback: answer.feedback,
-      needsReview: answer.question.type === 'TEXT' && answer.isCorrect === null,
-    })),
+    answers: record.answers.map((answer) => {
+      const snapshot = record.questions.find((row) => row.examQuestionId === answer.examQuestionId)?.snapshot as { text?: string; type?: QuestionType } | undefined;
+      return {
+        id: answer.id,
+        examQuestionId: answer.examQuestionId,
+        questionId: answer.questionId,
+        questionText: snapshot?.text ?? answer.question.text,
+        questionType: snapshot?.type ?? answer.question.type,
+        topicTitle: answer.question.topic?.title ?? null,
+        points: answerPoints(record, answer),
+        score: answer.score,
+        isCorrect: answer.isCorrect,
+        optionIds: answer.optionIds,
+        text: answer.text,
+        hasFile: Boolean(answer.filePath),
+        feedback: answer.feedback,
+        // Yakunlangan urinishda baholanmagan javob — o'qituvchi tekshiradi (matn/kod/fayl, mos kelmagan qisqa javob)
+        needsReview: record.status !== 'IN_PROGRESS' && answer.isCorrect === null,
+      };
+    }),
     topics,
     strongTopics: strong,
     weakTopics: weak,
@@ -170,6 +188,46 @@ function gradeChoice(selected: string[], correct: string[], points: number): { s
   const correctSet = new Set(correct);
   const exact = selectedSet.size === correctSet.size && [...correctSet].every((id) => selectedSet.has(id));
   return { score: exact ? points : 0, isCorrect: exact };
+}
+
+/** Qo'lda baholanadigan turlar (o'qituvchi ko'radi) */
+export const MANUAL_QUESTION_TYPES: readonly QuestionType[] = ['TEXT', 'LONG_TEXT', 'CODE', 'FILE_UPLOAD'];
+
+export interface AnswerKey {
+  correctOptionIds: string[];
+  acceptedAnswers: string[];
+}
+
+/** "  Const   Let " → "const let" — qisqa javobni solishtirish uchun */
+export function normalizeShortAnswer(value: string): string {
+  return value.trim().toLowerCase().replace(/[‘’`´]/g, "'").replace(/\s+/g, ' ');
+}
+
+/**
+ * Bitta javobni baholaydi — xodim kiritgan va o'quvchi o'zi topshirgan urinishlar uchun
+ * **yagona** qoida (TZ §0.2):
+ *  - variantli (SINGLE/MULTIPLE/TRUE_FALSE) — to'plam aynan mos kelsa to'liq ball;
+ *  - SHORT_TEXT — qabul qilinadigan javoblardan biriga mos kelsa to'liq ball, mos kelmasa
+ *    o'qituvchi ko'radi (sinonim bo'lishi mumkin), bo'sh — 0;
+ *  - matn/kod/fayl — o'qituvchi baholaydi (`isCorrect: null`), bo'sh — 0.
+ */
+export function gradeAnswer(
+  type: QuestionType,
+  key: AnswerKey,
+  answer: { optionIds?: string[] | null; text?: string | null; filePath?: string | null } | undefined,
+  points: number,
+): { score: number; isCorrect: boolean | null } {
+  if (type === 'SINGLE_CHOICE' || type === 'MULTIPLE_CHOICE' || type === 'TRUE_FALSE') {
+    return gradeChoice(answer?.optionIds ?? [], key.correctOptionIds, points);
+  }
+  const text = answer?.text?.trim() ?? '';
+  if (type === 'SHORT_TEXT') {
+    if (!text) return { score: 0, isCorrect: false };
+    const normalized = normalizeShortAnswer(text);
+    return key.acceptedAnswers.some((accepted) => normalizeShortAnswer(accepted) === normalized) ? { score: points, isCorrect: true } : { score: 0, isCorrect: null };
+  }
+  const empty = type === 'FILE_UPLOAD' ? !answer?.filePath : !text;
+  return empty ? { score: 0, isCorrect: false } : { score: 0, isCorrect: null };
 }
 
 /**
@@ -370,7 +428,7 @@ export const examAttemptService = {
     const questionIds = exam.questions.map((item) => item.questionId);
     const questions = await prisma.question.findMany({
       where: { id: { in: questionIds } },
-      select: { id: true, type: true, options: { where: { isCorrect: true }, select: { id: true } } },
+      select: { id: true, type: true, acceptedAnswers: true, options: { where: { isCorrect: true }, select: { id: true } } },
     });
     const questionById = new Map(questions.map((question) => [question.id, question]));
     const examQuestionById = new Map(exam.questions.map((item) => [item.id, item]));
@@ -408,30 +466,24 @@ export const examAttemptService = {
         throw AppError.unprocessable('Javob noma’lum savolga tegishli');
       }
       const question = questionById.get(examQuestion.questionId)!;
-
-      if (question.type === 'TEXT') {
-        needsReview = true;
-        return {
-          examQuestionId: examQuestion.id,
-          questionId: question.id,
-          optionIds: [],
-          text: answer.text ?? null,
-          score: 0,
-          isCorrect: null,
-        };
-      }
-
-      const result = gradeChoice(
-        answer.optionIds ?? [],
-        question.options.map((option) => option.id),
-        examQuestion.points,
-      );
+      const choice = !MANUAL_QUESTION_TYPES.includes(question.type) && question.type !== 'SHORT_TEXT';
+      // Matnli javobni xodim kiritganda — har doim o'qituvchi ko'rib chiqadi (avvalgi xatti-harakat)
+      const result =
+        question.type === 'TEXT'
+          ? { score: 0, isCorrect: null }
+          : gradeAnswer(
+              question.type,
+              { correctOptionIds: question.options.map((option) => option.id), acceptedAnswers: question.acceptedAnswers },
+              answer,
+              examQuestion.points,
+            );
+      if (result.isCorrect === null) needsReview = true;
       score += result.score;
       return {
         examQuestionId: examQuestion.id,
         questionId: question.id,
-        optionIds: answer.optionIds ?? [],
-        text: null,
+        optionIds: choice ? (answer.optionIds ?? []) : [],
+        text: choice ? null : (answer.text ?? null),
         score: result.score,
         isCorrect: result.isCorrect,
       };
@@ -489,14 +541,22 @@ export const examAttemptService = {
     const access = await getTeachingAccess(actor);
     const attempt = await prisma.examAttempt.findFirst({
       where: { id: attemptId, ...attemptScope(access) },
-      select: { id: true, examId: true, status: true, answers: { select: { id: true, examQuestion: { select: { points: true } } } } },
+      select: {
+        id: true,
+        examId: true,
+        status: true,
+        answers: { select: { id: true, examQuestionId: true, examQuestion: { select: { points: true } } } },
+        questions: { select: { examQuestionId: true, points: true } },
+      },
     });
     if (!attempt) throw AppError.notFound('Urinish topilmadi');
+    if (attempt.status === 'IN_PROGRESS') throw AppError.unprocessable('O‘quvchi hali topshirmagan');
     if (attempt.status === 'GRADED') {
       throw AppError.unprocessable('Bu urinish allaqachon baholangan');
     }
 
-    const pointsById = new Map(attempt.answers.map((answer) => [answer.id, answer.examQuestion.points]));
+    const snapshotPoints = new Map(attempt.questions.map((row) => [row.examQuestionId, row.points]));
+    const pointsById = new Map(attempt.answers.map((answer) => [answer.id, snapshotPoints.get(answer.examQuestionId) ?? answer.examQuestion.points]));
     for (const grade of input.grades) {
       const points = pointsById.get(grade.answerId);
       if (points === undefined) throw AppError.unprocessable('Javob shu urinishga tegishli emas');
@@ -559,6 +619,22 @@ export const examAttemptService = {
     return toAttemptDto(updated);
   },
 
+  /** Fayl javobi (FILE_UPLOAD) — faqat o'z guruhi urinishi */
+  async answerFile(actor: AuthUser, attemptId: string, answerId: string): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
+    const access = await getTeachingAccess(actor);
+    const answer = await prisma.examAnswer.findFirst({
+      where: { id: answerId, attemptId, filePath: { not: null }, attempt: attemptScope(access) },
+      select: { filePath: true, attempt: { select: { student: { select: { firstName: true, lastName: true } } } } },
+    });
+    if (!answer?.filePath) throw AppError.notFound('Fayl topilmadi');
+    const extension = answer.filePath.split('.').pop() ?? 'bin';
+    return {
+      absolutePath: resolveStoredPath(answer.filePath),
+      fileName: `javob-${answer.attempt.student.lastName}-${answer.attempt.student.firstName}.${extension}`,
+      mimeType: mimeForStoredPath(answer.filePath),
+    };
+  },
+
   async getById(actor: AuthUser, attemptId: string): Promise<AttemptDto> {
     const access = await getTeachingAccess(actor);
     const attempt = await prisma.examAttempt.findFirst({ where: { id: attemptId, ...attemptScope(access) }, select: attemptSelect });
@@ -591,7 +667,7 @@ export const examAttemptService = {
  * Urinish natijasini `ExamResult` ga yozadi — mavjud hisobotlar, XP va analitika
  * shu jadvalga tayanadi, shuning uchun yangi dvigatel ularni buzmaydi.
  */
-async function syncExamResult(tx: Prisma.TransactionClient, attempt: AttemptRecord, actorId: string): Promise<void> {
+export async function syncExamResult(tx: Prisma.TransactionClient, attempt: AttemptRecord, actorId: string | null): Promise<void> {
   const grade = attempt.percentage >= 90 ? '5' : attempt.percentage >= 75 ? '4' : attempt.percentage >= 60 ? '3' : '2';
   const result = await tx.examResult.upsert({
     where: { examId_studentId: { examId: attempt.examId, studentId: attempt.studentId } },

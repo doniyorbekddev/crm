@@ -89,3 +89,9 @@ export function contentDisposition(name: string): string {
     .join('');
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }
+
+/** Saqlangan fayl kengaytmasi → MIME (faqat ruxsat etilgan turlar) */
+export function mimeForStoredPath(stored: string): string {
+  const ext = stored.split('.').pop()?.toLowerCase();
+  return ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : ext === 'jpg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'application/octet-stream';
+}

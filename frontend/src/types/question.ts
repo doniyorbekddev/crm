@@ -1,6 +1,6 @@
-export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TEXT';
+export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_TEXT' | 'TEXT' | 'LONG_TEXT' | 'CODE' | 'FILE_UPLOAD';
 export type QuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
-export type AttemptStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'NEEDS_REVIEW' | 'GRADED';
+export type AttemptStatus = 'IN_PROGRESS' | 'EXPIRED' | 'SUBMITTED' | 'NEEDS_REVIEW' | 'GRADED';
 
 export interface QuestionOption {
   id: string;
@@ -20,6 +20,11 @@ export interface Question {
   difficulty: QuestionDifficulty;
   points: number;
   answerHint: string | null;
+  /** Natijadan keyin o'quvchiga ko'rsatiladi */
+  explanation: string | null;
+  tags: string[];
+  /** SHORT_TEXT javob kaliti */
+  acceptedAnswers: string[];
   isActive: boolean;
   createdAt: string;
   usedInExams: number;
@@ -34,6 +39,9 @@ export interface QuestionPayload {
   difficulty: QuestionDifficulty;
   points: number;
   answerHint?: string;
+  explanation?: string;
+  tags?: string[];
+  acceptedAnswers?: string[];
   isActive?: boolean;
   options: Array<{ text: string; isCorrect?: boolean }>;
 }
@@ -51,12 +59,15 @@ export interface AttemptAnswer {
   examQuestionId: string;
   questionId: string;
   questionText: string;
+  questionType: QuestionType;
   topicTitle: string | null;
   points: number;
   score: number;
   isCorrect: boolean | null;
   optionIds: string[];
   text: string | null;
+  /** FILE_UPLOAD javobiga fayl yuklangan */
+  hasFile: boolean;
   feedback: string | null;
   needsReview: boolean;
 }

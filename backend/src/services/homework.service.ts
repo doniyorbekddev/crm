@@ -3,7 +3,7 @@ import { formatStudentNumber } from '../config/studentLabels.js';
 import type { HomeworkStatus, HomeworkTarget, Prisma, QuestionDifficulty, SubmissionStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
-import { detectFileType, removeStoredFile, resolveStoredPath, sanitizeFileName, saveFile } from '../utils/fileStorage.js';
+import { detectFileType, removeStoredFile, resolveStoredPath, sanitizeFileName, saveFile, mimeForStoredPath } from '../utils/fileStorage.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type {
@@ -989,8 +989,7 @@ export const homeworkService = {
 
 /** Saqlangan yo'l kengaytmasidan MIME (faqat qabul qilinadigan turlar) */
 function mimeForPath(path: string): string {
-  const ext = path.split('.').pop()?.toLowerCase();
-  return ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : ext === 'jpg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'application/octet-stream';
+  return mimeForStoredPath(path);
 }
 
 /** Fayl siyosati hujjatlar bilan bir xil: tur baytlar bo'yicha (PDF/PNG/JPG/WEBP) */
