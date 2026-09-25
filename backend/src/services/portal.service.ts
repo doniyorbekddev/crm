@@ -38,6 +38,7 @@ import type { AttemptViewDto, AvailableExamDto } from './examTaking.service.js';
 import type { LessonDto, LessonTreeDto } from './lesson.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
 import type { ExamStatus, HomeworkStatus, QuestionDifficulty, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
+import { aiAcademicService } from './ai/academic.service.js';
 
 /**
  * Kabinet (portal) — o'quvchi va ota-ona uchun.
@@ -663,7 +664,7 @@ export const portalService = {
   /** Haftalik hisobot (TZ §11) — o'z farzandi/o'zi uchun */
   async weeklyReport(actor: AuthUser, week: string | undefined, requestedStudentId?: string): Promise<WeeklyReportDto> {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
-    return weeklyReportService.build(studentId, resolveWeekStart(week));
+    return aiAcademicService.withAiSummary(await weeklyReportService.build(studentId, resolveWeekStart(week)));
   },
 
   /**

@@ -17,6 +17,7 @@ import { fmtDate, fmtDateTime, monthTitle } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
 import { IDLE_FLOW, telegramSessionService, type SessionState } from '../session.service.js';
 import type { BotContext, HandlerResult } from '../types.js';
+import { aiAcademicService } from '../../services/ai/academic.service.js';
 
 /**
  * O'quvchi (va ota-ona) bo'limlari.
@@ -610,7 +611,7 @@ export async function showWeeklyReport(context: BotContext, scope: CommandScope,
   } catch {
     weekStart = resolveWeekStart(undefined);
   }
-  const report = await weeklyReportService.build(studentId, weekStart);
+  const report = await aiAcademicService.withAiSummary(await weeklyReportService.build(studentId, weekStart));
   const previous = businessDateString(addDays(weekStart, -7));
   const current = startOfBusinessWeek().getTime() === weekStart.getTime();
   const nav: InlineButton[] = [{ text: '◀️ Oldingi hafta', data: callback(STUDENT_ACTIONS.weekly, previous) }];

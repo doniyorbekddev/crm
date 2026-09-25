@@ -48,8 +48,8 @@ export interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  /** Ko‘rsatish uchun kerakli permission (yo‘q bo‘lsa — hamma uchun) */
-  permission?: string;
+  /** Ko‘rsatish uchun kerakli permission (ro‘yxat — istalgan biri; yo‘q bo‘lsa — hamma uchun) */
+  permission?: string | readonly string[];
 }
 
 export interface NavSection {
@@ -67,7 +67,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/analytics', label: 'Analitika', icon: Activity, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/activity', label: 'Faoliyat', icon: History, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
-      { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: PERMISSIONS.AI_ASSISTANT },
+      { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: [PERMISSIONS.AI_ASSISTANT, PERMISSIONS.AI_ACADEMIC] },
       { to: '/automation', label: 'Avtomatlashtirish', icon: Workflow, permission: PERMISSIONS.ALERT_VIEW },
     ],
   },

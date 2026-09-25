@@ -543,3 +543,67 @@ Backend **745/745** (+4), frontend **82/82** (+2), E2E **23/23** (+2). Lint/type
 ## 12. Next Phase
 
 **PHASE 9 — AI academic control center** (§30–40): o‘quvchi tahlili (Academic/Attendance/Engagement/Homework/Assessment score, sabablar FACT/OBSERVATION/RECOMMENDATION), deterministik engine bilan to‘qnashmaydi; vazifa tekshiruvchi yordamchi (taklif balli, o‘qituvchi tasdiqlaydi), o‘qituvchi/rahbar yordamchisi, ota-ona uchun xulosa, remedial tavsiyalar; Claude API + graceful fallback, `ai.academic` ruxsati, `AiAnalysis` modeli.
+
+---
+
+# PHASE 9 COMPLETE — AI academic control center
+
+Sana: 2026-09-26. Batafsil: [ai-academic.md](ai-academic.md).
+
+## 1. Implemented
+
+- **§30–33** o‘quvchi tahlili: 5 ball (akademik, davomat, faollik, vazifa, baholash), deterministik risk fakt sifatida (o‘zgartirilmaydi), sabablar trend raqamlari bilan.
+- **§34–35** vazifa tekshiruvi: mezonlar, xatolar, tavsiyalar, taklif balli; kod tekshiruvi (xavfsizlik, best practice, accessibility, tugallanmaganlik); o‘qituvchi *Qabul qilish / Ballni tahrirlash / Qaytarish*.
+- **§36** o‘xshashlik signali (lokal, modelsiz) — hukm emas.
+- **§37, §39** yordamchiga 8 akademik tool (o‘qituvchi doirasida) + model bilan niyat aniqlash (faqat ruxsat etilgan toollar).
+- **§38** guruh tahlili; **§41** remedial reja (dars → qoralama vazifa → onlayn quiz → qayta test → mastery), o‘qituvchi tasdiqlaydi.
+- **§40** haftalik hisobotga yumshoq tavsiyalar va (model bo‘lsa) iliq xulosa — kabinet, xodim va Telegram.
+- **§58–61** whitelist, maxfiylik, FACT/OBSERVATION/RECOMMENDATION, sxema bilan tekshiruv, graceful fallback (kalitsiz to‘liq ishlaydi).
+
+## 2–3. Files
+
+Backend yangi: `services/ai/llm.ts`, `ai/academic.service.ts`, `ai/academicTools.ts`, `ai/similarity.ts`, `controllers/aiAcademic.controller.ts`, `routes/aiAcademic.routes.ts`, `validators/aiAcademic.validator.ts`, `tests/aiAcademic.test.ts`, `tests/unit/aiSimilarity.test.ts`, migratsiyalar `20260926120000_ai_academic`, `20260926121000_ai_analysis_subject_length`. O‘zgargan: `ai/assistant.service.ts` (akademik toollar, niyat aniqlash), `ai/tools.ts` (`dropout` kalit so‘zi), `routes/ai.routes.ts`, `config/permissions.ts` (+`ai.academic`), `config/env.ts`, `.env.example`, `weeklyReport.service.ts` (+tavsiyalar, AI xulosa), `portal.service.ts`, `studentProgress.service.ts`, `jobs/weeklyReport.job.ts`, `telegram/handlers/student.ts`, `schema.prisma`.
+Frontend yangi: `components/ai/InsightList`, `AiReviewPanel(.test)`, `pages/students/profile/AiAnalysisTab`, `pages/teaching/GroupAiModal(.test)`, `services/aiAcademic.service.ts`, `types/aiAcademic.ts`. O‘zgargan: `SubmissionReviewModal`, `StudentProfilePage`, `TeachingGroupPage`, `WeeklyReportView`, `layouts/navigation.ts` + `routes/guards.tsx` + `utils/permissions.ts` + `hooks/usePermission.ts` (ruxsat ro‘yxati — istalgan biri), `routes/index.tsx`, `types/portal.ts`, `utils/permissionKeys.ts`, `lib/queryKeys.ts`. E2E: `teaching.spec.ts`. Docs: `ai-academic.md`, `permissions.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`, faqat qo‘shish) enumlar `AiAnalysisKind`, `AiAnalysisStatus`, `AiAnalysisSource`; jadval `ai_analyses`; `subjectId` 80 belgiga kengaytirildi (vazifa+o‘quvchi kaliti).
+
+## 5. API Changes
+
+Yangi: 12 endpoint `/api/ai/academic/*`. `/api/ai/ask|tools|history` — `ai.assistant` yoki `ai.academic`. Haftalik hisobot DTO: `recommendations`, `aiSummary`.
+
+## 6. Permission Changes
+
+Yangi `ai.academic` (92-ruxsat): O‘qituvchi, Admin, Owner, Super Admin. `docs/permissions.md` qayta yaratildi.
+
+## 7. AI Changes
+
+Claude API qatlami (fetch, timeout, sxema tekshiruvi, graceful fallback), `AI_MODEL` sozlanadi. Kalit berilmagan — hozir qoidalar rejimi. **Kalitni foydalanuvchi o‘zi serverdagi `.env` ga qo‘yadi**.
+
+## 8. Tests
+
+Backend **756/756** (+11: 6 integratsiya — soxta model bilan, 5 unit), frontend **85/85** (+3), E2E **24/24** (+1). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Promptda ism/familiya/telefon yo‘qligi testda tekshiriladi; faktlar model javobidan qat’i nazar o‘zgarmaydi (test).
+- Model ruxsatsiz toolni tanlasa — rad etiladi (test); begona guruh/o‘quvchi/vazifa — 404; buxgalter — 403.
+- Taklif balli chegaradan oshsa — sxema rad etadi; qabul qilish takrorlanmaydi (422).
+- O‘xshashlik — faqat signal, "ko‘chirgan" degan xulosa yo‘q (test).
+
+## 10. Performance
+
+- Yordamchi toollari bitta ommaviy risk hisobi bilan (guruhlar soniga bog‘liq emas).
+- Ota-ona xulosasi hafta bo‘yicha keshlanadi (bitta model chaqiruvi); yangi tahlillar rate-limit bilan.
+- Model chaqiruvi `AI_TIMEOUT_MS` bilan cheklangan; xatoda darhol qoidalar natijasi.
+
+## 11. Known Issues
+
+- Rasm/PDF javoblar avtomatik tahlil qilinmaydi (izoh ko‘rsatiladi).
+- Rubrikali vazifada "Ballni tahrirlash" ball maydoniga yozadi, rubrika maydonlari qo‘lda.
+- Remedial vazifa qoralama bo‘lib yaratiladi — o‘qituvchi tahrirlab e’lon qiladi (ataylab).
+
+## 12. Next Phase
+
+**PHASE 10 — Notification integration** (§42): Homework created/deadline/graded (bor), Exam scheduled, Exam result (bor), Low score, Attendance absent (bor)/late, Risk increased, Certificate issued (tekshirish), Payment due — web + Telegram + mavjud tizim.

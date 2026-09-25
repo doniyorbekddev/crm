@@ -12,6 +12,7 @@ import type { StudentDto } from './student.service.js';
 import { studentService } from './student.service.js';
 import { refundTotal } from './revenue.js';
 import { moneyUz } from '../utils/money.js';
+import { aiAcademicService } from './ai/academic.service.js';
 
 /**
  * O‘quvchi profili va progressi: davomat, uy vazifasi, imtihon, XP va o‘qituvchi
@@ -402,7 +403,7 @@ export const studentProgressService = {
   /** Xodim uchun haftalik hisobot — ko'rinish tekshiruvi `getById` orqali (o'qituvchi faqat o'z guruhi) */
   async weeklyReport(actor: AuthUser, studentId: string, week: string | undefined): Promise<WeeklyReportDto> {
     await studentService.getById(actor, studentId);
-    return weeklyReportService.build(studentId, resolveWeekStart(week));
+    return aiAcademicService.withAiSummary(await weeklyReportService.build(studentId, resolveWeekStart(week)));
   },
 
   async profile(actor: AuthUser, studentId: string): Promise<StudentProfileDto> {

@@ -17,6 +17,9 @@ import type { HomeworkDetail } from '@/types/homework';
 import { formatDateTime } from '@/utils/format';
 import { SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 import { formatFileSize } from '@/utils/lessonLabels';
+import { AiReviewPanel } from '@/components/ai/AiReviewPanel';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 interface SubmissionReviewModalProps {
   homework: HomeworkDetail;
@@ -36,7 +39,7 @@ export function rubricScore(criteria: Array<{ key: string; weight: number }>, sc
 /**
  * O‘qituvchi bitta topshiriqni ko‘radi (TZ §19): javob, havola, kod, fayllar, kechikdimi;
  * amallar — baholash (ball yoki rubrika), izoh, qayta ishlashga qaytarish.
- * AI tahlili PHASE 9 da shu oynaga qo‘shiladi (o‘qituvchi yakuniy qaror beradi).
+ * AI tekshiruv paneli (PHASE 9): taklif — o‘qituvchi qabul qiladi, tahrirlaydi yoki qaytaradi.
  */
 export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, onChanged }: SubmissionReviewModalProps) {
   const queryClient = useQueryClient();
@@ -47,6 +50,7 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
   const [score, setScore] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [rubric, setRubric] = useState<Record<string, number> | null>(null);
+  const canUseAi = usePermission(PERMISSIONS.AI_ACADEMIC);
 
   const submission = query.data;
   const criteria = homework.rubricCriteria;
@@ -177,6 +181,19 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
             </div>
           )}
 
+          {canGrade && canUseAi && submitted && (
+            <AiReviewPanel
+              homeworkId={homework.id}
+              studentId={studentId}
+              maxPoints={homework.maxPoints}
+              feedback={currentFeedback}
+              onUseScore={(value) => setScore(String(value))}
+              onAccepted={() => {
+                refresh();
+                onClose();
+              }}
+            />
+          )}
           {canGrade && (
             <div className="space-y-3 border-t border-border pt-4">
               {criteria ? (

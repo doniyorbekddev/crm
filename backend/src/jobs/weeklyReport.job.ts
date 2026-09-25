@@ -4,6 +4,7 @@ import { notifyWeeklyReport } from '../services/studentNotify.service.js';
 import { weeklyReportService } from '../services/weeklyReport.service.js';
 import { businessDateString, startOfBusinessWeek } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
+import { aiAcademicService } from '../services/ai/academic.service.js';
 
 /**
  * Haftalik hisobot (TZ 3.0 §11): **yakshanba, 18:00 dan keyin** (o'quv markaz vaqti) har bir
@@ -45,7 +46,7 @@ export async function sendWeeklyReports(now: Date = new Date()): Promise<{ stude
 
   let notified = 0;
   for (const { id } of students) {
-    const report = await weeklyReportService.build(id, weekStart);
+    const report = await aiAcademicService.withAiSummary(await weeklyReportService.build(id, weekStart));
     notified += await prisma.$transaction((tx) =>
       notifyWeeklyReport(tx, { studentId: id, weekStart: week, weekLabel: report.week.label, summary: report.summary }),
     );

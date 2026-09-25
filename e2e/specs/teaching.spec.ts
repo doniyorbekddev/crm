@@ -23,3 +23,21 @@ test('buxgalter o‘qituvchi markazini ko‘rmaydi', async ({ page }) => {
   await page.goto('/teaching');
   await expect(page.getByRole('heading', { name: 'Bu sahifaga ruxsatingiz yo‘q' })).toBeVisible();
 });
+
+/** PHASE 9 — AI akademik markaz (kalitsiz — qoidalar rejimi) */
+test('o‘qituvchi guruh uchun AI tahlil oladi va yordamchidan akademik savol so‘raydi', async ({ page }) => {
+  await login(page, 'teacher');
+  await page.getByRole('link', { name: 'O‘qituvchi markazi', exact: true }).click();
+  await page.locator('a[href^="/teaching/groups/"]').first().click();
+  await page.getByRole('button', { name: 'AI tahlil' }).click();
+  const dialog = page.getByRole('dialog', { name: 'AI guruh tahlili' });
+  await dialog.getByRole('button', { name: 'Tahlil qilish' }).click();
+  await expect(dialog.getByText('Qoidalar rejimi')).toBeVisible();
+  await expect(dialog.getByRole('region', { name: 'Fakt' })).toContainText('O‘quvchilar:');
+  await dialog.getByRole('button', { name: 'Yopish' }).last().click();
+
+  await page.getByRole('link', { name: 'AI yordamchi', exact: true }).click();
+  await page.getByLabel('Savol').fill('Qaysi guruhlar xavfda?');
+  await page.getByRole('button', { name: 'So‘rash' }).click();
+  await expect(page.getByText('Manba: Xavf ostidagi guruhlar')).toBeVisible();
+});

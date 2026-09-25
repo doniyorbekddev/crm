@@ -78,6 +78,12 @@ const envSchema = z
      * botda ikkalasi birga ishlamaydi (Telegram `getUpdates` ni 409 bilan rad etadi).
      */
     TELEGRAM_POLLING: booleanString,
+    // --- AI (ixtiyoriy, TZ 3.0 §30–41) ---
+    // Kalit berilmasa AI akademik markaz **qoidalar rejimida** ishlaydi: faktlar, ballar, tavsiyalar
+    // CRM ma'lumotidan kod bilan hisoblanadi; til modeli faqat matnni boyitadi.
+    ANTHROPIC_API_KEY: optionalString,
+    AI_MODEL: z.string().trim().min(3).default('claude-sonnet-5'),
+    AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(25_000),
     /** Sinov to'lov provayderi uchun imzo kaliti — bo'sh bo'lsa provayder o'chiq */
     PAYMENT_SANDBOX_SECRET: optionalString,
   })

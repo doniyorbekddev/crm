@@ -40,6 +40,10 @@ export interface WeeklyReportDto {
   feedback: Array<{ source: 'homework' | 'exam'; title: string; text: string; author: string | null; date: string }>;
   /** Qisqa, yumshoq xulosa — Telegram va web uchun */
   summary: string[];
+  /** Ota-onaga yumshoq amaliy tavsiyalar (TZ §40, qoidalar) */
+  recommendations: string[];
+  /** AI yozgan iliq xulosa (model ulangan bo'lsa, hafta bo'yicha keshlangan); aks holda null */
+  aiSummary: string | null;
 }
 
 function percent(part: number, total: number): number | null {
@@ -67,7 +71,17 @@ export function resolveWeekStart(week: string | undefined, now: Date = new Date(
   return start;
 }
 
-function buildSummary(report: Omit<WeeklyReportDto, 'summary'>): string[] {
+/** §40: ota-onaga yumshoq tavsiyalar — qo'rqituvchi yoki ayblovchi so'zlarsiz */
+export function parentRecommendations(report: Omit<WeeklyReportDto, 'summary' | 'recommendations' | 'aiSummary'>): string[] {
+  const items: string[] = [];
+  if (report.attendance.absent > 0) items.push('Darslarga muntazam qatnashishni birga rejalashtirish foydali bo‘ladi.');
+  if (report.homework.pending + report.homework.missed > 0) items.push('Uyda vazifaga har kuni qisqa vaqt ajratish yordam beradi.');
+  if (report.topics.weak.length > 0) items.push(`${report.topics.weak.slice(0, 2).join(', ')} mavzusini kabinetdagi dars materiallari orqali takrorlash tavsiya etiladi.`);
+  if (items.length === 0) items.push('Farzandingizni yutuqlari uchun rag‘batlantiring — sur’at yaxshi.');
+  return items;
+}
+
+function buildSummary(report: Omit<WeeklyReportDto, 'summary' | 'recommendations' | 'aiSummary'>): string[] {
   const lines: string[] = [];
   const { attendance, homework, exams, xp, topics } = report;
   if (attendance.total === 0) {
@@ -192,7 +206,7 @@ export const weeklyReportService = {
         .map((row) => ({ source: 'exam' as const, title: row.exam.title, text: row.comment!, author: personName(row.gradedBy), date: row.gradedAt.toISOString() })),
     ].sort((a, b) => a.date.localeCompare(b.date));
 
-    const base: Omit<WeeklyReportDto, 'summary'> = {
+    const base: Omit<WeeklyReportDto, 'summary' | 'recommendations' | 'aiSummary'> = {
       student: {
         id: student.id,
         code: formatStudentNumber(student.number),
@@ -243,7 +257,7 @@ export const weeklyReportService = {
       },
       feedback,
     };
-    return { ...base, summary: buildSummary(base) };
+    return { ...base, summary: buildSummary(base), recommendations: parentRecommendations(base), aiSummary: null };
   },
 };
 
@@ -261,6 +275,11 @@ export function weeklyReportText(report: WeeklyReportDto, escape: (value: string
   if (report.progress.coursePercent !== null) lines.push(`📈 Kurs progressi: ${report.progress.coursePercent}%`);
   if (report.topics.strong.length) lines.push(`💪 Kuchli: ${escape(report.topics.strong.join(', '))}`);
   if (report.topics.weak.length) lines.push(`📚 Mashq kerak: ${escape(report.topics.weak.join(', '))}`);
+  if (report.aiSummary) lines.push('', `🤖 ${escape(report.aiSummary)}`);
+  if (report.recommendations.length) {
+    lines.push('', '💡 <b>Tavsiyalar</b>');
+    for (const item of report.recommendations.slice(0, 2)) lines.push(`• ${escape(item)}`);
+  }
   if (report.feedback.length) {
     lines.push('', '💬 <b>O‘qituvchi izohlari</b>');
     for (const item of report.feedback.slice(0, 3)) lines.push(`• ${escape(item.title)}: ${escape(item.text)}`);

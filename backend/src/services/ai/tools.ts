@@ -186,7 +186,7 @@ export const AI_TOOLS: readonly AiTool[] = [
     key: 'at_risk_students',
     title: 'Ketib qolish xavfi',
     samples: ['Qaysi o‘quvchilar ketib qolish xavfida?'],
-    keywords: ['xavf', 'ketib qol', 'yo\'qotish', 'risk', 'tashlab ket'],
+    keywords: ['xavf', 'ketib qol', 'yo\'qotish', 'risk', 'tashlab ket', 'dropout'],
     permission: PERMISSIONS.STUDENT_VIEW,
     async run({ branch }) {
       const where: Prisma.StudentWhereInput = {

@@ -336,7 +336,7 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
-                      <PermissionGate permission={PERMISSIONS.AI_ASSISTANT} />
+                      <PermissionGate permission={[PERMISSIONS.AI_ASSISTANT, PERMISSIONS.AI_ACADEMIC]} />
                     ),
                     children: [
                       {

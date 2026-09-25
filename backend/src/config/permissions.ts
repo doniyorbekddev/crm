@@ -109,6 +109,7 @@ export const PERMISSIONS = {
   BRANCH_MANAGE: 'branch.manage',
 
   AI_ASSISTANT: 'ai.assistant',
+  AI_ACADEMIC: 'ai.academic',
 
   INVENTORY_VIEW: 'inventory.view',
   INVENTORY_MANAGE: 'inventory.manage',
@@ -256,6 +257,11 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
     key: PERMISSIONS.AI_ASSISTANT,
     module: 'ai',
     description: 'AI yordamchiga savol berish (javoblar xodimning o‘z ruxsatlari doirasida bo‘ladi)',
+  },
+  {
+    key: PERMISSIONS.AI_ACADEMIC,
+    module: 'ai',
+    description: 'AI akademik tahlil: o‘quvchi/guruh tahlili, vazifa tekshiruvi, remedial reja (o‘qituvchi tasdiqlaydi)',
   },
 
   { key: PERMISSIONS.INVENTORY_VIEW, module: 'inventory', description: 'Ombor (mahsulotlar va qoldiq) ma’lumotini ko‘rish' },
@@ -433,6 +439,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.PARENT_VIEW,
       PERMISSIONS.COMMISSION_VIEW_OWN,
       PERMISSIONS.FEEDBACK_VIEW,
+      PERMISSIONS.AI_ACADEMIC,
     ],
   },
   {

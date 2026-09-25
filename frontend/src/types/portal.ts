@@ -205,6 +205,10 @@ export interface WeeklyReport {
   topics: { strong: string[]; weak: string[] };
   feedback: Array<{ source: 'homework' | 'exam'; title: string; text: string; author: string | null; date: string }>;
   summary: string[];
+  /** Ota-onaga yumshoq amaliy tavsiyalar (TZ §40) */
+  recommendations: string[];
+  /** AI yozgan iliq xulosa — model ulangan bo'lsa */
+  aiSummary: string | null;
 }
 
 /** Onlayn topshiriladigan imtihon (TZ §21–25) */

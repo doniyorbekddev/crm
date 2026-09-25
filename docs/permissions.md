@@ -1,7 +1,7 @@
 # Ruxsatlar (RBAC) — rol × ruxsat matritsasi
 
 > **Avtomatik yaratilgan** — manba: `backend/src/config/permissions.ts`. Qo‘lda tahrirlamang — `npm run docs:permissions --workspace backend` bilan qayta yarating.
-> Sana: 2026-09-25. Ruxsatlar: 91 ta, tizim rollari: 9 ta.
+> Sana: 2026-09-25. Ruxsatlar: 92 ta, tizim rollari: 9 ta.
 
 ## Qanday ishlaydi
 
@@ -14,12 +14,12 @@
 
 | Kalit | Nomi | Tavsif | Ruxsatlar soni |
 |---|---|---|---|
-| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 88 |
-| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 87 |
-| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 79 |
+| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 89 |
+| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 88 |
+| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 80 |
 | `SALES_MANAGER` | Sales Manager | Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish | 21 |
 | `CALL_CENTER` | Call Center | Leadlar, qo‘ng‘iroqlar va follow-up | 14 |
-| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 17 |
+| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 18 |
 | `STUDENT` | O‘quvchi (kabinet) | Faqat o‘z davomati, uy vazifasi, imtihonlari, XP va to‘lovlari | 1 |
 | `PARENT` | Ota-ona (kabinet) | Faqat o‘z farzandlarining ma’lumotlari | 1 |
 | `ACCOUNTANT` | Buxgalter | To‘lovlar, qarzdorlik va moliyaviy hisobotlar | 28 |
@@ -107,6 +107,7 @@ Qisqartmalar: SA = Super Admin · OWN = Direktor (Owner) · ADM = Admin · SM = 
 | targets | `target.manage` | Sotuv rejasini belgilash | ✅ | ✅ | ✅ | · | · | · | · | · | · |
 | analytics | `analytics.view` | Kengaytirilgan analitikani ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | · |
 | ai | `ai.assistant` | AI yordamchiga savol berish (javoblar xodimning o‘z ruxsatlari doirasida bo‘ladi) | ✅ | ✅ | ✅ | · | · | · | · | · | · |
+| ai | `ai.academic` | AI akademik tahlil: o‘quvchi/guruh tahlili, vazifa tekshiruvi, remedial reja (o‘qituvchi tasdiqlaydi) | ✅ | ✅ | ✅ | · | · | ✅ | · | · | · |
 | inventory | `inventory.view` | Ombor (mahsulotlar va qoldiq) ma’lumotini ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ |
 | inventory | `inventory.manage` | Mahsulot qo‘shish va ombor harakatini yozish (kirim, sotuv, hisobdan chiqarish) | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ |
 | feedback | `feedback.view` | O‘quvchilar fikri va NPS hisobotini ko‘rish | ✅ | ✅ | ✅ | · | · | ✅ | · | · | · |

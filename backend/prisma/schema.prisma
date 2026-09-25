@@ -332,6 +332,8 @@ model User {
   requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
   stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
   aiQueries                AiQuery[]
+  aiAnalysesCreated        AiAnalysis[]           @relation("AiAnalysisCreatedBy")
+  aiAnalysesDecided        AiAnalysis[]           @relation("AiAnalysisDecidedBy")
   savedAutomations         AutomationRule[]       @relation("AutomationUpdatedBy")
   createdPaymentIntents    PaymentIntent[]        @relation("PaymentIntentCreatedBy")
   decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
@@ -3341,6 +3343,63 @@ model StockMovement {
 /// Yozuv **audit uchun**: kim nima so'ragani, qaysi ma'lumot ko'rsatilgani va savol
 /// tushunilmagan hollar (`toolKey` bo'sh) ko'rinib turadi. Javob matni ham saqlanadi —
 /// keyin "bu raqam qayerdan chiqdi?" degan savolga javob bo'ladi.
+/// AI akademik tahlil turi (TZ 3.0 §32–41)
+enum AiAnalysisKind {
+  STUDENT
+  GROUP
+  HOMEWORK_REVIEW
+  PARENT_SUMMARY
+  REMEDIAL
+}
+
+/// Qaror talab qiladigan tahlil (vazifa bahosi, remedial reja): o'qituvchi tasdiqlaydi (TZ §0: AI — yakuniy hakam emas)
+enum AiAnalysisStatus {
+  READY
+  ACCEPTED
+  REJECTED
+}
+
+/// Tahlil manbasi: qoidalar (deterministik) yoki til modeli qo'shimchasi bilan
+enum AiAnalysisSource {
+  RULES
+  LLM
+}
+
+/// AI akademik tahlil natijasi. **Faktlar** har doim CRM ma'lumotidan kod bilan yig'iladi; til modeli
+/// (ulangan bo'lsa) faqat kuzatuv, tavsiya va xulosa matnini yozadi — yangi fakt o'ylab topa olmaydi.
+/// Prompt/javobda parol, token, to'lov siri yo'q (§59).
+model AiAnalysis {
+  id           String           @id @default(cuid())
+  kind         AiAnalysisKind
+  /// "student" | "group" | "submission"
+  subjectType  String           @db.VarChar(20)
+  subjectId    String           @db.VarChar(80)
+  /// Davr kaliti (masalan hafta "2026-09-21") — takroriy hisobni oldini olish uchun
+  periodKey    String?          @db.VarChar(20)
+  status       AiAnalysisStatus @default(READY)
+  source       AiAnalysisSource @default(RULES)
+  /// Qisqa xulosa (ko'rsatish uchun)
+  summary      String           @db.VarChar(2000)
+  /// {scores?, items: [{type: FACT|OBSERVATION|RECOMMENDATION, text}], ...turga xos maydonlar}
+  result       Json
+  model        String?          @db.VarChar(60)
+  inputTokens  Int?
+  outputTokens Int?
+  createdById  String?
+  decidedById  String?
+  decidedAt    DateTime?
+  /// Qaror tafsiloti: qabul qilingan ball, yaratilgan vazifa/imtihon va h.k.
+  decision     Json?
+  createdAt    DateTime         @default(now())
+
+  createdBy User? @relation("AiAnalysisCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  decidedBy User? @relation("AiAnalysisDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([kind, subjectType, subjectId, createdAt])
+  @@index([kind, periodKey])
+  @@map("ai_analyses")
+}
+
 model AiQuery {
   id         String   @id @default(cuid())
   userId     String?

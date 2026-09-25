@@ -76,7 +76,7 @@ export function StaffRoute() {
  * Sahifa uchun permission tekshiruvi. Bu faqat interfeys qulayligi — haqiqiy himoya backend’da
  * (har bir endpoint `requirePermission` bilan).
  */
-export function PermissionGate({ permission }: { permission: string }) {
+export function PermissionGate({ permission }: { permission: string | readonly string[] }) {
   const allowed = usePermission(permission);
   return allowed ? <Outlet /> : <ForbiddenState />;
 }

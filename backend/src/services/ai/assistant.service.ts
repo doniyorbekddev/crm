@@ -2,7 +2,10 @@ import { prisma } from '../../config/database.js';
 import type { AuthUser } from '../../types/auth.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
 import { permissionService } from '../permission.service.js';
-import { AI_TOOLS, buildContext, findTool } from './tools.js';
+import { z } from 'zod';
+import { ACADEMIC_TOOLS } from './academicTools.js';
+import { completeJson, llmAvailable } from './llm.js';
+import { AI_TOOLS, buildContext } from './tools.js';
 import type { AiTool } from './tools.js';
 
 /**
@@ -16,6 +19,35 @@ import type { AiTool } from './tools.js';
  * talab qilmaydi, javob bir zumda keladi va natija takrorlanadigan (deterministik) bo'ladi.
  * Til modeli keyin qo'shilsa, u faqat shu tanlovni yaxshilaydi — {@link matchTool} o'rnini bosadi.
  */
+
+/** Biznes (§ mavjud) + akademik (TZ 3.0 §37, §39) toollar — bitta whitelist */
+export const ALL_TOOLS: readonly AiTool[] = [...AI_TOOLS, ...ACADEMIC_TOOLS];
+
+function findAnyTool(key: string): AiTool | undefined {
+  return ALL_TOOLS.find((tool) => tool.key === key);
+}
+
+const intentSchema = z.object({ toolKey: z.string().max(50).nullable() });
+
+/**
+ * §61 "Intent detection": kalit so'z topilmasa va model ulangan bo'lsa — model faqat **ruxsat
+ * etilgan tool kalitlaridan birini** tanlaydi (yoki null). Ma'lumotni model ko'rmaydi; javobni
+ * tool mavjud servislardan beradi.
+ */
+async function detectIntent(question: string, allowed: readonly AiTool[]): Promise<AiTool | null> {
+  if (!llmAvailable() || allowed.length === 0) return null;
+  const result = await completeJson(
+    {
+      system: 'Sen CRM savol yo‘naltiruvchisisan. Savolga mos keladigan bitta tool kalitini tanla. Mos kelmasa null qaytar. Faqat JSON.',
+      prompt: `Toollar:\n${allowed.map((tool) => `- ${tool.key}: ${tool.title} (masalan: ${tool.samples[0]})`).join('\n')}\n\nSavol: ${question}\nQaytar: {"toolKey": "kalit" | null}`,
+      maxTokens: 60,
+    },
+    intentSchema,
+    'assistant_intent',
+  );
+  const key = result?.data.toolKey;
+  return key ? (allowed.find((tool) => tool.key === key) ?? null) : null;
+}
 
 /** Savolni tozalaydi: kichik harf, apostroflarni birxillashtirish, ortiqcha belgilarni olib tashlash */
 export function normalizeQuestion(question: string): string {
@@ -47,7 +79,7 @@ export interface ToolMatch {
  * Savolga eng mos toolni topadi. Mos kelgan kalit so'zlar soni bo'yicha eng yuqorisi tanlanadi;
  * uzunroq kalit so'z ustunroq (masalan "o'tgan oy" — "oy" dan muhimroq).
  */
-export function matchTool(question: string, tools: readonly AiTool[] = AI_TOOLS): ToolMatch | null {
+export function matchTool(question: string, tools: readonly AiTool[] = ALL_TOOLS): ToolMatch | null {
   const text = normalizeQuestion(question);
   if (text.length < 3) return null;
 
@@ -96,7 +128,7 @@ export interface AiToolInfoDto {
 
 /** Foydalanuvchi ruxsati yetadigan toollar bo'yicha namunaviy savollar */
 function suggestionsFor(permissions: ReadonlySet<string>, limit = 6): string[] {
-  return AI_TOOLS.filter((tool) => permissions.has(tool.permission))
+  return ALL_TOOLS.filter((tool) => permissions.has(tool.permission))
     .flatMap((tool) => tool.samples.slice(0, 1))
     .slice(0, limit);
 }
@@ -105,7 +137,7 @@ export const aiAssistantService = {
   /** Mavjud savol turlari — yordamchi oynasida taklif sifatida ko'rsatiladi */
   async tools(actor: AuthUser): Promise<AiToolInfoDto[]> {
     const permissions = await permissionService.getRolePermissions(actor.roleId);
-    return AI_TOOLS.map((tool) => ({
+    return ALL_TOOLS.map((tool) => ({
       key: tool.key,
       title: tool.title,
       samples: [...tool.samples],
@@ -142,7 +174,9 @@ export const aiAssistantService = {
       });
     };
 
-    const selected = input.toolKey ? findTool(input.toolKey) : matchTool(question)?.tool;
+    const selected = input.toolKey
+      ? findAnyTool(input.toolKey)
+      : (matchTool(question)?.tool ?? (await detectIntent(question, ALL_TOOLS.filter((tool) => permissions.has(tool.permission)))));
 
     if (!selected) {
       const failure = 'Savol tushunilmadi';

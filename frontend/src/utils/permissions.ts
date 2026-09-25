@@ -1,7 +1,9 @@
 import type { AuthUser } from '@/types/auth';
 
-export function hasPermission(user: AuthUser | null, permission: string): boolean {
-  return user?.permissions.includes(permission) ?? false;
+/** Bitta ruxsat yoki ro'yxat (istalgan biri yetarli) */
+export function hasPermission(user: AuthUser | null, permission: string | readonly string[]): boolean {
+  if (!user) return false;
+  return typeof permission === 'string' ? user.permissions.includes(permission) : permission.some((key) => user.permissions.includes(key));
 }
 
 const MODULE_LABELS: Record<string, string> = {

@@ -47,12 +47,27 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
             {report.student.code} · {report.student.courseName}
             {report.student.groupName ? ` · ${report.student.groupName}` : ''}
           </p>
+          {report.aiSummary && (
+            <p className="mt-3 rounded-md bg-brand-50 p-3 text-sm text-fg dark:bg-brand-950" aria-label="AI xulosa">
+              {report.aiSummary}
+            </p>
+          )}
           {report.summary.length > 0 && (
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-fg">
               {report.summary.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
+          )}
+          {(report.recommendations ?? []).length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm font-medium text-fg">Tavsiyalar</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-fg-muted">
+                {report.recommendations.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </CardContent>
       </Card>

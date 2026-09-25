@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, GraduationCap, Target } from 'lucide-react';
+import { ArrowLeft, Bot, GraduationCap, Target } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
@@ -15,6 +15,9 @@ import { teachingService } from '@/services/teaching.service';
 import { formatRelativeTime } from '@/utils/format';
 import { RISK_LEVEL_LABELS, RISK_LEVEL_TONES } from '@/utils/studentLabels';
 import { GroupMasteryModal } from '@/pages/groups/GroupMasteryModal';
+import { usePermission } from '@/hooks/usePermission';
+import { PERMISSIONS } from '@/utils/permissionKeys';
+import { GroupAiModal } from './GroupAiModal';
 
 function Percent({ value }: { value: number | null }) {
   return (
@@ -31,6 +34,8 @@ function Percent({ value }: { value: number | null }) {
 export default function TeachingGroupPage() {
   const { id = '' } = useParams();
   const [masteryOpen, setMasteryOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const canUseAi = usePermission(PERMISSIONS.AI_ACADEMIC);
   const query = useQuery({ queryKey: queryKeys.teaching.group(id), queryFn: () => teachingService.group(id) });
 
   return (
@@ -48,9 +53,16 @@ export default function TeachingGroupPage() {
             title={query.data.group.name}
             description={`${query.data.group.course.name} · ${query.data.group.students} o‘quvchi`}
             actions={
-              <Button variant="secondary" leftIcon={<Target className="size-4" aria-hidden />} onClick={() => setMasteryOpen(true)}>
-                Mavzular bo‘yicha
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {canUseAi && (
+                  <Button variant="secondary" leftIcon={<Bot className="size-4" aria-hidden />} onClick={() => setAiOpen(true)}>
+                    AI tahlil
+                  </Button>
+                )}
+                <Button variant="secondary" leftIcon={<Target className="size-4" aria-hidden />} onClick={() => setMasteryOpen(true)}>
+                  Mavzular bo‘yicha
+                </Button>
+              </div>
             }
           />
           <Card>
@@ -108,6 +120,7 @@ export default function TeachingGroupPage() {
               </TableContainer>
             )}
           </Card>
+          {aiOpen && <GroupAiModal group={{ id: query.data.group.id, name: query.data.group.name }} onClose={() => setAiOpen(false)} />}
           {masteryOpen && <GroupMasteryModal group={{ id: query.data.group.id, name: query.data.group.name }} onClose={() => setMasteryOpen(false)} />}
         </>
       )}
