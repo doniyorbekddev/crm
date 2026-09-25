@@ -664,3 +664,73 @@ Backend **760/760** (+4), frontend **86/86** (+1), E2E **24/24**. Lint/typecheck
 ## 12. Next Phase
 
 **PHASE 11 — Telegram 2.0** (§43–44): onlayn imtihon botda, qidiruv, sozlamalar, o‘qituvchi KPI, marketing, hisobotlar, vazifa biriktirmalari, broadcast media, qo‘ng‘iroq yozish, follow-up yaratish; web bilan izchillik.
+
+---
+
+# PHASE 11 COMPLETE — Telegram 2.0
+
+Sana: 2026-09-26. Batafsil: [telegram.md](telegram.md).
+
+## 1. Implemented
+
+§43 prioritetlari (bot qayta yozilmadi — mavjud handlerlarga qo‘shildi):
+
+1. **Online Exam** — o‘quvchi botda boshlaydi/davom ettiradi, variant tugmalari (bitta javobda avtomatik keyingisi), matn va fayl javob, taymer, tasdiq bilan topshirish, natija.
+2. **Search** — global qidiruv, natijalar ruxsatga qarab, CRM havolalari bilan.
+3. **Settings** — ovozsiz rejim (hamma uchun), xodimga tur bo‘yicha Telegram xabarlari, farzand tanlash, uzish.
+4. **Teacher KPI** — o‘qituvchi markazi raqamlari botda.
+5. **Marketing** — kanallar bo‘yicha lead, konversiya, xarajat, ROI.
+6. **Reports** — joriy oy KPI’lari, ruxsat web bilan bitta ro‘yxatdan.
+7. **Homework Attachments** — o‘qituvchi vazifaga fayl/rasm biriktiradi; o‘quvchi fayllarini botda oladi.
+8. **Broadcast Media** — rasm/hujjat + izoh.
+9. **Call logging** — lead kartasidan natija + izoh.
+10. **Follow-up creation** — tayyor muddatlar yoki o‘z sanasi.
+
+Qo‘shimcha: botdan **baholash va qaytarish**, **AI tekshiruv** (PHASE 9) va qabul qilish; o‘qituvchiga akademik AI yordamchi; §44 izchillik (bitta servislar).
+
+Audit topilmasi tuzatildi: broadcast matni ikki marta HTML-escape qilinardi.
+
+## 2–3. Files
+
+Yangi: `telegram/handlers/exam.ts`, `telegram/handlers/workspace.ts`, `config/reportPermissions.ts`, `tests/telegramV2.test.ts`, migratsiya `20260926160000_telegram_v2`. O‘zgargan: `telegram/router.ts`, `handlers/menu.ts`, `handlers/sales.ts`, `handlers/teacher.ts`, `handlers/broadcast.ts`, `handlers/student.ts`, `handlers/extras.ts`, `telegram/format.ts`, `services/telegram.service.ts` (`sendMedia`), `notificationDelivery.service.ts`, `broadcast.service.ts`, `examTaking.service.ts` (aktor ixtiyoriy), `telegramCommand.service.ts`, `controllers/report.controller.ts`, `schema.prisma`; testlar `telegramFoundation.test.ts` (menyu ro‘yxati yangilandi), `telegramExtras.test.ts` (AI ruxsatsiz rol — buxgalter; o‘qituvchiga ochiqligi alohida test). Docs: `telegram.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`, faqat qo‘shish) `telegram_links.muted`; `telegram_broadcasts.mediaKind/mediaFileId`; `notification_deliveries.mediaKind/mediaFileId`.
+
+## 5. API Changes
+
+HTTP API o‘zgarmadi. Botga yangi buyruqlar: `/onlayn`, `/sozlamalar`, `/qidir`, `/kpi`, `/tekshirish`, `/hisobotlar`, `/marketing` (Telegram menyusiga ham qo‘shildi).
+
+## 6. Permission Changes
+
+Yo‘q (mavjud ruxsatlar; hisobot ruxsatlari endi bitta faylda).
+
+## 7. AI Changes
+
+Botda AI tekshiruv va akademik yordamchi — PHASE 9 servislari orqali.
+
+## 8. Tests
+
+Backend **767/767** (+7), frontend **86/86**, E2E **24/24** (o‘zgarishsiz). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Callback’ga ishonilmaydi: indekslar serverdagi urinishdan, hisobot turi ro‘yxat va ruxsatdan, topshiriq — o‘qituvchi doirasidan tekshiriladi (begona o‘qituvchi — xato, test).
+- Onlayn imtihonni faqat o‘quvchi topshiradi; ota-ona ro‘yxatni ko‘radi.
+- Ovozsiz rejim faqat o‘z chatini o‘zgartiradi; xodim sozlamasi faqat o‘ziga.
+- Fayllar Telegramdan olinganda hajm va tur baytlar bo‘yicha tekshiriladi (web bilan bir xil servis).
+
+## 10. Performance
+
+- Broadcast media qayta yuklanmaydi (`file_id`).
+- Tekshirish navbati 10 tadan, eng eskisidan; KPI — o‘qituvchi markazining bitta ommaviy hisobi.
+
+## 11. Known Issues
+
+- Botda onlayn imtihon natijasida to‘g‘ri javob va tushuntirish ko‘rsatilmaydi — kabinetga yo‘naltiriladi (xabar hajmi).
+- Hisobotlar botda faqat KPI’lar; jadval CRM’da.
+
+## 12. Next Phase
+
+**PHASE 12 — Search + Analytics** (§45–49): kabinet/o‘qituvchi/manager/owner uchun rolga mos qidiruv, akademik analitika (guruh/kurs/o‘qituvchi kesimi, trendlar).

@@ -1,0 +1,507 @@
+import { readFile } from 'node:fs/promises';
+import { prisma } from '../../config/database.js';
+import { primaryClientUrl } from '../../config/env.js';
+import { PERMISSIONS } from '../../config/permissions.js';
+import { canViewReport } from '../../config/reportPermissions.js';
+import type { NotificationType } from '../../generated/prisma/client.js';
+import { aiAcademicService } from '../../services/ai/academic.service.js';
+import { analyticsService } from '../../services/analytics.service.js';
+import { homeworkService } from '../../services/homework.service.js';
+import { notificationService } from '../../services/notification.service.js';
+import { permissionService } from '../../services/permission.service.js';
+import { reportService } from '../../services/report.service.js';
+import { searchService } from '../../services/search.service.js';
+import { escapeHtml, telegramService, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
+import type { CommandScope } from '../../services/telegramCommand.service.js';
+import { teachingService } from '../../services/teaching.service.js';
+import { getTeachingAccess } from '../../services/teachingAccess.js';
+import type { AuthUser } from '../../types/auth.js';
+import { AppError } from '../../utils/AppError.js';
+import { businessDateString, startOfBusinessMonth } from '../../utils/dates.js';
+import type { ClientInfo } from '../../utils/requestContext.js';
+import type { ReportType } from '../../validators/report.validator.js';
+import { moneyUz } from '../format.js';
+import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback } from '../keyboards.js';
+import { telegramSessionService, type SessionState } from '../session.service.js';
+import type { BotContext, HandlerResult } from '../types.js';
+
+/**
+ * Telegram 2.0 (TZ 3.0 §43): qidiruv, sozlamalar, o'qituvchi KPI, marketing, hisobotlar va
+ * topshiriqlarni botdan tekshirish. **Yangi mantiq yo'q** — hammasi CRM servislari orqali
+ * `scope.actor` nomidan: ruxsat, doira (o'qituvchi — o'z guruhi, filial) va audit web bilan bir xil.
+ */
+
+export const WORKSPACE_ACTIONS = {
+  search: 'ws_sr',
+  settings: 'ws_set',
+  toggleType: 'ws_st',
+  toggleMute: 'ws_mute',
+  kpi: 'ws_kpi',
+  marketing: 'ws_mkt',
+  reports: 'ws_rep',
+  report: 'ws_r',
+  review: 'ws_rv',
+  reviewOne: 'ws_ro',
+  grade: 'ws_rg',
+  giveBack: 'ws_rb',
+  ai: 'ws_ai',
+  aiAccept: 'ws_aia',
+} as const;
+
+export const SEARCH_FLOW = 'search';
+export const GRADE_FLOW = 'grade';
+
+const BOT_CLIENT: ClientInfo = { ip: null, userAgent: 'telegram-bot' };
+const REVIEW_LIMIT = 10;
+
+function menuRow(): InlineButton[] {
+  return [{ text: MAIN_MENU_BUTTON_TEXT, data: callback(MAIN_MENU) }];
+}
+
+async function requireActor(context: BotContext, scope: CommandScope): Promise<AuthUser | null> {
+  if (scope.actor) return scope.actor;
+  await context.render('Bu bo‘lim xodimlar uchun.', [menuRow()]);
+  return null;
+}
+
+async function permissionsOf(actor: AuthUser): Promise<ReadonlySet<string>> {
+  return permissionService.getRolePermissions(actor.roleId);
+}
+
+async function requirePermission(context: BotContext, actor: AuthUser, permission: string): Promise<boolean> {
+  if ((await permissionsOf(actor)).has(permission)) return true;
+  await context.render('❌ Bu bo‘limga ruxsatingiz yo‘q.', [menuRow()]);
+  return false;
+}
+
+async function safely(context: BotContext, work: () => Promise<HandlerResult>): Promise<HandlerResult> {
+  try {
+    return await work();
+  } catch (error) {
+    if (error instanceof AppError) {
+      await context.render(`❌ ${escapeHtml(error.message)}`, [menuRow()]);
+      return { action: 'workspace_error' };
+    }
+    throw error;
+  }
+}
+
+const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
+
+// ---------------------------------------------------------------------
+// Qidiruv (global search — ruxsatga qarab)
+// ---------------------------------------------------------------------
+
+export async function startSearch(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.search };
+  await telegramSessionService.set(context.chatId, { flow: SEARCH_FLOW, step: 'query', data: {} });
+  await context.render('🔎 Qidirish uchun ism, telefon yoki kod yozing (masalan: <code>Ali</code>, <code>90 123</code>, <code>ST-45</code>).', [menuRow()]);
+  return { action: WORKSPACE_ACTIONS.search };
+}
+
+export async function handleSearchFlow(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = scope.actor;
+  const query = (context.text ?? '').trim();
+  if (!actor) return { action: 'search_denied' };
+  if (query.length < 2) {
+    await context.reply('Kamida 2 belgi yozing.', [menuRow()]);
+    return { action: 'search_short' };
+  }
+  return safely(context, async () => {
+    const result = await searchService.search(actor, query);
+    // Oqim ochiq qoladi — keyingi so'rovni darhol yozish mumkin
+    if (result.total === 0) {
+      await context.reply(`🔎 «${escapeHtml(query)}» bo‘yicha hech narsa topilmadi. Boshqacha yozib ko‘ring.`, [menuRow()]);
+      return { action: 'search_empty' };
+    }
+    const lines = [`<b>🔎 «${escapeHtml(query)}»</b> · ${result.total} ta`, ''];
+    for (const group of result.groups) {
+      lines.push(`<b>${escapeHtml(group.label)}</b>`);
+      for (const hit of group.hits.slice(0, 5)) {
+        const title = `${hit.code ? `${escapeHtml(hit.code)} · ` : ''}${escapeHtml(hit.title)}`;
+        lines.push(`• <a href="${primaryClientUrl}${hit.url}">${title}</a>${hit.subtitle ? ` — ${escapeHtml(hit.subtitle)}` : ''}`);
+      }
+      lines.push('');
+    }
+    lines.push('Yana qidirish uchun yozing.');
+    await context.reply(lines.join('\n'), [menuRow()]);
+    return { action: 'search_result' };
+  });
+}
+
+// ---------------------------------------------------------------------
+// Sozlamalar: bildirishnomalar (xodim — tur bo'yicha), ovozsiz rejim (hamma)
+// ---------------------------------------------------------------------
+
+/** Botda boshqariladigan turlar (ruxsat bo'yicha ko'rsatiladi) */
+const STAFF_TYPES: ReadonlyArray<{ type: NotificationType; label: string; permission: string | null }> = [
+  { type: 'NEW_LEAD', label: 'Yangi lead', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'LEAD_ASSIGNED', label: 'Lead biriktirildi', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'FOLLOW_UP_REMINDER', label: 'Follow-up eslatmasi', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'FOLLOW_UP_OVERDUE', label: 'Kechikkan follow-up', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'NEW_PAYMENT', label: 'Yangi to‘lov', permission: PERMISSIONS.PAYMENT_VIEW },
+  { type: 'DEBT_REMINDER', label: 'Qarzdorlik', permission: PERMISSIONS.DEBT_VIEW },
+  { type: 'RISK_INCREASED', label: 'O‘quvchi xavfi oshdi', permission: PERMISSIONS.ATTENDANCE_MARK },
+  { type: 'NEGATIVE_FEEDBACK', label: 'Past baholi fikr', permission: PERMISSIONS.FEEDBACK_VIEW },
+  { type: 'EXPENSE_APPROVAL', label: 'Xarajat tasdig‘i', permission: PERMISSIONS.EXPENSE_APPROVE },
+  { type: 'DAILY_DIGEST', label: 'Kunlik xulosa', permission: PERMISSIONS.DASHBOARD_VIEW },
+];
+
+async function linkOf(context: BotContext) {
+  return prisma.telegramLink.findFirst({ where: { chatId: context.chatId, isActive: true }, select: { id: true, muted: true } });
+}
+
+export async function showSettings(context: BotContext, scope: CommandScope, note = ''): Promise<HandlerResult> {
+  const link = await linkOf(context);
+  const lines = ['<b>⚙️ Sozlamalar</b>', ''];
+  const keyboard: InlineKeyboard = [];
+  lines.push(link?.muted ? '🔕 Avtomatik eslatmalar <b>to‘xtatilgan</b> (markaz e’lonlari baribir keladi).' : '🔔 Avtomatik eslatmalar yoqilgan.');
+  keyboard.push([{ text: link?.muted ? '🔔 Eslatmalarni yoqish' : '🔕 Eslatmalarni to‘xtatish', data: callback(WORKSPACE_ACTIONS.toggleMute) }]);
+
+  if (scope.actor) {
+    const permissions = await permissionsOf(scope.actor);
+    const settings = new Map((await notificationService.settings(scope.actor)).map((row) => [row.type, row]));
+    const types = STAFF_TYPES.filter((item) => !item.permission || permissions.has(item.permission));
+    if (types.length) {
+      lines.push('', 'Telegramga keladigan xabarlar (bosib yoqing/o‘chiring):');
+      for (const item of types) {
+        const on = settings.get(item.type)?.telegram ?? true;
+        keyboard.push([{ text: `${on ? '✅' : '⬜️'} ${item.label}`, data: callback(WORKSPACE_ACTIONS.toggleType, item.type) }]);
+      }
+    }
+  } else if (scope.kind === 'PARENT' && scope.studentIds.length > 1) {
+    keyboard.push([{ text: '👨‍👩‍👧 Farzandni tanlash', data: callback('st_child') }]);
+  }
+  lines.push('', 'Til: o‘zbekcha (lotin).');
+  if (note) lines.push('', note);
+  keyboard.push([{ text: '🚫 Bog‘lanishni uzish', data: callback('cmd', '/uzish') }], menuRow());
+  await context.render(lines.join('\n'), keyboard);
+  return { action: WORKSPACE_ACTIONS.settings };
+}
+
+export async function toggleMute(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const link = await linkOf(context);
+  if (link) await prisma.telegramLink.update({ where: { id: link.id }, data: { muted: !link.muted } });
+  return showSettings(context, scope, link ? (link.muted ? '✅ Eslatmalar yoqildi.' : '✅ Eslatmalar to‘xtatildi.') : '');
+}
+
+export async function toggleType(context: BotContext, scope: CommandScope, type: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.toggleType };
+  const item = STAFF_TYPES.find((row) => row.type === type);
+  if (!item) return showSettings(context, scope);
+  const current = (await notificationService.settings(actor)).find((row) => row.type === item.type);
+  await notificationService.saveSettings(actor, [{ type: item.type, inApp: current?.inApp ?? true, telegram: !(current?.telegram ?? true) }]);
+  return showSettings(context, scope);
+}
+
+// ---------------------------------------------------------------------
+// O'qituvchi KPI (o'z guruhlari — o'qituvchi markazi bilan bir xil raqamlar)
+// ---------------------------------------------------------------------
+
+export async function showKpi(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.kpi };
+  return safely(context, async () => {
+    const { totals, groups } = await teachingService.overview(actor);
+    const lines = [
+      '<b>📈 KPI</b>',
+      '',
+      `Guruhlar: <b>${totals.groups}</b> · o‘quvchilar: <b>${totals.students}</b>`,
+      `Xavf ostida: <b>${totals.atRisk}</b>`,
+      `Baholash kutmoqda: <b>${totals.homeworkToGrade}</b> vazifa, <b>${totals.attemptsToReview}</b> imtihon`,
+      `Bugun dars: ${totals.lessonsToday} · davomat belgilanmagan: <b>${totals.unmarkedToday}</b>`,
+      '',
+    ];
+    for (const group of groups.slice(0, 10)) {
+      lines.push(`<b>${escapeHtml(group.name)}</b> (${group.students})`);
+      lines.push(`   Davomat ${pct(group.attendanceRate)} · vazifa ${pct(group.homeworkRate)} · imtihon ${pct(group.examAverage)} · progress ${pct(group.progress)}`);
+    }
+    const keyboard: InlineKeyboard = [];
+    if (totals.homeworkToGrade > 0) keyboard.push([{ text: `✍️ Tekshirish (${totals.homeworkToGrade})`, data: callback(WORKSPACE_ACTIONS.review) }]);
+    keyboard.push(menuRow());
+    await context.render(lines.join('\n'), keyboard);
+    return { action: WORKSPACE_ACTIONS.kpi };
+  });
+}
+
+// ---------------------------------------------------------------------
+// Marketing (kanallar bo'yicha — analytics.sources)
+// ---------------------------------------------------------------------
+
+function monthRange(now = new Date()): { from: string; to: string } {
+  return { from: businessDateString(startOfBusinessMonth(now)), to: businessDateString(now) };
+}
+
+export async function showMarketing(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !(await requirePermission(context, actor, PERMISSIONS.ANALYTICS_VIEW))) return { action: WORKSPACE_ACTIONS.marketing };
+  return safely(context, async () => {
+    const range = monthRange();
+    const data = await analyticsService.sources(range);
+    const lines = [
+      `<b>📣 Marketing</b> · ${range.from.slice(8, 10)}.${range.from.slice(5, 7)} — ${range.to.slice(8, 10)}.${range.to.slice(5, 7)}`,
+      '',
+      `Leadlar: <b>${data.totals.leads}</b> · o‘quvchi bo‘ldi: <b>${data.totals.won}</b> (${data.totals.conversion}%)`,
+      `Reklama xarajati: ${moneyUz(data.totals.spend)} · tushum: ${moneyUz(data.totals.revenue)}${data.totals.roi === null ? '' : ` · ROI ${data.totals.roi}%`}`,
+      '',
+    ];
+    const rows = [...data.rows].sort((a, b) => b.leads - a.leads).slice(0, 8);
+    for (const row of rows) {
+      lines.push(`<b>${escapeHtml(row.name)}</b>: ${row.leads} lead → ${row.won} (${row.conversion}%)${row.spend ? ` · ${moneyUz(row.spend)}` : ''}${row.costPerStudent ? ` · 1 o‘quvchi ${moneyUz(row.costPerStudent)}` : ''}`);
+    }
+    if (rows.length === 0) lines.push('Bu oyda lead yo‘q.');
+    await context.render(lines.join('\n'), [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.marketing };
+  });
+}
+
+// ---------------------------------------------------------------------
+// Hisobotlar (report.service — ruxsat web bilan bir xil)
+// ---------------------------------------------------------------------
+
+const BOT_REPORTS: ReadonlyArray<{ type: ReportType; label: string }> = [
+  { type: 'sales', label: '💼 Sotuv' },
+  { type: 'payments', label: '💳 To‘lovlar' },
+  { type: 'debts', label: '⚠️ Qarzdorlik' },
+  { type: 'attendance', label: '✅ Davomat' },
+  { type: 'expenses', label: '📉 Xarajatlar' },
+  { type: 'profit', label: '💰 Foyda' },
+  { type: 'courses', label: '📚 Kurslar' },
+  { type: 'teachers', label: '👨‍🏫 O‘qituvchilar' },
+];
+
+export async function showReports(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !(await requirePermission(context, actor, PERMISSIONS.REPORT_VIEW))) return { action: WORKSPACE_ACTIONS.reports };
+  const permissions = await permissionsOf(actor);
+  const allowed = BOT_REPORTS.filter((item) => canViewReport(permissions, item.type));
+  const keyboard: InlineKeyboard = [];
+  for (let index = 0; index < allowed.length; index += 2) keyboard.push(allowed.slice(index, index + 2).map((item) => ({ text: item.label, data: callback(WORKSPACE_ACTIONS.report, item.type) })));
+  keyboard.push(menuRow());
+  await context.render('<b>📑 Hisobotlar</b> · joriy oy\n\nQaysi hisobot?', keyboard);
+  return { action: WORKSPACE_ACTIONS.reports };
+}
+
+export async function showReport(context: BotContext, scope: CommandScope, type: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.report };
+  const item = BOT_REPORTS.find((row) => row.type === type);
+  // Callback'ga ishonilmaydi: tur ro'yxatda bo'lishi va ruxsat yetishi shart
+  if (!item || !canViewReport(await permissionsOf(actor), item.type)) {
+    await context.render('❌ Bu hisobotga ruxsatingiz yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.report };
+  }
+  return safely(context, async () => {
+    const range = monthRange();
+    const report = await reportService.build(item.type, { ...range, groupBy: 'day' });
+    const lines = [`<b>${escapeHtml(report.title)}</b> · ${range.from.slice(8, 10)}.${range.from.slice(5, 7)} — ${range.to.slice(8, 10)}.${range.to.slice(5, 7)}`, ''];
+    for (const kpi of report.kpis) {
+      const value = kpi.type === 'money' ? moneyUz(kpi.value) : kpi.type === 'percent' ? `${kpi.value}%` : new Intl.NumberFormat('uz-UZ').format(kpi.value);
+      lines.push(`${escapeHtml(kpi.label)}: <b>${value}</b>`);
+    }
+    if (report.kpis.length === 0) lines.push(`${report.rows.length} ta qator — to‘liq jadval CRM’da.`);
+    lines.push('', `To‘liq jadval: <a href="${primaryClientUrl}/reports">CRM → Hisobotlar</a>`);
+    await context.render(lines.join('\n'), [[{ text: '⬅️ Hisobotlar', data: callback(WORKSPACE_ACTIONS.reports) }, ...menuRow()]]);
+    return { action: WORKSPACE_ACTIONS.report };
+  });
+}
+
+// ---------------------------------------------------------------------
+// Topshiriqlarni tekshirish: javob, fayllar, baho, qaytarish, AI taklifi (TZ §43 + §34)
+// ---------------------------------------------------------------------
+
+export async function showReviewQueue(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !(await requirePermission(context, actor, PERMISSIONS.HOMEWORK_GRADE))) return { action: WORKSPACE_ACTIONS.review };
+  const access = await getTeachingAccess(actor);
+  const rows = await prisma.homeworkSubmission.findMany({
+    where: {
+      status: { in: ['SUBMITTED', 'LATE'] },
+      score: null,
+      homework: { status: { not: 'DRAFT' }, ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}) },
+    },
+    orderBy: { submittedAt: 'asc' },
+    take: REVIEW_LIMIT,
+    select: { homeworkId: true, studentId: true, status: true, student: { select: { firstName: true, lastName: true } }, homework: { select: { title: true } } },
+  });
+  if (rows.length === 0) {
+    await context.render('✍️ Baholash kutayotgan topshiriq yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.review };
+  }
+  const keyboard: InlineKeyboard = rows.map((row) => [
+    {
+      text: `${row.status === 'LATE' ? '⏰' : '📝'} ${row.student.firstName} ${row.student.lastName.slice(0, 1)}. · ${row.homework.title.slice(0, 28)}`,
+      data: callback(WORKSPACE_ACTIONS.reviewOne, `${row.homeworkId}:${row.studentId}`),
+    },
+  ]);
+  keyboard.push(menuRow());
+  await context.render(`<b>✍️ Tekshirish</b> · eng eskisidan boshlab (${rows.length})`, keyboard);
+  return { action: WORKSPACE_ACTIONS.review };
+}
+
+function splitPair(arg: string | null): { homeworkId: string; studentId: string } | null {
+  const [homeworkId, studentId] = (arg ?? '').split(':');
+  return homeworkId && studentId ? { homeworkId, studentId } : null;
+}
+
+export async function showSubmission(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const pair = splitPair(arg);
+  if (!actor || !pair) return { action: WORKSPACE_ACTIONS.reviewOne };
+  return safely(context, async () => {
+    // Doira: o'qituvchi faqat o'z guruhi (homeworkService ichida)
+    const detail = await homeworkService.submissionDetail(actor, pair.homeworkId, pair.studentId);
+    const homework = await prisma.homework.findUniqueOrThrow({ where: { id: pair.homeworkId }, select: { title: true, maxPoints: true } });
+    const lines = [
+      `<b>${escapeHtml(detail.firstName)} ${escapeHtml(detail.lastName)}</b> · ${escapeHtml(homework.title)}`,
+      `${detail.late ? '⏰ Kech topshirilgan' : '📝 Topshirilgan'} · maksimal ${homework.maxPoints} ball`,
+      '',
+    ];
+    if (detail.answerText) lines.push(`<b>Javob:</b>\n${escapeHtml(detail.answerText.slice(0, 1500))}`);
+    if (detail.linkUrl) lines.push(`<b>Havola:</b> ${escapeHtml(detail.linkUrl)}`);
+    if (detail.codeText) lines.push(`<b>Kod</b>${detail.codeLanguage ? ` (${escapeHtml(detail.codeLanguage)})` : ''}:\n<pre>${escapeHtml(detail.codeText.slice(0, 1500))}</pre>`);
+    if (detail.files.length) lines.push(`📎 Fayllar: ${detail.files.length} ta (quyida)`);
+    const keyboard: InlineKeyboard = [
+      [
+        { text: '✍️ Baho qo‘yish', data: callback(WORKSPACE_ACTIONS.grade, arg!) },
+        { text: '↩️ Qaytarish', data: callback(WORKSPACE_ACTIONS.giveBack, arg!) },
+      ],
+    ];
+    if ((await permissionsOf(actor)).has(PERMISSIONS.AI_ACADEMIC)) keyboard.push([{ text: '🤖 AI tekshiruv', data: callback(WORKSPACE_ACTIONS.ai, arg!) }]);
+    keyboard.push([{ text: '⬅️ Ro‘yxat', data: callback(WORKSPACE_ACTIONS.review) }, ...menuRow()]);
+    await context.render(lines.join('\n'), keyboard);
+    // O'quvchi fayllari — CRM'dagi saqlangan faylning o'zi (Telegramga qayta yuklanadi)
+    for (const file of detail.files.slice(0, 5)) {
+      const stored = await homeworkService.submissionFile(actor, pair.homeworkId, pair.studentId, file.id);
+      const buffer = await readFile(stored.absolutePath).catch(() => null);
+      if (buffer) await telegramService.sendMedia(context.chatId, { kind: 'document', buffer, fileName: stored.fileName, mimeType: stored.mimeType });
+    }
+    return { action: WORKSPACE_ACTIONS.reviewOne };
+  });
+}
+
+export async function askGrade(context: BotContext, scope: CommandScope, arg: string | null, mode: 'grade' | 'return'): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const pair = splitPair(arg);
+  if (!actor || !pair) return { action: WORKSPACE_ACTIONS.grade };
+  await telegramSessionService.set(context.chatId, { flow: GRADE_FLOW, step: mode, data: pair });
+  await context.render(
+    mode === 'grade'
+      ? '✍️ Ballni yozing, xohlasangiz izoh bilan: <code>85 Yaxshi, validatsiya qo‘shing</code>'
+      : '↩️ Nimani tuzatish kerakligini yozing — o‘quvchi va ota-onaga boradi.',
+    [[{ text: '❌ Bekor qilish', data: callback(WORKSPACE_ACTIONS.reviewOne, arg!) }]],
+  );
+  return { action: mode === 'grade' ? WORKSPACE_ACTIONS.grade : WORKSPACE_ACTIONS.giveBack };
+}
+
+export async function handleGradeFlow(context: BotContext, scope: CommandScope, session: SessionState): Promise<HandlerResult> {
+  const actor = scope.actor;
+  const homeworkId = typeof session.data.homeworkId === 'string' ? session.data.homeworkId : null;
+  const studentId = typeof session.data.studentId === 'string' ? session.data.studentId : null;
+  if (!actor || !homeworkId || !studentId) {
+    await telegramSessionService.clearFlow(context.chatId);
+    return { action: 'grade_cancel' };
+  }
+  const text = (context.text ?? '').trim();
+  const back: InlineKeyboard = [[{ text: '✍️ Keyingisi', data: callback(WORKSPACE_ACTIONS.review) }, ...menuRow()]];
+  if (session.step === 'return') {
+    if (text.length < 3) {
+      await context.reply('Izoh kamida 3 belgi bo‘lsin.');
+      return { action: 'return_invalid' };
+    }
+    await telegramSessionService.clearFlow(context.chatId);
+    return safely(context, async () => {
+      await homeworkService.returnSubmission(actor, homeworkId, studentId, { feedback: text.slice(0, 500) }, BOT_CLIENT);
+      await context.reply('↩️ Qayta ishlashga qaytarildi.', back);
+      return { action: 'homework_returned' };
+    });
+  }
+  const match = /^(\d{1,4})(?:\s+([\s\S]+))?$/.exec(text);
+  if (!match) {
+    await context.reply('Ball raqam bilan boshlansin: <code>85</code> yoki <code>85 Izoh</code>');
+    return { action: 'grade_invalid' };
+  }
+  await telegramSessionService.clearFlow(context.chatId);
+  return safely(context, async () => {
+    const score = Number(match[1]);
+    const feedback = match[2]?.trim().slice(0, 500);
+    await homeworkService.grade(actor, homeworkId, studentId, { status: 'GRADED', score, ...(feedback ? { feedback } : {}) }, BOT_CLIENT);
+    await context.reply(`✅ Baholandi: <b>${score}</b> ball${feedback ? `\n💬 ${escapeHtml(feedback)}` : ''}`, back);
+    return { action: 'homework_graded' };
+  });
+}
+
+/** AI tekshiruv (§34): taklif — o'qituvchi qabul qiladi yoki o'zi baholaydi */
+export async function runAiReview(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const pair = splitPair(arg);
+  if (!actor || !pair || !(await requirePermission(context, actor, PERMISSIONS.AI_ACADEMIC))) return { action: WORKSPACE_ACTIONS.ai };
+  return safely(context, async () => {
+    const analysis = await aiAcademicService.reviewSubmission(actor, pair.homeworkId, pair.studentId, BOT_CLIENT);
+    const result = analysis.result as { suggestedScore: number | null; maxPoints: number; items: Array<{ type: string; text: string }> };
+    const lines = [`<b>🤖 AI tekshiruv</b>${analysis.source === 'RULES' ? ' (qoidalar rejimi)' : ''}`, '', escapeHtml(analysis.summary), ''];
+    for (const item of result.items.slice(0, 8)) lines.push(`${item.type === 'FACT' ? '📌' : item.type === 'OBSERVATION' ? '🔍' : '💡'} ${escapeHtml(item.text)}`);
+    const keyboard: InlineKeyboard = [];
+    if (result.suggestedScore !== null) keyboard.push([{ text: `✅ Qabul qilish (${result.suggestedScore}/${result.maxPoints})`, data: callback(WORKSPACE_ACTIONS.aiAccept, analysis.id) }]);
+    keyboard.push([{ text: '✍️ O‘zim baholayman', data: callback(WORKSPACE_ACTIONS.grade, arg!) }, { text: '↩️ Qaytarish', data: callback(WORKSPACE_ACTIONS.giveBack, arg!) }]);
+    keyboard.push(menuRow());
+    await context.render(lines.join('\n'), keyboard);
+    return { action: WORKSPACE_ACTIONS.ai };
+  });
+}
+
+export async function acceptAi(context: BotContext, scope: CommandScope, analysisId: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !analysisId) return { action: WORKSPACE_ACTIONS.aiAccept };
+  return safely(context, async () => {
+    const accepted = await aiAcademicService.accept(actor, analysisId, {}, BOT_CLIENT);
+    await context.render(`✅ AI taklifi qabul qilindi: <b>${String(accepted.decision?.score ?? '')}</b> ball.`, [[{ text: '✍️ Keyingisi', data: callback(WORKSPACE_ACTIONS.review) }, ...menuRow()]]);
+    return { action: 'ai_accepted' };
+  });
+}
+
+export const WORKSPACE_COMMANDS: Readonly<Record<string, string>> = {
+  '/qidir': WORKSPACE_ACTIONS.search,
+  '/sozlamalar': WORKSPACE_ACTIONS.settings,
+  '/kpi': WORKSPACE_ACTIONS.kpi,
+  '/marketing': WORKSPACE_ACTIONS.marketing,
+  '/hisobotlar': WORKSPACE_ACTIONS.reports,
+  '/tekshirish': WORKSPACE_ACTIONS.review,
+};
+
+export async function handleWorkspaceAction(context: BotContext, scope: CommandScope, action: string, arg: string | null): Promise<HandlerResult | undefined> {
+  switch (action) {
+    case WORKSPACE_ACTIONS.settings:
+      return showSettings(context, scope);
+    case WORKSPACE_ACTIONS.toggleMute:
+      return toggleMute(context, scope);
+    case WORKSPACE_ACTIONS.toggleType:
+      return toggleType(context, scope, arg);
+    case WORKSPACE_ACTIONS.search:
+      return startSearch(context, scope);
+    case WORKSPACE_ACTIONS.kpi:
+      return showKpi(context, scope);
+    case WORKSPACE_ACTIONS.marketing:
+      return showMarketing(context, scope);
+    case WORKSPACE_ACTIONS.reports:
+      return showReports(context, scope);
+    case WORKSPACE_ACTIONS.report:
+      return showReport(context, scope, arg);
+    case WORKSPACE_ACTIONS.review:
+      return showReviewQueue(context, scope);
+    case WORKSPACE_ACTIONS.reviewOne:
+      return showSubmission(context, scope, arg);
+    case WORKSPACE_ACTIONS.grade:
+      return askGrade(context, scope, arg, 'grade');
+    case WORKSPACE_ACTIONS.giveBack:
+      return askGrade(context, scope, arg, 'return');
+    case WORKSPACE_ACTIONS.ai:
+      return runAiReview(context, scope, arg);
+    case WORKSPACE_ACTIONS.aiAccept:
+      return acceptAi(context, scope, arg);
+    default:
+      return undefined;
+  }
+}

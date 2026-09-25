@@ -45,6 +45,8 @@ interface Draft {
   targetId?: string | null;
   includeParents?: boolean;
   message?: string;
+  /** TZ §43 "Broadcast Media": rasm yoki hujjat (Telegram file_id) */
+  media?: { kind: 'photo' | 'document'; fileId: string } | null;
 }
 
 function menuRow(): InlineButton[] {
@@ -177,7 +179,7 @@ export async function chooseAudience(context: BotContext, scope: CommandScope, a
   }
 
   await saveDraft(context.chatId, 'text', draft);
-  await context.render(`<b>📢 ${AUDIENCE_LABELS[draft.audience]}</b>\n\nXabar matnini yozing (2000 belgigacha).`, cancelRow());
+  await context.render(`<b>📢 ${AUDIENCE_LABELS[draft.audience]}</b>\n\nXabar matnini yozing (2000 belgigacha) yoki izoh bilan rasm/hujjat yuboring.`, cancelRow());
   return { action: BROADCAST_ACTIONS.audience };
 }
 
@@ -209,12 +211,15 @@ export async function handleBroadcastFlow(context: BotContext, scope: CommandSco
     return { action: 'broadcast_cancel' };
   }
 
-  const text = (context.text ?? '').trim();
+  // Rasm yoki hujjat izoh bilan yuborilishi mumkin — fayl hamma chatga shu izoh bilan boradi
+  const media = context.attachment ? { kind: context.attachment.kind === 'photo' ? ('photo' as const) : ('document' as const), fileId: context.attachment.fileId } : null;
+  const text = (context.text ?? '').trim() || (media ? (media.kind === 'photo' ? '🖼 Rasm' : '📎 Hujjat') : '');
   if (text.length < 2 || text.length > 2000) {
     await context.reply('Xabar 2 dan 2000 belgigacha bo‘lsin. Qaytadan yozing.', cancelRow());
     return { action: 'broadcast_text_invalid' };
   }
   draft.message = text;
+  draft.media = media;
   const actor = scope.actor;
 
   return safely(context, async () => {
@@ -231,6 +236,7 @@ export async function handleBroadcastFlow(context: BotContext, scope: CommandSco
       [
         '<b>📢 Oldindan ko‘rish</b>',
         `Kimga: <b>${escapeHtml(preview.label)}</b> — <b>${preview.recipients}</b> ta chat`,
+        ...(media ? [media.kind === 'photo' ? '🖼 Rasm bilan' : '📎 Hujjat bilan'] : []),
         '',
         '— — —',
         escapeHtml(text),
@@ -259,6 +265,7 @@ export async function confirmBroadcast(context: BotContext, scope: CommandScope)
       actor,
       { audience: draft.audience, targetId: draft.targetId ?? undefined, includeParents: draft.includeParents ?? false, message: draft.message! },
       BOT_CLIENT,
+      draft.media ?? null,
     );
     await telegramSessionService.clearFlow(context.chatId);
     await context.render(

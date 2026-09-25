@@ -39,13 +39,14 @@ const STUDENT_COMMANDS = [
   '/davomat — davomat va oylik kalendar',
   '/vazifa — uy vazifalari va topshirish',
   '/imtihon — imtihon natijalari',
+  '/onlayn — onlayn imtihon topshirish',
   '/xp — XP, seriya, reyting, nishonlar',
   '/qarz — to‘lovlar va qarz',
   '/sertifikat — sertifikatlar',
   '/taklif — do‘st taklifi kodi va bonuslar',
 ];
 
-const COMMON_COMMANDS = ['/holat — bog‘lanish holati', '/uzish — bog‘lanishni uzish', '/help — shu ro‘yxat'];
+const COMMON_COMMANDS = ['/sozlamalar — eslatmalar va sozlamalar', '/holat — bog‘lanish holati', '/uzish — bog‘lanishni uzish', '/help — shu ro‘yxat'];
 
 function helpText(scope: CommandScope): string {
   const lines = ['<b>Mavjud buyruqlar</b>', ''];
@@ -60,6 +61,11 @@ function helpText(scope: CommandScope): string {
       '/qarzdorlar — eng katta qarzdorlar',
       '/xabar — ommaviy xabar yuborish',
       '/ai — AI yordamchi (savol-javob)',
+      '/qidir — o‘quvchi, lead va boshqalarni qidirish',
+      '/kpi — guruhlarim ko‘rsatkichlari (o‘qituvchi)',
+      '/tekshirish — topshiriqlarni baholash (o‘qituvchi)',
+      '/hisobotlar — oylik hisobotlar',
+      '/marketing — kanallar bo‘yicha leadlar',
       '(bo‘limlar ruxsatingizga qarab ochiladi)',
       '',
     );
@@ -240,6 +246,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'davomat', description: 'Davomat va oylik kalendar' },
   { command: 'vazifa', description: 'Uy vazifalari va topshirish' },
   { command: 'imtihon', description: 'Imtihon natijalari' },
+  { command: 'onlayn', description: 'Onlayn imtihon topshirish' },
   { command: 'xp', description: 'XP, seriya, reyting' },
   { command: 'qarz', description: 'To‘lovlar va qarz' },
   { command: 'sertifikat', description: 'Sertifikatlar' },
@@ -252,7 +259,13 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'followup', description: 'Follow-uplar (sotuv)' },
   { command: 'qarzdorlar', description: 'Qarzdorlar (rahbar)' },
   { command: 'xabar', description: 'Ommaviy xabar (admin)' },
-  { command: 'ai', description: 'AI yordamchi (rahbar)' },
+  { command: 'ai', description: 'AI yordamchi' },
+  { command: 'qidir', description: 'Qidiruv (xodim)' },
+  { command: 'kpi', description: 'KPI (o‘qituvchi)' },
+  { command: 'tekshirish', description: 'Topshiriqlarni baholash (o‘qituvchi)' },
+  { command: 'hisobotlar', description: 'Oylik hisobotlar' },
+  { command: 'marketing', description: 'Marketing kanallari' },
+  { command: 'sozlamalar', description: 'Sozlamalar' },
   { command: 'holat', description: 'Bog‘lanish holati' },
   { command: 'uzish', description: 'Bog‘lanishni uzish' },
   { command: 'help', description: 'Buyruqlar ro‘yxati' },

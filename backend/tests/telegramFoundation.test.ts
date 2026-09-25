@@ -169,11 +169,13 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
       'st_att',
       'st_hw',
       'st_ex',
+      'ex_list',
       'st_xp',
       'st_pay',
       'st_cert',
       'st_week',
       'st_ref',
+      'ws_set',
       'cmd:/holat',
       'cmd:/uzish',
     ]);

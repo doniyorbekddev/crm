@@ -8,6 +8,8 @@ import { SALES_ACTIONS } from './sales.js';
 import { OWNER_ACTIONS } from './owner.js';
 import { BROADCAST_ACTIONS } from './broadcast.js';
 import { EXTRA_ACTIONS } from './extras.js';
+import { EXAM_ACTIONS } from './exam.js';
+import { WORKSPACE_ACTIONS } from './workspace.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import { permissionService } from '../../services/permission.service.js';
 
@@ -40,6 +42,7 @@ const STUDENT_ITEMS: readonly MenuItem[] = [
   { text: '✅ Davomat', data: callback(STUDENT_ACTIONS.attendance) },
   { text: '📝 Uy vazifalari', data: callback(STUDENT_ACTIONS.homework) },
   { text: '🎯 Imtihonlar', data: callback(STUDENT_ACTIONS.exams) },
+  { text: '🖥 Onlayn imtihon', data: callback(EXAM_ACTIONS.list) },
   { text: '⭐ XP & Reyting', data: callback(STUDENT_ACTIONS.xp) },
   { text: '💳 To‘lovlar', data: callback(STUDENT_ACTIONS.payments) },
   { text: '📜 Sertifikatlar', data: callback(STUDENT_ACTIONS.certificates) },
@@ -48,6 +51,7 @@ const STUDENT_ITEMS: readonly MenuItem[] = [
 ];
 
 const COMMON_ITEMS: readonly MenuItem[] = [
+  { text: '⚙️ Sozlamalar', data: callback(WORKSPACE_ACTIONS.settings) },
   { text: '🔗 Bog‘lanish holati', data: callback(COMMAND_ACTION, '/holat') },
   { text: '🚫 Bog‘lanishni uzish', data: callback(COMMAND_ACTION, '/uzish') },
 ];
@@ -75,13 +79,17 @@ async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
   const items: MenuItem[] = [];
   if (permissions.has(PERMISSIONS.DASHBOARD_VIEW)) items.push({ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) });
-  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS);
+  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS, { text: '📈 KPI', data: callback(WORKSPACE_ACTIONS.kpi) });
+  if (permissions.has(PERMISSIONS.HOMEWORK_GRADE)) items.push({ text: '✍️ Tekshirish', data: callback(WORKSPACE_ACTIONS.review) });
   if (permissions.has(PERMISSIONS.LEAD_VIEW)) items.push(...SALES_ITEMS);
   if (permissions.has(PERMISSIONS.DEBT_VIEW)) items.push({ text: '⚠️ Qarzdorlar', data: callback(OWNER_ACTIONS.debts) });
   if (permissions.has(PERMISSIONS.STUDENT_VIEW)) items.push({ text: '🔥 Xavf ostida', data: callback(OWNER_ACTIONS.risk) });
   if (permissions.has(PERMISSIONS.ALERT_VIEW)) items.push({ text: '🔔 Ogohlantirishlar', data: callback(OWNER_ACTIONS.alerts) });
   if (permissions.has(PERMISSIONS.BROADCAST_SEND)) items.push({ text: '📢 Xabar yuborish', data: callback(BROADCAST_ACTIONS.start) });
-  if (permissions.has(PERMISSIONS.AI_ASSISTANT)) items.push({ text: '🤖 AI yordamchi', data: callback(EXTRA_ACTIONS.aiStart) });
+  if (permissions.has(PERMISSIONS.AI_ASSISTANT) || permissions.has(PERMISSIONS.AI_ACADEMIC)) items.push({ text: '🤖 AI yordamchi', data: callback(EXTRA_ACTIONS.aiStart) });
+  if (permissions.has(PERMISSIONS.ANALYTICS_VIEW)) items.push({ text: '📣 Marketing', data: callback(WORKSPACE_ACTIONS.marketing) });
+  if (permissions.has(PERMISSIONS.REPORT_VIEW)) items.push({ text: '📑 Hisobotlar', data: callback(WORKSPACE_ACTIONS.reports) });
+  items.push({ text: '🔎 Qidiruv', data: callback(WORKSPACE_ACTIONS.search) });
   return [...items, ...COMMON_ITEMS];
 }
 

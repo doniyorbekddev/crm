@@ -52,6 +52,12 @@ export function localToUtc(year: number, month: number, day: number, hour = 0, m
   return new Date(Date.UTC(year, month - 1, day, hour, minute) - OFFSET_MS);
 }
 
+/** Bugundan `days` kun keyingi sana, o'quv markaz vaqti bilan `hour:minute` da (UTC Date) */
+export function localDayAt(days: number, hour: number, minute = 0, now: Date = new Date()): Date {
+  const local = shifted(now);
+  return localToUtc(local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate() + days, hour, minute);
+}
+
 /**
  * Foydalanuvchi yozgan sanani o'qiydi: `25.12.2026`, `25.12.2026 18:00`, `25.12` (joriy yil).
  * Vaqt berilmasa — kun oxiri (23:59), chunki muddat odatda "shu kungacha" degani.

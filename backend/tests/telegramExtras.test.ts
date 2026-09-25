@@ -174,7 +174,8 @@ describe.skipIf(!hasTestDatabase)('Telegram — AI yordamchi', () => {
   });
 
   it('ruxsatsiz xodimga AI yopiq', async () => {
-    await linkedStaff('TEACHER', CHAT);
+    // Buxgalterda na biznes, na akademik AI ruxsati bor
+    await linkedStaff('ACCOUNTANT', CHAT);
     const bot = captureBot();
 
     await message('/start', CHAT).expect(200);
@@ -183,5 +184,12 @@ describe.skipIf(!hasTestDatabase)('Telegram — AI yordamchi', () => {
     await message('/ai', CHAT).expect(200);
     expect(bot.last().text).toContain('huquqingiz yo‘q');
     expect(await telegramSessionService.get(String(CHAT))).toBeNull();
+  });
+
+  it('o‘qituvchiga akademik AI ochiq (PHASE 9 `ai.academic`)', async () => {
+    await linkedStaff('TEACHER', CHAT);
+    const bot = captureBot();
+    await message('/start', CHAT).expect(200);
+    expect(bot.lastData()).toContain('ai_start');
   });
 });

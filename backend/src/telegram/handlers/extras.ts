@@ -137,7 +137,8 @@ export async function showReferral(context: BotContext, scope: CommandScope): Pr
 async function canUseAi(scope: CommandScope): Promise<boolean> {
   if (!scope.actor) return false;
   const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
-  return permissions.has(PERMISSIONS.AI_ASSISTANT);
+  // Web bilan bir xil: biznes yoki akademik yordamchi ruxsati (har tool o'z ruxsatini tekshiradi)
+  return permissions.has(PERMISSIONS.AI_ASSISTANT) || permissions.has(PERMISSIONS.AI_ACADEMIC);
 }
 
 function suggestionKeyboard(suggestions: string[]): InlineKeyboard {

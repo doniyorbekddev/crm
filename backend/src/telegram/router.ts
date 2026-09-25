@@ -14,10 +14,13 @@ import {
   handleHomeworkCreateFlow,
   handleTeacherAction,
 } from './handlers/teacher.js';
-import { LEAD_LOST_FLOW, SALES_COMMANDS, handleLeadLostFlow, handleSalesAction } from './handlers/sales.js';
+import { CALL_NOTE_FLOW, FOLLOWUP_DATE_FLOW, LEAD_LOST_FLOW, SALES_COMMANDS, SALES_FLOW_ACTIONS, handleLeadLostFlow, handleSalesAction, handleSalesFlow } from './handlers/sales.js';
 import { OWNER_COMMANDS, handleOwnerAction } from './handlers/owner.js';
 import { BROADCAST_COMMANDS, BROADCAST_FLOW, BROADCAST_FLOW_ACTIONS, handleBroadcastAction, handleBroadcastFlow } from './handlers/broadcast.js';
 import { AI_FLOW, EXTRA_FLOW_ACTIONS, EXTRA_STAFF_COMMANDS, EXTRA_STUDENT_COMMANDS, handleAiFlow, handleExtraAction } from './handlers/extras.js';
+import { EXAM_COMMANDS, EXAM_FLOW, EXAM_FLOW_ACTIONS, handleExamAction, handleExamFlow } from './handlers/exam.js';
+import { GRADE_FLOW, SEARCH_FLOW, WORKSPACE_ACTIONS, WORKSPACE_COMMANDS, handleGradeFlow, handleSearchFlow, handleWorkspaceAction } from './handlers/workspace.js';
+import { resolveStudentId } from './handlers/student.js';
 import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
 import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
@@ -271,8 +274,12 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   const inFlow = session !== null && session.flow !== IDLE_FLOW;
   if (inFlow && !isCommand) {
     if (session.flow === HOMEWORK_FLOW && scope.kind !== 'STAFF') return handleHomeworkFlow(context, scope, session);
+    if (session.flow === EXAM_FLOW && scope.kind === 'STUDENT') return handleExamFlow(context, scope, session);
+    if (session.flow === SEARCH_FLOW && scope.actor) return handleSearchFlow(context, scope);
+    if (session.flow === GRADE_FLOW && scope.actor) return handleGradeFlow(context, scope, session);
     if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
     if (session.flow === LEAD_LOST_FLOW && scope.actor) return handleLeadLostFlow(context, scope, session);
+    if ((session.flow === CALL_NOTE_FLOW || session.flow === FOLLOWUP_DATE_FLOW) && scope.actor) return handleSalesFlow(context, scope, session);
     if (session.flow === BROADCAST_FLOW && scope.actor) return handleBroadcastFlow(context, scope, session);
     if (session.flow === AI_FLOW && scope.actor) return handleAiFlow(context, scope, session);
     // Davomat varag'i matn kutmaydi — tugmalar bilan ishlanadi; matn oddiy buyruq kabi ketadi
@@ -280,15 +287,25 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   }
   if (inFlow && isCommand) await telegramSessionService.clearFlow(context.chatId);
 
+  // Sozlamalar — hamma uchun (o'quvchi, ota-ona, xodim)
+  if (command === '/sozlamalar') {
+    const handled = await handleWorkspaceAction(context, scope, WORKSPACE_ACTIONS.settings, null);
+    if (handled) return handled;
+  }
+  if (scope.kind !== 'STAFF' && EXAM_COMMANDS[command]) {
+    const handled = await handleExamAction(context, scope, EXAM_COMMANDS[command], null, await resolveStudentId(context, scope));
+    if (handled) return handled;
+  }
   const studentAction = scope.kind === 'STAFF' ? undefined : (STUDENT_COMMANDS[command] ?? EXTRA_STUDENT_COMMANDS[command]);
   if (studentAction) {
     const handled = (await handleStudentAction(context, scope, studentAction, null)) ?? (await handleExtraAction(context, scope, studentAction, null));
     if (handled) return handled;
   }
   if (scope.actor) {
-    const staffAction = TEACHER_COMMANDS[command] ?? SALES_COMMANDS[command] ?? OWNER_COMMANDS[command] ?? BROADCAST_COMMANDS[command] ?? EXTRA_STAFF_COMMANDS[command];
+    const staffAction = TEACHER_COMMANDS[command] ?? SALES_COMMANDS[command] ?? OWNER_COMMANDS[command] ?? BROADCAST_COMMANDS[command] ?? EXTRA_STAFF_COMMANDS[command] ?? WORKSPACE_COMMANDS[command];
     if (staffAction) {
       const handled =
+        (await handleWorkspaceAction(context, scope, staffAction, null)) ??
         (await handleTeacherAction(context, scope, staffAction, null)) ??
         (await handleSalesAction(context, scope, staffAction, null)) ??
         (await handleOwnerAction(context, scope, staffAction)) ??
@@ -307,10 +324,18 @@ async function handleCallback(context: BotContext, scope: NonNullable<BotContext
   // Har qanday tugma ochiq oqimni yopadi: foydalanuvchi boshqa bo'limga o'tdi — yarim qolgan
   // ish uni kutib turmasin. Istisno — oqimning o'z tugmalari (sahifa raqami, davomat belgisi,
   // saqlash, tasdiqlash).
-  if (action !== 'noop' && !TEACHER_FLOW_ACTIONS.has(action) && !BROADCAST_FLOW_ACTIONS.has(action) && !EXTRA_FLOW_ACTIONS.has(action)) {
+  if (action !== 'noop' && !TEACHER_FLOW_ACTIONS.has(action) && !BROADCAST_FLOW_ACTIONS.has(action) && !EXTRA_FLOW_ACTIONS.has(action) && !SALES_FLOW_ACTIONS.has(action) && !EXAM_FLOW_ACTIONS.has(action)) {
     await telegramSessionService.clearFlow(context.chatId);
   }
 
+  if (action.startsWith('ws_')) {
+    const handled = await handleWorkspaceAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
+  if (action.startsWith('ex_') && scope.kind !== 'STAFF') {
+    const handled = await handleExamAction(context, scope, action, arg, await resolveStudentId(context, scope));
+    if (handled) return handled;
+  }
   if (action.startsWith('st_') && scope.kind !== 'STAFF') {
     const handled = (await handleStudentAction(context, scope, action, arg)) ?? (await handleExtraAction(context, scope, action, arg));
     if (handled) return handled;

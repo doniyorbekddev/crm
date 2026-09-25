@@ -150,7 +150,11 @@ export const broadcastService = {
   },
 
   /** Yozuv + navbat — bitta tranzaksiyada; audit bilan */
-  async send(actor: AuthUser, input: BroadcastInput, client: ClientInfo): Promise<BroadcastDto> {
+  /**
+   * `media` — botdan yuborilgan rasm/hujjat (Telegram file_id): har bir chatga shu fayl izoh bilan
+   * qayta yuboriladi (TZ 3.0 §43 "Broadcast Media"). Web'dan faqat matn.
+   */
+  async send(actor: AuthUser, input: BroadcastInput, client: ClientInfo, media: { kind: 'photo' | 'document'; fileId: string } | null = null): Promise<BroadcastDto> {
     await requireBroadcastPermission(actor);
     const { linkIds, label } = await resolveAudience(actor, input);
     if (linkIds.length === 0) {
@@ -165,6 +169,8 @@ export const broadcastService = {
           targetId: input.targetId ?? null,
           label,
           message: input.message,
+          mediaKind: media?.kind ?? null,
+          mediaFileId: media?.fileId ?? null,
           recipients: linkIds.length,
         },
         select: broadcastSelect,
@@ -179,6 +185,8 @@ export const broadcastService = {
           broadcastId: broadcast.id,
           title: BROADCAST_TITLE,
           body,
+          mediaKind: media?.kind ?? null,
+          mediaFileId: media?.fileId ?? null,
           dedupeKey: `broadcast:${broadcast.id}:TELEGRAM:${linkId}`.slice(0, 200),
         })),
         skipDuplicates: true,
@@ -189,7 +197,7 @@ export const broadcastService = {
         action: 'broadcast.sent',
         entityType: 'settings',
         entityId: broadcast.id,
-        metadata: { audience: input.audience, label, recipients: linkIds.length, preview: input.message.slice(0, 120) },
+        metadata: { audience: input.audience, label, recipients: linkIds.length, preview: input.message.slice(0, 120), media: media?.kind ?? null },
         ...client,
       });
       return broadcast;

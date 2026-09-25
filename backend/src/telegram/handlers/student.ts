@@ -488,8 +488,10 @@ export async function showExams(context: BotContext, scope: CommandScope): Promi
   if (!studentId) return { action: STUDENT_ACTIONS.exams };
 
   const rows = await buildStudentExamRows(studentId);
+  // Onlayn topshiriladigan imtihonlarga o'tish (TZ 3.0 §43)
+  const onlineRow: InlineButton[] = [{ text: '🖥 Onlayn imtihonlar', data: callback('ex_list') }, ...menuRow()];
   if (rows.length === 0) {
-    await context.render('🎯 Hozircha imtihon natijasi yo‘q.', [menuRow()]);
+    await context.render('🎯 Hozircha imtihon natijasi yo‘q.', [onlineRow]);
     return { action: STUDENT_ACTIONS.exams };
   }
 
@@ -502,7 +504,7 @@ export async function showExams(context: BotContext, scope: CommandScope): Promi
   }
   if (rows.length > EXAMS_LIMIT) lines.push('', `… va yana ${rows.length - EXAMS_LIMIT} ta (kabinetda to‘liq)`);
 
-  await context.render(lines.join('\n'), [menuRow()]);
+  await context.render(lines.join('\n'), [onlineRow]);
   return { action: STUDENT_ACTIONS.exams };
 }
 

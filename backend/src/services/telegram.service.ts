@@ -117,7 +117,64 @@ async function apiCall<T>(method: string, payload: Record<string, unknown>, time
   }
 }
 
+/** Telegram media: izoh chegarasi (undan uzun matn alohida xabar bo'lib ketadi) */
+export const MEDIA_CAPTION_LIMIT = 1024;
+
+export type TelegramMedia =
+  | { kind: 'photo' | 'document'; fileId: string }
+  | { kind: 'document'; buffer: Buffer; fileName: string; mimeType: string };
+
+/** Fayl yuklab yuborish (multipart) — CRM'da saqlangan faylni, masalan o'quvchi javobini o'qituvchiga */
+async function uploadDocument(chatId: string, media: { buffer: Buffer; fileName: string; mimeType: string }, caption: string | undefined): Promise<TelegramSendResult> {
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    logger.info({ method: 'sendDocument' }, 'Telegram o‘chirilgan — fayl yuborilmadi');
+    return { ok: false, retryable: false, error: 'Telegram bot tokeni sozlanmagan' };
+  }
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  if (caption) {
+    form.append('caption', caption);
+    form.append('parse_mode', 'HTML');
+  }
+  form.append('document', new Blob([new Uint8Array(media.buffer)], { type: media.mimeType }), media.fileName);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS * 3);
+  try {
+    const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`, { method: 'POST', body: form, signal: controller.signal });
+    if (response.ok) return { ok: true, retryable: false };
+    const body = (await response.json().catch(() => null)) as { description?: string } | null;
+    return { ok: false, retryable: response.status === 429 || response.status >= 500, error: (body?.description ?? `HTTP ${response.status}`).slice(0, 500) };
+  } catch (error) {
+    return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const telegramService = {
+  /**
+   * Rasm yoki hujjat yuborish. `fileId` — Telegramdagi fayl (broadcast: xodim yuborgan rasm bot
+   * orqali qayta yuboriladi, qayta yuklanmaydi); `buffer` — CRM'dagi fayl. Izoh 1024 belgidan
+   * uzun bo'lsa — media izohsiz, matn alohida xabar bo'lib ketadi.
+   */
+  async sendMedia(chatId: string, media: TelegramMedia, caption?: string, keyboard?: InlineKeyboard): Promise<TelegramSendResult> {
+    const fits = !caption || caption.length <= MEDIA_CAPTION_LIMIT;
+    const result =
+      'buffer' in media
+        ? await uploadDocument(chatId, media, fits ? caption : undefined)
+        : await request(media.kind === 'photo' ? 'sendPhoto' : 'sendDocument', {
+            chat_id: chatId,
+            [media.kind]: media.fileId,
+            ...(fits && caption ? { caption, parse_mode: 'HTML' } : {}),
+            ...(fits && toReplyMarkup(keyboard) ? { reply_markup: toReplyMarkup(keyboard) } : {}),
+          });
+    if (result.ok && (!fits || ('buffer' in media && keyboard))) {
+      if (!fits && caption) return telegramService.sendMessage(chatId, caption, keyboard);
+      if (keyboard) return telegramService.sendMessage(chatId, '⬆️', keyboard);
+    }
+    return result;
+  },
+
   /**
    * Telegramdagi buyruqlar menyusini yangilaydi (chatdagi "Menu" tugmasi).
    *

@@ -45,8 +45,9 @@ async function findChats(tx: Tx, target: EnqueueInput['target']) {
   if (target.parentId) owner.push({ parentId: target.parentId });
   if (owner.length === 0) return [];
 
+  // Ovozsiz (bot "Sozlamalar"da eslatmalar o'chirilgan) chatga avtomatik eslatma ketmaydi
   return tx.telegramLink.findMany({
-    where: { OR: owner, verifiedAt: { not: null }, isActive: true, chatId: { not: null } },
+    where: { OR: owner, verifiedAt: { not: null }, isActive: true, muted: false, chatId: { not: null } },
     select: { id: true },
   });
 }
@@ -88,6 +89,9 @@ export const notificationDeliveryService = {
         title: true,
         body: true,
         attempts: true,
+        mediaKind: true,
+        mediaFileId: true,
+        broadcastId: true,
         telegramLink: { select: { chatId: true, isActive: true, verifiedAt: true } },
       },
     });
@@ -111,8 +115,15 @@ export const notificationDeliveryService = {
         continue;
       }
 
-      const text = `<b>${escapeHtml(item.title)}</b>\n${escapeHtml(item.body)}`;
-      const result = await telegramService.sendMessage(chatId, text);
+      // Broadcast matni navbatga yozishda allaqachon HTML-escape qilingan — ikkinchi marta emas
+      // (aks holda "<dars>" Telegramda "&lt;dars&gt;" bo'lib ko'rinardi)
+      const body = item.broadcastId ? item.body : escapeHtml(item.body);
+      const text = `<b>${escapeHtml(item.title)}</b>\n${body}`;
+      // Broadcast media: xodim yuborgan rasm/hujjat file_id orqali, matn — izoh sifatida
+      const result =
+        item.mediaFileId && (item.mediaKind === 'photo' || item.mediaKind === 'document')
+          ? await telegramService.sendMedia(chatId, { kind: item.mediaKind, fileId: item.mediaFileId }, text)
+          : await telegramService.sendMessage(chatId, text);
       const attempts = item.attempts + 1;
 
       if (result.ok) {

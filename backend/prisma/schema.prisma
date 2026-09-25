@@ -1300,6 +1300,9 @@ model TelegramLink {
   verifiedAt     DateTime?
   /// Foydalanuvchi xabarlarni o'chirib qo'ygan bo'lsa
   isActive       Boolean   @default(true)
+  /// Botdagi "Sozlamalar": avtomatik eslatmalar vaqtincha o'chirilgan (bog'lanish saqlanadi;
+  /// markazning ommaviy e'lonlari baribir keladi)
+  muted          Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1329,6 +1332,9 @@ model NotificationDelivery {
   telegramLinkId String?
   title          String          @db.VarChar(200)
   body           String
+  /// "photo" | "document" — bo'lsa xabar media bilan (izoh = body)
+  mediaKind      String?         @db.VarChar(10)
+  mediaFileId    String?         @db.VarChar(200)
   attempts       Int             @default(0) @db.SmallInt
   lastError      String?         @db.VarChar(500)
   /// Keyingi urinish vaqti (exponential backoff)
@@ -1449,6 +1455,9 @@ model TelegramBroadcast {
   /// Auditoriya nomi (guruh/kurs nomi) — keyin o'zgarsa ham jurnal o'zgarmasin
   label       String            @db.VarChar(150)
   message     String            @db.VarChar(2000)
+  /// Rasm yoki hujjat bilan yuborilgan bo'lsa — Telegram file_id (bot o'zi qayta yuboradi)
+  mediaKind   String?           @db.VarChar(10)
+  mediaFileId String?           @db.VarChar(200)
   recipients  Int               @default(0)
   createdAt   DateTime          @default(now())
 

@@ -363,7 +363,7 @@ export const examTakingService = {
   },
 
   /** Boshlash (yoki ochiq urinishni davom ettirish). Variant va snapshot shu yerda yaratiladi */
-  async start(studentId: string, examId: string, actorUserId: string, now: Date = new Date()): Promise<AttemptViewDto> {
+  async start(studentId: string, examId: string, actorUserId: string | null, now: Date = new Date()): Promise<AttemptViewDto> {
     const exam = await examForStudent(studentId, examId);
     const attempts = await prisma.examAttempt.findMany({
       where: { examId, studentId },
@@ -483,7 +483,7 @@ export const examTakingService = {
   },
 
   /** Topshirish — avtomatik baholash; matn/kod/fayl bo'lsa o'qituvchiga */
-  async submit(studentId: string, attemptId: string, actorUserId: string, now: Date = new Date()): Promise<AttemptViewDto> {
+  async submit(studentId: string, attemptId: string, actorUserId: string | null, now: Date = new Date()): Promise<AttemptViewDto> {
     const attempt = await loadAttempt(studentId, attemptId);
     if (!(await finalizeIfExpired(attempt, now))) {
       if (attempt.status !== 'IN_PROGRESS') throw AppError.unprocessable('Urinish allaqachon topshirilgan');

@@ -2,7 +2,8 @@ import { attendanceService } from '../../services/attendance.service.js';
 import { attendanceAnalyticsService } from '../../services/attendanceAnalytics.service.js';
 import { groupService } from '../../services/group.service.js';
 import { homeworkService } from '../../services/homework.service.js';
-import { escapeHtml, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
+import { escapeHtml, telegramService, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
+import { env } from '../../config/env.js';
 import type { CommandScope } from '../../services/telegramCommand.service.js';
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
@@ -338,7 +339,11 @@ interface HomeworkDraft {
   title?: string;
   deadline?: string;
   description?: string | null;
+  /** TZ §43 "Homework Attachments": tasdiqlashdan oldin yuborilgan fayl/rasmlar (Telegram file_id) */
+  files?: Array<{ fileId: string; fileName: string | null }>;
 }
+
+const MAX_HOMEWORK_FILES = 5;
 
 export async function startHomeworkCreate(context: BotContext, scope: CommandScope, groupId: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
@@ -412,6 +417,7 @@ export async function handleHomeworkCreateFlow(context: BotContext, scope: Comma
           `⏰ Muddat: ${fmtDateTime(draft.deadline ?? new Date())}`,
           draft.description ? `📄 ${escapeHtml(draft.description)}` : '📄 Tavsif yo‘q',
           '',
+          '📎 Kerak bo‘lsa, fayl yoki rasm yuboring (5 tagacha) — vazifaga biriktiriladi.',
           'E’lon qilinsinmi? Guruhdagi barcha faol o‘quvchiga topshiriq ochiladi.',
         ].join('\n'),
         [
@@ -423,10 +429,29 @@ export async function handleHomeworkCreateFlow(context: BotContext, scope: Comma
       );
       return { action: 'hw_create_description' };
     }
-    default:
+    default: {
+      // Tasdiq bosqichida fayl/rasm — vazifaga biriktiriladi (e'lon qilinganda yuklanadi)
+      if (context.attachment) {
+        const files = draft.files ?? [];
+        if (files.length >= MAX_HOMEWORK_FILES) {
+          await context.reply(`Ko‘pi bilan ${MAX_HOMEWORK_FILES} ta fayl. Endi «✅ E’lon qilish» ni bosing.`, cancelRow(draft.groupId));
+          return { action: 'hw_create_file_limit' };
+        }
+        files.push({ fileId: context.attachment.fileId, fileName: context.attachment.fileName });
+        draft.files = files;
+        await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'confirm', data: draft as never });
+        await context.reply(`📎 Fayl qo‘shildi (${files.length}/${MAX_HOMEWORK_FILES}).`, [
+          [
+            { text: '✅ E’lon qilish', data: callback(TEACHER_ACTIONS.homeworkConfirm) },
+            { text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, draft.groupId) },
+          ],
+        ]);
+        return { action: 'hw_create_file' };
+      }
       // Tasdiq bosqichida matn kutilmaydi — tugmani eslatamiz
       await context.reply('Tasdiqlash uchun «✅ E’lon qilish» tugmasini bosing.', cancelRow(draft.groupId));
       return { action: 'hw_create_wait_confirm' };
+    }
   }
 }
 
@@ -454,9 +479,27 @@ export async function confirmHomeworkCreate(context: BotContext, scope: CommandS
       },
       BOT_CLIENT,
     );
+    // Biriktirilgan fayllar — web'dagi bilan bir xil servis (tur baytlar bo'yicha tekshiriladi)
+    let attached = 0;
+    const failed: string[] = [];
+    for (const file of draft.files ?? []) {
+      const downloaded = await telegramService.downloadFile(file.fileId, env.MAX_UPLOAD_MB * 1024 * 1024);
+      if ('error' in downloaded) {
+        failed.push(file.fileName ?? 'fayl');
+        continue;
+      }
+      try {
+        await homeworkService.uploadAttachment(actor, created.id, { buffer: downloaded.buffer, fileName: file.fileName ?? undefined, title: undefined }, BOT_CLIENT);
+        attached += 1;
+      } catch (error) {
+        if (!(error instanceof AppError)) throw error;
+        failed.push(file.fileName ?? 'fayl');
+      }
+    }
     await telegramSessionService.clearFlow(context.chatId);
+    const filesLine = attached || failed.length ? `\n📎 Fayllar: ${attached} ta biriktirildi${failed.length ? `, ${failed.length} tasi qabul qilinmadi (faqat PDF/rasm)` : ''}` : '';
     await context.render(
-      `✅ <b>Vazifa e’lon qilindi</b>\n📝 ${escapeHtml(created.title)}\n⏰ ${fmtDateTime(created.deadline)}\n\nO‘quvchilar botda va kabinetda ko‘radi.`,
+      `✅ <b>Vazifa e’lon qilindi</b>\n📝 ${escapeHtml(created.title)}\n⏰ ${fmtDateTime(created.deadline)}${filesLine}\n\nO‘quvchilar botda va kabinetda ko‘radi.`,
       [[{ text: '⬅️ Guruh', data: callback(TEACHER_ACTIONS.group, draft.groupId) }, ...menuRow()]],
     );
     return { action: 'hw_created' };
