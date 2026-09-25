@@ -1,4 +1,113 @@
-# Sales CRM — Arxitektura hujjati
+# Academy CRM 3.0 — Arxitektura hujjati
+
+> Sotuv CRM (1.0) → o'quv markaz CRM (2.0) → **Academy OS (3.0)**: o'quvchi va ota-ona kabineti,
+> LMS, baholash, mavzu o'zlashtirishi, o'qituvchi markazi, AI akademik markaz, Telegram 2.0,
+> avtomatlashtirish va kuzatuv. Quyidagi **0-bo'lim** — 3.0 umumiy ko'rinishi; 1–7-bo'limlar —
+> asos (1.0–2.0), hali ham amal qiladi.
+
+## 0. Academy CRM 3.0 — umumiy ko'rinish
+
+### 0.1. Qatlamlar
+
+```mermaid
+flowchart LR
+  subgraph Clients["Mijozlar"]
+    STAFF["Xodim SPA<br/>(React 19, Vite)"]
+    PORTAL["Kabinet SPA<br/>(o'quvchi, ota-ona — o'sha ilova, /portal)"]
+    TG["Telegram bot<br/>(webhook yoki polling)"]
+  end
+  subgraph API["Express 5 API (TypeScript strict)"]
+    MW["helmet · CORS · rate limit · authenticate<br/>requirePermission · egalik (teachingAccess, branchAccess, portal scope)"]
+    SVC["Servislar (90) — biznes mantiq bitta joyda"]
+    JOBS["Fon vazifalari (14)"]
+    OBS["metrics · errorTracker · /metrics"]
+  end
+  DB[("PostgreSQL 17<br/>Prisma 7, 102 model")]
+  LLM["Claude API<br/>(ixtiyoriy)"]
+  SENTRY["Sentry (ixtiyoriy)"]
+  STAFF --> MW
+  PORTAL --> MW
+  TG --> MW
+  MW --> SVC --> DB
+  JOBS --> SVC
+  SVC -. faqat tanlangan maydonlar, JSON sxema .-> LLM
+  OBS -.-> SENTRY
+```
+
+Asosiy qoida: **bitta biznes mantiq, ko'p kirish nuqtasi** — veb, kabinet, Telegram bot va AI
+toollari bir xil servislarni chaqiradi (masalan `homeworkService.grade` — vebdagi "Baholash",
+botdagi baholash va AI taklifini qabul qilish). Ruxsat va egalik servis/middleware darajasida,
+UI faqat yashiradi.
+
+### 0.2. Yakuniy oqim (TZ §75) va modullar
+
+```text
+LOGIN (auth.service — xodim va kabinet uchun bitta mexanizm)
+  → DASHBOARD (xodim: dashboard/executive; kabinet: portal.service)
+  → LESSON (curriculum, lesson.service)  HOMEWORK (homework.service)  EXAM (examTaking, examAttempt)
+  → SUBMISSION → AI ANALYSIS (ai/academic.service: qoidalar + ixtiyoriy Claude; o'qituvchi tasdiqlaydi)
+  → RESULT → PROGRESS ENGINE (mastery.service hooklari, progress.job — tungi qayta hisob va oylik snapshot)
+  → TOPIC MASTERY (TopicMastery)
+  → HEALTHY / AT-RISK (studentRisk.service — deterministik omillar, studentRisk.job)
+  → AI RECOMMENDATION → REMEDIAL LEARNING (remedial reja: qoralama vazifa + blueprint quiz) → RE-TEST
+  → PARENT PORTAL (portal.service, haftalik hisobot)
+  → TELEGRAM → NOTIFY (notification.service → notificationDelivery outbox → notificationDelivery.job)
+```
+
+Bu oqim E2E bilan tekshiriladi: `e2e/specs/flows.spec.ts` ([testing.md](testing.md) §4).
+
+### 0.3. Modullar xaritasi
+
+| Yo'nalish | Backend | Frontend | Hujjat |
+|---|---|---|---|
+| Kabinet (o'quvchi) | `portal.service`, `routes/portal.routes` | `pages/portal/*`, `PortalLayout` | [student-portal.md](student-portal.md) |
+| Kabinet (ota-ona) | o'sha + `resolvePortalScope` | `ChildrenCards`, haftalik hisobot | [parent-portal.md](parent-portal.md) |
+| LMS | `curriculum`, `lesson` | `pages/courses`, `PortalCoursePage` | [lms.md](lms.md) |
+| Uy vazifasi | `homework.service`, `similarity` | `pages/homework/*` | [homework.md](homework.md) |
+| Baholash (imtihon) | `exam`, `examAttempt`, `examTaking`, `question`; `examAttempt.job` | `ExamsPage`, `BlueprintEditor`, `PortalAttemptPage` | [assessment.md](assessment.md) |
+| Progress | `mastery`, `progressSnapshot`; `progress.job` | `MasteryView`, `PortalProgressPage` | [progress.md](progress.md) |
+| O'qituvchi markazi | `teaching`, `studentRisk`; `studentRisk.job` | `pages/teaching/*` | [teacher-control.md](teacher-control.md) |
+| AI akademik | `ai/academic`, `ai/llm`, `ai/academicTools` | `components/ai/*`, `GroupAiModal` | [ai-academic.md](ai-academic.md) |
+| Bildirishnomalar | `notification`, `studentNotify`, `notificationDelivery`; 4 eslatma jobi | qo'ng'iroq, `pages/notifications` | [notifications.md](notifications.md) |
+| Telegram 2.0 | `telegram/*` (router, flows, handlers), `telegram.service` | profil — bog'lash | [telegram.md](telegram.md) |
+| Qidiruv va analitika | `search`, `academicAnalytics` | `GlobalSearch`, `AcademicAnalyticsPage` | [academic-analytics.md](academic-analytics.md) |
+| Avtomatlashtirish | `automation`, `automationBuilder`, `task`; `automation.job` | `AutomationBuilderModal`, `TasksPage` | [automation.md](automation.md) |
+| Rahbar paneli | `executive`, `academyOverview` | `ExecutivePage`, `AcademyOverviewCard` | TZ §76 |
+| Xavfsizlik | `middleware/*`, `teachingAccess`, `branchAccess`, `leadAccess` | `guards.tsx`, `usePermission` | [security.md](security.md), [permissions.md](permissions.md) |
+| Kuzatuv | `utils/metrics`, `utils/errorTracker`, `services/observability` | `lib/errorReporter` | [observability.md](observability.md) |
+
+### 0.4. Fon vazifalari
+
+Hammasi `server.ts` dan boshlanadi, `setInterval` + `unref`, bir vaqtda bittadan (`running` bayrog'i);
+xato — `reportJobFailure` (log + `crm_job_failures_total` + Sentry).
+
+| Job | Nima qiladi |
+|---|---|
+| `notificationDelivery` | Telegram navbatini yuboradi (backoff, qayta urinish) |
+| `examAttempt` | vaqti tugagan urinishlarni yakunlaydi |
+| `progress` | tungi o'zlashtirish qayta hisobi, oylik snapshot |
+| `studentRisk` | xavf darajasi, "xavf oshdi" xabari |
+| `homeworkReminder`, `debtReminder`, `followUpReminder` | eslatmalar |
+| `weeklyReport`, `dailyDigest` | ota-onaga haftalik hisobot, rahbarga kunlik xulosa |
+| `automation` | tizim va maxsus qoidalar (jadval bo'yicha) |
+| `alerts`, `leadScore`, `recurringExpenses`, `auditCleanup` | 2.0 dan qolgan xizmat vazifalari |
+
+### 0.5. Muhim qarorlar
+
+- **AI yakuniy hakam emas** (TZ §0.2): ball taklifi, remedial reja — `AiAnalysis.status = READY`, faqat o'qituvchi `accept` qilganda yoziladi. Kalit bo'lmasa — qoidalar rejimi, funksiyalar ishlayveradi.
+- **Snapshot**: urinish savollari `snapshot` + `answerKey` bilan saqlanadi — savol keyin tahrirlansa ham natija o'zgarmaydi.
+- **Natija shkalasi**: onlayn urinish balli `ExamResult` ga imtihon shkalasida yoziladi (`toExamScale`), o'tish bali nisbat bilan (`isAttemptPassed`).
+- **Outbox**: tashqi kanal (Telegram) xabari asosiy amal bilan bitta tranzaksiyada navbatga yoziladi, yuborish — job'da.
+- **Migratsiyalar faqat qo'shuvchi** (DROP/TRUNCATE/DELETE yo'q), har biridan oldin `pg_dump` — [deployment.md](deployment.md).
+
+### 0.6. Hujjatlar (TZ §69)
+
+[architecture.md](architecture.md) · [student-portal.md](student-portal.md) · [parent-portal.md](parent-portal.md) · [lms.md](lms.md) · [homework.md](homework.md) · [assessment.md](assessment.md) · [ai-academic.md](ai-academic.md) · [teacher-control.md](teacher-control.md) · [telegram.md](telegram.md) · [permissions.md](permissions.md) · [security.md](security.md) · [testing.md](testing.md) · [deployment.md](deployment.md).
+Qo'shimcha: [progress.md](progress.md), [notifications.md](notifications.md), [academic-analytics.md](academic-analytics.md), [automation.md](automation.md), [observability.md](observability.md), [CI-CD.md](CI-CD.md), faza hisobotlari — [PHASE-REPORTS-3.0.md](PHASE-REPORTS-3.0.md).
+
+---
+
+# Asos (1.0–2.0)
 
 O‘quv markaz sotuv bo‘limi uchun CRM: **React + TypeScript** frontend, **Express + TypeScript** backend,
 **PostgreSQL + Prisma** ma'lumotlar bazasi. Frontend va backend alohida ilovalar, REST API orqali bog‘lanadi.
@@ -205,7 +314,7 @@ erDiagram
 crm/
 ├── package.json              # npm workspaces: backend + frontend
 ├── docker-compose.yml        # development PostgreSQL
-├── docs/ARCHITECTURE.md
+├── docs/architecture.md
 ├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma

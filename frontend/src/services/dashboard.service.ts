@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type { ApiSuccessResponse } from '@/types/api';
 import type {
+  AcademyOverview,
   ChartPeriod,
   ChartPoint,
   DashboardFollowUp,
@@ -13,6 +14,11 @@ import type {
 } from '@/types/dashboard';
 
 export const dashboardService = {
+  async academy(): Promise<AcademyOverview> {
+    const response = await api.get<ApiSuccessResponse<AcademyOverview>>('/dashboard/executive/academy');
+    return response.data.data;
+  },
+
   async executive(params: ExecutiveParams = {}): Promise<ExecutiveSummary> {
     const response = await api.get<ApiSuccessResponse<ExecutiveSummary>>('/dashboard/executive', { params });
     return response.data.data;

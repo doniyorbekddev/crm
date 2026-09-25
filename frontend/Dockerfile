@@ -10,8 +10,11 @@ WORKDIR /app
 
 ARG VITE_API_URL=/api
 ARG VITE_APP_NAME="Sales CRM"
+# Ixtiyoriy: brauzer xatolarini Sentry'ga yuborish (bo'sh — o'chiq)
+ARG VITE_SENTRY_DSN=""
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_APP_NAME=$VITE_APP_NAME
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/

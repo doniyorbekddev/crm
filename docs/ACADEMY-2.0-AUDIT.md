@@ -25,7 +25,7 @@ solishtiradi va bosqichma-bosqich reja taklif qiladi.
 | **API** | 261 endpoint, 29 route fayli, hammasi `/api` ostida; zod validatsiyasi har bir kirishda; xatolar yagona `errorHandler` orqali (422 — validatsiya, 409 — konflikt va h.k.) |
 | **Fon vazifalari** | 5 job, `setInterval` + `unref()`, `dedupeKey` bilan takrorlanishdan himoya (cron kutubxonasi yo'q) |
 | **Deployment** | Docker Compose (postgres → migrate → backend → frontend/Nginx), host Nginx + Let's Encrypt, GitHub Actions CI/CD, kunlik `pg_dump` zaxira |
-| **Hujjatlar** | `docs/`: ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, CI-CD.md, TZ.html/TZ.pdf |
+| **Hujjatlar** | `docs/`: architecture.md, deployment.md, HOSTING-VA-DOMEN.md, CI-CD.md, TZ.html/TZ.pdf |
 
 **Kuchli tomonlar:** yagona moliyaviy daftar (ledger) tamoyili, idempotent to'lovlar, audit izi, ruxsat
 matritsasi, SQL darajasidagi agregatsiya (dashboard 60–70 ms), izchil dizayn tizimi, real E2E testlar.
@@ -199,7 +199,7 @@ chunki ular shaxsiy ma'lumot); rol ruxsatlari keshi 60 sekund (ko'p nusxali depl
 
 Barcha o'zgarishlar **qo'shimcha** (additive): mavjud jadval va ustunlar o'chirilmaydi, mavjud
 ma'lumot yo'qolmaydi. Har bir migratsiya `migrate diff` bilan tuziladi va destructive SQL yo'qligi
-tekshiriladi (mavjud tartib: `docs/ARCHITECTURE.md`).
+tekshiriladi (mavjud tartib: `docs/architecture.md`).
 
 | Bosqich | Yangi model / ustun | Izoh |
 |---|---|---|

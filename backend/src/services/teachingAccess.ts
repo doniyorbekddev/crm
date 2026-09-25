@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import type { PermissionKey } from '../config/permissions.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
@@ -29,11 +30,27 @@ export interface VisibleGroup {
   teacherId: string | null;
 }
 
+/** Ruxsatlar to'plamidan (allaqachon o'qilgan bo'lsa — qayta so'rovsiz) */
+export function teachingAccessFrom(permissions: ReadonlySet<string>, userId: string): TeachingAccess {
+  const canManageAll = permissions.has(PERMISSIONS.GROUP_MANAGE);
+  return { userId, canManageAll, onlyOwnGroups: !canManageAll };
+}
+
 /** O‘qituvchi faqat o‘z guruhlari bilan ishlaydi, admin — hammasi bilan */
 export async function getTeachingAccess(actor: AuthUser): Promise<TeachingAccess> {
-  const permissions = await permissionService.getRolePermissions(actor.roleId);
-  const canManageAll = permissions.has(PERMISSIONS.GROUP_MANAGE);
-  return { userId: actor.id, canManageAll, onlyOwnGroups: !canManageAll };
+  return teachingAccessFrom(await permissionService.getRolePermissions(actor.roleId), actor.id);
+}
+
+/**
+ * **Ro'yxat doirasi** (guruh, o'quvchi, ota-ona, davomat ro'yxatlari va qidiruv): cheklov faqat
+ * **o'qituvchiga** — `managePermission` yo'q, lekin davomat belgilay oladi. Buxgalter yoki sotuv
+ * menejeri (davomat belgilamaydi) o'quvchilarni to'lov/lead uchun to'liq ko'radi.
+ *
+ * Akademik amallar (vazifa, imtihon, AI) uchun qat'iyroq {@link getTeachingAccess} ishlatiladi —
+ * `group.manage` bo'lmagan har kim faqat o'z guruhlari. Ikki qoida ataylab farqli; ikkalasi shu faylda.
+ */
+export function isRosterLimited(permissions: ReadonlySet<string>, managePermission: PermissionKey): boolean {
+  return !permissions.has(managePermission) && permissions.has(PERMISSIONS.ATTENDANCE_MARK);
 }
 
 /**

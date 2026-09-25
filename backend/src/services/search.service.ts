@@ -8,6 +8,7 @@ import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { permissionService } from './permission.service.js';
 import { moneyUz } from '../utils/money.js';
+import { isRosterLimited, teachingAccessFrom, teachingGroupFilter } from './teachingAccess.js';
 
 /** Har bir bo‘limdan ko‘rsatiladigan natijalar soni */
 const PER_GROUP = 5;
@@ -142,7 +143,7 @@ export const searchService = {
 
     // --- O‘quvchilar ---
     if (permissions.has(PERMISSIONS.STUDENT_VIEW)) {
-      const onlyOwnGroups = !permissions.has(PERMISSIONS.STUDENT_MANAGE) && permissions.has(PERMISSIONS.ATTENDANCE_MARK);
+      const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE);
       const studentNumber = numberFrom(query, 'st');
       const or: Prisma.StudentWhereInput[] = [
         { firstName: { contains: query, mode: 'insensitive' } },
@@ -192,7 +193,7 @@ export const searchService = {
 
     // --- Ota-onalar ---
     if (permissions.has(PERMISSIONS.PARENT_VIEW)) {
-      const onlyOwnGroups = !permissions.has(PERMISSIONS.STUDENT_MANAGE) && permissions.has(PERMISSIONS.ATTENDANCE_MARK);
+      const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE);
       const childFilter: Prisma.StudentParentWhereInput = {
         student: { deletedAt: null, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) },
       };
@@ -476,7 +477,7 @@ export const searchService = {
     }
 
     // --- Uy vazifalari va imtihonlar (TZ 3.0 §45: o'qituvchi — o'z guruhlari) ---
-    const teacherScope = permissions.has(PERMISSIONS.GROUP_MANAGE) ? {} : { group: { teacherId: actor.id } };
+    const teacherScope = teachingGroupFilter(teachingAccessFrom(permissions, actor.id));
     if (permissions.has(PERMISSIONS.HOMEWORK_VIEW)) {
       const rows = await prisma.homework.findMany({
         where: { title: { contains: query, mode: 'insensitive' }, ...teacherScope },

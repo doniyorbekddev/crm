@@ -165,6 +165,45 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 
 ---
 
+## 4.1. Academy CRM 3.0 ga yangilash (bir martalik)
+
+Avtomatik deploy (`deploy/deploy.sh`, [CI-CD.md](CI-CD.md)) tartibi o'zgarmaydi: zaxira → `migrate`
+(`prisma migrate deploy` + `db:sync-permissions`) → konteynerlar → sog'liq tekshiruvi → xato bo'lsa
+avtomatik qaytish. 3.0 migratsiyalari **faqat qo'shuvchi** (yangi jadval/ustun/indeks/enum qiymati) —
+mavjud ma'lumot o'zgarmaydi, eski versiya yangi sxemada ishlay oladi (rollback xavfsiz).
+
+**1. `.env.production` ga yangi (ixtiyoriy) o'zgaruvchilar** — `docker-compose.prod.yml` ularni uzatadi:
+
+| O'zgaruvchi | Bo'sh qolsa | Qayerda |
+|---|---|---|
+| `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_TIMEOUT_MS` | AI qoidalar rejimida ishlaydi | [ai-academic.md](ai-academic.md) |
+| `METRICS_TOKEN` (≥ 24 belgi) | `/metrics` 404 | [observability.md](observability.md) |
+| `SENTRY_DSN` | server xatolari faqat logda | observability.md |
+| `VITE_SENTRY_DSN` (frontend build) | brauzer xatolari yuborilmaydi | observability.md |
+
+Fayl huquqi: `chmod 600 .env.production`. Kalitlarni gitga, chatga yoki tiketga yozmang.
+
+**2. Deploydan keyin tekshiruv:**
+
+```bash
+curl -s https://crm.example.uz/api/health                   # "database":"up"
+docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail=100 migrate
+# Onlayn imtihonlar ishlatilgan bo'lsa — eski natijalarni imtihon shkalasiga o'tkazish (PHASE 15):
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate npm run db:backfill-exam-scale            # hisobot
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate npm run db:backfill-exam-scale -- --apply # yozish (zaxiradan keyin)
+```
+
+Keyin brauzerda: xodim sifatida kirish → "Direktor paneli" (Akademiya holati kartasi), o'quvchi/ota-ona
+kabineti ([student-portal.md](student-portal.md)), Telegram webhook holati ([telegram-deployment.md](telegram-deployment.md)).
+
+**3. Kuzatuv**: Prometheus `backend:4000/metrics` ni ichki tarmoqdan oladi (nginx `/api` dan tashqarida — internetga
+ochilmaydi); tavsiya etilgan ogohlantirishlar — [observability.md](observability.md) §2.
+
+**4. Zaxirani tekshirish**: 3.0 dan keyingi birinchi haftada `./scripts/verify-backup.sh` natijasini qo'lda ko'ring
+(yangi jadvallar ham tiklanishi kerak: `topic_mastery`, `ai_analyses`, `tasks`, `exam_attempts`).
+
+---
+
 ## 5. Zaxira nusxa (backup)
 
 > **Cheklar va hujjatlar** bazada emas, `crm_uploads` docker volume'ida (`/app/uploads`) saqlanadi.
@@ -232,6 +271,9 @@ crontab -e
 - [ ] Demo hisoblar (`admin@example.com` va h.k.) o‘chirilgan yoki parollari almashtirilgan
 - [ ] Zaxira jadvali (cron) ishlayapti va nusxalar boshqa joyga ko‘chiriladi
 - [ ] `docker compose ... logs backend` da ogohlantirishlar yo‘q
+- [ ] `METRICS_TOKEN` o'rnatilgan bo'lsa — 24+ belgi; `/metrics` tashqaridan ochilmaydi (`curl https://domen/metrics` → 404)
+- [ ] `.env.production` huquqi `600`; `ANTHROPIC_API_KEY`/Sentry DSN faqat shu faylda
+- [ ] Telegram bot tokeni oshkor bo'lgan bo'lsa (chat, skrinshot) — @BotFather'da `/revoke` bilan yangilangan
 
 ---
 

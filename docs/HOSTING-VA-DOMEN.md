@@ -1,7 +1,7 @@
 # CRM ni hostingga qo‘yish va domenga bog‘lash (qadam-baqadam)
 
 Bu — **birinchi marta** serverga o‘rnatish uchun amaliy yo‘riqnoma: buyruqlarni tartib bilan
-ko‘chirib qo‘yib borish kifoya. Har bir bo‘limning texnik tafsiloti [DEPLOYMENT.md](DEPLOYMENT.md) da.
+ko‘chirib qo‘yib borish kifoya. Har bir bo‘limning texnik tafsiloti [deployment.md](deployment.md) da.
 
 > Kodni GitHub'dan avtomatik olib turadigan CI/CD ham sozlamoqchi bo‘lsangiz (tavsiya etiladi),
 > shu yo‘riqnoma o‘rniga [CI-CD.md](CI-CD.md) dan boshlang — u serverni sozlashni ham o‘z ichiga oladi.
@@ -237,7 +237,7 @@ Ikkinchi qator — haftalik tekshiruv: u oxirgi nusxani **vaqtinchalik bazaga ti
 darrov o‘chiradi. Zaxira fayli buzilgan bo‘lsa, buni kerak bo‘lgan kunda emas, dushanba kuni
 log faylidan bilib olasiz. Ishchi bazaga tegmaydi.
 
-Cheklar va hujjatlar fayllari alohida zaxiralanadi — [DEPLOYMENT.md, 5-bo‘lim](DEPLOYMENT.md).
+Cheklar va hujjatlar fayllari alohida zaxiralanadi — [deployment.md, 5-bo‘lim](deployment.md).
 Zaxirani vaqti-vaqti bilan boshqa joyga (o‘z kompyuteringiz yoki bulut) ko‘chirib turing.
 
 ## 10-qadam. Xodimlarga topshirish

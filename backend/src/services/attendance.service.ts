@@ -14,6 +14,7 @@ import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 import { masteryService } from './mastery.service.js';
 import { notifyAttendanceLate } from './studentNotify.service.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 /** JS `getUTCDay()` (0 = yakshanba) → Prisma WeekDay */
 const WEEK_DAYS: readonly WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -76,11 +77,10 @@ interface AttendanceAccess {
 
 async function getAttendanceAccess(actor: AuthUser): Promise<AttendanceAccess> {
   const permissions = await permissionService.getRolePermissions(actor.roleId);
-  const canManageGroups = permissions.has(PERMISSIONS.GROUP_MANAGE);
   return {
     userId: actor.id,
     canMark: permissions.has(PERMISSIONS.ATTENDANCE_MARK),
-    onlyOwnGroups: !canManageGroups && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
   };
 }
 

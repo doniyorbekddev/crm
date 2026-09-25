@@ -11,6 +11,7 @@ import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { permissionService } from './permission.service.js';
 import { refundTotal, refundsBy } from './revenue.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 /** Sotuv jarayonidagi "ishlanayotgan" statuslar (yopilmagan leadlar) */
 const OPEN_LEAD_STATUSES: readonly LeadStatus[] = LEAD_STATUS_ORDER.filter(
@@ -154,7 +155,7 @@ async function getDashboardAccess(actor: AuthUser): Promise<DashboardAccess> {
     canViewDebts: permissions.has(PERMISSIONS.DEBT_VIEW),
     canViewFollowUps: permissions.has(PERMISSIONS.FOLLOWUP_VIEW),
     canViewReports: permissions.has(PERMISSIONS.REPORT_VIEW),
-    canTeach: permissions.has(PERMISSIONS.ATTENDANCE_MARK) && !permissions.has(PERMISSIONS.GROUP_MANAGE),
+    canTeach: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
     canGradeHomework: permissions.has(PERMISSIONS.HOMEWORK_GRADE),
     canViewFinance: permissions.has(PERMISSIONS.FINANCE_VIEW),
     canViewSalary: permissions.has(PERMISSIONS.SALARY_VIEW),

@@ -3,9 +3,17 @@
 O‘quv markaz sotuv bo‘limi har kuni ishlatadigan CRM tizimi: leadlar, qo‘ng‘iroqlar, follow-up, sotuv funneli,
 kurslar, guruhlar, o‘quvchilar, to‘lovlar, qarzdorlik, hisobotlar, bildirishnomalar va audit log.
 
-Arxitektura, ERD, API va rejalar: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Arxitektura, ERD, API va rejalar: [docs/architecture.md](docs/architecture.md)
 
 Texnik topshiriq (rahbar va xodimlar uchun, sxemalar bilan): [docs/TZ.html](docs/TZ.html) · [docs/TZ.pdf](docs/TZ.pdf)
+
+> **Academy CRM 3.0 (Academy OS)** — 16 faza yakunlandi ([ROADMAP-3.0](docs/ROADMAP-3.0.md), [faza hisobotlari](docs/PHASE-REPORTS-3.0.md)):
+> o'quvchi va ota-ona kabineti, LMS, uy vazifasi 2.0, onlayn imtihon (blueprint, taymer, avto + qo'lda baholash),
+> mavzu o'zlashtirishi va progress, o'qituvchi markazi va xavf baholash, AI akademik markaz (qoidalar rejimi +
+> ixtiyoriy Claude; yakuniy qaror o'qituvchida), bildirishnomalar va Telegram 2.0, qidiruv va akademik analitika,
+> avtomatlashtirish quruvchisi, xavfsizlik (har endpoint testi), kuzatuv (Prometheus, Sentry) va to'liq E2E oqimlar.
+> Umumiy ko'rinish: [docs/architecture.md §0](docs/architecture.md) · testlar: [docs/testing.md](docs/testing.md) ·
+> 3.0 ga yangilash: [docs/deployment.md §4.1](docs/deployment.md).
 
 > **Holat:** loyiha bosqichma-bosqich ishlab chiqilmoqda. Tayyor: **PHASE 1** (arxitektura va poydevor),
 > **PHASE 2** (PostgreSQL + Prisma sxema, migratsiya, seed), **PHASE 3** (autentifikatsiya: login, register,
@@ -198,7 +206,7 @@ demo ma’lumotlar (40 lead, qo‘ng‘iroqlar, follow-up, 18 o‘quvchi, to‘l
 | Tasdiqlanmagan (PENDING) | pending@example.com | Pending123! |
 
 > ⚠️ **Bu hisoblar faqat lokal development uchun.** Productionga chiqarishdan oldin ularni o‘chiring
-> yoki parollarini almashtiring — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) dagi xavfsizlik ro‘yxatiga qarang.
+> yoki parollarini almashtiring — [docs/deployment.md](docs/deployment.md) dagi xavfsizlik ro‘yxatiga qarang.
 
 Rollar permissionlarini koddagi standart holatga qaytarish: `SEED_RESET_PERMISSIONS=true npx prisma db seed`.
 
@@ -348,7 +356,7 @@ sog‘liq tekshiruvi va xato bo‘lsa avtomatik rollback.
 **Birinchi marta serverga qo‘yish:** [docs/HOSTING-VA-DOMEN.md](docs/HOSTING-VA-DOMEN.md) — VPS sozlash,
 kodni ko‘chirish, `.env.production`, birinchi admin (`npm run db:bootstrap`), domenni DNS orqali bog‘lash va HTTPS.
 
-**To‘liq qo‘llanma:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — HTTPS (Let's Encrypt), yangilash va rollback,
+**To‘liq qo‘llanma:** [docs/deployment.md](docs/deployment.md) — HTTPS (Let's Encrypt), yangilash va rollback,
 zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va Docker‘siz (systemd) variant.
 
 ---
@@ -359,7 +367,7 @@ zaxira jadvali, kuzatuv, xavfsizlik ro‘yxati, tez-tez uchraydigan muammolar va
 crm/
 ├── backend/     Express API (src/config, controllers, routes, services, middleware, validators, utils, types) + Dockerfile
 ├── frontend/    React SPA (src/components, pages, layouts, hooks, services, store, types, utils, lib, routes) + Dockerfile, nginx/
-├── docs/        ARCHITECTURE.md, DEPLOYMENT.md, HOSTING-VA-DOMEN.md, CI-CD.md, ACADEMY-2.0-AUDIT.md, TZ.html/TZ.pdf
+├── docs/        architecture.md, deployment.md, testing.md, security.md, observability.md, modul hujjatlari (3.0), CI-CD.md, TZ.html/TZ.pdf
 ├── deploy/      setup-server.sh, deploy.sh, rollback.sh, nginx/
 ├── scripts/     backup-db.sh, restore-db.sh
 ├── .github/     CI (typecheck, lint, test, build)

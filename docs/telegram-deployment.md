@@ -1,6 +1,6 @@
 # Telegram bot — production (PHASE 15)
 
-> Umumiy deploy: [DEPLOYMENT.md](DEPLOYMENT.md) · Arxitektura: [telegram-architecture.md](telegram-architecture.md)
+> Umumiy deploy: [deployment.md](deployment.md) · Arxitektura: [telegram-architecture.md](telegram-architecture.md)
 
 Bot **alohida servis emas** — u CRM backend ichida. Ya'ni alohida konteyner, port yoki
 Nginx bloki kerak emas: webhook mavjud `/api` proksisi orqali keladi. Deploy — oddiy CRM deploy'i.

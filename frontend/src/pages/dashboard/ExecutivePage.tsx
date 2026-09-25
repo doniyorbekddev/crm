@@ -35,6 +35,7 @@ import { usePreference } from '@/hooks/usePreference';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { dashboardService } from '@/services/dashboard.service';
+import { AcademyOverviewCard } from './AcademyOverviewCard';
 import type { ExecutiveChangeKey, ExecutiveHealth, ExecutiveParams, ExecutiveSummary, HealthStatus } from '@/types/dashboard';
 import type { DateRangePreset } from '@/utils/dateRange';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
@@ -76,12 +77,13 @@ function executiveParams(value: DateRangeValue): ExecutiveParams | null {
 // Vidjetlar — tartibi va ko‘rinishi xodim profilida saqlanadi
 // ---------------------------------------------------------------------
 
-type WidgetKey = 'health' | 'insights' | 'kpis' | 'forecast' | 'attention' | 'today' | 'trend' | 'summary';
+type WidgetKey = 'health' | 'insights' | 'kpis' | 'academy' | 'forecast' | 'attention' | 'today' | 'trend' | 'summary';
 
 const EXECUTIVE_WIDGETS: ReadonlyArray<WidgetDefinition<WidgetKey>> = [
   { key: 'health', label: 'Sog‘lomlik bahosi', span: 'half' },
   { key: 'insights', label: 'Xulosalar', span: 'half' },
   { key: 'kpis', label: 'Asosiy ko‘rsatkichlar', span: 'full' },
+  { key: 'academy', label: 'Akademiya holati', span: 'full' },
   { key: 'forecast', label: 'Oy oxiri prognozi', span: 'full' },
   { key: 'attention', label: 'Diqqat talab qiladi', span: 'full' },
   { key: 'today', label: 'Bugun', span: 'third' },
@@ -434,6 +436,7 @@ export default function ExecutivePage() {
 
   const content: Record<WidgetKey, ReactNode> = {
     health: <HealthCard health={data.health} />,
+    academy: <AcademyOverviewCard kpi={data.kpi} />,
     insights: (
       <Card className="h-full min-w-0">
         <CardHeader>

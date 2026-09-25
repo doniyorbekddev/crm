@@ -16,6 +16,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 import { studentService } from './student.service.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 /**
  * Ota-ona profillari (promt.md 35-bo‘lim). Bir ota-onaga bir nechta farzand biriktiriladi.
@@ -72,7 +73,7 @@ async function getParentAccess(actor: AuthUser): Promise<ParentAccess> {
   const permissions = await permissionService.getRolePermissions(actor.roleId);
   return {
     userId: actor.id,
-    onlyOwnGroups: !permissions.has(PERMISSIONS.STUDENT_MANAGE) && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE),
   };
 }
 

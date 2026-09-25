@@ -74,3 +74,14 @@ test('o‘qituvchi "Ishlarim" sahifasini ochadi', async ({ page }) => {
   await page.getByRole('link', { name: 'Ishlarim', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Ishlarim' })).toBeVisible();
 });
+
+/** PHASE 16 — TZ §76: rahbar bitta paneldan barcha yo'nalishni ko'radi */
+test('rahbar direktor panelida akademiya holatini ko‘radi va xavf bo‘limiga o‘tadi', async ({ page }) => {
+  await login(page, 'owner');
+  await page.getByRole('link', { name: 'Direktor paneli', exact: true }).click();
+  const areas = page.getByRole('list', { name: 'Yo‘nalishlar' });
+  await expect(areas.getByRole('listitem')).toHaveCount(15);
+  await expect(areas.getByText('Telegram', { exact: true })).toBeVisible();
+  await areas.getByRole('link', { name: /Xavf ostida/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'O‘qituvchi markazi' })).toBeVisible();
+});

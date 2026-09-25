@@ -1,6 +1,6 @@
 // =====================================================================
 // Sales CRM — PostgreSQL sxemasi
-// Hujjat: docs/ARCHITECTURE.md (2-bo‘lim, ERD)
+// Hujjat: docs/architecture.md (2-bo‘lim, ERD)
 // =====================================================================
 
 generator client {

@@ -41,16 +41,68 @@
 <div class="page">
 
 <h1>IT-Academy CRM — texnik topshiriqlar bajarilishi hisoboti</h1>
-<p class="sub">Uchta TZ (<code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code>) bo'yicha holat va 2026-09-24 sessiyasida qo'shilgan o'zgarishlar. Holat: <code>448916a</code>.</p>
+<p class="sub">To'rtta TZ: <b><code>promt3.md</code> (Academy CRM 3.0) — 0-bo'lim, 2026-09-25</b>; <code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code> — 1–8-bo'limlar, 2026-09-24 holati (<code>448916a</code>).</p>
 
+
+<h2>0. promt3.md — "Academy CRM 3.0" (81 bo'lim, 16 faza)</h2>
+<p class="small">2026-09-25 holati. 16 faza bosqichma-bosqich bajarildi, har biri test, commit va §70 hisobot bilan (<code>docs/PHASE-REPORTS-3.0.md</code>).</p>
+<div class="kpi">
+  <div><b>793 + 105 + 32</b><span>backend · frontend · E2E testlar (hammasi o'tadi)</span></div>
+  <div><b>19</b><span>3.0 kommitlari</span></div>
+  <div><b>13</b><span>migratsiya — DROP/DELETE 0 ta</span></div>
+  <div><b>+29 382</b><span>qator, 350 fayl</span></div>
+</div>
+<table>
+<tr><th style="width:56px">§</th><th>Talab</th><th style="width:96px">Holat</th><th>Izoh</th></tr>
+<tr><td>0.1–0.8</td><td>Qat'iy qoidalar: mavjudni buzmaslik, biznes mantiq bir joyda, baza — yagona manba, AI yakuniy hakam emas, audit, migratsiya xavfsizligi, testlarni o'chirmaslik, bosqichma-bosqich</td><td><span class="s ok">✅</span></td><td>13 migratsiya — DROP/TRUNCATE/DELETE 0 ta, har biridan oldin <code>pg_dump</code>; AI qarorlari faqat o'qituvchi tasdig'idan keyin; teaching scope nusxalari PHASE 16 da bitta modulga yig'ildi</td></tr>
+<tr><td>1–4</td><td>Vizyon, hozirgi tizim, PHASE 0 audit, maqsadli arxitektura</td><td><span class="s ok">✅</span></td><td><code>docs/ACADEMY-3.0-AUDIT.md</code>, <code>ROADMAP-3.0.md</code>, <code>architecture.md §0</code></td></tr>
+<tr><td>5–6</td><td>Kabinet autentifikatsiyasi, egalik xavfsizligi</td><td><span class="s ok">✅</span></td><td>Bitta auth mexanizmi, vaqtinchalik parol → majburiy almashtirish, <code>resolvePortalScope</code>; A→B testlari</td></tr>
+<tr><td>7–9</td><td>O'quvchi kabineti, dashboard, akademik profil</td><td><span class="s ok">✅</span></td><td>Bosh sahifa + bo'limlar (vazifa, imtihon, kurs, progress, davomat, to'lov, XP); alohida "profil tablari" sahifasi o'rniga bo'limlar</td></tr>
+<tr><td>10–11</td><td>Ota-ona kabineti, haftalik hisobot</td><td><span class="s ok">✅</span></td><td>Farzandlar orasida almashish, haftalik hisobot (chop etish/PDF — brauzer orqali), AI xulosa</td></tr>
+<tr><td>12–14</td><td>LMS: kurs dasturi, dars</td><td><span class="s ok">✅</span></td><td>Modul → mavzu → dars, materiallar, "O'rgandim"</td></tr>
+<tr><td>15–20</td><td>Kundalik uy vazifasi: guruh/tanlangan/bitta o'quvchi, holatlar, topshirish (matn, havola, kod, fayllar), baholash, rubrika</td><td><span class="s ok">✅</span></td><td>Qo'lda baholash, qaytarish izoh bilan, rubrika mezonlari; fayl — PDF/rasm (xavfsizlik siyosati)</td></tr>
+<tr><td>21–25</td><td>Baholash 2.0: savollar banki (8 tur), tasodifiy tanlash, blueprint, imtihon xavfsizligi</td><td><span class="s ok">✅</span></td><td>Har o'quvchiga alohida variant, snapshot, kalit o'quvchiga yuborilmaydi, server taymeri, urinishlar; proctoring (tab nazorati) — TZ talab qilmaydi</td></tr>
+<tr><td>26–27</td><td>Progress engine, mavzu o'zlashtirishi</td><td><span class="s ok">✅</span></td><td><code>TopicMastery</code>, hooklar + tungi qayta hisob, oylik snapshot</td></tr>
+<tr><td>28–29</td><td>O'qituvchi markazi, o'quvchi xavfi</td><td><span class="s ok">✅</span></td><td>Guruh kartalari, jadval, 4 daraja xavf, sabablar, "xavf oshdi" xabari</td></tr>
+<tr><td>30–33</td><td>AI akademik markaz: ma'lumot kirishi, o'quvchi tahlili, tushuntirish (fakt/kuzatuv/tavsiya)</td><td><span class="s ok">✅</span></td><td>Qoidalar rejimi (kalitsiz) + Claude; FACT faqat koddan; javob JSON sxema bilan tekshiriladi</td></tr>
+<tr><td>34–35</td><td>AI vazifa tekshiruvi, dasturlash vazifasi</td><td><span class="s ok">✅</span></td><td>Mezonlar, taklif balli (faqat model rejimida), kod: xavfsizlik/best practice/a11y/TODO statik tekshiruvi. Kod <b>ishga tushirilmaydi</b> (sandbox yo'q — ataylab)</td></tr>
+<tr><td>36–41</td><td>O'xshashlik, o'qituvchi yordamchisi, guruh, rahbar va ota-ona xulosasi, remedial o'qitish</td><td><span class="s ok">✅</span></td><td>O'xshashlik — signal, hukm emas; remedial reja → qoralama vazifa + blueprint quiz, o'qituvchi tasdiqlaydi (E2E)</td></tr>
+<tr><td>42</td><td>Bildirishnoma integratsiyasi</td><td><span class="s ok">✅</span></td><td>4 yangi tur (imtihon e'loni, past natija, kechikish, xavf oshdi); kabinet havolalari kabinet sahifalariga</td></tr>
+<tr><td>43–44</td><td>Telegram 2.0, veb bilan moslik</td><td><span class="s ok">✅</span></td><td>Onlayn imtihon, qidiruv, sozlamalar, KPI, hisobot, marketing, media, qo'ng'iroq, follow-up — bir xil servislar</td></tr>
+<tr><td>45</td><td>Qidiruv</td><td><span class="s ok">✅</span></td><td>Rolga mos: o'qituvchi — o'z guruhlari, kabinet — faqat o'ziniki</td></tr>
+<tr><td>46–49</td><td>Akademik analitika: kurs, guruh taqqoslash, o'qituvchi</td><td><span class="s ok">✅</span></td><td>Kesimlar, retention, CSV eksport</td></tr>
+<tr><td>50–51</td><td>Avtomatlashtirish dvigateli va quruvchisi</td><td><span class="s ok">✅</span></td><td>Trigger → shart → amal, kanal, jadval, sinov (dry-run), "Ishlarim"</td></tr>
+<tr><td>52–54</td><td>UX/UI, dashboard UX, accessibility</td><td><span class="s ok">✅</span></td><td>Rahbar paneli vidjetlari; dialoglarda fokus tutqichi va Esc (ichma-ich), label/role bo'yicha testlar</td></tr>
+<tr><td>55–57</td><td>Baza va API qoidalari, API xavfsizligi</td><td><span class="s ok">✅</span></td><td>Barcha 440+ endpoint avtomatik testi: tokensiz 401, ruxsatsiz rol 403; filial doirasi qarz/ogohlantirishda</td></tr>
+<tr><td>58–61</td><td>AI xavfsizligi, maxfiylik, gallyutsinatsiya nazorati, tool arxitekturasi</td><td><span class="s ok">✅</span></td><td>Whitelist toollar, raw SQL yo'q, promptda faqat kerakli maydonlar, log'da prompt matni yo'q</td></tr>
+<tr><td>62–66</td><td>Test strategiyasi, majburiy xavfsizlik testlari, vazifa/imtihon/AI E2E oqimlari</td><td><span class="s ok">✅</span></td><td><code>e2e/specs/flows.spec.ts</code> — UI orqali ko'p rolli oqimlar; oqimlar imtihon natijasi shkalasidagi xatoni topdi va u tuzatildi</td></tr>
+<tr><td>67</td><td>Unumdorlik</td><td><span class="s ok">✅</span></td><td>Yuk testi: 9 og'ir endpoint p95 ≤ 61 ms (chegara 800 ms) — kichik seed bazasida; katta hajm uchun <code>db:perf-seed</code></td></tr>
+<tr><td>68</td><td>Observability</td><td><span class="s ok">✅</span></td><td>Prometheus <code>/metrics</code> (token bilan), Sentry (backend + frontend, ixtiyoriy), job xatolari, navbat hajmi</td></tr>
+<tr><td>69–70</td><td>Hujjatlar, faza hisobot formati</td><td><span class="s ok">✅</span></td><td>13 majburiy hujjat + 5 qo'shimcha; <code>PHASE-REPORTS-3.0.md</code> — har faza §70 formatida</td></tr>
+<tr><td>74–77</td><td>Production sifati, yakuniy oqim, rahbar uchun bitta panel, product printsipi</td><td><span class="s ok">✅</span></td><td>§76: "Akademiya holati" kartasi — 15 yo'nalish bitta panelda, bo'limga havola bilan</td></tr>
+</table>
+<div class="box">
+<b>Ochiq qolgan (kichik, ataylab yoki keyingi ish):</b>
+<ul>
+<li>Dasturlash vazifasidagi kod ishga tushirilmaydi — faqat statik tekshiruv (xavfsiz sandbox alohida infratuzilma talab qiladi).</li>
+<li>Haftalik hisobot va sertifikat PDF — brauzer chop etish orqali (serverda PDF generatori yo'q).</li>
+<li>Fayl javoblari faqat PDF/rasm; boshqa formatlar — havola orqali.</li>
+<li>Rahbar paneli va direktor ko'rsatkichlari markaz bo'yicha (filialga bog'langan admin ham umumiy sonlarni ko'radi — mavjud direktor paneli bilan bir xil).</li>
+<li>Production'da onlayn imtihonlar ishlatilgan bo'lsa — deploydan keyin <code>npm run db:backfill-exam-scale</code> (avval hisobot).</li>
+</ul>
+</div>
+<div class="box">
+<b>Production uchun sizdan kerak:</b> <code>ANTHROPIC_API_KEY</code> (ixtiyoriy — kalitsiz qoidalar rejimi ishlaydi), Sentry DSN va <code>METRICS_TOKEN</code> (ixtiyoriy),
+Telegram bot tokeni — <b>oldin chatda oshkor bo'lgan token @BotFather'da <code>/revoke</code> qilinishi kerak</b>. Yangilash tartibi: <code>docs/deployment.md §4.1</code>.
+</div>
+
+<h2>1. Umumiy baho (promt.md, promt2.md, telegramBot.md — 2026-09-24)</h2>
 <div class="kpi">
   <div><b>684 + 55 + 14</b><span>backend · frontend · E2E testlar (hammasi o'tadi)</span></div>
   <div><b>24</b><span>kommit shu sessiyada</span></div>
   <div><b>11</b><span>migratsiya — hech biri DROP/DELETE emas</span></div>
   <div><b>+14 935</b><span>qator kod, 137 fayl</span></div>
 </div>
-
-<h2>1. Umumiy baho</h2>
 <p><b>Xulosa:</b> uchala TZ ning asosiy talablari professional darajada bajarilgan. Har modul mavjud arxitektura ichida (servis qatlami, zod validatsiya, RBAC, audit, tranzaksiya), har bosqich to'liq test to'plami bilan yopilgan, hech bir mavjud test o'chirilmagan yoki bo'shashtirilmagan. Quyida <b>bajarilmagan yoki qisman</b> bandlar ochiq yozilgan — ular jami 15 ta, ko'pchiligi kichik hajmli.</p>
 
 <table>
@@ -103,7 +155,7 @@
 <tr><td>7</td><td>Onlayn to'lov abstraksiyasi, webhook, imzo, idempotentlik</td><td><span class="s ok">✅</span></td><td>Bu sessiyada: <code>PaymentIntent</code>, provayder interfeysi, sandbox, HMAC; Click/Payme kaliti kelganda 1 fayl</td></tr>
 <tr><td>8</td><td>Xonalar, jadval, to'qnashuv</td><td><span class="s ok">✅</span></td><td><code>Room</code> (sig'im, jihozlar), 4 shartli to'qnashuv</td></tr>
 <tr><td>9</td><td>Kurrikulum</td><td><span class="s ok">✅</span></td><td>Modul → mavzu, progress</td></tr>
-<tr><td>10</td><td>Imtihon dvigateli: savollar bazasi, qiyinlik, <b>tasodifiy savollar</b>, vaqt, urinishlar, qayta topshirish, avto/qo'lda baholash</td><td><span class="s warn">qisman</span></td><td>Bank, qiyinlik, mavzu, vaqt va urinishlar (bu sessiyada), avtomatik/qo'lda baholash bor. Tasodifiy tanlash <b>bor</b> (imtihonga biriktirishda: soni + mavzu + qiyinlik, <code>examAttempt.service.ts</code>). Yo'q: har o'quvchiga alohida variant, blueprint, savol tartibini aralashtirish</td></tr>
+<tr><td>10</td><td>Imtihon dvigateli: savollar bazasi, qiyinlik, <b>tasodifiy savollar</b>, vaqt, urinishlar, qayta topshirish, avto/qo'lda baholash</td><td><span class="s warn">qisman</span></td><td>Bank, qiyinlik, mavzu, vaqt va urinishlar (bu sessiyada), avtomatik/qo'lda baholash bor. Tasodifiy tanlash <b>bor</b> (imtihonga biriktirishda: soni + mavzu + qiyinlik, <code>examAttempt.service.ts</code>). Yo'q edi: har o'quvchiga alohida variant, blueprint, savol tartibini aralashtirish — <b>3.0 PHASE 6 da yopildi</b></td></tr>
 <tr><td>11</td><td>Sertifikat + PDF + QR tekshiruv</td><td><span class="s ok">✅</span></td><td>Bu sessiyada chop etish / PDF sahifasi</td></tr>
 <tr><td>12–16</td><td>Lead skoring, avtomatik taqsimot, voronka, referral, chegirma</td><td><span class="s ok">✅</span></td><td><code>DiscountType</code> 7 tur (FAMILY…FIRST_PAYMENT), stacking, chegara</td></tr>
 <tr><td>17–19</td><td>HR, o'qituvchi analitikasi, fikr/NPS</td><td><span class="s ok">✅</span></td><td>Maxfiy ma'lumot ruxsati, anonim fikr, salbiy fikr xabari</td></tr>
@@ -207,7 +259,7 @@
 <h3>6.4. Yangi skriptlar va hujjatlar</h3>
 <ul>
 <li><code>scripts/verify-backup.sh</code>, <code>backend/scripts/telegramCheck.ts</code>, <code>telegramWebhook.ts</code>, <code>telegramLoad.ts</code></li>
-<li><code>docs/TELEGRAM-BOT-AUDIT.md</code>, <code>telegram-architecture.md</code>, <code>telegram-security.md</code>, <code>telegram-deployment.md</code>; <code>ACADEMY-2.0-AUDIT.md</code> va <code>DEPLOYMENT.md</code> yangilandi</li>
+<li><code>docs/TELEGRAM-BOT-AUDIT.md</code>, <code>telegram-architecture.md</code>, <code>telegram-security.md</code>, <code>telegram-deployment.md</code>; <code>ACADEMY-2.0-AUDIT.md</code> va <code>deployment.md</code> yangilandi</li>
 </ul>
 
 <h2>7. Qilinmagan yoki qisman — bir joyda</h2>

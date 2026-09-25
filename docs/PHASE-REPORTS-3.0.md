@@ -968,3 +968,61 @@ Oqimlar ~10–15 s har biri; to‘liq E2E ~2.2 daq.
 ## 12. Next Phase
 
 **PHASE 16 — Production va hujjatlar (§69)**: architecture, deployment, testing, qolgan hujjatlar; yakuniy audit.
+
+---
+
+# PHASE 16 COMPLETE — Production va hujjatlar
+
+Sana: 2026-09-25. Batafsil: [architecture.md §0](architecture.md), [deployment.md §4.1](deployment.md), [TZ.html](TZ.html) 0-bo‘lim.
+
+## 1. Implemented
+
+- **§76 rahbar uchun bitta panel**: "Direktor paneli"ga **Akademiya holati** vidjeti — 15 yo‘nalish (o‘quvchi, ota-ona, o‘qituvchi, kurs, guruh, davomat, vazifa, imtihon, akademik progress, xavf, moliya, sotuv, marketing, Telegram, AI), har biri bo‘limga havola; muammoli holat rang bilan.
+- **Production konfiguratsiya bo‘shlig‘i**: `docker-compose.prod.yml` backendga `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_TIMEOUT_MS`, `METRICS_TOKEN`, `SENTRY_DSN` ni uzatmas edi, frontend build’da `VITE_SENTRY_DSN` yo‘q edi — qo‘shildi; `.env.production.example` yangilandi.
+- **§0.2 takror mantiq**: teaching scope 7 joyda alohida nusxa edi — `teachingAccess.ts` ga yig‘ildi (`isRosterLimited`, `teachingAccessFrom`), xatti-harakat o‘zgarmadi.
+- **§69 hujjatlar**: `architecture.md` (3.0 umumiy ko‘rinish, §75 oqim → modullar, joblar, qarorlar), `deployment.md` (3.0 ga yangilash, xavfsizlik ro‘yxati); `ARCHITECTURE.md`/`DEPLOYMENT.md` ro‘yxatdagi nomlarga ko‘chirildi (dublikat yo‘q), havolalar yangilandi; README, CI-CD, security.md.
+- **TZ hisobot**: `TZ.html`/`TZ.pdf` ga promt3.md bo‘yicha bajarilish jadvali va ochiq qolganlar.
+
+## 2–3. Files
+
+Backend: yangi `services/academyOverview.service.ts`, `tests/academyOverview.test.ts`, `tests/unit/teachingAccess.test.ts`; o‘zgargan `teachingAccess.ts`, `group|student|attendance|attendanceSession|parent|search|dashboard.service.ts`, `controllers/dashboard.controller.ts`, `routes/dashboard.routes.ts`.
+Frontend: yangi `pages/dashboard/AcademyOverviewCard(.test).tsx`; `ExecutivePage.tsx`, `services/dashboard.service.ts`, `types/dashboard.ts`, `lib/queryKeys.ts`, `Dockerfile`.
+Infra: `docker-compose.prod.yml`, `.env.production.example`. E2E: `teaching.spec.ts` (+1). Docs: yuqoridagilar.
+
+## 4. Database Changes
+
+Yo‘q.
+
+## 5. API Changes
+
+Yangi: `GET /api/dashboard/executive/academy` (`analytics.view`).
+
+## 6. Permission Changes
+
+Yo‘q.
+
+## 7. AI Changes
+
+Yo‘q (panelda AI rejimi va qaror kutayotgan tahlillar soni).
+
+## 8. Tests
+
+Backend **793/793** (+3), frontend **105/105** (+1), E2E **32/32** (+1). Lint/typecheck 0 xato (frontendda 1 eski ogohlantirish).
+
+## 9. Security Review
+
+- Yangi endpoint `endpointSecurity.test.ts` inventarida avtomatik: tokensiz 401, ruxsatsiz 403.
+- Production’da `/metrics` nginx `/api` dan tashqarida — internetga chiqmaydi; kalitlar faqat `.env.production` (600).
+
+## 10. Performance
+
+Panel — 21 ta parallel indeksli `count`/`groupBy`/`aggregate`, N+1 yo‘q.
+
+## 11. Known Issues
+
+- Direktor paneli (va Akademiya holati) markaz bo‘yicha — filialga bog‘langan admin ham umumiy sonlarni ko‘radi (mavjud direktor paneli bilan bir xil).
+- Telegram uchun alohida xodim sahifasi yo‘q — plitka havolasiz.
+
+## 12. Next Phase
+
+promt3.md dagi 16 faza yakunlandi. Keyingi: production’ga deploy ([deployment.md §4.1](deployment.md)), ixtiyoriy kalitlar (Anthropic, Sentry), oshkor bo‘lgan bot tokenini `/revoke` qilish.

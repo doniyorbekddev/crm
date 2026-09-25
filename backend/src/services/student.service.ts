@@ -29,6 +29,7 @@ import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './stude
 import type { GroupChangeDto } from './studentGroupHistory.js';
 import type { TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 export const studentSelect = {
   id: true,
@@ -174,7 +175,7 @@ async function getStudentAccess(actor: AuthUser): Promise<StudentAccess> {
   return {
     userId: actor.id,
     canManage,
-    onlyOwnGroups: !canManage && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE),
     branch: await getBranchAccess(actor),
   };
 }

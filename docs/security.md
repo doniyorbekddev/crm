@@ -39,7 +39,7 @@ Kabinet (o‘quvchi/ota-ona) — **xuddi shu** mexanizm; alohida auth yo‘q.
 | Menejer | faqat o‘z leadlari | `leadAccess.ts` | `lead.view_all` yo‘q → `assignedToId = actor.id` |
 | Rahbar / xodim | filial doirasi | `branchAccess.ts` | `branch.view_all` yo‘q → `branchId = actor.branchId` |
 
-`teachingAccess.ts` ni ishlatuvchilar: `homework.service`, `exam.service`, `examAttempt.service` (savol biriktirish, urinish boshlash/topshirish/baholash/ko‘rish). Boshqa servislarda (`group`, `student`, `attendance*`, `parent`, `search`) hozircha o‘z nusxasi — keyingi fazalarda shu modulga o‘tkaziladi.
+`teachingAccess.ts` — ikki qoida bir joyda: **akademik** (`getTeachingAccess`: `homework`, `exam`, `examAttempt`, `mastery`, `teaching`, `academicAnalytics`, AI, qidiruvdagi vazifa/imtihon) va **ro'yxat** (`isRosterLimited`: `group`, `student`, `attendance`, `attendanceSession`, `parent`, `search`, `dashboard` — faqat davomat belgilaydigan o'qituvchi cheklanadi, buxgalter/sotuv to'liq ko'radi).
 
 **Callback/query ma’lumotiga ishonilmaydi**: `studentId`, `groupId`, `examId` — har safar doira bilan solishtiriladi.
 
@@ -92,6 +92,6 @@ Qolgan bandlar: **Ownership** — §3 va §6 jadvali; **Validation** — zod (`v
 ## 7. Ma’lum bo‘shliqlar (ROADMAP)
 
 - ~~`debtService.list`, `alertService.list` filial doirasini olmaydi~~ — PHASE 14 da tuzatildi (veb, bot, AI tool; `alerts.branchId`).
-- Teaching scope 6 servisda alohida nusxa, mezon farqli (`!GROUP_MANAGE` vs `ATTENDANCE_MARK`) — bosqichma-bosqich `teachingAccess.ts` ga.
+- ~~Teaching scope 6 servisda alohida nusxa~~ — PHASE 16: ikkala qoida `teachingAccess.ts` da (`isRosterLimited` — ro'yxatlar, `teachingAccessFrom`/`getTeachingAccess` — akademik amallar); 7 servis shu funksiyalarni chaqiradi, xatti-harakat o'zgarmadi (`tests/unit/teachingAccess.test.ts`).
 - 2FA yo‘q (TZ talab qilmaydi).
 - ~~Modal focus-trap yo‘q~~ — PHASE 14: `useFocusTrap` (Tab aylanishi, fokus qaytishi, ichma-ich oynada faqat ustkisi; Esc ham).

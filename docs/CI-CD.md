@@ -8,7 +8,7 @@ almashtiriladi, sog‘liq tekshiriladi; ishlamasa avtomatik oldingi versiyaga qa
 LOKAL KOMPYUTER            git push origin main
       │
       ▼
-GITHUB  ──────► CI (typecheck, lint, 419 test, build, E2E)
+GITHUB  ──────► CI (typecheck, lint, ~900 unit/integratsion/komponent test, build, 31 E2E)
       │                     │ muvaffaqiyatli bo‘lsa
       │                     ▼
       └──────► Deploy (production) ── SSH ──► AHOST VPS
@@ -393,4 +393,4 @@ Qo‘shimcha buyruq **kerak emas**. Serverga SSH kirish faqat quyidagi hollarda 
 | Sertifikat olinmadi | `dig +short crm.example.uz` IP ni qaytarmayapti yoki 80-port yopiq |
 | Disk to‘lib qoldi | `docker system df`, `docker image prune -f`, eski zaxiralarni tozalash |
 
-Batafsil: [HOSTING-VA-DOMEN.md](HOSTING-VA-DOMEN.md) (birinchi o‘rnatish), [DEPLOYMENT.md](DEPLOYMENT.md) (operatsion tafsilotlar).
+Batafsil: [HOSTING-VA-DOMEN.md](HOSTING-VA-DOMEN.md) (birinchi o‘rnatish), [deployment.md](deployment.md) (operatsion tafsilotlar).

@@ -13,6 +13,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 import { masteryService } from './mastery.service.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 const sessionSelect = {
   id: true,
@@ -93,7 +94,7 @@ export async function getSessionAccess(actor: AuthUser): Promise<SessionAccess> 
   return {
     userId: actor.id,
     canManageGroups,
-    onlyOwnGroups: !canManageGroups && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
   };
 }
 

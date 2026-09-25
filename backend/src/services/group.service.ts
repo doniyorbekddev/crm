@@ -12,6 +12,7 @@ import type { ScheduleConflict } from './scheduleConflict.service.js';
 import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
 import type { BranchAccess } from './branchAccess.js';
 import { permissionService } from './permission.service.js';
+import { isRosterLimited } from './teachingAccess.js';
 
 const groupSelect = {
   id: true,
@@ -96,7 +97,7 @@ async function getGroupAccess(actor: AuthUser): Promise<GroupAccess> {
   return {
     userId: actor.id,
     canManage,
-    onlyOwnGroups: !canManage && permissions.has(PERMISSIONS.ATTENDANCE_MARK),
+    onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
     branch: await getBranchAccess(actor),
   };
 }

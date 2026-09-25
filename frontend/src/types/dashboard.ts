@@ -237,3 +237,19 @@ export interface ExecutiveSummary {
   trend: ExecutiveTrendPoint[];
   attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger' }>;
 }
+
+/** TZ 3.0 §76 — rahbar panelidagi akademiya holati (oxirgi `windowDays` kun) */
+export interface AcademyOverview {
+  windowDays: number;
+  parents: { total: number; withPortal: number; telegramLinked: number };
+  courses: { active: number };
+  groups: { active: number; planned: number };
+  attendance: { rate: number | null; marked: number };
+  homework: { open: number; toGrade: number; submissionRate: number | null };
+  exams: { held: number; averagePercentage: number | null; needsReview: number };
+  progress: { averageMastery: number | null; masteredShare: number | null; tracked: number };
+  risk: { healthy: number; attention: number; atRisk: number; critical: number };
+  marketing: { leads: number; won: number; topSource: { name: string; leads: number } | null };
+  telegram: { linkedChats: number; queued: number; failed: number };
+  ai: { mode: 'LLM' | 'RULES'; analyses: number; awaitingDecision: number };
+}
