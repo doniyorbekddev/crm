@@ -8,6 +8,7 @@ import { startAuditCleanupJob } from './jobs/auditCleanup.job.js';
 import { startNotificationDeliveryJob } from './jobs/notificationDelivery.job.js';
 import { startStudentRiskJob } from './jobs/studentRisk.job.js';
 import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
+import { startWeeklyReportJob } from './jobs/weeklyReport.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
@@ -33,6 +34,8 @@ const stopAuditCleanup = startAuditCleanupJob();
 const stopRecurringExpenses = startRecurringExpensesJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
+// Haftalik hisobot o'quvchi va ota-onaga (yakshanba kechqurun)
+const stopWeeklyReport = startWeeklyReportJob();
 // Sinov rejimi: webhook o'rniga botning o'zi Telegramdan so'rab turadi (ishlab chiqishda)
 const stopTelegramPolling = env.TELEGRAM_POLLING ? startTelegramPolling() : () => undefined;
 
@@ -63,6 +66,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopRecurringExpenses();
   stopTelegramPolling();
   stopDailyDigest();
+  stopWeeklyReport();
 
   const forceExitTimer = setTimeout(() => {
     logger.error('Server belgilangan vaqtda to‘xtamadi, majburan yopilmoqda');

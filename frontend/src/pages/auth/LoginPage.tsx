@@ -62,7 +62,7 @@ export default function LoginPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Tizimga kirish</h1>
-        <p className="mt-2 text-sm text-fg-muted">Xodimlar — email, o‘quvchilar — ID raqami (masalan, ST-000045) bilan kiradi</p>
+        <p className="mt-2 text-sm text-fg-muted">Xodimlar — email, o‘quvchilar — ID raqami (ST-000045), ota-onalar — telefon raqami bilan kiradi</p>
       </div>
 
       {formError && (
@@ -72,7 +72,7 @@ export default function LoginPage() {
       )}
 
       <form onSubmit={onSubmit} noValidate className="space-y-5">
-        <FormField label="Email yoki ID" htmlFor="email" error={errors.email?.message}>
+        <FormField label="Login" htmlFor="email" error={errors.email?.message}>
           <Input
             id="email"
             type="text"
@@ -80,7 +80,7 @@ export default function LoginPage() {
             autoCapitalize="none"
             autoComplete="username"
             autoFocus
-            placeholder="siz@example.com yoki ST-000045"
+            placeholder="email, +998 90 123 45 67 yoki ST-000045"
             leftIcon={<UserRound className="size-4" aria-hidden />}
             invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? fieldErrorId('email') : undefined}

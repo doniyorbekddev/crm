@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
+import type { BulkParentPortalAccountsResult, PortalAccount } from '@/types/portal';
 import type {
   CreateParentPayload,
   ParentItem,
@@ -12,6 +13,23 @@ import type {
 } from '@/types/parent';
 
 export const parentsService = {
+  /** Kabinet ochish — email ixtiyoriy, bo‘lmasa telefon raqami login bo‘ladi */
+  async createPortalAccount(id: string, email?: string): Promise<MessageResult<PortalAccount>> {
+    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/parents/${id}/portal-account`, email ? { email } : {});
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async resetPortalPassword(id: string): Promise<MessageResult<PortalAccount>> {
+    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/parents/${id}/portal-account/reset-password`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Farzandi faol o‘qiyotgan, kabinetsiz ota-onalarga birdan */
+  async bulkCreatePortalAccounts(payload: { groupId?: string }): Promise<MessageResult<BulkParentPortalAccountsResult>> {
+    const response = await api.post<ApiSuccessResponse<BulkParentPortalAccountsResult>>('/parents/portal-accounts/bulk', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async list(params: ParentListParams): Promise<Paginated<ParentItem>> {
     const response = await api.get<ApiSuccessResponse<ParentItem[]>>('/parents', { params });
     const items = response.data.data;

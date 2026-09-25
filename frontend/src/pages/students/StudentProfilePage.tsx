@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileBarChart, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
+import { WeeklyReportModal } from '@/components/weekly/WeeklyReportModal';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -36,6 +37,7 @@ export default function StudentProfilePage() {
   const canManageStudents = usePermission(PERMISSIONS.STUDENT_MANAGE);
   const [tab, setTab] = useState<Tab>('overview');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [weeklyOpen, setWeeklyOpen] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: queryKeys.students.profile(id),
@@ -90,7 +92,16 @@ export default function StudentProfilePage() {
 
   return (
     <>
-      <PageHeader title={`${student.firstName} ${student.lastName}`} documentTitle={`${student.firstName} ${student.lastName}`} />
+      <PageHeader
+        title={`${student.firstName} ${student.lastName}`}
+        documentTitle={`${student.firstName} ${student.lastName}`}
+        actions={
+          <Button variant="secondary" leftIcon={<FileBarChart className="size-4" aria-hidden />} onClick={() => setWeeklyOpen(true)}>
+            Haftalik hisobot
+          </Button>
+        }
+      />
+      {weeklyOpen && <WeeklyReportModal studentId={student.id} onClose={() => setWeeklyOpen(false)} />}
       <div className="-mt-4">{back}</div>
 
       <Card className="mb-4 p-4 sm:p-5">

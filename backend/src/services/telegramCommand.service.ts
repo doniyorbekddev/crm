@@ -243,6 +243,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'xp', description: 'XP, seriya, reyting' },
   { command: 'qarz', description: 'To‘lovlar va qarz' },
   { command: 'sertifikat', description: 'Sertifikatlar' },
+  { command: 'hisobot', description: 'Haftalik hisobot' },
   { command: 'taklif', description: 'Do‘st taklifi' },
   { command: 'panel', description: 'Ko‘rsatkichlar (rahbar)' },
   { command: 'bugun', description: 'Bugungi darslar (o‘qituvchi)' },

@@ -1,9 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { KeyRound, Link2, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { BulkPortalAccountsModal } from '@/components/BulkPortalAccountsModal';
 import { PageHeader } from '@/components/PageHeader';
+import { PortalAccountModal } from '@/components/PortalAccountModal';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +23,7 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { parentsService } from '@/services/parents.service';
+import { studentsService } from '@/services/students.service';
 import type { ParentItem, ParentListParams } from '@/types/parent';
 import { formatPhone } from '@/utils/format';
 import { PARENT_RELATION_LABELS } from '@/utils/parentLabels';
@@ -40,11 +43,15 @@ type Dialog =
   | { type: 'edit'; parent: ParentItem }
   | { type: 'link'; parent: ParentItem }
   | { type: 'delete'; parent: ParentItem }
+  | { type: 'portal' | 'portalReset'; parent: ParentItem }
+  | { type: 'portalBulk' }
   | null;
 
 export default function ParentsPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.PARENT_MANAGE);
+  const canManagePortal = usePermission(PERMISSIONS.PORTAL_MANAGE);
+  const showActions = canManage || canManagePortal;
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
@@ -77,10 +84,28 @@ export default function ParentsPage() {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
+  const lookupsQuery = useQuery({
+    queryKey: queryKeys.lookups.studentForm,
+    queryFn: studentsService.formLookups,
+    staleTime: 60_000,
+    enabled: canManagePortal,
+  });
+
   const rowActions = (parent: ParentItem) => [
-    { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', parent }) },
-    { label: 'Farzand biriktirish', icon: Link2, onSelect: () => setDialog({ type: 'link', parent }) },
-    { label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', parent }) },
+    ...(canManage
+      ? [
+          { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', parent }) },
+          { label: 'Farzand biriktirish', icon: Link2, onSelect: () => setDialog({ type: 'link', parent }) },
+        ]
+      : []),
+    ...(canManagePortal && parent.students.length > 0
+      ? [
+          parent.hasPortalAccount
+            ? { label: 'Kabinet parolini tiklash', icon: KeyRound, onSelect: () => setDialog({ type: 'portalReset', parent }) }
+            : { label: 'Kabinet ochish', icon: KeyRound, onSelect: () => setDialog({ type: 'portal', parent }) },
+        ]
+      : []),
+    ...(canManage ? [{ label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', parent }) }] : []),
   ];
 
   const close = () => setDialog(null);
@@ -96,10 +121,19 @@ export default function ParentsPage() {
         description="Vakillar, aloqa ma’lumotlari va farzandlar"
         documentTitle="Ota-onalar"
         actions={
-          canManage ? (
-            <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
-              Ota-ona qo‘shish
-            </Button>
+          showActions ? (
+            <>
+              {canManagePortal && (
+                <Button variant="secondary" leftIcon={<KeyRound className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'portalBulk' })}>
+                  Kabinetlar ochish
+                </Button>
+              )}
+              {canManage && (
+                <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                  Ota-ona qo‘shish
+                </Button>
+              )}
+            </>
           ) : undefined
         }
       />
@@ -151,7 +185,7 @@ export default function ParentsPage() {
                     <TH>Ota-ona</TH>
                     <TH>Aloqa</TH>
                     <TH>Farzandlar</TH>
-                    {canManage && (
+                    {showActions && (
                       <TH className="w-12">
                         <span className="sr-only">Amallar</span>
                       </TH>
@@ -191,7 +225,7 @@ export default function ParentsPage() {
                           </ul>
                         )}
                       </TD>
-                      {canManage && (
+                      {showActions && (
                         <TD className="text-right">
                           <ActionMenu label={`${parent.firstName} ${parent.lastName} amallari`} items={rowActions(parent)} />
                         </TD>
@@ -216,6 +250,47 @@ export default function ParentsPage() {
       {dialog?.type === 'create' && <ParentFormModal onClose={close} onSaved={saved} />}
       {dialog?.type === 'edit' && <ParentFormModal parent={dialog.parent} onClose={close} onSaved={saved} />}
       {dialog?.type === 'link' && <LinkStudentModal parent={dialog.parent} onClose={close} onSaved={saved} />}
+      {(dialog?.type === 'portal' || dialog?.type === 'portalReset') && (
+        <PortalAccountModal
+          fullName={`${dialog.parent.firstName} ${dialog.parent.lastName}`}
+          subtitle={dialog.parent.students.map((link) => `${link.firstName} ${link.lastName}`).join(', ') || null}
+          loginHint={
+            <>
+              Ota-ona <b className="font-mono text-fg">{formatPhone(dialog.parent.phone)}</b> telefon raqami va tizim bergan parol bilan kiradi.
+            </>
+          }
+          create={(email) => parentsService.createPortalAccount(dialog.parent.id, email)}
+          reset={() => parentsService.resetPortalPassword(dialog.parent.id)}
+          mode={dialog.type === 'portalReset' ? 'reset' : 'create'}
+          onClose={close}
+          onSaved={refresh}
+        />
+      )}
+      {dialog?.type === 'portalBulk' && (
+        <BulkPortalAccountsModal
+          title="Ota-onalarga kabinet ochish"
+          description="Har bir ota-ona o‘z telefon raqami va shaxsiy paroli bilan kiradi va farzandlarini ko‘radi"
+          allLabel="Farzandi faol o‘qiyotgan barcha ota-onalar"
+          groups={lookupsQuery.data?.groups ?? []}
+          run={async (groupId) => {
+            const result = await parentsService.bulkCreatePortalAccounts(groupId ? { groupId } : {});
+            return {
+              rows: result.data.created.map((row) => ({
+                id: row.parentId,
+                fullName: row.fullName,
+                subtitle: row.children,
+                login: row.login,
+                temporaryPassword: row.temporaryPassword,
+              })),
+              skipped: result.data.skipped,
+              warnings: result.data.duplicatePhones,
+              message: result.message,
+            };
+          }}
+          onClose={close}
+          onSaved={refresh}
+        />
+      )}
 
       <ConfirmDialog
         open={dialog?.type === 'delete'}

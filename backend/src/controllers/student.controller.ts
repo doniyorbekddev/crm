@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { weeklyReportQuerySchema } from '../validators/portal.validator.js';
 import { attendanceService } from '../services/attendance.service.js';
 import { studentService } from '../services/student.service.js';
 import { studentRiskService } from '../services/studentRisk.service.js';
@@ -20,6 +21,12 @@ import { sendTable } from '../utils/tableExport.js';
 
 export const studentController = {
   /** Profil: davomat, uy vazifasi, imtihon, XP, izohlar va progress grafigi */
+  async weeklyReport(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { week } = weeklyReportQuerySchema.parse(req.query);
+    sendSuccess(res, await studentProgressService.weeklyReport(requireAuthUser(req), id, week));
+  },
+
   async profile(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await studentProgressService.profile(requireAuthUser(req), id));

@@ -17,6 +17,7 @@ export type NotificationType =
   | 'EXAM_RESULT'
   | 'LEVEL_UP'
   | 'CERTIFICATE_ISSUED'
+  | 'WEEKLY_REPORT'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';

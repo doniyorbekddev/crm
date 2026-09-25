@@ -20,6 +20,8 @@ portalRouter.get('/lessons', portalAccess, portalController.lessons);
 portalRouter.get('/curriculum', portalAccess, portalController.curriculum);
 portalRouter.get('/certificates', portalAccess, portalController.certificates);
 portalRouter.get('/overview', portalAccess, portalController.overview);
+portalRouter.get('/children', portalAccess, portalController.children);
+portalRouter.get('/weekly-report', portalAccess, portalController.weeklyReport);
 portalRouter.get('/homework', portalAccess, portalController.homework);
 portalRouter.get('/homework/:id', portalAccess, portalController.homeworkDetail);
 portalRouter.get('/homework/:id/attachment', portalAccess, portalController.homeworkAttachment);

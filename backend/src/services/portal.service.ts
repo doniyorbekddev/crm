@@ -28,6 +28,8 @@ import { examAttemptService } from './examAttempt.service.js';
 import type { AttemptDto } from './examAttempt.service.js';
 import type { StudentExamRowDto } from './studentProgress.service.js';
 import { resolveStoredPath } from '../utils/fileStorage.js';
+import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
+import type { WeeklyReportDto } from './weeklyReport.service.js';
 import type { ExamStatus, HomeworkStatus, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
 
 /**
@@ -203,6 +205,23 @@ export interface PortalExamDetailDto {
   result: StudentExamRowDto | null;
   /** O'quvchining o'z urinishlari (javoblari bilan) — mavzu kesimi shu yerdan */
   attempts: AttemptDto[];
+}
+
+/** Ota-ona bosh sahifasidagi farzand kartasi (o'quvchi uchun ham bitta karta) */
+export interface PortalChildSummaryDto {
+  studentId: string;
+  code: string;
+  fullName: string;
+  groupName: string | null;
+  courseName: string;
+  attendanceRate: number;
+  homeworkRate: number;
+  examAverage: number | null;
+  totalXp: number;
+  level: number;
+  debt: { remaining: number; overdue: number };
+  risk: RiskLevel | null;
+  nextLesson: PortalLessonDto | null;
 }
 
 /** Saqlangan fayl kengaytmasi → MIME (faqat `detectFileType` qabul qiladigan turlar) */
@@ -470,6 +489,51 @@ export const portalService = {
       },
       nextExam: nextExam ? { examId: nextExam.id, title: nextExam.title, date: businessDateString(nextExam.date) } : null,
     };
+  },
+
+  /**
+   * "Farzandlarim": har bir farzand bo'yicha qisqa ko'rsatkichlar (TZ §10).
+   * Ota-onada odatda 1–3 farzand — har biri uchun mavjud profil quruvchisi chaqiriladi.
+   */
+  async children(actor: AuthUser): Promise<PortalChildSummaryDto[]> {
+    const scope = await resolvePortalScope(actor);
+    const records = await prisma.student.findMany({
+      where: { id: { in: scope.studentIds }, deletedAt: null },
+      select: studentDtoSelect,
+      orderBy: { firstName: 'asc' },
+    });
+    return Promise.all(
+      records.map(async (record) => {
+        const dto = toStudentDto(record);
+        const [profile, schedule, lessons, risk] = await Promise.all([
+          buildStudentProfile(dto, { includePayments: false }),
+          paymentScheduleService.get(record.id),
+          buildUpcomingLessons(record.id),
+          prisma.student.findUniqueOrThrow({ where: { id: record.id }, select: { riskLevel: true } }),
+        ]);
+        return {
+          studentId: record.id,
+          code: dto.code,
+          fullName: `${dto.firstName} ${dto.lastName}`,
+          groupName: dto.group?.name ?? null,
+          courseName: dto.course.name,
+          attendanceRate: profile.attendance.rate,
+          homeworkRate: profile.homework.rate,
+          examAverage: profile.exams.count ? profile.exams.averagePercent : null,
+          totalXp: profile.gamification.totalXp,
+          level: profile.gamification.level.number,
+          debt: { remaining: Math.max(schedule.contractTotal - schedule.paid, 0), overdue: schedule.overdueAmount },
+          risk: risk.riskLevel,
+          nextLesson: lessons.lessons.find((lesson) => lesson.status !== 'CANCELLED') ?? null,
+        };
+      }),
+    );
+  },
+
+  /** Haftalik hisobot (TZ §11) — o'z farzandi/o'zi uchun */
+  async weeklyReport(actor: AuthUser, week: string | undefined, requestedStudentId?: string): Promise<WeeklyReportDto> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return weeklyReportService.build(studentId, resolveWeekStart(week));
   },
 
   /**

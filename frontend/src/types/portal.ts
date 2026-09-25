@@ -139,3 +139,56 @@ export interface BulkPortalAccountsResult {
   /** Allaqachon kabineti bor */
   skipped: number;
 }
+
+export interface BulkParentPortalAccountRow {
+  parentId: string;
+  fullName: string;
+  /** Farzandlari (vergul bilan) */
+  children: string;
+  login: string;
+  temporaryPassword: string;
+}
+
+export interface BulkParentPortalAccountsResult {
+  created: BulkParentPortalAccountRow[];
+  skipped: number;
+  duplicatePhones: string[];
+}
+
+/** Ota-ona bosh sahifasidagi farzand kartasi */
+export interface PortalChildSummary {
+  studentId: string;
+  code: string;
+  fullName: string;
+  groupName: string | null;
+  courseName: string;
+  attendanceRate: number;
+  homeworkRate: number;
+  examAverage: number | null;
+  totalXp: number;
+  level: number;
+  debt: { remaining: number; overdue: number };
+  risk: RiskLevel | null;
+  nextLesson: PortalLesson | null;
+}
+
+export interface WeeklyReport {
+  student: { id: string; code: string; fullName: string; groupName: string | null; courseName: string };
+  week: { start: string; end: string; label: string };
+  attendance: { present: number; late: number; excused: number; absent: number; total: number; rate: number | null; absentDates: string[] };
+  homework: {
+    total: number;
+    submitted: number;
+    late: number;
+    missed: number;
+    pending: number;
+    averagePercent: number | null;
+    items: Array<{ title: string; deadline: string; status: SubmissionStatus; score: number | null; maxPoints: number }>;
+  };
+  exams: Array<{ title: string; date: string; percentage: number; grade: string | null; passed: boolean | null }>;
+  xp: { earned: number; total: number; level: number };
+  progress: { coursePercent: number | null; topicsCompleted: string[] };
+  topics: { strong: string[]; weak: string[] };
+  feedback: Array<{ source: 'homework' | 'exam'; title: string; text: string; author: string | null; date: string }>;
+  summary: string[];
+}

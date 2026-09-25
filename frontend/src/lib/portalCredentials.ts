@@ -1,11 +1,12 @@
 /**
- * Kabinet login/parollarini tarqatish: CSV va chop etish varaqasi.
+ * Kabinet login/parollarini tarqatish: CSV va chop etish kartochkalari.
  * Parollar faqat brauzerda — serverga qayta yuborilmaydi va hech qayerda saqlanmaydi.
+ * O‘quvchi (login — ID raqami) va ota-ona (login — telefon) uchun bir xil.
  */
 export interface CredentialRow {
   fullName: string;
-  code: string;
-  groupName: string | null;
+  /** Ikkinchi qator: o‘quvchida "ST-000045 · Guruh", ota-onada farzandlari */
+  subtitle: string | null;
   login: string;
   temporaryPassword: string;
 }
@@ -15,8 +16,8 @@ function csvCell(value: string): string {
 }
 
 export function credentialsCsv(rows: readonly CredentialRow[]): string {
-  const header = ['F.I.Sh', 'ID', 'Guruh', 'Login', 'Parol'];
-  const lines = rows.map((row) => [row.fullName, row.code, row.groupName ?? '', row.login, row.temporaryPassword].map(csvCell).join(';'));
+  const header = ['F.I.Sh', 'Izoh', 'Login', 'Parol'];
+  const lines = rows.map((row) => [row.fullName, row.subtitle ?? '', row.login, row.temporaryPassword].map(csvCell).join(';'));
   // BOM — Excel UTF-8 ni to‘g‘ri o‘qishi uchun
   return String.fromCharCode(0xfeff) + [header.join(';'), ...lines].join('\r\n');
 }
@@ -37,7 +38,7 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * Har o‘quvchiga qirqib beriladigan kartochkalar: ism, guruh, sayt manzili, login, parol.
+ * Qirqib beriladigan kartochkalar: ism, izoh, sayt manzili, login, parol.
  * Alohida oynada ochiladi va chop etish dialogi chaqiriladi.
  */
 export function printCredentials(rows: readonly CredentialRow[], siteUrl: string): boolean {
@@ -47,11 +48,11 @@ export function printCredentials(rows: readonly CredentialRow[], siteUrl: string
     .map(
       (row) => `<div class="card">
   <div class="name">${escapeHtml(row.fullName)}</div>
-  <div class="muted">${escapeHtml(row.code)}${row.groupName ? ` · ${escapeHtml(row.groupName)}` : ''}</div>
+  ${row.subtitle ? `<div class="muted">${escapeHtml(row.subtitle)}</div>` : ''}
   <div class="row"><span>Sayt:</span> <b>${escapeHtml(siteUrl)}</b></div>
   <div class="row"><span>Login:</span> <b class="mono">${escapeHtml(row.login)}</b></div>
   <div class="row"><span>Parol:</span> <b class="mono">${escapeHtml(row.temporaryPassword)}</b></div>
-  <div class="hint">Kirgach, Sozlamalar bo‘limida parolni o‘zgartiring.</div>
+  <div class="hint">Birinchi kirishda o‘zingizning yangi parolingizni o‘rnatasiz.</div>
 </div>`,
     )
     .join('');

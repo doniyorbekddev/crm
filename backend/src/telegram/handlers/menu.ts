@@ -43,6 +43,7 @@ const STUDENT_ITEMS: readonly MenuItem[] = [
   { text: '⭐ XP & Reyting', data: callback(STUDENT_ACTIONS.xp) },
   { text: '💳 To‘lovlar', data: callback(STUDENT_ACTIONS.payments) },
   { text: '📜 Sertifikatlar', data: callback(STUDENT_ACTIONS.certificates) },
+  { text: '📊 Haftalik hisobot', data: callback(STUDENT_ACTIONS.weekly) },
   { text: '🎁 Do‘st taklifi', data: callback(EXTRA_ACTIONS.referral) },
 ];
 

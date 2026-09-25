@@ -10,13 +10,21 @@ export const emailField = z
 /** O'quvchi ID raqami: ST-000045, st45 */
 export const STUDENT_LOGIN_PATTERN = /^st-?\d{1,9}$/i;
 
-/** Kirish: xodim/ota-ona — email, o'quvchi — email yoki ID raqami */
+/** Ota-ona telefon raqami: +998 90 123 45 67, 901234567 */
+export function isPhoneLogin(value: string): boolean {
+  return /^\+?[\d\s()-]{9,20}$/.test(value) && value.replace(/\D/g, '').length >= 9;
+}
+
+/** Kirish: xodim — email, o'quvchi — ID raqami, ota-ona — telefon (yoki email) */
 export const loginIdentifierField = z
   .string()
   .trim()
-  .min(1, 'Email yoki ID kiriting')
+  .min(1, 'Login kiriting')
   .max(255, 'Juda uzun')
-  .refine((value) => STUDENT_LOGIN_PATTERN.test(value) || z.email().safeParse(value).success, 'Email yoki o‘quvchi ID (ST-000045) kiriting');
+  .refine(
+    (value) => STUDENT_LOGIN_PATTERN.test(value) || isPhoneLogin(value) || z.email().safeParse(value).success,
+    'Email, telefon raqami yoki o‘quvchi ID (ST-000045) kiriting',
+  );
 
 export function nameField(label: string) {
   return z

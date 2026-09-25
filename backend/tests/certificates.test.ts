@@ -2,7 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
-import { bearer, createUserWithToken, loginAs } from './helpers/auth.js';
+import { bearer, createUserWithToken, loginWithTemporaryPassword } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -206,7 +206,7 @@ describe.skipIf(!hasTestDatabase)('Sertifikatni chop etish uchun olish', () => {
       .post(`/api/students/${mine.id}/portal-account`)
       .set(bearer(admin.token))
       .send({ email: 'chop@portal.uz' });
-    const studentToken = await loginAs(app, 'chop@portal.uz', account.body.data.temporaryPassword);
+    const studentToken = await loginWithTemporaryPassword(app, 'chop@portal.uz', account.body.data.temporaryPassword);
 
     const own = await request(app).get(`/api/certificates/${myCertificate.body.data.id}`).set(bearer(studentToken));
     expect(own.status).toBe(200);

@@ -21,6 +21,7 @@ studentRouter.get('/at-risk', requirePermission(PERMISSIONS.STUDENT_VIEW), stude
 studentRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.STUDENT_VIEW), requirePermission(PERMISSIONS.REPORT_EXPORT), studentController.export);
 studentRouter.get('/:id', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.getById);
 studentRouter.get('/:id/profile', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.profile);
+studentRouter.get('/:id/weekly-report', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.weeklyReport);
 studentRouter.get('/:id/homework', requirePermission(PERMISSIONS.HOMEWORK_VIEW), studentController.homework);
 studentRouter.get('/:id/exams', requirePermission(PERMISSIONS.EXAM_VIEW), studentController.exams);
 studentRouter.get('/:id/parents', requirePermission(PERMISSIONS.PARENT_VIEW), parentController.forStudent);

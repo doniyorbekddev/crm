@@ -42,3 +42,23 @@ export function currentBusinessMonth(now: Date = new Date()): { year: number; mo
   const value = businessDateString(now);
   return { year: Number(value.slice(0, 4)), month: Number(value.slice(5, 7)) };
 }
+
+/**
+ * Hafta boshlanishi — dushanba 00:00 (o‘quv markaz vaqti bo‘yicha), UTC Date sifatida.
+ * Haftalik hisobotlar shu chegaradan hisoblanadi.
+ */
+export function startOfBusinessWeek(date: Date = new Date()): Date {
+  const dayStart = startOfBusinessDay(date);
+  const weekday = new Date(dayStart.getTime() + OFFSET_MS).getUTCDay(); // 0 — yakshanba
+  return addDays(dayStart, -((weekday + 6) % 7));
+}
+
+/** "2026-09-21" (o‘quv markaz sanasi) → shu kunning boshlanishi (UTC Date) */
+export function businessDayFromString(value: string): Date {
+  return new Date(Date.parse(`${value}T00:00:00Z`) - OFFSET_MS);
+}
+
+/** `@db.Date` ustunlar uchun: o‘quv markaz sanasi → UTC yarim tun */
+export function dateColumn(value: Date): Date {
+  return new Date(`${businessDateString(value)}T00:00:00Z`);
+}

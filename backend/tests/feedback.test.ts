@@ -2,7 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
-import { bearer, createUserWithToken, loginAs } from './helpers/auth.js';
+import { bearer, createUserWithToken, loginWithTemporaryPassword } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -148,7 +148,7 @@ describe.skipIf(!hasTestDatabase)('O‘quvchi fikri va NPS', () => {
       .send({ email: 'kabinet-feedback@local.uz' });
     expect(account.status).toBe(201);
 
-    const studentToken = await loginAs(app, 'kabinet-feedback@local.uz', account.body.data.temporaryPassword);
+    const studentToken = await loginWithTemporaryPassword(app, 'kabinet-feedback@local.uz', account.body.data.temporaryPassword);
 
     const mine = await request(app).post('/api/portal/feedback').set(bearer(studentToken)).send({ type: 'ACADEMY', rating: 5, comment: 'Zo‘r' });
     expect(mine.status).toBe(201);

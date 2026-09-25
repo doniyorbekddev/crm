@@ -214,6 +214,7 @@ enum NotificationType {
   LEVEL_UP
   /// O'quvchi/ota-onaga: sertifikat berildi
   CERTIFICATE_ISSUED
+  WEEKLY_REPORT
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.
@@ -239,6 +240,8 @@ model User {
   roleId            String
   lastLoginAt       DateTime?
   passwordChangedAt DateTime?
+  /// Vaqtinchalik parol (kabinet ochilganda yoki xodim tiklaganda) — birinchi kirishda almashtirilishi shart
+  mustChangePassword Boolean   @default(false)
   branchId          String     @default("branch_main")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt

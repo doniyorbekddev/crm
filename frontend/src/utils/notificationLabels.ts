@@ -16,6 +16,7 @@ import {
   Target,
   UserCheck,
   Wallet,
+  FileBarChart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { BadgeTone } from '@/components/ui/Badge';
@@ -40,6 +41,7 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'EXAM_RESULT',
   'LEVEL_UP',
   'CERTIFICATE_ISSUED',
+  'WEEKLY_REPORT',
   'SYSTEM',
 ];
 
@@ -62,6 +64,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   EXAM_RESULT: 'Imtihon natijasi',
   LEVEL_UP: 'Yangi daraja',
   CERTIFICATE_ISSUED: 'Sertifikat berildi',
+  WEEKLY_REPORT: 'Haftalik hisobot',
   SYSTEM: 'Tizim',
 };
 
@@ -84,6 +87,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   EXAM_RESULT: Target,
   LEVEL_UP: Sparkles,
   CERTIFICATE_ISSUED: Award,
+  WEEKLY_REPORT: FileBarChart,
   SYSTEM: Info,
 };
 
@@ -103,6 +107,7 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   EXAM_RESULT: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
   LEVEL_UP: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   CERTIFICATE_ISSUED: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300',
+  WEEKLY_REPORT: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300',
   DEBT_REMINDER: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   TRIAL_LESSON_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   EXPENSE_APPROVAL: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
@@ -130,6 +135,8 @@ export function notificationLink(entityType: string | null, entityId: string | n
       return '/alerts';
     case 'digest':
       return '/executive';
+    case 'weekly_report':
+      return '/portal/weekly-report';
     default:
       return null;
   }

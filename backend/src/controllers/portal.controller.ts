@@ -9,12 +9,13 @@ import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import {
+  bulkParentPortalAccountsSchema,
   bulkPortalAccountsSchema,
-  portalAccountSchema,
   portalCalendarQuerySchema,
   portalChildQuerySchema,
   portalHomeworkSubmitSchema,
   studentPortalAccountSchema,
+  weeklyReportQuerySchema,
 } from '../validators/portal.validator.js';
 import { portalFeedbackSchema } from '../validators/feedback.validator.js';
 
@@ -95,6 +96,15 @@ export const portalController = {
     sendCreated(res, result, 'Vazifa topshirildi');
   },
 
+  async children(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await portalService.children(requireAuthUser(req)));
+  },
+
+  async weeklyReport(req: Request, res: Response): Promise<void> {
+    const { studentId, week } = weeklyReportQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.weeklyReport(requireAuthUser(req), week, studentId));
+  },
+
   async overview(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.overview(requireAuthUser(req), studentId));
@@ -168,11 +178,24 @@ export const portalController = {
 
   async createParentAccount(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    const { email } = portalAccountSchema.parse(req.body);
+    const { email } = studentPortalAccountSchema.parse(req.body ?? {});
     sendCreated(
       res,
       await portalAccountService.createForParent(requireAuthUser(req), id, email, getClientInfo(req)),
-      'Kabinet ochildi — parolni ota-onaga yetkazing',
+      'Kabinet ochildi — login va parolni ota-onaga yetkazing',
     );
+  },
+
+  async bulkCreateParentAccounts(req: Request, res: Response): Promise<void> {
+    const input = bulkParentPortalAccountsSchema.parse(req.body ?? {});
+    const result = await portalAccountService.bulkCreateForParents(requireAuthUser(req), input, getClientInfo(req));
+    sendCreated(res, result, result.created.length ? `${result.created.length} ta kabinet ochildi` : 'Yangi kabinet ochilmadi');
+  },
+
+  async resetParentPassword(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await portalAccountService.resetParentPassword(requireAuthUser(req), id, getClientInfo(req)), {
+      message: 'Yangi parol yaratildi — ota-onaga yetkazing',
+    });
   },
 };

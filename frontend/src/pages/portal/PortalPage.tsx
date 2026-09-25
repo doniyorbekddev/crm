@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { OverviewCards } from './OverviewCards';
+import { ChildrenCards } from './ChildrenCards';
+import { ProgressChart } from '@/pages/students/profile/ProgressChart';
 import { AchievementsCard } from './AchievementsCard';
 import { CurriculumCard } from './CurriculumCard';
 import { FeedbackCard } from './FeedbackCard';
@@ -66,6 +68,8 @@ export function PortalPage() {
           {me.kind === 'PARENT' ? 'Farzandingiz ko‘rsatkichlari' : 'Sizning ko‘rsatkichlaringiz'}
         </p>
       </div>
+
+      {me.kind === 'PARENT' && <ChildrenCards />}
 
       {profileQuery.isPending ? (
         <Skeleton className="h-40 w-full" />
@@ -176,6 +180,18 @@ export function PortalPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Progress (6 oy)</CardTitle>
+              <Link to="/portal/weekly-report" className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-300">
+                Haftalik hisobot
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <ProgressChart data={profile.progress} />
+            </CardContent>
+          </Card>
 
           <LessonsCard studentId={activeChild} />
 

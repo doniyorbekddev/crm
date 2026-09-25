@@ -10,6 +10,8 @@ import { buildStudentExamRows, buildStudentHomeworkRows, type StudentHomeworkRow
 import { escapeHtml, telegramService, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
 import { debtText, type CommandScope } from '../../services/telegramCommand.service.js';
 import { AppError } from '../../utils/AppError.js';
+import { resolveWeekStart, weeklyReportService, weeklyReportText } from '../../services/weeklyReport.service.js';
+import { addDays, businessDateString, startOfBusinessWeek } from '../../utils/dates.js';
 import { detectFileType, saveFile } from '../../utils/fileStorage.js';
 import { fmtDate, fmtDateTime, monthTitle } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
@@ -38,6 +40,8 @@ export const STUDENT_ACTIONS = {
   xp: 'st_xp',
   certificates: 'st_cert',
   payments: 'st_pay',
+  /** Haftalik hisobot; arg — hafta boshi (YYYY-MM-DD), bo'lmasa joriy hafta */
+  weekly: 'st_week',
   /** Ota-ona: farzandni tanlash */
   child: 'st_child',
 } as const;
@@ -588,6 +592,32 @@ export async function showPayments(context: BotContext, scope: CommandScope): Pr
   return { action: STUDENT_ACTIONS.payments };
 }
 
+// ---------------------------------------------------------------------
+// Haftalik hisobot (TZ 3.0 §11) — web bilan bir xil servis
+// ---------------------------------------------------------------------
+
+export async function showWeeklyReport(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const studentId = await requireStudent(context, scope);
+  if (!studentId) return { action: STUDENT_ACTIONS.weekly };
+
+  // Tugmadagi sanaga ishonilmaydi: format tekshiriladi, kelajak rad etiladi
+  const requested = arg && /^\d{4}-\d{2}-\d{2}$/.test(arg) ? arg : undefined;
+  let weekStart: Date;
+  try {
+    weekStart = resolveWeekStart(requested);
+  } catch {
+    weekStart = resolveWeekStart(undefined);
+  }
+  const report = await weeklyReportService.build(studentId, weekStart);
+  const previous = businessDateString(addDays(weekStart, -7));
+  const current = startOfBusinessWeek().getTime() === weekStart.getTime();
+  const nav: InlineButton[] = [{ text: '◀️ Oldingi hafta', data: callback(STUDENT_ACTIONS.weekly, previous) }];
+  if (!current) nav.push({ text: 'Joriy hafta ▶️', data: callback(STUDENT_ACTIONS.weekly) });
+
+  await context.render(weeklyReportText(report, escapeHtml), [nav, menuRow()]);
+  return { action: STUDENT_ACTIONS.weekly };
+}
+
 /** Matnli buyruq → bo'lim (menyusiz ham ishlasin) */
 export const STUDENT_COMMANDS: Readonly<Record<string, string>> = {
   '/profil': STUDENT_ACTIONS.profile,
@@ -598,6 +628,7 @@ export const STUDENT_COMMANDS: Readonly<Record<string, string>> = {
   '/sertifikat': STUDENT_ACTIONS.certificates,
   '/qarz': STUDENT_ACTIONS.payments,
   '/farzand': STUDENT_ACTIONS.child,
+  '/hisobot': STUDENT_ACTIONS.weekly,
 };
 
 /** Barcha `st_*` amallari bitta joydan yo'naltiriladi */
@@ -623,6 +654,8 @@ export async function handleStudentAction(context: BotContext, scope: CommandSco
       return showCertificates(context, scope);
     case STUDENT_ACTIONS.payments:
       return showPayments(context, scope);
+    case STUDENT_ACTIONS.weekly:
+      return showWeeklyReport(context, scope, arg);
     case STUDENT_ACTIONS.child:
       return arg === null ? showChildChooser(context, scope) : chooseChild(context, scope, arg);
     default:

@@ -11,6 +11,8 @@ export interface AuthUser {
   createdAt: string;
   role: { id: string; key: string; name: string };
   permissions: string[];
+  /** Vaqtinchalik parol bilan kirilgan — avval o‘z parolini o‘rnatishi kerak */
+  mustChangePassword: boolean;
 }
 
 export interface AuthSession {

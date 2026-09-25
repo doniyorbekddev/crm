@@ -1,4 +1,4 @@
-import { BookOpenCheck, CalendarCheck, FileCheck, Home, Settings, Wallet } from 'lucide-react';
+import { BookOpenCheck, CalendarCheck, FileBarChart, FileCheck, Home, Settings, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -18,13 +18,14 @@ export const PORTAL_NAV_ITEMS: readonly PortalNavItem[] = [
   { to: '/portal/exams', label: 'Imtihonlar', icon: FileCheck },
   { to: '/portal/attendance', label: 'Davomat', icon: CalendarCheck },
   { to: '/portal/payments', label: 'To‘lovlar', icon: Wallet },
+  { to: '/portal/weekly-report', label: 'Hisobot', icon: FileBarChart },
   { to: '/portal/settings', label: 'Sozlamalar', icon: Settings },
 ];
 
 /** Kompyuter: gorizontal tablar */
 export function PortalTabs({ className }: { className?: string }) {
   return (
-    <nav aria-label="Kabinet bo‘limlari" className={cn('hidden sm:block', className)}>
+    <nav aria-label="Kabinet bo‘limlari" className={cn('hidden sm:block print:hidden', className)}>
       <ul className="flex gap-1 overflow-x-auto">
         {PORTAL_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
@@ -54,9 +55,9 @@ export function PortalBottomBar() {
   return (
     <nav
       aria-label="Kabinet bo‘limlari"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden print:hidden"
     >
-      <ul className="grid grid-cols-6">
+      <ul className="grid grid-cols-7">
         {PORTAL_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
             <NavLink

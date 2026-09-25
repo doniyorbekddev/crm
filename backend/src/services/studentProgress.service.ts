@@ -1,4 +1,6 @@
 import { prisma } from '../config/database.js';
+import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
+import type { WeeklyReportDto } from './weeklyReport.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { AttendanceStatus, ExamStatus, HomeworkStatus, SubmissionStatus, XpSource } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -397,6 +399,12 @@ export async function buildStudentProfile(
 }
 
 export const studentProgressService = {
+  /** Xodim uchun haftalik hisobot — ko'rinish tekshiruvi `getById` orqali (o'qituvchi faqat o'z guruhi) */
+  async weeklyReport(actor: AuthUser, studentId: string, week: string | undefined): Promise<WeeklyReportDto> {
+    await studentService.getById(actor, studentId);
+    return weeklyReportService.build(studentId, resolveWeekStart(week));
+  },
+
   async profile(actor: AuthUser, studentId: string): Promise<StudentProfileDto> {
     // Ko'rinish tekshiruvi: topilmasa yoki o'qituvchining guruhida bo'lmasa 404
     const student = await studentService.getById(actor, studentId);

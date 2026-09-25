@@ -44,6 +44,8 @@ export interface ParentDto {
   email: string | null;
   notes: string | null;
   createdAt: string;
+  /** Kabinet hisobi ochilganmi (login/parol tarqatilgan) */
+  hasPortalAccount: boolean;
   students: ParentStudentLinkDto[];
 }
 
@@ -89,6 +91,7 @@ function parentSelect(access: ParentAccess) {
     telegram: true,
     email: true,
     notes: true,
+    userId: true,
     createdAt: true,
     students: {
       // O'qituvchiga boshqa guruhdagi farzandlar ko'rsatilmaydi
@@ -125,6 +128,7 @@ function toDto(parent: ParentRecord): ParentDto {
     email: parent.email,
     notes: parent.notes,
     createdAt: parent.createdAt.toISOString(),
+    hasPortalAccount: parent.userId !== null,
     students: parent.students.map((link) => ({
       linkId: link.id,
       studentId: link.student.id,

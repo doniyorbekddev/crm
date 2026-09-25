@@ -52,6 +52,7 @@ const authUserSelect = {
   lastLoginAt: true,
   createdAt: true,
   deletedAt: true,
+  mustChangePassword: true,
   role: {
     select: {
       id: true,
@@ -75,6 +76,8 @@ export interface AuthUserDto {
   createdAt: string;
   role: { id: string; key: string; name: string };
   permissions: string[];
+  /** Vaqtinchalik parol bilan kirilgan — avval parolni almashtirishi kerak */
+  mustChangePassword: boolean;
 }
 
 export interface AuthSession {
@@ -108,6 +111,7 @@ function toAuthUserDto(user: AuthUserRecord): AuthUserDto {
     createdAt: user.createdAt.toISOString(),
     role: { id: user.role.id, key: user.role.key, name: user.role.name },
     permissions: user.role.permissions.map((item) => item.permission.key).sort(),
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -483,7 +487,7 @@ export const authService = {
 
       await tx.user.update({
         where: { id: record.userId },
-        data: { passwordHash, passwordChangedAt: new Date() },
+        data: { passwordHash, passwordChangedAt: new Date(), mustChangePassword: false },
       });
       // Parol tiklangach barcha qurilmalardagi sessiyalar yopiladi
       await tx.refreshToken.updateMany({
@@ -522,7 +526,8 @@ export const authService = {
       });
       const updatedUser = await tx.user.update({
         where: { id: userId },
-        data: { passwordHash, passwordChangedAt: new Date() },
+        // O'zi tanlagan parol — vaqtinchalik parol talabi olib tashlanadi
+        data: { passwordHash, passwordChangedAt: new Date(), mustChangePassword: false },
         select: authUserSelect,
       });
       const issued = await issueRefreshToken(tx, userId, familyId, client);

@@ -3,6 +3,12 @@ import { prisma } from '../config/database.js';
 import { AppError } from '../utils/AppError.js';
 import { verifyAccessToken } from '../utils/tokens.js';
 
+/** Frontend shu kod bo'yicha parol almashtirish sahifasiga yo'naltiradi */
+export const PASSWORD_CHANGE_REQUIRED = 'PASSWORD_CHANGE_REQUIRED';
+
+/** Vaqtinchalik parol bilan ham ochiq yo'llar */
+const PASSWORD_CHANGE_ALLOWED = /^\/api\/auth\/(me|change-password|logout|logout-all)(\?|$)/;
+
 /**
  * `Authorization: Bearer <accessToken>` ni tekshiradi va `req.user` ni to‘ldiradi.
  * Har so‘rovda foydalanuvchi bazadan tekshiriladi — bloklangan/o‘chirilgan xodim yoki
@@ -31,6 +37,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       status: true,
       deletedAt: true,
       passwordChangedAt: true,
+      mustChangePassword: true,
       roleId: true,
       branchId: true,
       role: { select: { key: true } },
@@ -45,6 +52,13 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
   // Parol o‘zgartirilgandan oldin berilgan tokenlar yaroqsiz
   if (user.passwordChangedAt && Math.floor(user.passwordChangedAt.getTime() / 1000) > payload.iat) {
     next(AppError.unauthorized('Parol o‘zgartirilgan. Qaytadan kiring'));
+    return;
+  }
+
+  // Vaqtinchalik parol: almashtirilmaguncha faqat o'zi haqidagi ma'lumot, parolni almashtirish
+  // va chiqish mumkin. Frontend'dagi yo'naltirish — qulaylik, himoya shu yerda.
+  if (user.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.test(req.originalUrl)) {
+    next(new AppError(403, 'Avval vaqtinchalik parolni almashtiring', [{ field: 'code', message: PASSWORD_CHANGE_REQUIRED }]));
     return;
   }
 

@@ -29,19 +29,23 @@ interface FamilyEvent {
   dedupeKey: string;
   /** Ota-onaga ham yuborilsinmi (XP kabi mayda hodisalar — faqat o'quvchiga) */
   parents: boolean;
+  /** O'quvchining o'ziga yuborilsinmi (standart — ha; "faqat ota-onaga" xabarlar uchun false) */
+  student?: boolean;
 }
 
-async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<void> {
+/** Nechta qabul qiluvchiga navbatga qo'yildi (ilova ichidagi + Telegram chatlar) */
+async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
   const student = await tx.student.findFirst({
     where: { id: event.studentId, deletedAt: null },
     select: { userId: true, parents: { select: { parent: { select: { id: true, userId: true } } } } },
   });
-  if (!student) return;
+  if (!student) return 0;
 
+  const includeStudent = event.student ?? true;
   const parentRows = event.parents ? student.parents.map((row) => row.parent) : [];
 
   // Ilova ichida — hisobi borlarga (sozlama shu yerda tekshiriladi)
-  const userIds = [student.userId, ...parentRows.map((parent) => parent.userId)].filter((id): id is string => Boolean(id));
+  const userIds = [includeStudent ? student.userId : null, ...parentRows.map((parent) => parent.userId)].filter((id): id is string => Boolean(id));
   await notificationService.createManyInTransaction(
     tx,
     userIds.map((userId) => ({
@@ -56,20 +60,24 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<void> {
   );
 
   // Telegram — bog'langan chatlarga (kabinet hisobi bo'lmasa ham)
-  await notificationService.notifyExternalInTransaction(tx, {
-    title: event.title,
-    message: event.message,
-    studentId: event.studentId,
-    dedupeKey: `${event.dedupeKey}:s:${event.studentId}`,
-  });
+  let queued = userIds.length;
+  if (includeStudent) {
+    queued += await notificationService.notifyExternalInTransaction(tx, {
+      title: event.title,
+      message: event.message,
+      studentId: event.studentId,
+      dedupeKey: `${event.dedupeKey}:s:${event.studentId}`,
+    });
+  }
   for (const parent of parentRows) {
-    await notificationService.notifyExternalInTransaction(tx, {
+    queued += await notificationService.notifyExternalInTransaction(tx, {
       title: event.title,
       message: event.message,
       parentId: parent.id,
       dedupeKey: `${event.dedupeKey}:p:${parent.id}`,
     });
   }
+  return queued;
 }
 
 /** 24.09.2026 */
@@ -174,6 +182,51 @@ export async function notifyCertificateIssued(tx: Tx, certificateId: string): Pr
     entityType: 'certificate',
     entityId: certificateId,
     dedupeKey: `certificate:${certificateId}`,
+    parents: true,
+  });
+}
+
+/**
+ * Avtomatlashtirish qoidalari uchun: xabar o'quvchining o'ziga (`STUDENT`) yoki ota-onasiga
+ * (`PARENT`) — ilova ichida va Telegramda. Oldin faqat o'quvchining Telegramiga ketardi,
+ * shuning uchun "ota-onaga" deb sozlangan qoida ota-onaga yetib bormasdi.
+ */
+export async function notifyStudentAudience(
+  tx: Tx,
+  input: {
+    studentId: string;
+    audience: 'STUDENT' | 'PARENT';
+    type: NotificationType;
+    title: string;
+    message: string;
+    entityType: string;
+    entityId: string;
+    dedupeKey: string;
+  },
+): Promise<number> {
+  return notifyFamily(tx, {
+    studentId: input.studentId,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    dedupeKey: input.dedupeKey,
+    student: input.audience === 'STUDENT',
+    parents: input.audience === 'PARENT',
+  });
+}
+
+/** Haftalik hisobot — o'quvchi va ota-onaga (TZ 3.0 §11) */
+export async function notifyWeeklyReport(tx: Tx, input: { studentId: string; weekStart: string; weekLabel: string; summary: string[] }): Promise<number> {
+  return notifyFamily(tx, {
+    studentId: input.studentId,
+    type: 'WEEKLY_REPORT',
+    title: `Haftalik hisobot · ${input.weekLabel}`,
+    message: input.summary.join('\n'),
+    entityType: 'weekly_report',
+    entityId: input.weekStart,
+    dedupeKey: `weekly-report:${input.studentId}:${input.weekStart}`,
     parents: true,
   });
 }

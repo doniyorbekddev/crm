@@ -6,12 +6,20 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { useAuthStore } from '@/store/auth.store';
 import { safeRedirectPath } from '@/utils/url';
 
+export const CHANGE_PASSWORD_PATH = '/change-password';
+
 /** Faqat tizimga kirganlar uchun. Sessiya tiklanayotganda loader, kirilmagan bo‘lsa — login’ga. */
 export function ProtectedRoute() {
   const status = useAuthStore((state) => state.status);
+  const mustChangePassword = useAuthStore((state) => state.user?.mustChangePassword ?? false);
   const location = useLocation();
 
   if (status === 'checking') return <PageLoader />;
+
+  // Vaqtinchalik parol — avval o'z parolini o'rnatadi (backend ham boshqa so'rovlarni rad etadi)
+  if (status === 'authenticated' && mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
+    return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
+  }
 
   if (status === 'guest') {
     const target = `${location.pathname}${location.search}`;

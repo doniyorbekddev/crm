@@ -9,7 +9,7 @@ import { telegramLinkService } from '../src/services/telegramLink.service.js';
 import { resetRateLimits } from '../src/telegram/rateLimit.js';
 import { telegramSessionService } from '../src/telegram/session.service.js';
 import { removeStoredFile } from '../src/utils/fileStorage.js';
-import { bearer, createUserWithToken, loginAs } from './helpers/auth.js';
+import { bearer, createUserWithToken, loginWithTemporaryPassword } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -138,6 +138,31 @@ describe.skipIf(!hasTestDatabase)('Telegram — o‘quvchi bo‘limlari', () => 
     expect(text).toContain(course.name);
     expect(text).toContain(group.name);
     expect(text).toContain('daraja');
+  });
+
+  it('haftalik hisobot: /hisobot joriy haftani ko‘rsatadi, oldingi haftaga o‘tadi, kelajak sanasi qabul qilinmaydi', async () => {
+    const { student, group } = await linkedStudent();
+    const now = new Date();
+    await prisma.attendance.create({
+      data: { studentId: student.id, groupId: group.id, date: new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`), status: 'PRESENT' },
+    });
+    const bot = captureBot();
+
+    await message('/hisobot').expect(200);
+    expect(bot.last().text).toContain('Haftalik hisobot');
+    expect(bot.last().text).toContain(student.firstName);
+    const previous = bot.lastData().find((data) => data?.startsWith('st_week:'));
+    expect(previous).toMatch(/^st_week:\d{4}-\d{2}-\d{2}$/);
+
+    await press(previous!).expect(200);
+    expect(bot.last().text).toContain('Haftalik hisobot');
+    // O'tgan haftada "Joriy hafta" tugmasi bor
+    expect(bot.lastData()).toContain('st_week');
+
+    // Kelajakdagi yoki buzilgan sana — joriy hafta ko'rsatiladi, xato emas
+    await press('st_week:2099-01-05').expect(200);
+    await press('st_week:yomon').expect(200);
+    expect(bot.last().text).toContain('Haftalik hisobot');
   });
 
   it('davomat: joriy oy kalendari va oldingi oyga o‘tish', async () => {
@@ -369,7 +394,7 @@ describe.skipIf(!hasTestDatabase)('Kabinet API — vazifa topshirish', () => {
     const group = await createGroup({ courseId: course.id });
     const student = await createStudent(course.id, group.id, 'Kabinet');
     const created = await request(app).post(`/api/students/${student.id}/portal-account`).set(bearer(admin)).send({ email: 'kabinet@portal.uz' });
-    const token = await loginAs(app, 'kabinet@portal.uz', created.body.data.temporaryPassword);
+    const token = await loginWithTemporaryPassword(app, 'kabinet@portal.uz', created.body.data.temporaryPassword);
     return { token, student, group, admin };
   }
 

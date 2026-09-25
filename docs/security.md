@@ -17,6 +17,8 @@
 | Parol | bcrypt; talab `lib/validation.ts` (frontend) + `passwordPolicy.test.ts` | |
 | Parol tiklash | bir martalik hash token, email; tiklangach barcha refresh bekor | `PasswordResetToken` |
 | Sessiyalar | `POST /auth/logout-all` | |
+| Vaqtinchalik parol | Kabinet ochilganda/xodim tiklaganda `mustChangePassword = true`; o‘zgartirilmaguncha `authenticate` faqat `/auth/me`, `/auth/change-password`, `/auth/logout(-all)` ni o‘tkazadi, qolgani 403 `PASSWORD_CHANGE_REQUIRED` | `middleware/authenticate.ts`, `parentPortal.test.ts` |
+| Kabinet logini | O‘quvchi — ID (`ST-000045`), ota-ona — telefon; ichki manzil `*@kabinet.invalid` (xat ketmaydi); telefon noaniq bo‘lsa kirish yo‘q | `portalAccount.service.ts` → `resolveLoginIdentifier` |
 
 Kabinet (o‘quvchi/ota-ona) — **xuddi shu** mexanizm; alohida auth yo‘q.
 

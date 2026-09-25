@@ -11,6 +11,8 @@ import type {
   PortalPayments,
   PortalProfile,
   PortalSchedule,
+  PortalChildSummary,
+  WeeklyReport,
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
@@ -61,6 +63,18 @@ export const portalService = {
   /** Bosh sahifa qo‘shimcha ko‘rsatkichlari (risk, keyingi dars/imtihon, kutilayotgan vazifa) */
   async overview(studentId?: string): Promise<PortalOverview> {
     const response = await api.get<ApiSuccessResponse<PortalOverview>>('/portal/overview', { params: { studentId } });
+    return response.data.data;
+  },
+
+  /** Ota-ona: har farzand bo‘yicha qisqa ko‘rsatkichlar */
+  async children(): Promise<PortalChildSummary[]> {
+    const response = await api.get<ApiSuccessResponse<PortalChildSummary[]>>('/portal/children');
+    return response.data.data;
+  },
+
+  /** Haftalik hisobot; `week` — hafta ichidagi sana (bo‘lmasa joriy hafta) */
+  async weeklyReport(studentId?: string, week?: string): Promise<WeeklyReport> {
+    const response = await api.get<ApiSuccessResponse<WeeklyReport>>('/portal/weekly-report', { params: { studentId, week } });
     return response.data.data;
   },
 

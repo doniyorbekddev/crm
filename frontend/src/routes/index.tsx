@@ -55,6 +55,12 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           {
+            path: "change-password",
+            lazy: lazyComponent(
+              () => import("@/pages/auth/ChangePasswordRequiredPage"),
+            ),
+          },
+          {
             // Kabinet — o'quvchi va ota-ona uchun alohida, soddalashtirilgan ko'rinish
             element: <PortalRoute />,
             children: [
@@ -92,6 +98,12 @@ export const router = createBrowserRouter([
                         path: "exams/:id",
                         lazy: lazyComponent(
                           () => import("@/pages/portal/PortalExamDetailPage"),
+                        ),
+                      },
+                      {
+                        path: "weekly-report",
+                        lazy: lazyComponent(
+                          () => import("@/pages/portal/PortalWeeklyReportPage"),
                         ),
                       },
                       {

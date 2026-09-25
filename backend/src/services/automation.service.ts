@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { notifyStudentAudience } from './studentNotify.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { PermissionKey } from '../config/permissions.js';
 import type { AutomationAudience, AutomationTrigger, Prisma } from '../generated/prisma/client.js';
@@ -197,13 +198,18 @@ async function runAbsentStreak(rule: RuleRecord, now: Date): Promise<RuleOutcome
       }),
     );
   } else {
-    // Ota-onaga tashqi kanal orqali (kabinet hisobi shart emas)
+    // O'quvchi yoki ota-onaga — ilova ichida va Telegramda (kabinet hisobi shart emas)
+    const audience = rule.audience === 'PARENT' ? 'PARENT' : 'STUDENT';
     for (const [studentId, value] of matched) {
       await prisma.$transaction(async (tx) => {
-        notified += await notificationService.notifyExternalInTransaction(tx, {
-          title: 'Farzandingiz darsga kelmadi',
-          message: `${value.name} ketma-ket ${value.count} marta darsga kelmadi.`,
+        notified += await notifyStudentAudience(tx, {
           studentId,
+          audience,
+          type: 'CHILD_ABSENT',
+          title: audience === 'PARENT' ? 'Farzandingiz darsga kelmadi' : 'Darslarni qoldiryapsiz',
+          message: `${value.name} ketma-ket ${value.count} marta darsga kelmadi.`,
+          entityType: 'student',
+          entityId: studentId,
           dedupeKey: `automation:${rule.key}:${studentId}:${date}`,
         });
       });
@@ -263,13 +269,16 @@ async function runPaymentSchedule(rule: RuleRecord, now: Date, overdue: boolean)
         ? `${name}: ${moneyUz(amount)} to‘lov muddati ${value.overdueDays} kun oldin o‘tgan.`
         : `${name}: ${moneyUz(amount)} to‘lov muddati yaqinlashdi (${daysBefore} kun ichida).`;
       await prisma.$transaction(async (tx) => {
-        const sent = await notificationService.notifyExternalInTransaction(tx, {
+        notified += await notifyStudentAudience(tx, {
+          studentId,
+          audience: rule.audience === 'PARENT' ? 'PARENT' : 'STUDENT',
+          type: overdue ? 'DEBT_REMINDER' : 'PAYMENT_DUE_SOON',
           title: overdue ? 'To‘lov muddati o‘tdi' : 'To‘lov muddati yaqinlashdi',
           message,
-          studentId,
+          entityType: 'student',
+          entityId: studentId,
           dedupeKey: `automation:${rule.key}:${studentId}:${date}`,
         });
-        notified += sent;
       });
     }
   }

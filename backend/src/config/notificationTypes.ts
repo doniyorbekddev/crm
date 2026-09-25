@@ -31,6 +31,7 @@ export const NOTIFICATION_PRIORITY: Record<NotificationType, NotificationPriorit
   EXAM_RESULT: NotificationPriority.NORMAL,
   LEVEL_UP: NotificationPriority.LOW,
   CERTIFICATE_ISSUED: NotificationPriority.NORMAL,
+  WEEKLY_REPORT: NotificationPriority.LOW,
 };
 
 /**

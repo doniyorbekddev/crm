@@ -5,6 +5,7 @@ import { portalController } from '../controllers/portal.controller.js';
 import { telegramController } from '../controllers/telegram.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 
 export const parentRouter = Router();
 
@@ -14,6 +15,12 @@ const view = requirePermission(PERMISSIONS.PARENT_VIEW);
 const manage = requirePermission(PERMISSIONS.PARENT_MANAGE);
 
 parentRouter.get('/', view, parentController.list);
+parentRouter.post(
+  '/portal-accounts/bulk',
+  requirePermission(PERMISSIONS.PORTAL_MANAGE),
+  heavyLimiter,
+  portalController.bulkCreateParentAccounts,
+);
 parentRouter.get('/:id', view, parentController.getById);
 parentRouter.post('/', manage, parentController.create);
 parentRouter.put('/:id', manage, parentController.update);
@@ -28,6 +35,11 @@ parentRouter.post(
   '/:id/portal-account',
   requirePermission(PERMISSIONS.PORTAL_MANAGE),
   portalController.createParentAccount,
+);
+parentRouter.post(
+  '/:id/portal-account/reset-password',
+  requirePermission(PERMISSIONS.PORTAL_MANAGE),
+  portalController.resetParentPassword,
 );
 parentRouter.patch('/links/:linkId', manage, parentController.updateLink);
 parentRouter.delete('/links/:linkId', manage, parentController.unlink);

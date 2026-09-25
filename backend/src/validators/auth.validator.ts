@@ -56,6 +56,13 @@ export const passwordSchema = z
 /** O'quvchi ID raqami: ST-000045, st45, ST000045 */
 export const STUDENT_LOGIN_PATTERN = /^st-?(\d{1,9})$/i;
 
+/** Ota-ona telefon raqami bilan kiradi: +998 90 123 45 67, 901234567 */
+export const PHONE_LOGIN_PATTERN = /^\+?[\d\s()-]{9,20}$/;
+
+export function isPhoneLogin(value: string): boolean {
+  return PHONE_LOGIN_PATTERN.test(value) && value.replace(/\D/g, '').length >= 9;
+}
+
 export const loginSchema = z.object({
   // Xodim va ota-ona — email, o'quvchi — email yoki ID raqami (ST-000045)
   email: z
@@ -63,7 +70,10 @@ export const loginSchema = z.object({
     .trim()
     .min(1, 'Email yoki ID kiritilishi shart')
     .max(255, 'Juda uzun')
-    .refine((value) => STUDENT_LOGIN_PATTERN.test(value) || z.email().safeParse(value.toLowerCase()).success, 'Email yoki o‘quvchi ID (ST-000045) kiriting'),
+    .refine(
+      (value) => STUDENT_LOGIN_PATTERN.test(value) || isPhoneLogin(value) || z.email().safeParse(value.toLowerCase()).success,
+      'Email, telefon yoki o‘quvchi ID (ST-000045) kiriting',
+    ),
   // Login paytida murakkablik tekshirilmaydi — faqat bo‘sh emasligi
   password: z.string('Parol kiritilishi shart').min(1, 'Parol kiritilishi shart').max(200, 'Parol juda uzun'),
 });

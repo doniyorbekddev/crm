@@ -24,6 +24,8 @@ export interface ParentItem {
   email: string | null;
   notes: string | null;
   createdAt: string;
+  /** Kabinet hisobi ochilganmi */
+  hasPortalAccount: boolean;
   students: ParentStudentLink[];
 }
 

@@ -16,6 +16,7 @@ import { formatDateTime } from '@/utils/format';
 const PORTAL_COMMANDS = [
   ['/qarz', 'qarz va keyingi to‘lov muddati'],
   ['/darslar', 'yaqin 7 kundagi darslar'],
+  ['/hisobot', 'haftalik hisobot'],
   ['/davomat', 'oxirgi 10 dars davomati'],
   ['/holat', 'bog‘lanish holati'],
   ['/uzish', 'bog‘lanishni uzish'],

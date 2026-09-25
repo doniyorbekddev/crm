@@ -61,7 +61,7 @@ function PortalHeader() {
   const logout = useLogout();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <BrandMark />
         <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ function ChildSwitcher() {
   if (me.kind !== 'PARENT' || me.children.length < 2) return null;
 
   return (
-    <div className="mb-5 flex items-center justify-end">
+    <div className="mb-5 flex items-center justify-end print:hidden">
       <Select
         value={activeChild}
         onChange={(event) => setActiveChild(event.target.value)}

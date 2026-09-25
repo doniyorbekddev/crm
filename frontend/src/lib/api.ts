@@ -54,7 +54,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Backend: vaqtinchalik parol almashtirilmagan (`authenticate`) */
+function isPasswordChangeRequired(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || error.response?.status !== 403) return false;
+  const data = error.response.data as { errors?: Array<{ field?: string; message?: string }> } | undefined;
+  return Boolean(data?.errors?.some((item) => item.field === 'code' && item.message === 'PASSWORD_CHANGE_REQUIRED'));
+}
+
 api.interceptors.response.use(undefined, async (error: unknown) => {
+  // Saqlangan foydalanuvchi eskirgan bo'lsa ham — bayroq qo'yiladi, `ProtectedRoute` yo'naltiradi
+  if (isPasswordChangeRequired(error)) {
+    const { user, setUser } = useAuthStore.getState();
+    if (user && !user.mustChangePassword) setUser({ ...user, mustChangePassword: true });
+    throw error;
+  }
   if (
     !axios.isAxiosError(error) ||
     error.response?.status !== 401 ||

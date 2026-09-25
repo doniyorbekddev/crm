@@ -39,8 +39,8 @@ import { StudentXpModal } from '../gamification/StudentXpModal';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
-import { BulkPortalAccountsModal } from './BulkPortalAccountsModal';
-import { PortalAccountModal } from './PortalAccountModal';
+import { BulkPortalAccountsModal } from '@/components/BulkPortalAccountsModal';
+import { PortalAccountModal } from '@/components/PortalAccountModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
@@ -415,7 +415,15 @@ export default function StudentsPage() {
       )}
       {(dialog?.type === 'portal' || dialog?.type === 'portalReset') && (
         <PortalAccountModal
-          student={dialog.student}
+          fullName={`${dialog.student.firstName} ${dialog.student.lastName}`}
+          subtitle={[dialog.student.code, dialog.student.group?.name].filter(Boolean).join(' · ')}
+          loginHint={
+            <>
+              O‘quvchi <b className="font-mono text-fg">{dialog.student.code}</b> ID raqami va tizim bergan parol bilan kiradi.
+            </>
+          }
+          create={(email) => studentsService.createPortalAccount(dialog.student.id, email)}
+          reset={() => studentsService.resetPortalPassword(dialog.student.id)}
           mode={dialog.type === 'portalReset' ? 'reset' : 'create'}
           onClose={() => setDialog(null)}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: queryKeys.students.all })}
@@ -423,7 +431,25 @@ export default function StudentsPage() {
       )}
       {dialog?.type === 'portalBulk' && (
         <BulkPortalAccountsModal
+          title="O‘quvchilarga kabinet ochish"
+          description="Har bir o‘quvchi o‘z ID raqami (ST-000045) va shaxsiy paroli bilan kiradi"
+          allLabel="Barcha faol o‘quvchilar"
           groups={lookupsQuery.data?.groups ?? []}
+          run={async (groupId) => {
+            const result = await studentsService.bulkCreatePortalAccounts(groupId ? { groupId } : {});
+            return {
+              rows: result.data.created.map((row) => ({
+                id: row.studentId,
+                fullName: row.fullName,
+                subtitle: [row.code, row.groupName].filter(Boolean).join(' · '),
+                login: row.login,
+                temporaryPassword: row.temporaryPassword,
+              })),
+              skipped: result.data.skipped,
+              warnings: [],
+              message: result.message,
+            };
+          }}
           onClose={() => setDialog(null)}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: queryKeys.students.all })}
         />

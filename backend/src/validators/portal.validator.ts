@@ -12,6 +12,14 @@ export const portalCalendarQuerySchema = portalChildQuerySchema.extend({
   month: z.coerce.number().int().min(1).max(12).optional(),
 });
 
+/** Haftalik hisobot: `week` — hafta ichidagi istalgan sana (YYYY-MM-DD); bo'lmasa joriy hafta */
+export const weeklyReportQuerySchema = portalChildQuerySchema.extend({
+  week: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Sana YYYY-MM-DD formatida bo‘lishi kerak')
+    .optional(),
+});
+
 /** O'quvchining matnli javobi */
 export const portalHomeworkSubmitSchema = z.object({
   answerText: z.string().trim().min(1, 'Javobni kiriting').max(2000, 'Javob 2000 belgidan oshmasin'),
@@ -33,5 +41,12 @@ export const bulkPortalAccountsSchema = z.object({
 });
 
 export type BulkPortalAccountsInput = z.infer<typeof bulkPortalAccountsSchema>;
+
+/** Ota-onalarga ommaviy ochish: aniq ro'yxat yoki farzandi o'qiydigan guruh */
+export const bulkParentPortalAccountsSchema = bulkPortalAccountsSchema.extend({
+  parentIds: z.array(z.string().trim().min(1).max(50)).min(1).max(300).optional(),
+});
+
+export type BulkParentPortalAccountsInput = z.infer<typeof bulkParentPortalAccountsSchema>;
 
 export type PortalChildQuery = z.infer<typeof portalChildQuerySchema>;

@@ -29,7 +29,8 @@ lookupRouter.get(
 
 lookupRouter.get(
   '/student-form',
-  requireAnyPermission(PERMISSIONS.STUDENT_MANAGE, PERMISSIONS.STUDENT_CONVERT),
+  // Kabinet ochuvchi ham guruh ro'yxatini tanlaydi (faqat nomlar)
+  requireAnyPermission(PERMISSIONS.STUDENT_MANAGE, PERMISSIONS.STUDENT_CONVERT, PERMISSIONS.PORTAL_MANAGE),
   async (_req: Request, res: Response) => {
     sendSuccess(res, await lookupService.studentForm());
   },

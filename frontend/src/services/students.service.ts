@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import type { StudentExamRow, StudentHomeworkRow, StudentProfile } from '@/types/studentProfile';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { BulkPortalAccountsResult, PortalAccount } from '@/types/portal';
+import type { BulkPortalAccountsResult, PortalAccount, WeeklyReport } from '@/types/portal';
 import type { StudentAttendanceHistory } from '@/types/attendance';
 import type {
   ConvertLeadPayload,
@@ -65,6 +65,12 @@ export const studentsService = {
   async bulkCreatePortalAccounts(payload: { groupId?: string }): Promise<MessageResult<BulkPortalAccountsResult>> {
     const response = await api.post<ApiSuccessResponse<BulkPortalAccountsResult>>('/students/portal-accounts/bulk', payload);
     return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Haftalik hisobot (o‘qituvchi — faqat o‘z guruhi, backendda tekshiriladi) */
+  async weeklyReport(id: string, week?: string): Promise<WeeklyReport> {
+    const response = await api.get<ApiSuccessResponse<WeeklyReport>>(`/students/${id}/weekly-report`, { params: { week } });
+    return response.data.data;
   },
 
   /** Kabinet parolini tiklash — yangi vaqtinchalik parol */

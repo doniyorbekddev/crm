@@ -2,7 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
-import { bearer, createUserWithToken, loginAs } from './helpers/auth.js';
+import { PORTAL_NEW_PASSWORD, bearer, createUserWithToken, loginWithTemporaryPassword } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
 
@@ -27,7 +27,7 @@ async function createStudent(courseId: string, groupId: string, name: string) {
 async function openStudentPortal(adminToken: string, studentId: string, email: string) {
   const created = await request(app).post(`/api/students/${studentId}/portal-account`).set(bearer(adminToken)).send({ email });
   expect(created.status).toBe(201);
-  const token = await loginAs(app, email, created.body.data.temporaryPassword);
+  const token = await loginWithTemporaryPassword(app, email, created.body.data.temporaryPassword);
   return { token, account: created.body.data };
 }
 
@@ -109,7 +109,7 @@ describe.skipIf(!hasTestDatabase)('Kabinet (portal) — o‘quvchi va ota-ona', 
       .post(`/api/parents/${parent.id}/portal-account`)
       .set(bearer(admin))
       .send({ email: 'ota@portal.uz' });
-    const token = await loginAs(app, 'ota@portal.uz', created.body.data.temporaryPassword);
+    const token = await loginWithTemporaryPassword(app, 'ota@portal.uz', created.body.data.temporaryPassword);
 
     const me = await request(app).get('/api/portal/me').set(bearer(token));
     const firstChild = await request(app).get('/api/portal/profile').query({ studentId: first.id }).set(bearer(token));
@@ -282,7 +282,7 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
     });
     const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
     const created = await request(app).post(`/api/parents/${parent.id}/portal-account`).set(bearer(admin)).send({ email: 'ota-a@portal.uz' });
-    const token = await loginAs(app, 'ota-a@portal.uz', created.body.data.temporaryPassword);
+    const token = await loginWithTemporaryPassword(app, 'ota-a@portal.uz', created.body.data.temporaryPassword);
 
     const readPaths = [
       '/api/portal/profile',
@@ -475,12 +475,19 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
       for (const identifier of [code, code.toLowerCase(), `st${student.number}`]) {
         const login = await request(app).post('/api/auth/login').send({ email: identifier, password });
         expect(login.status, identifier).toBe(200);
-        const me = await request(app).get('/api/portal/me').set(bearer(login.body.data.accessToken));
-        expect(me.body.data).toMatchObject({ kind: 'STUDENT', fullName: 'Idli Test' });
+        expect(login.body.data.user.mustChangePassword).toBe(true);
       }
+      const token = await loginWithTemporaryPassword(app, code, password);
+      const me = await request(app).get('/api/portal/me').set(bearer(token));
+      expect(me.body.data).toMatchObject({ kind: 'STUDENT', fullName: 'Idli Test' });
+      // Yangi parol bilan ID orqali kirish ishlaydi, vaqtinchalik parol endi yo'q
+      const relogin = await request(app).post('/api/auth/login').send({ email: `st${student.number}`, password: PORTAL_NEW_PASSWORD });
+      const oldTemp = await request(app).post('/api/auth/login').send({ email: code, password });
+      expect([relogin.status, oldTemp.status]).toEqual([200, 401]);
+      expect(relogin.body.data.user.mustChangePassword).toBe(false);
 
       const wrong = await request(app).post('/api/auth/login').send({ email: code, password: 'NotThePassword1' });
-      const unknown = await request(app).post('/api/auth/login').send({ email: 'ST-999999', password });
+      const unknown = await request(app).post('/api/auth/login').send({ email: 'ST-999999', password: PORTAL_NEW_PASSWORD });
       const garbage = await request(app).post('/api/auth/login').send({ email: 'shunchaki-matn', password });
       expect([wrong.status, unknown.status, garbage.status]).toEqual([401, 401, 422]);
     });
@@ -494,7 +501,7 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
 
       const byCode = await request(app)
         .post('/api/auth/login')
-        .send({ email: `ST-${String(student.number).padStart(6, '0')}`, password: account.temporaryPassword });
+        .send({ email: `ST-${String(student.number).padStart(6, '0')}`, password: PORTAL_NEW_PASSWORD });
       expect(byCode.status).toBe(200);
       expect(account.login).toBe(`ST-${String(student.number).padStart(6, '0')}`);
     });
@@ -523,9 +530,8 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
       expect(new Set(rows.map((row) => row.temporaryPassword)).size).toBe(2);
 
       for (const row of rows) {
-        const login = await request(app).post('/api/auth/login').send({ email: row.login, password: row.temporaryPassword });
-        expect(login.status).toBe(200);
-        const me = await request(app).get('/api/portal/me').set(bearer(login.body.data.accessToken));
+        const token = await loginWithTemporaryPassword(app, row.login, row.temporaryPassword);
+        const me = await request(app).get('/api/portal/me').set(bearer(token));
         expect(me.body.data.children[0].studentId).toBe(row.studentId);
       }
 

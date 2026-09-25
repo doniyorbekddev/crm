@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
           Hisobingizga bog‘langan emailni kiriting — parolni tiklash havolasini yuboramiz.
         </p>
         <p className="mt-2 text-sm text-fg-muted">
-          O‘quvchi ID raqami bilan kirsangiz — yangi parol uchun o‘quv markaz administratoriga murojaat qiling.
+          ID raqami yoki telefon bilan kirsangiz — yangi parol uchun o‘quv markaz administratoriga murojaat qiling.
         </p>
       </div>
 

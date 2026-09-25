@@ -158,7 +158,7 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
       )}
       {dialog?.type === 'edit' && (
         <ParentFormModal
-          parent={{ ...dialog.row, id: dialog.row.parentId, createdAt: '', students: [] }}
+          parent={{ ...dialog.row, id: dialog.row.parentId, createdAt: '', hasPortalAccount: false, students: [] }}
           onClose={close}
           onSaved={saved}
         />
