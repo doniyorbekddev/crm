@@ -122,7 +122,13 @@ describe.skipIf(!hasTestDatabase)('Telegram 2.0 (PHASE 11)', () => {
     expect(bot.lastData()).toContain('ex_list');
     await press(71_001, 'ex_list').expect(200);
     expect(bot.last().text).toContain('Bot testi');
+    // TZ 3.1 GAP-06: ro'yxat → tafsilot → boshlash → tasdiq → savol
+    await press(71_001, `ex_info:${exam.id}`).expect(200);
+    expect(bot.last().text).toContain('Savollar: <b>2</b>');
     await press(71_001, `ex_start:${exam.id}`).expect(200);
+    expect(bot.last().text).toContain('Boshlaymizmi?');
+    expect(await prisma.examAttempt.count({ where: { examId: exam.id } })).toBe(0);
+    await press(71_001, `ex_go:${exam.id}`).expect(200);
     expect(bot.last().text).toContain('1/2');
     expect(bot.last().text).toContain('2 + 2 nechiga teng?');
 

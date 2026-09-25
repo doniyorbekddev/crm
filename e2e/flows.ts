@@ -1,6 +1,6 @@
 import type { APIRequestContext } from '@playwright/test';
 import { Client } from 'pg';
-import { API_PORT, e2eDatabaseUrl } from './env';
+import { API_PORT, E2E_WEBHOOK_SECRET, e2eDatabaseUrl } from './env';
 import { USERS, expect } from './fixtures';
 import type { SeedUser } from './fixtures';
 
@@ -107,6 +107,27 @@ async function linkParentTelegram(parentId: string): Promise<void> {
       [`e2e-link-${stamp}`, `9${stamp}`.slice(0, 15), `e2e${stamp}`.slice(0, 32), parentId],
     ),
   );
+}
+
+/** O'quvchining tasdiqlangan Telegram chati (bot /start kodi orqali bo'ladigan holat) */
+export async function linkStudentTelegram(studentId: string, chatId: number): Promise<void> {
+  const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  await withDb((db) =>
+    db.query(
+      `INSERT INTO telegram_links (id, "chatId", "linkCode", "codeUsedAt", "telegramUserId", "studentId", "verifiedAt", "isActive", muted, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), $2, $4, NOW(), true, false, NOW(), NOW())`,
+      [`e2e-slink-${stamp}`, String(chatId), `e2es${stamp}`.slice(0, 32), studentId],
+    ),
+  );
+}
+
+/** Telegram webhook'iga tugma bosilishini yuboradi (Telegram serveri o'rniga) */
+export async function telegramPress(request: APIRequestContext, chatId: number, data: string): Promise<void> {
+  const response = await request.post(`${API}/telegram/webhook`, {
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': E2E_WEBHOOK_SECRET },
+    data: { update_id: Date.now(), callback_query: { id: `cb-${Date.now()}`, data, from: { id: chatId }, message: { message_id: 1, chat: { id: chatId } } } },
+  });
+  expect(response.status(), await response.text()).toBe(200);
 }
 
 /** Ota-ona uchun Telegram navbatiga yozilgan xabarlar sarlavhalari */

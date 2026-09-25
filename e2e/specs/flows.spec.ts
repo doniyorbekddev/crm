@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { API, apiLogin, createQuestion, createTopic, prepareFamily, telegramTitles } from '../flows';
+import { API, apiLogin, createQuestion, createTopic, linkStudentTelegram, prepareFamily, telegramPress, telegramTitles } from '../flows';
 import { PORTAL_PASSWORD, expect, login, loginWithTemporaryPassword, test } from '../fixtures';
 
 /**
@@ -244,4 +244,33 @@ test('§66 AI: past natija → risk, sabab, tavsiya → o‘qituvchi remedial re
 
   await openPortalSection(page, 'Progress');
   await expect.poll(async () => Number(await meter.getAttribute('aria-valuenow'))).toBeGreaterThan(0);
+});
+
+test('§35 Telegram imtihon: o‘quvchi botda boshlaydi, javob beradi, topshiradi — natija CRM va web kabinetda', async ({ page, request }) => {
+  const family = await prepareFamily(request);
+  const stamp = Date.now();
+  const topicTitle = `Bot mavzusi ${stamp}`;
+  const topicId = await createTopic(request, family.admin, family.courseId, topicTitle);
+  const questionId = await createQuestion(request, family.admin, { courseId: family.courseId, topicId, text: `${topicTitle}: 3 + 4 = ?`, options: [{ text: 'Yetti', isCorrect: true }, { text: 'Sakkiz' }] });
+  const title = `Telegram imtihoni ${stamp}`;
+  const exam = await request.post(`${API}/exams`, { headers: family.admin, data: { title, groupId: family.groupId, date: new Date().toISOString().slice(0, 10), isOnline: true, durationMinutes: 20 } });
+  expect(exam.status()).toBe(201);
+  const examId = (await exam.json()).data.id as string;
+  expect((await request.post(`${API}/exams/${examId}/questions`, { headers: family.admin, data: { questionIds: [questionId] } })).status()).toBe(200);
+
+  // Bot: tafsilot → boshlash → tasdiq → javob (variant tartibi aralashmagan — "Yetti" birinchi) → tugatish → tasdiq
+  const chatId = Number(String(stamp).slice(-9));
+  await linkStudentTelegram(family.student.id, chatId);
+  for (const data of [`ex_info:${examId}`, `ex_start:${examId}`, `ex_go:${examId}`, 'ex_a:0:0', 'ex_sub', 'ex_subok']) {
+    await telegramPress(request, chatId, data);
+  }
+
+  // CRM: xodim urinishni ko'radi
+  const attempts = await request.get(`${API}/exams/${examId}/attempts`, { headers: family.admin });
+  expect((await attempts.json()).data).toEqual([expect.objectContaining({ status: 'GRADED', percentage: 100 })]);
+
+  // Web kabinet: o'sha natija
+  await loginWithTemporaryPassword(page, family.student.login, family.student.password);
+  await page.goto('/portal/exams');
+  await expect(page.getByRole('listitem').filter({ hasText: title }).filter({ hasText: 'Oxirgi:' })).toContainText('100%');
 });

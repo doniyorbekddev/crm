@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
-import { API_PORT, BACKEND_DIR, FRONTEND_DIR, WEB_PORT, e2eDatabaseUrl } from './e2e/env';
+import { API_PORT, BACKEND_DIR, E2E_WEBHOOK_SECRET, FRONTEND_DIR, WEB_PORT, e2eDatabaseUrl } from './e2e/env';
 
 const isCI = Boolean(process.env.CI);
 // Lokal mashinada o'rnatilgan Google Chrome; CI'da `npx playwright install chromium`
@@ -59,6 +59,8 @@ export default defineConfig({
         // dotenv mavjud o'zgaruvchini almashtirmaydi). Telegram navbati baribir yoziladi va tekshiriladi.
         TELEGRAM_BOT_TOKEN: '',
         TELEGRAM_POLLING: 'false',
+        // Webhook'ni E2E testlari o'zi chaqiradi (§35) — dev .env dagi sir emas, alohida test qiymati
+        TELEGRAM_WEBHOOK_SECRET: E2E_WEBHOOK_SECRET,
         ANTHROPIC_API_KEY: '',
         SENTRY_DSN: '',
         JWT_SECRET: process.env.JWT_SECRET ?? 'e2e-access-secret-0123456789-abcdefghijklmnop',

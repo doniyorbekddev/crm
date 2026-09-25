@@ -4,7 +4,7 @@ import { ATTENDANCE_STATUS_LABELS, formatStudentNumber } from '../config/student
 import type { AttendanceStatus, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
-import { addDays, startOfBusinessDay } from '../utils/dates.js';
+import { addDays, businessDateString } from '../utils/dates.js';
 import type {
   AttendanceCalendarQuery,
   AttendanceRankingQuery,
@@ -175,10 +175,11 @@ export const attendanceAnalyticsService = {
     const baseWhere = await buildWhere(actor, { ...query, from: undefined, to: undefined });
     const rangeWhere = await buildWhere(actor, { ...query, from: range.from, to: range.to });
 
-    const dayStart = startOfBusinessDay(new Date());
-    const todayDate = parseDateOnly(toDateOnly(new Date()));
-    const weekStart = parseDateOnly(toDateOnly(addDays(dayStart, -6)));
-    const monthStart = parseDateOnly(toDateOnly(new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))));
+    // "Bugun" — o'quv markaz sanasi (UTC emas): aks holda 00:00–05:00 da kechagi kun hisoblanardi
+    const todayString = businessDateString(new Date());
+    const todayDate = parseDateOnly(todayString);
+    const weekStart = parseDateOnly(toDateOnly(addDays(todayDate, -6)));
+    const monthStart = parseDateOnly(`${todayString.slice(0, 8)}01`);
 
     const today = await groupedCounts({ AND: [baseWhere, { date: todayDate }] });
     const week = await groupedCounts({ AND: [baseWhere, { date: { gte: weekStart } }] });
@@ -322,8 +323,8 @@ export const attendanceAnalyticsService = {
   /** O‘qituvchi paneli: bugungi darslar, belgilanmagan guruhlar, kelmaganlar */
   async teacherOverview(actor: AuthUser): Promise<TeacherOverviewDto> {
     const access = await getSessionAccess(actor);
-    const today = new Date();
-    const todayDate = parseDateOnly(toDateOnly(today));
+    // O'quv markaz sanasi bo'yicha (bot "Bugungi darslar", dashboard) — UTC sanasi tunda kechagi kun
+    const todayDate = parseDateOnly(businessDateString(new Date()));
     const weekDays = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
     const todayWeekDay = weekDays[todayDate.getUTCDay()]!;
 
@@ -379,7 +380,7 @@ export const attendanceAnalyticsService = {
       take: 50,
     });
 
-    const monthStart = parseDateOnly(toDateOnly(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))));
+    const monthStart = parseDateOnly(`${toDateOnly(todayDate).slice(0, 8)}01`);
     const monthCounts = await groupedCounts({
       date: { gte: monthStart },
       student: { deletedAt: null },
@@ -389,7 +390,7 @@ export const attendanceAnalyticsService = {
     const scheduledToday = rows.filter((row) => row.isScheduledToday);
 
     return {
-      date: toDateOnly(today),
+      date: toDateOnly(todayDate),
       groups: rows,
       todayLessons: scheduledToday.length,
       markedLessons: scheduledToday.filter((row) => row.markedToday > 0).length,

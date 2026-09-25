@@ -344,3 +344,71 @@ Xodim `submit` — +1 `attemptQuestion.findMany` (ochiq urinish bo'lsa) va snaps
 ## Next Phase
 
 **PHASE 6 — Telegram online exam (GAP-06)**: tafsilot va tasdiq ekrani, har callbackda imtihon holati/oyna/o'quvchi holatini qayta tekshirish (S6), qolgan vaqt, testlar (vaqt tugashi, fayl, begona urinish, ota-ona).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 6
+
+Sana: 2026-09-26. GAP-06 "Telegram online exam". Batafsil: [telegram.md](telegram.md), [assessment.md](assessment.md).
+
+## Implemented
+
+- Bot oqimi TZ bo'yicha: **Imtihonlarim → ro'yxat → tafsilot** (savollar, vaqt, urinishlar, oyna, qoidalar) **→ Boshlash → Tasdiq → savollar → Tugatish → natija**. Tasdiqdan oldin urinish ochilmaydi (taymer boshlanmaydi); ochiq urinish tasdiqsiz davom etadi.
+- Navigatsiya: `⬅️ Oldingi`, `➡️ Keyingi`, `💾 Saqlash` (javoblar avtomatik saqlanadi — tugma holatni serverdan qayta o'qib ko'rsatadi), `🏁 Tugatish` (tasdiq bilan). Qolgan vaqt har ekranda serverdagi muddatdan.
+- **S6 — har callbackda qayta tekshiruv** (`examTakingService`, bot va kabinet uchun bitta joyda): urinish egasi va holati (mavjud) + **imtihon holati** (bekor/yopilgan — javob va topshirish rad), **o'quvchi faolligi** (muzlatilgan/ketgan — rad), **o'quvchi hali shu guruhda**. Boshlashda ham faol bo'lmagan o'quvchi rad etiladi.
+- Tekshiruv davomida topilgan va tuzatilgan eski nuqson: **davomat obzori/statistikasida "bugun" UTC bo'yicha** edi — Toshkentda 00:00–05:00 oralig'ida o'qituvchi (bot "Bugungi darslar", dashboard) kechagi kun darslarini ko'rardi. Endi o'quv markaz sanasi (`businessDateString`); hafta va oy boshlanishi ham.
+
+## Existing Code Reused
+
+`examTakingService` (available, start, view, saveAnswer, saveAnswerFile, submit — bot o'z imtihon mantiqiga ega emas), `telegramService.downloadFile` + `saveAnswerFile` (fayl CRM xotirasiga, PDF/rasm siyosati), `telegramSessionService` (urinish id sessiyada — callback'ga ishonilmaydi), `businessDateString`.
+
+## New Files
+
+`backend/tests/telegramExam.test.ts`, `backend/tests/attendanceBusinessDate.test.ts`.
+
+## Modified Files
+
+Backend: `telegram/handlers/exam.ts`, `services/examTaking.service.ts`, `services/attendanceAnalytics.service.ts`, `tests/telegramV2.test.ts` (tasdiq qadami qo'shildi — qat'iyroq), `tests/staffDocuments.test.ts` (sana yordamchisi markaz sanasiga).
+E2E: `e2e/specs/flows.spec.ts` (+§35), `e2e/flows.ts` (`linkStudentTelegram`, `telegramPress`), `e2e/env.ts`, `playwright.config.ts` (alohida test webhook siri). Docs: `telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q. Kabinet `PUT/POST /portal/attempts/*` endi bekor qilingan imtihon, faol bo'lmagan yoki guruhdan chiqqan o'quvchi uchun 422.
+
+## Telegram Changes
+
+Yangi callbacklar: `ex_info:<examId>`, `ex_go:<examId>`, `ex_save`; `ex_start` endi yangi urinish uchun tasdiq so'raydi; ro'yxat tugmasi tafsilotga olib boradi. Callback'da urinish id yo'q (sessiyada), savol/variant indeksi har safar serverdagi urinishdan o'qiladi.
+
+## Permissions
+
+Yo'q (faqat o'quvchining o'zi; ota-ona va xodim — rad, test).
+
+## Security
+
+§29: har callbackda foydalanuvchi (scope qayta), egalik (`{id, studentId}`), urinish holati, imtihon holati, o'quvchi holati va guruhi. Begona guruh imtihoni — topilmaydi, urinish yaratilmaydi; soxta indeks — hech narsa yozilmaydi; ota-ona — boshlay olmaydi (testlar). Timer server tomonda: mijoz vaqtiga ishonilmaydi (test: boshlanish vaqti surilganda keyingi callbackda urinish yakunlanadi).
+
+## Tests
+
+Backend **816** (+5; oxirgi to'liq yurishda 815 o'tdi — `examEngine.test.ts` bitta testi yuklama ostida HTTP "Parse Error", alohida 12/12 o'tadi; oldingi yurishda ham o'tgan), E2E **37/37** (+1: §35 bot → CRM → web kabinet), frontend o'zgarmadi. TypeScript, lint (0 xato), build — o'tdi.
+Birinchi to'liq yurish tunda (00:33) ikkita **eski** sanaga bog'liq nuqsonni ochdi (o'zgarishlarsiz kodda ham yiqilishi tekshirildi): biri mahsulotda (yuqorida tuzatildi, regressiya testi vaqtni 00:30 ga qo'yib eski kodda yiqilishi tasdiqlandi), biri testning UTC sana yordamchisida.
+
+## Performance
+
+Har javobda qo'shimcha so'rov yo'q (holat `loadAttempt` ichida bitta so'rovda). Bot tafsilot ekrani mavjud `available` so'rovidan.
+
+## Documentation
+
+`docs/telegram.md` (imtihon oqimi va xavfsizlik).
+
+## Known Issues
+
+- Botda natijadan keyin to'g'ri javoblar va tushuntirish ko'rsatilmaydi — kabinetga yo'naltiriladi (xabar hajmi).
+- "Jonli" teskari sanash yo'q (Telegram xabari o'zi yangilanmaydi) — qolgan vaqt har bosishda serverdan yangilanadi.
+
+## Next Phase
+
+**PHASE 7 — Telegram teacher homework file (GAP-07)** + S1 (bot amallarida `homework.manage` tekshiruvi): TZ tartibidagi oqim, fayl turi qabul paytida, atomik yaratish (fayl xatosida vazifa e'lon qilinmaydi).

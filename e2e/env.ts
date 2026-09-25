@@ -7,6 +7,8 @@ export const BACKEND_DIR = path.join(ROOT_DIR, 'backend');
 export const FRONTEND_DIR = path.join(ROOT_DIR, 'frontend');
 
 export const API_PORT = Number(process.env.E2E_API_PORT ?? 4100);
+/** E2E serveridagi Telegram webhook siri (haqiqiy bot bilan aloqasi yo'q) */
+export const E2E_WEBHOOK_SECRET = 'e2e-telegram-webhook-secret-0123456789';
 export const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 5174);
 
 function backendEnv(): Record<string, string> {

@@ -23,7 +23,13 @@ import type { BotContext, HandlerResult } from '../types.js';
 
 export const EXAM_ACTIONS = {
   list: 'ex_list',
+  /** Imtihon tafsiloti (TZ 3.1 GAP-06: Available → Details → Start → Confirm) */
+  info: 'ex_info',
   start: 'ex_start',
+  /** Tasdiqdan keyin haqiqiy boshlash (taymer shu yerda boshlanadi) */
+  go: 'ex_go',
+  /** Javoblar avtomatik saqlanadi — tugma buni ochiq tasdiqlaydi */
+  save: 'ex_save',
   question: 'ex_q',
   answer: 'ex_a',
   submit: 'ex_sub',
@@ -34,7 +40,7 @@ export const EXAM_FLOW = 'exam';
 
 export const EXAM_COMMANDS: Readonly<Record<string, string>> = { '/onlayn': EXAM_ACTIONS.list };
 /** Oqim ichidagi tugmalar — sessiyani yopmaydi */
-export const EXAM_FLOW_ACTIONS: ReadonlySet<string> = new Set([EXAM_ACTIONS.question, EXAM_ACTIONS.answer, EXAM_ACTIONS.submit, EXAM_ACTIONS.submitConfirm]);
+export const EXAM_FLOW_ACTIONS: ReadonlySet<string> = new Set([EXAM_ACTIONS.question, EXAM_ACTIONS.answer, EXAM_ACTIONS.save, EXAM_ACTIONS.submit, EXAM_ACTIONS.submitConfirm]);
 
 const CHOICE_TYPES = new Set(['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE']);
 const MB = 1024 * 1024;
@@ -84,7 +90,7 @@ export async function showOnlineExams(context: BotContext, scope: CommandScope, 
     if (exam.startAt || exam.endAt) lines.push(`   🕐 ${exam.startAt ? fmtDateTime(exam.startAt) : '…'} — ${exam.endAt ? fmtDateTime(exam.endAt) : '…'}`);
     if (exam.lastResult) lines.push(`   Oxirgi natija: ${exam.lastResult.status === 'NEEDS_REVIEW' ? 'tekshirilmoqda' : `${exam.lastResult.percentage}%`}`);
     if (!exam.canStart) lines.push(`   ⛔ ${escapeHtml(exam.reason ?? 'hozir topshirib bo‘lmaydi')}`);
-    else if (taker) keyboard.push([{ text: `${exam.openAttemptId ? '▶️ Davom ettirish' : '🚀 Boshlash'}: ${exam.title.slice(0, 30)}`, data: callback(EXAM_ACTIONS.start, exam.examId) }]);
+    if (taker) keyboard.push([{ text: `${exam.openAttemptId ? '▶️' : '📋'} ${exam.title.slice(0, 40)}`, data: callback(EXAM_ACTIONS.info, exam.examId) }]);
   }
   if (!taker) lines.push('', 'Imtihonni o‘quvchining o‘zi topshiradi.');
   keyboard.push(menuRow());
@@ -92,7 +98,7 @@ export async function showOnlineExams(context: BotContext, scope: CommandScope, 
   return { action: EXAM_ACTIONS.list };
 }
 
-async function renderQuestion(context: BotContext, view: AttemptViewDto, index: number): Promise<HandlerResult> {
+async function renderQuestion(context: BotContext, view: AttemptViewDto, index: number, note?: string): Promise<HandlerResult> {
   if (view.status !== 'IN_PROGRESS') return renderResult(context, view);
   const safeIndex = Math.min(Math.max(index, 0), view.questions.length - 1);
   const question = view.questions[safeIndex]!;
@@ -100,6 +106,7 @@ async function renderQuestion(context: BotContext, view: AttemptViewDto, index: 
 
   const answered = view.questions.filter((item) => item.answer.optionIds.length > 0 || Boolean(item.answer.text?.trim()) || item.answer.hasFile).length;
   const lines = [
+    ...(note ? [note, ''] : []),
     `<b>${escapeHtml(view.examTitle)}</b> · ${safeIndex + 1}/${view.questions.length} · javob: ${answered}${remaining(view.deadline)}`,
     '',
     `<b>${question.order}.</b> ${escapeHtml(question.text)} <i>(${question.points} ball)</i>`,
@@ -117,10 +124,13 @@ async function renderQuestion(context: BotContext, view: AttemptViewDto, index: 
     lines.push('', question.answer.text ? `Sizning javobingiz:\n<code>${escapeHtml(question.answer.text.slice(0, 500))}</code>\n\nO‘zgartirish uchun yangi javob yozing.` : '✍️ Javobni xabar sifatida yozing.');
   }
   const nav: InlineButton[] = [];
-  if (safeIndex > 0) nav.push({ text: '◀️', data: callback(EXAM_ACTIONS.question, String(safeIndex - 1)) });
-  if (safeIndex < view.questions.length - 1) nav.push({ text: '▶️', data: callback(EXAM_ACTIONS.question, String(safeIndex + 1)) });
+  if (safeIndex > 0) nav.push({ text: '⬅️ Oldingi', data: callback(EXAM_ACTIONS.question, String(safeIndex - 1)) });
+  if (safeIndex < view.questions.length - 1) nav.push({ text: '➡️ Keyingi', data: callback(EXAM_ACTIONS.question, String(safeIndex + 1)) });
   if (nav.length) keyboard.push(nav);
-  keyboard.push([{ text: '📝 Topshirish', data: callback(EXAM_ACTIONS.submit) }]);
+  keyboard.push([
+    { text: '💾 Saqlash', data: callback(EXAM_ACTIONS.save) },
+    { text: '🏁 Tugatish', data: callback(EXAM_ACTIONS.submit) },
+  ]);
   await context.render(lines.join('\n'), keyboard);
   return { action: EXAM_ACTIONS.question };
 }
@@ -151,13 +161,79 @@ async function lost(context: BotContext): Promise<HandlerResult> {
   return { action: 'exam_lost' };
 }
 
+/** O'quvchining shu imtihoni (o'z guruhi, onlayn) — boshqa guruh imtihoni ro'yxatda yo'q, demak topilmaydi */
+async function ownExam(studentId: string, examId: string) {
+  return (await examTakingService.available(studentId)).find((exam) => exam.examId === examId) ?? null;
+}
+
+const backToList = (): InlineButton[] => [{ text: '⬅️ Ro‘yxat', data: callback(EXAM_ACTIONS.list) }, ...menuRow()];
+
+/** Tafsilot: savollar, vaqt, oyna, urinishlar, qoidalar */
+export async function showExamInfo(context: BotContext, scope: CommandScope, examId: string | null): Promise<HandlerResult> {
+  const taker = await takingStudent(scope);
+  if (!taker || !examId) {
+    await context.render('Imtihonni o‘quvchining o‘zi topshiradi.', [menuRow()]);
+    return { action: EXAM_ACTIONS.info };
+  }
+  const exam = await ownExam(taker.id, examId);
+  if (!exam) return lost(context);
+  const lines = [
+    `<b>📋 ${escapeHtml(exam.title)}</b>`,
+    '',
+    `Savollar: <b>${exam.questionCount}</b>`,
+    `Vaqt: <b>${exam.durationMinutes ? `${exam.durationMinutes} daqiqa` : 'cheklanmagan'}</b>`,
+    `Urinishlar: <b>${exam.attemptsUsed}/${exam.maxAttempts > 0 ? exam.maxAttempts : '∞'}</b>`,
+  ];
+  if (exam.startAt || exam.endAt) lines.push(`Oyna: ${exam.startAt ? fmtDateTime(exam.startAt) : '…'} — ${exam.endAt ? fmtDateTime(exam.endAt) : '…'}`);
+  if (exam.lastResult) lines.push(`Oxirgi natija: ${exam.lastResult.status === 'NEEDS_REVIEW' ? 'tekshirilmoqda' : `${exam.lastResult.percentage}%`}`);
+  lines.push('', '• Javoblar avtomatik saqlanadi (kabinetda ham davom ettirish mumkin).', '• Vaqt tugasa urinish saqlangan javoblar bilan avtomatik topshiriladi.');
+  const keyboard: InlineKeyboard = [];
+  if (!exam.canStart) lines.push('', `⛔ ${escapeHtml(exam.reason ?? 'Hozir topshirib bo‘lmaydi')}`);
+  else keyboard.push([{ text: exam.openAttemptId ? '▶️ Davom ettirish' : '🚀 Boshlash', data: callback(EXAM_ACTIONS.start, exam.examId) }]);
+  keyboard.push(backToList());
+  await context.render(lines.join('\n'), keyboard);
+  return { action: EXAM_ACTIONS.info };
+}
+
+/** "Boshlash": ochiq urinish bo'lsa — davom ettiriladi; yangisi uchun tasdiq so'raladi (taymer boshlanadi) */
 export async function startExam(context: BotContext, scope: CommandScope, examId: string | null): Promise<HandlerResult> {
   const taker = await takingStudent(scope);
   if (!taker || !examId) {
     await context.render('Imtihonni o‘quvchining o‘zi topshiradi.', [menuRow()]);
     return { action: EXAM_ACTIONS.start };
   }
+  const exam = await ownExam(taker.id, examId);
+  if (!exam) return lost(context);
+  if (exam.openAttemptId) return safely(context, async () => renderQuestion(context, await examTakingService.start(taker.id, examId, taker.userId), 0));
+  if (!exam.canStart) return showExamInfo(context, scope, examId);
+  await context.render(
+    [
+      `<b>${escapeHtml(exam.title)}</b>`,
+      '',
+      exam.durationMinutes ? `⏱ Boshlagach <b>${exam.durationMinutes} daqiqa</b> vaqt ketadi — to‘xtatib bo‘lmaydi.` : 'Vaqt cheklanmagan.',
+      `${exam.questionCount} ta savol. Boshlaymizmi?`,
+    ].join('\n'),
+    [[{ text: '✅ Ha, boshlash', data: callback(EXAM_ACTIONS.go, exam.examId) }, { text: '⬅️ Orqaga', data: callback(EXAM_ACTIONS.info, exam.examId) }]],
+  );
+  return { action: EXAM_ACTIONS.start };
+}
+
+/** Tasdiqlangan boshlash — urinish shu yerda ochiladi (server vaqti) */
+export async function confirmStart(context: BotContext, scope: CommandScope, examId: string | null): Promise<HandlerResult> {
+  const taker = await takingStudent(scope);
+  if (!taker || !examId) return lost(context);
   return safely(context, async () => renderQuestion(context, await examTakingService.start(taker.id, examId, taker.userId), 0));
+}
+
+/** "💾 Saqlash" — javoblar allaqachon saqlangan; joriy holat serverdan qayta o'qilib ko'rsatiladi */
+export async function confirmSaved(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const current = await currentAttempt(context, scope);
+  if (!current) return lost(context);
+  return safely(context, async () => {
+    const view = await examTakingService.view(current.studentId, current.attemptId);
+    const answered = view.questions.filter((item) => item.answer.optionIds.length > 0 || Boolean(item.answer.text?.trim()) || item.answer.hasFile).length;
+    return renderQuestion(context, view, current.index, `💾 Saqlangan: ${answered}/${view.questions.length} javob`);
+  });
 }
 
 export async function showQuestion(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
@@ -251,8 +327,14 @@ export async function handleExamAction(context: BotContext, scope: CommandScope,
     case EXAM_ACTIONS.list:
       if (!studentId) return undefined;
       return showOnlineExams(context, scope, studentId);
+    case EXAM_ACTIONS.info:
+      return showExamInfo(context, scope, arg);
     case EXAM_ACTIONS.start:
       return startExam(context, scope, arg);
+    case EXAM_ACTIONS.go:
+      return confirmStart(context, scope, arg);
+    case EXAM_ACTIONS.save:
+      return confirmSaved(context, scope);
     case EXAM_ACTIONS.question:
       return showQuestion(context, scope, arg);
     case EXAM_ACTIONS.answer:

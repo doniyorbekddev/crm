@@ -85,7 +85,7 @@ function attemptDeadline(startedAt: Date, exam: { durationMinutes: number | null
 
 /** Imtihon o'quvchi guruhiniki va onlaynmi */
 async function examForStudent(studentId: string, examId: string) {
-  const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true } });
+  const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true, status: true } });
   const exam = await prisma.exam.findFirst({
     where: { id: examId, isOnline: true, ...(student?.groupId ? { groupId: student.groupId } : { id: '__none__' }) },
     select: {
@@ -107,13 +107,14 @@ async function examForStudent(studentId: string, examId: string) {
     },
   });
   if (!exam) throw AppError.notFound('Imtihon topilmadi');
-  return exam;
+  return { ...exam, studentActive: student?.status === 'ACTIVE' };
 }
 
 type StudentExam = Awaited<ReturnType<typeof examForStudent>>;
 
 function startBlocker(exam: StudentExam, now: Date): string | null {
   if (!OPEN_STATUSES.includes(exam.status as (typeof OPEN_STATUSES)[number])) return 'Imtihon yopilgan';
+  if (!exam.studentActive) return 'O‘quvchi faol emas — imtihon topshirib bo‘lmaydi';
   if (exam.startAt && now < exam.startAt) return 'Imtihon hali boshlanmagan';
   if (exam.endAt && now >= exam.endAt) return 'Imtihon vaqti tugagan';
   if (!exam.blueprint && exam._count.questions === 0) return 'Imtihonga savollar biriktirilmagan';
@@ -174,7 +175,8 @@ async function loadAttempt(studentId: string, attemptId: string) {
       maxScore: true,
       percentage: true,
       passed: true,
-      exam: { select: { title: true, type: true, durationMinutes: true, endAt: true } },
+      exam: { select: { title: true, type: true, durationMinutes: true, endAt: true, status: true, groupId: true } },
+      student: { select: { status: true, deletedAt: true, groupId: true } },
       questions: { orderBy: { sortOrder: 'asc' }, select: { id: true, examQuestionId: true, sortOrder: true, points: true, snapshot: true, answerKey: true } },
       answers: { select: { id: true, examQuestionId: true, optionIds: true, text: true, filePath: true, score: true, isCorrect: true, feedback: true } },
     },
@@ -185,6 +187,19 @@ async function loadAttempt(studentId: string, attemptId: string) {
 }
 
 type LoadedAttempt = Awaited<ReturnType<typeof loadAttempt>>;
+
+/**
+ * Javob yozish va topshirishdan oldin **har safar** (kabinet ham, bot ham — TZ 3.1 GAP-06, §29):
+ * imtihon hali ochiq (bekor qilinmagan/yopilmagan), o'quvchi faol va shu imtihon guruhida.
+ * Boshlash paytidagi tekshiruvga tayanilmaydi — urinish davomida holat o'zgarishi mumkin.
+ */
+function assertAttemptWritable(attempt: LoadedAttempt): void {
+  if (!OPEN_STATUSES.includes(attempt.exam.status as (typeof OPEN_STATUSES)[number])) {
+    throw AppError.unprocessable('Imtihon yopilgan yoki bekor qilingan — javob qabul qilinmaydi');
+  }
+  if (attempt.student.deletedAt || attempt.student.status !== 'ACTIVE') throw AppError.unprocessable('O‘quvchi faol emas — imtihon topshirib bo‘lmaydi');
+  if (attempt.student.groupId !== attempt.exam.groupId) throw AppError.unprocessable('Bu imtihon endi sizning guruhingizga tegishli emas');
+}
 
 function toView(attempt: LoadedAttempt): AttemptViewDto {
   const finished = attempt.status !== 'IN_PROGRESS';
@@ -314,7 +329,7 @@ async function finalizeIfExpired(attempt: { id: string; status: AttemptStatus; s
 export const examTakingService = {
   /** O'quvchi guruhining onlayn imtihonlari va har biri bo'yicha holat */
   async available(studentId: string, now: Date = new Date()): Promise<AvailableExamDto[]> {
-    const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true } });
+    const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true, status: true } });
     if (!student?.groupId) return [];
     const exams = await prisma.exam.findMany({
       where: { groupId: student.groupId, isOnline: true, status: { in: [...OPEN_STATUSES] } },
@@ -342,7 +357,7 @@ export const examTakingService = {
       const used = exam.attempts.filter((attempt) => attempt.status !== 'EXPIRED' && attempt.status !== 'IN_PROGRESS').length;
       const open = exam.attempts.find((attempt) => attempt.status === 'IN_PROGRESS') ?? null;
       const last = exam.attempts.find((attempt) => attempt.status !== 'IN_PROGRESS' && attempt.status !== 'EXPIRED') ?? null;
-      let reason = startBlocker(exam, now);
+      let reason = startBlocker({ ...exam, studentActive: student.status === 'ACTIVE' }, now);
       if (!reason && !open && exam.maxAttempts > 0 && used >= exam.maxAttempts) reason = 'Urinishlar tugagan';
       return {
         examId: exam.id,
@@ -436,6 +451,7 @@ export const examTakingService = {
     const attempt = await loadAttempt(studentId, attemptId);
     if (await finalizeIfExpired(attempt, now)) throw AppError.unprocessable('Imtihon vaqti tugadi — javoblar avtomatik topshirildi');
     if (attempt.status !== 'IN_PROGRESS') throw AppError.unprocessable('Urinish yakunlangan');
+    assertAttemptWritable(attempt);
     const row = attempt.questions.find((item) => item.id === attemptQuestionId);
     if (!row) throw AppError.notFound('Savol topilmadi');
     const snapshot = row.snapshot as unknown as Snapshot;
@@ -466,6 +482,7 @@ export const examTakingService = {
     const attempt = await loadAttempt(studentId, attemptId);
     if (await finalizeIfExpired(attempt, now)) throw AppError.unprocessable('Imtihon vaqti tugadi — javoblar avtomatik topshirildi');
     if (attempt.status !== 'IN_PROGRESS') throw AppError.unprocessable('Urinish yakunlangan');
+    assertAttemptWritable(attempt);
     const row = attempt.questions.find((item) => item.id === attemptQuestionId);
     if (!row) throw AppError.notFound('Savol topilmadi');
     if ((row.snapshot as unknown as Snapshot).type !== 'FILE_UPLOAD') throw AppError.unprocessable('Bu savolga fayl yuklanmaydi');
@@ -487,6 +504,7 @@ export const examTakingService = {
     const attempt = await loadAttempt(studentId, attemptId);
     if (!(await finalizeIfExpired(attempt, now))) {
       if (attempt.status !== 'IN_PROGRESS') throw AppError.unprocessable('Urinish allaqachon topshirilgan');
+      assertAttemptWritable(attempt);
       await finalize(attemptId, actorUserId, 'submitted');
     }
     return toView(await loadAttempt(studentId, attemptId));

@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { alertService } from '../src/services/alert.service.js';
+import { businessDateString } from '../src/utils/dates.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { binaryParser } from './helpers/zip.js';
@@ -14,7 +15,8 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const pdf = (text: string) => Buffer.from(`%PDF-1.4\n% ${text}\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n`);
 
 const DAY = 86_400_000;
-const dateOnly = (offsetDays: number) => new Date(Date.now() + offsetDays * DAY).toISOString().slice(0, 10);
+// O'quv markaz sanasi (servis ham shunday hisoblaydi) — UTC sanasi tunda bir kun orqada qoladi
+const dateOnly = (offsetDays: number) => businessDateString(new Date(Date.now() + offsetDays * DAY));
 
 function upload(token: string, url: string, body: Buffer, name: string, query: Record<string, string> = {}) {
   return request(app)

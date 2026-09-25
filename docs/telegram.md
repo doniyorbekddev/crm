@@ -15,7 +15,7 @@ handler qayta tekshiradi.
 | Kim | Bo'lim | Buyruq | Ruxsat |
 |---|---|---|---|
 | O'quvchi / ota-ona | Profil, dars jadvali, davomat, vazifa (topshirish, fayl), imtihon natijalari, XP, to'lovlar, sertifikat, haftalik hisobot, do'st taklifi | `/profil` `/darslar` `/davomat` `/vazifa` `/imtihon` `/xp` `/qarz` `/sertifikat` `/hisobot` `/taklif` | bog'lanish |
-| O'quvchi | **Onlayn imtihon** — boshlash/davom ettirish, variant tugmalari, matn va fayl javob, taymer, topshirish, natija | `/onlayn` | faqat o'quvchining o'zi |
+| O'quvchi | **Onlayn imtihon** (3.1): ro'yxat → tafsilot (savollar, vaqt, urinishlar, oyna) → boshlash → **tasdiq** → savollar; `⬅️ Oldingi` `➡️ Keyingi` `💾 Saqlash` `🏁 Tugatish`; variant (bitta/ko'p), matn va fayl javob (CRM xotirasiga), qolgan vaqt serverdan, natija | `/onlayn` | faqat o'quvchining o'zi; har callbackda urinish egasi, holati, imtihon holati, o'quvchi faolligi va guruhi qayta tekshiriladi |
 | Hamma | **Sozlamalar** — eslatmalarni to'xtatish/yoqish (ovozsiz rejim), farzand tanlash, uzish; xodim — tur bo'yicha Telegram xabarlari | `/sozlamalar` | bog'lanish |
 | O'qituvchi | Bugungi darslar, guruhlar, davomat varag'i, vazifa berish (**fayl/rasm biriktirish**) | `/bugun` `/guruhlar` | `attendance.mark` |
 | O'qituvchi | **KPI** — guruhlar: davomat, vazifa, imtihon, progress, xavf, kutilayotgan ishlar | `/kpi` | `attendance.mark` |
