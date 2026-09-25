@@ -13,7 +13,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -29,6 +29,10 @@ import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { SalaryRuleModal } from './SalaryRuleModal';
 import { TeacherDetailModal } from './TeacherDetailModal';
 import { TeacherFormModal } from './TeacherFormModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -126,6 +130,115 @@ export default function TeachersPage() {
       : []),
   ];
 
+  type TeacherTableRow = NonNullable<typeof teachersQuery.data>['items'][number];
+  const teacherTableColumns: Array<ColumnDef<TeacherTableRow>> = [
+    {
+      key: 'teacher',
+      label: 'O‘qituvchi',
+      required: true,
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          <p className="font-medium text-fg">
+            {teacher.user.firstName} {teacher.user.lastName}
+            {teacher.employmentStatus !== 'ACTIVE' && (
+              <Badge tone={EMPLOYEE_STATUS_TONES[teacher.employmentStatus]} className="ml-2">
+                {EMPLOYEE_STATUS_LABELS[teacher.employmentStatus]}
+              </Badge>
+            )}
+          </p>
+          <p className="text-xs text-fg-muted">
+            {teacher.user.email} · {teacher.user.roleName}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'specialization',
+      label: 'Mutaxassislik',
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          <p className="text-fg">{teacher.specialization ?? '—'}</p>
+          <p className="text-xs text-fg-muted">
+            {teacher.experienceYears === null ? 'Tajriba ko‘rsatilmagan' : `${teacher.experienceYears} yil tajriba`}
+            {teacher.hireDate && ` · ${formatDate(teacher.hireDate)}`}
+            {teacher.terminationDate && ` · ketgan ${formatDate(teacher.terminationDate)}`}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'groups',
+      label: 'Guruh',
+      thClassName: 'text-right',
+      tdClassName: 'text-right tabular-nums text-fg-muted',
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          {formatNumber(teacher.groups)}
+        </>
+      ),
+    },
+    {
+      key: 'students',
+      label: 'O‘quvchi',
+      thClassName: 'text-right',
+      tdClassName: 'text-right tabular-nums text-fg-muted',
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          {formatNumber(teacher.students)}
+        </>
+      ),
+    },
+    {
+      key: 'monthLessons',
+      label: 'Oylik dars',
+      thClassName: 'text-right',
+      tdClassName: 'text-right tabular-nums text-fg-muted',
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          {formatNumber(teacher.lessonsThisMonth)}
+        </>
+      ),
+    },
+    {
+      key: 'salaryModel',
+      label: 'Maosh modeli',
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          {!teacher.salaryVisible ? (
+            <span className="text-xs text-fg-subtle">—</span>
+          ) : teacher.salaryRule ? (
+            <>
+              <Badge tone="blue">{SALARY_TYPE_LABELS[teacher.salaryRule.type]}</Badge>
+              {canViewSalary && (
+                <p className="mt-1 text-xs text-fg-muted">{salaryRuleSummary(teacher.salaryRule)}</p>
+              )}
+            </>
+          ) : (
+            <Badge tone="yellow">Belgilanmagan</Badge>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      stopRowClick: true,
+      cell: (teacher: TeacherTableRow) => (
+        <>
+          <ActionMenu
+            label={`${teacher.user.firstName} ${teacher.user.lastName} amallari`}
+            items={rowActions(teacher)}
+          />
+        </>
+      ),
+    },
+  ];
+  const teacherTable = useTableColumns('teachers', teacherTableColumns);
+
   return (
     <>
       <PageHeader
@@ -206,19 +319,14 @@ export default function TeachersPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={teacherTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', teachersQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>O‘qituvchi</TH>
-                    <TH>Mutaxassislik</TH>
-                    <TH className="text-right">Guruh</TH>
-                    <TH className="text-right">O‘quvchi</TH>
-                    <TH className="text-right">Oylik dars</TH>
-                    <TH>Maosh modeli</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
+                    <ColumnHeaders columns={teacherTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
@@ -228,50 +336,7 @@ export default function TeachersPage() {
                       onClick={() => setDialog({ type: 'detail', teacherId: teacher.id })}
                       className={cn('cursor-pointer', !teacher.isActive && 'opacity-60')}
                     >
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {teacher.user.firstName} {teacher.user.lastName}
-                          {teacher.employmentStatus !== 'ACTIVE' && (
-                            <Badge tone={EMPLOYEE_STATUS_TONES[teacher.employmentStatus]} className="ml-2">
-                              {EMPLOYEE_STATUS_LABELS[teacher.employmentStatus]}
-                            </Badge>
-                          )}
-                        </p>
-                        <p className="text-xs text-fg-muted">
-                          {teacher.user.email} · {teacher.user.roleName}
-                        </p>
-                      </TD>
-                      <TD>
-                        <p className="text-fg">{teacher.specialization ?? '—'}</p>
-                        <p className="text-xs text-fg-muted">
-                          {teacher.experienceYears === null ? 'Tajriba ko‘rsatilmagan' : `${teacher.experienceYears} yil tajriba`}
-                          {teacher.hireDate && ` · ${formatDate(teacher.hireDate)}`}
-                          {teacher.terminationDate && ` · ketgan ${formatDate(teacher.terminationDate)}`}
-                        </p>
-                      </TD>
-                      <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.groups)}</TD>
-                      <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.students)}</TD>
-                      <TD className="text-right tabular-nums text-fg-muted">{formatNumber(teacher.lessonsThisMonth)}</TD>
-                      <TD>
-                        {!teacher.salaryVisible ? (
-                          <span className="text-xs text-fg-subtle">—</span>
-                        ) : teacher.salaryRule ? (
-                          <>
-                            <Badge tone="blue">{SALARY_TYPE_LABELS[teacher.salaryRule.type]}</Badge>
-                            {canViewSalary && (
-                              <p className="mt-1 text-xs text-fg-muted">{salaryRuleSummary(teacher.salaryRule)}</p>
-                            )}
-                          </>
-                        ) : (
-                          <Badge tone="yellow">Belgilanmagan</Badge>
-                        )}
-                      </TD>
-                      <TD className="text-right" onClick={(event) => event.stopPropagation()}>
-                        <ActionMenu
-                          label={`${teacher.user.firstName} ${teacher.user.lastName} amallari`}
-                          items={rowActions(teacher)}
-                        />
-                      </TD>
+                      <ColumnCells columns={teacherTable.visibleColumns} row={teacher} />
                     </TR>
                   ))}
                 </TBody>

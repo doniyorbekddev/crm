@@ -1,7 +1,8 @@
 import { api } from '@/lib/api';
 import type { ApiSuccessResponse } from '@/types/api';
+import type { TableName } from '@/utils/tableColumns';
 
-export type PreferenceKey = 'dashboard.layout' | 'executive.layout' | 'portal.activeChild';
+export type PreferenceKey = 'dashboard.layout' | 'executive.layout' | 'portal.activeChild' | `table.${TableName}.columns`;
 
 export const preferencesService = {
   async list(): Promise<Partial<Record<PreferenceKey, unknown>>> {

@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -32,6 +32,10 @@ import { SALARY_STATUS_LABELS, SALARY_STATUS_TONES } from '@/utils/teacherLabels
 import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { EmployeeFormModal } from './EmployeeFormModal';
 import { LeavesModal } from './LeavesModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -86,6 +90,143 @@ export default function EmployeesPage() {
     apply();
     setPage(1);
   };
+
+  type EmployeeTableRow = NonNullable<typeof query.data>['items'][number];
+  const employeeTableColumns: Array<ColumnDef<EmployeeTableRow>> = [
+    {
+      key: 'employee',
+      label: 'Xodim',
+      required: true,
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          <p className="font-medium text-fg">
+            {employee.firstName} {employee.lastName}
+          </p>
+          <p className="text-xs text-fg-muted">
+            {employee.phone ? formatPhone(employee.phone) : 'Telefon kiritilmagan'}
+            {employee.user && ` · ${employee.user.email}`}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'position',
+      label: 'Lavozim',
+      tdClassName: 'whitespace-nowrap text-fg',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {EMPLOYEE_POSITION_LABELS[employee.position]}
+        </>
+      ),
+    },
+    {
+      key: 'department',
+      label: 'Bo‘lim',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {employee.department ?? '—'}
+        </>
+      ),
+    },
+    {
+      key: 'contract',
+      label: 'Shartnoma',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {employee.contractNumber ?? '—'}
+          {employee.contractEndDate && (
+            <p
+              className={cn(
+                'text-xs',
+                employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-red-600 dark:text-red-400' : '',
+              )}
+            >
+              {employee.contractDaysLeft !== null && employee.contractDaysLeft < 0
+                ? `muddati ${Math.abs(employee.contractDaysLeft)} kun oldin tugagan`
+                : `${employee.contractDaysLeft} kun qoldi`}
+            </p>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'salary',
+      label: 'Oylik maosh',
+      thClassName: 'text-right',
+      tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {employee.baseSalary === null ? '—' : formatMoney(employee.baseSalary)}
+        </>
+      ),
+    },
+    {
+      key: 'hiredAt',
+      label: 'Ishga kirgan',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {formatDate(employee.hireDate)}
+          {employee.terminationDate && <p className="text-xs">ketgan: {formatDate(employee.terminationDate)}</p>}
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Holat',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          <Badge tone={EMPLOYEE_STATUS_TONES[employee.status]}>{EMPLOYEE_STATUS_LABELS[employee.status]}</Badge>
+          {employee.onLeaveToday && <Badge tone="yellow" className="ml-1">Bugun ta’tilda</Badge>}
+        </>
+      ),
+    },
+    {
+      key: 'monthSalary',
+      label: 'Joriy oy maoshi',
+      tdClassName: 'whitespace-nowrap',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          {employee.currentSalary ? (
+            <>
+              <Badge tone={SALARY_STATUS_TONES[employee.currentSalary.status]}>{SALARY_STATUS_LABELS[employee.currentSalary.status]}</Badge>
+              <p className="mt-1 text-xs text-fg-muted">
+                {formatMoney(employee.currentSalary.totalAmount)}
+                {employee.currentSalary.remainingAmount > 0 && ` · qolgan ${formatMoney(employee.currentSalary.remainingAmount)}`}
+              </p>
+            </>
+          ) : (
+            <span className="text-xs text-fg-subtle">Hisoblanmagan</span>
+          )}
+        </>
+      ),
+    },
+    ...(showActions ? [{
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      cell: (employee: EmployeeTableRow) => (
+        <>
+          <ActionMenu
+            label={`${employee.firstName} ${employee.lastName} amallari`}
+            items={[
+              ...(canManage ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }] : []),
+              { label: 'Ta’tillar', icon: CalendarOff, onSelect: () => setDialog({ type: 'leaves', employee }) },
+              ...(canViewDocuments
+                ? [{ label: 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', employee }) }]
+                : []),
+            ]}
+          />
+        </>
+      ),
+    }] : []),
+  ];
+  const employeeTable = useTableColumns('employees', employeeTableColumns);
 
   return (
     <>
@@ -150,90 +291,20 @@ export default function EmployeesPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={employeeTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>Xodim</TH>
-                    <TH>Lavozim</TH>
-                    <TH>Bo‘lim</TH>
-                    <TH>Shartnoma</TH>
-                    <TH className="text-right">Oylik maosh</TH>
-                    <TH>Ishga kirgan</TH>
-                    <TH>Holat</TH>
-                    <TH>Joriy oy maoshi</TH>
-                    {showActions && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <ColumnHeaders columns={employeeTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {query.data.items.map((employee) => (
                     <TR key={employee.id} className={cn(employee.status === 'RESIGNED' && 'opacity-60')}>
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {employee.firstName} {employee.lastName}
-                        </p>
-                        <p className="text-xs text-fg-muted">
-                          {employee.phone ? formatPhone(employee.phone) : 'Telefon kiritilmagan'}
-                          {employee.user && ` · ${employee.user.email}`}
-                        </p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg">{EMPLOYEE_POSITION_LABELS[employee.position]}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{employee.department ?? '—'}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {employee.contractNumber ?? '—'}
-                        {employee.contractEndDate && (
-                          <p
-                            className={cn(
-                              'text-xs',
-                              employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-red-600 dark:text-red-400' : '',
-                            )}
-                          >
-                            {employee.contractDaysLeft !== null && employee.contractDaysLeft < 0
-                              ? `muddati ${Math.abs(employee.contractDaysLeft)} kun oldin tugagan`
-                              : `${employee.contractDaysLeft} kun qoldi`}
-                          </p>
-                        )}
-                      </TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg">{employee.baseSalary === null ? '—' : formatMoney(employee.baseSalary)}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {formatDate(employee.hireDate)}
-                        {employee.terminationDate && <p className="text-xs">ketgan: {formatDate(employee.terminationDate)}</p>}
-                      </TD>
-                      <TD>
-                        <Badge tone={EMPLOYEE_STATUS_TONES[employee.status]}>{EMPLOYEE_STATUS_LABELS[employee.status]}</Badge>
-                        {employee.onLeaveToday && <Badge tone="yellow" className="ml-1">Bugun ta’tilda</Badge>}
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        {employee.currentSalary ? (
-                          <>
-                            <Badge tone={SALARY_STATUS_TONES[employee.currentSalary.status]}>{SALARY_STATUS_LABELS[employee.currentSalary.status]}</Badge>
-                            <p className="mt-1 text-xs text-fg-muted">
-                              {formatMoney(employee.currentSalary.totalAmount)}
-                              {employee.currentSalary.remainingAmount > 0 && ` · qolgan ${formatMoney(employee.currentSalary.remainingAmount)}`}
-                            </p>
-                          </>
-                        ) : (
-                          <span className="text-xs text-fg-subtle">Hisoblanmagan</span>
-                        )}
-                      </TD>
-                      {showActions && (
-                        <TD className="text-right">
-                          <ActionMenu
-                            label={`${employee.firstName} ${employee.lastName} amallari`}
-                            items={[
-                              ...(canManage ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }] : []),
-                              { label: 'Ta’tillar', icon: CalendarOff, onSelect: () => setDialog({ type: 'leaves', employee }) },
-                              ...(canViewDocuments
-                                ? [{ label: 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', employee }) }]
-                                : []),
-                            ]}
-                          />
-                        </TD>
-                      )}
+                      <ColumnCells columns={employeeTable.visibleColumns} row={employee} />
                     </TR>
                   ))}
                 </TBody>

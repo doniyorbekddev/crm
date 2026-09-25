@@ -43,4 +43,40 @@ describe.skipIf(!hasTestDatabase)('Shaxsiy sozlamalar: dashboard vidjetlari (int
     expect((await request(app).put('/api/auth/me/preferences/dashboard.layout').set(bearer(owner)).send({ order: [], hidden: [], extra: 1 })).status).toBe(422);
     expect((await request(app).get('/api/auth/me/preferences')).status).toBe(401);
   });
+
+  it('jadval ustunlari (GAP-03): har xodimga alohida, qat’iy tekshiruv; faqat ko‘rinish — API javobi o‘zgarmaydi', async () => {
+    const { token: owner } = await createUserWithToken(app, { role: 'OWNER', email: 'owner2@test.uz' });
+    const { token: other } = await createUserWithToken(app, { role: 'ADMIN', email: 'admin2@test.uz' });
+    const layout = { columns: [{ key: 'name', visible: true, width: 240 }, { key: 'phone', visible: false }, { key: 'status', visible: true, width: null }] };
+
+    const saved = await request(app).put('/api/auth/me/preferences/table.students.columns').set(bearer(owner)).send(layout);
+    expect(saved.status).toBe(200);
+    expect(saved.body.data).toEqual(layout);
+    expect((await request(app).get('/api/auth/me/preferences').set(bearer(owner))).body.data['table.students.columns']).toEqual(layout);
+    expect((await request(app).get('/api/auth/me/preferences').set(bearer(other))).body.data).toEqual({});
+
+    const invalid = [
+      { columns: [{ key: 'name', visible: true }, { key: 'name', visible: false }] },
+      { columns: [{ key: 'name', visible: true, width: 10 }] },
+      { columns: [{ key: 'name', visible: true, width: 5000 }] },
+      { columns: [{ key: '../x', visible: true }] },
+      { columns: [{ key: 'name', visible: 'ha' }] },
+      { columns: [{ key: 'name', visible: true, secret: 1 }] },
+      { columns: [], extra: true },
+      { columns: Array.from({ length: 41 }, (_, index) => ({ key: `c${index}`, visible: true })) },
+    ];
+    for (const body of invalid) {
+      expect((await request(app).put('/api/auth/me/preferences/table.students.columns').set(bearer(owner)).send(body)).status, JSON.stringify(body).slice(0, 80)).toBe(422);
+    }
+    // Ro'yxatda yo'q jadval kaliti
+    expect((await request(app).put('/api/auth/me/preferences/table.salaries.columns').set(bearer(owner)).send(layout)).status).toBe(422);
+
+    // Xavfsizlik: ustun yashirilgani ma'lumotni yashirmaydi va ochmaydi — javob sozlamaga bog'liq emas
+    const students = await request(app).get('/api/students').set(bearer(owner));
+    expect(students.status).toBe(200);
+    const { token: teacher } = await createUserWithToken(app, { role: 'TEACHER', email: 'teacher2@test.uz' });
+    await request(app).put('/api/auth/me/preferences/table.payments.columns').set(bearer(teacher)).send({ columns: [{ key: 'amount', visible: true }] }).expect(200);
+    // Sozlama saqlash ruxsat bermaydi: o'qituvchi to'lovlarni ko'ra olmaydi
+    expect((await request(app).get('/api/payments').set(bearer(teacher))).status).toBe(403);
+  });
 });

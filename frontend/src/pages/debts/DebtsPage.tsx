@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -27,6 +27,10 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { DEBT_DUE_LABELS, DEBT_DUE_ORDER } from '@/utils/scheduleLabels';
 import { DEBT_STATUS_LABELS, DEBT_STATUS_TONES } from '@/utils/studentLabels';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -95,6 +99,134 @@ export default function DebtsPage() {
   };
 
   const summary = summaryQuery.data;
+
+  type DebtTableRow = NonNullable<typeof debtsQuery.data>['items'][number];
+  const debtTableColumns: Array<ColumnDef<DebtTableRow>> = [
+    {
+      key: 'student',
+      label: 'O‘quvchi',
+      required: true,
+      cell: (debt: DebtTableRow) => (
+        <>
+          <Link to={`/students/${debt.studentId}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+            {debt.firstName} {debt.lastName}
+          </Link>
+          <p className="flex items-center gap-1 text-xs text-fg-muted">
+            <Phone className="size-3" aria-hidden />
+            {formatPhone(debt.phone)}
+            {debt.parentPhone && ` · ota-ona: ${formatPhone(debt.parentPhone)}`}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'courseGroup',
+      label: 'Kurs / guruh',
+      cell: (debt: DebtTableRow) => (
+        <>
+          <p className="text-fg">{debt.course.name}</p>
+          <p className="text-xs text-fg-muted">{debt.group ? debt.group.name : 'Guruhsiz'}</p>
+        </>
+      ),
+    },
+    {
+      key: 'contract',
+      label: 'Shartnoma',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (debt: DebtTableRow) => (
+        <>
+          {formatMoney(debt.total)}
+        </>
+      ),
+    },
+    {
+      key: 'paid',
+      label: 'To‘langan',
+      tdClassName: 'whitespace-nowrap text-fg',
+      cell: (debt: DebtTableRow) => (
+        <>
+          {formatMoney(debt.paid)}
+        </>
+      ),
+    },
+    {
+      key: 'remaining',
+      label: 'Qolgan',
+      tdClassName: 'whitespace-nowrap',
+      cell: (debt: DebtTableRow) => (
+        <>
+          <p className={cn('font-medium', debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+            {formatMoney(debt.remaining)}
+          </p>
+          <Badge tone={DEBT_STATUS_TONES[debt.status]}>{DEBT_STATUS_LABELS[debt.status]}</Badge>
+        </>
+      ),
+    },
+    {
+      key: 'schedule',
+      label: 'Jadval',
+      tdClassName: 'whitespace-nowrap',
+      cell: (debt: DebtTableRow) => (
+        <>
+          {!debt.schedule ? (
+            <span className="text-xs text-fg-subtle">Jadval yo‘q</span>
+          ) : debt.schedule.overdueAmount > 0 ? (
+            <>
+              <Badge tone="red">{debt.schedule.overdueDays} kun kechikdi</Badge>
+              <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{formatMoney(debt.schedule.overdueAmount)}</p>
+            </>
+          ) : debt.schedule.nextDueDate ? (
+            <>
+              <p className="text-fg">{formatDate(debt.schedule.nextDueDate)}</p>
+              <p className="text-xs text-fg-muted">keyingi to‘lov</p>
+            </>
+          ) : (
+            <span className="text-xs text-fg-muted">To‘liq to‘langan</span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'lastPayment',
+      label: 'Oxirgi to‘lov',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (debt: DebtTableRow) => (
+        <>
+          {debt.lastPayment ? (
+            <>
+              <p className="text-fg">{formatMoney(debt.lastPayment.amount)}</p>
+              <p className="text-xs">{formatDate(debt.lastPayment.paidAt)}</p>
+            </>
+          ) : (
+            'To‘lov yo‘q'
+          )}
+        </>
+      ),
+    },
+    ...(canCreatePayment ? [{
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-32',
+      tdClassName: 'text-right',
+      cell: (debt: DebtTableRow) => (
+        <>
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<Wallet className="size-4" aria-hidden />}
+            loading={loadingStudentId === debt.studentId}
+            disabled={debt.remaining <= 0}
+            onClick={() => void openPayment(debt)}
+          >
+            To‘lov
+          </Button>
+        </>
+      ),
+    }] : []),
+  ];
+  const debtTable = useTableColumns('debts', debtTableColumns);
 
   return (
     <>
@@ -246,90 +378,20 @@ export default function DebtsPage() {
           <EmptyState icon={HandCoins} title="Qarzdor topilmadi" description="Filtrlarni o‘zgartirib ko‘ring" />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={debtTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', debtsQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>O‘quvchi</TH>
-                    <TH>Kurs / guruh</TH>
-                    <TH>Shartnoma</TH>
-                    <TH>To‘langan</TH>
-                    <TH>Qolgan</TH>
-                    <TH>Jadval</TH>
-                    <TH>Oxirgi to‘lov</TH>
-                    {canCreatePayment && (
-                      <TH className="w-32">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <ColumnHeaders columns={debtTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {debtsQuery.data.items.map((debt) => (
                     <TR key={debt.studentId}>
-                      <TD>
-                        <Link to={`/students/${debt.studentId}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
-                          {debt.firstName} {debt.lastName}
-                        </Link>
-                        <p className="flex items-center gap-1 text-xs text-fg-muted">
-                          <Phone className="size-3" aria-hidden />
-                          {formatPhone(debt.phone)}
-                          {debt.parentPhone && ` · ota-ona: ${formatPhone(debt.parentPhone)}`}
-                        </p>
-                      </TD>
-                      <TD>
-                        <p className="text-fg">{debt.course.name}</p>
-                        <p className="text-xs text-fg-muted">{debt.group ? debt.group.name : 'Guruhsiz'}</p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatMoney(debt.total)}</TD>
-                      <TD className="whitespace-nowrap text-fg">{formatMoney(debt.paid)}</TD>
-                      <TD className="whitespace-nowrap">
-                        <p className={cn('font-medium', debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
-                          {formatMoney(debt.remaining)}
-                        </p>
-                        <Badge tone={DEBT_STATUS_TONES[debt.status]}>{DEBT_STATUS_LABELS[debt.status]}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        {!debt.schedule ? (
-                          <span className="text-xs text-fg-subtle">Jadval yo‘q</span>
-                        ) : debt.schedule.overdueAmount > 0 ? (
-                          <>
-                            <Badge tone="red">{debt.schedule.overdueDays} kun kechikdi</Badge>
-                            <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{formatMoney(debt.schedule.overdueAmount)}</p>
-                          </>
-                        ) : debt.schedule.nextDueDate ? (
-                          <>
-                            <p className="text-fg">{formatDate(debt.schedule.nextDueDate)}</p>
-                            <p className="text-xs text-fg-muted">keyingi to‘lov</p>
-                          </>
-                        ) : (
-                          <span className="text-xs text-fg-muted">To‘liq to‘langan</span>
-                        )}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {debt.lastPayment ? (
-                          <>
-                            <p className="text-fg">{formatMoney(debt.lastPayment.amount)}</p>
-                            <p className="text-xs">{formatDate(debt.lastPayment.paidAt)}</p>
-                          </>
-                        ) : (
-                          'To‘lov yo‘q'
-                        )}
-                      </TD>
-                      {canCreatePayment && (
-                        <TD className="text-right">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            leftIcon={<Wallet className="size-4" aria-hidden />}
-                            loading={loadingStudentId === debt.studentId}
-                            disabled={debt.remaining <= 0}
-                            onClick={() => void openPayment(debt)}
-                          >
-                            To‘lov
-                          </Button>
-                        </TD>
-                      )}
+                      <ColumnCells columns={debtTable.visibleColumns} row={debt} />
                     </TR>
                   ))}
                 </TBody>

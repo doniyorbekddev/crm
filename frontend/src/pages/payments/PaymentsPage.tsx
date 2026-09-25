@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -29,6 +29,10 @@ import { PaymentFormModal } from './PaymentFormModal';
 import { RefundPaymentModal } from './RefundPaymentModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -108,6 +112,120 @@ export default function PaymentsPage() {
   };
 
   const stats = statsQuery.data;
+
+  type PaymentTableRow = NonNullable<typeof paymentsQuery.data>['items'][number];
+  const paymentTableColumns: Array<ColumnDef<PaymentTableRow>> = [
+    {
+      key: 'receipt',
+      label: 'Kvitansiya',
+      required: true,
+      tdClassName: 'font-mono text-xs whitespace-nowrap text-fg-muted',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          {payment.code}
+          {payment.isDeleted && (
+            <Badge tone="red" className="ml-2">
+              Bekor qilingan
+            </Badge>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'student',
+      label: 'O‘quvchi',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          <p className="font-medium text-fg">
+            {payment.student.firstName} {payment.student.lastName}
+          </p>
+          <p className="text-xs text-fg-muted">
+            {payment.student.code} · {formatPhone(payment.student.phone)} · {payment.course.name}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'amount',
+      label: 'Summa',
+      tdClassName: (payment: PaymentTableRow) => cn('font-medium whitespace-nowrap', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg'),
+      cell: (payment: PaymentTableRow) => (
+        <>
+          {formatMoney(payment.amount)}
+          {payment.refundedAmount > 0 && (
+            <p className="text-xs font-normal text-amber-600 dark:text-amber-400">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'method',
+      label: 'Usul',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          <Badge tone={PAYMENT_METHOD_TONES[payment.method]}>{PAYMENT_METHOD_LABELS[payment.method]}</Badge>
+        </>
+      ),
+    },
+    {
+      key: 'paidAt',
+      label: 'Sana',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          {formatDate(payment.paidAt)}
+        </>
+      ),
+    },
+    {
+      key: 'receivedBy',
+      label: 'Qabul qildi',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          {payment.accountant ? `${payment.accountant.firstName} ${payment.accountant.lastName}` : '—'}
+          {payment.isDeleted && payment.deleteReason && (
+            <p className="max-w-[16rem] truncate text-xs text-red-600 dark:text-red-400">{payment.deleteReason}</p>
+          )}
+        </>
+      ),
+    },
+    ...((canDelete || canRefund) ? [{
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      cell: (payment: PaymentTableRow) => (
+        <>
+          {payment.isDeleted ? (
+            <span className="text-xs text-fg-subtle">—</span>
+          ) : (
+            <ActionMenu
+              label={`${payment.code} amallari`}
+              items={[
+                ...(canRefund && payment.amount - payment.refundedAmount > 0
+                  ? [{ label: 'Pulni qaytarish', icon: Undo2, onSelect: () => setDialog({ type: 'refund', payment }) }]
+                  : []),
+                ...(canDelete && payment.refundedAmount === 0
+                  ? [
+                      {
+                        label: 'To‘lovni bekor qilish',
+                        icon: Ban,
+                        tone: 'danger' as const,
+                        onSelect: () => setDialog({ type: 'cancel', payment }),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          )}
+        </>
+      ),
+    }] : []),
+  ];
+  const paymentTable = useTableColumns('payments', paymentTableColumns);
 
   return (
     <>
@@ -249,84 +367,20 @@ export default function PaymentsPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={paymentTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', paymentsQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>Kvitansiya</TH>
-                    <TH>O‘quvchi</TH>
-                    <TH>Summa</TH>
-                    <TH>Usul</TH>
-                    <TH>Sana</TH>
-                    <TH>Qabul qildi</TH>
-                    {(canDelete || canRefund) && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <ColumnHeaders columns={paymentTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {paymentsQuery.data.items.map((payment) => (
                     <TR key={payment.id} className={cn(payment.isDeleted && 'opacity-60')}>
-                      <TD className="font-mono text-xs whitespace-nowrap text-fg-muted">
-                        {payment.code}
-                        {payment.isDeleted && (
-                          <Badge tone="red" className="ml-2">
-                            Bekor qilingan
-                          </Badge>
-                        )}
-                      </TD>
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {payment.student.firstName} {payment.student.lastName}
-                        </p>
-                        <p className="text-xs text-fg-muted">
-                          {payment.student.code} · {formatPhone(payment.student.phone)} · {payment.course.name}
-                        </p>
-                      </TD>
-                      <TD className={cn('font-medium whitespace-nowrap', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg')}>
-                        {formatMoney(payment.amount)}
-                        {payment.refundedAmount > 0 && (
-                          <p className="text-xs font-normal text-amber-600 dark:text-amber-400">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
-                        )}
-                      </TD>
-                      <TD>
-                        <Badge tone={PAYMENT_METHOD_TONES[payment.method]}>{PAYMENT_METHOD_LABELS[payment.method]}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(payment.paidAt)}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {payment.accountant ? `${payment.accountant.firstName} ${payment.accountant.lastName}` : '—'}
-                        {payment.isDeleted && payment.deleteReason && (
-                          <p className="max-w-[16rem] truncate text-xs text-red-600 dark:text-red-400">{payment.deleteReason}</p>
-                        )}
-                      </TD>
-                      {(canDelete || canRefund) && (
-                        <TD className="text-right">
-                          {payment.isDeleted ? (
-                            <span className="text-xs text-fg-subtle">—</span>
-                          ) : (
-                            <ActionMenu
-                              label={`${payment.code} amallari`}
-                              items={[
-                                ...(canRefund && payment.amount - payment.refundedAmount > 0
-                                  ? [{ label: 'Pulni qaytarish', icon: Undo2, onSelect: () => setDialog({ type: 'refund', payment }) }]
-                                  : []),
-                                ...(canDelete && payment.refundedAmount === 0
-                                  ? [
-                                      {
-                                        label: 'To‘lovni bekor qilish',
-                                        icon: Ban,
-                                        tone: 'danger' as const,
-                                        onSelect: () => setDialog({ type: 'cancel', payment }),
-                                      },
-                                    ]
-                                  : []),
-                              ]}
-                            />
-                          )}
-                        </TD>
-                      )}
+                      <ColumnCells columns={paymentTable.visibleColumns} row={payment} />
                     </TR>
                   ))}
                 </TBody>

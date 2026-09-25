@@ -13,7 +13,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -26,6 +26,10 @@ import { formatDate } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupFormModal } from './GroupFormModal';
 import { GroupMasteryModal } from './GroupMasteryModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -84,6 +88,103 @@ export default function GroupsPage() {
     setPage(1);
   };
 
+  type GroupTableRow = NonNullable<typeof groupsQuery.data>['items'][number];
+  const groupTableColumns: Array<ColumnDef<GroupTableRow>> = [
+    {
+      key: 'group',
+      label: 'Guruh',
+      required: true,
+      cell: (group: GroupTableRow) => (
+        <>
+          <p className="font-medium text-fg">{group.name}</p>
+          <p className="text-xs text-fg-muted">
+            {group.course.name}
+            {group.room && ` · ${group.room}-xona`}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'schedule',
+      label: 'Jadval',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (group: GroupTableRow) => (
+        <>
+          {formatSchedule(group.scheduleDays, group.startTime, group.endTime)}
+        </>
+      ),
+    },
+    {
+      key: 'teacher',
+      label: 'O‘qituvchi',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (group: GroupTableRow) => (
+        <>
+          {group.teacher ? `${group.teacher.firstName} ${group.teacher.lastName}` : '—'}
+        </>
+      ),
+    },
+    {
+      key: 'students',
+      label: 'O‘quvchilar',
+      tdClassName: 'whitespace-nowrap',
+      cell: (group: GroupTableRow) => (
+        <>
+          <span className="font-medium text-fg">
+            {group.studentCount} / {group.capacity}
+          </span>
+          <span className={cn('ml-2 text-xs', group.freeSeats === 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+            {group.freeSeats === 0 ? 'to‘lgan' : `${group.freeSeats} o‘rin bo‘sh`}
+          </span>
+        </>
+      ),
+    },
+    {
+      key: 'startDate',
+      label: 'Boshlanish',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (group: GroupTableRow) => (
+        <>
+          {formatDate(group.startDate)}
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Holat',
+      cell: (group: GroupTableRow) => (
+        <>
+          <Badge tone={GROUP_STATUS_TONES[group.status]}>{GROUP_STATUS_LABELS[group.status]}</Badge>
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      cell: (group: GroupTableRow) => (
+        <>
+          <ActionMenu
+            label={`${group.name} amallari`}
+            items={[
+              { label: 'O‘zlashtirish', icon: Target, onSelect: () => setDialog({ type: 'mastery', group }) },
+              ...(canManage
+                ? [
+                    { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', group }) },
+                    { label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', group }) },
+                  ]
+                : []),
+            ]}
+          />
+        </>
+      ),
+    },
+  ];
+  const groupTable = useTableColumns('groups', groupTableColumns);
+
   return (
     <>
       <PageHeader
@@ -131,61 +232,20 @@ export default function GroupsPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={groupTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', groupsQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>Guruh</TH>
-                    <TH>Jadval</TH>
-                    <TH>O‘qituvchi</TH>
-                    <TH>O‘quvchilar</TH>
-                    <TH>Boshlanish</TH>
-                    <TH>Holat</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
+                    <ColumnHeaders columns={groupTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {groupsQuery.data.items.map((group) => (
                     <TR key={group.id}>
-                      <TD>
-                        <p className="font-medium text-fg">{group.name}</p>
-                        <p className="text-xs text-fg-muted">
-                          {group.course.name}
-                          {group.room && ` · ${group.room}-xona`}
-                        </p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatSchedule(group.scheduleDays, group.startTime, group.endTime)}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {group.teacher ? `${group.teacher.firstName} ${group.teacher.lastName}` : '—'}
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        <span className="font-medium text-fg">
-                          {group.studentCount} / {group.capacity}
-                        </span>
-                        <span className={cn('ml-2 text-xs', group.freeSeats === 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>
-                          {group.freeSeats === 0 ? 'to‘lgan' : `${group.freeSeats} o‘rin bo‘sh`}
-                        </span>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(group.startDate)}</TD>
-                      <TD>
-                        <Badge tone={GROUP_STATUS_TONES[group.status]}>{GROUP_STATUS_LABELS[group.status]}</Badge>
-                      </TD>
-                      <TD className="text-right">
-                        <ActionMenu
-                          label={`${group.name} amallari`}
-                          items={[
-                            { label: 'O‘zlashtirish', icon: Target, onSelect: () => setDialog({ type: 'mastery', group }) },
-                            ...(canManage
-                              ? [
-                                  { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', group }) },
-                                  { label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', group }) },
-                                ]
-                              : []),
-                          ]}
-                        />
-                      </TD>
+                      <ColumnCells columns={groupTable.visibleColumns} row={group} />
                     </TR>
                   ))}
                 </TBody>

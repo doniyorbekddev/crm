@@ -144,3 +144,71 @@ Yaratish — 3 ta indeksli so'rov + tranzaksiya. REFERRAL tekshiruvi `referrals(
 ## Next Phase
 
 **PHASE 3 — Column visibility (GAP-03)**: jadval ustunlarini ko'rsatish/yashirish/tartib/kenglik/tiklash, har foydalanuvchi uchun saqlash (`UserPreference`).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 3
+
+Sana: 2026-09-25. GAP-03 "Table column visibility". Batafsil: [table-columns.md](table-columns.md).
+
+## Implemented
+
+- "Ustunlar" oynasi 8 ta asosiy jadvalda (o'quvchilar, leadlar, to'lovlar, qarzdorlar, guruhlar, ota-onalar, o'qituvchilar, xodimlar): ko'rsatish/yashirish, tartib (yuqoriga/pastga), kenglik (Avto/Tor/O'rta/Keng), "Standart holat".
+- Har xodim uchun profilda saqlanadi (table, column, visible, order = massiv tartibi, width), optimistik yangilanish.
+- Majburiy ustun (qator egasi) yashirilmaydi; amallar ustuni sozlanmaydi, doim oxirida; yangi/olib tashlangan ustunlar saqlangan sozlamani buzmaydi.
+
+## Existing Code Reused
+
+`UserPreference` + `PUT /auth/me/preferences/:key` (qat'iy whitelist), `usePreference` (optimistik saqlash), `Table`/`TH`/`TD`, `Modal` (fokus tutqichi), `Checkbox`, `Select`. Jadval kataklari **o'zgarishsiz** ustun ta'riflariga ko'chirildi (skript bilan) — ko'rinish va E2E tanlagichlari saqlandi.
+
+## New Files
+
+Frontend: `utils/tableColumns(.test).ts`, `hooks/useTableColumns.ts`, `components/ColumnSettings(.test).tsx`, `components/ui/ColumnTable.tsx`. E2E: `e2e/specs/columns.spec.ts`. Docs: `table-columns.md`.
+
+## Modified Files
+
+Backend: `validators/preference.validator.ts` (`table.<nom>.columns`, 8 ta jadval), `tests/preferences.test.ts`.
+Frontend: `services/preferences.service.ts`, `pages/students/StudentsPage.tsx`, `leads/LeadsTable.tsx`, `payments/PaymentsPage.tsx`, `debts/DebtsPage.tsx`, `groups/GroupsPage.tsx`, `parents/ParentsPage.tsx`, `teachers/TeachersPage.tsx`, `employees/EmployeesPage.tsx`.
+
+## Database Changes
+
+Yo'q (`UserPreference` Json qiymati).
+
+## API Changes
+
+Yangi endpoint yo'q; `PUT /api/auth/me/preferences/:key` 8 ta yangi kalitni qabul qiladi (qat'iy sxema).
+
+## Telegram Changes
+
+Yo'q.
+
+## Permissions
+
+Yo'q — sozlama har xodimning o'ziga (autentifikatsiya yetarli, endpoint allaqachon `endpointSecurity` inventarida).
+
+## Security
+
+- **Faqat ko'rinish**: API javobi va ruxsatlar sozlamaga bog'liq emas (test: sozlama saqlagan o'qituvchi `/api/payments` — 403).
+- Qat'iy sxema: kalit formati, takror, kenglik 60–640, ≤ 40 ustun, qo'shimcha maydon, ro'yxatda yo'q jadval — 422 (test).
+- Xodim boshqa xodim sozlamasini o'qimaydi/yozmaydi (test).
+
+## Tests
+
+Backend **806** (+1; to'liq yurishda 805 o'tdi — `broadcast.test.ts` bitta testi mashina yuklamasida 5 s limitdan oshdi, alohida 5/5 o'tadi, fazaga aloqasiz), frontend **119/119** (+5), E2E **35/35** (+1; o'zgartirilgan jadvallarga tayangan mavjud E2E ham o'tdi). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Sozlamalar bitta so'rov (`staleTime: Infinity`), ustunlar `useMemo` bilan hisoblanadi; server tomonda qo'shimcha yuk yo'q.
+
+## Documentation
+
+`docs/table-columns.md` (yangi jadval qo'shish yo'riqnomasi bilan).
+
+## Known Issues
+
+- Kenglik tayyor variantlardan tanlanadi (sichqoncha bilan sudrab o'zgartirish yo'q) — mobil va klaviatura uchun qulayroq.
+- Boshqa jadvallar (maosh, hisobotlar, moliya tablari) hali eski ko'rinishda — `table-columns.md` dagi yo'riqnoma bilan bir xil usulda qo'shiladi.
+
+## Next Phase
+
+**PHASE 4 — Business overview filters (GAP-04)**: allaqachon bajarilgan (audit); "O'tgan yil" preseti, kalendar yili oralig'i va regressiya testlari.

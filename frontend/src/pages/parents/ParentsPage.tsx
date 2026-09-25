@@ -16,7 +16,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -30,6 +30,10 @@ import { PARENT_RELATION_LABELS } from '@/utils/parentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LinkStudentModal } from './LinkModals';
 import { ParentFormModal } from './ParentFormModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -114,6 +118,74 @@ export default function ParentsPage() {
     refresh();
   };
 
+  type ParentTableRow = NonNullable<typeof parentsQuery.data>['items'][number];
+  const parentTableColumns: Array<ColumnDef<ParentTableRow>> = [
+    {
+      key: 'parent',
+      label: 'Ota-ona',
+      required: true,
+      cell: (parent: ParentTableRow) => (
+        <>
+          <p className="font-medium text-fg">
+            {parent.firstName} {parent.lastName}
+          </p>
+          {parent.notes && <p className="max-w-[16rem] truncate text-xs text-fg-muted">{parent.notes}</p>}
+        </>
+      ),
+    },
+    {
+      key: 'contact',
+      label: 'Aloqa',
+      tdClassName: 'whitespace-nowrap',
+      cell: (parent: ParentTableRow) => (
+        <>
+          <a href={`tel:${parent.phone}`} className="text-fg hover:text-brand-600">
+            {formatPhone(parent.phone)}
+          </a>
+          <p className="text-xs text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
+        </>
+      ),
+    },
+    {
+      key: 'children',
+      label: 'Farzandlar',
+      cell: (parent: ParentTableRow) => (
+        <>
+          {parent.students.length === 0 ? (
+            <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
+          ) : (
+            <ul className="space-y-1">
+              {parent.students.map((link) => (
+                <li key={link.linkId} className="flex flex-wrap items-center gap-1.5 text-sm">
+                  <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-brand-600">
+                    {link.firstName} {link.lastName}
+                  </Link>
+                  <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{PARENT_RELATION_LABELS[link.relation]}</Badge>
+                  {link.isPrimary && <Badge tone="blue">Asosiy</Badge>}
+                  {link.group && <span className="text-xs text-fg-muted">{link.group.name}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ),
+    },
+    ...(showActions ? [{
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      cell: (parent: ParentTableRow) => (
+        <>
+          <ActionMenu label={`${parent.firstName} ${parent.lastName} amallari`} items={rowActions(parent)} />
+        </>
+      ),
+    }] : []),
+  ];
+  const parentTable = useTableColumns('parents', parentTableColumns);
+
   return (
     <>
       <PageHeader
@@ -178,58 +250,20 @@ export default function ParentsPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={parentTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', parentsQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>Ota-ona</TH>
-                    <TH>Aloqa</TH>
-                    <TH>Farzandlar</TH>
-                    {showActions && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <ColumnHeaders columns={parentTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {parentsQuery.data.items.map((parent) => (
                     <TR key={parent.id}>
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {parent.firstName} {parent.lastName}
-                        </p>
-                        {parent.notes && <p className="max-w-[16rem] truncate text-xs text-fg-muted">{parent.notes}</p>}
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        <a href={`tel:${parent.phone}`} className="text-fg hover:text-brand-600">
-                          {formatPhone(parent.phone)}
-                        </a>
-                        <p className="text-xs text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
-                      </TD>
-                      <TD>
-                        {parent.students.length === 0 ? (
-                          <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
-                        ) : (
-                          <ul className="space-y-1">
-                            {parent.students.map((link) => (
-                              <li key={link.linkId} className="flex flex-wrap items-center gap-1.5 text-sm">
-                                <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-brand-600">
-                                  {link.firstName} {link.lastName}
-                                </Link>
-                                <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{PARENT_RELATION_LABELS[link.relation]}</Badge>
-                                {link.isPrimary && <Badge tone="blue">Asosiy</Badge>}
-                                {link.group && <span className="text-xs text-fg-muted">{link.group.name}</span>}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </TD>
-                      {showActions && (
-                        <TD className="text-right">
-                          <ActionMenu label={`${parent.firstName} ${parent.lastName} amallari`} items={rowActions(parent)} />
-                        </TD>
-                      )}
+                      <ColumnCells columns={parentTable.visibleColumns} row={parent} />
                     </TR>
                   ))}
                 </TBody>

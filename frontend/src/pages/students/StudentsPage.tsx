@@ -14,7 +14,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -45,6 +45,10 @@ import { StudentStatusModal } from './StudentStatusModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 import { TransferGroupModal } from './TransferGroupModal';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -143,6 +147,164 @@ export default function StudentsPage() {
 
   const summary = summaryQuery.data;
   const tabs: ReadonlyArray<StudentStatus | 'ALL'> = ['ALL', ...STUDENT_STATUS_ORDER];
+
+  type StudentTableRow = NonNullable<typeof studentsQuery.data>['items'][number];
+  const studentTableColumns: Array<ColumnDef<StudentTableRow>> = [
+    {
+      key: 'student',
+      label: 'O‘quvchi',
+      required: true,
+      cell: (student: StudentTableRow) => (
+        <>
+          <Link to={`/students/${student.id}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+            {student.firstName} {student.lastName}
+          </Link>
+          <p className="text-xs text-fg-muted">
+            {student.code} · {formatPhone(student.phone)}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'courseGroup',
+      label: 'Kurs / guruh',
+      cell: (student: StudentTableRow) => (
+        <>
+          <p className="text-fg">{student.course.name}</p>
+          <p className="text-xs text-fg-muted">{student.group ? student.group.name : 'Guruhsiz'}</p>
+        </>
+      ),
+    },
+    {
+      key: 'contract',
+      label: 'Shartnoma',
+      tdClassName: 'whitespace-nowrap',
+      cell: (student: StudentTableRow) => (
+        <>
+          <p className="text-fg">{formatMoney(student.contractPrice)}</p>
+          {student.contractNumber && <p className="text-xs text-fg-muted">{student.contractNumber}</p>}
+        </>
+      ),
+    },
+    {
+      key: 'debt',
+      label: 'Qarzdorlik',
+      tdClassName: 'whitespace-nowrap',
+      cell: (student: StudentTableRow) => (
+        <>
+          {student.debt ? (
+            <>
+              <p className={cn('font-medium', student.debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                {formatMoney(student.debt.remaining)}
+              </p>
+              <Badge tone={DEBT_STATUS_TONES[student.debt.status]}>{DEBT_STATUS_LABELS[student.debt.status]}</Badge>
+            </>
+          ) : (
+            <span className="text-fg-muted">—</span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'startDate',
+      label: 'Boshlangan',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (student: StudentTableRow) => (
+        <>
+          {formatDate(student.startDate)}
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Holat',
+      cell: (student: StudentTableRow) => (
+        <>
+          <Badge tone={STUDENT_STATUS_TONES[student.status]}>{STUDENT_STATUS_LABELS[student.status]}</Badge>
+        </>
+      ),
+    },
+    {
+      key: 'risk',
+      label: 'Xavf',
+      cell: (student: StudentTableRow) => (
+        <>
+          {student.riskLevel ? (
+            <Badge tone={RISK_LEVEL_TONES[student.riskLevel]}>
+              {RISK_LEVEL_LABELS[student.riskLevel]}
+              {student.healthScore !== null && <span className="ml-1 tabular-nums opacity-70">{student.healthScore}</span>}
+            </Badge>
+          ) : (
+            <span className="text-fg-subtle" title="Baho uchun yetarli ma’lumot yo‘q">
+              —
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Amallar',
+      header: <span className="sr-only">Amallar</span>,
+      fixed: true,
+      thClassName: 'w-12',
+      tdClassName: 'text-right',
+      cell: (student: StudentTableRow) => (
+        <>
+          <ActionMenu
+            label={`${student.firstName} ${student.lastName} amallari`}
+            items={[
+              { label: 'Profil', icon: UserRound, onSelect: () => navigate(`/students/${student.id}`) },
+              ...(canCreatePayment && (student.debt?.remaining ?? 0) > 0
+                ? [{ label: 'To‘lov qabul qilish', icon: Wallet, onSelect: () => setDialog({ type: 'payment', student }) }]
+                : []),
+              ...(canViewGamification
+                ? [{ label: 'XP va yutuqlar', icon: Sparkles, onSelect: () => setDialog({ type: 'xp', student }) }]
+                : []),
+              ...(canViewAttendance
+                ? [
+                    {
+                      label: 'Davomat tarixi',
+                      icon: CalendarCheck,
+                      onSelect: () => setDialog({ type: 'attendance', student }),
+                    },
+                  ]
+                : []),
+              ...(canManage
+                ? [
+                    { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', student }) },
+                    { label: 'Guruhga o‘tkazish', icon: ArrowLeftRight, onSelect: () => setDialog({ type: 'transfer', student }) },
+                    { label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog({ type: 'status', student }) },
+                    ...(canManagePortal
+                      ? [
+                          student.hasPortalAccount
+                            ? {
+                                label: 'Kabinet parolini tiklash',
+                                icon: KeyRound,
+                                onSelect: () => setDialog({ type: 'portalReset', student }),
+                              }
+                            : {
+                                label: 'Kabinet ochish',
+                                icon: KeyRound,
+                                onSelect: () => setDialog({ type: 'portal', student }),
+                              },
+                        ]
+                      : []),
+                    {
+                      label: 'O‘chirish',
+                      icon: Trash2,
+                      tone: 'danger' as const,
+                      onSelect: () => setDialog({ type: 'delete', student }),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </>
+      ),
+    },
+  ];
+  const studentTable = useTableColumns('students', studentTableColumns);
 
   return (
     <>
@@ -263,120 +425,20 @@ export default function StudentsPage() {
           />
         ) : (
           <>
+            <div className="flex justify-end border-b border-border px-4 py-2">
+              <ColumnSettings control={studentTable} />
+            </div>
             <TableContainer className={cn('transition-opacity', studentsQuery.isPlaceholderData && 'opacity-60')}>
               <Table>
                 <THead>
                   <tr>
-                    <TH>O‘quvchi</TH>
-                    <TH>Kurs / guruh</TH>
-                    <TH>Shartnoma</TH>
-                    <TH>Qarzdorlik</TH>
-                    <TH>Boshlangan</TH>
-                    <TH>Holat</TH>
-                    <TH>Xavf</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
+                    <ColumnHeaders columns={studentTable.visibleColumns} />
                   </tr>
                 </THead>
                 <TBody>
                   {studentsQuery.data.items.map((student) => (
                     <TR key={student.id}>
-                      <TD>
-                        <Link to={`/students/${student.id}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
-                          {student.firstName} {student.lastName}
-                        </Link>
-                        <p className="text-xs text-fg-muted">
-                          {student.code} · {formatPhone(student.phone)}
-                        </p>
-                      </TD>
-                      <TD>
-                        <p className="text-fg">{student.course.name}</p>
-                        <p className="text-xs text-fg-muted">{student.group ? student.group.name : 'Guruhsiz'}</p>
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        <p className="text-fg">{formatMoney(student.contractPrice)}</p>
-                        {student.contractNumber && <p className="text-xs text-fg-muted">{student.contractNumber}</p>}
-                      </TD>
-                      <TD className="whitespace-nowrap">
-                        {student.debt ? (
-                          <>
-                            <p className={cn('font-medium', student.debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
-                              {formatMoney(student.debt.remaining)}
-                            </p>
-                            <Badge tone={DEBT_STATUS_TONES[student.debt.status]}>{DEBT_STATUS_LABELS[student.debt.status]}</Badge>
-                          </>
-                        ) : (
-                          <span className="text-fg-muted">—</span>
-                        )}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(student.startDate)}</TD>
-                      <TD>
-                        <Badge tone={STUDENT_STATUS_TONES[student.status]}>{STUDENT_STATUS_LABELS[student.status]}</Badge>
-                      </TD>
-                      <TD>
-                        {student.riskLevel ? (
-                          <Badge tone={RISK_LEVEL_TONES[student.riskLevel]}>
-                            {RISK_LEVEL_LABELS[student.riskLevel]}
-                            {student.healthScore !== null && <span className="ml-1 tabular-nums opacity-70">{student.healthScore}</span>}
-                          </Badge>
-                        ) : (
-                          <span className="text-fg-subtle" title="Baho uchun yetarli ma’lumot yo‘q">
-                            —
-                          </span>
-                        )}
-                      </TD>
-                      <TD className="text-right">
-                        <ActionMenu
-                          label={`${student.firstName} ${student.lastName} amallari`}
-                          items={[
-                            { label: 'Profil', icon: UserRound, onSelect: () => navigate(`/students/${student.id}`) },
-                            ...(canCreatePayment && (student.debt?.remaining ?? 0) > 0
-                              ? [{ label: 'To‘lov qabul qilish', icon: Wallet, onSelect: () => setDialog({ type: 'payment', student }) }]
-                              : []),
-                            ...(canViewGamification
-                              ? [{ label: 'XP va yutuqlar', icon: Sparkles, onSelect: () => setDialog({ type: 'xp', student }) }]
-                              : []),
-                            ...(canViewAttendance
-                              ? [
-                                  {
-                                    label: 'Davomat tarixi',
-                                    icon: CalendarCheck,
-                                    onSelect: () => setDialog({ type: 'attendance', student }),
-                                  },
-                                ]
-                              : []),
-                            ...(canManage
-                              ? [
-                                  { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', student }) },
-                                  { label: 'Guruhga o‘tkazish', icon: ArrowLeftRight, onSelect: () => setDialog({ type: 'transfer', student }) },
-                                  { label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog({ type: 'status', student }) },
-                                  ...(canManagePortal
-                                    ? [
-                                        student.hasPortalAccount
-                                          ? {
-                                              label: 'Kabinet parolini tiklash',
-                                              icon: KeyRound,
-                                              onSelect: () => setDialog({ type: 'portalReset', student }),
-                                            }
-                                          : {
-                                              label: 'Kabinet ochish',
-                                              icon: KeyRound,
-                                              onSelect: () => setDialog({ type: 'portal', student }),
-                                            },
-                                      ]
-                                    : []),
-                                  {
-                                    label: 'O‘chirish',
-                                    icon: Trash2,
-                                    tone: 'danger' as const,
-                                    onSelect: () => setDialog({ type: 'delete', student }),
-                                  },
-                                ]
-                              : []),
-                          ]}
-                        />
-                      </TD>
+                      <ColumnCells columns={studentTable.visibleColumns} row={student} />
                     </TR>
                   ))}
                 </TBody>

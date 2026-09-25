@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useNow } from '@/hooks/useNow';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -21,6 +21,10 @@ import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 import { usePermission } from '@/hooks/usePermission';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { ColumnSettings } from '@/components/ColumnSettings';
+import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
+import { useTableColumns } from '@/hooks/useTableColumns';
+import type { ColumnDef } from '@/utils/tableColumns';
 
 const PAGE_SIZE = 20;
 
@@ -65,6 +69,118 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const summary = summaryQuery.data;
 
   const tabs: ReadonlyArray<LeadStatus | 'ALL'> = ['ALL', ...LEAD_STATUS_ORDER];
+
+  type LeadTableRow = NonNullable<typeof listQuery.data>['items'][number];
+  const leadTableColumns: Array<ColumnDef<LeadTableRow>> = [
+    {
+      key: 'lead',
+      label: 'Lead',
+      required: true,
+      cell: (lead: LeadTableRow) => (
+        <>
+          <div className="min-w-52">
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/leads/${lead.id}`}
+                onClick={(event) => event.stopPropagation()}
+                className="font-medium text-fg hover:text-brand-600 hover:underline"
+              >
+                {leadFullName(lead)}
+              </Link>
+              {lead.priority === 'URGENT' || lead.priority === 'HIGH' ? <LeadPriorityBadge priority={lead.priority} /> : null}
+            </div>
+            <p className="text-xs text-fg-muted">
+              {lead.code} · {formatPhone(lead.phone)}
+            </p>
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Holat',
+      cell: (lead: LeadTableRow) => (
+        <>
+          <LeadStatusBadge status={lead.status} />
+        </>
+      ),
+    },
+    {
+      key: 'temperature',
+      label: 'Daraja',
+      cell: (lead: LeadTableRow) => (
+        <>
+          <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />
+        </>
+      ),
+    },
+    {
+      key: 'course',
+      label: 'Kurs',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (lead: LeadTableRow) => (
+        <>
+          {lead.course?.name ?? '—'}
+        </>
+      ),
+    },
+    {
+      key: 'source',
+      label: 'Manba',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (lead: LeadTableRow) => (
+        <>
+          {lead.source.name}
+        </>
+      ),
+    },
+    {
+      key: 'assignee',
+      label: 'Mas’ul',
+      cell: (lead: LeadTableRow) => (
+        <>
+          {lead.assignedTo ? (
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <Avatar firstName={lead.assignedTo.firstName} lastName={lead.assignedTo.lastName} size="xs" />
+              <span className="text-fg-muted">
+                {lead.assignedTo.firstName} {lead.assignedTo.lastName}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'nextFollowUp',
+      label: 'Keyingi aloqa',
+      tdClassName: (lead: LeadTableRow) => {
+        const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;
+        return cn('whitespace-nowrap', overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg-muted');
+      },
+      cell: (lead: LeadTableRow) => {
+        const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;
+        return (
+          <>
+            {lead.nextFollowUpAt ? formatDateTime(lead.nextFollowUpAt) : '—'}
+            {overdue && <span className="block text-[11px] font-normal">kechikkan</span>}
+          </>
+        );
+      },
+    },
+    {
+      key: 'createdAt',
+      label: 'Qo‘shilgan',
+      tdClassName: 'whitespace-nowrap text-fg-muted',
+      cell: (lead: LeadTableRow) => (
+        <>
+          {formatDate(lead.createdAt)}
+        </>
+      ),
+    },
+  ];
+  const leadTable = useTableColumns('leads', leadTableColumns);
 
   return (
     <Card>
@@ -143,70 +259,22 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
         />
       ) : (
         <>
+          <div className="flex justify-end border-b border-border px-4 py-2">
+            <ColumnSettings control={leadTable} />
+          </div>
           <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
             <Table>
               <THead>
                 <tr>
-                  <TH>Lead</TH>
-                  <TH>Holat</TH>
-                  <TH>Daraja</TH>
-                  <TH>Kurs</TH>
-                  <TH>Manba</TH>
-                  <TH>Mas’ul</TH>
-                  <TH>Keyingi aloqa</TH>
-                  <TH>Qo‘shilgan</TH>
+                  <ColumnHeaders columns={leadTable.visibleColumns} />
                 </tr>
               </THead>
               <TBody>
-                {listQuery.data.items.map((lead) => {
-                  const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;
-                  return (
-                    <TR key={lead.id} className="cursor-pointer" onClick={() => navigate(`/leads/${lead.id}`)}>
-                      <TD>
-                        <div className="min-w-52">
-                          <div className="flex items-center gap-2">
-                            <Link
-                              to={`/leads/${lead.id}`}
-                              onClick={(event) => event.stopPropagation()}
-                              className="font-medium text-fg hover:text-brand-600 hover:underline"
-                            >
-                              {leadFullName(lead)}
-                            </Link>
-                            {lead.priority === 'URGENT' || lead.priority === 'HIGH' ? <LeadPriorityBadge priority={lead.priority} /> : null}
-                          </div>
-                          <p className="text-xs text-fg-muted">
-                            {lead.code} · {formatPhone(lead.phone)}
-                          </p>
-                        </div>
-                      </TD>
-                      <TD>
-                        <LeadStatusBadge status={lead.status} />
-                      </TD>
-                      <TD>
-                        <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{lead.course?.name ?? '—'}</TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{lead.source.name}</TD>
-                      <TD>
-                        {lead.assignedTo ? (
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <Avatar firstName={lead.assignedTo.firstName} lastName={lead.assignedTo.lastName} size="xs" />
-                            <span className="text-fg-muted">
-                              {lead.assignedTo.firstName} {lead.assignedTo.lastName}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
-                        )}
-                      </TD>
-                      <TD className={cn('whitespace-nowrap', overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg-muted')}>
-                        {lead.nextFollowUpAt ? formatDateTime(lead.nextFollowUpAt) : '—'}
-                        {overdue && <span className="block text-[11px] font-normal">kechikkan</span>}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(lead.createdAt)}</TD>
-                    </TR>
-                  );
-                })}
+                {listQuery.data.items.map((lead) => (
+                  <TR key={lead.id} className="cursor-pointer" onClick={() => navigate(`/leads/${lead.id}`)}>
+                    <ColumnCells columns={leadTable.visibleColumns} row={lead} />
+                  </TR>
+                ))}
               </TBody>
             </Table>
           </TableContainer>
