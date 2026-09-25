@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { BadgeRule, LeaderboardPeriod, XpSource } from '@/types/gamification';
+import type { BadgeCategory, BadgeRule, LeaderboardPeriod, XpSource } from '@/types/gamification';
 import { formatNumber } from './format';
 
 export const XP_SOURCE_LABELS: Record<XpSource, string> = {
@@ -32,6 +32,7 @@ export const BADGE_RULE_LABELS: Record<BadgeRule, string> = {
   EXAM_SCORE: 'Imtihon natijasi',
   XP_TOTAL: 'Jami XP',
   COURSE_COMPLETED: 'Kursni tugatish',
+  REFERRAL: 'Do‘st taklif qilish',
 };
 
 /** Qoida chegarasi qanday o‘lchovda ko‘rsatiladi */
@@ -43,6 +44,27 @@ export const BADGE_RULE_UNITS: Record<BadgeRule, string> = {
   EXAM_SCORE: '%',
   XP_TOTAL: 'XP',
   COURSE_COMPLETED: '',
+  REFERRAL: 'ta do‘st',
+};
+
+/** Chegara oralig'i — backend bilan bir xil (`BADGE_THRESHOLD_RANGE`); null — chegara kerak emas */
+export const BADGE_THRESHOLD_RANGE: Record<BadgeRule, { min: number; max: number } | null> = {
+  MANUAL: null,
+  COURSE_COMPLETED: null,
+  STREAK_DAYS: { min: 1, max: 365 },
+  ATTENDANCE_RATE: { min: 1, max: 100 },
+  HOMEWORK_COUNT: { min: 1, max: 10_000 },
+  EXAM_SCORE: { min: 1, max: 100 },
+  XP_TOTAL: { min: 1, max: 1_000_000 },
+  REFERRAL: { min: 1, max: 100 },
+};
+
+export const BADGE_CATEGORY_LABELS: Record<BadgeCategory, string> = {
+  ATTENDANCE: 'Davomat',
+  ACADEMIC: 'O‘qish',
+  ACTIVITY: 'Faollik',
+  SOCIAL: 'Ijtimoiy',
+  SPECIAL: 'Maxsus',
 };
 
 export const LEADERBOARD_PERIODS: ReadonlyArray<{ value: LeaderboardPeriod; label: string }> = [

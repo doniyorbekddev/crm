@@ -1,9 +1,10 @@
 import type { Request, Response } from 'express';
 import { gamificationService } from '../services/gamification.service.js';
-import { sendSuccess } from '../utils/apiResponse.js';
+import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import {
+  createBadgeSchema,
   awardBadgeSchema,
   leaderboardQuerySchema,
   manualXpSchema,
@@ -49,6 +50,11 @@ export const gamificationController = {
 
   async badges(_req: Request, res: Response): Promise<void> {
     sendSuccess(res, await gamificationService.badges());
+  },
+
+  async createBadge(req: Request, res: Response): Promise<void> {
+    const input = createBadgeSchema.parse(req.body);
+    sendCreated(res, await gamificationService.createBadge(requireAuthUser(req), input, getClientInfo(req)), 'Nishon yaratildi');
   },
 
   async updateBadge(req: Request, res: Response): Promise<void> {

@@ -19,6 +19,7 @@ gamificationRouter.get('/students/:id', view, gamificationController.profile);
 
 gamificationRouter.put('/rules/:id', manage, gamificationController.updateRule);
 gamificationRouter.put('/levels/:id', manage, gamificationController.updateLevel);
+gamificationRouter.post('/badges', manage, gamificationController.createBadge);
 gamificationRouter.put('/badges/:id', manage, gamificationController.updateBadge);
 gamificationRouter.post('/xp', manage, gamificationController.manualXp);
 gamificationRouter.post('/badges/award', manage, gamificationController.awardBadge);

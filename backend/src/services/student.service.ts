@@ -30,6 +30,7 @@ import type { GroupChangeDto } from './studentGroupHistory.js';
 import type { TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
 import { isRosterLimited } from './teachingAccess.js';
+import { gamificationHooks } from './gamification.service.js';
 
 export const studentSelect = {
   id: true,
@@ -627,6 +628,8 @@ export const studentService = {
         metadata: { from: student.status, to: input.status, reason: input.reason ?? null },
         ...client,
       });
+      // Kurs tugatildi — COURSE_COMPLETED nishonlari darhol (keyingi davomatni kutmasdan)
+      if (input.status === 'COMPLETED' || input.status === 'GRADUATED') await gamificationHooks.onMilestone(tx, id);
       return record;
     });
 

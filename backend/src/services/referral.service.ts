@@ -6,6 +6,7 @@ import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import { auditService } from './audit.service.js';
 import { discountService } from './discount.service.js';
+import { gamificationHooks } from './gamification.service.js';
 
 /**
  * Referal tizimi — "do'stingni olib kel".
@@ -142,6 +143,8 @@ export const referralService = {
       return;
     }
     await tx.referral.update({ where: { id: referral.id }, data: { status: 'CONVERTED', referredStudentId: studentId } });
+    // Taklif qilgan o'quvchi uchun REFERRAL nishonlari (bir tranzaksiyada)
+    await gamificationHooks.onMilestone(tx, referral.referrerStudentId);
   },
 
   async list(query: { page: number; limit: number; status?: ReferralStatus | undefined; studentId?: string | undefined }): Promise<{

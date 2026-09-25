@@ -76,3 +76,71 @@ Brend so'rovi bitta `findUnique`, frontendda 10 daqiqa kesh; logo versiyalangan 
 ## Next Phase
 
 **PHASE 2 — Badge creation (GAP-02)**: `POST /gamification/badges`, `category`, `REFERRAL` qoidasi (migratsiya), dublikat nazorati, yaratish oynasi.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 2
+
+Sana: 2026-09-25. GAP-02 "Badge creation". Batafsil: [badges.md](badges.md).
+
+## Implemented
+
+- Admin (`gamification.manage`) yangi nishon yaratadi: belgi, nom, tavsif, XP mukofoti, toifa, talab (+ chegara), faol.
+- Dublikat nom (katta-kichik harf farqsiz) va bir xil avtomatik talab (qoida + chegara) — **400** (TZ bo'yicha).
+- Yangi talab turi **REFERRAL**: taklif qilingan do'st o'quvchi bo'lganda nishon darhol.
+- **COURSE_COMPLETED** endi holat "Tugatdi/Bitirdi" bo'lganda darhol (oldin keyingi davomat/vazifagacha kechikardi).
+- Toifalar (Davomat, O'qish, Faollik, Ijtimoiy, Maxsus); tahrirlashda toifa, chegara qoida oralig'ida tekshiriladi.
+
+## Existing Code Reused
+
+`evaluateBadges`/`badgeEarned` (qoida mantig'i, dedupe, XP), `recalculateProfile`, `auditService.recordInTransaction`, `referralService.onLeadConverted`, `studentService.setStatus`, `GamificationSettings` ro'yxati, `Modal`/`FormField`.
+
+## New Files
+
+Backend: migratsiya `20260927100000_badge_category_referral`, `tests/badgeCreation.test.ts`. Frontend: `pages/gamification/BadgeFormModal(.test).tsx`. E2E: `e2e/specs/badges.spec.ts`. Docs: `badges.md`.
+
+## Modified Files
+
+Backend: `schema.prisma`, `prisma/academySeed.ts` (toifa), `validators/gamification.validator.ts` (`createBadgeSchema`, `BADGE_THRESHOLD_RANGE`, update'da `category`), `services/gamification.service.ts` (`createBadge`, `onMilestone`, REFERRAL, nom tekshiruvi), `controllers/gamification.controller.ts`, `routes/gamification.routes.ts`, `services/referral.service.ts`, `services/student.service.ts`, `config/auditLabels.ts`.
+Frontend: `types/gamification.ts`, `utils/gamificationLabels.ts`, `services/gamification.service.ts`, `pages/gamification/GamificationSettings.tsx`.
+
+## Database Changes
+
+(oldin `pg_dump`) `enum BadgeCategory`, `BadgeRule` + `REFERRAL`, `badges.category` NOT NULL DEFAULT `SPECIAL`; mavjud nishonlar qoidasiga qarab `UPDATE` bilan toifalandi (DROP/DELETE/`now()` yo'q). Dev va test bazalarida qo'llandi, natija tekshirildi (9 nishon).
+
+## API Changes
+
+Yangi: `POST /api/gamification/badges` (201). `PUT /badges/:id` — ixtiyoriy `category`, chegara qoida oralig'ida (422), band nom (400). `BadgeDto` + `category`.
+
+## Telegram Changes
+
+Yo'q.
+
+## Permissions
+
+Yangi yo'q — `gamification.manage` (o'qituvchi, buxgalter, sotuv — 403, test).
+
+## Security
+
+Qat'iy sxema (kalit/ID foydalanuvchidan olinmaydi — `key` maydoni 422), audit `gamification.badge_created` (to'liq qiymat), nishon bir o'quvchiga bir marta (unikal), XP dedupe.
+
+## Tests
+
+Backend **805** (+6; to'liq yurishda 804 o'tdi, `paymentSchedule.test.ts` bitta testi mashina yuklamasida 5 s limitdan oshdi — alohida 4/4 o'tadi, bu fazaga aloqasiz), frontend **114/114** (+3), E2E **34/34** (+1). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Yaratish — 3 ta indeksli so'rov + tranzaksiya. REFERRAL tekshiruvi `referrals(referrerStudentId, status)` indeksidan foydalanadi.
+
+## Documentation
+
+`docs/badges.md` (TZ talab nomlari → tizim qoidalari xaritasi).
+
+## Known Issues
+
+- Yangi avtomatik nishon talabga allaqachon javob beradigan o'quvchilarga keyingi voqeada yoki "Qayta hisoblash" bilan beriladi (yaratishda butun bazani skanerlamaslik uchun).
+- Nishonni o'chirish yo'q (berilganlar tarixi saqlanadi) — "Faol" belgisini olib tashlash yetarli.
+
+## Next Phase
+
+**PHASE 3 — Column visibility (GAP-03)**: jadval ustunlarini ko'rsatish/yashirish/tartib/kenglik/tiklash, har foydalanuvchi uchun saqlash (`UserPreference`).

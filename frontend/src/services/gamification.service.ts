@@ -3,6 +3,7 @@ import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
 import type {
   Badge,
+  CreateBadgePayload,
   GamificationProfile,
   LeaderboardParams,
   LeaderboardRow,
@@ -47,9 +48,14 @@ export const gamificationService = {
     return response.data.data;
   },
 
+  async createBadge(payload: CreateBadgePayload): Promise<MessageResult<Badge>> {
+    const response = await api.post<ApiSuccessResponse<Badge>>('/gamification/badges', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async updateBadge(
     id: string,
-    payload: Partial<Pick<Badge, 'name' | 'description' | 'icon' | 'threshold' | 'xpReward' | 'isActive'>>,
+    payload: Partial<Pick<Badge, 'name' | 'description' | 'icon' | 'threshold' | 'xpReward' | 'isActive' | 'category'>>,
   ): Promise<MessageResult<Badge[]>> {
     const response = await api.put<ApiSuccessResponse<Badge[]>>(`/gamification/badges/${id}`, payload);
     return { data: response.data.data, message: response.data.message };

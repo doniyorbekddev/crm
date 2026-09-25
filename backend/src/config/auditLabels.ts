@@ -178,6 +178,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'gamification.xp_awarded': 'XP berildi',
   'gamification.badge_awarded': 'Nishon berildi',
   'gamification.badge_updated': 'Nishon tahrirlandi',
+  'gamification.badge_created': 'Yangi nishon yaratildi',
   'gamification.level_updated': 'Daraja tahrirlandi',
   'gamification.rule_updated': 'XP qoidasi tahrirlandi',
   'gamification.recalculated': 'XP va darajalar qayta hisoblandi',

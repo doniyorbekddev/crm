@@ -9,6 +9,7 @@
 import type { PrismaClient } from '../src/generated/prisma/client.js';
 import type {
   AccountType,
+  BadgeCategory,
   BadgeRule,
   PaymentMethod,
   SalaryType,
@@ -60,18 +61,19 @@ const BADGES: ReadonlyArray<{
   description: string;
   icon: string;
   rule: BadgeRule;
+  category: BadgeCategory;
   threshold: number | null;
   xpReward: number;
 }> = [
-  { key: 'STREAK_7', name: '7 kunlik seriya', description: '7 dars ketma-ket qatnashdi', icon: '🔥', rule: 'STREAK_DAYS', threshold: 7, xpReward: 50 },
-  { key: 'STREAK_30', name: '30 kunlik seriya', description: '30 dars ketma-ket qatnashdi', icon: '🔥', rule: 'STREAK_DAYS', threshold: 30, xpReward: 200 },
-  { key: 'PERFECT_ATTENDANCE', name: 'Mukammal davomat', description: 'Oy davomida bitta ham dars qoldirmadi', icon: '🏆', rule: 'ATTENDANCE_RATE', threshold: 100, xpReward: 150 },
-  { key: 'HOMEWORK_HERO', name: 'Uy vazifasi qahramoni', description: '10 ta uy vazifasini topshirdi', icon: '📚', rule: 'HOMEWORK_COUNT', threshold: 10, xpReward: 100 },
-  { key: 'TEST_MASTER', name: 'Test ustasi', description: 'Imtihondan 95%+ oldi', icon: '💯', rule: 'EXAM_SCORE', threshold: 95, xpReward: 100 },
-  { key: 'FAST_LEARNER', name: 'Tez o‘rganuvchi', description: '1000 XP to‘pladi', icon: '🚀', rule: 'XP_TOTAL', threshold: 1000, xpReward: 0 },
-  { key: 'TOP_STUDENT', name: 'Eng yaxshi o‘quvchi', description: 'Reytingda birinchi o‘rin', icon: '⭐', rule: 'MANUAL', threshold: null, xpReward: 0 },
-  { key: 'GOAL_CRUSHER', name: 'Maqsadga erishuvchi', description: 'Kursni muddatidan oldin tugatdi', icon: '🎯', rule: 'COURSE_COMPLETED', threshold: null, xpReward: 200 },
-  { key: 'MONTHLY_CHAMPION', name: 'Oy chempioni', description: 'Oylik reyting g‘olibi', icon: '👑', rule: 'MANUAL', threshold: null, xpReward: 300 },
+  { key: 'STREAK_7', name: '7 kunlik seriya', description: '7 dars ketma-ket qatnashdi', icon: '🔥', rule: 'STREAK_DAYS', category: 'ATTENDANCE', threshold: 7, xpReward: 50 },
+  { key: 'STREAK_30', name: '30 kunlik seriya', description: '30 dars ketma-ket qatnashdi', icon: '🔥', rule: 'STREAK_DAYS', category: 'ATTENDANCE', threshold: 30, xpReward: 200 },
+  { key: 'PERFECT_ATTENDANCE', name: 'Mukammal davomat', description: 'Oy davomida bitta ham dars qoldirmadi', icon: '🏆', rule: 'ATTENDANCE_RATE', category: 'ATTENDANCE', threshold: 100, xpReward: 150 },
+  { key: 'HOMEWORK_HERO', name: 'Uy vazifasi qahramoni', description: '10 ta uy vazifasini topshirdi', icon: '📚', rule: 'HOMEWORK_COUNT', category: 'ACADEMIC', threshold: 10, xpReward: 100 },
+  { key: 'TEST_MASTER', name: 'Test ustasi', description: 'Imtihondan 95%+ oldi', icon: '💯', rule: 'EXAM_SCORE', category: 'ACADEMIC', threshold: 95, xpReward: 100 },
+  { key: 'FAST_LEARNER', name: 'Tez o‘rganuvchi', description: '1000 XP to‘pladi', icon: '🚀', rule: 'XP_TOTAL', category: 'ACTIVITY', threshold: 1000, xpReward: 0 },
+  { key: 'TOP_STUDENT', name: 'Eng yaxshi o‘quvchi', description: 'Reytingda birinchi o‘rin', icon: '⭐', rule: 'MANUAL', category: 'SPECIAL', threshold: null, xpReward: 0 },
+  { key: 'GOAL_CRUSHER', name: 'Maqsadga erishuvchi', description: 'Kursni muddatidan oldin tugatdi', icon: '🎯', rule: 'COURSE_COMPLETED', category: 'ACADEMIC', threshold: null, xpReward: 200 },
+  { key: 'MONTHLY_CHAMPION', name: 'Oy chempioni', description: 'Oylik reyting g‘olibi', icon: '👑', rule: 'MANUAL', category: 'SPECIAL', threshold: null, xpReward: 300 },
 ];
 
 const ACCOUNTS: ReadonlyArray<{ key: string; name: string; type: AccountType; sortOrder: number }> = [
@@ -197,6 +199,7 @@ export async function seedReferenceData(prisma: PrismaClient, log: Log): Promise
         description: badge.description,
         icon: badge.icon,
         rule: badge.rule,
+        category: badge.category,
         threshold: badge.threshold,
         xpReward: badge.xpReward,
       },

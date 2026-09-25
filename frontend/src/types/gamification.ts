@@ -15,7 +15,10 @@ export type BadgeRule =
   | 'HOMEWORK_COUNT'
   | 'EXAM_SCORE'
   | 'XP_TOTAL'
-  | 'COURSE_COMPLETED';
+  | 'COURSE_COMPLETED'
+  | 'REFERRAL';
+
+export type BadgeCategory = 'ATTENDANCE' | 'ACADEMIC' | 'ACTIVITY' | 'SOCIAL' | 'SPECIAL';
 
 export type LeaderboardPeriod = 'week' | 'month' | 'year' | 'all';
 
@@ -84,10 +87,22 @@ export interface Badge {
   description: string;
   icon: string;
   rule: BadgeRule;
+  category: BadgeCategory;
   threshold: number | null;
   xpReward: number;
   isActive: boolean;
   awarded: number;
+}
+
+export interface CreateBadgePayload {
+  name: string;
+  description: string;
+  icon: string;
+  category: BadgeCategory;
+  rule: BadgeRule;
+  threshold?: number;
+  xpReward: number;
+  isActive: boolean;
 }
 
 export interface ManualXpPayload {

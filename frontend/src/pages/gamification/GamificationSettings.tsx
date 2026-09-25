@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Save } from 'lucide-react';
+import { Plus, RefreshCw, Save } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/Badge';
@@ -13,7 +13,8 @@ import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { gamificationService } from '@/services/gamification.service';
 import { formatNumber } from '@/utils/format';
-import { BADGE_RULE_LABELS, BADGE_RULE_UNITS, XP_SOURCE_LABELS, XP_SOURCE_TONES } from '@/utils/gamificationLabels';
+import { BADGE_CATEGORY_LABELS, BADGE_RULE_LABELS, BADGE_RULE_UNITS, XP_SOURCE_LABELS, XP_SOURCE_TONES } from '@/utils/gamificationLabels';
+import { BadgeFormModal } from './BadgeFormModal';
 
 /** Tahrirlanadigan raqamli maydon — o‘zgargandagina saqlash tugmasi ochiladi */
 function NumberField({
@@ -59,6 +60,7 @@ function NumberField({
 
 export function GamificationSettings() {
   const queryClient = useQueryClient();
+  const [creating, setCreating] = useState(false);
 
   const rulesQuery = useQuery({ queryKey: queryKeys.gamification.rules, queryFn: gamificationService.rules });
   const levelsQuery = useQuery({ queryKey: queryKeys.gamification.levels, queryFn: gamificationService.levels });
@@ -209,8 +211,11 @@ export function GamificationSettings() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>Nishonlar</CardTitle>
+            <Button size="sm" leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setCreating(true)}>
+              Nishon yaratish
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             {badgesQuery.isPending ? (
@@ -229,7 +234,7 @@ export function GamificationSettings() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-fg">{badge.name}</p>
                       <p className="truncate text-xs text-fg-muted">
-                        {BADGE_RULE_LABELS[badge.rule]} · {formatNumber(badge.awarded)} ta berilgan
+                        {BADGE_CATEGORY_LABELS[badge.category]} · {BADGE_RULE_LABELS[badge.rule]} · {formatNumber(badge.awarded)} ta berilgan
                         {badge.xpReward > 0 && ` · +${badge.xpReward} XP`}
                       </p>
                     </div>
@@ -259,6 +264,7 @@ export function GamificationSettings() {
           </CardContent>
         </Card>
       </div>
+      {creating && <BadgeFormModal onClose={() => setCreating(false)} />}
     </div>
   );
 }

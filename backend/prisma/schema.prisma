@@ -1577,6 +1577,17 @@ enum BadgeRule {
   EXAM_SCORE
   XP_TOTAL
   COURSE_COMPLETED
+  /// Taklif qilgan do'stlaridan kamida `threshold` tasi o'quvchi bo'ldi (CONVERTED yoki REWARDED)
+  REFERRAL
+}
+
+/// Nishon toifasi — ro'yxat va kabinetda guruhlash uchun (TZ 3.1 GAP-02)
+enum BadgeCategory {
+  ATTENDANCE
+  ACADEMIC
+  ACTIVITY
+  SOCIAL
+  SPECIAL
 }
 
 enum SalaryType {
@@ -1806,19 +1817,20 @@ model Level {
 }
 
 model Badge {
-  id          String    @id @default(cuid())
-  key         String    @unique @db.VarChar(50)
-  name        String    @db.VarChar(100)
-  description String    @db.VarChar(255)
-  icon        String    @db.VarChar(16)
-  rule        BadgeRule @default(MANUAL)
+  id          String        @id @default(cuid())
+  key         String        @unique @db.VarChar(50)
+  name        String        @db.VarChar(100)
+  description String        @db.VarChar(255)
+  icon        String        @db.VarChar(16)
+  rule        BadgeRule     @default(MANUAL)
+  category    BadgeCategory @default(SPECIAL)
   /// Qoida uchun chegara: streak kunlari, davomat foizi, XP va h.k.
   threshold   Int?
-  xpReward    Int       @default(0)
-  isActive    Boolean   @default(true)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  xpReward    Int           @default(0)
+  isActive    Boolean       @default(true)
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   students StudentBadge[]
 

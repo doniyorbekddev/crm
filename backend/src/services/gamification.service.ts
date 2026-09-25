@@ -1,10 +1,12 @@
 import { prisma } from '../config/database.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
-import type { AttendanceStatus, BadgeRule, Prisma, XpSource } from '../generated/prisma/client.js';
+import type { AttendanceStatus, BadgeCategory, BadgeRule, Prisma, XpSource } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import { BADGE_THRESHOLD_RANGE } from '../validators/gamification.validator.js';
 import type {
+  CreateBadgeInput,
   LeaderboardQuery,
   ManualXpInput,
   UpdateBadgeInput,
@@ -82,6 +84,7 @@ export interface BadgeDto {
   description: string;
   icon: string;
   rule: BadgeRule;
+  category: BadgeCategory;
   threshold: number | null;
   xpReward: number;
   isActive: boolean;
@@ -243,6 +246,11 @@ async function badgeEarned(
       const student = await tx.student.findUnique({ where: { id: studentId }, select: { status: true } });
       return student?.status === 'COMPLETED' || student?.status === 'GRADUATED';
     }
+    case 'REFERRAL': {
+      // Taklif qilingan do'st o'quvchi bo'lgan (bonus berilgan-berilmaganidan qat'i nazar)
+      const converted = await tx.referral.count({ where: { referrerStudentId: studentId, status: { in: ['CONVERTED', 'REWARDED'] } } });
+      return converted >= Math.max(1, threshold);
+    }
     case 'MANUAL':
       return false;
   }
@@ -292,6 +300,37 @@ async function evaluateBadges(
 // ---------------------------------------------------------------------
 // Boshqa servislar chaqiradigan hooklar
 // ---------------------------------------------------------------------
+
+/** Nomi band emasligini tekshiradi (katta-kichik harf va chetdagi bo'shliq farqsiz) */
+async function assertBadgeNameFree(name: string, exceptId?: string): Promise<void> {
+  const duplicate = await prisma.badge.findFirst({
+    where: { name: { equals: name.trim(), mode: 'insensitive' }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true },
+  });
+  if (duplicate) {
+    throw AppError.badRequest('Bunday nomli nishon allaqachon bor', [{ field: 'name', message: 'Boshqa nom tanlang' }]);
+  }
+}
+
+/** "Do‘stlar ko‘prigi" → "CUSTOM_DOSTLAR_KOPRIGI" (band bo'lsa _2, _3 …) */
+async function uniqueBadgeKey(name: string): Promise<string> {
+  const slug =
+    name
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[‘’'`ʻʼ]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 36) || 'BADGE';
+  const base = `CUSTOM_${slug}`;
+  const taken = new Set((await prisma.badge.findMany({ where: { key: { startsWith: base } }, select: { key: true } })).map((row) => row.key));
+  if (!taken.has(base)) return base;
+  for (let index = 2; ; index += 1) {
+    const candidate = `${base}_${index}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
 
 export const gamificationHooks = {
   /**
@@ -356,6 +395,16 @@ export const gamificationHooks = {
     const streak = await tx.streak.findUnique({ where: { studentId: input.studentId }, select: { current: true } });
     await evaluateBadges(tx, input.studentId, { totalXp, streak: streak?.current ?? 0 });
     return points;
+  },
+
+  /**
+   * XP bermaydigan voqealar (do'st o'quvchi bo'ldi, kurs tugatildi) — faqat nishonlar qayta tekshiriladi.
+   * Aks holda REFERRAL va COURSE_COMPLETED nishonlari keyingi davomat/vazifagacha kechikardi.
+   */
+  async onMilestone(tx: Prisma.TransactionClient, studentId: string): Promise<string[]> {
+    const { totalXp } = await recalculateProfile(tx, studentId);
+    const streak = await tx.streak.findUnique({ where: { studentId }, select: { current: true } });
+    return evaluateBadges(tx, studentId, { totalXp, streak: streak?.current ?? 0 });
   },
 
   /** Imtihon natijasi kiritilganda */
@@ -687,6 +736,7 @@ export const gamificationService = {
       description: badge.description,
       icon: badge.icon,
       rule: badge.rule,
+      category: badge.category,
       threshold: badge.threshold,
       xpReward: badge.xpReward,
       isActive: badge.isActive,
@@ -700,9 +750,16 @@ export const gamificationService = {
       throw AppError.notFound('Nishon topilmadi');
     }
 
+    const range = BADGE_THRESHOLD_RANGE[existing.rule];
+    if (input.threshold !== undefined && input.threshold !== null && range && (input.threshold < range.min || input.threshold > range.max)) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'threshold', message: `Chegara ${range.min}–${range.max} oralig‘ida (${range.label})` }]);
+    }
+    if (input.name !== undefined) await assertBadgeNameFree(input.name, id);
+
     await prisma.badge.update({
       where: { id },
       data: {
+        ...(input.category === undefined ? {} : { category: input.category }),
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.description === undefined ? {} : { description: input.description }),
         ...(input.icon === undefined ? {} : { icon: input.icon }),
@@ -722,6 +779,55 @@ export const gamificationService = {
     });
 
     return this.badges();
+  },
+
+  /**
+   * Yangi nishon (TZ 3.1 GAP-02). Kalit nomdan avtomatik (`CUSTOM_…`), nom takrorlanmaydi (katta-kichik harf
+   * farqsiz) va bir xil avtomatik talab (qoida + chegara) ikkinchi marta yaratilmaydi — ikkalasi 400.
+   * Mavjud o'quvchilar talabga javob bersa, nishon keyingi voqeada yoki "Qayta hisoblash" bilan beriladi.
+   */
+  async createBadge(actor: AuthUser, input: CreateBadgeInput, client: ClientInfo): Promise<BadgeDto> {
+    await assertBadgeNameFree(input.name);
+    const threshold = input.threshold ?? null;
+    if (input.rule !== 'MANUAL') {
+      const same = await prisma.badge.findFirst({ where: { rule: input.rule, threshold }, select: { name: true } });
+      if (same) {
+        throw AppError.badRequest('Bunday talabli nishon allaqachon bor', [{ field: 'threshold', message: `«${same.name}» xuddi shu talab bilan mavjud` }]);
+      }
+    }
+    const key = await uniqueBadgeKey(input.name);
+    const last = await prisma.badge.aggregate({ _max: { sortOrder: true } });
+
+    const created = await prisma.$transaction(async (tx) => {
+      const badge = await tx.badge.create({
+        data: {
+          key,
+          name: input.name,
+          description: input.description,
+          icon: input.icon,
+          category: input.category,
+          rule: input.rule,
+          threshold,
+          xpReward: input.xpReward,
+          isActive: input.isActive,
+          sortOrder: (last._max.sortOrder ?? 0) + 1,
+        },
+        select: { id: true },
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'gamification.badge_created',
+        entityType: 'badge',
+        entityId: badge.id,
+        after: { key, ...input, threshold } as Prisma.InputJsonValue,
+        ...client,
+      });
+      return badge;
+    });
+
+    const badge = (await this.badges()).find((row) => row.id === created.id);
+    if (!badge) throw AppError.notFound('Nishon topilmadi');
+    return badge;
   },
 
   /** Qo‘lda XP berish yoki ayirish (admin) */
