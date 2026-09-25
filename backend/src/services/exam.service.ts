@@ -16,7 +16,8 @@ import type {
 } from '../validators/homework.validator.js';
 import { auditService } from './audit.service.js';
 import { masteryService } from './mastery.service.js';
-import { notifyExamResult } from './studentNotify.service.js';
+import { notifyExamResult, notifyExamScheduled } from './studentNotify.service.js';
+import { dateColumn } from '../utils/dates.js';
 import { gamificationHooks } from './gamification.service.js';
 import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
 import type { TeachingAccess } from './homework.service.js';
@@ -275,6 +276,16 @@ async function assertBlueprintTopics(courseId: string, blueprint: Blueprint): Pr
   }
 }
 
+/**
+ * TZ 3.0 §42 "Exam scheduled": faqat kelgusi (bugun yoki keyin) rejalashtirilgan imtihon —
+ * o'tgan sanali imtihonga natija kiritilganda "rejalashtirildi" xabari ketmaydi.
+ */
+async function announceIfUpcoming(examId: string): Promise<void> {
+  const exam = await prisma.exam.findUnique({ where: { id: examId }, select: { date: true, status: true } });
+  if (!exam || exam.status !== 'PLANNED' || exam.date.getTime() < dateColumn(new Date()).getTime()) return;
+  await prisma.$transaction((tx) => notifyExamScheduled(tx, examId));
+}
+
 export interface BlueprintPreviewDto {
   poolSize: number;
   feasible: boolean;
@@ -390,6 +401,7 @@ export const examService = {
       metadata: { title: input.title, group: group.name, date: input.date, maxScore: input.maxScore },
       ...client,
     });
+    await announceIfUpcoming(exam.id);
 
     return this.getById(actor, exam.id);
   },
@@ -448,6 +460,9 @@ export const examService = {
       metadata: { title: input.title ?? exam.title, status: input.status ?? exam.status },
       ...client,
     });
+
+    // Sana, oyna yoki holat o'zgardi — kelgusi imtihon haqida qayta xabar (dedupe sana bo'yicha)
+    if (input.date !== undefined || input.startAt !== undefined || input.status !== undefined) await announceIfUpcoming(id);
 
     // Bekor qilingan imtihon o'zlashtirishga kirmaydi — holat o'zgarsa qayta hisoblanadi
     if (input.status !== undefined && (input.status === 'CANCELLED') !== (exam.status === 'CANCELLED')) {

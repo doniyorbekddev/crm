@@ -34,6 +34,10 @@ export const NOTIFICATION_PRIORITY: Record<NotificationType, NotificationPriorit
   WEEKLY_REPORT: NotificationPriority.LOW,
   HOMEWORK_DEADLINE: NotificationPriority.HIGH,
   HOMEWORK_RETURNED: NotificationPriority.HIGH,
+  EXAM_SCHEDULED: NotificationPriority.NORMAL,
+  LOW_SCORE: NotificationPriority.HIGH,
+  ATTENDANCE_LATE: NotificationPriority.NORMAL,
+  RISK_INCREASED: NotificationPriority.HIGH,
 };
 
 /**

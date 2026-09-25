@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck, Settings2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +35,7 @@ const PAGE_SIZE = 20;
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const [type, setType] = useState<NotificationType | ''>('');
   /** '' — hammasi, 'unread' — o‘qilmagan, 'read' — o‘qilgan */
@@ -119,7 +120,7 @@ export default function NotificationsPage() {
 
   const renderRow = (item: NotificationItem) => {
     const Icon = NOTIFICATION_TYPE_ICONS[item.type];
-    const link = notificationLink(item.entityType, item.entityId);
+    const link = notificationLink(item.entityType, item.entityId, location.pathname.startsWith('/portal') ? 'portal' : 'staff');
 
     const body = (
       <div className="flex min-w-0 flex-1 items-start gap-3">

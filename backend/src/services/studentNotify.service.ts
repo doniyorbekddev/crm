@@ -1,4 +1,4 @@
-import { primaryClientUrl } from '../config/env.js';
+import { env, primaryClientUrl } from '../config/env.js';
 import type { NotificationType, Prisma } from '../generated/prisma/client.js';
 import { notificationService } from './notification.service.js';
 
@@ -80,6 +80,77 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
   return queued;
 }
 
+/** Shu foizdan past natija — "past baho" hodisasi (vazifa uchun 50%) */
+const LOW_SCORE_PERCENT = 60;
+
+/**
+ * TZ 3.0 §42 "Low score": faqat ota-onaga (o'quvchi natijani o'zi oladi), qo'rqitmaydigan ohangda
+ * va amaliy tavsiya bilan. Bir natija uchun bir marta (ball o'zgarsa — yangi xabar).
+ */
+export async function notifyLowScore(
+  tx: Tx,
+  input: { studentId: string; kind: 'exam' | 'homework'; entityId: string; title: string; percent: number; marker: string },
+): Promise<number> {
+  const what = input.kind === 'exam' ? 'imtihonida' : 'vazifasida';
+  return notifyFamily(tx, {
+    studentId: input.studentId,
+    type: 'LOW_SCORE',
+    title: 'Natija bo‘yicha qo‘llab-quvvatlash',
+    message: `«${input.title}» ${what} ${input.percent}% natija. Mavzuni kabinetdagi materiallar bilan birga takrorlash va o‘qituvchi bilan maslahatlashish foydali bo‘ladi.`,
+    entityType: input.kind,
+    entityId: input.entityId,
+    dedupeKey: `low-score:${input.kind}:${input.entityId}:${input.studentId}:${input.marker}`,
+    parents: true,
+    student: false,
+  });
+}
+
+/** TZ §42 "Exam scheduled": guruhdagi faol o'quvchi va ota-onasiga; sana o'zgarsa — qayta */
+export async function notifyExamScheduled(tx: Tx, examId: string): Promise<number> {
+  const exam = await tx.exam.findUnique({
+    where: { id: examId },
+    select: { title: true, date: true, status: true, isOnline: true, startAt: true, groupId: true, group: { select: { name: true } } },
+  });
+  if (!exam || exam.status !== 'PLANNED') return 0;
+  const students = await tx.student.findMany({ where: { groupId: exam.groupId, deletedAt: null, status: 'ACTIVE' }, select: { id: true } });
+  // Oyna berilgan bo'lsa — o'quv markaz vaqtidagi boshlanish soati bilan
+  const local = exam.startAt ? new Date(exam.startAt.getTime() + env.APP_UTC_OFFSET_MINUTES * 60_000) : null;
+  const whenLocal = local ? `${dateUz(local)} ${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}` : dateUz(exam.date);
+  let sent = 0;
+  for (const student of students) {
+    sent += await notifyFamily(tx, {
+      studentId: student.id,
+      type: 'EXAM_SCHEDULED',
+      title: 'Imtihon rejalashtirildi',
+      message: `${exam.group.name}: «${exam.title}» — ${whenLocal}${exam.isOnline ? '. Kabinetdan onlayn topshiriladi' : ''}.`,
+      entityType: 'exam',
+      entityId: examId,
+      dedupeKey: `exam:scheduled:${examId}:${businessDay(exam.date)}:${exam.startAt?.toISOString() ?? ''}`,
+      parents: true,
+    });
+  }
+  return sent;
+}
+
+/** TZ §42 "Attendance late": faqat ota-onaga, yumshoq */
+export async function notifyAttendanceLate(tx: Tx, input: { attendanceId: string; studentId: string; groupName: string; date: Date }): Promise<number> {
+  return notifyFamily(tx, {
+    studentId: input.studentId,
+    type: 'ATTENDANCE_LATE',
+    title: 'Darsga kechikib keldi',
+    message: `${input.groupName} guruhidagi ${dateUz(input.date)} kungi darsga kechikib keldi.`,
+    entityType: 'attendance',
+    entityId: input.attendanceId,
+    dedupeKey: `attendance:late:${input.attendanceId}`,
+    parents: true,
+    student: false,
+  });
+}
+
+function businessDay(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
 /** 24.09.2026 */
 function dateUz(value: Date): string {
   return `${String(value.getUTCDate()).padStart(2, '0')}.${String(value.getUTCMonth() + 1).padStart(2, '0')}.${value.getUTCFullYear()}`;
@@ -122,12 +193,16 @@ export async function notifyHomeworkGraded(tx: Tx, input: { homeworkId: string; 
     dedupeKey: `homework:graded:${input.homeworkId}:${input.studentId}:${input.score}`,
     parents: true,
   });
+  const percent = Math.round((input.score / Math.max(1, homework.maxPoints)) * 100);
+  if (percent < LOW_SCORE_PERCENT / 1.2) {
+    await notifyLowScore(tx, { studentId: input.studentId, kind: 'homework', entityId: input.homeworkId, title: homework.title, percent, marker: String(input.score) });
+  }
 }
 
 /** Imtihon natijasi (o'qituvchi kiritgan yoki avtomatik baholangan) */
 export async function notifyExamResult(tx: Tx, input: { examId: string; studentId: string }): Promise<void> {
   const [exam, result] = await Promise.all([
-    tx.exam.findUnique({ where: { id: input.examId }, select: { title: true, maxScore: true } }),
+    tx.exam.findUnique({ where: { id: input.examId }, select: { title: true, maxScore: true, passScore: true } }),
     tx.examResult.findUnique({
       where: { examId_studentId: { examId: input.examId, studentId: input.studentId } },
       select: { score: true, percentage: true, grade: true },
@@ -144,6 +219,11 @@ export async function notifyExamResult(tx: Tx, input: { examId: string; studentI
     dedupeKey: `exam:result:${input.examId}:${input.studentId}:${result.score}`,
     parents: true,
   });
+  // Past natija — ota-onaga yumshoq tavsiya bilan (o'tish balidan past yoki 60% dan kam)
+  const passed = exam.passScore === null ? result.percentage >= LOW_SCORE_PERCENT : result.score >= exam.passScore;
+  if (!passed) {
+    await notifyLowScore(tx, { studentId: input.studentId, kind: 'exam', entityId: input.examId, title: exam.title, percent: result.percentage, marker: String(result.score) });
+  }
 }
 
 /** Onlayn urinish baholangach — o'quvchi id urinishdan olinadi */

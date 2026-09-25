@@ -18,6 +18,12 @@ export type NotificationType =
   | 'LEVEL_UP'
   | 'CERTIFICATE_ISSUED'
   | 'WEEKLY_REPORT'
+  | 'HOMEWORK_DEADLINE'
+  | 'HOMEWORK_RETURNED'
+  | 'EXAM_SCHEDULED'
+  | 'LOW_SCORE'
+  | 'ATTENDANCE_LATE'
+  | 'RISK_INCREASED'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';

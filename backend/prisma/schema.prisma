@@ -217,6 +217,14 @@ enum NotificationType {
   WEEKLY_REPORT
   HOMEWORK_DEADLINE
   HOMEWORK_RETURNED
+  /// O'quvchi/ota-onaga: imtihon rejalashtirildi (yoki sanasi o'zgardi)
+  EXAM_SCHEDULED
+  /// Ota-onaga: imtihon yoki vazifada past natija (yumshoq, tavsiya bilan)
+  LOW_SCORE
+  /// Ota-onaga: farzandi darsga kechikib keldi
+  ATTENDANCE_LATE
+  /// O'qituvchiga: o'quvchining xavf darajasi oshdi (sabablar bilan)
+  RISK_INCREASED
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.

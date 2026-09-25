@@ -67,7 +67,7 @@ describe('AiReviewPanel', () => {
   });
 
   it('"Qabul qilish" — o‘qituvchi izohi bilan; "Ballni tahrirlash" — formaga qo‘yadi', async () => {
-    vi.mocked(aiAcademicService.accept).mockResolvedValue({ message: 'ok', data: { ...REVIEW, status: 'ACCEPTED', decision: { score: 72 } } });
+    vi.mocked(aiAcademicService.accept).mockResolvedValue({ message: 'ok', data: { ...REVIEW, status: 'ACCEPTED', decision: { score: 72 } } as never });
     const { onUseScore, onAccepted } = renderPanel();
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Ballni tahrirlash' }));

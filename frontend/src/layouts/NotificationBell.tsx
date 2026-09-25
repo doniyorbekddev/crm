@@ -77,7 +77,7 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
 
   const openNotification = (item: NotificationItem) => {
     if (!item.isRead) markRead.mutate(item.id);
-    const link = notificationLink(item.entityType, item.entityId);
+    const link = notificationLink(item.entityType, item.entityId, listPath.startsWith('/portal') ? 'portal' : 'staff');
     setOpen(false);
     if (link) navigate(link);
   };

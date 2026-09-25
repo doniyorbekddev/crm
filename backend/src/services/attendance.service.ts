@@ -13,6 +13,7 @@ import { gamificationHooks } from './gamification.service.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 import { masteryService } from './mastery.service.js';
+import { notifyAttendanceLate } from './studentNotify.service.js';
 
 /** JS `getUTCDay()` (0 = yakshanba) → Prisma WeekDay */
 const WEEK_DAYS: readonly WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -279,6 +280,11 @@ export const attendanceService = {
           status: saved.status,
           date: input.date,
         });
+
+        // Kechikdi — ota-onaga yumshoq xabar (TZ 3.0 §42 "Attendance late")
+        if (saved.status === 'LATE') {
+          await notifyAttendanceLate(tx, { attendanceId: saved.id, studentId: record.studentId, groupName: group.name, date: input.date });
+        }
 
         // Darsga kelmagan o‘quvchi: xodimlarga ilova ichida, ota-onasiga esa Telegramga
         if (saved.status === 'ABSENT') {

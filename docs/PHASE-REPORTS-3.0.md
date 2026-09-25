@@ -607,3 +607,60 @@ Backend **756/756** (+11: 6 integratsiya — soxta model bilan, 5 unit), fronten
 ## 12. Next Phase
 
 **PHASE 10 — Notification integration** (§42): Homework created/deadline/graded (bor), Exam scheduled, Exam result (bor), Low score, Attendance absent (bor)/late, Risk increased, Certificate issued (tekshirish), Payment due — web + Telegram + mavjud tizim.
+
+---
+
+# PHASE 10 COMPLETE — Notification integration
+
+Sana: 2026-09-26. Batafsil: [notifications.md](notifications.md).
+
+## 1. Implemented
+
+- §42 ro‘yxatidagi 11 hodisa tekshirildi: 7 tasi oldingi bosqichlarda bor edi (vazifa yaratildi/muddat/baholandi, imtihon natijasi, kelmadi, sertifikat, to‘lov muddati — standart `payment_due` qoidasi ota-onaga).
+- Yangi: **Exam scheduled** (kelgusi imtihon, sana o‘zgarsa qayta), **Low score** (faqat ota-onaga, yumshoq tavsiya), **Attendance late** (ota-onaga), **Risk increased** (guruh o‘qituvchisiga, sabablar bilan).
+- Web + Telegram: mavjud `notifyFamily` / `notificationService` orqali (foydalanuvchi sozlamalari va dedupe ishlaydi).
+- Audit topilmasi tuzatildi: frontend’da `HOMEWORK_DEADLINE` va `HOMEWORK_RETURNED` nomlari yo‘q edi; kabinetdagi bildirishnoma havolalari xodim sahifalariga olib borardi — endi kabinet sahifalariga.
+
+## 2–3. Files
+
+Backend: `services/studentNotify.service.ts` (+`notifyExamScheduled`, `notifyLowScore`, `notifyAttendanceLate`), `exam.service.ts`, `attendance.service.ts`, `studentRisk.service.ts`, `config/notificationTypes.ts`, `schema.prisma`, migratsiya `20260926140000_notification_events`, `tests/notificationEvents.test.ts`.
+Frontend: `types/notification.ts`, `utils/notificationLabels.ts` (+kabinet havolalari), `layouts/NotificationBell.tsx`, `pages/notifications/NotificationsPage.tsx`, `utils/labels.test.ts`. Docs: `notifications.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`) `NotificationType` + `EXAM_SCHEDULED`, `LOW_SCORE`, `ATTENDANCE_LATE`, `RISK_INCREASED` (faqat qo‘shish).
+
+## 5. API Changes
+
+Yo‘q (yangi turlar mavjud bildirishnoma API’larida ko‘rinadi). `studentRiskService.recalculateAll` natijasiga `increased` qo‘shildi.
+
+## 6. Permission Changes
+
+Yo‘q.
+
+## 7. AI Changes
+
+Yo‘q.
+
+## 8. Tests
+
+Backend **760/760** (+4), frontend **86/86** (+1), E2E **24/24**. Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Past natija va kechikish — faqat ota-onaga (o‘quvchi natijani baribir oladi), matn ayblamaydi.
+- Risk oshdi — faqat guruh o‘qituvchisiga (ota-onaga "xavf" so‘zi yuborilmaydi).
+- Birinchi risk hisobida ommaviy xabar yo‘q (joriy qilish xavfsiz).
+
+## 10. Performance
+
+- Imtihon e’loni — guruh bo‘yicha bitta tranzaksiya; o‘tgan sanali imtihonlarga umuman ishlamaydi.
+- Risk xabari mavjud tungi yurish ichida, faqat daraja oshganlar uchun.
+
+## 11. Known Issues
+
+- Imtihon e’loni guruh o‘quvchilariga (onlayn/oflayn farqi matnda); bekor qilinganda alohida "bekor qilindi" xabari yo‘q.
+
+## 12. Next Phase
+
+**PHASE 11 — Telegram 2.0** (§43–44): onlayn imtihon botda, qidiruv, sozlamalar, o‘qituvchi KPI, marketing, hisobotlar, vazifa biriktirmalari, broadcast media, qo‘ng‘iroq yozish, follow-up yaratish; web bilan izchillik.

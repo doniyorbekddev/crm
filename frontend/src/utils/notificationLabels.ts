@@ -42,6 +42,12 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'LEVEL_UP',
   'CERTIFICATE_ISSUED',
   'WEEKLY_REPORT',
+  'HOMEWORK_DEADLINE',
+  'HOMEWORK_RETURNED',
+  'EXAM_SCHEDULED',
+  'LOW_SCORE',
+  'ATTENDANCE_LATE',
+  'RISK_INCREASED',
   'SYSTEM',
 ];
 
@@ -65,6 +71,12 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   LEVEL_UP: 'Yangi daraja',
   CERTIFICATE_ISSUED: 'Sertifikat berildi',
   WEEKLY_REPORT: 'Haftalik hisobot',
+  HOMEWORK_DEADLINE: 'Vazifa muddati yaqin',
+  HOMEWORK_RETURNED: 'Vazifa qaytarildi',
+  EXAM_SCHEDULED: 'Imtihon rejalashtirildi',
+  LOW_SCORE: 'Past natija',
+  ATTENDANCE_LATE: 'Darsga kechikdi',
+  RISK_INCREASED: 'O‘quvchi xavfi oshdi',
   SYSTEM: 'Tizim',
 };
 
@@ -88,6 +100,12 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   LEVEL_UP: Sparkles,
   CERTIFICATE_ISSUED: Award,
   WEEKLY_REPORT: FileBarChart,
+  HOMEWORK_DEADLINE: CalendarClock,
+  HOMEWORK_RETURNED: ClipboardCheck,
+  EXAM_SCHEDULED: CalendarClock,
+  LOW_SCORE: AlertTriangle,
+  ATTENDANCE_LATE: CalendarX,
+  RISK_INCREASED: AlertTriangle,
   SYSTEM: Info,
 };
 
@@ -108,6 +126,12 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   LEVEL_UP: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   CERTIFICATE_ISSUED: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300',
   WEEKLY_REPORT: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300',
+  HOMEWORK_DEADLINE: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  HOMEWORK_RETURNED: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  EXAM_SCHEDULED: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
+  LOW_SCORE: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  ATTENDANCE_LATE: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
+  RISK_INCREASED: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   DEBT_REMINDER: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300',
   TRIAL_LESSON_REMINDER: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
   EXPENSE_APPROVAL: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300',
@@ -115,16 +139,36 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   SYSTEM: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
 };
 
-/** Bildirishnomadan tegishli sahifaga havola */
-export function notificationLink(entityType: string | null, entityId: string | null): string | null {
+/**
+ * Bildirishnomadan tegishli sahifaga havola. Kabinet (o'quvchi/ota-ona) uchun — kabinet sahifalari:
+ * xodim sahifasiga yo'naltirish ruxsatsiz sahifa ochardi.
+ */
+export function notificationLink(entityType: string | null, entityId: string | null, scope: 'staff' | 'portal' = 'staff'): string | null {
   if (!entityType) return null;
+  if (scope === 'portal') {
+    switch (entityType) {
+      case 'homework':
+        return entityId ? `/portal/homework/${entityId}` : '/portal/homework';
+      case 'exam':
+        return entityId ? `/portal/exams/${entityId}` : '/portal/exams';
+      case 'attendance':
+        return '/portal/attendance';
+      case 'weekly_report':
+        return '/portal/weekly-report';
+      case 'student':
+      case 'certificate':
+        return '/portal';
+      default:
+        return null;
+    }
+  }
   switch (entityType) {
     case 'lead':
       return entityId ? `/leads/${entityId}` : '/leads';
     case 'followUp':
       return '/follow-ups';
     case 'student':
-      return '/students';
+      return entityId ? `/students/${entityId}` : '/students';
     case 'payment':
       return '/payments';
     case 'debt':
@@ -135,6 +179,12 @@ export function notificationLink(entityType: string | null, entityId: string | n
       return '/alerts';
     case 'digest':
       return '/executive';
+    case 'homework':
+      return '/homework';
+    case 'exam':
+      return '/exams';
+    case 'attendance':
+      return '/attendance';
     case 'weekly_report':
       return '/portal/weekly-report';
     default:

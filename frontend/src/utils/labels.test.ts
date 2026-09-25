@@ -80,6 +80,16 @@ describe('bildirishnoma havolalari', () => {
     expect(notificationLink('followUp', 'f1')).toBe('/follow-ups');
     expect(notificationLink('payment', 'p1')).toBe('/payments');
     expect(notificationLink('debt', null)).toBe('/debts');
+    expect(notificationLink('student', 's1')).toBe('/students/s1');
+    expect(notificationLink('homework', 'h1')).toBe('/homework');
+  });
+
+  it('kabinetda — kabinet sahifalariga (xodim sahifasiga emas)', () => {
+    expect(notificationLink('homework', 'h1', 'portal')).toBe('/portal/homework/h1');
+    expect(notificationLink('exam', 'e1', 'portal')).toBe('/portal/exams/e1');
+    expect(notificationLink('attendance', 'a1', 'portal')).toBe('/portal/attendance');
+    expect(notificationLink('student', 's1', 'portal')).toBe('/portal');
+    expect(notificationLink('lead', 'l1', 'portal')).toBeNull();
   });
 
   it('noma’lum yoki bo‘sh tur uchun havola bermaydi', () => {

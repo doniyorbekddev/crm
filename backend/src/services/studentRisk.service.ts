@@ -6,6 +6,7 @@ import { addDays, startOfBusinessDay } from '../utils/dates.js';
 import { getAlertSettings } from './alert.service.js';
 import type { AlertSettings } from './alert.service.js';
 import { scheduleDueStats } from './paymentSchedule.service.js';
+import { notificationService } from './notification.service.js';
 
 /**
  * O'quvchining ketib qolish xavfi (churn risk).
@@ -81,6 +82,9 @@ function scale(value: number, bad: number, good: number): number {
   const score = Math.round(((value - bad) / (good - bad)) * 100);
   return Math.min(Math.max(score, 0), 100);
 }
+
+const RISK_ORDER: Record<RiskLevel, number> = { HEALTHY: 0, ATTENTION: 1, AT_RISK: 2, CRITICAL: 3 };
+const RISK_TITLES: Record<RiskLevel, string> = { HEALTHY: 'barqaror', ATTENTION: 'e’tibor kerak', AT_RISK: 'xavf ostida', CRITICAL: 'kritik' };
 
 export function riskLevelFor(score: number | null): RiskLevel | null {
   if (score === null) return null;
@@ -486,25 +490,46 @@ export const studentRiskService = {
    * Barcha kuzatiladigan o'quvchilar bo'yicha qayta hisoblash va natijani saqlash.
    * Fon vazifasi (`jobs/studentRisk.job.ts`) shuni chaqiradi.
    */
-  async recalculateAll(now: Date = new Date()): Promise<{ updated: number; critical: number }> {
+  async recalculateAll(now: Date = new Date()): Promise<{ updated: number; critical: number; increased: number }> {
     const settings = await getAlertSettings();
     const students = await prisma.student.findMany({
       where: { deletedAt: null, status: { in: [...TRACKED_STATUSES] } },
-      select: { id: true, riskLevel: true, healthScore: true },
+      select: { id: true, firstName: true, lastName: true, riskLevel: true, healthScore: true, group: { select: { name: true, teacherId: true } } },
     });
-    if (students.length === 0) return { updated: 0, critical: 0 };
+    if (students.length === 0) return { updated: 0, critical: 0, increased: 0 };
 
     const signals = await loadSignals(now, students.map((student) => student.id));
     const stamp = new Date();
     let updated = 0;
     let critical = 0;
+    let increased = 0;
 
     for (const student of students) {
       const raw = signals.get(student.id);
       if (!raw) continue;
       const factors = buildFactors(raw, settings);
-      const { healthScore, riskLevel } = summarize(factors);
+      const { healthScore, riskLevel, reasons } = summarize(factors);
       if (riskLevel === 'CRITICAL') critical += 1;
+
+      // TZ 3.0 §42 "Risk increased": xavf/kritik darajaga ko'tarilsa — guruh o'qituvchisiga sabablar bilan.
+      // Birinchi hisobda (oldingi daraja yo'q) xabar ketmaydi — joriy qilishda ommaviy xabar bo'lmasin.
+      if (student.riskLevel && riskLevel && RISK_ORDER[riskLevel] >= RISK_ORDER.AT_RISK && RISK_ORDER[riskLevel] > RISK_ORDER[student.riskLevel] && student.group?.teacherId) {
+        const teacherId = student.group.teacherId;
+        await prisma.$transaction((tx) =>
+          notificationService.createManyInTransaction(tx, [
+            {
+              userId: teacherId,
+              type: 'RISK_INCREASED',
+              title: 'O‘quvchi xavfi oshdi',
+              message: `${student.firstName} ${student.lastName} (${student.group!.name}): ${RISK_TITLES[student.riskLevel!]} → ${RISK_TITLES[riskLevel]}.${reasons.length ? ` Sabablar: ${reasons.slice(0, 3).join('; ')}.` : ''}`,
+              entityType: 'student',
+              entityId: student.id,
+              dedupeKey: `risk:increased:${student.id}:${riskLevel}:${stamp.toISOString().slice(0, 10)}`,
+            },
+          ]),
+        );
+        increased += 1;
+      }
 
       // O'zgarmagan bo'lsa ham `riskUpdatedAt` yangilanadi — hisob qachon yurganini ko'rsatadi
       await prisma.student.update({
@@ -519,6 +544,6 @@ export const studentRiskService = {
       updated += 1;
     }
 
-    return { updated, critical };
+    return { updated, critical, increased };
   },
 };
