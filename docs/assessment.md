@@ -67,6 +67,18 @@ Sof funksiyalar: `services/examBlueprint.ts` (DB'siz, unit test bilan).
 **tartibi**, bali, mavzusi, tushuntirishi va javob kaliti (`answerKey`) muzlatiladi. Savol keyin
 tahrirlansa ham urinish, baholash va xodim ko'rinishi boshlangandagi holat bo'yicha bo'ladi.
 
+**Xodim yo'li ham snapshot bilan (3.1, GAP-05):**
+- xodim natijani qo'lda kiritsa (`POST /exams/:id/attempts/:studentId`), shu paytdagi savollar urinishga muzlatiladi —
+  bank keyin tahrirlansa ball, matn va mavzu o'zgarmaydi;
+- kabinetda boshlangan urinishni xodim yopsa — o'sha o'quvchining **varianti va kaliti** bo'yicha baholanadi;
+  variantda yo'q savolga javob — 422;
+- savollarni tasodifiy biriktirish (`random.count`) kabinet variantlari bilan bir xil kriptografik
+  Fisher–Yates (`examBlueprint.shuffle`) bilan — avvalgi `sort(Math.random)` notekis edi.
+
+**Egalik:** urinish har so'rovda `{ id, studentId }` bilan qidiriladi — bir guruhdagi boshqa o'quvchi ham
+urinishni ko'ra, javob bera, fayl yuklay, topshira olmaydi (404); javob faqat shu urinish snapshot'idagi
+variant id lari bilan qabul qilinadi. Testlar: `tests/assessmentFinal.test.ts`, `tests/onlineExam.test.ts`.
+
 **Muddat** = min(boshlangan + davomiylik, `endAt`). Muddat o'tsa urinish saqlangan javoblar bilan
 avtomatik yakunlanadi: o'quvchi sahifani ochganda/javob yuborganda, va har daqiqada
 `jobs/examAttempt.job.ts` (tashlab ketilgan urinishlar). Muddatdan keyin yuborilgan javob qabul

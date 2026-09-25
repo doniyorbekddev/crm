@@ -276,3 +276,71 @@ Ushbu hisobot.
 ## Next Phase
 
 **PHASE 5 — Assessment final audit (GAP-05)**: bir guruhdagi B o'quvchi A urinishiga kira olmasligi va savol/variant tartibi aralashishi testlari; xodim yo'lida `Math.random` saralashi va jonli bank bo'yicha baholash (S7).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 5
+
+Sana: 2026-09-25. GAP-05 "Assessment 2.0 final audit". Batafsil: [assessment.md](assessment.md) §4.
+
+## Implemented
+
+- Audit: savollar banki, qiyinlik, mavzu, blueprint, tasodifiy tanlash, har o'quvchiga variant, snapshot, savol va variant tartibi, server taymeri, urinishlar, avto va qo'lda baholash — kabinet yo'lida bajarilgan (mavjud testlar bilan).
+- **Tuzatildi (S7, xodim yo'li):**
+  - xodim qo'lda kiritgan natija endi snapshot bilan muzlatiladi (oldin bank tahriridan keyin tekshiruv oynasi yangi matnni ko'rsatardi);
+  - kabinetda boshlangan urinishni xodim yopsa — o'quvchining varianti va boshlangandagi kalit bo'yicha baholanadi (oldin jonli bank: kalit o'zgargan bo'lsa to'g'ri javob 0 ball); variantda yo'q savol — 422;
+  - tasodifiy savol biriktirish `sort(Math.random)` o'rniga kriptografik Fisher–Yates (`examBlueprint.shuffle`);
+  - tekshiruv oynasida mavzu nomi ham snapshot'dan.
+- Yangi testlar: bir guruhdagi B → A urinishi (ko'rish, javob, fayl, topshirish) — 404; savol/variant tartibi har o'quvchida aralashadi, to'plam bir xil.
+
+## Existing Code Reused
+
+`AttemptQuestion` snapshot modeli va shakli (kabinet `start` bilan bir xil), `gradeAnswer`, `AnswerKey`, `examBlueprint.shuffle`, `toAttemptDto` (snapshot ustuvor). Exam engine qayta yozilmadi — faqat xodim `submit` baholash manbai snapshot'ga o'tkazildi.
+
+## New Files
+
+`backend/tests/assessmentFinal.test.ts`.
+
+## Modified Files
+
+`backend/src/services/examAttempt.service.ts`, `docs/assessment.md`.
+
+## Database Changes
+
+Yo'q (mavjud `attempt_questions` jadvaliga xodim urinishlari uchun ham yoziladi).
+
+## API Changes
+
+Javob shakli o'zgarmadi. `POST /exams/:id/attempts/:studentId`: ochiq urinish variantida yo'q savolga javob — 422 (yangi, to'g'rilik uchun).
+
+## Telegram Changes
+
+Yo'q (bot kabinet `examTakingService` dan foydalanadi — allaqachon snapshot bilan).
+
+## Permissions
+
+Yo'q.
+
+## Security
+
+Egalik: urinish `{ id, studentId }` bilan — bir guruhdagi boshqa o'quvchi ham 404 (test). Javob faqat urinish snapshot'idagi variant id lari bilan (mavjud test). Baholash manbai endi hamma yo'lda muzlatilgan kalit — keyingi tahrir natijani o'zgartira olmaydi.
+
+## Tests
+
+Backend **811/811** (+4), frontend o'zgarmadi (120/120), E2E **36/36**. TypeScript, lint (0 xato), build — o'tdi. Ikki test (tahrirlangan matn va o'zgargan kalit) tuzatishdan oldingi kodda yiqilgan bo'lardi.
+
+## Performance
+
+Xodim `submit` — +1 `attemptQuestion.findMany` (ochiq urinish bo'lsa) va snapshot yozish bitta `nested create` bilan (tranzaksiya ichida).
+
+## Documentation
+
+`docs/assessment.md` §4 — xodim yo'li snapshot va egalik.
+
+## Known Issues
+
+- Blueprint variant savollari umumiy `exam_questions` ga ham yoziladi (xodim "Savollar" ro'yxatida barcha variantlar birlashmasi) — mavjud xatti-harakat, izolyatsiyaga ta'sir qilmaydi.
+
+## Next Phase
+
+**PHASE 6 — Telegram online exam (GAP-06)**: tafsilot va tasdiq ekrani, har callbackda imtihon holati/oyna/o'quvchi holatini qayta tekshirish (S6), qolgan vaqt, testlar (vaqt tugashi, fayl, begona urinish, ota-ona).

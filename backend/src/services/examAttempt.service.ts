@@ -11,6 +11,7 @@ import { gamificationHooks } from './gamification.service.js';
 import { getTeachingAccess, teachingGroupFilter } from './teachingAccess.js';
 import type { TeachingAccess } from './teachingAccess.js';
 import { masteryService } from './mastery.service.js';
+import { shuffle } from './examBlueprint.js';
 
 /**
  * Imtihon urinishi: savollarni biriktirish, javoblarni qabul qilish, avtomatik baholash
@@ -158,14 +159,16 @@ export function toAttemptDto(record: AttemptRecord): AttemptDto {
     startedAt: record.startedAt.toISOString(),
     submittedAt: record.submittedAt?.toISOString() ?? null,
     answers: record.answers.map((answer) => {
-      const snapshot = record.questions.find((row) => row.examQuestionId === answer.examQuestionId)?.snapshot as { text?: string; type?: QuestionType } | undefined;
+      const snapshot = record.questions.find((row) => row.examQuestionId === answer.examQuestionId)?.snapshot as
+        | { text?: string; type?: QuestionType; topicTitle?: string | null }
+        | undefined;
       return {
         id: answer.id,
         examQuestionId: answer.examQuestionId,
         questionId: answer.questionId,
         questionText: snapshot?.text ?? answer.question.text,
         questionType: snapshot?.type ?? answer.question.type,
-        topicTitle: answer.question.topic?.title ?? null,
+        topicTitle: snapshot && snapshot.topicTitle !== undefined ? snapshot.topicTitle : (answer.question.topic?.title ?? null),
         points: answerPoints(record, answer),
         score: answer.score,
         isCorrect: answer.isCorrect,
@@ -279,7 +282,8 @@ export const examAttemptService = {
           `Shartga mos savollar yetarli emas: ${candidates.length} ta topildi, ${input.random.count} ta kerak`,
         );
       }
-      const shuffled = candidates.map((item) => item.id).sort(() => Math.random() - 0.5);
+      // Kriptografik Fisher–Yates (kabinet variantlari bilan bir xil) — `sort(Math.random)` notekis taqsimlaydi
+      const shuffled = shuffle(candidates.map((item) => item.id));
       questionIds = [...questionIds, ...shuffled.slice(0, input.random.count)];
     }
 
@@ -430,7 +434,15 @@ export const examAttemptService = {
     const questionIds = exam.questions.map((item) => item.questionId);
     const questions = await prisma.question.findMany({
       where: { id: { in: questionIds } },
-      select: { id: true, type: true, acceptedAnswers: true, options: { where: { isCorrect: true }, select: { id: true } } },
+      select: {
+        id: true,
+        text: true,
+        type: true,
+        explanation: true,
+        acceptedAnswers: true,
+        topic: { select: { title: true } },
+        options: { orderBy: { sortOrder: 'asc' }, select: { id: true, text: true, isCorrect: true } },
+      },
     });
     const questionById = new Map(questions.map((question) => [question.id, question]));
     const examQuestionById = new Map(exam.questions.map((item) => [item.id, item]));
@@ -441,6 +453,42 @@ export const examAttemptService = {
       select: { id: true, attemptNo: true, status: true, startedAt: true },
     });
     const openAttempt = previous.find((attempt) => attempt.status === 'IN_PROGRESS');
+
+    /**
+     * Baholash manbai — **snapshot** (TZ 3.1 GAP-05): kabinetda boshlangan urinishning o'z varianti va kaliti
+     * bo'lsa, xodim kiritgan javoblar ham o'sha bo'yicha baholanadi (bank keyin tahrirlangan bo'lishi mumkin).
+     * Snapshot'siz urinish (xodim kiritadi) — hozirgi bank shu yerda muzlatiladi va urinishga yoziladi.
+     */
+    const existingSnapshot = openAttempt
+      ? await prisma.attemptQuestion.findMany({ where: { attemptId: openAttempt.id }, select: { examQuestionId: true, points: true, snapshot: true, answerKey: true } })
+      : [];
+    const frozen = new Map<string, { type: QuestionType; key: AnswerKey; points: number }>();
+    const newSnapshotRows: Array<{ examQuestionId: string; sortOrder: number; points: number; snapshot: Prisma.InputJsonValue; answerKey: Prisma.InputJsonValue }> = [];
+    if (existingSnapshot.length > 0) {
+      for (const row of existingSnapshot) {
+        frozen.set(row.examQuestionId, { type: (row.snapshot as { type: QuestionType }).type, key: row.answerKey as unknown as AnswerKey, points: row.points });
+      }
+    } else {
+      exam.questions.forEach((examQuestion, index) => {
+        const question = questionById.get(examQuestion.questionId);
+        if (!question) return;
+        const key: AnswerKey = { correctOptionIds: question.options.filter((option) => option.isCorrect).map((option) => option.id), acceptedAnswers: question.acceptedAnswers };
+        frozen.set(examQuestion.id, { type: question.type, key, points: examQuestion.points });
+        newSnapshotRows.push({
+          examQuestionId: examQuestion.id,
+          sortOrder: index,
+          points: examQuestion.points,
+          snapshot: {
+            text: question.text,
+            type: question.type,
+            options: question.options.map((option) => ({ id: option.id, text: option.text })),
+            topicTitle: question.topic?.title ?? null,
+            explanation: question.explanation,
+          } as Prisma.InputJsonValue,
+          answerKey: key as unknown as Prisma.InputJsonValue,
+        });
+      });
+    }
 
     // Vaqt tugaganmi? (faqat `start` orqali boshlangan urinishda tekshiriladi)
     if (openAttempt && exam.durationMinutes) {
@@ -458,32 +506,24 @@ export const examAttemptService = {
     }
 
     const attemptNo = openAttempt?.attemptNo ?? (previous[0]?.attemptNo ?? 0) + 1;
-    const maxScore = exam.questions.reduce((sum, item) => sum + item.points, 0);
+    const maxScore = [...frozen.values()].reduce((sum, item) => sum + item.points, 0);
 
     let score = 0;
     let needsReview = false;
     const answerRows = input.answers.map((answer) => {
       const examQuestion = examQuestionById.get(answer.examQuestionId);
-      if (!examQuestion) {
-        throw AppError.unprocessable('Javob noma’lum savolga tegishli');
+      const source = frozen.get(answer.examQuestionId);
+      if (!examQuestion || !source) {
+        throw AppError.unprocessable(examQuestion ? 'Javob bu urinish variantidagi savolga tegishli emas' : 'Javob noma’lum savolga tegishli');
       }
-      const question = questionById.get(examQuestion.questionId)!;
-      const choice = !MANUAL_QUESTION_TYPES.includes(question.type) && question.type !== 'SHORT_TEXT';
+      const choice = !MANUAL_QUESTION_TYPES.includes(source.type) && source.type !== 'SHORT_TEXT';
       // Matnli javobni xodim kiritganda — har doim o'qituvchi ko'rib chiqadi (avvalgi xatti-harakat)
-      const result =
-        question.type === 'TEXT'
-          ? { score: 0, isCorrect: null }
-          : gradeAnswer(
-              question.type,
-              { correctOptionIds: question.options.map((option) => option.id), acceptedAnswers: question.acceptedAnswers },
-              answer,
-              examQuestion.points,
-            );
+      const result = source.type === 'TEXT' ? { score: 0, isCorrect: null } : gradeAnswer(source.type, source.key, answer, source.points);
       if (result.isCorrect === null) needsReview = true;
       score += result.score;
       return {
         examQuestionId: examQuestion.id,
-        questionId: question.id,
+        questionId: examQuestion.questionId,
         optionIds: choice ? (answer.optionIds ?? []) : [],
         text: choice ? null : (answer.text ?? null),
         score: result.score,
@@ -508,14 +548,15 @@ export const examAttemptService = {
 
       // `start` orqali ochilgan urinish bo'lsa — o'shani yopamiz, yangisini ochmaymiz.
       // Aks holda (xodim natijani qo'lda kiritsa) yangi urinish yaratiladi.
+      const snapshotCreate = newSnapshotRows.length > 0 ? { questions: { create: newSnapshotRows } } : {};
       const created = openAttempt
         ? await tx.examAttempt.update({
             where: { id: openAttempt.id },
-            data: { ...values, answers: { create: answerRows } },
+            data: { ...values, answers: { create: answerRows }, ...snapshotCreate },
             select: attemptSelect,
           })
         : await tx.examAttempt.create({
-            data: { examId, studentId, attemptNo, ...values, answers: { create: answerRows } },
+            data: { examId, studentId, attemptNo, ...values, answers: { create: answerRows }, ...snapshotCreate },
             select: attemptSelect,
           });
 
