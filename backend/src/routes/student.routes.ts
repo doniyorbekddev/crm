@@ -7,6 +7,7 @@ import { curriculumController } from '../controllers/curriculum.controller.js';
 import { portalController } from '../controllers/portal.controller.js';
 import { telegramController } from '../controllers/telegram.controller.js';
 import { studentController } from '../controllers/student.controller.js';
+import { masteryController } from '../controllers/mastery.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAnyPermission, requirePermission } from '../middleware/requirePermission.js';
 import { heavyLimiter } from '../middleware/rateLimiter.js';
@@ -22,6 +23,9 @@ studentRouter.get('/export', heavyLimiter, requirePermission(PERMISSIONS.STUDENT
 studentRouter.get('/:id', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.getById);
 studentRouter.get('/:id/profile', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.profile);
 studentRouter.get('/:id/weekly-report', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.weeklyReport);
+// Mavzu o'zlashtirishi va oylik progress tarixi (TZ §26–27)
+studentRouter.get('/:id/mastery', requirePermission(PERMISSIONS.STUDENT_VIEW), masteryController.student);
+studentRouter.get('/:id/progress-history', requirePermission(PERMISSIONS.STUDENT_VIEW), masteryController.studentHistory);
 studentRouter.get('/:id/homework', requirePermission(PERMISSIONS.HOMEWORK_VIEW), studentController.homework);
 studentRouter.get('/:id/exams', requirePermission(PERMISSIONS.EXAM_VIEW), studentController.exams);
 studentRouter.get('/:id/parents', requirePermission(PERMISSIONS.PARENT_VIEW), parentController.forStudent);

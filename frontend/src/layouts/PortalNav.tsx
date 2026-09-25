@@ -1,4 +1,4 @@
-import { BookOpen, BookOpenCheck, CalendarCheck, FileBarChart, FileCheck, Home, MoreHorizontal, Settings, Sparkles, Wallet } from 'lucide-react';
+import { BookOpen, BookOpenCheck, CalendarCheck, FileBarChart, FileCheck, Home, MoreHorizontal, Settings, Sparkles, Target, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -20,6 +20,7 @@ export const PORTAL_NAV_ITEMS: readonly PortalNavItem[] = [
   { to: '/portal/course', label: 'Kurs', icon: BookOpen, primary: true },
   { to: '/portal/homework', label: 'Vazifalar', icon: BookOpenCheck, primary: true },
   { to: '/portal/exams', label: 'Imtihonlar', icon: FileCheck, primary: true },
+  { to: '/portal/progress', label: 'Progress', icon: Target },
   { to: '/portal/attendance', label: 'Davomat', icon: CalendarCheck },
   { to: '/portal/payments', label: 'To‘lovlar', icon: Wallet },
   { to: '/portal/weekly-report', label: 'Hisobot', icon: FileBarChart },

@@ -41,6 +41,7 @@ import { searchRouter } from './search.routes.js';
 import { studentRouter } from './student.routes.js';
 import { payrollRouter, salaryRouter, teacherRouter } from './teacher.routes.js';
 import { userRouter } from './user.routes.js';
+import { masteryRouter } from './mastery.routes.js';
 
 /** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
 export const apiRouter = Router();
@@ -80,6 +81,7 @@ apiRouter.use('/attendance-sessions', attendanceSessionRouter);
 apiRouter.use('/homework', homeworkRouter);
 apiRouter.use('/rubrics', rubricRouter);
 apiRouter.use('/exams', examRouter);
+apiRouter.use('/mastery', masteryRouter);
 apiRouter.use('/gamification', gamificationRouter);
 apiRouter.use('/teachers', teacherRouter);
 apiRouter.use('/salaries', salaryRouter);

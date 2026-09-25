@@ -695,6 +695,7 @@ model CourseTopic {
 
   module    CourseModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress  StudentTopicProgress[]
+  mastery   TopicMastery[]
   sessions  AttendanceSession[]
   questions Question[]
   lessons   Lesson[]
@@ -724,6 +725,42 @@ model StudentTopicProgress {
   @@unique([studentId, topicId])
   @@index([topicId, status])
   @@map("student_topic_progress")
+}
+
+/// Mavzu o'zlashtirish holati (TZ 3.0 §27). Chegaralar sozlanadi (`mastery.settings`)
+enum MasteryStatus {
+  NOT_STARTED
+  LEARNING
+  PRACTICING
+  MASTERED
+}
+
+/// O'quvchining mavzu bo'yicha o'zlashtirishi (0–100). Manbalar: imtihon mavzu kesimi, mavzuli
+/// uy vazifasi, mavzuli dars davomati, LMS darslari. Yozuv faqat dalil bo'lganda yaratiladi —
+/// yozuvi yo'q mavzu NOT_STARTED. Hisob `masteryService.recalculate` da (hooklar + tungi job).
+model TopicMastery {
+  id              String        @id @default(cuid())
+  studentId       String
+  topicId         String
+  /// Baho — faqat baholash dalili (imtihon/vazifa) bo'lsa; aks holda null
+  score           Int?          @db.SmallInt
+  status          MasteryStatus @default(NOT_STARTED)
+  examScore       Int?          @db.SmallInt
+  homeworkScore   Int?          @db.SmallInt
+  attendanceScore Int?          @db.SmallInt
+  lessonScore     Int?          @db.SmallInt
+  /// Dalillar soni: {examQuestions, homework, sessions, lessons}
+  evidence        Json?
+  calculatedAt    DateTime
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  student Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  topic   CourseTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, topicId])
+  @@index([topicId, status])
+  @@map("topic_mastery")
 }
 
 /// LMS darsi holati: qoralama o'quvchiga ko'rinmaydi, arxiv — yangi o'quvchilarga ham
@@ -966,6 +1003,7 @@ model Student {
   gamification      GamificationProfile?
   streak            Streak?
   xpTransactions    XpTransaction[]
+  topicMastery      TopicMastery[]
   badges            StudentBadge[]
   parents           StudentParent[]
   submissions       HomeworkSubmission[]
@@ -2634,6 +2672,10 @@ model StudentProgressSnapshot {
   totalXp        Int      @default(0)
   levelNumber    Int      @default(1) @db.SmallInt
   debtRemaining  Decimal  @default(0) @db.Decimal(14, 2)
+  /// Mavzular o'zlashtirishining o'rtachasi (0–100); baho yo'q bo'lsa null
+  masteryScore   Int?     @db.SmallInt
+  /// O'zlashtirilgan (MASTERED) mavzular soni
+  topicsMastered Int      @default(0) @db.SmallInt
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

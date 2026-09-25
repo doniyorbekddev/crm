@@ -32,6 +32,8 @@ import { resolveStoredPath } from '../utils/fileStorage.js';
 import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
 import { lessonService } from './lesson.service.js';
 import { examTakingService } from './examTaking.service.js';
+import { buildStudentMastery } from './mastery.service.js';
+import { progressSnapshotService } from './progressSnapshot.service.js';
 import type { AttemptViewDto, AvailableExamDto } from './examTaking.service.js';
 import type { LessonDto, LessonTreeDto } from './lesson.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
@@ -415,6 +417,13 @@ export const portalService = {
   async exams(actor: AuthUser, requestedStudentId?: string) {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     return buildStudentExamRows(studentId);
+  },
+
+  /** Mavzular bo'yicha o'zlashtirish va oylik tarix */
+  async mastery(actor: AuthUser, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    const [mastery, history] = await Promise.all([buildStudentMastery(studentId), progressSnapshotService.history(studentId, 6)]);
+    return { ...mastery, history };
   },
 
   /** Onlayn topshiriladigan imtihonlar (ota-ona ham ko'radi, lekin boshlay olmaydi) */

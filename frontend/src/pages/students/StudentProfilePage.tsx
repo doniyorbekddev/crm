@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileBarChart, FileCheck, Flame, History, LayoutDashboard, UsersRound, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileBarChart, FileCheck, Flame, History, LayoutDashboard, Target, UsersRound, Wallet } from 'lucide-react';
 import { WeeklyReportModal } from '@/components/weekly/WeeklyReportModal';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -20,11 +20,12 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { STUDENT_STATUS_LABELS, STUDENT_STATUS_TONES } from '@/utils/studentLabels';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { GroupHistoryTab } from './profile/GroupHistoryTab';
+import { MasteryTab } from './profile/MasteryTab';
 import { ParentsTab } from './profile/ParentsTab';
 import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type Tab = 'overview' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
+type Tab = 'overview' | 'mastery' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
 
 export default function StudentProfilePage() {
   const { id = '' } = useParams();
@@ -80,6 +81,7 @@ export default function StudentProfilePage() {
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: LucideIcon }> = [
     { value: 'overview', label: 'Umumiy', icon: LayoutDashboard },
+    { value: 'mastery', label: 'O‘zlashtirish', icon: Target },
     { value: 'groups', label: 'Guruh tarixi', icon: ArrowLeftRight },
     ...(canViewParents ? [{ value: 'parents' as const, label: 'Ota-ona', icon: UsersRound }] : []),
     ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifasi', icon: BookOpenCheck }] : []),
@@ -201,6 +203,7 @@ export default function StudentProfilePage() {
       </div>
 
       {tab === 'overview' && <OverviewTab profile={profile} onOpenCalendar={() => canViewAttendance && setCalendarOpen(true)} />}
+      {tab === 'mastery' && <MasteryTab studentId={student.id} />}
       {tab === 'groups' && <GroupHistoryTab student={student} canManage={canManageStudents} />}
       {tab === 'parents' && <ParentsTab student={{ id: student.id, name: `${student.firstName} ${student.lastName}` }} />}
       {tab === 'homework' && <HomeworkTab studentId={student.id} />}

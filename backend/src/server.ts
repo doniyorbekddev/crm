@@ -11,6 +11,7 @@ import { startDailyDigestJob } from './jobs/dailyDigest.job.js';
 import { startWeeklyReportJob } from './jobs/weeklyReport.job.js';
 import { startHomeworkReminderJob } from './jobs/homeworkReminder.job.js';
 import { startExamAttemptJob } from './jobs/examAttempt.job.js';
+import { startProgressJob } from './jobs/progress.job.js';
 import { startDebtReminderJob } from './jobs/debtReminder.job.js';
 import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
@@ -42,6 +43,8 @@ const stopWeeklyReport = startWeeklyReportJob();
 const stopHomeworkReminder = startHomeworkReminderJob();
 // Onlayn imtihon vaqti tugaganda avtomatik topshirish
 const stopExamAttempts = startExamAttemptJob();
+// Tungi: mavzu o'zlashtirishini qayta hisoblash va oylik progress snapshoti
+const stopProgress = startProgressJob();
 // Sinov rejimi: webhook o'rniga botning o'zi Telegramdan so'rab turadi (ishlab chiqishda)
 const stopTelegramPolling = env.TELEGRAM_POLLING ? startTelegramPolling() : () => undefined;
 
@@ -75,6 +78,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopWeeklyReport();
   stopHomeworkReminder();
   stopExamAttempts();
+  stopProgress();
 
   const forceExitTimer = setTimeout(() => {
     logger.error('Server belgilangan vaqtda to‘xtamadi, majburan yopilmoqda');

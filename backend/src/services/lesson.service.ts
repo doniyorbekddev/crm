@@ -8,6 +8,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type { CreateLessonInput, LessonLinkMaterialInput, UpdateLessonInput } from '../validators/lesson.validator.js';
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
+import { masteryService } from './mastery.service.js';
 
 /**
  * LMS darslari (TZ 3.0 §12–14): Kurs → Modul → Mavzu → **Dars** → Material.
@@ -585,6 +586,7 @@ export const lessonService = {
       create: { lessonId, studentId, firstViewedAt: now, lastViewedAt: now, completedAt: completed ? now : null },
       update: { completedAt: completed ? now : null, lastViewedAt: now },
     });
+    await masteryService.refresh([studentId]);
     return { completed };
   },
 };

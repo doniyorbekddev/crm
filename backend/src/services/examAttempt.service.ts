@@ -10,6 +10,7 @@ import { notifyExamResultForAttempt } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
 import { getTeachingAccess, teachingGroupFilter } from './teachingAccess.js';
 import type { TeachingAccess } from './teachingAccess.js';
+import { masteryService } from './mastery.service.js';
 
 /**
  * Imtihon urinishi: savollarni biriktirish, javoblarni qabul qilish, avtomatik baholash
@@ -533,6 +534,7 @@ export const examAttemptService = {
       return created;
     });
 
+    if (attempt.status === 'GRADED') await masteryService.refresh([attempt.studentId]);
     return toAttemptDto(attempt);
   },
 
@@ -616,6 +618,7 @@ export const examAttemptService = {
       return finalRecord;
     });
 
+    if (updated.status === 'GRADED') await masteryService.refresh([updated.studentId]);
     return toAttemptDto(updated);
   },
 

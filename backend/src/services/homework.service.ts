@@ -21,6 +21,7 @@ import { notifyHomeworkCreated, notifyHomeworkGraded, notifyHomeworkReturned } f
 import { gamificationHooks } from './gamification.service.js';
 import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
 import type { TeachingAccess } from './teachingAccess.js';
+import { masteryService } from './mastery.service.js';
 
 // Egalik qoidasi endi `teachingAccess.ts` da — eski importlar ishlashi uchun qayta eksport
 export { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
@@ -837,6 +838,7 @@ export const homeworkService = {
         ...client,
       });
     });
+    if (homework.topic) await masteryService.refresh([studentId]);
     return this.submissionDetail(actor, id, studentId);
   },
 
@@ -929,6 +931,9 @@ export const homeworkService = {
         ...client,
       });
     });
+
+    // Mavzuli vazifa bali — mavzu o'zlashtirishi manbasi
+    if (homework.topic) await masteryService.refresh(records.map((record) => record.studentId));
 
     return this.getById(actor, id);
   },

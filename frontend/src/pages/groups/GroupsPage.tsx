@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Layers, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -25,10 +25,11 @@ import { GROUP_STATUS_LABELS, GROUP_STATUS_ORDER, GROUP_STATUS_TONES, formatSche
 import { formatDate } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupFormModal } from './GroupFormModal';
+import { GroupMasteryModal } from './GroupMasteryModal';
 
 const PAGE_SIZE = 20;
 
-type Dialog = { type: 'create' } | { type: 'edit' | 'delete'; group: GroupItem } | null;
+type Dialog = { type: 'create' } | { type: 'edit' | 'delete' | 'mastery'; group: GroupItem } | null;
 
 export default function GroupsPage() {
   const queryClient = useQueryClient();
@@ -140,11 +141,9 @@ export default function GroupsPage() {
                     <TH>O‘quvchilar</TH>
                     <TH>Boshlanish</TH>
                     <TH>Holat</TH>
-                    {canManage && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
+                    <TH className="w-12">
+                      <span className="sr-only">Amallar</span>
+                    </TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -173,17 +172,20 @@ export default function GroupsPage() {
                       <TD>
                         <Badge tone={GROUP_STATUS_TONES[group.status]}>{GROUP_STATUS_LABELS[group.status]}</Badge>
                       </TD>
-                      {canManage && (
-                        <TD className="text-right">
-                          <ActionMenu
-                            label={`${group.name} amallari`}
-                            items={[
-                              { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', group }) },
-                              { label: 'O‘chirish', icon: Trash2, tone: 'danger', onSelect: () => setDialog({ type: 'delete', group }) },
-                            ]}
-                          />
-                        </TD>
-                      )}
+                      <TD className="text-right">
+                        <ActionMenu
+                          label={`${group.name} amallari`}
+                          items={[
+                            { label: 'O‘zlashtirish', icon: Target, onSelect: () => setDialog({ type: 'mastery', group }) },
+                            ...(canManage
+                              ? [
+                                  { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', group }) },
+                                  { label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', group }) },
+                                ]
+                              : []),
+                          ]}
+                        />
+                      </TD>
                     </TR>
                   ))}
                 </TBody>
@@ -220,6 +222,7 @@ export default function GroupsPage() {
           }}
         />
       )}
+      {dialog?.type === 'mastery' && <GroupMasteryModal group={dialog.group} onClose={() => setDialog(null)} />}
       <ConfirmDialog
         open={dialog?.type === 'delete'}
         title="Guruh o‘chirilsinmi?"

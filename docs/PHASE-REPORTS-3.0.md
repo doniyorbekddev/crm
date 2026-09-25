@@ -427,3 +427,62 @@ Backend **732/732** (+14: blueprint unit 7, onlayn imtihon 7), frontend **77/77*
 ## 12. Next Phase
 
 **PHASE 7 — Progress / mastery**: `topic_mastery` (0–100, NOT_STARTED/LEARNING/PRACTICING/MASTERED), sozlanadigan chegaralar 40/60/80, manbalar (imtihon mavzu kesimi, mavzuli vazifa, davomat), qayta hisoblash hooklari, oylik `StudentProgressSnapshot` job, profil/kabinet/guruh ko‘rinishlari.
+
+---
+
+# PHASE 7 COMPLETE — Progress / mastery
+
+Sana: 2026-09-26. Batafsil: [progress.md](progress.md).
+
+## 1. Implemented
+
+- **§26** mavzu darajasidagi progress: har mavzu 0–100, modul va umumiy o‘rtacha; xodim profili, guruh matritsasi, kabinet "Progress".
+- **§27** holatlar NOT_STARTED / LEARNING / PRACTICING / MASTERED; darajalar 0–39 / 40–59 / 60–79 / 80–100; **chegaralar sozlanadi** (va og‘irliklar).
+- Manbalar: imtihon mavzu kesimi (PHASE 6 snapshot bilan), mavzuli vazifa (PHASE 5), mavzuli davomat va LMS darslari (PHASE 4).
+- Qayta hisoblash hooklari + tungi to‘liq qayta hisob; `StudentProgressSnapshot` birinchi marta yoziladi (oylik).
+
+## 2–3. Files
+
+Backend yangi: `services/mastery.service.ts`, `services/progressSnapshot.service.ts`, `controllers/mastery.controller.ts`, `routes/mastery.routes.ts`, `validators/mastery.validator.ts`, `jobs/progress.job.ts`, `tests/mastery.test.ts`, `tests/unit/mastery.test.ts`, migratsiyalar `20260926090000_topic_mastery`, `20260926091000_progress_snapshot_mastery`. O‘zgargan (hooklar): `examAttempt.service.ts`, `examTaking.service.ts`, `exam.service.ts`, `homework.service.ts`, `attendance.service.ts`, `attendanceSession.service.ts`, `lesson.service.ts`; `portal.service/controller/routes`, `student.routes.ts`, `group.routes.ts`, `routes/index.ts`, `server.ts`, `schema.prisma`.
+Frontend yangi: `components/mastery/MasteryView(.test)`, `pages/students/profile/MasteryTab`, `pages/portal/PortalProgressPage`, `pages/groups/GroupMasteryModal(.test)`, `MasterySettingsModal`, `services/mastery.service.ts`, `types/mastery.ts`, `utils/masteryLabels.ts`. O‘zgargan: `StudentProfilePage`, `GroupsPage` (amallar menyusi endi o‘qituvchiga ham — "O‘zlashtirish"), `PortalNav` (+Progress), `routes/index.tsx`, `components/ui/Modal` (`xl` o‘lcham), `services/portal.service.ts`, `lib/queryKeys.ts`. E2E: `portal.spec.ts`. Docs: `progress.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`, faqat qo‘shish) enum `MasteryStatus`; jadval `topic_mastery` (unique studentId+topicId, indeks topicId+status); `student_progress_snapshots` + `masteryScore`, `topicsMastered`.
+
+## 5. API Changes
+
+Yangi: 6 endpoint ([progress.md §6](progress.md)). Mavjudlari o‘zgarmadi.
+
+## 6. Permission Changes
+
+Yo‘q. Ko‘rish — mavjud `student.view` / `group.view` + o‘qituvchi doirasi; sozlash — mavjud `settings.manage`.
+
+## 7. AI Changes
+
+Yo‘q. Mastery va snapshot — PHASE 9 AI tahlilining asosiy kirish ma’lumoti (TZ §31 "Topic mastery").
+
+## 8. Tests
+
+Backend **741/741** (+9: formula unit 4, integratsiya 5), frontend **80/80** (+3), E2E **21/21** (+1). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- O‘qituvchi faqat o‘z guruhi o‘quvchilari va matritsasini ko‘radi (begona — 404); kabinet — faqat o‘zi/farzandi (begona `studentId` — 403).
+- Sozlamalarni faqat Owner / Super Admin o‘zgartiradi; audit oldin/keyin qiymati bilan.
+- Hook xatosi asosiy amalni (baholash, davomat) buzmaydi — log + tungi tuzatish.
+
+## 10. Performance
+
+- Hisob bir guruh o‘quvchi uchun ~7 so‘rovda (N+1 yo‘q); faqat o‘zgargan qatorlar yoziladi.
+- Davomat hooki faqat mavzuli darsda; tungi job 200 tadan bo‘laklab; snapshot 300 tadan, `groupBy` bilan.
+- Chegara o‘zgarishi — 3 ta `updateMany`, qayta hisobsiz.
+
+## 11. Known Issues
+
+- Mavzusiz savollar/vazifalar o‘zlashtirishga kirmaydi (mavzu belgilash tavsiya etiladi — formalarda bor).
+- Snapshotdagi XP/daraja/qarz — yozilgan paytdagi qiymat (o‘tgan oy uchun oy boshidagi yurishda yakunlanadi).
+
+## 12. Next Phase
+
+**PHASE 8 — Teacher control center**: `/teaching` — guruhlar kartalari (o‘quvchilar, davomat %, vazifa %, imtihon o‘rtachasi, progress %), guruh jadvali (davomat, vazifa, imtihon, progress, risk, oxirgi faollik), risk sabablari (§29: past davomat, vazifa yo‘q, imtihon pasaymoqda, faollik past, qarz, kirmagan, topshirmagan) — mavjud risk engine bilan birlashtirilgan.

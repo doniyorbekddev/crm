@@ -282,4 +282,33 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await expect(page.getByText('O‘tdi')).toBeVisible();
     await expect(page.getByText('Tushuntirish: Oddiy qo‘shish')).toBeVisible();
   });
+
+  test('progress: mavzuli imtihon natijasi kabinetdagi "Progress" bo‘limida mavzu bahosi bo‘lib chiqadi (PHASE 7)', async ({ page, request }) => {
+    const credentials = await openStudentPortal(request);
+    expect(credentials.groupId, 'o‘quvchi guruhda bo‘lishi kerak').not.toBeNull();
+    const { headers } = credentials;
+    const stamp = Date.now();
+    const module = await request.post(`${API}/courses/${credentials.courseId}/modules`, { headers, data: { title: `E2E progress ${stamp}` } });
+    const topicTitle = `E2E mavzu ${stamp}`;
+    const topic = await request.post(`${API}/curriculum/modules/${(await module.json()).data.id as string}/topics`, { headers, data: { title: topicTitle } });
+    const topicId = (await topic.json()).data.id as string;
+    const question = await request.post(`${API}/questions`, {
+      headers,
+      data: { courseId: credentials.courseId, topicId, text: `E2E mavzuli savol ${stamp}`, options: [{ text: 'Ha', isCorrect: true }, { text: 'Yo‘q' }] },
+    });
+    const exam = await request.post(`${API}/exams`, { headers, data: { title: `E2E progress imtihoni ${stamp}`, groupId: credentials.groupId, date: new Date().toISOString().slice(0, 10) } });
+    const examId = (await exam.json()).data.id as string;
+    await request.post(`${API}/exams/${examId}/questions`, { headers, data: { questionIds: [(await question.json()).data.id as string] } });
+    const attached = (await (await request.get(`${API}/exams/${examId}/questions`, { headers })).json()).data as Array<{ examQuestionId: string; options: Array<{ id: string; text: string }> }>;
+    const submitted = await request.post(`${API}/exams/${examId}/attempts/${credentials.studentId}`, {
+      headers,
+      data: { answers: [{ examQuestionId: attached[0]!.examQuestionId, optionIds: [attached[0]!.options.find((option) => option.text === 'Ha')!.id] }] },
+    });
+    expect(submitted.status()).toBe(201);
+
+    await loginAsStudent(page, credentials);
+    await page.getByRole('navigation', { name: 'Kabinet bo‘limlari' }).first().getByRole('link', { name: 'Progress' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible();
+    await expect(page.getByRole('meter', { name: `${topicTitle} o‘zlashtirish` })).toHaveAttribute('aria-valuenow', '100');
+  });
 });

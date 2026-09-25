@@ -8,6 +8,7 @@ import type { Blueprint } from './examBlueprint.js';
 import { MANUAL_QUESTION_TYPES, attemptSelect, gradeAnswer, syncExamResult } from './examAttempt.service.js';
 import type { AnswerKey } from './examAttempt.service.js';
 import { notifyExamResultForAttempt } from './studentNotify.service.js';
+import { masteryService } from './mastery.service.js';
 
 /**
  * O'quvchi imtihonni **o'zi** onlayn topshiradi (TZ 3.0 §21–25, §65).
@@ -297,6 +298,8 @@ async function finalize(attemptId: string, actorUserId: string | null, reason: '
       userAgent: null,
     });
   });
+  // Mavzu kesimi — o'zlashtirish manbasi (qo'lda baholanadigan bo'lsa, baholangach yangilanadi)
+  if (!needsReview) await masteryService.refresh([attempt.studentId]);
 }
 
 /** Muddat o'tgan ochiq urinish — yakunlanadi (true), aks holda false */

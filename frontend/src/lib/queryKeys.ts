@@ -170,6 +170,7 @@ export const queryKeys = {
     homework: (studentId: string) => ['portal', 'homework', studentId] as const,
     homeworkDetail: (studentId: string, homeworkId: string) => ['portal', 'homework', studentId, homeworkId] as const,
     exams: (studentId: string) => ['portal', 'exams', studentId] as const,
+    mastery: (studentId: string) => ['portal', 'mastery', studentId] as const,
     availableExams: (studentId: string) => ['portal', 'exams', studentId, 'available'] as const,
     attempt: (attemptId: string) => ['portal', 'attempt', attemptId] as const,
     examDetail: (studentId: string, examId: string) => ['portal', 'exams', studentId, examId] as const,
@@ -293,6 +294,13 @@ export const queryKeys = {
     detail: (id: string) => ['homework', 'detail', id] as const,
     submission: (id: string, studentId: string) => ['homework', 'submission', id, studentId] as const,
     rubrics: (includeInactive: boolean) => ['homework', 'rubrics', includeInactive] as const,
+  },
+  mastery: {
+    all: ['mastery'] as const,
+    student: (id: string) => ['mastery', 'student', id] as const,
+    history: (id: string) => ['mastery', 'history', id] as const,
+    group: (id: string) => ['mastery', 'group', id] as const,
+    settings: ['mastery', 'settings'] as const,
   },
   exams: {
     all: ['exams'] as const,

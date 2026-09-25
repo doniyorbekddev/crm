@@ -189,6 +189,11 @@ export const portalController = {
     sendSuccess(res, await portalService.examDetail(requireAuthUser(req), id, studentId));
   },
 
+  async mastery(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    sendSuccess(res, await portalService.mastery(requireAuthUser(req), studentId));
+  },
+
   async availableExams(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.availableExams(requireAuthUser(req), studentId));

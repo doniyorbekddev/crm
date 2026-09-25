@@ -12,6 +12,7 @@ import type {
 } from '../validators/attendanceSession.validator.js';
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
+import { masteryService } from './mastery.service.js';
 
 const sessionSelect = {
   id: true,
@@ -76,12 +77,14 @@ function toDto(session: SessionRecord): AttendanceSessionDto {
 
 /** Seansga mavzu biriktirildi — allaqachon belgilangan kelganlar progressi yangilanadi */
 async function applyTopicToAttendees(sessionId: string, topicId: string, actorId: string): Promise<void> {
-  const attendees = await prisma.attendance.findMany({
-    where: { sessionId, status: { in: ['PRESENT', 'LATE'] } },
-    select: { studentId: true },
-  });
-  if (attendees.length === 0) return;
-  await prisma.$transaction((tx) => startTopicForAttendees(tx, { topicId, studentIds: attendees.map((row) => row.studentId), markedById: actorId }));
+  const marked = await prisma.attendance.findMany({ where: { sessionId }, select: { studentId: true, status: true } });
+  if (marked.length === 0) return;
+  const attendees = marked.filter((row) => row.status === 'PRESENT' || row.status === 'LATE');
+  if (attendees.length > 0) {
+    await prisma.$transaction((tx) => startTopicForAttendees(tx, { topicId, studentIds: attendees.map((row) => row.studentId), markedById: actorId }));
+  }
+  // Davomat endi shu mavzu hisobiga o'tadi — barcha belgilanganlar o'zlashtirishi yangilanadi
+  await masteryService.refresh(marked.map((row) => row.studentId));
 }
 
 export async function getSessionAccess(actor: AuthUser): Promise<SessionAccess> {

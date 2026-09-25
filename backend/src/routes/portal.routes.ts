@@ -26,6 +26,7 @@ portalRouter.get('/course/lessons/:id', portalAccess, portalController.lesson);
 portalRouter.post('/course/lessons/:id/complete', portalAccess, portalController.completeLesson);
 portalRouter.get('/course/materials/:id/download', portalAccess, portalController.lessonMaterial);
 portalRouter.get('/weekly-report', portalAccess, portalController.weeklyReport);
+portalRouter.get('/mastery', portalAccess, portalController.mastery);
 portalRouter.get('/homework', portalAccess, portalController.homework);
 portalRouter.get('/homework/:id', portalAccess, portalController.homeworkDetail);
 portalRouter.get('/homework/:id/attachment', portalAccess, portalController.homeworkAttachment);

@@ -17,6 +17,7 @@ import type {
   AvailableExam,
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
+import type { ProgressHistoryPoint, StudentMastery } from '@/types/mastery';
 import type { LessonMaterial, LessonTree, PortalLessonDetail } from '@/types/lesson';
 import type { HomeworkAttachment, SubmissionFile } from '@/types/homework';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
@@ -111,6 +112,12 @@ export const portalService = {
   /** O‘zi yuklagan faylni yuklab olish */
   downloadHomeworkAttachment(homeworkId: string, fallbackName: string, studentId?: string): Promise<void> {
     return downloadFile(`/portal/homework/${homeworkId}/attachment`, { studentId }, fallbackName);
+  },
+
+  /** Mavzular bo'yicha o'zlashtirish va oylik tarix */
+  async mastery(studentId?: string): Promise<StudentMastery & { history: ProgressHistoryPoint[] }> {
+    const response = await api.get<ApiSuccessResponse<StudentMastery & { history: ProgressHistoryPoint[] }>>('/portal/mastery', { params: { studentId } });
+    return response.data.data;
   },
 
   /** Onlayn topshiriladigan imtihonlar */

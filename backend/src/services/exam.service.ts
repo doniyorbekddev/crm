@@ -15,6 +15,7 @@ import type {
   UpdateExamInput,
 } from '../validators/homework.validator.js';
 import { auditService } from './audit.service.js';
+import { masteryService } from './mastery.service.js';
 import { notifyExamResult } from './studentNotify.service.js';
 import { gamificationHooks } from './gamification.service.js';
 import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
@@ -448,6 +449,11 @@ export const examService = {
       ...client,
     });
 
+    // Bekor qilingan imtihon o'zlashtirishga kirmaydi — holat o'zgarsa qayta hisoblanadi
+    if (input.status !== undefined && (input.status === 'CANCELLED') !== (exam.status === 'CANCELLED')) {
+      const graded = await prisma.examAttempt.findMany({ where: { examId: id, status: 'GRADED' }, select: { studentId: true }, distinct: ['studentId'] });
+      await masteryService.refresh(graded.map((row) => row.studentId));
+    }
     return this.getById(actor, id);
   },
 

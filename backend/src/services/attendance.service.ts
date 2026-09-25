@@ -12,6 +12,7 @@ import { attendanceSessionService } from './attendanceSession.service.js';
 import { gamificationHooks } from './gamification.service.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
+import { masteryService } from './mastery.service.js';
 
 /** JS `getUTCDay()` (0 = yakshanba) → Prisma WeekDay */
 const WEEK_DAYS: readonly WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -235,9 +236,10 @@ export const attendanceService = {
       parentsByStudent.set(link.studentId, [...(parentsByStudent.get(link.studentId) ?? []), link.parentId]);
     }
 
+    let sessionId: string | null = null;
     await prisma.$transaction(
       async (tx) => {
-      const sessionId = await attendanceSessionService.ensureSession(tx, {
+      sessionId = await attendanceSessionService.ensureSession(tx, {
         groupId,
         date: input.date,
         teacherId: group.teacherId,
@@ -329,6 +331,10 @@ export const attendanceService = {
       // standart 5 soniya chegarasi yetmay qolishi mumkin.
       { timeout: 30_000 },
     );
+
+    // Mavzuli dars — o'zlashtirish (davomat manbasi) yangilanadi
+    const topicId = input.topicId ?? (sessionId ? (await prisma.attendanceSession.findUnique({ where: { id: sessionId }, select: { topicId: true } }))?.topicId : null);
+    if (topicId) await masteryService.refresh(ids);
 
     return this.getSheet(actor, groupId, input.date);
   },
