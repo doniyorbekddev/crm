@@ -18,7 +18,7 @@ import { formatDateTime, formatRelativeTime } from '@/utils/format';
 import { SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_ORDER, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 
 /** Kutilayotganlar yuqorida, muddati yaqini birinchi */
-const STATUS_WEIGHT: Record<SubmissionStatus, number> = { PENDING: 0, LATE: 1, SUBMITTED: 2, GRADED: 3, MISSED: 4 };
+const STATUS_WEIGHT: Record<SubmissionStatus, number> = { RETURNED: 0, PENDING: 1, IN_PROGRESS: 1, LATE: 2, SUBMITTED: 3, GRADED: 4, MISSED: 5 };
 
 /** Uy vazifalari ro‘yxati — holat filtri bilan; topshirish detal sahifasida */
 export default function PortalHomeworkPage() {
@@ -67,7 +67,7 @@ export default function PortalHomeworkPage() {
         ) : (
           <ul className="divide-y divide-border">
             {rows.map((row) => {
-              const overdue = row.status === 'PENDING' && new Date(row.deadline).getTime() < now;
+              const overdue = (row.status === 'PENDING' || row.status === 'IN_PROGRESS') && new Date(row.deadline).getTime() < now;
               return (
                 <li key={row.homeworkId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">

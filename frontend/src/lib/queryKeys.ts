@@ -289,6 +289,8 @@ export const queryKeys = {
     all: ['homework'] as const,
     list: (params: HomeworkListParams) => ['homework', 'list', params] as const,
     detail: (id: string) => ['homework', 'detail', id] as const,
+    submission: (id: string, studentId: string) => ['homework', 'submission', id, studentId] as const,
+    rubrics: (includeInactive: boolean) => ['homework', 'rubrics', includeInactive] as const,
   },
   exams: {
     all: ['exams'] as const,

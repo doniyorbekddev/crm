@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
+import { httpUrlSchema } from './lesson.validator.js';
 
 export const HOMEWORK_STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED'] as const;
-export const SUBMISSION_STATUSES = ['PENDING', 'SUBMITTED', 'LATE', 'GRADED', 'MISSED'] as const;
+export const SUBMISSION_STATUSES = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'LATE', 'GRADED', 'RETURNED', 'MISSED'] as const;
+export const HOMEWORK_TARGETS = ['GROUP', 'SELECTED', 'INDIVIDUAL'] as const;
+export const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
 export const EXAM_STATUSES = ['PLANNED', 'HELD', 'GRADED', 'CANCELLED'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
@@ -42,15 +45,33 @@ const homeworkFieldsSchema = z.object({
     .max(1000, 'Ball 1000 dan oshmasligi kerak'),
   xpReward: z.coerce.number('XP raqam bo‘lishi kerak').int().min(0).max(1000),
   status: z.enum(HOMEWORK_STATUSES, 'Holat noto‘g‘ri'),
+  /** Kurs dasturi (LMS) — ixtiyoriy */
+  topicId: idSchema.nullable().optional(),
+  lessonId: idSchema.nullable().optional(),
+  difficulty: z.enum(DIFFICULTIES, 'Qiyinlik noto‘g‘ri').nullable().optional(),
+  rubricId: idSchema.nullable().optional(),
 });
 
-export const createHomeworkSchema = homeworkFieldsSchema.extend({
-  maxPoints: homeworkFieldsSchema.shape.maxPoints.default(100),
-  xpReward: homeworkFieldsSchema.shape.xpReward.default(20),
-  status: homeworkFieldsSchema.shape.status.default('PUBLISHED'),
-});
+export const createHomeworkSchema = homeworkFieldsSchema
+  .extend({
+    maxPoints: homeworkFieldsSchema.shape.maxPoints.default(100),
+    xpReward: homeworkFieldsSchema.shape.xpReward.default(20),
+    status: homeworkFieldsSchema.shape.status.default('PUBLISHED'),
+    targetType: z.enum(HOMEWORK_TARGETS, 'Kimga berilishi noto‘g‘ri').default('GROUP'),
+    /** SELECTED/INDIVIDUAL uchun — guruhdagi faol o'quvchilar */
+    studentIds: z.array(idSchema).max(100, 'Juda ko‘p o‘quvchi').optional(),
+  })
+  .superRefine((value, ctx) => {
+    const count = value.studentIds?.length ?? 0;
+    if (value.targetType === 'SELECTED' && count === 0) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Kamida bitta o‘quvchini tanlang' });
+    if (value.targetType === 'INDIVIDUAL' && count !== 1) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Bitta o‘quvchini tanlang' });
+    if (value.targetType === 'GROUP' && count > 0) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Butun guruhga berilganda o‘quvchi tanlanmaydi' });
+  });
 // Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
 export const updateHomeworkSchema = homeworkFieldsSchema.omit({ groupId: true }).partial();
+
+/** Rubrika bo'yicha ball: mezon kaliti → 0–100 (%) */
+const rubricScoresSchema = z.record(z.string().trim().min(1).max(40), z.coerce.number().int().min(0).max(100));
 
 /** Bitta o‘quvchining topshirig‘i: holat, ball va izoh */
 export const gradeSubmissionSchema = z
@@ -58,11 +79,57 @@ export const gradeSubmissionSchema = z
     status: z.enum(SUBMISSION_STATUSES, 'Holat noto‘g‘ri').optional(),
     score: optionalField(z.coerce.number('Ball raqam bo‘lishi kerak').int().min(0).max(1000)),
     feedback: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
+    /** Rubrika bo'lsa — ball shu yerdan hisoblanadi (score yuborilmaydi) */
+    rubricScores: rubricScoresSchema.optional(),
   })
   .refine(
-    (values) => values.status !== undefined || values.score !== undefined || values.feedback !== undefined,
+    (values) => values.status !== undefined || values.score !== undefined || values.feedback !== undefined || values.rubricScores !== undefined,
     'Kamida bitta maydonni kiriting',
   );
+
+/** Qayta ishlashga qaytarish — izoh majburiy (o'quvchi nimani tuzatishini bilsin) */
+export const returnSubmissionSchema = z.object({
+  feedback: z.string('Izoh kiriting').trim().min(3, 'Nimani tuzatish kerakligini yozing').max(500, 'Izoh juda uzun'),
+});
+
+/** O'qituvchi vazifaga havola biriktiradi */
+export const homeworkLinkSchema = z.object({
+  title: z.string('Nomi kiritilishi shart').trim().min(2, 'Kamida 2 belgi').max(200, 'Nom juda uzun'),
+  url: httpUrlSchema,
+});
+
+// ---------------------------------------------------------------------
+// Rubrika (TZ §20)
+// ---------------------------------------------------------------------
+
+const criterionSchema = z.object({
+  key: z.string().trim().regex(/^[a-z0-9_]{1,40}$/, 'Kalit: kichik lotin harf, raqam, _'),
+  title: z.string('Mezon nomi').trim().min(2, 'Kamida 2 belgi').max(100, 'Nom juda uzun'),
+  weight: z.coerce.number().int().min(1, 'Og‘irlik kamida 1%').max(100),
+});
+
+const criteriaSchema = z
+  .array(criterionSchema)
+  .min(1, 'Kamida bitta mezon')
+  .max(10, 'Ko‘pi bilan 10 ta mezon')
+  .superRefine((items, ctx) => {
+    const total = items.reduce((sum, item) => sum + item.weight, 0);
+    if (total !== 100) ctx.addIssue({ code: 'custom', message: `Og‘irliklar yig‘indisi 100% bo‘lishi kerak (hozir ${total}%)` });
+    if (new Set(items.map((item) => item.key)).size !== items.length) ctx.addIssue({ code: 'custom', message: 'Mezon kalitlari takrorlanmasin' });
+  });
+
+export const rubricSchema = z.object({
+  name: z.string('Nomi kiritilishi shart').trim().min(2, 'Kamida 2 belgi').max(150, 'Nom juda uzun'),
+  description: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
+  criteria: criteriaSchema,
+});
+export const updateRubricSchema = rubricSchema.partial().extend({ isActive: z.boolean().optional() });
+
+export type RubricCriterion = z.infer<typeof criterionSchema>;
+export type RubricInput = z.infer<typeof rubricSchema>;
+export type UpdateRubricInput = z.infer<typeof updateRubricSchema>;
+export type ReturnSubmissionInput = z.infer<typeof returnSubmissionSchema>;
+export type HomeworkLinkInput = z.infer<typeof homeworkLinkSchema>;
 
 /** Butun guruhni bir marta baholash */
 export const bulkGradeSchema = z.object({
@@ -73,6 +140,7 @@ export const bulkGradeSchema = z.object({
         status: z.enum(SUBMISSION_STATUSES, 'Holat noto‘g‘ri').optional(),
         score: optionalField(z.coerce.number().int().min(0).max(1000)),
         feedback: optionalField(z.string().trim().max(500)),
+        rubricScores: rubricScoresSchema.optional(),
       }),
       'Ro‘yxatni kiriting',
     )
@@ -138,7 +206,10 @@ export const saveExamResultsSchema = z.object({
 });
 
 export type HomeworkListQuery = z.infer<typeof homeworkListQuerySchema>;
-export type CreateHomeworkInput = z.infer<typeof createHomeworkSchema>;
+/** Servis chaqiruvchilari (Telegram, testlar) uchun `targetType` ixtiyoriy — standart GROUP */
+export type CreateHomeworkInput = Omit<z.infer<typeof createHomeworkSchema>, 'targetType'> & {
+  targetType?: z.infer<typeof createHomeworkSchema>['targetType'];
+};
 export type UpdateHomeworkInput = z.infer<typeof updateHomeworkSchema>;
 export type GradeSubmissionInput = z.infer<typeof gradeSubmissionSchema>;
 export type BulkGradeInput = z.infer<typeof bulkGradeSchema>;

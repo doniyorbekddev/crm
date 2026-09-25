@@ -135,9 +135,9 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await page.getByLabel('Javob matni').fill('Mening E2E javobim');
     await submitButton.click();
 
-    await expect(page.getByText('Mening E2E javobim', { exact: true })).toBeVisible();
     await expect(page.getByText('Topshirdi', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Qayta topshirish' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Javobni yangilash' })).toBeVisible();
+    await expect(page.getByLabel('Javob matni')).toHaveValue('Mening E2E javobim');
   });
 
   test('admin guruhga ommaviy kabinet ochadi, o‘quvchi ID raqami va o‘z paroli bilan kiradi', async ({ page, request }) => {

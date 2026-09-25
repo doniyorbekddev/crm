@@ -20,7 +20,8 @@ import { studentSelect as studentDtoSelect, toStudentDto } from './student.servi
 import { buildStudentExamRows, buildStudentHomeworkRows } from './studentProgress.service.js';
 import { buildAttendanceCalendar } from './attendanceAnalytics.service.js';
 import { gamificationService } from './gamification.service.js';
-import { homeworkService } from './homework.service.js';
+import { MAX_SUBMISSION_FILES, homeworkService } from './homework.service.js';
+import type { AttachmentDto, StudentDraftInput } from './homework.service.js';
 import { detectFileType, saveFile } from '../utils/fileStorage.js';
 import { currentBusinessMonth } from '../utils/dates.js';
 import { ownerForActor, telegramLinkService } from './telegramLink.service.js';
@@ -32,7 +33,7 @@ import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js
 import { lessonService } from './lesson.service.js';
 import type { LessonDto, LessonTreeDto } from './lesson.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
-import type { ExamStatus, HomeworkStatus, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
+import type { ExamStatus, HomeworkStatus, QuestionDifficulty, RiskLevel, SubmissionStatus } from '../generated/prisma/client.js';
 
 /**
  * Kabinet (portal) — o'quvchi va ota-ona uchun.
@@ -176,17 +177,31 @@ export interface PortalHomeworkDetailDto {
     groupName: string;
     courseName: string | null;
     teacherName: string | null;
+    difficulty: QuestionDifficulty | null;
+    topic: { id: string; title: string } | null;
+    lesson: { id: string; title: string } | null;
   };
+  /** O'qituvchi biriktirgan fayl va havolalar */
+  attachments: AttachmentDto[];
   submission: {
     status: SubmissionStatus;
     submittedAt: string | null;
     score: number | null;
     feedback: string | null;
     answerText: string | null;
+    linkUrl: string | null;
+    codeText: string | null;
+    codeLanguage: string | null;
     hasAttachment: boolean;
+    files: Array<{ id: string; originalName: string; mimeType: string; size: number; createdAt: string }>;
     xpAwarded: number;
     gradedAt: string | null;
+    returnedAt: string | null;
   };
+  /** Rubrika bilan baholangan bo'lsa — mezonlar va ballar */
+  rubric: { criteria: Array<{ key: string; title: string; weight: number }>; scores: Record<string, number> | null } | null;
+  /** Bitta topshiriqqa ko'pi bilan nechta fayl */
+  maxFiles: number;
   /** Topshirish (yoki qayta topshirish) mumkinmi — baholanmagan va vazifa ochiq */
   canSubmit: boolean;
   /** Muddat o'tgan — topshirsa LATE bo'ladi */
@@ -429,9 +444,37 @@ export const portalService = {
   },
 
   /** Matnli javob bilan topshirish. Egalik: `requireOwnStudent` + topshiriq yozuvi faqat guruh a'zosida */
-  async submitHomework(actor: AuthUser, homeworkId: string, input: { answerText: string }, requestedStudentId?: string) {
+  async submitHomework(actor: AuthUser, homeworkId: string, input: StudentDraftInput, requestedStudentId?: string) {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
-    return homeworkService.submitByStudent(studentId, homeworkId, { answerText: input.answerText, source: 'portal' });
+    return homeworkService.submitByStudent(studentId, homeworkId, { ...input, source: 'portal' });
+  },
+
+  /** Qoralama saqlash — IN_PROGRESS (topshirilmaydi) */
+  async saveHomeworkDraft(actor: AuthUser, homeworkId: string, input: StudentDraftInput, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return homeworkService.saveDraft(studentId, homeworkId, input);
+  },
+
+  /** Fayl qo'shish (topshirmasdan), ko'pi bilan 5 ta */
+  async addHomeworkFile(actor: AuthUser, homeworkId: string, file: { buffer: unknown; fileName: string | undefined }, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return homeworkService.addStudentFile(studentId, homeworkId, file);
+  },
+
+  async removeHomeworkFile(actor: AuthUser, homeworkId: string, fileId: string, requestedStudentId?: string): Promise<void> {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    await homeworkService.removeStudentFile(studentId, homeworkId, fileId);
+  },
+
+  async homeworkFile(actor: AuthUser, homeworkId: string, fileId: string, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return homeworkService.studentFile(studentId, homeworkId, fileId);
+  },
+
+  /** O'qituvchi biriktirgan fayl */
+  async homeworkMaterial(actor: AuthUser, homeworkId: string, attachmentId: string, requestedStudentId?: string) {
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return homeworkService.homeworkFileForStudent(studentId, homeworkId, attachmentId);
   },
 
   /** Fayl bilan topshirish — hujjatlar bilan bir xil tekshiruv: tur baytlar bo'yicha aniqlanadi */
@@ -460,9 +503,9 @@ export const portalService = {
       }),
       curriculumService.studentProgress(studentId),
       buildUpcomingLessons(studentId),
-      prisma.homeworkSubmission.count({ where: { studentId, status: 'PENDING', homework: { status: 'PUBLISHED' } } }),
+      prisma.homeworkSubmission.count({ where: { studentId, status: { in: ['PENDING', 'IN_PROGRESS', 'RETURNED'] }, homework: { status: 'PUBLISHED' } } }),
       prisma.homeworkSubmission.findFirst({
-        where: { studentId, status: 'PENDING', homework: { status: 'PUBLISHED', deadline: { gte: now } } },
+        where: { studentId, status: { in: ['PENDING', 'IN_PROGRESS', 'RETURNED'] }, homework: { status: 'PUBLISHED', deadline: { gte: now } } },
         orderBy: { homework: { deadline: 'asc' } },
         select: { homework: { select: { id: true, title: true, deadline: true } } },
       }),
@@ -599,12 +642,17 @@ export const portalService = {
             group: { select: { name: true } },
             course: { select: { name: true } },
             teacher: { select: { firstName: true, lastName: true } },
+            difficulty: true,
+            topic: { select: { id: true, title: true } },
+            lesson: { select: { id: true, title: true, status: true } },
           },
         },
       },
     });
-    if (!row) throw AppError.notFound('Vazifa topilmadi');
+    // Qoralama vazifa o'quvchiga ko'rinmaydi (tanlangan o'quvchilar yozuvi oldindan ochilgan bo'lsa ham)
+    if (!row || row.homework.status === 'DRAFT') throw AppError.notFound('Vazifa topilmadi');
     const { homework } = row;
+    const extra = await homeworkService.studentView(studentId, homeworkId);
     return {
       homework: {
         id: homework.id,
@@ -618,17 +666,29 @@ export const portalService = {
         groupName: homework.group.name,
         courseName: homework.course?.name ?? null,
         teacherName: homework.teacher ? `${homework.teacher.firstName} ${homework.teacher.lastName}` : null,
+        difficulty: homework.difficulty,
+        topic: homework.topic,
+        // O'quvchi faqat nashr qilingan darsga o'ta oladi
+        lesson: homework.lesson && homework.lesson.status === 'PUBLISHED' ? { id: homework.lesson.id, title: homework.lesson.title } : null,
       },
+      attachments: extra.attachments,
       submission: {
         status: row.status,
         submittedAt: row.submittedAt?.toISOString() ?? null,
         score: row.score,
         feedback: row.feedback,
         answerText: row.answerText,
-        hasAttachment: row.attachmentPath !== null,
+        linkUrl: extra.linkUrl,
+        codeText: extra.codeText,
+        codeLanguage: extra.codeLanguage,
+        hasAttachment: row.attachmentPath !== null || extra.files.length > 0,
+        files: extra.files,
         xpAwarded: row.xpAwarded,
         gradedAt: row.gradedAt?.toISOString() ?? null,
+        returnedAt: extra.returnedAt,
       },
+      rubric: extra.rubric,
+      maxFiles: MAX_SUBMISSION_FILES,
       canSubmit: homework.status === 'PUBLISHED' && row.status !== 'GRADED',
       isLate: homework.deadline.getTime() < Date.now(),
     };
@@ -645,7 +705,16 @@ export const portalService = {
       where: { homeworkId_studentId: { homeworkId, studentId } },
       select: { attachmentPath: true, homework: { select: { title: true } } },
     });
-    if (!row?.attachmentPath) throw AppError.notFound('Fayl topilmadi');
+    if (!row?.attachmentPath) {
+      // Yangi ko'p-faylli topshiriq: oxirgi fayl (eski endpoint mosligi)
+      const last = await prisma.submissionAttachment.findFirst({
+        where: { submission: { homeworkId, studentId } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+      });
+      if (!last) throw AppError.notFound('Fayl topilmadi');
+      return homeworkService.studentFile(studentId, homeworkId, last.id);
+    }
     const ext = row.attachmentPath.split('.').pop()?.toLowerCase() ?? '';
     return {
       absolutePath: resolveStoredPath(row.attachmentPath),

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, Save } from 'lucide-react';
+import { CheckCheck, Code2, Eye, FileText, Link2, Paperclip, Save, Trash2, Type } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
@@ -24,6 +24,9 @@ import {
   SUBMISSION_STATUS_TONES,
 } from '@/utils/homeworkLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { MaterialList } from '@/components/lesson/LessonBody';
+import { DIFFICULTY_LABELS, DIFFICULTY_TONES, HOMEWORK_TARGET_LABELS } from '@/utils/homeworkLabels';
+import { SubmissionReviewModal } from './SubmissionReviewModal';
 
 interface HomeworkDetailModalProps {
   homeworkId: string;
@@ -38,12 +41,16 @@ function GradingTable({
   draft,
   setDraft,
   canGrade,
+  onOpen,
 }: {
   detail: HomeworkDetail;
   draft: Draft;
   setDraft: (update: (current: Draft) => Draft) => void;
   canGrade: boolean;
+  onOpen: (studentId: string) => void;
 }) {
+  // Rubrikali vazifada ball faqat rubrika orqali (javobni ochib) qo'yiladi
+  const directScore = canGrade && !detail.rubricCriteria;
   const patch = (studentId: string, values: Draft[string]) =>
     setDraft((current) => ({ ...current, [studentId]: { ...current[studentId], ...values } }));
 
@@ -64,9 +71,24 @@ function GradingTable({
                 {submission.submittedAt && ` · ${formatDateTime(submission.submittedAt)}`}
                 {submission.xpAwarded > 0 && ` · +${submission.xpAwarded} XP`}
               </p>
+              <p className="mt-0.5 flex items-center gap-2 text-fg-subtle" aria-label="Topshirilgan narsalar">
+                {submission.hasText && <Type className="size-3.5" aria-label="Matn" />}
+                {submission.hasLink && <Link2 className="size-3.5" aria-label="Havola" />}
+                {submission.hasCode && <Code2 className="size-3.5" aria-label="Kod" />}
+                {submission.fileCount > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-xs">
+                    <Paperclip className="size-3.5" aria-hidden />
+                    {submission.fileCount}
+                  </span>
+                )}
+              </p>
             </div>
 
-            {canGrade ? (
+            <Button variant="ghost" size="sm" leftIcon={<Eye className="size-4" aria-hidden />} onClick={() => onOpen(submission.studentId)}>
+              Ko‘rish
+            </Button>
+
+            {directScore ? (
               <>
                 <Select
                   value={status}
@@ -109,6 +131,9 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
   const queryClient = useQueryClient();
   const canGrade = usePermission(PERMISSIONS.HOMEWORK_GRADE);
   const [draft, setDraft] = useState<Draft>({});
+  const [openStudent, setOpenStudent] = useState<string | null>(null);
+  const canManage = usePermission(PERMISSIONS.HOMEWORK_MANAGE);
+  const [link, setLink] = useState({ title: '', url: '' });
 
   const detailQuery = useQuery({
     queryKey: queryKeys.homework.detail(homeworkId),
@@ -127,6 +152,36 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
   });
 
   const detail = detailQuery.data;
+
+  const refreshDetail = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.homework.detail(homeworkId) });
+    onChanged();
+  };
+  const addLink = useMutation({
+    mutationFn: () => homeworkService.addLink(homeworkId, { title: link.title.trim(), url: link.url.trim() }),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setLink({ title: '', url: '' });
+      refreshDetail();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+  const upload = useMutation({
+    mutationFn: (file: File) => homeworkService.uploadAttachment(homeworkId, file),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      refreshDetail();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+  const removeAttachment = useMutation({
+    mutationFn: (attachmentId: string) => homeworkService.removeAttachment(attachmentId),
+    onSuccess: (message) => {
+      toast.success(message);
+      refreshDetail();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
 
   const buildRecords = (): GradeRecord[] =>
     Object.entries(draft).flatMap(([studentId, values]) => {
@@ -193,12 +248,69 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={HOMEWORK_STATUS_TONES[detail.status]}>{HOMEWORK_STATUS_LABELS[detail.status]}</Badge>
             {detail.isOverdue && <Badge tone="red">Muddati o‘tgan</Badge>}
+            <Badge>{HOMEWORK_TARGET_LABELS[detail.targetType]}</Badge>
+            {detail.difficulty && <Badge tone={DIFFICULTY_TONES[detail.difficulty]}>{DIFFICULTY_LABELS[detail.difficulty]}</Badge>}
+            {detail.rubric && <Badge tone="purple">Rubrika: {detail.rubric.name}</Badge>}
             <span className="text-xs text-fg-muted">
               Maksimal ball: {detail.maxPoints} · XP: {detail.xpReward}
+              {detail.topic && ` · mavzu: ${detail.topic.title}`}
+              {detail.lesson && ` · dars: ${detail.lesson.title}`}
             </span>
           </div>
 
           {detail.description && <p className="text-sm text-fg-muted">{detail.description}</p>}
+
+          <section className="space-y-2">
+            <p className="flex items-center gap-2 text-sm font-medium text-fg">
+              <FileText className="size-4 text-fg-muted" aria-hidden />
+              Biriktirilgan fayl va havolalar
+            </p>
+            {detail.attachments.length > 0 && (
+              <MaterialList
+                materials={detail.attachments.map((item, index) => ({ ...item, sortOrder: index }))}
+                onDownload={(item) =>
+                  void homeworkService.downloadAttachment(detail.attachments.find((a) => a.id === item.id)!).catch((error: unknown) => toast.error(getErrorMessage(error)))
+                }
+                renderAction={
+                  canManage
+                    ? (item) => (
+                        <button
+                          type="button"
+                          aria-label={`${item.title} — o‘chirish`}
+                          onClick={() => removeAttachment.mutate(item.id)}
+                          className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      )
+                    : undefined
+                }
+              />
+            )}
+            {canManage && (
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+                <Input aria-label="Havola nomi" placeholder="Nomi (masalan, Figma maket)" value={link.title} onChange={(event) => setLink({ ...link, title: event.target.value })} />
+                <Input aria-label="Havola" type="url" placeholder="https://…" value={link.url} onChange={(event) => setLink({ ...link, url: event.target.value })} />
+                <Button variant="secondary" loading={addLink.isPending} disabled={link.title.trim().length < 2 || !link.url.trim()} onClick={() => addLink.mutate()}>
+                  Havola
+                </Button>
+                <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-muted">
+                  <Paperclip className="size-4" aria-hidden />
+                  Fayl
+                  <input
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) upload.mutate(file);
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+          </section>
 
           <div className="grid gap-3 sm:grid-cols-4">
             {[
@@ -229,12 +341,15 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
                 </Button>
               )}
               <div className={cn(save.isPending && 'pointer-events-none opacity-60')}>
-                <GradingTable detail={detail} draft={draft} setDraft={setDraft} canGrade={canGrade} />
+                <GradingTable detail={detail} draft={draft} setDraft={setDraft} canGrade={canGrade} onOpen={setOpenStudent} />
               </div>
             </>
           )}
         </div>
       ) : null}
+      {openStudent && detail && (
+        <SubmissionReviewModal homework={detail} studentId={openStudent} canGrade={canGrade} onClose={() => setOpenStudent(null)} onChanged={onChanged} />
+      )}
     </Modal>
   );
 }

@@ -4,6 +4,8 @@ import { examController, homeworkController } from '../controllers/homework.cont
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { questionController } from '../controllers/question.controller.js';
+import { rubricController } from '../controllers/rubric.controller.js';
+import { uploadBody } from './document.routes.js';
 
 export const homeworkRouter = Router();
 
@@ -14,12 +16,26 @@ const homeworkManage = requirePermission(PERMISSIONS.HOMEWORK_MANAGE);
 const homeworkGrade = requirePermission(PERMISSIONS.HOMEWORK_GRADE);
 
 homeworkRouter.get('/', homeworkView, homeworkController.list);
+homeworkRouter.get('/attachments/:id/download', homeworkView, homeworkController.downloadAttachment);
+homeworkRouter.delete('/attachments/:id', homeworkManage, homeworkController.removeAttachment);
 homeworkRouter.get('/:id', homeworkView, homeworkController.getById);
 homeworkRouter.post('/', homeworkManage, homeworkController.create);
 homeworkRouter.put('/:id', homeworkManage, homeworkController.update);
 homeworkRouter.delete('/:id', homeworkManage, homeworkController.remove);
 homeworkRouter.put('/:id/submissions', homeworkGrade, homeworkController.bulkGrade);
 homeworkRouter.patch('/:id/submissions/:studentId', homeworkGrade, homeworkController.grade);
+homeworkRouter.get('/:id/submissions/:studentId', homeworkView, homeworkController.submission);
+homeworkRouter.get('/:id/submissions/:studentId/files/:fileId', homeworkView, homeworkController.submissionFile);
+homeworkRouter.post('/:id/submissions/:studentId/return', homeworkGrade, homeworkController.returnSubmission);
+homeworkRouter.post('/:id/attachments', homeworkManage, homeworkController.addLink);
+homeworkRouter.post('/:id/attachments/upload', homeworkManage, uploadBody, homeworkController.uploadAttachment);
+
+/** Baholash mezonlari (TZ §20): ko'rish — vazifani ko'ruvchi, yaratish — vazifa beruvchi */
+export const rubricRouter = Router();
+rubricRouter.use(authenticate);
+rubricRouter.get('/', homeworkView, rubricController.list);
+rubricRouter.post('/', homeworkManage, rubricController.create);
+rubricRouter.put('/:id', homeworkManage, rubricController.update);
 
 export const examRouter = Router();
 

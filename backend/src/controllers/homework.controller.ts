@@ -3,6 +3,7 @@ import { examService } from '../services/exam.service.js';
 import { homeworkService } from '../services/homework.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
+import { sendStoredFile } from '../utils/sendStoredFile.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import {
   bulkGradeSchema,
@@ -10,7 +11,9 @@ import {
   createHomeworkSchema,
   examListQuerySchema,
   gradeSubmissionSchema,
+  homeworkLinkSchema,
   homeworkListQuerySchema,
+  returnSubmissionSchema,
   saveExamResultsSchema,
   updateExamSchema,
   updateHomeworkSchema,
@@ -45,6 +48,58 @@ export const homeworkController = {
     const { id } = idParamSchema.parse(req.params);
     await homeworkService.remove(requireAuthUser(req), id, getClientInfo(req));
     sendSuccess(res, { id }, { message: 'Uy vazifasi o‘chirildi' });
+  },
+
+  async submission(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
+    sendSuccess(res, await homeworkService.submissionDetail(requireAuthUser(req), id, studentId));
+  },
+
+  async submissionFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
+    const fileId = idParamSchema.parse({ id: req.params.fileId }).id;
+    await sendStoredFile(res, await homeworkService.submissionFile(requireAuthUser(req), id, studentId, fileId));
+  },
+
+  async returnSubmission(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
+    const input = returnSubmissionSchema.parse(req.body);
+    sendSuccess(res, await homeworkService.returnSubmission(requireAuthUser(req), id, studentId, input, getClientInfo(req)), {
+      message: 'Qayta ishlashga qaytarildi',
+    });
+  },
+
+  async addLink(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = homeworkLinkSchema.parse(req.body);
+    sendCreated(res, await homeworkService.addLink(requireAuthUser(req), id, input, getClientInfo(req)), 'Havola qo‘shildi');
+  },
+
+  async uploadAttachment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const rawTitle = req.header('x-material-title');
+    let title: string | undefined;
+    try {
+      title = rawTitle ? decodeURIComponent(rawTitle) : undefined;
+    } catch {
+      title = rawTitle;
+    }
+    const attachment = await homeworkService.uploadAttachment(requireAuthUser(req), id, { buffer: req.body, fileName: req.header('x-file-name'), title }, getClientInfo(req));
+    sendCreated(res, attachment, 'Fayl yuklandi');
+  },
+
+  async removeAttachment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    await homeworkService.removeAttachment(requireAuthUser(req), id, getClientInfo(req));
+    sendSuccess(res, null, { message: 'O‘chirildi' });
+  },
+
+  async downloadAttachment(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    await sendStoredFile(res, await homeworkService.attachmentFile(requireAuthUser(req), id));
   },
 
   async grade(req: Request, res: Response): Promise<void> {

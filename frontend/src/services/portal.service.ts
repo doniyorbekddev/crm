@@ -16,6 +16,7 @@ import type {
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
 import type { LessonMaterial, LessonTree, PortalLessonDetail } from '@/types/lesson';
+import type { HomeworkAttachment, SubmissionFile } from '@/types/homework';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
 import type { Certificate } from '@/types/certificate';
 import type { StudentExamRow, StudentHomeworkRow } from '@/types/studentProfile';
@@ -127,6 +128,35 @@ export const portalService = {
       params: { studentId },
     });
     return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Qoralama saqlash — topshirilmaydi (holat "Bajarilmoqda") */
+  async saveHomeworkDraft(homeworkId: string, payload: HomeworkSubmitPayload, studentId?: string): Promise<MessageResult<{ status: string }>> {
+    const response = await api.put<ApiSuccessResponse<{ status: string }>>(`/portal/homework/${homeworkId}/draft`, payload, { params: { studentId } });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Fayl qo‘shish (topshirmasdan) — ko‘pi bilan 5 ta */
+  async addHomeworkFile(homeworkId: string, file: File, studentId?: string): Promise<MessageResult<SubmissionFile>> {
+    const response = await api.post<ApiSuccessResponse<SubmissionFile>>(`/portal/homework/${homeworkId}/files`, file, {
+      params: { studentId },
+      headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) },
+    });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async removeHomeworkFile(homeworkId: string, fileId: string, studentId?: string): Promise<string> {
+    const response = await api.delete<ApiSuccessResponse<null>>(`/portal/homework/${homeworkId}/files/${fileId}`, { params: { studentId } });
+    return response.data.message;
+  },
+
+  downloadHomeworkFile(homeworkId: string, file: SubmissionFile, studentId?: string): Promise<void> {
+    return downloadFile(`/portal/homework/${homeworkId}/files/${file.id}`, { studentId }, file.originalName);
+  },
+
+  /** O‘qituvchi biriktirgan fayl */
+  downloadHomeworkMaterial(homeworkId: string, attachment: HomeworkAttachment, studentId?: string): Promise<void> {
+    return downloadFile(`/portal/homework/${homeworkId}/materials/${attachment.id}`, { studentId }, attachment.originalName ?? attachment.title);
   },
 
   /** Fayl bilan topshirish — hujjatlar bilan bir xil: tana faylning o‘zi, nomi sarlavhada */

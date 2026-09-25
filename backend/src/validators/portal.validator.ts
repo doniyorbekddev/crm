@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { emailSchema } from './common.validator.js';
+import { httpUrlSchema } from './lesson.validator.js';
 
 /** Ota-ona bir nechta farzandga ega bo'lishi mumkin — qaysi biri ko'rilayotgani */
 export const portalChildQuerySchema = z.object({
@@ -23,9 +24,15 @@ export const weeklyReportQuerySchema = portalChildQuerySchema.extend({
 /** "Darsni o'rgandim" belgisi */
 export const lessonCompleteSchema = z.object({ completed: z.boolean().default(true) });
 
-/** O'quvchining matnli javobi */
+/**
+ * O'quvchi javobi: matn, havola, kod (TZ §18). Hammasi ixtiyoriy — fayl bilan ham topshirish mumkin;
+ * "hech narsa yo'q" holati servisda tekshiriladi (saqlangan fayllar ham hisobga olinadi).
+ */
 export const portalHomeworkSubmitSchema = z.object({
-  answerText: z.string().trim().min(1, 'Javobni kiriting').max(2000, 'Javob 2000 belgidan oshmasin'),
+  answerText: z.string().trim().max(2000, 'Javob 2000 belgidan oshmasin').optional(),
+  linkUrl: z.preprocess((value) => (value === '' ? undefined : value), httpUrlSchema.optional()),
+  codeText: z.string().max(20_000, 'Kod 20 000 belgidan oshmasin').optional(),
+  codeLanguage: z.string().trim().max(30).optional(),
 });
 
 export const portalAccountSchema = z.object({

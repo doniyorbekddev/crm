@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardList, Eye, Pencil, Plus, Scale, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -27,6 +27,7 @@ import { HOMEWORK_STATUS_LABELS, HOMEWORK_STATUS_ORDER, HOMEWORK_STATUS_TONES } 
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { HomeworkDetailModal } from './HomeworkDetailModal';
 import { HomeworkFormModal } from './HomeworkFormModal';
+import { RubricsModal } from './RubricsModal';
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +36,7 @@ type Dialog =
   | { type: 'edit'; homework: Homework }
   | { type: 'detail'; id: string }
   | { type: 'delete'; homework: Homework }
+  | { type: 'rubrics' }
   | null;
 
 export default function HomeworkPage() {
@@ -96,9 +98,14 @@ export default function HomeworkPage() {
         description="Vazifa berish, topshiriqlarni belgilash va baholash"
         actions={
           canManage ? (
-            <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
-              Vazifa berish
-            </Button>
+            <>
+              <Button variant="secondary" leftIcon={<Scale className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'rubrics' })}>
+                Rubrikalar
+              </Button>
+              <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                Vazifa berish
+              </Button>
+            </>
           ) : undefined
         }
       />
@@ -267,6 +274,7 @@ export default function HomeworkPage() {
         onConfirm={() => dialog?.type === 'delete' && remove.mutate(dialog.homework.id)}
         onCancel={() => setDialog(null)}
       />
+      {dialog?.type === 'rubrics' && <RubricsModal onClose={() => setDialog(null)} />}
     </>
   );
 }

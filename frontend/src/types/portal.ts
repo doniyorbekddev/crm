@@ -1,7 +1,7 @@
 import type { StudentProfile } from './studentProfile';
 import type { PaymentSchedule } from './paymentSchedule';
 import type { PaymentMethod } from './payment';
-import type { ExamStatus, HomeworkStatus, SubmissionStatus } from './homework';
+import type { Difficulty, ExamStatus, HomeworkAttachment, HomeworkStatus, RubricCriterion, SubmissionFile, SubmissionStatus } from './homework';
 import type { RiskLevel } from './student';
 import type { ExamAttempt } from './question';
 import type { StudentExamRow } from './studentProfile';
@@ -69,7 +69,10 @@ export interface PortalPayments {
 }
 
 export interface HomeworkSubmitPayload {
-  answerText: string;
+  answerText?: string;
+  linkUrl?: string;
+  codeText?: string;
+  codeLanguage?: string;
 }
 
 export interface PortalOverview {
@@ -95,17 +98,28 @@ export interface PortalHomeworkDetail {
     groupName: string;
     courseName: string | null;
     teacherName: string | null;
+    difficulty: Difficulty | null;
+    topic: { id: string; title: string } | null;
+    lesson: { id: string; title: string } | null;
   };
+  attachments: HomeworkAttachment[];
   submission: {
     status: SubmissionStatus;
     submittedAt: string | null;
     score: number | null;
     feedback: string | null;
     answerText: string | null;
+    linkUrl: string | null;
+    codeText: string | null;
+    codeLanguage: string | null;
     hasAttachment: boolean;
+    files: SubmissionFile[];
     xpAwarded: number;
     gradedAt: string | null;
+    returnedAt: string | null;
   };
+  rubric: { criteria: RubricCriterion[]; scores: Record<string, number> | null } | null;
+  maxFiles: number;
   canSubmit: boolean;
   isLate: boolean;
 }

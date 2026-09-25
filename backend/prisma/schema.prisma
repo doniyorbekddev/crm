@@ -215,6 +215,8 @@ enum NotificationType {
   /// O'quvchi/ota-onaga: sertifikat berildi
   CERTIFICATE_ISSUED
   WEEKLY_REPORT
+  HOMEWORK_DEADLINE
+  HOMEWORK_RETURNED
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.
@@ -336,6 +338,7 @@ model User {
   handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
   taughtLessons            Lesson[]               @relation("LessonTeacher")
   createdLessons           Lesson[]               @relation("LessonCreatedBy")
+  createdRubrics           Rubric[]               @relation("RubricCreatedBy")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -695,6 +698,7 @@ model CourseTopic {
   sessions  AttendanceSession[]
   questions Question[]
   lessons   Lesson[]
+  homework  Homework[]
 
   @@index([moduleId, sortOrder])
   @@map("course_topics")
@@ -760,6 +764,7 @@ model Lesson {
   createdBy User?            @relation("LessonCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   materials LessonMaterial[]
   progress  LessonProgress[]
+  homework  Homework[]
 
   @@index([topicId, status, sortOrder])
   @@index([status, publishedAt])
@@ -1561,11 +1566,24 @@ enum HomeworkStatus {
 }
 
 enum SubmissionStatus {
+  /// Boshlanmagan (TZ: NOT_STARTED)
   PENDING
+  /// Qoralama saqlangan yoki fayl yuklangan, hali topshirilmagan
+  IN_PROGRESS
   SUBMITTED
   LATE
+  /// Baholangan (TZ: CHECKED)
   GRADED
+  /// O'qituvchi qayta ishlashga qaytargan — o'quvchi qayta topshiradi
+  RETURNED
   MISSED
+}
+
+/// Vazifa kimga: butun guruh (keyin qo'shilganlar ham), tanlanganlar yoki bitta o'quvchi
+enum HomeworkTarget {
+  GROUP
+  SELECTED
+  INDIVIDUAL
 }
 
 enum ExamStatus {
@@ -2175,29 +2193,40 @@ model StudentParent {
 // ---------------------------------------------------------------------
 
 model Homework {
-  id             String         @id @default(cuid())
-  title          String         @db.VarChar(200)
+  id             String              @id @default(cuid())
+  title          String              @db.VarChar(200)
   description    String?
   courseId       String?
   groupId        String
   teacherId      String?
-  assignedAt     DateTime       @default(now())
+  assignedAt     DateTime            @default(now())
   deadline       DateTime
-  maxPoints      Int            @default(100) @db.SmallInt
-  xpReward       Int            @default(20)
-  attachmentPath String?        @db.VarChar(500)
-  status         HomeworkStatus @default(PUBLISHED)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  maxPoints      Int                 @default(100) @db.SmallInt
+  xpReward       Int                 @default(20)
+  attachmentPath String?             @db.VarChar(500)
+  status         HomeworkStatus      @default(PUBLISHED)
+  /// Kurs dasturidagi mavzu va dars (LMS) — mastery va hisobotlar uchun
+  topicId        String?
+  lessonId       String?
+  difficulty     QuestionDifficulty?
+  targetType     HomeworkTarget      @default(GROUP)
+  rubricId       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   course      Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
   group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
   teacher     User?                @relation("HomeworkTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   submissions HomeworkSubmission[]
+  topic       CourseTopic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  lesson      Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  rubric      Rubric?              @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+  attachments HomeworkAttachment[]
 
   @@index([groupId, deadline])
   @@index([status, deadline])
   @@index([createdAt])
+  @@index([topicId])
   @@map("homework")
 }
 
@@ -2212,19 +2241,81 @@ model HomeworkSubmission {
   /// O'quvchining matnli javobi (Telegram yoki kabinetdan topshirilganda)
   answerText     String?          @db.VarChar(2000)
   attachmentPath String?          @db.VarChar(500)
+  /// Havola (GitHub, CodePen, Figma…) — faqat http(s)
+  linkUrl        String?          @db.VarChar(1000)
+  /// Kod javobi (matn sifatida saqlanadi, bajarilmaydi)
+  codeText       String?
+  codeLanguage   String?          @db.VarChar(30)
+  /// Rubrika bo'yicha ballar: {mezonKaliti: 0–100}
+  rubricScores   Json?
+  returnedAt     DateTime?
   gradedById     String?
   gradedAt       DateTime?
   xpAwarded      Int              @default(0)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
-  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  gradedBy User?    @relation("SubmissionGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+  homework    Homework               @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student     Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy    User?                  @relation("SubmissionGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+  attachments SubmissionAttachment[]
 
   @@unique([homeworkId, studentId])
   @@index([studentId, status])
   @@map("homework_submissions")
+}
+
+/// O'qituvchi vazifaga biriktirgan fayl yoki havola
+model HomeworkAttachment {
+  id           String             @id @default(cuid())
+  homeworkId   String
+  kind         LessonMaterialKind
+  title        String             @db.VarChar(200)
+  url          String?            @db.VarChar(1000)
+  storagePath  String?            @db.VarChar(500)
+  originalName String?            @db.VarChar(255)
+  mimeType     String?            @db.VarChar(100)
+  size         Int?
+  createdAt    DateTime           @default(now())
+
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+
+  @@index([homeworkId])
+  @@map("homework_attachments")
+}
+
+/// O'quvchi topshirig'idagi fayl (bir nechta bo'lishi mumkin)
+model SubmissionAttachment {
+  id           String   @id @default(cuid())
+  submissionId String
+  storagePath  String   @db.VarChar(500)
+  originalName String   @db.VarChar(255)
+  mimeType     String   @db.VarChar(100)
+  size         Int
+  createdAt    DateTime @default(now())
+
+  submission HomeworkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("submission_attachments")
+}
+
+/// Baholash mezonlari (TZ §20): [{key, title, weight}] — og'irliklar yig'indisi 100
+model Rubric {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  criteria    Json
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User?      @relation("RubricCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  homework  Homework[]
+
+  @@index([isActive])
+  @@map("rubrics")
 }
 
 /// Savol turi. TEXT — qo'lda baholanadi, qolganlari avtomatik.

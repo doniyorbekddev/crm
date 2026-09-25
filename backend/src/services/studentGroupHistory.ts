@@ -1,3 +1,4 @@
+import { attachOpenGroupHomework } from './homework.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
 /** Yangi guruhga qo‘shildi / boshqa guruhga o‘tkazildi / guruhdan chiqarildi */
@@ -56,6 +57,8 @@ export async function recordGroupChange(
       changedById: input.changedById,
     },
   });
+  // Yangi guruhning ochiq (butun guruhga berilgan, muddati o'tmagan) vazifalari o'quvchiga ham ochiladi
+  if (input.toGroupId) await attachOpenGroupHomework(tx, input.studentId, input.toGroupId);
   return true;
 }
 

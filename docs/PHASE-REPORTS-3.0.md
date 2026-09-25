@@ -298,3 +298,65 @@ Backend **710/710** (+5 `lessons.test.ts`), frontend **65/65** (+3 lessonLabels,
 ## 12. Next Phase
 
 **PHASE 5 — Daily homework**: target (guruh/tanlangan/bitta), mavzu/dars/qiyinlik, ko‘p fayl + link + kod, IN_PROGRESS/RETURNED, o‘qituvchi javobni ko‘radi, rubric, deadline eslatma, MISSED job.
+
+---
+
+# PHASE 5 COMPLETE — Daily homework
+
+Sana: 2026-09-25. Batafsil: [homework.md](homework.md).
+
+## 1. Implemented
+
+- **§15** mavzu, dars, qiyinlik, o‘qituvchi fayl/havolalari; **kimga**: butun guruh / tanlangan / bitta o‘quvchi.
+- **§16** butun guruhga — keyin qo‘shilgan o‘quvchilar ham oladi; "yangi vazifa" xabari faqat nishonga.
+- **§17** holatlar: `IN_PROGRESS` (qoralama), `RETURNED` (qaytarilgan) qo‘shildi; TZ nomlari xaritasi docs'da.
+- **§18** javob: matn, havola, kod, 5 tagacha fayl; qoralama saqlash.
+- **§19** o‘qituvchi to‘liq javobni ko‘radi (oldin **ko‘rmas edi** — audit topilmasi), kechikishni ko‘radi, baholaydi, izoh beradi, qaytaradi.
+- **§20** rubrika: sozlanadigan mezonlar, ball serverda hisoblanadi.
+- Deadline eslatmasi (24 soat) va `MISSED` fon vazifasi (TZ §42 ning bir qismi).
+
+## 2–3. Files
+
+Backend yangi: `services/rubric.service.ts`, `controllers/rubric.controller.ts`, `jobs/homeworkReminder.job.ts`, `tests/homeworkV2.test.ts`, migration `20260925150000_homework_v2`. O‘zgargan: `schema.prisma`, `services/homework.service.ts`, `portal.service.ts`, `studentNotify.service.ts`, `studentGroupHistory.ts`, `controllers/homework.controller.ts`, `portal.controller.ts`, `routes/homework.routes.ts`, `portal.routes.ts`, `index.ts`, `validators/homework.validator.ts`, `portal.validator.ts`, `config/notificationTypes.ts`, `telegram/handlers/student.ts`, `server.ts`.
+Frontend yangi: `pages/homework/SubmissionReviewModal.tsx`, `RubricsModal.tsx`. O‘zgargan: `HomeworkFormModal`, `HomeworkDetailModal`, `HomeworkPage`, `PortalHomeworkDetailPage(.test)`, `PortalHomeworkPage`, `services/homework.service.ts`, `portal.service.ts`, `types/homework.ts`, `portal.ts`, `utils/homeworkLabels.ts`, `lib/queryKeys.ts`. E2E: `portal.spec.ts`. Docs: `homework.md`.
+
+## 4. Database Changes
+
+Migration `20260925150000_homework_v2` (oldin `pg_dump`): enum `HomeworkTarget`; `SubmissionStatus` + IN_PROGRESS, RETURNED; `NotificationType` + HOMEWORK_DEADLINE, HOMEWORK_RETURNED; `homework` + topicId, lessonId, difficulty, targetType (default GROUP), rubricId; `homework_submissions` + linkUrl, codeText, codeLanguage, rubricScores, returnedAt; yangi `homework_attachments`, `submission_attachments`, `rubrics`. Eski `attachmentPath` fayllari `submission_attachments` ga **ko‘chirildi** (ustun saqlangan, `now()` ishlatilmagan).
+
+## 5. API Changes
+
+Yangi: 7 xodim, 3 rubrika, 5 kabinet endpointi (homework.md §7). Kengaygan (moslik saqlangan): `POST /homework`, `PATCH …/submissions/:studentId` (`rubricScores`), `POST /portal/homework/:id/submit` (matn endi ixtiyoriy — havola/kod/fayl ham yetarli), vazifa va topshiriq DTO'lari.
+
+## 6. Permission Changes
+
+Yo‘q (mavjud `homework.view/manage/grade`).
+
+## 7. AI Changes
+
+Yo‘q (baholash oynasida AI uchun joy — PHASE 9).
+
+## 8. Tests
+
+Backend **718/718** (+8), frontend **68/68** (+3), E2E **19/19**. Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- Nishon tekshiruvi: tanlangan o‘quvchilar shu guruhning faol a’zosi; begona o‘quvchi — 422.
+- O‘quvchi fayllari: faqat o‘zi va o‘z guruhi o‘qituvchisi (begona o‘qituvchi — 404); o‘qituvchi fayli — faqat nishondagi o‘quvchi; qoralama vazifa kabinetda ko‘rinmaydi.
+- Havola faqat http(s); kod faqat matn sifatida ko‘rsatiladi (bajarilmaydi, `<pre><code>`).
+- Rubrika ballari serverda hisoblanadi (klient hisobiga ishonilmaydi), to‘liqlik tekshiriladi.
+
+## 10. Performance
+
+- Nishon yozuvlari `createMany skipDuplicates`; keyin qo‘shilganlar bitta so‘rovda.
+- Ro‘yxatdagi belgilar `_count` bilan (N+1 yo‘q); job ≤ 2000 yozuv/yurish, MISSED — bitta `updateMany`.
+
+## 11. Known Issues
+
+- Kod faylini (`.js`, `.zip`) yuklab bo‘lmaydi — mavjud fayl siyosati; kod matn maydoni yoki havola orqali.
+- Nishonni vazifa yaratilgandan keyin o‘zgartirish yo‘q (yangi vazifa beriladi).
+
+## 12. Next Phase
+
+**PHASE 6 — Assessment 2.0**: imtihon turlari, savol turlari (TRUE_FALSE, SHORT/LONG_TEXT, CODE, FILE_UPLOAD), teglar/izoh, blueprint (mavzu % × qiyinlik %), har o‘quvchiga alohida variant + snapshot, savol/javob tartibini aralashtirish, startAt/endAt, **o‘quvchi o‘zi topshiradi** (kabinet + bot), qisman ball, `EXAM_SCHEDULED`.

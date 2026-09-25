@@ -251,7 +251,7 @@ export async function showAttendance(context: BotContext, scope: CommandScope, m
 // Uy vazifalari
 // ---------------------------------------------------------------------
 
-const SUBMISSION_ICON = { PENDING: '🟡', SUBMITTED: '🟢', LATE: '🟢', GRADED: '✅', MISSED: '⚫' } as const;
+const SUBMISSION_ICON = { PENDING: '🟡', IN_PROGRESS: '✏️', SUBMITTED: '🟢', LATE: '🟢', GRADED: '✅', RETURNED: '🔁', MISSED: '⚫' } as const;
 
 function homeworkIcon(row: StudentHomeworkRowDto, now: Date): string {
   if (row.status === 'PENDING') {
@@ -334,9 +334,11 @@ async function loadHomeworkFor(studentId: string, homeworkId: string) {
 
 const SUBMISSION_LABEL = {
   PENDING: 'Kutilmoqda',
+  IN_PROGRESS: 'Boshlangan',
   SUBMITTED: 'Topshirilgan',
   LATE: 'Kech topshirilgan',
   GRADED: 'Baholangan',
+  RETURNED: 'Qayta ishlashga qaytarilgan',
   MISSED: 'O‘tkazib yuborilgan',
 } as const;
 

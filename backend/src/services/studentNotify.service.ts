@@ -92,7 +92,8 @@ export async function notifyHomeworkCreated(tx: Tx, homeworkId: string): Promise
     select: { title: true, deadline: true, groupId: true, group: { select: { name: true } } },
   });
   if (!homework) return;
-  const students = await tx.student.findMany({ where: { groupId: homework.groupId, deletedAt: null, status: 'ACTIVE' }, select: { id: true } });
+  // Kimga berilgan bo'lsa — faqat o'shalarga (butun guruh, tanlanganlar yoki bitta o'quvchi)
+  const students = (await tx.homeworkSubmission.findMany({ where: { homeworkId }, select: { studentId: true } })).map((row) => ({ id: row.studentId }));
   for (const student of students) {
     await notifyFamily(tx, {
       studentId: student.id,
@@ -227,6 +228,36 @@ export async function notifyWeeklyReport(tx: Tx, input: { studentId: string; wee
     entityType: 'weekly_report',
     entityId: input.weekStart,
     dedupeKey: `weekly-report:${input.studentId}:${input.weekStart}`,
+    parents: true,
+  });
+}
+
+/** O'qituvchi ishni qayta ishlashga qaytardi — izoh bilan (o'quvchi va ota-onaga) */
+export async function notifyHomeworkReturned(tx: Tx, input: { homeworkId: string; studentId: string; feedback: string }): Promise<void> {
+  const homework = await tx.homework.findUnique({ where: { id: input.homeworkId }, select: { title: true } });
+  if (!homework) return;
+  await notifyFamily(tx, {
+    studentId: input.studentId,
+    type: 'HOMEWORK_RETURNED',
+    title: 'Vazifa qayta ishlashga qaytarildi',
+    message: `«${homework.title}»: ${input.feedback}`,
+    entityType: 'homework',
+    entityId: input.homeworkId,
+    dedupeKey: `homework:returned:${input.homeworkId}:${input.studentId}:${Date.now()}`,
+    parents: true,
+  });
+}
+
+/** Muddatga 24 soatdan kam qoldi — hali topshirmagan o'quvchi (va ota-onasi)ga bir marta */
+export async function notifyHomeworkDeadline(tx: Tx, input: { homeworkId: string; studentId: string; title: string; deadline: Date }): Promise<number> {
+  return notifyFamily(tx, {
+    studentId: input.studentId,
+    type: 'HOMEWORK_DEADLINE',
+    title: 'Vazifa muddati yaqinlashdi',
+    message: `«${input.title}» — muddat ${dateUz(input.deadline)}. Hali topshirilmagan.`,
+    entityType: 'homework',
+    entityId: input.homeworkId,
+    dedupeKey: `homework:deadline:${input.homeworkId}:${input.studentId}`,
     parents: true,
   });
 }

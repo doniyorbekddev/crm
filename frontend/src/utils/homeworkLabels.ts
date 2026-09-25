@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { ExamStatus, HomeworkStatus, SubmissionStatus } from '@/types/homework';
+import type { Difficulty, ExamStatus, HomeworkStatus, HomeworkTarget, SubmissionStatus } from '@/types/homework';
 
 export const HOMEWORK_STATUS_ORDER: readonly HomeworkStatus[] = ['DRAFT', 'PUBLISHED', 'CLOSED'];
 
@@ -15,22 +15,48 @@ export const HOMEWORK_STATUS_TONES: Record<HomeworkStatus, BadgeTone> = {
   CLOSED: 'green',
 };
 
-export const SUBMISSION_STATUS_ORDER: readonly SubmissionStatus[] = ['PENDING', 'SUBMITTED', 'LATE', 'GRADED', 'MISSED'];
+export const SUBMISSION_STATUS_ORDER: readonly SubmissionStatus[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'LATE', 'GRADED', 'RETURNED', 'MISSED'];
 
 export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   PENDING: 'Kutilmoqda',
+  IN_PROGRESS: 'Bajarilmoqda',
   SUBMITTED: 'Topshirdi',
   LATE: 'Kechikdi',
   GRADED: 'Baholandi',
+  RETURNED: 'Qaytarildi',
   MISSED: 'Topshirmadi',
 };
 
 export const SUBMISSION_STATUS_TONES: Record<SubmissionStatus, BadgeTone> = {
   PENDING: 'gray',
+  IN_PROGRESS: 'purple',
   SUBMITTED: 'blue',
   LATE: 'yellow',
   GRADED: 'green',
+  RETURNED: 'yellow',
   MISSED: 'red',
+};
+
+export const HOMEWORK_TARGET_ORDER: readonly HomeworkTarget[] = ['GROUP', 'SELECTED', 'INDIVIDUAL'];
+
+export const HOMEWORK_TARGET_LABELS: Record<HomeworkTarget, string> = {
+  GROUP: 'Butun guruh',
+  SELECTED: 'Tanlangan o‘quvchilar',
+  INDIVIDUAL: 'Bitta o‘quvchi',
+};
+
+export const DIFFICULTY_ORDER: readonly Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  EASY: 'Oson',
+  MEDIUM: 'O‘rta',
+  HARD: 'Qiyin',
+};
+
+export const DIFFICULTY_TONES: Record<Difficulty, BadgeTone> = {
+  EASY: 'green',
+  MEDIUM: 'blue',
+  HARD: 'red',
 };
 
 export const EXAM_STATUS_ORDER: readonly ExamStatus[] = ['PLANNED', 'HELD', 'GRADED', 'CANCELLED'];

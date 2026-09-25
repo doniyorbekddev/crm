@@ -29,6 +29,11 @@ portalRouter.get('/weekly-report', portalAccess, portalController.weeklyReport);
 portalRouter.get('/homework', portalAccess, portalController.homework);
 portalRouter.get('/homework/:id', portalAccess, portalController.homeworkDetail);
 portalRouter.get('/homework/:id/attachment', portalAccess, portalController.homeworkAttachment);
+portalRouter.put('/homework/:id/draft', portalAccess, portalController.saveHomeworkDraft);
+portalRouter.post('/homework/:id/files', portalAccess, uploadBody, portalController.addHomeworkFile);
+portalRouter.get('/homework/:id/files/:fileId', portalAccess, portalController.homeworkFile);
+portalRouter.delete('/homework/:id/files/:fileId', portalAccess, portalController.removeHomeworkFile);
+portalRouter.get('/homework/:id/materials/:attachmentId', portalAccess, portalController.homeworkMaterial);
 // O'quvchi vazifani o'zi topshiradi: matn — JSON, fayl — xom tana (hujjatlar bilan bir xil)
 portalRouter.post('/homework/:id/submit', portalAccess, portalController.submitHomework);
 portalRouter.post('/homework/:id/attachment', portalAccess, uploadBody, portalController.submitHomeworkAttachment);

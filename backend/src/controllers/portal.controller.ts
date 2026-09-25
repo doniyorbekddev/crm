@@ -114,6 +114,42 @@ export const portalController = {
     sendSuccess(res, await portalService.homeworkDetail(requireAuthUser(req), id, studentId));
   },
 
+  async saveHomeworkDraft(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const input = portalHomeworkSubmitSchema.parse(req.body ?? {});
+    sendSuccess(res, await portalService.saveHomeworkDraft(requireAuthUser(req), id, input, studentId), { message: 'Qoralama saqlandi' });
+  },
+
+  async addHomeworkFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const file = await portalService.addHomeworkFile(requireAuthUser(req), id, { buffer: req.body, fileName: req.header('x-file-name') }, studentId);
+    sendCreated(res, file, 'Fayl qo‘shildi');
+  },
+
+  async removeHomeworkFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const fileId = idParamSchema.parse({ id: req.params.fileId }).id;
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    await portalService.removeHomeworkFile(requireAuthUser(req), id, fileId, studentId);
+    sendSuccess(res, null, { message: 'Fayl o‘chirildi' });
+  },
+
+  async homeworkFile(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const fileId = idParamSchema.parse({ id: req.params.fileId }).id;
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    await sendStoredFile(res, await portalService.homeworkFile(requireAuthUser(req), id, fileId, studentId));
+  },
+
+  async homeworkMaterial(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const attachmentId = idParamSchema.parse({ id: req.params.attachmentId }).id;
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    await sendStoredFile(res, await portalService.homeworkMaterial(requireAuthUser(req), id, attachmentId, studentId));
+  },
+
   /** O'z faylini yuklab olish — hujjatlar bilan bir xil oqim (stream, no-store) */
   async homeworkAttachment(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);

@@ -1,7 +1,9 @@
 import type { PersonRef } from './lead';
 
 export type HomeworkStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED';
-export type SubmissionStatus = 'PENDING' | 'SUBMITTED' | 'LATE' | 'GRADED' | 'MISSED';
+export type SubmissionStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'LATE' | 'GRADED' | 'RETURNED' | 'MISSED';
+export type HomeworkTarget = 'GROUP' | 'SELECTED' | 'INDIVIDUAL';
+export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type ExamStatus = 'PLANNED' | 'HELD' | 'GRADED' | 'CANCELLED';
 
 export interface HomeworkStats {
@@ -10,8 +12,41 @@ export interface HomeworkStats {
   graded: number;
   pending: number;
   missed: number;
+  returned: number;
   submissionRate: number;
   averageScore: number;
+}
+
+export interface HomeworkAttachment {
+  id: string;
+  kind: 'FILE' | 'LINK' | 'VIDEO';
+  title: string;
+  url: string | null;
+  originalName: string | null;
+  mimeType: string | null;
+  size: number | null;
+}
+
+export interface RubricCriterion {
+  key: string;
+  title: string;
+  /** Og‘irlik, % (yig‘indi 100) */
+  weight: number;
+}
+
+export interface Rubric {
+  id: string;
+  name: string;
+  description: string | null;
+  criteria: RubricCriterion[];
+  isActive: boolean;
+  createdBy: PersonRef | null;
+}
+
+export interface RubricPayload {
+  name: string;
+  description?: string;
+  criteria: RubricCriterion[];
 }
 
 export interface Homework {
@@ -29,6 +64,12 @@ export interface Homework {
   group: { id: string; name: string };
   teacher: PersonRef | null;
   stats: HomeworkStats;
+  targetType: HomeworkTarget;
+  difficulty: Difficulty | null;
+  topic: { id: string; title: string } | null;
+  lesson: { id: string; title: string } | null;
+  rubric: { id: string; name: string } | null;
+  attachmentCount: number;
 }
 
 export interface Submission {
@@ -43,10 +84,37 @@ export interface Submission {
   xpAwarded: number;
   gradedBy: PersonRef | null;
   gradedAt: string | null;
+  hasText: boolean;
+  hasLink: boolean;
+  hasCode: boolean;
+  fileCount: number;
 }
 
 export interface HomeworkDetail extends Homework {
   submissions: Submission[];
+  attachments: HomeworkAttachment[];
+  rubricCriteria: RubricCriterion[] | null;
+}
+
+export interface SubmissionFile {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
+/** O‘qituvchi ko‘radigan to‘liq topshiriq */
+export interface SubmissionDetail extends Submission {
+  homeworkId: string;
+  late: boolean;
+  answerText: string | null;
+  linkUrl: string | null;
+  codeText: string | null;
+  codeLanguage: string | null;
+  rubricScores: Record<string, number> | null;
+  returnedAt: string | null;
+  files: SubmissionFile[];
 }
 
 export interface ExamStats {
@@ -131,6 +199,12 @@ export interface HomeworkPayload {
   maxPoints: number;
   xpReward: number;
   status: HomeworkStatus;
+  targetType?: HomeworkTarget;
+  studentIds?: string[];
+  topicId?: string | null;
+  lessonId?: string | null;
+  difficulty?: Difficulty | null;
+  rubricId?: string | null;
 }
 
 export interface ExamPayload {
@@ -151,6 +225,7 @@ export interface GradeRecord {
   status?: SubmissionStatus;
   score?: number;
   feedback?: string;
+  rubricScores?: Record<string, number>;
 }
 
 export interface ExamResultRecord {
