@@ -21,7 +21,18 @@ describe('resolveDateRange', () => {
     expect(resolveDateRange('this_week', new Date(2026, 8, 20))).toEqual({ from: '2026-09-14', to: '2026-09-20' });
     // Yanvarda o'tgan oy — o'tgan yilning dekabri
     expect(resolveDateRange('last_month', new Date(2027, 0, 5))).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+    // O'tgan yil — to'liq kalendar yili (kabisa yili ham)
+    expect(resolveDateRange('last_year', TODAY)).toEqual({ from: '2025-01-01', to: '2025-12-31' });
+    expect(resolveDateRange('last_year', new Date(2025, 0, 1))).toEqual({ from: '2024-01-01', to: '2024-12-31' });
     expect(resolveDateRange('custom', TODAY)).toBeNull();
     expect(resolveDateRange('all', TODAY)).toBeNull();
+  });
+
+  it('GAP-04: TZ talab qilgan barcha davrlar standart ro‘yxatda', async () => {
+    const { STANDARD_PRESETS } = await import('./dateRange');
+    for (const preset of ['today', 'yesterday', 'this_week', 'last_week', 'this_month', 'last_month', 'this_year', 'custom'] as const) {
+      expect(STANDARD_PRESETS).toContain(preset);
+    }
+    expect(STANDARD_PRESETS).toContain('last_year');
   });
 });

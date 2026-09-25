@@ -212,3 +212,67 @@ Sozlamalar bitta so'rov (`staleTime: Infinity`), ustunlar `useMemo` bilan hisobl
 ## Next Phase
 
 **PHASE 4 — Business overview filters (GAP-04)**: allaqachon bajarilgan (audit); "O'tgan yil" preseti, kalendar yili oralig'i va regressiya testlari.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 4
+
+Sana: 2026-09-25. GAP-04 "Business overview date filters".
+
+## Implemented
+
+- Audit tasdiqladi: TZ davrlari (Bugun, Kecha, Shu/O'tgan hafta, Shu/O'tgan oy, Shu yil, Oraliq) 3.0 dan beri direktor panelida; `from > to` rad etiladi; oldingi davr bilan solishtirish ishlaydi.
+- Qo'shildi: **"O'tgan yil"** davri (to'liq kalendar yili, kabisa yili ham) — umumiy davr tanlagichi orqali direktor paneli, moliya, analitika, hisobotlar va faoliyat sahifalarida.
+- Regressiya testlari: bir kunlik oraliq, butun yil (365) va kabisa yili (366), bir yildan uzun oraliq rad, oldingi teng davr, mavjud oy tanlovi.
+
+## Existing Code Reused
+
+`resolveDateRange`/`STANDARD_PRESETS`, `DateRangePicker`, `executiveService.resolvePeriod` (oldingi teng oraliq), `executiveQuerySchema` (tartib va ≤ 366 kun) — backend o'zgarmadi.
+
+## New Files
+
+E2E: `e2e/specs/dateFilters.spec.ts`.
+
+## Modified Files
+
+Frontend: `utils/dateRange.ts` (+`last_year`), `utils/dateRange.test.ts`, `pages/dashboard/ExecutivePage.tsx` (preset ro'yxati). Backend: `tests/executiveInsights.test.ts` (+1 regressiya testi).
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q — mavjud `?from&to` (≤ 366 kun) butun kalendar yilini qabul qiladi.
+
+## Telegram Changes
+
+Yo'q.
+
+## Permissions
+
+Yo'q.
+
+## Security
+
+Yo'q (faqat davr hisoblash).
+
+## Tests
+
+Backend **807/807** (+1), frontend **120/120** (+1), E2E **36/36** (+1). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+O'zgarmadi (bir yillik oraliq mavjud chegarada).
+
+## Documentation
+
+Ushbu hisobot.
+
+## Known Issues
+
+- Noto'g'ri oraliq — **422** (TZ 400 deydi): loyihadagi barcha validatsiya xatolari 422 (audit qarori #2), bittasini o'zgartirish konventsiyani buzadi.
+
+## Next Phase
+
+**PHASE 5 — Assessment final audit (GAP-05)**: bir guruhdagi B o'quvchi A urinishiga kira olmasligi va savol/variant tartibi aralashishi testlari; xodim yo'lida `Math.random` saralashi va jonli bank bo'yicha baholash (S7).

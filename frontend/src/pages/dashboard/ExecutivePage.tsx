@@ -58,6 +58,7 @@ const EXECUTIVE_PRESETS: readonly DateRangePreset[] = [
   'last_week',
   'this_quarter',
   'this_year',
+  'last_year',
   'custom',
 ];
 

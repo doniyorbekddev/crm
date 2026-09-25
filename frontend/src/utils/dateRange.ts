@@ -10,6 +10,7 @@ export type DateRangePreset =
   | 'last_month'
   | 'this_quarter'
   | 'this_year'
+  | 'last_year'
   | 'custom';
 
 export const DATE_RANGE_PRESET_LABELS: Record<DateRangePreset, string> = {
@@ -22,6 +23,7 @@ export const DATE_RANGE_PRESET_LABELS: Record<DateRangePreset, string> = {
   last_month: 'O‘tgan oy',
   this_quarter: 'Shu chorak',
   this_year: 'Shu yil',
+  last_year: 'O‘tgan yil',
   custom: 'Oraliq tanlash',
 };
 
@@ -34,6 +36,7 @@ export const STANDARD_PRESETS: readonly DateRangePreset[] = [
   'last_month',
   'this_quarter',
   'this_year',
+  'last_year',
   'custom',
 ];
 
@@ -79,6 +82,8 @@ export function resolveDateRange(preset: DateRangePreset, today: Date = new Date
       return { from: toDateString(new Date(year, month - (month % 3), 1)), to: todayString };
     case 'this_year':
       return { from: toDateString(new Date(year, 0, 1)), to: todayString };
+    case 'last_year':
+      return { from: toDateString(new Date(year - 1, 0, 1)), to: toDateString(new Date(year - 1, 11, 31)) };
     case 'all':
     case 'custom':
       return null;

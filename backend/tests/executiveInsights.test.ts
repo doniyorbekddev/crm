@@ -102,4 +102,24 @@ describe.skipIf(!hasTestDatabase)('Direktor paneli: davr, solishtirish, sog‘lo
     expect((await request(app).get('/api/dashboard/executive').query({ from: '2026-09-10', to: '2026-09-01' }).set(bearer(token))).status).toBe(422);
     expect((await request(app).get('/api/dashboard/executive').query({ year: 2026 }).set(bearer(token))).status).toBe(422);
   });
+
+  it('GAP-04 presetlari: bugun (1 kun), butun kalendar yili, kabisa yili; o‘tgan davr teng uzunlikda; chegaradan oshsa 422', async () => {
+    const today = await request(app).get('/api/dashboard/executive').query({ from: '2026-09-10', to: '2026-09-10' }).set(bearer(token));
+    expect(today.status).toBe(200);
+    expect(today.body.data.period).toMatchObject({ kind: 'range', from: '2026-09-10', to: '2026-09-10', previousFrom: '2026-09-09', previousTo: '2026-09-09' });
+
+    // "O'tgan yil" (2025, 365 kun) — oldingi teng oraliq bilan
+    const lastYear = await request(app).get('/api/dashboard/executive').query({ from: '2025-01-01', to: '2025-12-31' }).set(bearer(token));
+    expect(lastYear.status).toBe(200);
+    expect(lastYear.body.data.period).toMatchObject({ kind: 'range', from: '2025-01-01', to: '2025-12-31', previousTo: '2024-12-31' });
+    const previousDays = (Date.parse(lastYear.body.data.period.previousTo) - Date.parse(lastYear.body.data.period.previousFrom)) / 86_400_000 + 1;
+    expect(previousDays).toBe(365);
+
+    // Kabisa yili (366 kun) ham qabul qilinadi
+    expect((await request(app).get('/api/dashboard/executive').query({ from: '2024-01-01', to: '2024-12-31' }).set(bearer(token))).status).toBe(200);
+    // Bir yildan uzun oraliq — rad
+    expect((await request(app).get('/api/dashboard/executive').query({ from: '2025-01-01', to: '2026-01-03' }).set(bearer(token))).status).toBe(422);
+    // Oy tanlovi (oy / chorak / yil kabi mavjud tanlovlar) buzilmagan
+    expect((await request(app).get('/api/dashboard/executive').query({ year: 2026, month: 7 }).set(bearer(token))).body.data.period).toMatchObject({ kind: 'month', previousFrom: '2026-06-01', previousTo: '2026-06-30' });
+  });
 });
