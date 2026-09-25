@@ -467,6 +467,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={[PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ATTENDANCE_MARK]} />
+                    ),
+                    children: [
+                      {
+                        path: "academic-analytics",
+                        lazy: lazyComponent(
+                          () => import("@/pages/analytics/AcademicAnalyticsPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.ATTENDANCE_MARK} />
                     ),
                     children: [

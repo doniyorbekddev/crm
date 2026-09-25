@@ -18,6 +18,7 @@ import type {
 } from '@/types/portal';
 import { downloadFile } from '@/lib/download';
 import type { ProgressHistoryPoint, StudentMastery } from '@/types/mastery';
+import type { SearchResult } from '@/types/search';
 import type { LessonMaterial, LessonTree, PortalLessonDetail } from '@/types/lesson';
 import type { HomeworkAttachment, SubmissionFile } from '@/types/homework';
 import type { StudentCurriculumProgress } from '@/types/curriculum';
@@ -112,6 +113,12 @@ export const portalService = {
   /** O‘zi yuklagan faylni yuklab olish */
   downloadHomeworkAttachment(homeworkId: string, fallbackName: string, studentId?: string): Promise<void> {
     return downloadFile(`/portal/homework/${homeworkId}/attachment`, { studentId }, fallbackName);
+  },
+
+  /** Kabinet qidiruvi: vazifa, imtihon, dars, sertifikat (ota-onaga — farzandlar) */
+  async search(query: string, studentId?: string): Promise<SearchResult> {
+    const response = await api.get<ApiSuccessResponse<SearchResult>>('/portal/search', { params: { q: query, studentId } });
+    return response.data.data;
   },
 
   /** Mavzular bo'yicha o'zlashtirish va oylik tarix */

@@ -1,4 +1,18 @@
-export type SearchGroupKey = 'leads' | 'students' | 'parents' | 'teachers' | 'courses' | 'groups' | 'users' | 'payments' | 'transactions';
+export type SearchGroupKey =
+  | 'leads'
+  | 'students'
+  | 'parents'
+  | 'teachers'
+  | 'courses'
+  | 'groups'
+  | 'users'
+  | 'payments'
+  | 'transactions'
+  | 'certificates'
+  | 'homework'
+  | 'exams'
+  | 'lessons'
+  | 'children';
 
 export interface SearchHit {
   id: string;

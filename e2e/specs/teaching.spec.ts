@@ -41,3 +41,13 @@ test('o‘qituvchi guruh uchun AI tahlil oladi va yordamchidan akademik savol so
   await page.getByRole('button', { name: 'So‘rash' }).click();
   await expect(page.getByText('Manba: Xavf ostidagi guruhlar')).toBeVisible();
 });
+
+/** PHASE 12 — akademik analitika (rahbar) */
+test('rahbar akademik analitikada kesimlarni almashtiradi va jadvalni ko‘radi', async ({ page }) => {
+  await login(page, 'owner');
+  await page.getByRole('link', { name: 'Akademik analitika', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Akademik analitika' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Guruhlar' }).click();
+  await expect(page.getByRole('tab', { name: 'Guruhlar' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('columnheader', { name: 'Retention' })).toBeVisible();
+});

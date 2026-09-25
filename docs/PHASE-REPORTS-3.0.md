@@ -734,3 +734,60 @@ Backend **767/767** (+7), frontend **86/86**, E2E **24/24** (o‘zgarishsiz). Li
 ## 12. Next Phase
 
 **PHASE 12 — Search + Analytics** (§45–49): kabinet/o‘qituvchi/manager/owner uchun rolga mos qidiruv, akademik analitika (guruh/kurs/o‘qituvchi kesimi, trendlar).
+
+---
+
+# PHASE 12 COMPLETE — Search + Academic analytics
+
+Sana: 2026-09-26. Batafsil: [academic-analytics.md](academic-analytics.md).
+
+## 1. Implemented
+
+- **§45 Qidiruv**: kabinet qidiruvi (vazifa, imtihon, dars, sertifikat; ota-onaga — farzandlar), o‘qituvchi qidiruviga vazifa va imtihonlar (o‘z guruhlari); manager/owner — mavjud global qidiruv.
+- **§46 Akademik analitika**: 7 kesim × 8 metrika (davomat, vazifa, o‘rtacha ball, imtihon, o‘zlashtirish, progress, retention, risk).
+- **§47** kurs kartasi zaif mavzular bilan; **§48** guruh taqqoslash (grafik, tavsifiy saralash); **§49** o‘qituvchi analitikasi o‘quvchi fikri bilan, faqat raqamli kuzatuvlar.
+- Audit topilmasi: frontend qidiruvida `certificates` guruhi ikonkasi yo‘q edi (oyna yiqilishi mumkin edi) — tuzatildi.
+
+## 2–3. Files
+
+Backend yangi: `services/academicAnalytics.service.ts`, `controllers/academicAnalytics.controller.ts`, `routes/academicAnalytics.routes.ts`, `tests/academicAnalytics.test.ts`, `tests/searchAcademic.test.ts`, migratsiya `20260926180000_academic_analytics_indexes`. O‘zgargan: `search.service.ts` (+vazifa, imtihon, `portal()`), `portal.service/controller/routes`, `routes/index.ts`, `schema.prisma`.
+Frontend yangi: `pages/analytics/AcademicAnalyticsPage(.test)`, `services/academicAnalytics.service.ts`, `types/academicAnalytics.ts`, `lib/csv.ts`. O‘zgargan: `components/GlobalSearch.tsx` (qayta ishlatiladigan), `layouts/PortalLayout.tsx` (qidiruv), `types/search.ts`, `services/portal.service.ts`, `lib/portalCredentials.ts` (umumiy CSV), `layouts/navigation.ts`, `routes/index.tsx`, `lib/queryKeys.ts`. E2E: `teaching.spec.ts`, `portal.spec.ts`. Docs: `academic-analytics.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`) indekslar: `homework_submissions(homeworkId, status)`, `topic_mastery(topicId, score)`.
+
+## 5. API Changes
+
+Yangi: `GET /api/analytics/academic`, `GET /api/portal/search`. `GET /api/search` — yangi guruhlar `homework`, `exams`.
+
+## 6. Permission Changes
+
+Yo‘q (`analytics.view` yoki `attendance.mark` + doira).
+
+## 7. AI Changes
+
+Yo‘q (analitika — AI tahlillari uchun qo‘shimcha manba bo‘lishi mumkin).
+
+## 8. Tests
+
+Backend **772/772** (+5), frontend **87/87** (+1), E2E **26/26** (+2). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- O‘qituvchi analitikada faqat o‘z guruhlari (test), filial doirasi rahbar uchun; buxgalter — 403.
+- Kabinet qidiruvi faqat o‘z ma’lumotlari: boshqa guruh vazifasi chiqmaydi, begona `studentId` — 403, qoralama darslar ko‘rinmaydi (test).
+
+## 10. Performance
+
+- Barcha kesim bitta o‘quvchilar ro‘yxati va ~8 ta `groupBy` so‘rovi bilan hisoblanadi; vazifa/imtihon kesimi 200 tagacha.
+- Yangi indekslar baholash navbati va mavzu kesimini tezlashtiradi; so‘rov `heavyLimiter` bilan.
+
+## 11. Known Issues
+
+- Retention o‘quvchining hozirgi guruh/kurs bog‘lanishi bo‘yicha (guruh almashgan o‘quvchi yangi guruhida hisoblanadi).
+- Analitika eksporti CSV (brauzerda); XLSX — umumiy hisobotlarda.
+
+## 12. Next Phase
+
+**PHASE 13 — Automation builder** (§50–51): akademik trigger/harakatlar (past natija, topshirmagan, xavf oshdi → xabar, vazifa/remedial taklif, vazifa (Task) yaratish), qoidalar muharriri.

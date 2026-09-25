@@ -43,6 +43,7 @@ import { payrollRouter, salaryRouter, teacherRouter } from './teacher.routes.js'
 import { userRouter } from './user.routes.js';
 import { masteryRouter } from './mastery.routes.js';
 import { teachingRouter } from './teaching.routes.js';
+import { academicAnalyticsRouter } from './academicAnalytics.routes.js';
 
 /** Barcha modul routerlari shu yerda `/api` ostiga ulanadi. */
 export const apiRouter = Router();
@@ -53,6 +54,8 @@ apiRouter.use('/users', userRouter);
 apiRouter.use('/roles', roleRouter);
 apiRouter.use('/permissions', permissionRouter);
 apiRouter.use('/dashboard', dashboardRouter);
+// `/analytics/academic` umumiy analitikadan oldin: o'qituvchi ham kiradi (ruxsat boshqacha)
+apiRouter.use('/analytics/academic', academicAnalyticsRouter);
 apiRouter.use('/analytics', analyticsRouter);
 apiRouter.use('/alerts', alertRouter);
 apiRouter.use('/targets', targetRouter);

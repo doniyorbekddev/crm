@@ -283,6 +283,20 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await expect(page.getByText('Tushuntirish: Oddiy qo‘shish')).toBeVisible();
   });
 
+  test('kabinet qidiruvi: o‘quvchi o‘z vazifasini topadi va sahifasiga o‘tadi (PHASE 12)', async ({ page, request }) => {
+    const credentials = await openStudentPortal(request);
+    expect(credentials.groupId, 'o‘quvchi guruhda bo‘lishi kerak').not.toBeNull();
+    const title = `Qidiruv vazifasi ${Date.now()}`;
+    const created = await request.post(`${API}/homework`, { headers: credentials.headers, data: { title, groupId: credentials.groupId, deadline: new Date(Date.now() + 86_400_000).toISOString() } });
+    expect(created.status()).toBe(201);
+
+    await loginAsStudent(page, credentials);
+    await page.getByRole('button', { name: 'Qidirish' }).click();
+    await page.getByLabel('Qidiruv', { exact: true }).fill(title.slice(0, 20));
+    await page.getByRole('dialog', { name: 'Global qidiruv' }).getByRole('button', { name: new RegExp(title) }).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  });
+
   test('progress: mavzuli imtihon natijasi kabinetdagi "Progress" bo‘limida mavzu bahosi bo‘lib chiqadi (PHASE 7)', async ({ page, request }) => {
     const credentials = await openStudentPortal(request);
     expect(credentials.groupId, 'o‘quvchi guruhda bo‘lishi kerak').not.toBeNull();

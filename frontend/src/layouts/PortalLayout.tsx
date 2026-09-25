@@ -16,6 +16,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { NotificationBell } from './NotificationBell';
 import { PortalProvider, usePortal } from './PortalContext';
 import { PortalBottomBar, PortalTabs } from './PortalNav';
+import { useState } from 'react';
+import { Search as SearchIcon } from 'lucide-react';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 /**
  * Kabinet (o‘quvchi/ota-ona) uchun soddalashtirilgan ko‘rinish:
@@ -46,7 +49,7 @@ export function PortalLayout() {
           />
         ) : (
           <PortalProvider me={meQuery.data}>
-            <ChildSwitcher />
+            <PortalToolbar />
             <Outlet />
           </PortalProvider>
         )}
@@ -82,13 +85,34 @@ function PortalHeader() {
   );
 }
 
+/** Kabinet qidiruvi (TZ §45) va farzand tanlovi — bitta qatorda */
+function PortalToolbar() {
+  const { activeChild } = usePortal();
+  const [searchOpen, setSearchOpen] = useState(false);
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 print:hidden">
+      <Button variant="secondary" leftIcon={<SearchIcon className="size-4" aria-hidden />} onClick={() => setSearchOpen(true)}>
+        Qidirish
+      </Button>
+      <ChildSwitcher />
+      <GlobalSearch
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        search={(query) => portalService.search(query, activeChild)}
+        scopeKey={`portal:${activeChild}`}
+        placeholder="Vazifa, imtihon, dars yoki sertifikat…"
+      />
+    </div>
+  );
+}
+
 /** Bir nechta farzandli ota-ona uchun — tanlov barcha bo‘limlarga taalluqli */
 function ChildSwitcher() {
   const { me, activeChild, setActiveChild } = usePortal();
   if (me.kind !== 'PARENT' || me.children.length < 2) return null;
 
   return (
-    <div className="mb-5 flex items-center justify-end print:hidden">
+    <div className="flex items-center justify-end">
       <Select
         value={activeChild}
         onChange={(event) => setActiveChild(event.target.value)}

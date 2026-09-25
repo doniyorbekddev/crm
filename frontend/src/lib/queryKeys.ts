@@ -302,6 +302,7 @@ export const queryKeys = {
     group: (id: string) => ['ai-academic', 'group', id] as const,
     review: (homeworkId: string, studentId: string) => ['ai-academic', 'review', homeworkId, studentId] as const,
   },
+  academicAnalytics: (params: Record<string, unknown>) => ['academic-analytics', params] as const,
   teaching: {
     all: ['teaching'] as const,
     overview: (teacherId: string) => ['teaching', 'overview', teacherId] as const,

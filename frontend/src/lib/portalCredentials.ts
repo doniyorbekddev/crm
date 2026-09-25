@@ -1,3 +1,5 @@
+import { downloadCsv, toCsv } from './csv';
+
 /**
  * Kabinet login/parollarini tarqatish: CSV va chop etish kartochkalari.
  * Parollar faqat brauzerda — serverga qayta yuborilmaydi va hech qayerda saqlanmaydi.
@@ -11,26 +13,15 @@ export interface CredentialRow {
   temporaryPassword: string;
 }
 
-function csvCell(value: string): string {
-  return /[",;\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
 export function credentialsCsv(rows: readonly CredentialRow[]): string {
-  const header = ['F.I.Sh', 'Izoh', 'Login', 'Parol'];
-  const lines = rows.map((row) => [row.fullName, row.subtitle ?? '', row.login, row.temporaryPassword].map(csvCell).join(';'));
-  // BOM — Excel UTF-8 ni to‘g‘ri o‘qishi uchun
-  return String.fromCharCode(0xfeff) + [header.join(';'), ...lines].join('\r\n');
+  return toCsv(
+    ['F.I.Sh', 'Izoh', 'Login', 'Parol'],
+    rows.map((row) => [row.fullName, row.subtitle ?? '', row.login, row.temporaryPassword]),
+  );
 }
 
 export function downloadCredentialsCsv(rows: readonly CredentialRow[], fileName = 'kabinet-parollar.csv'): void {
-  const url = URL.createObjectURL(new Blob([credentialsCsv(rows)], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  downloadCsv(credentialsCsv(rows), fileName);
 }
 
 function escapeHtml(value: string): string {

@@ -32,6 +32,7 @@ import { resolveStoredPath } from '../utils/fileStorage.js';
 import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
 import { lessonService } from './lesson.service.js';
 import { examTakingService } from './examTaking.service.js';
+import { searchService } from './search.service.js';
 import { buildStudentMastery } from './mastery.service.js';
 import { progressSnapshotService } from './progressSnapshot.service.js';
 import type { AttemptViewDto, AvailableExamDto } from './examTaking.service.js';
@@ -418,6 +419,13 @@ export const portalService = {
   async exams(actor: AuthUser, requestedStudentId?: string) {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
     return buildStudentExamRows(studentId);
+  },
+
+  /** Kabinet qidiruvi (TZ §45) — faqat o'z (ota-ona — tanlangan farzand) ma'lumotlari */
+  async search(actor: AuthUser, query: string, requestedStudentId?: string) {
+    const scope = await resolvePortalScope(actor);
+    const studentId = await requireOwnStudent(actor, requestedStudentId);
+    return searchService.portal(query, { studentIds: scope.studentIds, activeStudentId: studentId, includeChildren: scope.kind === 'PARENT' });
   },
 
   /** Mavzular bo'yicha o'zlashtirish va oylik tarix */

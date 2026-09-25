@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, GraduationCap, Layers, ScrollText, Search, Target, UserCog, Users, UsersRound, Wallet, X } from 'lucide-react';
+import { Award, BookOpen, BookOpenCheck, ClipboardList, FileCheck, GraduationCap, Layers, ScrollText, Search, Target, UserCog, Users, UsersRound, Wallet, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { searchService } from '@/services/search.service';
-import type { SearchGroupKey, SearchHit } from '@/types/search';
+import type { SearchGroupKey, SearchHit, SearchResult } from '@/types/search';
 
 const GROUP_ICONS: Record<SearchGroupKey, LucideIcon> = {
   leads: Target,
@@ -20,15 +20,25 @@ const GROUP_ICONS: Record<SearchGroupKey, LucideIcon> = {
   groups: Layers,
   payments: Wallet,
   users: Users,
+  certificates: Award,
+  homework: ClipboardList,
+  exams: FileCheck,
+  lessons: BookOpenCheck,
+  children: UsersRound,
 };
 
 interface GlobalSearchProps {
   open: boolean;
   onClose: () => void;
+  /** Kabinet uchun: o'z qidiruv funksiyasi (standart — xodim global qidiruvi) */
+  search?: (query: string) => Promise<SearchResult>;
+  /** Kesh kaliti nomlar maydoni — kabinet va xodim natijalari aralashmasin */
+  scopeKey?: string;
+  placeholder?: string;
 }
 
 /** Ctrl+K / Cmd+K bilan ochiladigan global qidiruv oynasi */
-export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
+export function GlobalSearch({ open, onClose, search = searchService.search, scopeKey = 'staff', placeholder = 'Ism, telefon, L-000123, ST-000045, kurs yoki guruh…' }: GlobalSearchProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
@@ -39,8 +49,8 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const [selection, setSelection] = useState<{ key: string; index: number }>({ key: '', index: 0 });
 
   const searchQuery = useQuery({
-    queryKey: queryKeys.search.query(query),
-    queryFn: () => searchService.search(query),
+    queryKey: [...queryKeys.search.query(query), scopeKey],
+    queryFn: () => search(query),
     enabled: open && query.length >= 2,
     staleTime: 30_000,
   });
@@ -112,7 +122,7 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={onInputKeyDown}
-            placeholder="Ism, telefon, L-000123, ST-000045, kurs yoki guruh…"
+            placeholder={placeholder}
             aria-label="Qidiruv"
             aria-controls={listId}
             className="h-14 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle"
@@ -140,7 +150,8 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
             </p>
           ) : (
             searchQuery.data.groups.map((group) => {
-              const Icon = GROUP_ICONS[group.key];
+              // Noma'lum guruh (server yangiroq bo'lsa) — oynani yiqitmasin
+              const Icon = GROUP_ICONS[group.key] ?? Search;
               return (
                 <div key={group.key}>
                   <p className="bg-surface-muted/60 px-4 py-1.5 text-[11px] font-medium tracking-wide text-fg-muted uppercase">

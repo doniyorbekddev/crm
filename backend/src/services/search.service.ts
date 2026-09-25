@@ -22,7 +22,11 @@ export type SearchGroupKey =
   | 'users'
   | 'payments'
   | 'transactions'
-  | 'certificates';
+  | 'certificates'
+  | 'homework'
+  | 'exams'
+  | 'lessons'
+  | 'children';
 
 export interface SearchHit {
   id: string;
@@ -471,6 +475,126 @@ export const searchService = {
       }
     }
 
+    // --- Uy vazifalari va imtihonlar (TZ 3.0 §45: o'qituvchi — o'z guruhlari) ---
+    const teacherScope = permissions.has(PERMISSIONS.GROUP_MANAGE) ? {} : { group: { teacherId: actor.id } };
+    if (permissions.has(PERMISSIONS.HOMEWORK_VIEW)) {
+      const rows = await prisma.homework.findMany({
+        where: { title: { contains: query, mode: 'insensitive' }, ...teacherScope },
+        select: { id: true, title: true, deadline: true, status: true, group: { select: { name: true } } },
+        orderBy: { deadline: 'desc' },
+        take: PER_GROUP,
+      });
+      if (rows.length > 0) {
+        groups.push({
+          key: 'homework',
+          label: 'Uy vazifalari',
+          hits: rows.map((row) => ({
+            id: row.id,
+            title: row.title,
+            subtitle: `${row.group.name} · muddat ${row.deadline.toISOString().slice(0, 10)}${row.status === 'DRAFT' ? ' · qoralama' : ''}`,
+            code: null,
+            url: '/homework',
+          })),
+        });
+      }
+    }
+    if (permissions.has(PERMISSIONS.EXAM_VIEW)) {
+      const rows = await prisma.exam.findMany({
+        where: { title: { contains: query, mode: 'insensitive' }, ...teacherScope },
+        select: { id: true, title: true, date: true, isOnline: true, group: { select: { name: true } } },
+        orderBy: { date: 'desc' },
+        take: PER_GROUP,
+      });
+      if (rows.length > 0) {
+        groups.push({
+          key: 'exams',
+          label: 'Imtihonlar',
+          hits: rows.map((row) => ({
+            id: row.id,
+            title: row.title,
+            subtitle: `${row.group.name} · ${row.date.toISOString().slice(0, 10)}${row.isOnline ? ' · onlayn' : ''}`,
+            code: null,
+            url: '/exams',
+          })),
+        });
+      }
+    }
+
+    return { query, total: groups.reduce((sum, group) => sum + group.hits.length, 0), groups };
+  },
+
+  /**
+   * Kabinet qidiruvi (TZ 3.0 §45 "Portal"): faqat o'quvchining **o'z** vazifalari, imtihonlari,
+   * nashr qilingan darslari va sertifikatlari; ota-onaga — farzandlari ham. Egalik chaqiruvchida
+   * (`portal.service` — `studentIds` doirasi). Havolalar kabinet sahifalariga.
+   */
+  async portal(rawQuery: string, input: { studentIds: string[]; activeStudentId: string; includeChildren: boolean }): Promise<SearchResultDto> {
+    const query = rawQuery.trim();
+    const groups: SearchGroupDto[] = [];
+    if (query.length < 2) return { query, total: 0, groups };
+    const contains = { contains: query, mode: 'insensitive' as const };
+    const student = await prisma.student.findFirst({ where: { id: input.activeStudentId, deletedAt: null }, select: { groupId: true, courseId: true } });
+    if (!student) return { query, total: 0, groups };
+
+    const [children, homework, exams, lessons, certificates] = await Promise.all([
+      input.includeChildren
+        ? prisma.student.findMany({
+            where: { id: { in: input.studentIds }, deletedAt: null, OR: [{ firstName: contains }, { lastName: contains }] },
+            select: { id: true, firstName: true, lastName: true, group: { select: { name: true } } },
+            take: PER_GROUP,
+          })
+        : Promise.resolve([]),
+      prisma.homeworkSubmission.findMany({
+        where: { studentId: input.activeStudentId, homework: { title: contains, status: { not: 'DRAFT' } } },
+        select: { homework: { select: { id: true, title: true, deadline: true } }, status: true },
+        orderBy: { homework: { deadline: 'desc' } },
+        take: PER_GROUP,
+      }),
+      prisma.exam.findMany({
+        where: {
+          title: contains,
+          status: { not: 'CANCELLED' },
+          OR: [...(student.groupId ? [{ groupId: student.groupId }] : []), { results: { some: { studentId: input.activeStudentId } } }],
+        },
+        select: { id: true, title: true, date: true, isOnline: true },
+        orderBy: { date: 'desc' },
+        take: PER_GROUP,
+      }),
+      prisma.lesson.findMany({
+        where: { status: 'PUBLISHED', title: contains, topic: { module: { courseId: student.courseId } } },
+        select: { id: true, title: true, topic: { select: { title: true } } },
+        take: PER_GROUP,
+      }),
+      prisma.certificate.findMany({
+        where: { studentId: input.activeStudentId, revokedAt: null, OR: [{ courseName: contains }, { studentName: contains }] },
+        select: { id: true, number: true, courseName: true, issuedAt: true },
+        take: PER_GROUP,
+      }),
+    ]);
+
+    if (children.length) {
+      groups.push({ key: 'children', label: 'Farzandlar', hits: children.map((row) => ({ id: row.id, title: `${row.firstName} ${row.lastName}`, subtitle: row.group?.name ?? '', code: null, url: '/portal' })) });
+    }
+    if (homework.length) {
+      groups.push({
+        key: 'homework',
+        label: 'Uy vazifalari',
+        hits: homework.map((row) => ({ id: row.homework.id, title: row.homework.title, subtitle: `muddat ${row.homework.deadline.toISOString().slice(0, 10)}`, code: null, url: `/portal/homework/${row.homework.id}` })),
+      });
+    }
+    if (exams.length) {
+      groups.push({ key: 'exams', label: 'Imtihonlar', hits: exams.map((row) => ({ id: row.id, title: row.title, subtitle: `${row.date.toISOString().slice(0, 10)}${row.isOnline ? ' · onlayn' : ''}`, code: null, url: `/portal/exams/${row.id}` })) });
+    }
+    if (lessons.length) {
+      groups.push({ key: 'lessons', label: 'Darslar', hits: lessons.map((row) => ({ id: row.id, title: row.title, subtitle: row.topic.title, code: null, url: `/portal/course/lessons/${row.id}` })) });
+    }
+    if (certificates.length) {
+      groups.push({
+        key: 'certificates',
+        label: 'Sertifikatlar',
+        hits: certificates.map((row) => ({ id: row.id, title: row.courseName, subtitle: row.issuedAt.toISOString().slice(0, 10), code: certificateCode(row.number, row.issuedAt), url: '/portal' })),
+      });
+    }
     return { query, total: groups.reduce((sum, group) => sum + group.hits.length, 0), groups };
   },
 };

@@ -770,6 +770,8 @@ model TopicMastery {
 
   @@unique([studentId, topicId])
   @@index([topicId, status])
+  /// Mavzu kesimidagi o'rtacha baho (analitika)
+  @@index([topicId, score])
   @@map("topic_mastery")
 }
 
@@ -2319,6 +2321,8 @@ model HomeworkSubmission {
 
   @@unique([homeworkId, studentId])
   @@index([studentId, status])
+  /// Baholash navbati va vazifa analitikasi (TZ 3.0 §46)
+  @@index([homeworkId, status])
   @@map("homework_submissions")
 }
 

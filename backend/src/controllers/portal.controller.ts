@@ -189,6 +189,12 @@ export const portalController = {
     sendSuccess(res, await portalService.examDetail(requireAuthUser(req), id, studentId));
   },
 
+  async search(req: Request, res: Response): Promise<void> {
+    const { studentId } = portalChildQuerySchema.parse(req.query);
+    const q = typeof req.query.q === 'string' ? req.query.q.slice(0, 100) : '';
+    sendSuccess(res, await portalService.search(requireAuthUser(req), q, studentId));
+  },
+
   async mastery(req: Request, res: Response): Promise<void> {
     const { studentId } = portalChildQuerySchema.parse(req.query);
     sendSuccess(res, await portalService.mastery(requireAuthUser(req), studentId));
