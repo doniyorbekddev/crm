@@ -33,6 +33,8 @@ export type PortalSchedule = PaymentSchedule;
 export interface PortalAccount {
   userId: string;
   email: string;
+  /** Kirish uchun: o‘quvchida ID raqami (ST-000045), ota-onada email */
+  login: string;
   /** Vaqtinchalik parol — faqat yaratish javobida ko‘rinadi */
   temporaryPassword: string;
 }
@@ -121,4 +123,19 @@ export interface PortalExamDetail {
   };
   result: StudentExamRow | null;
   attempts: ExamAttempt[];
+}
+
+export interface BulkPortalAccountRow {
+  studentId: string;
+  code: string;
+  fullName: string;
+  groupName: string | null;
+  login: string;
+  temporaryPassword: string;
+}
+
+export interface BulkPortalAccountsResult {
+  created: BulkPortalAccountRow[];
+  /** Allaqachon kabineti bor */
+  skipped: number;
 }

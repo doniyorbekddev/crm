@@ -39,6 +39,7 @@ import { StudentXpModal } from '../gamification/StudentXpModal';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
+import { BulkPortalAccountsModal } from './BulkPortalAccountsModal';
 import { PortalAccountModal } from './PortalAccountModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { ExportMenu } from '@/components/ExportMenu';
@@ -57,7 +58,8 @@ const SORT_OPTIONS = [
 
 type Dialog =
   | { type: 'create' }
-  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal'; student: StudentItem }
+  | { type: 'portalBulk' }
+  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal' | 'portalReset'; student: StudentItem }
   | null;
 
 export default function StudentsPage() {
@@ -110,7 +112,7 @@ export default function StudentsPage() {
     queryKey: queryKeys.lookups.studentForm,
     queryFn: studentsService.formLookups,
     staleTime: 60_000,
-    enabled: canManage,
+    enabled: canManage || canManagePortal,
   });
 
   const refresh = () => {
@@ -156,6 +158,11 @@ export default function StudentsPage() {
                   void runExport('/students/export', { ...summaryParams, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) }, 'oquvchilar', format)
                 }
               />
+            )}
+            {canManagePortal && (
+              <Button variant="secondary" leftIcon={<KeyRound className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'portalBulk' })}>
+                Kabinetlar ochish
+              </Button>
             )}
             {canManage && (
               <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
@@ -344,13 +351,19 @@ export default function StudentsPage() {
                                   { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', student }) },
                                   { label: 'Guruhga o‘tkazish', icon: ArrowLeftRight, onSelect: () => setDialog({ type: 'transfer', student }) },
                                   { label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog({ type: 'status', student }) },
-                                  ...(canManagePortal && !student.hasPortalAccount
+                                  ...(canManagePortal
                                     ? [
-                                        {
-                                          label: 'Kabinet ochish',
-                                          icon: KeyRound,
-                                          onSelect: () => setDialog({ type: 'portal', student }),
-                                        },
+                                        student.hasPortalAccount
+                                          ? {
+                                              label: 'Kabinet parolini tiklash',
+                                              icon: KeyRound,
+                                              onSelect: () => setDialog({ type: 'portalReset', student }),
+                                            }
+                                          : {
+                                              label: 'Kabinet ochish',
+                                              icon: KeyRound,
+                                              onSelect: () => setDialog({ type: 'portal', student }),
+                                            },
                                       ]
                                     : []),
                                   {
@@ -400,9 +413,17 @@ export default function StudentsPage() {
           }}
         />
       )}
-      {dialog?.type === 'portal' && (
+      {(dialog?.type === 'portal' || dialog?.type === 'portalReset') && (
         <PortalAccountModal
           student={dialog.student}
+          mode={dialog.type === 'portalReset' ? 'reset' : 'create'}
+          onClose={() => setDialog(null)}
+          onSaved={() => void queryClient.invalidateQueries({ queryKey: queryKeys.students.all })}
+        />
+      )}
+      {dialog?.type === 'portalBulk' && (
+        <BulkPortalAccountsModal
+          groups={lookupsQuery.data?.groups ?? []}
           onClose={() => setDialog(null)}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: queryKeys.students.all })}
         />

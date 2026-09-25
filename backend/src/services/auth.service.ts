@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { resolveLoginIdentifier } from './portalAccount.service.js';
 import { env, primaryClientUrl } from '../config/env.js';
 import { PERMISSIONS, ROLE_KEYS } from '../config/permissions.js';
 import type { Prisma, UserStatus } from '../generated/prisma/client.js';
@@ -178,7 +179,9 @@ async function assertLoginNotLocked(
 }
 
 export const authService = {
-  async login(input: LoginInput, client: ClientInfo): Promise<SessionResult> {
+  async login(rawInput: LoginInput, client: ClientInfo): Promise<SessionResult> {
+    // O'quvchi ID raqami (ST-000045) bilan ham kira oladi — hisob emailiga aylantiriladi
+    const input = { ...rawInput, email: await resolveLoginIdentifier(rawInput.email) };
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       select: { ...authUserSelect, passwordHash: true, lastLoginAt: true },

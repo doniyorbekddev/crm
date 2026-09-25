@@ -13,7 +13,7 @@ export const USERS = {
 export type SeedUser = keyof typeof USERS;
 
 export async function fillLogin(page: Page, user: SeedUser, password: string = USERS[user].password): Promise<void> {
-  await page.getByLabel('Email', { exact: true }).fill(USERS[user].email);
+  await page.getByLabel('Email yoki ID', { exact: true }).fill(USERS[user].email);
   await page.getByLabel('Parol', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Kirish', exact: true }).click();
 }

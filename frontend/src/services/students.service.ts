@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import type { StudentExamRow, StudentHomeworkRow, StudentProfile } from '@/types/studentProfile';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { PortalAccount } from '@/types/portal';
+import type { BulkPortalAccountsResult, PortalAccount } from '@/types/portal';
 import type { StudentAttendanceHistory } from '@/types/attendance';
 import type {
   ConvertLeadPayload,
@@ -56,8 +56,20 @@ export const studentsService = {
   },
 
   /** Kabinet hisobi ochish — vaqtinchalik parol faqat shu javobda qaytadi */
-  async createPortalAccount(id: string, email: string): Promise<MessageResult<PortalAccount>> {
-    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/students/${id}/portal-account`, { email });
+  async createPortalAccount(id: string, email?: string): Promise<MessageResult<PortalAccount>> {
+    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/students/${id}/portal-account`, email ? { email } : {});
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Ko‘p o‘quvchiga birdan kabinet — login va parollar faqat shu javobda */
+  async bulkCreatePortalAccounts(payload: { groupId?: string }): Promise<MessageResult<BulkPortalAccountsResult>> {
+    const response = await api.post<ApiSuccessResponse<BulkPortalAccountsResult>>('/students/portal-accounts/bulk', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Kabinet parolini tiklash — yangi vaqtinchalik parol */
+  async resetPortalPassword(id: string): Promise<MessageResult<PortalAccount>> {
+    const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/students/${id}/portal-account/reset-password`);
     return { data: response.data.data, message: response.data.message };
   },
 

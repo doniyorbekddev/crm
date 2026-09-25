@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,13 +13,13 @@ import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
-import { emailField } from '@/lib/validation';
+import { loginIdentifierField } from '@/lib/validation';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { safeRedirectPath } from '@/utils/url';
 
 const loginSchema = z.object({
-  email: emailField,
+  email: loginIdentifierField,
   password: z.string().min(1, 'Parolni kiriting'),
 });
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">Tizimga kirish</h1>
-        <p className="mt-2 text-sm text-fg-muted">Ish hisobingiz ma’lumotlarini kiriting</p>
+        <p className="mt-2 text-sm text-fg-muted">Xodimlar — email, o‘quvchilar — ID raqami (masalan, ST-000045) bilan kiradi</p>
       </div>
 
       {formError && (
@@ -72,14 +72,16 @@ export default function LoginPage() {
       )}
 
       <form onSubmit={onSubmit} noValidate className="space-y-5">
-        <FormField label="Email" htmlFor="email" error={errors.email?.message}>
+        <FormField label="Email yoki ID" htmlFor="email" error={errors.email?.message}>
           <Input
             id="email"
-            type="email"
-            autoComplete="email"
+            type="text"
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="username"
             autoFocus
-            placeholder="siz@example.com"
-            leftIcon={<Mail className="size-4" aria-hidden />}
+            placeholder="siz@example.com yoki ST-000045"
+            leftIcon={<UserRound className="size-4" aria-hidden />}
             invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? fieldErrorId('email') : undefined}
             {...register('email')}

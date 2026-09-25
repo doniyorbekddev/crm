@@ -53,8 +53,17 @@ export const passwordSchema = z
   .refine((value) => !COMMON_PASSWORDS.has(value.toLowerCase()), 'Bu parol juda mashhur — boshqasini tanlang')
   .refine((value) => !hasWeakPattern(value), 'Parolda ketma-ket takrorlanuvchi belgilar yoki oddiy ketma-ketlik bo‘lmasin');
 
+/** O'quvchi ID raqami: ST-000045, st45, ST000045 */
+export const STUDENT_LOGIN_PATTERN = /^st-?(\d{1,9})$/i;
+
 export const loginSchema = z.object({
-  email: emailSchema,
+  // Xodim va ota-ona — email, o'quvchi — email yoki ID raqami (ST-000045)
+  email: z
+    .string('Email yoki ID kiritilishi shart')
+    .trim()
+    .min(1, 'Email yoki ID kiritilishi shart')
+    .max(255, 'Juda uzun')
+    .refine((value) => STUDENT_LOGIN_PATTERN.test(value) || z.email().safeParse(value.toLowerCase()).success, 'Email yoki o‘quvchi ID (ST-000045) kiriting'),
   // Login paytida murakkablik tekshirilmaydi — faqat bo‘sh emasligi
   password: z.string('Parol kiritilishi shart').min(1, 'Parol kiritilishi shart').max(200, 'Parol juda uzun'),
 });

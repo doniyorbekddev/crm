@@ -623,6 +623,8 @@ export const portalService = {
 export interface PortalAccountDto {
   userId: string;
   email: string;
+  /** Kirish uchun login: o'quvchida ID raqami (ST-000045), ota-onada email */
+  login: string;
   /** Vaqtinchalik parol — xodim uni egasiga yetkazadi, keyin egasi o'zgartiradi */
   temporaryPassword: string;
 }

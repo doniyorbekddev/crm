@@ -24,12 +24,16 @@ Login (/login, umumiy)
 
 ## 2. Hisob va kirish
 
+O‘quvchilarda odatda email yo‘q, shuning uchun o‘quvchi **ID raqami** bilan kiradi: `ST-000045` (katta-kichik harf, chiziqcha va nollar muhim emas — `st45` ham ishlaydi).
+
 | Qadam | Qayerda | Izoh |
 |---|---|---|
-| Hisob ochish | `POST /api/students/:id/portal-account` (`portal.manage`) | Xodim ochadi; `User(role STUDENT)` yaratiladi, `Student.userId` bog‘lanadi. Vaqtinchalik parol **faqat shu javobda** qaytadi |
-| Kirish | `POST /api/auth/login` | Xodim bilan bir xil: JWT access + httpOnly refresh cookie |
-| Parolni unutdim / o‘zgartirish | `/auth/forgot-password`, `/auth/reset-password`, `PATCH /auth/change-password` | Bir xil oqim; o‘zgartirilgach boshqa sessiyalar yopiladi |
-| Chiqish | `POST /auth/logout` | |
+| Bitta o‘quvchiga ochish | O‘quvchilar → amallar → **Kabinet ochish**; `POST /api/students/:id/portal-account` (`portal.manage`) | Email **ixtiyoriy**. Bo‘lmasa `User.email = st000045@kabinet.invalid` (RFC 2606 — hech qachon mavjud bo‘lmaydigan domen, xat ketmaydi). Login = ID raqami |
+| Hammaga birdan | O‘quvchilar → **Kabinetlar ochish** (hammaga yoki guruh bo‘yicha); `POST /api/students/portal-accounts/bulk` | Faqat faol va kabinetsiz o‘quvchilar, xodim filiali doirasida, bir so‘rovda ≤ 300. Natija: login + parol ro‘yxati — **chop etish kartochkalari** yoki **CSV** (parollar faqat shu oynada) |
+| Kirish | `/login` → "Email yoki ID" | `authService.login` ID ni `resolveLoginIdentifier` orqali hisob emailiga aylantiradi; lockout, rate-limit, audit — xodim bilan bir xil |
+| Parolni unutdi | O‘quvchilar → amallar → **Kabinet parolini tiklash**; `POST /api/students/:id/portal-account/reset-password` | Yangi vaqtinchalik parol; eski parol va barcha sessiyalar bekor. Email bilan ochilgan bo‘lsa "Parolni unutdim" ham ishlaydi |
+| Parolni o‘zgartirish | `/portal/settings` | `PATCH /auth/change-password` |
+| Chiqish | sarlavhadagi tugma | `POST /auth/logout` |
 
 Frontend: `PortalRoute` kabinet foydalanuvchisini xodim sahifalaridan `/portal` ga qaytaradi, `StaffRoute` — aksincha. Bu **qulaylik**, himoya backendda.
 

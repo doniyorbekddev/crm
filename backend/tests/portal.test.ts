@@ -458,4 +458,108 @@ describe.skipIf(!hasTestDatabase)('Kabinet — darslar, kurs progressi va sertif
     const foreign = await request(app).get(`/api/portal/exams/${foreignExam.body.data.id}`).set(bearer(token));
     expect(foreign.status).toBe(404);
   });
+
+  describe('O‘quvchi kabineti: ID bilan kirish, ommaviy ochish, parolni tiklash', () => {
+    it('emailsiz ochilgan kabinetga o‘quvchi ID raqami bilan kiradi (ST-000045, st45 ham)', async () => {
+      const course = await createCourse();
+      const group = await createGroup({ courseId: course.id });
+      const student = await createStudent(course.id, group.id, 'Idli');
+      const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+
+      const created = await request(app).post(`/api/students/${student.id}/portal-account`).set(bearer(admin)).send({});
+      expect(created.status).toBe(201);
+      const code = `ST-${String(student.number).padStart(6, '0')}`;
+      expect(created.body.data).toMatchObject({ login: code, email: `st${String(student.number).padStart(6, '0')}@kabinet.invalid` });
+      const password = created.body.data.temporaryPassword as string;
+
+      for (const identifier of [code, code.toLowerCase(), `st${student.number}`]) {
+        const login = await request(app).post('/api/auth/login').send({ email: identifier, password });
+        expect(login.status, identifier).toBe(200);
+        const me = await request(app).get('/api/portal/me').set(bearer(login.body.data.accessToken));
+        expect(me.body.data).toMatchObject({ kind: 'STUDENT', fullName: 'Idli Test' });
+      }
+
+      const wrong = await request(app).post('/api/auth/login').send({ email: code, password: 'NotThePassword1' });
+      const unknown = await request(app).post('/api/auth/login').send({ email: 'ST-999999', password });
+      const garbage = await request(app).post('/api/auth/login').send({ email: 'shunchaki-matn', password });
+      expect([wrong.status, unknown.status, garbage.status]).toEqual([401, 401, 422]);
+    });
+
+    it('email bilan ochilgan kabinetga ham ID raqami bilan kirish mumkin', async () => {
+      const course = await createCourse();
+      const group = await createGroup({ courseId: course.id });
+      const student = await createStudent(course.id, group.id, 'Emailli');
+      const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+      const { account } = await openStudentPortal(admin, student.id, 'emailli@portal.uz');
+
+      const byCode = await request(app)
+        .post('/api/auth/login')
+        .send({ email: `ST-${String(student.number).padStart(6, '0')}`, password: account.temporaryPassword });
+      expect(byCode.status).toBe(200);
+      expect(account.login).toBe(`ST-${String(student.number).padStart(6, '0')}`);
+    });
+
+    it('ommaviy ochish: faqat faol va kabinetsiz o‘quvchilarga, takrorlanmaydi, har biri o‘z paroli bilan kiradi', async () => {
+      const course = await createCourse();
+      const group = await createGroup({ courseId: course.id, name: 'Ommaviy guruh' });
+      const first = await createStudent(course.id, group.id, 'Birinchi');
+      const second = await createStudent(course.id, group.id, 'Ikkinchi');
+      const already = await createStudent(course.id, group.id, 'Bori');
+      const dropped = await createStudent(course.id, group.id, 'Ketgan');
+      await prisma.student.update({ where: { id: dropped.id }, data: { status: 'DROPPED' } });
+      const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+      const { token: teacher } = await createUserWithToken(app, { role: 'TEACHER' });
+      await openStudentPortal(admin, already.id, 'bori@portal.uz');
+
+      const forbidden = await request(app).post('/api/students/portal-accounts/bulk').set(bearer(teacher)).send({});
+      expect(forbidden.status).toBe(403);
+
+      const bulk = await request(app).post('/api/students/portal-accounts/bulk').set(bearer(admin)).send({ groupId: group.id });
+      expect(bulk.status).toBe(201);
+      expect(bulk.body.data.skipped).toBe(1);
+      const rows = bulk.body.data.created as Array<{ studentId: string; login: string; temporaryPassword: string; groupName: string }>;
+      expect(rows.map((row) => row.studentId).sort()).toEqual([first.id, second.id].sort());
+      expect(rows.every((row) => row.groupName === 'Ommaviy guruh')).toBe(true);
+      expect(new Set(rows.map((row) => row.temporaryPassword)).size).toBe(2);
+
+      for (const row of rows) {
+        const login = await request(app).post('/api/auth/login').send({ email: row.login, password: row.temporaryPassword });
+        expect(login.status).toBe(200);
+        const me = await request(app).get('/api/portal/me').set(bearer(login.body.data.accessToken));
+        expect(me.body.data.children[0].studentId).toBe(row.studentId);
+      }
+
+      const again = await request(app).post('/api/students/portal-accounts/bulk').set(bearer(admin)).send({ groupId: group.id });
+      expect(again.body.data).toMatchObject({ created: [], skipped: 3 });
+      expect((await prisma.student.findUniqueOrThrow({ where: { id: dropped.id } })).userId).toBeNull();
+      expect(await prisma.auditLog.count({ where: { action: 'portal.student_accounts_bulk_created' } })).toBe(1);
+    });
+
+    it('parolni tiklash: yangi parol ishlaydi, eskisi va eski sessiya — yo‘q', async () => {
+      const course = await createCourse();
+      const group = await createGroup({ courseId: course.id });
+      const student = await createStudent(course.id, group.id, 'Unutgan');
+      const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+      const created = await request(app).post(`/api/students/${student.id}/portal-account`).set(bearer(admin)).send({});
+      const { login, temporaryPassword: oldPassword } = created.body.data as { login: string; temporaryPassword: string };
+      const oldSession = await request(app).post('/api/auth/login').send({ email: login, password: oldPassword });
+      expect(oldSession.status).toBe(200);
+
+      // passwordChangedAt soniya aniqligida solishtiriladi — eski token aniq eskirsin
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+      const reset = await request(app).post(`/api/students/${student.id}/portal-account/reset-password`).set(bearer(admin));
+      expect(reset.status).toBe(200);
+      const newPassword = reset.body.data.temporaryPassword as string;
+      expect(newPassword).not.toBe(oldPassword);
+
+      const withOld = await request(app).post('/api/auth/login').send({ email: login, password: oldPassword });
+      const withNew = await request(app).post('/api/auth/login').send({ email: login, password: newPassword });
+      const staleToken = await request(app).get('/api/portal/me').set(bearer(oldSession.body.data.accessToken));
+      expect([withOld.status, withNew.status, staleToken.status]).toEqual([401, 200, 401]);
+
+      const noAccount = await createStudent(course.id, group.id, 'Hisobsiz');
+      const resetMissing = await request(app).post(`/api/students/${noAccount.id}/portal-account/reset-password`).set(bearer(admin));
+      expect(resetMissing.status).toBe(422);
+    });
+  });
 });

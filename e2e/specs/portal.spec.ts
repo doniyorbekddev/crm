@@ -50,7 +50,7 @@ async function openStudentPortal(request: APIRequestContext): Promise<PortalCred
 
 async function loginAsStudent(page: Page, credentials: PortalCredentials): Promise<void> {
   await page.goto('/login');
-  await page.getByLabel('Email', { exact: true }).fill(credentials.email);
+  await page.getByLabel('Email yoki ID').fill(credentials.email);
   await page.getByLabel('Parol', { exact: true }).fill(credentials.password);
   await page.getByRole('button', { name: 'Kirish', exact: true }).click();
   await expect(page).toHaveURL(/\/portal$/);
@@ -117,5 +117,44 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     await expect(page.getByText('Mening E2E javobim', { exact: true })).toBeVisible();
     await expect(page.getByText('Topshirdi', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Qayta topshirish' })).toBeVisible();
+  });
+
+  test('admin guruhga ommaviy kabinet ochadi, o‘quvchi ID raqami va o‘z paroli bilan kiradi', async ({ page, request }) => {
+    const auth = await request.post(`${API}/auth/login`, { data: { email: USERS.admin.email, password: USERS.admin.password } });
+    const headers = { Authorization: `Bearer ${(await auth.json()).data.accessToken as string}` };
+    const groups = (await (await request.get(`${API}/lookups/student-form`, { headers })).json()).data.groups as Array<{ id: string; name: string; studentCount: number }>;
+    const group = groups.find((item) => item.studentCount > 0);
+    expect(group, 'seed bazasida o‘quvchili guruh bo‘lishi kerak').toBeTruthy();
+
+    // UI orqali: O'quvchilar → Kabinetlar ochish → guruh → ochish
+    await page.goto('/login');
+    await page.getByLabel('Email yoki ID').fill(USERS.admin.email);
+    await page.getByLabel('Parol', { exact: true }).fill(USERS.admin.password);
+    await page.getByRole('button', { name: 'Kirish', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await page.goto('/students');
+    await page.getByRole('button', { name: 'Kabinetlar ochish' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Kimlarga').selectOption(group!.id);
+    await dialog.getByRole('button', { name: 'Kabinetlarni ochish' }).click();
+
+    const firstRow = dialog.locator('tbody tr').first();
+    await expect(firstRow).toBeVisible();
+    const login = (await firstRow.locator('td').nth(2).innerText()).trim();
+    const password = (await firstRow.locator('td').nth(3).innerText()).trim();
+    expect(login).toMatch(/^ST-\d{6}$/);
+
+    // Parollar saqlanmagan — yopishda tasdiq so'raladi
+    page.once('dialog', (confirmDialog) => void confirmDialog.accept());
+    await dialog.getByRole('button', { name: 'Yopish' }).first().click();
+
+    // Admin chiqadi, o'quvchi ID bilan kiradi
+    await page.context().clearCookies();
+    await page.goto('/login');
+    await page.getByLabel('Email yoki ID').fill(login.toLowerCase());
+    await page.getByLabel('Parol', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Kirish', exact: true }).click();
+    await expect(page).toHaveURL(/\/portal$/);
+    await expect(page.getByRole('heading', { level: 1, name: /Salom,/ })).toBeVisible();
   });
 });

@@ -33,7 +33,9 @@ studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VI
 studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
 studentRouter.get('/:id/curriculum', requirePermission(PERMISSIONS.STUDENT_VIEW), curriculumController.studentProgress);
 studentRouter.get('/:id/risk', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.risk);
+studentRouter.post('/portal-accounts/bulk', requirePermission(PERMISSIONS.PORTAL_MANAGE), heavyLimiter, portalController.bulkCreateStudentAccounts);
 studentRouter.post('/:id/portal-account', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.createStudentAccount);
+studentRouter.post('/:id/portal-account/reset-password', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.resetStudentPassword);
 studentRouter.get('/:id/telegram-link', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.linkForStudent);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);

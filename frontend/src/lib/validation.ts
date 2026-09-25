@@ -7,6 +7,17 @@ export const emailField = z
   .max(255, 'Email juda uzun')
   .pipe(z.email('Email noto‘g‘ri formatda'));
 
+/** O'quvchi ID raqami: ST-000045, st45 */
+export const STUDENT_LOGIN_PATTERN = /^st-?\d{1,9}$/i;
+
+/** Kirish: xodim/ota-ona — email, o'quvchi — email yoki ID raqami */
+export const loginIdentifierField = z
+  .string()
+  .trim()
+  .min(1, 'Email yoki ID kiriting')
+  .max(255, 'Juda uzun')
+  .refine((value) => STUDENT_LOGIN_PATTERN.test(value) || z.email().safeParse(value).success, 'Email yoki o‘quvchi ID (ST-000045) kiriting');
+
 export function nameField(label: string) {
   return z
     .string()

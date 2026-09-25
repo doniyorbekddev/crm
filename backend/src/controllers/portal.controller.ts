@@ -8,7 +8,14 @@ import { portalAccountService } from '../services/portalAccount.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
-import { portalAccountSchema, portalCalendarQuerySchema, portalChildQuerySchema, portalHomeworkSubmitSchema } from '../validators/portal.validator.js';
+import {
+  bulkPortalAccountsSchema,
+  portalAccountSchema,
+  portalCalendarQuerySchema,
+  portalChildQuerySchema,
+  portalHomeworkSubmitSchema,
+  studentPortalAccountSchema,
+} from '../validators/portal.validator.js';
 import { portalFeedbackSchema } from '../validators/feedback.validator.js';
 
 export const portalController = {
@@ -138,12 +145,25 @@ export const portalController = {
 
   async createStudentAccount(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    const { email } = portalAccountSchema.parse(req.body);
+    const { email } = studentPortalAccountSchema.parse(req.body ?? {});
     sendCreated(
       res,
       await portalAccountService.createForStudent(requireAuthUser(req), id, email, getClientInfo(req)),
-      'Kabinet ochildi — parolni o‘quvchiga yetkazing',
+      'Kabinet ochildi — login va parolni o‘quvchiga yetkazing',
     );
+  },
+
+  async bulkCreateStudentAccounts(req: Request, res: Response): Promise<void> {
+    const input = bulkPortalAccountsSchema.parse(req.body ?? {});
+    const result = await portalAccountService.bulkCreateForStudents(requireAuthUser(req), input, getClientInfo(req));
+    sendCreated(res, result, result.created.length ? `${result.created.length} ta kabinet ochildi` : 'Yangi kabinet ochilmadi — hammasida bor');
+  },
+
+  async resetStudentPassword(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await portalAccountService.resetStudentPassword(requireAuthUser(req), id, getClientInfo(req)), {
+      message: 'Yangi parol yaratildi — o‘quvchiga yetkazing',
+    });
   },
 
   async createParentAccount(req: Request, res: Response): Promise<void> {
