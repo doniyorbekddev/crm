@@ -467,6 +467,25 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.ATTENDANCE_MARK} />
+                    ),
+                    children: [
+                      {
+                        path: "teaching",
+                        lazy: lazyComponent(
+                          () => import("@/pages/teaching/TeachingPage"),
+                        ),
+                      },
+                      {
+                        path: "teaching/groups/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/teaching/TeachingGroupPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.HOMEWORK_VIEW} />
                     ),
                     children: [

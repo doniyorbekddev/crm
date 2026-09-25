@@ -237,7 +237,8 @@ describe.skipIf(!hasTestDatabase)('O‘quvchi xavfi (risk) va holat tarixi', () 
     const denied = await request(app).get(`/api/students/${student.id}/risk`).set(bearer(callCenter));
 
     expect(allowed.status).toBe(200);
-    expect(allowed.body.data.factors).toHaveLength(6);
+    // 6 ta asosiy + TZ 3.0 §29 dagi 4 ta qo'shimcha sabab
+    expect(allowed.body.data.factors.map((factor: { key: string }) => factor.key)).toEqual(['attendance', 'absences', 'debt', 'overdue', 'homework', 'exam', 'examTrend', 'missedHomework', 'activity', 'login']);
     expect(denied.status).toBe(403);
   });
 });

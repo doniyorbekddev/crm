@@ -32,7 +32,28 @@ const MIN_ATTENDANCE_MARKS = 3;
 /** Ball shu qiymatdan past bo'lsa, signal "sabab" sifatida ko'rsatiladi */
 const REASON_THRESHOLD = 60;
 
-export type RiskFactorKey = 'attendance' | 'absences' | 'debt' | 'overdue' | 'homework' | 'exam';
+export type RiskFactorKey =
+  | 'attendance'
+  | 'absences'
+  | 'debt'
+  | 'overdue'
+  | 'homework'
+  | 'exam'
+  // TZ 3.0 §29: imtihon pasaymoqda, ketma-ket topshirmagan, faollik past, kabinetga kirmagan
+  | 'examTrend'
+  | 'missedHomework'
+  | 'activity'
+  | 'login';
+
+/** Imtihon dinamikasi: "yaqin" oyna va undan oldingi solishtirish oynasi */
+const EXAM_RECENT_DAYS = 30;
+const EXAM_TREND_DAYS = 120;
+/** Ketma-ket topshirilmagan vazifalar — shuncha oxirgisi ko'riladi */
+const MISSED_HOMEWORK_WINDOW = 5;
+/** Shuncha kundan keyin faolsizlik signali hisobga kiradi (yangi o'quvchi ayblanmaydi) */
+const ACTIVITY_GRACE_DAYS = 14;
+/** Kabinet ochilgandan shuncha kun o'tib hali kirmagan bo'lsa — signal */
+const LOGIN_GRACE_DAYS = 7;
 
 export interface RiskFactor {
   key: RiskFactorKey;
@@ -85,6 +106,24 @@ interface RawSignals {
   homeworkDone: number;
   homeworkTotal: number;
   examAverage: number | null;
+  /** Oxirgi 30 kun va undan oldingi 30–120 kun imtihon o'rtachasi */
+  examRecent: number | null;
+  examEarlier: number | null;
+  /** Muddati o'tgan oxirgi vazifalardan ketma-ket nechtasi topshirilmagan; `null` — vazifa yo'q */
+  missedHomework: number | null;
+  /** Oxirgi o'quv faolligi: darsga kelish, vazifa topshirish, dars ochish, imtihon boshlash */
+  lastActivityAt: Date | null;
+  /** Kabinet hisobi (bo'lmasa "kirmagan" signali hisobga kirmaydi) */
+  account: { createdAt: Date; lastLoginAt: Date | null } | null;
+  now: Date;
+}
+
+function daysBetween(from: Date, to: Date): number {
+  return Math.max(Math.floor((to.getTime() - from.getTime()) / 86_400_000), 0);
+}
+
+function agoLabel(days: number): string {
+  return days === 0 ? 'bugun' : `${days} kun oldin`;
 }
 
 function buildFactors(signals: RawSignals, settings: AlertSettings): RiskFactor[] {
@@ -147,6 +186,52 @@ function buildFactors(signals: RawSignals, settings: AlertSettings): RiskFactor[
       value: signals.examAverage === null ? '—' : `${signals.examAverage}%`,
       hint: `Oxirgi ${EXAM_WINDOW_DAYS} kundagi o‘rtacha natija`,
     },
+    ...extendedFactors(signals),
+  ];
+}
+
+/** TZ 3.0 §29 qo'shimcha sabablari — ma'lumoti yo'q signal bahoga kirmaydi (`null`) */
+function extendedFactors(signals: RawSignals): RiskFactor[] {
+  const drop = signals.examRecent !== null && signals.examEarlier !== null ? signals.examEarlier - signals.examRecent : null;
+  const activityDays = signals.lastActivityAt ? daysBetween(signals.lastActivityAt, signals.now) : null;
+  const activityCounts = activityDays !== null || signals.daysSinceStart >= ACTIVITY_GRACE_DAYS;
+  const loginDays = signals.account?.lastLoginAt ? daysBetween(signals.account.lastLoginAt, signals.now) : null;
+  const neverLoggedIn = signals.account !== null && signals.account.lastLoginAt === null;
+  const loginCounts = signals.account !== null && (loginDays !== null || daysBetween(signals.account.createdAt, signals.now) >= LOGIN_GRACE_DAYS);
+
+  return [
+    {
+      key: 'examTrend',
+      label: 'Imtihon natijasi pasaymoqda',
+      weight: 5,
+      score: drop === null ? null : scale(drop, 20, 0),
+      value: drop === null ? '—' : `${signals.examEarlier}% → ${signals.examRecent}%`,
+      hint: `Oxirgi ${EXAM_RECENT_DAYS} kun o‘rtachasi undan oldingi davr bilan solishtiriladi (20 ball pasayish — xavfli)`,
+    },
+    {
+      key: 'missedHomework',
+      label: 'Ketma-ket topshirilmagan vazifa',
+      weight: 5,
+      score: signals.missedHomework === null ? null : scale(signals.missedHomework, 3, 0),
+      value: signals.missedHomework === null ? '—' : `${signals.missedHomework} ta`,
+      hint: `Muddati o‘tgan oxirgi ${MISSED_HOMEWORK_WINDOW} ta vazifadan ketma-ket topshirilmaganlari`,
+    },
+    {
+      key: 'activity',
+      label: 'Oxirgi faollik',
+      weight: 5,
+      score: !activityCounts ? null : activityDays === null ? 0 : scale(activityDays, 21, 3),
+      value: !activityCounts ? '—' : activityDays === null ? 'yo‘q' : agoLabel(activityDays),
+      hint: 'Darsga kelish, vazifa topshirish, dars materialini ochish yoki imtihon boshlash',
+    },
+    {
+      key: 'login',
+      label: 'Kabinetga kirish',
+      weight: 5,
+      score: !loginCounts ? null : neverLoggedIn ? 0 : scale(loginDays!, 21, 3),
+      value: signals.account === null ? 'hisob yo‘q' : !loginCounts ? '—' : neverLoggedIn ? 'kirmagan' : agoLabel(loginDays!),
+      hint: 'O‘quvchi kabinetiga oxirgi kirish (hisob ochilgan bo‘lsa)',
+    },
   ];
 }
 
@@ -190,6 +275,27 @@ async function loadTrailingAbsences(studentIds: string[], limit: number): Promis
   return new Map(rows.map((row) => [row.studentId, Number(row.trailing ?? 0)]));
 }
 
+/** Bitta SQL: muddati o'tgan oxirgi vazifalardan ketma-ket nechtasi topshirilmagan */
+async function loadMissedHomework(studentIds: string[], now: Date): Promise<Map<string, number>> {
+  if (studentIds.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<Array<{ studentId: string; trailing: number }>>`
+    WITH ranked AS (
+      SELECT s."studentId", s."status",
+        ROW_NUMBER() OVER (PARTITION BY s."studentId" ORDER BY h."deadline" DESC) AS rn
+      FROM "homework_submissions" s
+      JOIN "homework" h ON h."id" = s."homeworkId"
+      WHERE s."studentId" IN (${Prisma.join(studentIds)}) AND h."status" <> 'DRAFT' AND h."deadline" < ${now}
+    ), recent AS (
+      SELECT "studentId", "status", rn FROM ranked WHERE rn <= ${MISSED_HOMEWORK_WINDOW}
+    )
+    SELECT r."studentId",
+      COALESCE(MIN(CASE WHEN r."status" IN ('SUBMITTED', 'LATE', 'GRADED') THEN r.rn END) - 1, MAX(r.rn))::int AS "trailing"
+    FROM recent r
+    GROUP BY r."studentId"
+  `;
+  return new Map(rows.map((row) => [row.studentId, Number(row.trailing ?? 0)]));
+}
+
 async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string, RawSignals>> {
   const today = startOfBusinessDay(now);
   const attendanceFrom = addDays(today, -ATTENDANCE_WINDOW_DAYS);
@@ -207,7 +313,11 @@ async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string,
   });
   const groupIds = [...new Set(students.map((student) => student.groupId).filter((id): id is string => Boolean(id)))];
 
-  const [attendance, heldSessions, trailing, dueStats, homework, exams] = await Promise.all([
+  const trendFrom = addDays(today, -EXAM_TREND_DAYS);
+  const recentFrom = addDays(today, -EXAM_RECENT_DAYS);
+  const attendedStatuses = ['PRESENT', 'LATE'] as const;
+
+  const [attendance, heldSessions, trailing, dueStats, homework, exams, examRecent, examEarlier, missed, lastAttended, lastSubmitted, lastViewed, lastAttempt, accounts] = await Promise.all([
     prisma.attendance.groupBy({
       by: ['studentId', 'status'],
       where: { studentId: { in: studentIds }, date: { gte: attendanceFrom } },
@@ -232,7 +342,41 @@ async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string,
       where: { studentId: { in: studentIds }, exam: { date: { gte: examFrom } } },
       _avg: { percentage: true },
     }),
+    prisma.examResult.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: studentIds }, exam: { status: { not: 'CANCELLED' }, date: { gte: recentFrom } } },
+      _avg: { percentage: true },
+    }),
+    prisma.examResult.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: studentIds }, exam: { status: { not: 'CANCELLED' }, date: { gte: trendFrom, lt: recentFrom } } },
+      _avg: { percentage: true },
+    }),
+    loadMissedHomework(studentIds, now),
+    prisma.attendance.groupBy({ by: ['studentId'], where: { studentId: { in: studentIds }, status: { in: [...attendedStatuses] } }, _max: { date: true } }),
+    prisma.homeworkSubmission.groupBy({ by: ['studentId'], where: { studentId: { in: studentIds }, submittedAt: { not: null } }, _max: { submittedAt: true } }),
+    prisma.lessonProgress.groupBy({ by: ['studentId'], where: { studentId: { in: studentIds } }, _max: { lastViewedAt: true } }),
+    prisma.examAttempt.groupBy({ by: ['studentId'], where: { studentId: { in: studentIds } }, _max: { startedAt: true } }),
+    prisma.student.findMany({
+      where: { id: { in: studentIds }, user: { isNot: null } },
+      select: { id: true, user: { select: { createdAt: true, lastLoginAt: true } } },
+    }),
   ]);
+
+  const averageOf = (rows: Array<{ studentId: string; _avg: { percentage: number | null } }>) =>
+    new Map(rows.filter((row) => row._avg.percentage !== null).map((row) => [row.studentId, Math.round(row._avg.percentage!)]));
+  const recentBy = averageOf(examRecent);
+  const earlierBy = averageOf(examEarlier);
+  const latestOf = (id: string) =>
+    [
+      lastAttended.find((row) => row.studentId === id)?._max.date,
+      lastSubmitted.find((row) => row.studentId === id)?._max.submittedAt,
+      lastViewed.find((row) => row.studentId === id)?._max.lastViewedAt,
+      lastAttempt.find((row) => row.studentId === id)?._max.startedAt,
+    ]
+      .filter((value): value is Date => value instanceof Date)
+      .reduce<Date | null>((latest, value) => (latest === null || value > latest ? value : latest), null);
+  const accountBy = new Map(accounts.map((row) => [row.id, row.user!]));
 
   const heldByGroup = new Map(heldSessions.map((row) => [row.groupId, row._count._all]));
   const examByStudent = new Map(exams.map((row) => [row.studentId, row._avg.percentage]));
@@ -252,6 +396,12 @@ async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string,
       homeworkDone: 0,
       homeworkTotal: 0,
       examAverage: examByStudent.get(student.id) === null ? null : Math.round(examByStudent.get(student.id) ?? 0),
+      examRecent: recentBy.get(student.id) ?? null,
+      examEarlier: earlierBy.get(student.id) ?? null,
+      missedHomework: missed.get(student.id) ?? null,
+      lastActivityAt: latestOf(student.id),
+      account: accountBy.get(student.id) ?? null,
+      now,
     });
   }
 
@@ -279,7 +429,46 @@ async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string,
   return signals;
 }
 
+/** O'qituvchi markazi jadvali uchun xom ko'rsatkichlar (risk bilan bitta hisobdan) */
+export interface StudentRiskMetrics {
+  attendanceRate: number | null;
+  homeworkRate: number | null;
+  examAverage: number | null;
+  lastActivityAt: string | null;
+  lastLoginAt: string | null;
+  hasPortalAccount: boolean;
+}
+
+function metricsOf(raw: RawSignals): StudentRiskMetrics {
+  const attendanceBase = Math.max(raw.heldLessons, raw.totalMarks);
+  return {
+    attendanceRate: attendanceBase >= MIN_ATTENDANCE_MARKS ? Math.round((raw.attendedMarks / attendanceBase) * 100) : null,
+    homeworkRate: raw.homeworkTotal > 0 ? Math.round((raw.homeworkDone / raw.homeworkTotal) * 100) : null,
+    examAverage: raw.examAverage,
+    lastActivityAt: raw.lastActivityAt?.toISOString() ?? null,
+    lastLoginAt: raw.account?.lastLoginAt?.toISOString() ?? null,
+    hasPortalAccount: raw.account !== null,
+  };
+}
+
 export const studentRiskService = {
+  /**
+   * Bir nechta o'quvchi uchun yangidan hisoblangan risk va ko'rsatkichlar (saqlamaydi).
+   * O'qituvchi markazi guruh jadvali shu bilan ishlaydi — N+1 yo'q, bitta signal yig'imi.
+   */
+  async forStudents(studentIds: string[], now: Date = new Date()): Promise<Map<string, StudentRiskDto & { metrics: StudentRiskMetrics }>> {
+    if (studentIds.length === 0) return new Map();
+    const settings = await getAlertSettings();
+    const signals = await loadSignals(now, studentIds);
+    const stamp = new Date().toISOString();
+    return new Map(
+      [...signals].map(([id, raw]) => {
+        const factors = buildFactors(raw, settings);
+        return [id, { studentId: id, ...summarize(factors), factors, updatedAt: stamp, metrics: metricsOf(raw) }];
+      }),
+    );
+  },
+
   /** Bitta o'quvchi uchun risk — har doim yangidan hisoblanadi (profil sahifasi uchun) */
   async forStudent(studentId: string, now: Date = new Date()): Promise<StudentRiskDto> {
     const settings = await getAlertSettings();

@@ -121,7 +121,7 @@ export interface TransferGroupPayload {
 }
 
 export interface RiskFactor {
-  key: 'attendance' | 'absences' | 'debt' | 'overdue' | 'homework' | 'exam';
+  key: 'attendance' | 'absences' | 'debt' | 'overdue' | 'homework' | 'exam' | 'examTrend' | 'missedHomework' | 'activity' | 'login';
   label: string;
   weight: number;
   score: number | null;

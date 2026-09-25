@@ -486,3 +486,60 @@ Backend **741/741** (+9: formula unit 4, integratsiya 5), frontend **80/80** (+3
 ## 12. Next Phase
 
 **PHASE 8 — Teacher control center**: `/teaching` — guruhlar kartalari (o‘quvchilar, davomat %, vazifa %, imtihon o‘rtachasi, progress %), guruh jadvali (davomat, vazifa, imtihon, progress, risk, oxirgi faollik), risk sabablari (§29: past davomat, vazifa yo‘q, imtihon pasaymoqda, faollik past, qarz, kirmagan, topshirmagan) — mavjud risk engine bilan birlashtirilgan.
+
+---
+
+# PHASE 8 COMPLETE — Teacher control center
+
+Sana: 2026-09-26. Batafsil: [teacher-control.md](teacher-control.md).
+
+## 1. Implemented
+
+- **§28** `/teaching`: "Mening guruhlarim" — har guruh: o‘quvchilar, davomat %, vazifa %, imtihon o‘rtachasi, progress %; yig‘indi plitkalari; bugungi dars va davomat holati; tez amallar (davomat — guruh oldindan tanlangan, baholash kutayotgan vazifa/urinishlar).
+- **§28** guruh jadvali: o‘quvchi | davomat | vazifa | imtihon | progress | risk | oxirgi faollik (+ kabinetga kirish), eng xavflisi tepada, mavzular matritsasiga o‘tish.
+- **§29** risk sabablari mavjud engine ichida kengaytirildi: imtihon pasaymoqda, ketma-ket topshirilmagan vazifa, faollik past, kabinetga kirmagan (mavjud 6 omil o‘zgarmagan). Risk kartasi va at-risk ro‘yxati avtomatik yangi sabablarni ko‘rsatadi.
+- Admin/rahbar o‘qituvchi bo‘yicha filtrlaydi; o‘qituvchi faqat o‘z guruhlari.
+
+## 2–3. Files
+
+Backend yangi: `services/teaching.service.ts`, `controllers/teaching.controller.ts`, `routes/teaching.routes.ts`, `tests/teaching.test.ts`. O‘zgargan: `services/studentRisk.service.ts` (+4 omil, `forStudents` ommaviy hisob + ko‘rsatkichlar), `routes/index.ts`, `tests/studentRisk.test.ts` (omillar soni o‘rniga aniq kalitlar ro‘yxati — qat‘iyroq).
+Frontend yangi: `pages/teaching/TeachingPage`, `TeachingGroupPage`, `TeachingPage.test`, `services/teaching.service.ts`, `types/teaching.ts`. O‘zgargan: `layouts/navigation.ts` (+O‘qituvchi markazi), `routes/index.tsx`, `pages/attendance/AttendancePage` (`?groupId=`), `types/student.ts` (risk kalitlari), `lib/queryKeys.ts`. E2E: `specs/teaching.spec.ts`. Docs: `teacher-control.md`.
+
+## 4. Database Changes
+
+Yo‘q (mavjud jadvallar: `users.lastLoginAt`, `lesson_progress`, `exam_attempts`, `topic_mastery`).
+
+## 5. API Changes
+
+Yangi: `GET /teaching/overview`, `GET /teaching/groups/:id`. `GET /students/:id/risk` — `factors` 6 tadan 10 taga (qo‘shimcha kalitlar; mavjudlari o‘zgarmagan).
+
+## 6. Permission Changes
+
+Yo‘q. Mavjud `attendance.mark` / `homework.manage` / `group.manage` + `teachingAccess`.
+
+## 7. AI Changes
+
+Yo‘q. Yangi risk omillari — PHASE 9 AI tahlili uchun tushuntiriladigan (FACT) dalillar.
+
+## 8. Tests
+
+Backend **745/745** (+4), frontend **82/82** (+2), E2E **23/23** (+2). Lint/typecheck 0 xato.
+
+## 9. Security Review
+
+- O‘qituvchi `teacherId` parametri bilan begona guruhlarni ololmaydi (testda tekshirilgan); begona guruh jadvali — 404; buxgalter — 403 (API va sahifa).
+- Jadval faqat akademik ko‘rsatkichlarni beradi; qarz summasi yo‘q (risk sababi sifatida faqat ulush).
+
+## 10. Performance
+
+- Butun sahifa bitta signal yig‘imi: ~20 so‘rov guruhlar sonidan qat‘i nazar (N+1 yo‘q); oxirgi faollik `groupBy _max` bilan, ketma-ket topshirmaganlik — bitta oynali SQL.
+- Risk yangidan hisoblanadi, lekin saqlanmaydi (tungi risk job o‘zgarmadi).
+
+## 11. Known Issues
+
+- "Bugun dars" guruh jadvali kunlariga qaraydi; bayram/ko‘chirilgan darslar hisobga olinmaydi.
+- Tez amallardagi "Vazifalar/Imtihonlar" umumiy sahifaga olib boradi (guruh filtri o‘sha sahifalarda qo‘lda tanlanadi).
+
+## 12. Next Phase
+
+**PHASE 9 — AI academic control center** (§30–40): o‘quvchi tahlili (Academic/Attendance/Engagement/Homework/Assessment score, sabablar FACT/OBSERVATION/RECOMMENDATION), deterministik engine bilan to‘qnashmaydi; vazifa tekshiruvchi yordamchi (taklif balli, o‘qituvchi tasdiqlaydi), o‘qituvchi/rahbar yordamchisi, ota-ona uchun xulosa, remedial tavsiyalar; Claude API + graceful fallback, `ai.academic` ruxsati, `AiAnalysis` modeli.

@@ -1,4 +1,5 @@
 import {
+  Presentation,
   BadgePercent,
   Workflow,
   Sparkles,
@@ -83,6 +84,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: 'O‘quv jarayoni',
     items: [
+      { to: '/teaching', label: 'O‘qituvchi markazi', icon: Presentation, permission: PERMISSIONS.ATTENDANCE_MARK },
       { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
       { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/rooms', label: 'Xonalar', icon: DoorOpen, permission: PERMISSIONS.GROUP_VIEW },

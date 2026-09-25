@@ -295,6 +295,11 @@ export const queryKeys = {
     submission: (id: string, studentId: string) => ['homework', 'submission', id, studentId] as const,
     rubrics: (includeInactive: boolean) => ['homework', 'rubrics', includeInactive] as const,
   },
+  teaching: {
+    all: ['teaching'] as const,
+    overview: (teacherId: string) => ['teaching', 'overview', teacherId] as const,
+    group: (id: string) => ['teaching', 'group', id] as const,
+  },
   mastery: {
     all: ['mastery'] as const,
     student: (id: string) => ['mastery', 'student', id] as const,

@@ -32,6 +32,7 @@ import {
 import { AttendanceRanking } from './AttendanceRanking';
 import { AttendanceStats } from './AttendanceStats';
 import { TeacherOverview } from './TeacherOverview';
+import { useSearchParams } from 'react-router-dom';
 
 const GROUP_PAGE_SIZE = 100;
 
@@ -53,7 +54,9 @@ export default function AttendancePage() {
   const canMark = usePermission(PERMISSIONS.ATTENDANCE_MARK);
 
   const [tab, setTab] = useState<Tab>('journal');
-  const [selectedGroupId, setSelectedGroupId] = useState('');
+  // O'qituvchi markazidan "Davomat" bosilsa guruh oldindan tanlangan keladi
+  const [searchParams] = useSearchParams();
+  const [selectedGroupId, setSelectedGroupId] = useState(() => searchParams.get('groupId') ?? '');
   const [date, setDate] = useState(todayValue);
   /** Saqlanmagan o‘zgarishlar: studentId → holat */
   const [draft, setDraft] = useState<Record<string, AttendanceStatus>>({});
