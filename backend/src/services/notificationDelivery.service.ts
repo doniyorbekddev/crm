@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import type { DeliveryChannel, Prisma } from '../generated/prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { escapeHtml, isTelegramEnabled, telegramService } from './telegram.service.js';
+import { metrics } from '../utils/metrics.js';
 
 /**
  * Yetkazish navbati (outbox).
@@ -145,7 +146,10 @@ export const notificationDeliveryService = {
           nextAttemptAt: giveUp ? undefined : backoffFor(attempts),
         },
       });
-      if (giveUp) failed += 1;
+      if (giveUp) {
+        failed += 1;
+        metrics.notificationFailures.inc({ channel: 'TELEGRAM' });
+      }
     }
 
     if (sent > 0 || failed > 0) {

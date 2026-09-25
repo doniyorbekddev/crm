@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { env } from './env.js';
+import { metrics } from '../utils/metrics.js';
 
 const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
 
@@ -11,7 +12,13 @@ export const prisma = new PrismaClient({
   log: [
     { emit: 'event', level: 'warn' },
     { emit: 'event', level: 'error' },
+    // Davomiylik metrikasi uchun (so'rov matni log'ga yozilmaydi)
+    { emit: 'event', level: 'query' },
   ],
+});
+
+prisma.$on('query', (event) => {
+  metrics.dbDuration.observe({}, Number(event.duration) / 1000);
 });
 
 prisma.$on('warn', (event) => {

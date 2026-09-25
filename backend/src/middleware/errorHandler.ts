@@ -1,9 +1,10 @@
-import type { ErrorRequestHandler } from 'express';
+import type { ErrorRequestHandler, Request } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from '../utils/AppError.js';
 import type { ErrorDetail } from '../utils/AppError.js';
 import { sendError } from '../utils/apiResponse.js';
 import { mapPrismaError } from '../utils/prismaErrors.js';
+import { captureException } from '../utils/errorTracker.js';
 
 interface HttpLikeError extends Error {
   status?: number;
@@ -40,6 +41,11 @@ function httpErrorMessage(error: HttpLikeError): string {
  * Markaziy xatolik ushlagich. Foydalanuvchiga tushunarli xabar qaytaradi,
  * texnik tafsilotlarni (stack trace) esa faqat logga yozadi.
  */
+/** Marshrut shabloni (ID emas) — xato kuzatuvida shaxsiy ma'lumot bo'lmasin */
+function routeOf(req: Request): string {
+  return req.route?.path ? `${req.baseUrl}${String(req.route.path)}` : req.baseUrl || 'unmatched';
+}
+
 export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next) => {
   if (res.headersSent) {
     next(error);
@@ -49,6 +55,7 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
   if (error instanceof AppError) {
     if (error.statusCode >= 500) {
       req.log.error({ err: error }, error.message);
+      captureException(error, { route: routeOf(req), method: req.method, userId: req.user?.id ?? null });
     }
     sendError(res, error.statusCode, error.message, error.errors);
     return;
@@ -75,5 +82,6 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
   }
 
   req.log.error({ err: error }, 'Kutilmagan server xatoligi');
+  captureException(error, { route: routeOf(req), method: req.method, userId: req.user?.id ?? null });
   sendError(res, 500, 'Serverda kutilmagan xatolik yuz berdi. Birozdan keyin qayta urinib ko‘ring.');
 };

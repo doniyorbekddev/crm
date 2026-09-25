@@ -33,6 +33,7 @@
     "db:perf-seed": "tsx prisma/perfSeed.ts",
     "db:perf-seed:finance": "tsx prisma/perfSeedFinance.ts",
     "perf:bench": "tsx prisma/perfBenchmark.ts",
+    "perf:load": "tsx scripts/loadTest.ts",
     "telegram:webhook": "tsx scripts/telegramWebhook.ts",
     "telegram:check": "tsx scripts/telegramCheck.ts",
     "telegram:load": "tsx scripts/telegramLoad.ts",

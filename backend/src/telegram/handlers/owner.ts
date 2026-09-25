@@ -12,6 +12,7 @@ import type { DebtListQuery } from '../../validators/payment.validator.js';
 import { fmtDate, moneyUz } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback } from '../keyboards.js';
 import type { BotContext, HandlerResult } from '../types.js';
+import { branchFilter, getBranchAccess } from '../../services/branchAccess.js';
 
 /**
  * Rahbar bo'limlari: bugungi ko'rsatkichlar, qarzdorlar, xavf ostidagi o'quvchilar, ogohlantirishlar.
@@ -106,7 +107,7 @@ export async function showDebtors(context: BotContext, scope: CommandScope): Pro
   if (!actor) return { action: OWNER_ACTIONS.debts };
   if (!(await requirePermission(context, actor, PERMISSIONS.DEBT_VIEW))) return { action: OWNER_ACTIONS.debts };
 
-  const { items, total } = await debtService.list({ page: 1, limit: LIST_LIMIT, range: 'all', sortBy: 'remaining', due: 'all' } as unknown as DebtListQuery);
+  const { items, total } = await debtService.list({ page: 1, limit: LIST_LIMIT, range: 'all', sortBy: 'remaining', due: 'all' } as unknown as DebtListQuery, branchFilter(await getBranchAccess(actor)));
   if (items.length === 0) {
     await context.render('✅ Qarzdor o‘quvchi yo‘q.', [menuRow()]);
     return { action: OWNER_ACTIONS.debts };
@@ -153,7 +154,7 @@ export async function showAlerts(context: BotContext, scope: CommandScope): Prom
   if (!actor) return { action: OWNER_ACTIONS.alerts };
   if (!(await requirePermission(context, actor, PERMISSIONS.ALERT_VIEW))) return { action: OWNER_ACTIONS.alerts };
 
-  const { items, total } = await alertService.list({ page: 1, limit: LIST_LIMIT, status: 'open' } as unknown as AlertListQuery);
+  const { items, total } = await alertService.list({ page: 1, limit: LIST_LIMIT, status: 'open' } as unknown as AlertListQuery, await alertService.scopeFor(actor));
   if (items.length === 0) {
     await context.render('✅ Ochiq ogohlantirish yo‘q.', [menuRow()]);
     return { action: OWNER_ACTIONS.alerts };

@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { metrics } from '../utils/metrics.js';
 
 /**
  * Telegram Bot API mijozi.
@@ -75,8 +76,10 @@ async function request(method: string, payload: Record<string, unknown>): Promis
 
     const body = (await response.json().catch(() => null)) as { description?: string } | null;
     const description = body?.description ?? `HTTP ${response.status}`;
+    metrics.telegramFailures.inc({ method });
     return { ok: false, retryable: response.status === 429 || response.status >= 500, error: description.slice(0, 500) };
   } catch (error) {
+    metrics.telegramFailures.inc({ method });
     return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
   } finally {
     clearTimeout(timer);
@@ -143,8 +146,10 @@ async function uploadDocument(chatId: string, media: { buffer: Buffer; fileName:
     const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`, { method: 'POST', body: form, signal: controller.signal });
     if (response.ok) return { ok: true, retryable: false };
     const body = (await response.json().catch(() => null)) as { description?: string } | null;
+    metrics.telegramFailures.inc({ method: 'sendDocument' });
     return { ok: false, retryable: response.status === 429 || response.status >= 500, error: (body?.description ?? `HTTP ${response.status}`).slice(0, 500) };
   } catch (error) {
+    metrics.telegramFailures.inc({ method: 'sendDocument' });
     return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
   } finally {
     clearTimeout(timer);
@@ -324,9 +329,11 @@ export const telegramService = {
       const description = body?.description ?? `HTTP ${response.status}`;
       // 429 — juda ko'p so'rov, 5xx — Telegram tomonidagi vaqtinchalik nosozlik
       const retryable = response.status === 429 || response.status >= 500;
+      metrics.telegramFailures.inc({ method: 'sendMessage' });
       return { ok: false, retryable, error: description.slice(0, 500) };
     } catch (error) {
       // Tarmoq xatosi yoki timeout — keyinroq qayta urinib ko'riladi
+      metrics.telegramFailures.inc({ method: 'sendMessage' });
       return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
     } finally {
       clearTimeout(timer);

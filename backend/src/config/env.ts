@@ -84,6 +84,12 @@ const envSchema = z
     ANTHROPIC_API_KEY: optionalString,
     AI_MODEL: z.string().trim().min(3).default('claude-sonnet-5'),
     AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(25_000),
+    // --- Kuzatuv (TZ 3.0 §68) ---
+    /** `/metrics` (Prometheus) uchun Bearer token; bo'sh — endpoint o'chiq (404) */
+    // Qisqa token taxmin qilinishi mumkin — /metrics ichki holatni (navbat, xatolar) ochadi
+    METRICS_TOKEN: optionalString.refine((value) => value === undefined || value.length >= 24, 'METRICS_TOKEN kamida 24 belgi bo‘lishi kerak'),
+    /** Xatolarni Sentry'ga yuborish (ixtiyoriy): https://<key>@<host>/<projectId> */
+    SENTRY_DSN: optionalString,
     /** Sinov to'lov provayderi uchun imzo kaliti — bo'sh bo'lsa provayder o'chiq */
     PAYMENT_SANDBOX_SECRET: optionalString,
   })

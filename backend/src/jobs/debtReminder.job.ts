@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { logger } from '../utils/logger.js';
 import { moneyUz } from '../utils/money.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /** Har 30 daqiqada tekshiriladi, lekin bildirishnoma kuniga bir marta yuboriladi (dedupeKey orqali) */
 const INTERVAL_MS = 30 * 60_000;
@@ -63,7 +64,7 @@ async function runOnce(): Promise<void> {
       logger.info({ sent }, 'Qarzdorlik bo‘yicha kunlik bildirishnoma yuborildi');
     }
   } catch (error) {
-    logger.error({ err: error }, 'Qarzdorlik eslatmasi jobida xatolik');
+    reportJobFailure('debtReminder', error, 'Qarzdorlik eslatmasi jobida xatolik');
   } finally {
     running = false;
   }

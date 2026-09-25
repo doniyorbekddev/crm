@@ -16,6 +16,7 @@ import { financeService } from './finance.service.js';
 import { computeTargetProgress } from './target.service.js';
 import { scheduleDueStats } from './paymentSchedule.service.js';
 import { moneyUz } from '../utils/money.js';
+import { getBranchAccess } from './branchAccess.js';
 
 /**
  * Avtomatik ogohlantirishlar.
@@ -864,7 +865,16 @@ export const alertService = {
     return { created, updated, resolved, open };
   },
 
-  async list(query: AlertListQuery): Promise<{ items: AlertDto[]; total: number }> {
+  /**
+   * Filial doirasi: filialga biriktirilgan xodim markaz bo'yicha umumiy (branchId yo'q) va o'z
+   * filiali ogohlantirishlarini ko'radi; barcha filial ruxsati bo'lsa — hammasi.
+   */
+  async scopeFor(actor: AuthUser): Promise<Prisma.AlertWhereInput> {
+    const access = await getBranchAccess(actor);
+    return access.canViewAll ? {} : { OR: [{ branchId: null }, { branchId: access.branchId }] };
+  },
+
+  async list(query: AlertListQuery, scope: Prisma.AlertWhereInput = {}): Promise<{ items: AlertDto[]; total: number }> {
     const statusWhere: Prisma.AlertWhereInput =
       query.status === 'open'
         ? { resolvedAt: null }
@@ -874,6 +884,7 @@ export const alertService = {
             ? { resolvedAt: { not: null } }
             : {};
     const where: Prisma.AlertWhereInput = {
+      AND: [scope],
       ...statusWhere,
       ...(query.type ? { type: query.type } : {}),
       ...(query.severity ? { severity: query.severity } : {}),
@@ -896,10 +907,10 @@ export const alertService = {
     return { items: items.map(toDto), total };
   },
 
-  async summary(): Promise<AlertSummaryDto> {
+  async summary(scope: Prisma.AlertWhereInput = {}): Promise<AlertSummaryDto> {
     const grouped = await prisma.alert.groupBy({
       by: ['severity', 'type'],
-      where: { resolvedAt: null },
+      where: { AND: [scope, { resolvedAt: null }] },
       _count: { _all: true },
     });
     const bySeverity: Record<AlertSeverity, number> = { INFO: 0, SUCCESS: 0, WARNING: 0, CRITICAL: 0 };
@@ -910,7 +921,7 @@ export const alertService = {
     }
     return {
       open: grouped.reduce((sum, row) => sum + row._count._all, 0),
-      unread: await prisma.alert.count({ where: { resolvedAt: null, readAt: null } }),
+      unread: await prisma.alert.count({ where: { AND: [scope, { resolvedAt: null, readAt: null }] } }),
       bySeverity,
       byType: [...byType.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
     };
@@ -918,7 +929,7 @@ export const alertService = {
 
   /** "O‘qildi" — takroriy chaqiruv o‘zgartirmaydi */
   async markRead(actor: AuthUser, id: string): Promise<AlertDto> {
-    const alert = await prisma.alert.findUnique({ where: { id }, select: { readAt: true } });
+    const alert = await prisma.alert.findFirst({ where: { AND: [{ id }, await this.scopeFor(actor)] }, select: { readAt: true } });
     if (!alert) {
       throw AppError.notFound('Ogohlantirish topilmadi');
     }
@@ -930,7 +941,7 @@ export const alertService = {
 
   async markAllRead(actor: AuthUser): Promise<{ updated: number }> {
     const result = await prisma.alert.updateMany({
-      where: { resolvedAt: null, readAt: null },
+      where: { AND: [await this.scopeFor(actor), { resolvedAt: null, readAt: null }] },
       data: { readAt: new Date(), readById: actor.id },
     });
     return { updated: result.count };
@@ -938,7 +949,7 @@ export const alertService = {
 
   /** Qo‘lda yopish (dismiss) — muammo davom etsa ham qayta ochilmaydi, to‘g‘rilangach arxivlanadi */
   async resolve(actor: AuthUser, id: string, input: ResolveAlertInput, client: ClientInfo): Promise<AlertDto> {
-    const alert = await prisma.alert.findUnique({ where: { id }, select: { id: true, title: true, resolvedAt: true, readAt: true, metadata: true } });
+    const alert = await prisma.alert.findFirst({ where: { AND: [{ id }, await this.scopeFor(actor)] }, select: { id: true, title: true, resolvedAt: true, readAt: true, metadata: true } });
     if (!alert) {
       throw AppError.notFound('Ogohlantirish topilmadi');
     }

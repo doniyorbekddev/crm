@@ -151,8 +151,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Qancha qarzdor bor?', 'Qarzdorlik qancha?'],
     keywords: ['qarz', 'qarzdor', 'to\'lamagan', 'tolamagan', 'debt'],
     permission: PERMISSIONS.DEBT_VIEW,
-    async run() {
-      const summary = await debtService.summary({ page: 1, limit: 1 } as never);
+    async run({ branch }) {
+      const summary = await debtService.summary({ page: 1, limit: 1 } as never, branchFilter(branch));
       return {
         answer: `${summary.students} o'quvchida jami ${moneyUz(summary.totalRemaining)} qarz bor.`,
         details: [

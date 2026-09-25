@@ -80,6 +80,7 @@ export interface Subject {
   groupName: string | null;
   teacherId: string | null;
   courseId: string;
+  branchId: string;
   topicId?: string;
   topicTitle?: string;
   detail: string;
@@ -96,8 +97,8 @@ function studentScope(conditions: Conditions): Prisma.StudentWhereInput {
   };
 }
 
-const studentSelect = { id: true, firstName: true, lastName: true, groupId: true, courseId: true, group: { select: { name: true, teacherId: true } } } as const;
-type StudentRow = { id: string; firstName: string; lastName: string; groupId: string | null; courseId: string; group: { name: string; teacherId: string | null } | null };
+const studentSelect = { id: true, firstName: true, lastName: true, groupId: true, courseId: true, branchId: true, group: { select: { name: true, teacherId: true } } } as const;
+type StudentRow = { id: string; firstName: string; lastName: string; groupId: string | null; courseId: string; branchId: string; group: { name: string; teacherId: string | null } | null };
 
 function subjectOf(student: StudentRow, detail: string, extra: Partial<Subject> = {}): Subject {
   return {
@@ -108,6 +109,7 @@ function subjectOf(student: StudentRow, detail: string, extra: Partial<Subject> 
     groupName: student.group?.name ?? null,
     teacherId: student.group?.teacherId ?? null,
     courseId: student.courseId,
+    branchId: student.branchId,
     detail,
     ...extra,
   };
@@ -305,6 +307,8 @@ export async function runActions(
               entityType: 'student',
               entityId: subject.studentId,
               metadata: { ruleKey: rule.key, groupId: subject.groupId } as Prisma.InputJsonValue,
+              // Filialga bog'langan xodim faqat o'z filiali o'quvchisi haqidagini ko'radi
+              branchId: subject.branchId,
               dedupeKey: `${base}:alert`.slice(0, 150),
             },
           ],

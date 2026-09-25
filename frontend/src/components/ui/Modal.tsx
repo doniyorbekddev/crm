@@ -1,7 +1,8 @@
 import { X } from 'lucide-react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { isTopDialog, useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/lib/cn';
 
 const SIZES = {
@@ -26,11 +27,13 @@ interface ModalProps {
 /** Mobil’da pastdan chiquvchi panel (bottom sheet), desktop’da markazdagi oyna. */
 export function Modal({ open, title, description, onClose, children, footer, size = 'md', closeDisabled = false }: ModalProps) {
   const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !closeDisabled) onClose();
+      if (event.key === 'Escape' && !closeDisabled && isTopDialog(dialogRef.current)) onClose();
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -47,11 +50,13 @@ export function Modal({ open, title, description, onClose, children, footer, siz
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-slate-950/50" aria-hidden onClick={() => !closeDisabled && onClose()} />
       <div
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'relative flex max-h-[92vh] w-full flex-col rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-xl',
+          'relative flex max-h-[92vh] w-full flex-col outline-none rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-xl',
           SIZES[size],
         )}
       >

@@ -19,6 +19,7 @@ import { telegramService } from './services/telegram.service.js';
 import { BOT_COMMAND_MENU } from './services/telegramCommand.service.js';
 import { startTelegramPolling } from './telegram/polling.js';
 import { logger } from './utils/logger.js';
+import { captureException } from './utils/errorTracker.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -106,9 +107,11 @@ process.on('SIGTERM', shutdown);
 
 process.on('unhandledRejection', (reason) => {
   logger.error({ err: reason }, 'Ushlanmagan promise rejection');
+  captureException(reason, { tags: { source: 'unhandledRejection' } });
 });
 
 process.on('uncaughtException', (error) => {
   logger.fatal({ err: error }, 'Ushlanmagan xatolik — jarayon to‘xtatiladi');
+  captureException(error, { tags: { source: 'uncaughtException' } });
   process.exit(1);
 });

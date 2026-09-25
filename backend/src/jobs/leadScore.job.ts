@@ -1,5 +1,6 @@
 import { leadScoreService } from '../services/leadScore.service.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /**
  * Lead ballarini qayta hisoblaydi. Har 30 daqiqada — ball vaqtga ham bog'liq
@@ -16,7 +17,7 @@ async function runOnce(): Promise<void> {
     const result = await leadScoreService.recalculateAll(new Date());
     if (result.updated > 0) logger.info(result, 'Lead ballari yangilandi');
   } catch (error) {
-    logger.error({ err: error }, 'Lead scoring jobida xatolik');
+    reportJobFailure('leadScore', error, 'Lead scoring jobida xatolik');
   } finally {
     running = false;
   }

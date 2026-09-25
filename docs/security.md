@@ -25,7 +25,7 @@ Kabinet (o‘quvchi/ota-ona) — **xuddi shu** mexanizm; alohida auth yo‘q.
 ## 2. Avtorizatsiya (RBAC)
 
 - `requirePermission(...all)` / `requireAnyPermission(...any)` — har route.
-- Ruxsatlar `config/permissions.ts` (90 ta), rollar DB da, tizim rollari sinxronlanadi.
+- Ruxsatlar `config/permissions.ts` (92 ta), rollar DB da, tizim rollari sinxronlanadi.
 - Kabinet rollari (`STUDENT`, `PARENT`) faqat `portal.*` ruxsatga ega — xodim endpointlari 403 (`portal.test.ts`).
 - Xodimga `portal.*` berilmaydi — aks holda u kabinetga "tushib qolardi" (`permissions.ts` izohi).
 
@@ -70,11 +70,28 @@ Kabinet (o‘quvchi/ota-ona) — **xuddi shu** mexanizm; alohida auth yo‘q.
 | Filial A → Filial B | `branchIsolation.test.ts` | ro‘yxatda yo‘q / 403 |
 | Rol matritsasi | `securityHardening.test.ts`, `rbac.spec.ts` (E2E) | |
 
+| **Barcha endpointlar (§57)** | `endpointSecurity.test.ts` | tokensiz 401; ruxsatsiz rol 403 |
+| Filial A → Filial B (qarz, ogohlantirish) | `branchScopeDebtAlerts.test.ts` | ro‘yxatda/summada yo‘q, 404 |
+
 Yangi endpoint qo‘shilganda shu jadvalga qator qo‘shiladi.
+
+## 6.1. Endpoint inventari (TZ 3.0 §57)
+
+`tests/endpointSecurity.test.ts` **barcha ro‘yxatdan o‘tgan marshrutlarni** Express routerlaridan avtomatik yig‘adi (440+) va har biriga ikki so‘rov yuboradi:
+
+1. **Authentication** — tokensiz → 401. Istisno (`PUBLIC`): health, login/register/refresh/logout, parol tiklash, Telegram va to‘lov webhooklari (imzo/secret bilan), sertifikat QR tekshiruvi (tasodifiy token + `heavyLimiter`).
+2. **Authorization / Permission** — hech qanday ruxsati yo‘q rol → 403. Istisno (`AUTH_ONLY`) — faqat o‘ziga tegishli: profil, sozlamalar, bildirishnomalar, Telegram ulanishi, "Ishlarim" (`requireStaff`), filial tanlash (o‘z filiali), hujjatlar (servisda egalik, begona — 404), qidiruv (natija ruxsat bo‘yicha — ruxsatsiz rolga bo‘sh, test bilan).
+
+Yangi endpoint himoyasiz qo‘shilsa yoki istisno ro‘yxatida eskirgan yozuv qolsa — test yiqiladi.
+Qolgan bandlar: **Ownership** — §3 va §6 jadvali; **Validation** — zod (`validators/`); **Audit** — `AuditLog` (o‘zgartiruvchi amallar).
+
+## 6.2. Kuzatuv va xato hisobotlari
+
+`/metrics` (faqat `METRICS_TOKEN` bilan, aks holda 404), Sentry (ixtiyoriy DSN, shaxsiy ma’lumot yashiriladi) — [observability.md](observability.md).
 
 ## 7. Ma’lum bo‘shliqlar (ROADMAP)
 
-- `debtService.list`, `alertService.list` filial doirasini olmaydi (veb va bot) — PHASE 14.
+- ~~`debtService.list`, `alertService.list` filial doirasini olmaydi~~ — PHASE 14 da tuzatildi (veb, bot, AI tool; `alerts.branchId`).
 - Teaching scope 6 servisda alohida nusxa, mezon farqli (`!GROUP_MANAGE` vs `ATTENDANCE_MARK`) — bosqichma-bosqich `teachingAccess.ts` ga.
 - 2FA yo‘q (TZ talab qilmaydi).
-- Modal focus-trap yo‘q (a11y, PHASE 14).
+- ~~Modal focus-trap yo‘q~~ — PHASE 14: `useFocusTrap` (Tab aylanishi, fokus qaytishi, ichma-ich oynada faqat ustkisi; Esc ham).

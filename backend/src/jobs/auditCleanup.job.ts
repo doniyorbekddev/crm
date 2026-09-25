@@ -2,6 +2,7 @@ import { cleanupAuditLogs } from '../services/audit.service.js';
 import { telegramLinkService } from '../services/telegramLink.service.js';
 import { telegramSessionService } from '../telegram/session.service.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /**
  * Audit jurnalini saqlash muddati bo'yicha tozalaydi.
@@ -31,7 +32,7 @@ async function runOnce(): Promise<void> {
     const codes = await telegramLinkService.purgeExpiredCodes(new Date());
     if (codes > 0) logger.info({ codes }, 'Muddati o‘tgan Telegram kodlari tozalandi');
   } catch (error) {
-    logger.error({ err: error }, 'Audit tozalash jobida xatolik');
+    reportJobFailure('auditCleanup', error, 'Audit tozalash jobida xatolik');
   } finally {
     running = false;
   }

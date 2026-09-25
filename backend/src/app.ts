@@ -11,6 +11,10 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { slowRequestLogger } from './middleware/slowRequest.js';
 import { apiRouter } from './routes/index.js';
+import { timingSafeEqual } from 'node:crypto';
+import { renderMetrics } from './utils/metrics.js';
+// O'lchagichlarni ro'yxatdan o'tkazadi (navbat hajmi, ishlar, urinishlar)
+import './services/observability.js';
 
 /**
  * Express ilovasini yaratadi. `listen` bu yerda chaqirilmaydi —
@@ -59,6 +63,18 @@ export function createApp(): Express {
   app.use(cookieParser());
   app.use(requestLogger);
   app.use(slowRequestLogger);
+
+  // Prometheus metrikalari (TZ §68): faqat METRICS_TOKEN sozlanganda va Bearer token bilan
+  app.get('/metrics', async (req, res) => {
+    const expected = env.METRICS_TOKEN;
+    const given = Buffer.from((req.header('authorization') ?? '').replace(/^Bearer\s+/i, ''));
+    // Bayt uzunligi solishtiriladi (timingSafeEqual turli uzunlikda throw qiladi — ASCII bo'lmagan belgi)
+    if (!expected || given.length !== Buffer.byteLength(expected) || !timingSafeEqual(given, Buffer.from(expected))) {
+      res.status(404).end();
+      return;
+    }
+    res.type('text/plain; version=0.0.4').send(await renderMetrics());
+  });
 
   app.use('/api', apiLimiter, apiRouter);
 

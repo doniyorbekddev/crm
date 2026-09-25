@@ -1,5 +1,6 @@
 import { alertService } from '../services/alert.service.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /** Har 30 daqiqada qoidalar tekshiriladi; takrorlanish `dedupeKey` bilan bloklanadi */
 const INTERVAL_MS = 30 * 60_000;
@@ -15,7 +16,7 @@ async function runOnce(): Promise<void> {
       logger.info(result, 'Ogohlantirishlar yangilandi');
     }
   } catch (error) {
-    logger.error({ err: error }, 'Ogohlantirishlar jobida xatolik');
+    reportJobFailure('alerts', error, 'Ogohlantirishlar jobida xatolik');
   } finally {
     running = false;
   }

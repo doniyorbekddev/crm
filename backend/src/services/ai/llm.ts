@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import { env, isTest } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
+import { metrics } from '../../utils/metrics.js';
 
 /**
  * Til modeli qatlami (Claude API). **Ixtiyoriy**: `ANTHROPIC_API_KEY` bo'lmasa `llmAvailable()`
@@ -112,14 +113,17 @@ export async function completeJson<T>(request: LlmRequest, schema: z.ZodType<T>,
   const started = Date.now();
   try {
     const response = await client(request);
+    metrics.aiDuration.observe({ purpose }, (Date.now() - started) / 1000);
     const parsed = schema.safeParse(extractJson(response.text));
     if (!parsed.success) {
+      metrics.aiErrors.inc({ purpose, reason: 'schema' });
       logger.warn({ purpose, model: response.model, durationMs: Date.now() - started }, 'AI javobi sxemaga mos kelmadi — qoidalar natijasi ishlatildi');
       return null;
     }
     logger.info({ purpose, model: response.model, inputTokens: response.inputTokens, outputTokens: response.outputTokens, durationMs: Date.now() - started }, 'AI tahlil');
     return { data: parsed.data, model: response.model, inputTokens: response.inputTokens, outputTokens: response.outputTokens };
   } catch (error) {
+    metrics.aiErrors.inc({ purpose, reason: 'request' });
     logger.warn({ purpose, err: error instanceof Error ? error.message : 'unknown', durationMs: Date.now() - started }, 'AI xizmati javob bermadi — qoidalar natijasi ishlatildi');
     return null;
   }

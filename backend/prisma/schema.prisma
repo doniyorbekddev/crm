@@ -2750,6 +2750,8 @@ model Alert {
   metadata     Json?
   /// Bir xil ogohlantirish takrorlanmasligi uchun: "high-debt:2026-09"
   dedupeKey    String?       @unique @db.VarChar(150)
+  /// Filialga oid ogohlantirish (masalan o'quvchi haqida); null — butun markaz bo'yicha
+  branchId     String?       @db.VarChar(50)
   resolvedAt   DateTime?
   resolvedById String?
   /// "O‘qildi" — kim birinchi ko‘rgan; daraja oshsa qayta o‘qilmagan bo‘ladi
@@ -2762,6 +2764,7 @@ model Alert {
 
   @@index([resolvedAt, createdAt])
   @@index([resolvedAt, readAt])
+  @@index([branchId, resolvedAt])
   @@index([type, createdAt])
   @@index([severity])
   @@map("alerts")

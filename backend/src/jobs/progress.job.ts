@@ -4,6 +4,7 @@ import { masteryService } from '../services/mastery.service.js';
 import { progressSnapshotService } from '../services/progressSnapshot.service.js';
 import { businessDateString, currentBusinessMonth } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /**
  * Tungi progress vazifasi (TZ 3.0 §26–27), kuniga bir marta, o'quv markaz vaqti bilan 03:00 dan keyin:
@@ -43,7 +44,7 @@ async function runOnce(): Promise<void> {
     lastRunDay = today;
     logger.info(result, 'Tungi progress: o‘zlashtirish va oylik snapshot');
   } catch (error) {
-    logger.error({ err: error }, 'Tungi progress jobida xatolik');
+    reportJobFailure('progress', error, 'Tungi progress jobida xatolik');
   } finally {
     running = false;
   }

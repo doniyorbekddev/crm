@@ -14,6 +14,7 @@ import {
 } from '../validators/payment.validator.js';
 import { businessDateString } from '../utils/dates.js';
 import { sendTable } from '../utils/tableExport.js';
+import { branchFilter, getBranchAccess } from '../services/branchAccess.js';
 
 export const paymentController = {
   /** Filtrlangan ro‘yxatni CSV yoki XLSX ga eksport qilish */
@@ -70,12 +71,12 @@ export const paymentController = {
 export const debtController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = debtListQuerySchema.parse(req.query);
-    const { items, total } = await debtService.list(query);
+    const { items, total } = await debtService.list(query, branchFilter(await getBranchAccess(requireAuthUser(req))));
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
   async summary(req: Request, res: Response): Promise<void> {
     const query = debtListQuerySchema.parse(req.query);
-    sendSuccess(res, await debtService.summary(query));
+    sendSuccess(res, await debtService.summary(query, branchFilter(await getBranchAccess(requireAuthUser(req)))));
   },
 };

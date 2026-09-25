@@ -98,8 +98,12 @@ function toDebtDto(debt: DebtRecord, stats: StudentDueStats | undefined): DebtDt
   };
 }
 
-function buildDebtWhere(query: Partial<DebtListQuery>): Prisma.DebtWhereInput {
-  const studentFilter: Prisma.StudentWhereInput = { deletedAt: null };
+/**
+ * `scope` — filial doirasi (`branchFilter`): filialga biriktirilgan xodim faqat o'z filiali
+ * o'quvchilari qarzini ko'radi (web, Telegram bot va AI yordamchi — bir xil qoida).
+ */
+function buildDebtWhere(query: Partial<DebtListQuery>, scope: Prisma.StudentWhereInput = {}): Prisma.DebtWhereInput {
+  const studentFilter: Prisma.StudentWhereInput = { deletedAt: null, ...scope };
   if (query.courseId) studentFilter.courseId = query.courseId;
   if (query.groupId) studentFilter.groupId = query.groupId;
 
@@ -139,9 +143,9 @@ function buildOrderBy(
 }
 
 export const debtService = {
-  async list(query: DebtListQuery): Promise<{ items: DebtDto[]; total: number }> {
+  async list(query: DebtListQuery, scope: Prisma.StudentWhereInput = {}): Promise<{ items: DebtDto[]; total: number }> {
     const now = new Date();
-    let where = buildDebtWhere(query);
+    let where = buildDebtWhere(query, scope);
     if (query.due !== 'all') {
       const stats = await scheduleDueStats(now);
       const ids = [...stats]
@@ -165,8 +169,8 @@ export const debtService = {
   },
 
   /** Umumiy qarzdorlik va oraliqlar kesimi (ro‘yxat filtrlarini hisobga oladi, `range` dan tashqari) */
-  async summary(query: DebtListQuery): Promise<DebtSummaryDto> {
-    const baseWhere = buildDebtWhere({ ...query, range: 'all' });
+  async summary(query: DebtListQuery, scope: Prisma.StudentWhereInput = {}): Promise<DebtSummaryDto> {
+    const baseWhere = buildDebtWhere({ ...query, range: 'all' }, scope);
     const aggregate = await prisma.debt.aggregate({
       where: baseWhere,
       _sum: { remainingAmount: true, paidAmount: true, totalAmount: true },

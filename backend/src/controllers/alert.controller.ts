@@ -17,12 +17,12 @@ import {
 export const alertController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = alertListQuerySchema.parse(req.query);
-    const { items, total } = await alertService.list(query);
+    const { items, total } = await alertService.list(query, await alertService.scopeFor(requireAuthUser(req)));
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
-  async summary(_req: Request, res: Response): Promise<void> {
-    sendSuccess(res, await alertService.summary());
+  async summary(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await alertService.summary(await alertService.scopeFor(requireAuthUser(req))));
   },
 
   async evaluate(_req: Request, res: Response): Promise<void> {

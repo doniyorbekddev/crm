@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { notifyHomeworkDeadline } from '../services/studentNotify.service.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /**
  * Uy vazifasi fon vazifasi (TZ 3.0 §42: "Homework deadline"), har 30 daqiqada:
@@ -47,7 +48,7 @@ async function runOnce(): Promise<void> {
     const result = await runHomeworkReminders();
     if (result.reminded > 0 || result.missed > 0) logger.info(result, 'Uy vazifasi eslatmalari');
   } catch (error) {
-    logger.error({ err: error }, 'Uy vazifasi eslatma jobida xatolik');
+    reportJobFailure('homeworkReminder', error, 'Uy vazifasi eslatma jobida xatolik');
   } finally {
     running = false;
   }

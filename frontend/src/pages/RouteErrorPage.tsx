@@ -1,6 +1,8 @@
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { useEffect } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { reportError } from '@/lib/errorReporter';
 
 function describeError(error: unknown): string {
   if (isRouteErrorResponse(error)) {
@@ -15,6 +17,11 @@ function describeError(error: unknown): string {
 
 export default function RouteErrorPage() {
   const error = useRouteError();
+
+  useEffect(() => {
+    // 404 va boshqa marshrut javoblari — xato emas; faqat haqiqiy render xatolari yuboriladi
+    if (!isRouteErrorResponse(error)) reportError(error, 'route');
+  }, [error]);
 
   return (
     <main className="flex min-h-full flex-col items-center justify-center gap-4 px-4 py-16 text-center">

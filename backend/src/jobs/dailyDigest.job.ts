@@ -1,5 +1,6 @@
 import { digestService } from '../services/digest.service.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 /** Har 30 daqiqada tekshiriladi; belgilangan soatdan keyin kuniga bir marta yuboriladi (dedupeKey) */
 const INTERVAL_MS = 30 * 60_000;
@@ -15,7 +16,7 @@ async function runOnce(): Promise<void> {
       logger.info(result, 'Kunlik xulosa yuborildi');
     }
   } catch (error) {
-    logger.error({ err: error }, 'Kunlik xulosa jobida xatolik');
+    reportJobFailure('dailyDigest', error, 'Kunlik xulosa jobida xatolik');
   } finally {
     running = false;
   }

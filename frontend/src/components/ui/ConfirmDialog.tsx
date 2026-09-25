@@ -1,8 +1,9 @@
 import { AlertTriangle } from 'lucide-react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
+import { isTopDialog, useFocusTrap } from '@/hooks/useFocusTrap';
 import { cn } from '@/lib/cn';
 
 interface ConfirmDialogProps {
@@ -30,12 +31,14 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
   const descriptionId = useId();
 
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !loading) onCancel();
+      if (event.key === 'Escape' && !loading && isTopDialog(dialogRef.current)) onCancel();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
@@ -47,11 +50,13 @@ export function ConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/50" aria-hidden onClick={() => !loading && onCancel()} />
       <div
+        ref={dialogRef}
         role="alertdialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl outline-none"
       >
         <div className="flex gap-4">
           <div

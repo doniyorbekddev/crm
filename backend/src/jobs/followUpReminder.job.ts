@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
 import { logger } from '../utils/logger.js';
+import { reportJobFailure } from '../services/observability.js';
 
 const INTERVAL_MS = 60_000;
 const BATCH_SIZE = 50;
@@ -100,7 +101,7 @@ async function runOnce(): Promise<void> {
       logger.info({ reminders, overdue }, 'Follow-up eslatmalari yuborildi');
     }
   } catch (error) {
-    logger.error({ err: error }, 'Follow-up eslatmalari jobida xatolik');
+    reportJobFailure('followUpReminder', error, 'Follow-up eslatmalari jobida xatolik');
   } finally {
     running = false;
   }

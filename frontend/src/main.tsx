@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { toast } from 'sonner';
 import { App } from './App';
+import { installGlobalErrorReporting } from './lib/errorReporter';
 import { applyServiceWorkerUpdate, registerServiceWorker } from './lib/pwa';
 import './index.css';
 
@@ -10,6 +11,8 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('index.html ichida #root elementi topilmadi');
 }
+
+installGlobalErrorReporting();
 
 createRoot(rootElement).render(
   <StrictMode>

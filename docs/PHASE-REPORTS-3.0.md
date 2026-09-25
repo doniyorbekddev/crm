@@ -850,3 +850,61 @@ Backend **777/777** (+5), frontend **89/89** (+2), E2E **28/28** (+2). Lint/type
 ## 12. Next Phase
 
 **PHASE 14 — Security + performance**: Sentry (ixtiyoriy DSN), `/metrics`, qarz/ogohlantirish filial doirasi, yuk testi, focus trap (modal), sekin so‘rovlar tahlili.
+
+---
+
+# PHASE 14 COMPLETE — Security + performance + observability
+
+Sana: 2026-09-25. Batafsil: [observability.md](observability.md), [security.md](security.md) §6.1–6.2, §7.
+
+## 1. Implemented
+
+- **§57 API security**: barcha 440+ endpoint avtomatik inventar testi — tokensiz 401, ruxsatsiz rol 403; ochiq/"faqat o‘ziniki" istisnolari asoslangan ro‘yxatda.
+- **Filial doirasi (audit bo‘shlig‘i)**: qarzdorlar ro‘yxati/summasi va ogohlantirishlar (ro‘yxat, summa, o‘qildi, hal qilindi) — veb, owner bot, AI tool; `alerts.branchId`.
+- **§68 observability**: Prometheus metrikalari (API/DB/AI latency, AI xatolari, bildirishnoma va Telegram xatolari, navbat hajmi, job xatolari), `GET /metrics` (token bilan), Sentry (backend + frontend, ixtiyoriy DSN, shaxsiy ma’lumot yashiriladi), 14 job — `reportJobFailure`.
+- **§67 performance**: `npm run perf:load` yuk testi; 9 og‘ir endpoint p95 ≤ 61 ms (chegara 800 ms).
+- **§54 accessibility**: Modal/ConfirmDialog focus trap — Tab aylanishi, yopilganda fokus ochgan elementga qaytadi, ichma-ich oynada faqat ustkisi Tab/Esc ni oladi (oldin Esc ikkala oynani yopardi).
+
+## 2–3. Files
+
+Backend yangi: `utils/metrics.ts`, `utils/errorTracker.ts`, `services/observability.ts`, `scripts/loadTest.ts`, testlar `branchScopeDebtAlerts`, `observability`, `endpointSecurity`, migratsiya `20260926220000_alert_branch_scope`. O‘zgargan: `app.ts` (`/metrics`), `config/env.ts` (`METRICS_TOKEN` ≥ 24, `SENTRY_DSN`), `config/database.ts`, `middleware/slowRequest.ts`, `middleware/errorHandler.ts`, `server.ts`, `services/ai/llm.ts`, `services/ai/tools.ts`, `alert.service.ts`, `debt.service.ts`, `automationBuilder.ts`, `notificationDelivery.service.ts`, `telegram.service.ts`, `telegram/handlers/owner.ts`, `controllers/alert|payment.controller.ts`, 14 ta `jobs/*.job.ts`, `package.json`, `.env.example`, `schema.prisma`.
+Frontend yangi: `hooks/useFocusTrap(.test)`, `lib/errorReporter(.test)`. O‘zgargan: `Modal`, `ConfirmDialog`, `main.tsx`, `RouteErrorPage`, `vite-env.d.ts`, `.env.example`. Docs: `observability.md` (yangi), `security.md`.
+
+## 4. Database Changes
+
+(oldin `pg_dump`, faqat qo‘shish) `alerts.branchId` (nullable `VARCHAR(50)`, FK'siz — `targetType/targetId` kabi yumshoq bog‘lanish) + indeks `(branchId, resolvedAt)`. Avtomatlashtirish ogohlantirishlari filialni yozadi; eski yozuvlar `null` — faqat `branch.view_all` ko‘radi.
+
+## 5. API Changes
+
+Yangi: `GET /metrics` (API tashqarisida, token bo‘lmasa 404). `/debts`, `/debts/summary`, `/alerts*` — filial doirasida (javob shakli o‘zgarmadi).
+
+## 6. Permission Changes
+
+Yo‘q. Mavjud `branch.view_all` qarz va ogohlantirishlarga ham qo‘llanildi.
+
+## 7. AI Changes
+
+AI so‘rovlari metrikasi (davomiylik, xato turi). AI tool `debts` endi so‘rovchi filiali doirasida.
+
+## 8. Tests
+
+Backend **789/789** (+12), frontend **96/96** (+7), E2E **28/28**. Lint 0 xato (1 eski ogohlantirish), typecheck 0 xato.
+
+## 9. Security Review
+
+- Endpoint inventari 22 ta ruxsatsiz kirish nuqtasini aniqladi — hammasi ko‘rib chiqildi: o‘z ma’lumoti (profil, bildirishnoma, ishlar) yoki servisda egalik (hujjat, filial, qidiruv); qidiruv ruxsatsiz rolga bo‘sh qaytishi test bilan.
+- `/metrics`: ASCII bo‘lmagan token `timingSafeEqual` ni yiqitib 500 berardi — bayt uzunligi solishtiriladi (test).
+- Sentry/metrikalarda email, telefon, JWT, parol yo‘q (testlar).
+
+## 10. Performance
+
+Yuk testi natijalari — [observability.md §4](observability.md). IP limiti (300/daq) yuk ostida 429 qaytaradi — kutilgan xatti-harakat.
+
+## 11. Known Issues
+
+- Yuk testi E2E seed bazasida (kichik hajm); katta hajm uchun `db:perf-seed` bilan alohida bazada qayta o‘lchash tavsiya etiladi.
+- Eski ogohlantirishlarda `branchId = null` — filial rahbari ularni ko‘rmaydi (yangi ogohlantirishlar to‘g‘ri).
+
+## 12. Next Phase
+
+**PHASE 15 — To‘liq E2E oqimlar (§64–66)**, qo‘shimcha frontend testlar, `docs/testing.md`.
