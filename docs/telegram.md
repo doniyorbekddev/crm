@@ -4,8 +4,20 @@ Bot CRM backend ichidagi modul (`backend/src/telegram`). U **yangi biznes-mantiq
 har bir amal CRM servisini `scope.actor` (xodim) yoki bog'langan o'quvchi/ota-ona nomidan
 chaqiradi — ruxsat, doira (o'qituvchi faqat o'z guruhi, filial) va audit web bilan bir xil.
 
-Batafsil: [arxitektura](telegram-architecture.md) · [xavfsizlik](telegram-security.md) ·
-[deploy](telegram-deployment.md) · [dastlabki audit](TELEGRAM-BOT-AUDIT.md).
+## Hujjatlar
+
+| Hujjat | Nima haqida |
+|---|---|
+| [telegram-architecture.md](telegram-architecture.md) | bot nega CRM ichida, fayllar, qatlamlar, jadvallar, bo'limlar tarixi |
+| [telegram-api.md](telegram-api.md) | HTTP endpointlar, Bot API metodlari, buyruqlar, callback prefikslari, chegaralar, CLI |
+| [telegram-auth.md](telegram-auth.md) | webhook imzosi, bog'lash kodi oqimi, har update'da doira |
+| [telegram-permissions.md](telegram-permissions.md) | **har bot amali × ruxsat**, menyu, doira |
+| [telegram-notifications.md](telegram-notifications.md) | uch yo'l → navbat, turlar va toifalar, qayta urinish, kuzatish |
+| [telegram-security.md](telegram-security.md) | tahdidlar va choralar (test bilan), audit, yuklama |
+| [telegram-testing.md](telegram-testing.md) | integratsion naqsh, test fayllari, E2E, qo'lda sinov |
+| [telegram-deployment.md](telegram-deployment.md) | production: muhit, webhook, nginx, monitoring, rotatsiya |
+| [broadcast.md](broadcast.md) · [notifications.md](notifications.md) | ommaviy xabar · oilaviy hodisalar jadvali |
+| [TELEGRAM-BOT-AUDIT.md](TELEGRAM-BOT-AUDIT.md) | dastlabki audit (tarixiy) |
 
 ## 1. Imkoniyatlar (rol bo'yicha)
 

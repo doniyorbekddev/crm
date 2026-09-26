@@ -106,7 +106,7 @@
 
 ## PHASE 20 — Full regression
 Barcha to'plamlar, E2E §35–38, yuk testi (broadcast katta auditoriya), `endpointSecurity`, bot ruxsat matritsasi.
-- **S3 qoldig'i** (PHASE 14 da faqat qidiruv yopildi): analitika (`analytics.service`, `academicAnalytics` dan tashqari), `executive`/`academyOverview`, 15 hisobot turi (`report.service`) — `branch.view_all` siz xodimga faqat o'z filiali; bot (kunlik hisobot, marketing, hisobotlar) avtomatik shu servislardan oladi.
+- **S3 qoldig'i** (PHASE 14 da faqat qidiruv yopildi): analitika (`analytics.service`, `academicAnalytics` dan tashqari), `executive`/`academyOverview`, 15 hisobot turi (`report.service`), o'qituvchi "bugungi darslar" (`attendanceAnalytics.teacherOverview`, `group.manage` li xodim uchun) — `branch.view_all` siz xodimga faqat o'z filiali; bot (kunlik hisobot, marketing, hisobotlar) avtomatik shu servislardan oladi.
 - Test to'plami `testTimeout` (yuklangan mashinada 5 s ba'zan yetmaydi).
 
 ## PHASE 21 — Production hardening

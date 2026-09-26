@@ -30,6 +30,8 @@ bot uning nomidan mavjud servislarni chaqiradi; ruxsat va egalik o'sha servislar
 | Rahbar | filial doirasi | `branchAccess.ts` (CRM) | `broadcast.test.ts` |
 | Menyu | **ruxsatga** qarab, rol nomiga emas | `handlers/menu.ts` | barcha suite'lar |
 
+Har amal × ruxsat jadvali: [telegram-permissions.md](telegram-permissions.md).
+
 **Callback ma'lumotiga ishonilmaydi** (TZ §32): tugma ichidagi id — kirish. Doira har safar `chatId`
 dan qayta olinadi; doiradan tashqari id rad etiladi (`tc_tog:begona`, `st_child:<begona>`,
 `st_hwd:<begona>` testlari).
@@ -68,9 +70,9 @@ dan qayta olinadi; doiradan tashqari id rad etiladi (`tc_tog:begona`, `st_child:
 ## 6. Bot **qilmaydigan** narsalar (ataylab)
 
 - To'lovni tasdiqlamaydi — faqat provayder webhook'i orqali CRM (TZ §36).
+- Ruxsatni o'zi o'ylab topmaydi — har amal REST bilan bir xil kalit ([telegram-permissions.md](telegram-permissions.md)).
 - `WON` statusini qo'ymaydi — o'quvchiga aylantirish CRM'da.
 - XP, seriya, reyting hisoblamaydi — CRM dvigateli (TZ §18).
-- Fayl bilan broadcast yubormaydi (hozircha matn).
 
 ## 7. Yuklama (PHASE 14)
 
@@ -89,5 +91,8 @@ dan qayta olinadi; doiradan tashqari id rad etiladi (`tc_tog:begona`, `st_child:
 ## 8. Ochiq qolgan / tavsiya
 
 - `TELEGRAM_WEBHOOK_SECRET` va bot tokeni — kamida yiliga bir marta almashtiring (`/revoke`).
-- Broadcast rasm/fayl bilan — navbat matnli, keyingi bosqich.
+- ~~Broadcast rasm/fayl bilan~~ — 3.1 PHASE 15 da bajarildi (rasm/PDF, havola tugmalari, `retry_after`) — [broadcast.md](broadcast.md).
+- ~~Bot amallari REST ruxsatini chetlab o'tishi (audit S1)~~ — 3.1 PHASE 7–10 va 16 da yopildi; har amal jadvali va test —
+  [telegram-permissions.md](telegram-permissions.md).
+- Rahbar hisobotlari/analitika va o'qituvchi "bugungi darslar"ida **filial doirasi** yo'q (audit S3 qoldig'i) — PHASE 20.
 - Ko'p nusxali deploy'da chat chegarasi va bog'lash urinishlari xotirada — Redis'ga o'tkazish kerak.

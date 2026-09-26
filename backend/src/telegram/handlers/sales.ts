@@ -75,7 +75,7 @@ export const SALES_FLOW_ACTIONS: ReadonlySet<string> = new Set([
  * Har sotuv amali uchun ruxsat — REST marshrutlari bilan bir xil kalitlar (TZ 3.1 §28, audit S1).
  * Servis faqat ma'lumot doirasini (o'z/biriktirilmagan lead) tekshiradi; amalning o'zi shu yerda.
  */
-const SALES_ACTION_PERMISSIONS: Readonly<Record<string, PermissionKey[]>> = {
+export const SALES_ACTION_PERMISSIONS: Readonly<Record<string, PermissionKey[]>> = {
   sl_leads: [PERMISSIONS.LEAD_VIEW],
   sl_hot: [PERMISSIONS.LEAD_VIEW],
   sl_lead: [PERMISSIONS.LEAD_VIEW],

@@ -36,8 +36,11 @@ qo'shimcha — mavjud ma'lumot o'zgarmaydi.
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production exec backend \
-  npm run telegram:webhook -- https://crm.markaz.uz
+  npm run telegram:webhook:prod -- https://crm.markaz.uz
 ```
+
+> Production image'da `tsx` va `scripts/` yo'q — shuning uchun `:prod` variantlari (`node dist/cli/…`, `src/cli/` dan
+> kompilyatsiya). Oddiy `telegram:webhook` / `telegram:check` — faqat dev (3.1, audit S9).
 
 Skript `https://crm.markaz.uz/api/telegram/webhook` ni `TELEGRAM_WEBHOOK_SECRET` bilan
 ro'yxatdan o'tkazadi. Telegram **faqat HTTPS** qabul qiladi — domen va sertifikat
@@ -46,12 +49,12 @@ ro'yxatdan o'tkazadi. Telegram **faqat HTTPS** qabul qiladi — domen va sertifi
 Tekshirish (token chiqarilmaydi):
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec backend npm run telegram:check
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend npm run telegram:check:prod
 ```
 
 Kutilgan: `Bot: @it_academy_andijonbot … Webhook: https://crm.markaz.uz/api/telegram/webhook … ✓ Token ishlayapti.`
 
-Bekor qilish: `npm run telegram:webhook -- --delete`.
+Bekor qilish: `npm run telegram:webhook:prod -- --delete`.
 
 > Sinov kompyuterida `TELEGRAM_POLLING=true` bo'lsa, u ishga tushganda **webhook'ni o'chiradi**
 > (Telegram bitta botda ikkalasini qabul qilmaydi). Shuning uchun bitta token bilan bir vaqtda
@@ -91,7 +94,7 @@ Nimaga qarash:
 
 | Belgi | Ma'nosi | Nima qilish |
 |---|---|---|
-| `lastEventAt` eskirgan (soatlab), foydalanuvchilar esa yozyapti | webhook yetib kelmayapti | `telegram:check` → webhook manzili va `last_error_message` |
+| `lastEventAt` eskirgan (soatlab), foydalanuvchilar esa yozyapti | webhook yetib kelmayapti | `telegram:check:prod` → webhook manzili va `last_error_message` |
 | `pendingDeliveries` o'sib boryapti | navbat ishlamayapti yoki Telegram javob bermayapti | backend logida `notificationDelivery.job`, Telegram holati |
 | `failedDeliveriesLast24h` katta | chatlar botni bloklagan yoki token almashgan | `notification_deliveries.lastError` |
 | `failedEventsLast24h` > 0 | handler xatosi | `telegram_events.error` — foydalanuvchiga ko'rinmaydi, shu yerda ko'rinadi |
@@ -103,8 +106,8 @@ Kabinetdagi "Tizim holati" sahifasi shu endpointni ko'rsatishi mumkin (keyingi q
 1. @BotFather → `/revoke` → yangi token.
 2. `.env.production` da `TELEGRAM_BOT_TOKEN` ni yangilang.
 3. `docker compose … up -d backend` (faqat backend qayta ishga tushadi).
-4. `npm run telegram:webhook -- https://crm.markaz.uz` — webhook token bilan bog'liq, qayta ro'yxatdan o'tkaziladi.
-5. `npm run telegram:check`.
+4. `… exec backend npm run telegram:webhook:prod -- https://crm.markaz.uz` — webhook token bilan bog'liq, qayta ro'yxatdan o'tkaziladi.
+5. `… exec backend npm run telegram:check:prod`.
 
 Bog'lanishlar (`telegram_links`) token bilan bog'liq emas — foydalanuvchilar qayta ulanmaydi.
 

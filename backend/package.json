@@ -37,6 +37,8 @@
     "perf:load": "tsx scripts/loadTest.ts",
     "telegram:webhook": "tsx scripts/telegramWebhook.ts",
     "telegram:check": "tsx scripts/telegramCheck.ts",
+    "telegram:webhook:prod": "node dist/cli/telegramWebhook.js",
+    "telegram:check:prod": "node dist/cli/telegramCheck.js",
     "telegram:load": "tsx scripts/telegramLoad.ts",
     "docs:permissions": "tsx scripts/permissionsDoc.ts"
   },

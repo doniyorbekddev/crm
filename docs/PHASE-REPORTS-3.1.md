@@ -1022,3 +1022,77 @@ Navbat: 25 → 1000 xabar/daqiqagacha (Telegram ~30/s chegarasidan past, ketma-k
 ## Next Phase
 
 **PHASE 16 — Telegram documentation (GAP-16)**: telegram-api, telegram-auth, telegram-permissions, telegram-notifications, telegram-testing; S9 (`telegram:webhook` skripti production image'da ishlamasligi).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 16
+
+Sana: 2026-09-26. GAP-16 "Telegram documentation" + audit **S9** + **S1 qoldig'i** (hujjatlash paytida topildi).
+
+## Implemented
+
+- **5 ta hujjat** (TZ talabi bo'yicha, mavjud 4 tasi saqlandi, dublikat o'rniga havola):
+  - `telegram-api.md` — HTTP endpointlar va ruxsatlari, Bot API metodlari, xato turlari, buyruqlar, barcha callback prefikslari, oqimlar, chegaralar, CLI.
+  - `telegram-auth.md` — webhook imzosi, bog'lash oqimi (diagramma), kod qoidalari, har update'da doira, uzish/rotatsiya.
+  - `telegram-permissions.md` — **har bot amali × ruxsat × doira** (menyu, o'qituvchi, sotuv, rahbar, tekshirish/AI, broadcast, shaxsiy amallar), 3.1 da yopilgan bo'shliqlar jadvali.
+  - `telegram-notifications.md` — uch yo'l → bitta navbat, filtrlar, 26 tur × 7 toifa × manba, navbat qoidalari, kuzatish, FAQ.
+  - `telegram-testing.md` — integratsion test naqshi va qoidalari, 20+ test fayli xaritasi, E2E yordamchilari, qo'lda sinov, yuklama.
+- `telegram.md` — hujjatlar indeksi; `telegram-security.md`, `telegram-deployment.md`, `telegram-architecture.md` — eskirgan joylar yangilandi (broadcast media, S1, production buyruqlari).
+- **S9**: `telegram:webhook` / `telegram:check` production image'da ishlamasdi (`tsx` va `scripts/` yo'q). Mantiq `src/cli/telegramTools.ts` ga ko'chirildi → `tsc` `dist/cli/` ga kompilyatsiya qiladi; `npm run telegram:webhook:prod` / `telegram:check:prod` (`node dist/cli/…`); dev skriptlari shu funksiyalarni chaqiradi (mantiq bitta).
+- **S1 qoldig'i** (ruxsatlar jadvalini tuzishda kod qatorma-qator tekshirildi): quyidagi bot amallari REST ruxsatini tekshirmasdi — endi REST bilan bir xil:
+  - `tc_groups` `tc_group` → `group.view`; `tc_today` `tc_students` `tc_att` → `attendance.view`; `tc_tog` `tc_save` → `attendance.mark`; `tc_hw*` → `homework.manage` dispetcherda ham. **Oqish:** sotuv menejeri (yoki `attendance.view` siz har qanday xodim) qo'lda `tc_students:<guruh>` yuborib o'quvchilar ismi va telefonini ko'rardi (test gate'siz kodda yiqilishi bilan tasdiqlandi).
+  - `ws_ro` → `homework.view`; `ws_rg` `ws_rb` va baho/izoh matni → `homework.grade` (oqim o'rtasida olib qo'yilsa ham); `ws_aia` → `ai.academic`.
+
+## Existing Code Reused
+
+`telegram/permissions.ts` (`botCan`, `BOT_FORBIDDEN_TEXT`), sotuvdagi dispetcher naqshi (`SALES_ACTION_PERMISSIONS`), `telegramService`, mavjud hujjatlar (havola bilan).
+
+## New Files
+
+`docs/telegram-api.md`, `docs/telegram-auth.md`, `docs/telegram-permissions.md`, `docs/telegram-notifications.md`, `docs/telegram-testing.md`, `backend/src/cli/telegramTools.ts`, `backend/src/cli/telegramWebhook.ts`, `backend/src/cli/telegramCheck.ts`, `backend/tests/telegramCli.test.ts`, `backend/tests/telegramPermissions.test.ts`.
+
+## Modified Files
+
+`backend/scripts/telegramWebhook.ts`, `backend/scripts/telegramCheck.ts` (yupqa o'ram), `backend/package.json` (`:prod` skriptlari), `backend/src/telegram/handlers/teacher.ts` (`TEACHER_ACTION_PERMISSIONS`), `backend/src/telegram/handlers/workspace.ts` (`WORKSPACE_ACTION_PERMISSIONS`, baho oqimida tekshiruv), `backend/src/telegram/handlers/sales.ts` (jadval eksport qilindi — test uchun), `docs/telegram.md`, `docs/telegram-security.md`, `docs/telegram-deployment.md`, `docs/telegram-architecture.md`, `docs/ROADMAP-3.1.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q (REST o'zgarmadi). Yangi npm skriptlari: `telegram:webhook:prod`, `telegram:check:prod`.
+
+## Telegram Changes
+
+Ruxsatsiz xodimga o'qituvchi va tekshirish amallari endi "⛔ Bu amal uchun ruxsatingiz yo‘q." (avval ma'lumot ko'rsatilardi yoki servis doirasiga qarab bajarilardi). Oddiy o'qituvchi, admin va rahbar uchun o'zgarish yo'q (mavjud testlar o'tdi).
+
+## Permissions
+
+Yangi ruxsat yo'q — mavjud kalitlar REST bilan bir xil qo'llandi.
+
+## Security
+
+- S1 qoldig'i yopildi (yuqorida); `telegramPermissions.test.ts`: (1) **tuzilmaviy test** — har xodim bot amali jadvalda, o'z funksiyasida tekshiriladi (sababi yozilgan) yoki ataylab shaxsiy; yangi amal qo'shilib himoyasiz qolsa test yiqiladi; (2) ruxsatsiz rol bilan **barcha** xodim amallari qo'lda yuboriladi — rad, telefon chiqmaydi, bazada yozuv yo'q; (3) sotuv menejeri → begona guruh ro'yxati rad; (4) davomatni ko'ruvchi, lekin belgilay olmaydigan — saqlanmaydi; (5) `homework.grade` siz — baho/qaytarish/AI qabul rad, oqim o'rtasida olib qo'yilsa ham.
+- S9: CLI sirlarni chiqarmasligi va import zanjirida faqat production bog'liqliklar borligi testlangan.
+
+## Tests
+
+Backend **870** (+10: CLI 5, ruxsatlar 5). To'liq yugurishda 1 ta `telegramV2` testi yuklama ostida 5 s timeout (load ~7) — alohida 6/6 o'tdi. Frontend **125/125**, E2E **45/45** (regressiya). TypeScript, lint (0 xato), build — o'tdi. Docker demon ishlamagani uchun runtime image yig'ib ko'rilmadi — o'rniga: `node dist/cli/*.js` toza `node` bilan ishga tushirildi va import zanjiri production bog'liqliklari bilan cheklangani testlandi.
+
+## Performance
+
+Har o'qituvchi/tekshirish callback'ida bitta keshlangan ruxsat o'qish.
+
+## Documentation
+
+Yuqoridagi 5 yangi hujjat + 4 hujjat yangilandi; havolalar tekshirildi (hammasi mavjud fayllarga).
+
+## Known Issues
+
+- Filial doirasi (S3 qoldig'i): rahbar hisobotlari, analitika, kunlik hisobot va `group.manage` li xodimning "bugungi darslar"i — PHASE 20 (roadmap yangilandi).
+- Runtime Docker image'da CLI ishlashi mashinada Docker demon ishga tushirilganda tekshirilishi kerak (`docker compose exec backend npm run telegram:check:prod`).
+
+## Next Phase
+
+**PHASE 17 — Click/Payme (GAP-17)**: provayder adapterlari (merchant kalitlarisiz — "Ready" holati, soxta muvaffaqiyat yo'q), imzo tekshiruvi, test fixture'lar.

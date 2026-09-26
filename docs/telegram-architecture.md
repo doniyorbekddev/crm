@@ -313,8 +313,9 @@ Polling boshlanishida webhook **o'chiriladi**: Telegram bitta botda ikkalasini q
 ```bash
 TELEGRAM_POLLING=false            # majburiy
 
-npm run telegram:webhook --workspace backend -- https://crm.markaz.uz
-npm run telegram:webhook --workspace backend -- --delete     # bekor qilish
+npm run telegram:webhook --workspace backend -- https://crm.markaz.uz   # repo'dan (tsx)
+npm run telegram:webhook --workspace backend -- --delete               # bekor qilish
+# production konteyner ichida: npm run telegram:webhook:prod -- https://crm.markaz.uz  (telegram-deployment.md §3)
 ```
 
 Skript `TELEGRAM_WEBHOOK_SECRET` ni ham uzatadi — usiz webhook controlleri **hech qanday**

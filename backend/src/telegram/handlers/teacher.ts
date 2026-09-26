@@ -14,7 +14,7 @@ import { fmtDate, fmtDateTime, parseLocalDateTime } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
 import { telegramSessionService, type SessionState } from '../session.service.js';
 import type { BotContext, HandlerResult } from '../types.js';
-import { PERMISSIONS } from '../../config/permissions.js';
+import { PERMISSIONS, type PermissionKey } from '../../config/permissions.js';
 import type { PreparedAttachment } from '../../services/homework.service.js';
 import { BOT_FORBIDDEN_TEXT, botCan } from '../permissions.js';
 
@@ -573,7 +573,33 @@ export const TEACHER_COMMANDS: Readonly<Record<string, string>> = {
   '/bugun': TEACHER_ACTIONS.today,
 };
 
+/**
+ * Har amal REST marshruti bilan bir xil ruxsat (audit S1 qoldig'i, TZ 3.1 §28): guruhlar — `group.view`,
+ * davomat varag'i va bugungi darslar — `attendance.view`, belgilash va saqlash — `attendance.mark`.
+ * Menyu tugmasi yashirilgani himoya emas — qo'lda yuborilgan callback ham shu yerdan o'tadi.
+ * Vazifa berish (`tc_hw*`) — `homework.manage` (bu yerda va matnli qadamlarda qayta).
+ */
+export const TEACHER_ACTION_PERMISSIONS: Readonly<Record<string, readonly PermissionKey[]>> = {
+  [TEACHER_ACTIONS.groups]: [PERMISSIONS.GROUP_VIEW],
+  [TEACHER_ACTIONS.group]: [PERMISSIONS.GROUP_VIEW],
+  [TEACHER_ACTIONS.today]: [PERMISSIONS.ATTENDANCE_VIEW],
+  [TEACHER_ACTIONS.students]: [PERMISSIONS.ATTENDANCE_VIEW],
+  [TEACHER_ACTIONS.attendance]: [PERMISSIONS.ATTENDANCE_VIEW],
+  [TEACHER_ACTIONS.toggle]: [PERMISSIONS.ATTENDANCE_MARK],
+  [TEACHER_ACTIONS.save]: [PERMISSIONS.ATTENDANCE_MARK],
+  // Vazifa berish: dispetcherda ham (sessiyasiz qo'lda yuborilgan callback) va oqimning har qadamida
+  [TEACHER_ACTIONS.homework]: [PERMISSIONS.HOMEWORK_MANAGE],
+  [TEACHER_ACTIONS.homeworkNext]: [PERMISSIONS.HOMEWORK_MANAGE],
+  [TEACHER_ACTIONS.homeworkConfirm]: [PERMISSIONS.HOMEWORK_MANAGE],
+};
+
 export async function handleTeacherAction(context: BotContext, scope: CommandScope, action: string, arg: string | null): Promise<HandlerResult | undefined> {
+  const required = TEACHER_ACTION_PERMISSIONS[action];
+  if (required && scope.actor && !(await botCan(scope.actor, ...required))) {
+    await telegramSessionService.clearFlow(context.chatId);
+    await context.render(BOT_FORBIDDEN_TEXT, [menuRow()]);
+    return { action: 'teacher_forbidden' };
+  }
   switch (action) {
     case TEACHER_ACTIONS.groups:
       return showGroups(context, scope, arg);

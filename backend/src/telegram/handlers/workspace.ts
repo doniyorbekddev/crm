@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { prisma } from '../../config/database.js';
 import { primaryClientUrl } from '../../config/env.js';
-import { PERMISSIONS } from '../../config/permissions.js';
+import { PERMISSIONS, type PermissionKey } from '../../config/permissions.js';
 import { NOTIFICATION_CATEGORIES, NOTIFICATION_CATEGORY, NOTIFICATION_CATEGORY_LABELS, isMutableNotificationType, isNotificationCategory } from '../../config/notificationTypes.js';
 import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
@@ -27,6 +27,7 @@ import type { ClientInfo } from '../../utils/requestContext.js';
 import type { ReportType } from '../../validators/report.validator.js';
 import { moneyUz } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback } from '../keyboards.js';
+import { BOT_FORBIDDEN_TEXT, botCan } from '../permissions.js';
 import { telegramSessionService, type SessionState } from '../session.service.js';
 import type { BotContext, HandlerResult } from '../types.js';
 
@@ -737,6 +738,12 @@ export async function handleGradeFlow(context: BotContext, scope: CommandScope, 
     await telegramSessionService.clearFlow(context.chatId);
     return { action: 'grade_cancel' };
   }
+  // Oqim o'rtasida ruxsat olib qo'yilgan bo'lishi mumkin — baho/qaytarish har matnli qadamda tekshiriladi
+  if (!(await botCan(actor, PERMISSIONS.HOMEWORK_GRADE))) {
+    await telegramSessionService.clearFlow(context.chatId);
+    await context.reply(BOT_FORBIDDEN_TEXT, [menuRow()]);
+    return { action: 'grade_forbidden' };
+  }
   const text = (context.text ?? '').trim();
   const back: InlineKeyboard = [[{ text: '✍️ Keyingisi', data: callback(WORKSPACE_ACTIONS.review) }, ...menuRow()]];
   if (session.step === 'return') {
@@ -805,7 +812,25 @@ export const WORKSPACE_COMMANDS: Readonly<Record<string, string>> = {
   '/tekshirish': WORKSPACE_ACTIONS.review,
 };
 
+/**
+ * Topshiriqlarni tekshirish — REST bilan bir xil ruxsat (audit S1 qoldig'i): ko'rish — `homework.view`,
+ * baholash va qaytarish — `homework.grade`, AI taklifini qabul qilish — `ai.academic`. Egalik (o'z guruhi)
+ * servisda. Qolgan bo'limlar o'z funksiyasida tekshiriladi (KPI, marketing, hisobotlar, broadcast…).
+ */
+export const WORKSPACE_ACTION_PERMISSIONS: Readonly<Record<string, readonly PermissionKey[]>> = {
+  [WORKSPACE_ACTIONS.reviewOne]: [PERMISSIONS.HOMEWORK_VIEW],
+  [WORKSPACE_ACTIONS.grade]: [PERMISSIONS.HOMEWORK_GRADE],
+  [WORKSPACE_ACTIONS.giveBack]: [PERMISSIONS.HOMEWORK_GRADE],
+  [WORKSPACE_ACTIONS.aiAccept]: [PERMISSIONS.AI_ACADEMIC],
+};
+
 export async function handleWorkspaceAction(context: BotContext, scope: CommandScope, action: string, arg: string | null): Promise<HandlerResult | undefined> {
+  const required = WORKSPACE_ACTION_PERMISSIONS[action];
+  if (required && scope.actor && !(await botCan(scope.actor, ...required))) {
+    await telegramSessionService.clearFlow(context.chatId);
+    await context.render(BOT_FORBIDDEN_TEXT, [menuRow()]);
+    return { action: 'workspace_forbidden' };
+  }
   switch (action) {
     case WORKSPACE_ACTIONS.settings:
       return showSettings(context, scope);
