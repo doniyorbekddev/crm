@@ -956,12 +956,27 @@ export const homeworkService = {
   async uploadAttachment(actor: AuthUser, id: string, file: { buffer: unknown; fileName: string | undefined; title: string | undefined }, client: ClientInfo): Promise<AttachmentDto> {
     const access = await getTeachingAccess(actor);
     await findVisible(access, id);
-    const stored = await storeUpload(file);
+    return this.attachStoredFile(actor, id, await storeUpload(file), file.title, client);
+  },
+
+  /**
+   * Faylni vazifaga bog'lamasdan **oldindan** tekshirib saqlaydi (bot: fayl qabul qilingan zahoti — TZ 3.1
+   * GAP-07). Siyosat `uploadAttachment` bilan bir xil (tur baytlar bo'yicha, PDF/rasm).
+   */
+  async prepareAttachment(file: { buffer: unknown; fileName: string | undefined }): Promise<PreparedAttachment> {
+    return storeUpload(file);
+  },
+
+  /** Oldindan saqlangan faylni biriktiradi (yo'l faqat saqlash papkasi ichida — `resolveStoredPath`) */
+  async attachStoredFile(actor: AuthUser, id: string, stored: PreparedAttachment, title: string | undefined, client: ClientInfo): Promise<AttachmentDto> {
+    const access = await getTeachingAccess(actor);
+    await findVisible(access, id);
+    resolveStoredPath(stored.storagePath);
     const created = await prisma.homeworkAttachment.create({
       data: {
         homeworkId: id,
         kind: 'FILE',
-        title: (file.title?.trim() || stored.originalName).slice(0, 200),
+        title: (title?.trim() || stored.originalName).slice(0, 200),
         storagePath: stored.storagePath,
         originalName: stored.originalName,
         mimeType: stored.mimeType,
@@ -995,6 +1010,13 @@ export const homeworkService = {
 /** Saqlangan yo'l kengaytmasidan MIME (faqat qabul qilinadigan turlar) */
 function mimeForPath(path: string): string {
   return mimeForStoredPath(path);
+}
+
+export interface PreparedAttachment {
+  storagePath: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
 }
 
 /** Fayl siyosati hujjatlar bilan bir xil: tur baytlar bo'yicha (PDF/PNG/JPG/WEBP) */

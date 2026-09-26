@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
-import { API, apiLogin, createQuestion, createTopic, linkStudentTelegram, prepareFamily, telegramPress, telegramTitles } from '../flows';
-import { PORTAL_PASSWORD, expect, login, loginWithTemporaryPassword, test } from '../fixtures';
+import { API, apiLogin, createQuestion, createTopic, linkStaffTelegram, linkStudentTelegram, prepareFamily, telegramMessage, telegramPress, telegramTitles, withDb } from '../flows';
+import { PORTAL_PASSWORD, USERS, expect, login, loginWithTemporaryPassword, test } from '../fixtures';
 
 /**
  * TZ 3.0 §64–66 — to'liq foydalanuvchi oqimlari, bir nechta rol ketma-ket, **UI orqali**.
@@ -273,4 +273,47 @@ test('§35 Telegram imtihon: o‘quvchi botda boshlaydi, javob beradi, topshirad
   await loginWithTemporaryPassword(page, family.student.login, family.student.password);
   await page.goto('/portal/exams');
   await expect(page.getByRole('listitem').filter({ hasText: title }).filter({ hasText: 'Oxirgi:' })).toContainText('100%');
+});
+
+test('§36 Telegram vazifa: o‘qituvchi botda beradi → o‘quvchi web’da topshiradi → o‘qituvchi web’da baholaydi', async ({ page, request }) => {
+  const family = await prepareFamily(request);
+  const title = `Bot vazifasi ${Date.now()}`;
+  const teacherLogin = await request.post(`${API}/auth/login`, { data: { email: USERS.teacher.email, password: USERS.teacher.password } });
+  const teacherId = (await teacherLogin.json()).data.user.id as string;
+  const chatId = Number(String(Date.now()).slice(-9));
+  await linkStaffTelegram(teacherId, chatId);
+
+  // Bot: guruh → sarlavha → tavsif → muddat → (fayl — backend testlarida) → tasdiq → e'lon
+  await telegramPress(request, chatId, `tc_hw:${family.groupId}`);
+  await telegramMessage(request, chatId, title);
+  await telegramMessage(request, chatId, 'Botdan berilgan vazifa tavsifi');
+  const deadline = new Date(Date.now() + 3 * 86_400_000);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  await telegramMessage(request, chatId, `${pad(deadline.getDate())}.${pad(deadline.getMonth() + 1)}.${deadline.getFullYear()}`);
+  await telegramPress(request, chatId, 'tc_hwnext');
+  await telegramPress(request, chatId, 'tc_hwok');
+
+  // O'quvchi web kabinetda ko'radi va topshiradi
+  await loginWithTemporaryPassword(page, family.student.login, family.student.password);
+  await page.goto('/portal/homework');
+  await page.getByRole('link', { name: title }).click();
+  await expect(page.getByText('Botdan berilgan vazifa tavsifi')).toBeVisible();
+  await page.getByLabel('Javob matni').fill('Bot vazifasiga javob');
+  await page.getByRole('button', { name: 'Topshirish' }).click();
+  await expect(page.getByText('Topshirdi', { exact: true })).toBeVisible();
+  await page.context().clearCookies();
+
+  // O'qituvchi web'da baholaydi
+  await login(page, 'teacher');
+  await page.goto('/homework');
+  await page.getByText(title, { exact: true }).click();
+  await page.getByRole('dialog', { name: title }).getByRole('listitem').filter({ hasText: family.student.name }).getByRole('button', { name: 'Ko‘rish' }).click();
+  const review = page.getByRole('dialog', { name: family.student.name });
+  await review.getByLabel('Ball (0–100)').fill('90');
+  await review.getByRole('button', { name: 'Baholash' }).click();
+  await expect(review).toBeHidden();
+  const graded = await withDb(async (db) =>
+    (await db.query<{ status: string; score: number }>('SELECT s.status, s.score FROM homework_submissions s JOIN homework h ON h.id = s."homeworkId" WHERE h.title = $1 AND s."studentId" = $2', [title, family.student.id])).rows[0],
+  );
+  expect(graded).toMatchObject({ status: 'GRADED', score: 90 });
 });

@@ -121,6 +121,27 @@ export async function linkStudentTelegram(studentId: string, chatId: number): Pr
   );
 }
 
+/** Xodimning tasdiqlangan Telegram chati */
+export async function linkStaffTelegram(userId: string, chatId: number): Promise<void> {
+  const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  await withDb((db) =>
+    db.query(
+      `INSERT INTO telegram_links (id, "chatId", "linkCode", "codeUsedAt", "telegramUserId", "userId", "verifiedAt", "isActive", muted, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, NOW(), $2, $4, NOW(), true, false, NOW(), NOW())`,
+      [`e2e-ulink-${stamp}`, String(chatId), `e2eu${stamp}`.slice(0, 32), userId],
+    ),
+  );
+}
+
+/** Telegram webhook'iga matnli xabar yuboradi */
+export async function telegramMessage(request: APIRequestContext, chatId: number, text: string): Promise<void> {
+  const response = await request.post(`${API}/telegram/webhook`, {
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': E2E_WEBHOOK_SECRET },
+    data: { update_id: Date.now(), message: { message_id: 1, chat: { id: chatId, first_name: 'E2E' }, from: { id: chatId }, text } },
+  });
+  expect(response.status(), await response.text()).toBe(200);
+}
+
 /** Telegram webhook'iga tugma bosilishini yuboradi (Telegram serveri o'rniga) */
 export async function telegramPress(request: APIRequestContext, chatId: number, data: string): Promise<void> {
   const response = await request.post(`${API}/telegram/webhook`, {

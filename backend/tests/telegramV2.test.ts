@@ -286,14 +286,16 @@ describe.skipIf(!hasTestDatabase)('Telegram 2.0 (PHASE 11)', () => {
     expect(bot.last().text).toContain('❌');
 
     // Vazifa yaratishda rasm biriktirish
+    // TZ 3.1 GAP-07 tartibi: sarlavha → tavsif → muddat → fayl → tasdiq
     await press(76_001, `tc_hw:${group.id}`).expect(200);
     await message(76_001, 'Rasmga qarab chizing').expect(200);
-    await message(76_001, '25.12.2099').expect(200);
     await message(76_001, '-').expect(200);
+    await message(76_001, '25.12.2099').expect(200);
     await photo(76_001, '').expect(200);
-    expect(bot.last().text).toContain('Fayl qo‘shildi (1/5)');
+    expect(bot.last().text).toContain('Fayl qabul qilindi (1/5)');
+    await press(76_001, 'tc_hwnext').expect(200);
     await press(76_001, 'tc_hwok').expect(200);
-    expect(bot.last().text).toContain('1 ta biriktirildi');
+    expect(bot.last().text).toContain('1 ta fayl biriktirildi');
     const created = await prisma.homework.findFirstOrThrow({ where: { title: 'Rasmga qarab chizing' }, select: { attachments: { select: { kind: true, mimeType: true } } } });
     expect(created.attachments).toEqual([{ kind: 'FILE', mimeType: 'image/png' }]);
   });

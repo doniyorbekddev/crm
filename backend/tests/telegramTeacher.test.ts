@@ -208,7 +208,7 @@ describe.skipIf(!hasTestDatabase)('Telegram — o‘qituvchi boti', () => {
     expect(await prisma.attendance.count()).toBe(0);
   });
 
-  it('vazifa berish oqimi: sarlavha → muddat → tavsif → tasdiq', async () => {
+  it('vazifa berish oqimi: sarlavha → tavsif → muddat → fayl → tasdiq (TZ 3.1 GAP-07)', async () => {
     const { group, user } = await linkedTeacher();
     const bot = captureBot();
 
@@ -219,6 +219,9 @@ describe.skipIf(!hasTestDatabase)('Telegram — o‘qituvchi boti', () => {
     expect(bot.last().text).toContain('3 dan 200');
 
     await message('5-mashq, 12-bet').expect(200);
+    expect(bot.last().text).toContain('Tavsif');
+
+    await message('-').expect(200);
     expect(bot.last().text).toContain('Muddatni');
 
     await message('kecha').expect(200);
@@ -227,9 +230,10 @@ describe.skipIf(!hasTestDatabase)('Telegram — o‘qituvchi boti', () => {
     expect(bot.last().text).toContain('o‘tib ketgan');
 
     await message('31.12.2030 18:00').expect(200);
-    expect(bot.last().text).toContain('Tavsif');
+    expect(bot.last().text).toContain('fayl yoki rasm');
+    expect(bot.lastData()).toContain('tc_hwnext');
 
-    await message('-').expect(200);
+    await press('tc_hwnext').expect(200);
     expect(bot.last().text).toContain('E’lon qilinsinmi');
     expect(bot.lastData()).toContain('tc_hwok');
     expect(await prisma.homework.count()).toBe(0);

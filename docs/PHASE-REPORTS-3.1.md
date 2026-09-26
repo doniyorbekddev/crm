@@ -412,3 +412,71 @@ Har javobda qo'shimcha so'rov yo'q (holat `loadAttempt` ichida bitta so'rovda). 
 ## Next Phase
 
 **PHASE 7 — Telegram teacher homework file (GAP-07)** + S1 (bot amallarida `homework.manage` tekshiruvi): TZ tartibidagi oqim, fayl turi qabul paytida, atomik yaratish (fayl xatosida vazifa e'lon qilinmaydi).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 7
+
+Sana: 2026-09-26. GAP-07 "Telegram teacher homework file" + audit **S1** (vazifa uchun).
+
+## Implemented
+
+- Bot oqimi TZ tartibida: **Guruh → Sarlavha → Tavsif → Muddat → Fayl → Tasdiq → Yaratish** (4 qadam + tasdiq; `➡️ Faylsiz davom etish` / `➡️ Davom etish (N fayl)`).
+- Fayl **qabul qilingan zahoti**: Telegram'dan yuklab olinadi (hajm chegarasi `MAX_UPLOAD_MB`) → tur baytlar bo'yicha (PDF, JPG, PNG, WEBP — mavjud siyosat) → **CRM xotirasiga** saqlanadi; sessiyada faqat CRM yo'li, Telegram `file_id` emas. Noto'g'ri tur — darhol rad; 5 tagacha.
+- **Atomik e'lon**: qoralama → fayllar biriktiriladi → hammasi muvaffaqiyatli bo'lsagina e'lon (topshiriqlar + bildirishnoma). Xato bo'lsa vazifa qoralamada qoladi — o'quvchilarga ko'rinmaydi (oldin vazifa avval e'lon qilinib, fayl xatosi faqat xabarda aytilardi).
+- **S1**: `homework.manage` botda ham (REST `POST /homework` bilan bir xil kalit) — boshlashda, **har qadamda** va tasdiqda; ruxsatsiz xodimga "Vazifa berish" tugmasi ko'rinmaydi. Umumiy yordamchi `telegram/permissions.ts` (`botCan`, `scopeCan`) — PHASE 8–9 da qo'ng'iroq va follow-up uchun ishlatiladi.
+
+## Existing Code Reused
+
+`homeworkService.create/update` (qoralama → e'lon: `ensureSubmissions` + `notifyHomeworkCreated`), `storeUpload` siyosati (`prepareAttachment` orqali), `telegramService.downloadFile`, `groupService.getById` (o'qituvchi doirasi), `permissionService`.
+
+## New Files
+
+`backend/src/telegram/permissions.ts`, `backend/tests/telegramHomework.test.ts`.
+
+## Modified Files
+
+Backend: `telegram/handlers/teacher.ts`, `services/homework.service.ts` (`prepareAttachment`, `attachStoredFile`; `uploadAttachment` shular orqali — xatti-harakati o'zgarmagan), `tests/telegramTeacher.test.ts`, `tests/telegramV2.test.ts` (yangi qadam tartibi; barcha tekshiruvlar saqlandi + fayl bosqichi).
+E2E: `e2e/specs/flows.spec.ts` (+§36), `e2e/flows.ts` (`linkStaffTelegram`, `telegramMessage`), `e2e/specs/portal.spec.ts` (ommaviy kabinet testi kabinetsiz o'quvchili guruhni tanlaydi — boshqa testlar bilan to'qnashmasin). Docs: `telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q (REST o'zgarmadi).
+
+## Telegram Changes
+
+Yangi callback `tc_hwnext`; qadam tartibi o'zgardi; `tc_hw`/`tc_hwnext`/`tc_hwok` va matn qadamlari `homework.manage` ni tekshiradi.
+
+## Permissions
+
+Yangi ruxsat yo'q — mavjud `homework.manage` botda qo'llanildi.
+
+## Security
+
+- S1: ruxsatsiz xodim (guruhga biriktirilgan bo'lsa ham) — rad, vazifa yaratilmaydi (test); oqim o'rtasida ruxsat olinsa — keyingi qadamda to'xtaydi (test).
+- Begona guruh — `groupService` doirasi, "topilmadi" (test). Fayl yo'li saqlash papkasidan tashqariga chiqolmaydi (`resolveStoredPath`).
+
+## Tests
+
+Backend **820** (+4; to'liq yurishda 818 o'tdi — `endpointSecurity` va `telegramStudent` bitta testdan, E2E bilan parallel yurgan paytdagi vaqt tugashi; alohida 21/21 o'tadi), E2E **38/38** (+1 §36: bot → web topshirish → web baholash). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Fayl yuklab olish qabul paytida (tasdiqda kutish yo'q); e'londa fayllar allaqachon diskda.
+
+## Documentation
+
+`docs/telegram.md`.
+
+## Known Issues
+
+- Oqim bekor qilinsa oldindan saqlangan fayllar diskda qoladi (bazaga bog'lanmagan, o'lchami chegaralangan) — tozalash vazifasi PHASE 21 da (production hardening).
+- E2E'da fayl bosqichi yo'q (E2E serverida bot tokeni yo'q — Telegram'dan yuklab olib bo'lmaydi); backend testlarida qoplangan.
+
+## Next Phase
+
+**PHASE 8 — Telegram sales call (GAP-08)** + S1 (`call.create`, `lead.view`): qo'ng'iroq turi, natija, davomiylik, izoh, keyingi qadam.

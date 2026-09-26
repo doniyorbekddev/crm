@@ -14,6 +14,9 @@ import { fmtDate, fmtDateTime, parseLocalDateTime } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
 import { telegramSessionService, type SessionState } from '../session.service.js';
 import type { BotContext, HandlerResult } from '../types.js';
+import { PERMISSIONS } from '../../config/permissions.js';
+import type { PreparedAttachment } from '../../services/homework.service.js';
+import { BOT_FORBIDDEN_TEXT, botCan } from '../permissions.js';
 
 /**
  * O'qituvchi bo'limlari: guruhlar, bugungi darslar, tezkor davomat, vazifa berish.
@@ -35,6 +38,8 @@ export const TEACHER_ACTIONS = {
   toggle: 'tc_tog',
   save: 'tc_save',
   homework: 'tc_hw',
+  /** Fayl bosqichidan tasdiqqa o'tish ("Faylsiz davom etish" / "Davom etish") */
+  homeworkNext: 'tc_hwnext',
   homeworkConfirm: 'tc_hwok',
 } as const;
 
@@ -42,7 +47,7 @@ export const ATTENDANCE_FLOW = 'attendance';
 export const HOMEWORK_CREATE_FLOW = 'homework';
 
 /** Shu tugmalar oqim ichida bosiladi — ular sessiyani yopmasligi kerak */
-export const TEACHER_FLOW_ACTIONS: ReadonlySet<string> = new Set([TEACHER_ACTIONS.toggle, TEACHER_ACTIONS.save, TEACHER_ACTIONS.homeworkConfirm]);
+export const TEACHER_FLOW_ACTIONS: ReadonlySet<string> = new Set([TEACHER_ACTIONS.toggle, TEACHER_ACTIONS.save, TEACHER_ACTIONS.homeworkNext, TEACHER_ACTIONS.homeworkConfirm]);
 
 /** Bot orqali qilingan amal auditda shunday ko'rinadi */
 const BOT_CLIENT: ClientInfo = { ip: null, userAgent: 'telegram-bot' };
@@ -130,6 +135,7 @@ export async function showGroup(context: BotContext, scope: CommandScope, groupI
 
   return safely(context, TEACHER_ACTIONS.groups, async () => {
     const group = await groupService.getById(actor, groupId);
+    const canGiveHomework = await botCan(actor, PERMISSIONS.HOMEWORK_MANAGE);
     const lines = [
       `<b>👥 ${escapeHtml(group.name)}</b>`,
       `📚 ${escapeHtml(group.course.name)}`,
@@ -143,7 +149,7 @@ export async function showGroup(context: BotContext, scope: CommandScope, groupI
         { text: '✅ Davomat', data: callback(TEACHER_ACTIONS.attendance, group.id) },
         { text: '👨‍🎓 O‘quvchilar', data: callback(TEACHER_ACTIONS.students, group.id) },
       ],
-      [{ text: '📝 Vazifa berish', data: callback(TEACHER_ACTIONS.homework, group.id) }],
+      ...(canGiveHomework ? [[{ text: '📝 Vazifa berish', data: callback(TEACHER_ACTIONS.homework, group.id) }]] : []),
       [{ text: '⬅️ Guruhlar', data: callback(TEACHER_ACTIONS.groups) }, ...menuRow()],
     ]);
     return { action: TEACHER_ACTIONS.group };
@@ -330,31 +336,43 @@ export async function saveAttendance(context: BotContext, scope: CommandScope): 
 }
 
 // ---------------------------------------------------------------------
-// Vazifa berish (oqim: sarlavha → muddat → tavsif → tasdiq)
+// Vazifa berish (TZ 3.1 GAP-07: guruh → sarlavha → tavsif → muddat → fayl → tasdiq → yaratish)
 // ---------------------------------------------------------------------
 
 interface HomeworkDraft {
   groupId: string;
   groupName: string;
   title?: string;
-  deadline?: string;
   description?: string | null;
-  /** TZ §43 "Homework Attachments": tasdiqlashdan oldin yuborilgan fayl/rasmlar (Telegram file_id) */
-  files?: Array<{ fileId: string; fileName: string | null }>;
+  deadline?: string;
+  /**
+   * Qabul qilingan zahoti Telegram'dan yuklab olinib, tekshirilib **CRM xotirasiga** saqlangan fayllar
+   * (Telegram `file_id` doimiy saqlash emas — TZ §13 "Storage").
+   */
+  files?: PreparedAttachment[];
 }
 
 const MAX_HOMEWORK_FILES = 5;
 
+/** `homework.manage` — REST'dagi `POST /homework` bilan bir xil (audit S1) */
+async function requireHomeworkPermission(context: BotContext, actor: AuthUser, groupId?: string): Promise<boolean> {
+  if (await botCan(actor, PERMISSIONS.HOMEWORK_MANAGE)) return true;
+  await telegramSessionService.clearFlow(context.chatId);
+  await context.render(BOT_FORBIDDEN_TEXT, [[...(groupId ? [{ text: '⬅️ Guruh', data: callback(TEACHER_ACTIONS.group, groupId) }] : []), ...menuRow()]]);
+  return false;
+}
+
 export async function startHomeworkCreate(context: BotContext, scope: CommandScope, groupId: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor || !groupId) return { action: TEACHER_ACTIONS.homework };
+  if (!(await requireHomeworkPermission(context, actor, groupId))) return { action: 'hw_forbidden' };
 
   return safely(context, TEACHER_ACTIONS.groups, async () => {
     const group = await groupService.getById(actor, groupId);
     const draft: HomeworkDraft = { groupId: group.id, groupName: group.name };
     await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'title', data: draft as never });
     await context.render(
-      `<b>📝 Yangi vazifa — ${escapeHtml(group.name)}</b>\n\n1/3. Vazifa <b>sarlavhasini</b> yozing (masalan: «5-mashq, 12-bet»).`,
+      `<b>📝 Yangi vazifa — ${escapeHtml(group.name)}</b>\n\n1/4. Vazifa <b>sarlavhasini</b> yozing (masalan: «5-mashq, 12-bet»).`,
       [[{ text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, group.id) }]],
     );
     return { action: TEACHER_ACTIONS.homework };
@@ -365,6 +383,37 @@ function cancelRow(groupId: string): InlineKeyboard {
   return [[{ text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, groupId) }]];
 }
 
+function filesKeyboard(draft: HomeworkDraft): InlineKeyboard {
+  const count = draft.files?.length ?? 0;
+  return [
+    [{ text: count > 0 ? `➡️ Davom etish (${count} fayl)` : '➡️ Faylsiz davom etish', data: callback(TEACHER_ACTIONS.homeworkNext) }],
+    [{ text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, draft.groupId) }],
+  ];
+}
+
+async function showHomeworkConfirm(context: BotContext, draft: HomeworkDraft): Promise<HandlerResult> {
+  await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'confirm', data: draft as never });
+  const files = draft.files ?? [];
+  await context.render(
+    [
+      `<b>📝 ${escapeHtml(draft.title ?? '')}</b>`,
+      `👥 ${escapeHtml(draft.groupName)}`,
+      `⏰ Muddat: ${fmtDateTime(draft.deadline ?? new Date())}`,
+      draft.description ? `📄 ${escapeHtml(draft.description)}` : '📄 Tavsif yo‘q',
+      files.length ? `📎 ${files.map((file) => escapeHtml(file.originalName)).join(', ')}` : '📎 Fayl yo‘q',
+      '',
+      'E’lon qilinsinmi? Guruhdagi barcha faol o‘quvchiga topshiriq ochiladi.',
+    ].join('\n'),
+    [
+      [
+        { text: '✅ E’lon qilish', data: callback(TEACHER_ACTIONS.homeworkConfirm) },
+        { text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, draft.groupId) },
+      ],
+    ],
+  );
+  return { action: 'hw_create_confirm' };
+}
+
 export async function handleHomeworkCreateFlow(context: BotContext, scope: CommandScope, session: SessionState): Promise<HandlerResult> {
   const draft = session.data as unknown as HomeworkDraft;
   if (!scope.actor || typeof draft.groupId !== 'string') {
@@ -372,6 +421,8 @@ export async function handleHomeworkCreateFlow(context: BotContext, scope: Comma
     await context.reply('Vazifa yaratish bekor qilindi.', [menuRow()]);
     return { action: 'hw_create_cancel' };
   }
+  // Ruxsat oqim davomida olib qo'yilgan bo'lishi mumkin — har qadamda qayta
+  if (!(await requireHomeworkPermission(context, scope.actor, draft.groupId))) return { action: 'hw_forbidden' };
   const text = (context.text ?? '').trim();
 
   switch (session.step) {
@@ -381,12 +432,22 @@ export async function handleHomeworkCreateFlow(context: BotContext, scope: Comma
         return { action: 'hw_create_title_invalid' };
       }
       draft.title = text;
+      await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'description', data: draft as never });
+      await context.reply('2/4. <b>Tavsif</b> yozing (nima qilish kerak). Tavsif kerak bo‘lmasa «-» yuboring.', cancelRow(draft.groupId));
+      return { action: 'hw_create_title' };
+    }
+    case 'description': {
+      if (text.length > 2000) {
+        await context.reply('Tavsif 2000 belgidan oshmasin. Qisqartirib yozing.', cancelRow(draft.groupId));
+        return { action: 'hw_create_description_invalid' };
+      }
+      draft.description = text === '-' || text === '' ? null : text;
       await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'deadline', data: draft as never });
       await context.reply(
-        '2/3. <b>Muddatni</b> yozing: <code>25.12.2026</code> yoki <code>25.12.2026 18:00</code>\n(vaqt yozilmasa — kun oxiri 23:59)',
+        '3/4. <b>Muddatni</b> yozing: <code>25.12.2026</code> yoki <code>25.12.2026 18:00</code>\n(vaqt yozilmasa — kun oxiri 23:59)',
         cancelRow(draft.groupId),
       );
-      return { action: 'hw_create_title' };
+      return { action: 'hw_create_description' };
     }
     case 'deadline': {
       const deadline = parseLocalDateTime(text);
@@ -399,62 +460,67 @@ export async function handleHomeworkCreateFlow(context: BotContext, scope: Comma
         return { action: 'hw_create_deadline_past' };
       }
       draft.deadline = deadline.toISOString();
-      await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'description', data: draft as never });
-      await context.reply('3/3. <b>Tavsif</b> yozing (nima qilish kerak). Tavsif kerak bo‘lmasa «-» yuboring.', cancelRow(draft.groupId));
+      await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'files', data: draft as never });
+      await context.reply(
+        `4/4. 📎 Kerak bo‘lsa <b>fayl yoki rasm</b> yuboring (PDF, JPG, PNG, WEBP — ${MAX_HOMEWORK_FILES} tagacha). Fayl kerak bo‘lmasa — «Faylsiz davom etish».`,
+        filesKeyboard(draft),
+      );
       return { action: 'hw_create_deadline' };
     }
-    case 'description': {
-      if (text.length > 2000) {
-        await context.reply('Tavsif 2000 belgidan oshmasin. Qisqartirib yozing.', cancelRow(draft.groupId));
-        return { action: 'hw_create_description_invalid' };
+    case 'files': {
+      if (!context.attachment) {
+        await context.reply('Fayl yoki rasm yuboring yoki «Davom etish» ni bosing.', filesKeyboard(draft));
+        return { action: 'hw_create_file_expected' };
       }
-      draft.description = text === '-' || text === '' ? null : text;
-      await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'confirm', data: draft as never });
-      await context.reply(
-        [
-          `<b>📝 ${escapeHtml(draft.title ?? '')}</b>`,
-          `👥 ${escapeHtml(draft.groupName)}`,
-          `⏰ Muddat: ${fmtDateTime(draft.deadline ?? new Date())}`,
-          draft.description ? `📄 ${escapeHtml(draft.description)}` : '📄 Tavsif yo‘q',
-          '',
-          '📎 Kerak bo‘lsa, fayl yoki rasm yuboring (5 tagacha) — vazifaga biriktiriladi.',
-          'E’lon qilinsinmi? Guruhdagi barcha faol o‘quvchiga topshiriq ochiladi.',
-        ].join('\n'),
-        [
-          [
-            { text: '✅ E’lon qilish', data: callback(TEACHER_ACTIONS.homeworkConfirm) },
-            { text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, draft.groupId) },
-          ],
-        ],
-      );
-      return { action: 'hw_create_description' };
+      const files = draft.files ?? [];
+      if (files.length >= MAX_HOMEWORK_FILES) {
+        await context.reply(`Ko‘pi bilan ${MAX_HOMEWORK_FILES} ta fayl. «Davom etish» ni bosing.`, filesKeyboard(draft));
+        return { action: 'hw_create_file_limit' };
+      }
+      // Qabul qilingan zahoti: yuklab olish (hajm chegarasi) → tur baytlar bo'yicha → CRM xotirasi
+      const downloaded = await telegramService.downloadFile(context.attachment.fileId, env.MAX_UPLOAD_MB * 1024 * 1024);
+      if ('error' in downloaded) {
+        await context.reply(`❌ ${escapeHtml(downloaded.error)}`, filesKeyboard(draft));
+        return { action: 'hw_create_file_failed' };
+      }
+      try {
+        files.push(await homeworkService.prepareAttachment({ buffer: downloaded.buffer, fileName: context.attachment.fileName ?? undefined }));
+      } catch (error) {
+        if (!(error instanceof AppError)) throw error;
+        await context.reply(`❌ ${escapeHtml(error.message)}`, filesKeyboard(draft));
+        return { action: 'hw_create_file_rejected' };
+      }
+      draft.files = files;
+      await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'files', data: draft as never });
+      await context.reply(`📎 Fayl qabul qilindi (${files.length}/${MAX_HOMEWORK_FILES}).`, filesKeyboard(draft));
+      return { action: 'hw_create_file' };
     }
     default: {
-      // Tasdiq bosqichida fayl/rasm — vazifaga biriktiriladi (e'lon qilinganda yuklanadi)
-      if (context.attachment) {
-        const files = draft.files ?? [];
-        if (files.length >= MAX_HOMEWORK_FILES) {
-          await context.reply(`Ko‘pi bilan ${MAX_HOMEWORK_FILES} ta fayl. Endi «✅ E’lon qilish» ni bosing.`, cancelRow(draft.groupId));
-          return { action: 'hw_create_file_limit' };
-        }
-        files.push({ fileId: context.attachment.fileId, fileName: context.attachment.fileName });
-        draft.files = files;
-        await telegramSessionService.set(context.chatId, { flow: HOMEWORK_CREATE_FLOW, step: 'confirm', data: draft as never });
-        await context.reply(`📎 Fayl qo‘shildi (${files.length}/${MAX_HOMEWORK_FILES}).`, [
-          [
-            { text: '✅ E’lon qilish', data: callback(TEACHER_ACTIONS.homeworkConfirm) },
-            { text: '❌ Bekor qilish', data: callback(TEACHER_ACTIONS.group, draft.groupId) },
-          ],
-        ]);
-        return { action: 'hw_create_file' };
-      }
-      // Tasdiq bosqichida matn kutilmaydi — tugmani eslatamiz
       await context.reply('Tasdiqlash uchun «✅ E’lon qilish» tugmasini bosing.', cancelRow(draft.groupId));
       return { action: 'hw_create_wait_confirm' };
     }
   }
 }
 
+/** Fayl bosqichidan tasdiqqa */
+export async function homeworkFilesDone(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: TEACHER_ACTIONS.homeworkNext };
+  const session = await telegramSessionService.get(context.chatId);
+  const draft = session?.flow === HOMEWORK_CREATE_FLOW && session.step === 'files' ? (session.data as unknown as HomeworkDraft) : null;
+  if (!draft?.title || !draft.deadline) {
+    await context.render('Vazifa ma’lumoti topilmadi. Qaytadan boshlang.', [[{ text: '📚 Guruhlarim', data: callback(TEACHER_ACTIONS.groups) }, ...menuRow()]]);
+    return { action: TEACHER_ACTIONS.homeworkNext };
+  }
+  if (!(await requireHomeworkPermission(context, actor, draft.groupId))) return { action: 'hw_forbidden' };
+  return showHomeworkConfirm(context, draft);
+}
+
+/**
+ * Yaratish **atomik ko'rinishda**: avval qoralama (o'quvchilarga ko'rinmaydi, xabar ketmaydi) → fayllar
+ * biriktiriladi → faqat hammasi muvaffaqiyatli bo'lsa e'lon (topshiriqlar + bildirishnoma). Xato bo'lsa
+ * vazifa qoralamada qoladi — o'qituvchi web'da tekshiradi.
+ */
 export async function confirmHomeworkCreate(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor) return { action: TEACHER_ACTIONS.homeworkConfirm };
@@ -464,6 +530,7 @@ export async function confirmHomeworkCreate(context: BotContext, scope: CommandS
     await context.render('Vazifa ma’lumoti topilmadi. Qaytadan boshlang.', [[{ text: '📚 Guruhlarim', data: callback(TEACHER_ACTIONS.groups) }, ...menuRow()]]);
     return { action: TEACHER_ACTIONS.homeworkConfirm };
   }
+  if (!(await requireHomeworkPermission(context, actor, draft.groupId))) return { action: 'hw_forbidden' };
 
   return safely(context, TEACHER_ACTIONS.groups, async () => {
     const created = await homeworkService.create(
@@ -475,31 +542,25 @@ export async function confirmHomeworkCreate(context: BotContext, scope: CommandS
         deadline: new Date(draft.deadline!),
         maxPoints: 100,
         xpReward: 20,
-        status: 'PUBLISHED',
+        status: 'DRAFT',
       },
       BOT_CLIENT,
     );
-    // Biriktirilgan fayllar — web'dagi bilan bir xil servis (tur baytlar bo'yicha tekshiriladi)
-    let attached = 0;
-    const failed: string[] = [];
-    for (const file of draft.files ?? []) {
-      const downloaded = await telegramService.downloadFile(file.fileId, env.MAX_UPLOAD_MB * 1024 * 1024);
-      if ('error' in downloaded) {
-        failed.push(file.fileName ?? 'fayl');
-        continue;
-      }
-      try {
-        await homeworkService.uploadAttachment(actor, created.id, { buffer: downloaded.buffer, fileName: file.fileName ?? undefined, title: undefined }, BOT_CLIENT);
-        attached += 1;
-      } catch (error) {
-        if (!(error instanceof AppError)) throw error;
-        failed.push(file.fileName ?? 'fayl');
-      }
-    }
     await telegramSessionService.clearFlow(context.chatId);
-    const filesLine = attached || failed.length ? `\n📎 Fayllar: ${attached} ta biriktirildi${failed.length ? `, ${failed.length} tasi qabul qilinmadi (faqat PDF/rasm)` : ''}` : '';
+    try {
+      for (const file of draft.files ?? []) await homeworkService.attachStoredFile(actor, created.id, file, undefined, BOT_CLIENT);
+    } catch (error) {
+      if (!(error instanceof AppError)) throw error;
+      await context.render(
+        `⚠️ Vazifa <b>qoralama</b> sifatida saqlandi, lekin fayl biriktirilmadi: ${escapeHtml(error.message)}\nO‘quvchilarga hali ko‘rinmaydi — CRM’da tekshirib e’lon qiling.`,
+        [[{ text: '⬅️ Guruh', data: callback(TEACHER_ACTIONS.group, draft.groupId) }, ...menuRow()]],
+      );
+      return { action: 'hw_created_draft' };
+    }
+    const published = await homeworkService.update(actor, created.id, { status: 'PUBLISHED' }, BOT_CLIENT);
+    const filesLine = draft.files?.length ? `\n📎 ${draft.files.length} ta fayl biriktirildi` : '';
     await context.render(
-      `✅ <b>Vazifa e’lon qilindi</b>\n📝 ${escapeHtml(created.title)}\n⏰ ${fmtDateTime(created.deadline)}${filesLine}\n\nO‘quvchilar botda va kabinetda ko‘radi.`,
+      `✅ <b>Vazifa e’lon qilindi</b>\n📝 ${escapeHtml(published.title)}\n⏰ ${fmtDateTime(published.deadline)}${filesLine}\n\nO‘quvchilar botda va kabinetda ko‘radi.`,
       [[{ text: '⬅️ Guruh', data: callback(TEACHER_ACTIONS.group, draft.groupId) }, ...menuRow()]],
     );
     return { action: 'hw_created' };
@@ -530,6 +591,8 @@ export async function handleTeacherAction(context: BotContext, scope: CommandSco
       return saveAttendance(context, scope);
     case TEACHER_ACTIONS.homework:
       return startHomeworkCreate(context, scope, arg);
+    case TEACHER_ACTIONS.homeworkNext:
+      return homeworkFilesDone(context, scope);
     case TEACHER_ACTIONS.homeworkConfirm:
       return confirmHomeworkCreate(context, scope);
     default:

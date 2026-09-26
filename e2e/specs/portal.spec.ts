@@ -122,8 +122,17 @@ test.describe('Kabinet (o‘quvchi) — PHASE 1 karkas', () => {
     const auth = await request.post(`${API}/auth/login`, { data: { email: USERS.admin.email, password: USERS.admin.password } });
     const headers = { Authorization: `Bearer ${(await auth.json()).data.accessToken as string}` };
     const groups = (await (await request.get(`${API}/lookups/student-form`, { headers })).json()).data.groups as Array<{ id: string; name: string; studentCount: number }>;
-    const group = groups.find((item) => item.studentCount > 0);
-    expect(group, 'seed bazasida o‘quvchili guruh bo‘lishi kerak').toBeTruthy();
+    // Boshqa testlar (masalan Telegram oqimlari) ayrim guruhlarda kabinet ochib qo'ygan bo'lishi mumkin —
+    // kamida bitta o'quvchisi hali kabinetsiz guruh tanlanadi
+    let group: (typeof groups)[number] | undefined;
+    for (const candidate of groups.filter((item) => item.studentCount > 0)) {
+      const students = (await (await request.get(`${API}/students`, { params: { groupId: candidate.id, status: 'ACTIVE', limit: 100 }, headers })).json()).data as Array<{ hasPortalAccount: boolean }>;
+      if (students.some((student) => !student.hasPortalAccount)) {
+        group = candidate;
+        break;
+      }
+    }
+    expect(group, 'seed bazasida kabinetsiz o‘quvchili guruh bo‘lishi kerak').toBeTruthy();
 
     // UI orqali: O'quvchilar → Kabinetlar ochish → guruh → ochish
     await page.goto('/login');
