@@ -21,6 +21,29 @@ import type {
   SubmissionFile,
 } from '@/types/homework';
 import { downloadFile } from '@/lib/download';
+import type { RecurringHomework, RecurringHomeworkPayload } from '@/types/recurringHomework';
+
+export const recurringHomeworkService = {
+  async list(groupId?: string): Promise<RecurringHomework[]> {
+    const response = await api.get<ApiSuccessResponse<RecurringHomework[]>>('/homework/recurring', { params: groupId ? { groupId } : {} });
+    return response.data.data;
+  },
+
+  async create(payload: RecurringHomeworkPayload): Promise<MessageResult<RecurringHomework>> {
+    const response = await api.post<ApiSuccessResponse<RecurringHomework>>('/homework/recurring', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async setActive(id: string, isActive: boolean): Promise<MessageResult<RecurringHomework>> {
+    const response = await api.patch<ApiSuccessResponse<RecurringHomework>>(`/homework/recurring/${id}`, { isActive });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async remove(id: string): Promise<string> {
+    const response = await api.delete<ApiSuccessResponse<null>>(`/homework/recurring/${id}`);
+    return response.data.message;
+  },
+};
 
 export const homeworkService = {
   async list(params: HomeworkListParams): Promise<Paginated<Homework>> {

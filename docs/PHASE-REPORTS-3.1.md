@@ -1173,3 +1173,73 @@ Har protokol so'rovi — bir nechta indeksli so'rov; `GetStatement` 5000 ta bila
 ## Next Phase
 
 **PHASE 18 — Recurring homework (GAP-18)**: takrorlanuvchi (kunlik/haftalik) vazifa — seriya, generator job, dublikatsiz, dam olish kunlari.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 18
+
+Sana: 2026-09-27. GAP-18 "Daily recurring homework" (§40).
+
+## Implemented
+
+- **Jadval** (`RecurringHomework`): guruh, vazifa, tavsif, ball/XP; takrorlanish — har kuni / tanlangan kunlar / haftada bir marta; boshlanish–tugash; e'lon vaqti; muddat vaqti + kun siljishi. Misol: *Frontend A · ish kunlari · JavaScript Practice · muddat har kuni 23:59*.
+- **Generator** (TZ arxitekturasi: RecurringHomework → Scheduler → Homework Creation → Group Students → Notification): job har 15 daqiqa; faqat bugungi takrorlanish (o'quv markaz sanasi, UTC+5), e'lon vaqti kelgan, guruh va jadval faol, oraliqda, muddati o'tmagan. Yaratilganda bugun ham mos bo'lsa — darhol.
+- **Bitta yaratish yo'li:** `homeworkService.create` ichidagi tranzaksiya qismi `createHomeworkInTransaction` ga ajratildi — xodim ham, generator ham shuni chaqiradi (yozuv, topshiriqlar, bildirishnoma, audit; mantiq takrorlanmaydi, mavjud xatti-harakat o'zgarmadi — vazifa testlari 29/29).
+- **Dublikatdan himoya:** `homework (recurringHomeworkId, occurrenceDate)` unikal indeks + oldindan tekshiruv; parallel/takroriy yurish — P2002 o'tkazib yuboriladi.
+- **CRUD va boshqaruv:** yaratish, tahrir (keyingi takrorlanishlarga), to'xtatish/davom ettirish, o'chirish (berilgan vazifalar qoladi); o'qituvchi — faqat o'z guruhlari.
+- **Web:** "Uy vazifalari" → "Takrorlanuvchi" — ro'yxat (jadval yorlig'i, e'lon/muddat, berilganlar soni, keyingi sana), yangi jadval formasi (brauzerda ham tekshiruv), to'xtatish, o'chirish (tasdiq bilan).
+
+## Existing Code Reused
+
+`homeworkService` (yaratish qismi umumlashtirildi), `ensureSubmissions`, `notifyHomeworkCreated`, `auditService`, `getTeachingAccess`/`assertGroupVisible`, job naqshi (`recurringExpenses.job`), `reportJobFailure`, biznes sana (`businessDateString`).
+
+## New Files
+
+`backend/prisma/migrations/20260927140000_recurring_homework/migration.sql`, `backend/src/validators/recurringHomework.validator.ts`, `backend/src/services/recurringHomework.service.ts`, `backend/src/controllers/recurringHomework.controller.ts`, `backend/src/jobs/recurringHomework.job.ts`, `backend/tests/recurringHomework.test.ts`, `frontend/src/types/recurringHomework.ts`, `frontend/src/pages/homework/RecurringHomeworkModal.tsx` (+ `.test.tsx`).
+
+## Modified Files
+
+`backend/prisma/schema.prisma`, `backend/src/services/homework.service.ts` (helper ajratildi), `backend/src/routes/homework.routes.ts`, `backend/src/server.ts` (job), `backend/src/config/auditLabels.ts` (+ PHASE 17 dagi `payment.online_refund_requested` yorlig'i), `frontend/src/services/homework.service.ts`, `frontend/src/lib/queryKeys.ts`, `frontend/src/pages/homework/HomeworkPage.tsx`, `e2e/specs/flows.spec.ts`, `docs/homework.md`.
+
+## Database Changes
+
+(oldin `pg_dump`) Yangi enum `RecurringHomeworkFrequency`, jadval `recurring_homeworks`; `homework` ga `recurringHomeworkId` (FK, SET NULL) va `occurrenceDate DATE` — NULL-able; unikal `(recurringHomeworkId, occurrenceDate)`. Faqat qo'shish; dev va test bazalarida qo'llandi.
+
+## API Changes
+
+`GET /api/homework/recurring` (`homework.view`), `POST /api/homework/recurring`, `PATCH/DELETE /api/homework/recurring/:id` (`homework.manage`); qat'iy sxema (noma'lum maydon — 422).
+
+## Telegram Changes
+
+Yo'q (berilgan vazifa mavjud bildirishnoma yo'li bilan o'quvchi/ota-ona Telegramiga ketadi).
+
+## Permissions
+
+Yangi ruxsat yo'q — `homework.view` / `homework.manage`; doira — o'z guruhlari.
+
+## Security
+
+Begona guruhga jadval — rad; boshqa o'qituvchi jadvalini ko'rish/o'zgartirish/o'chirish — 404; buxgalter — 403 (test). Generator tizim nomidan (audit `userId=null`, `userAgent: recurring-homework-job`).
+
+## Tests
+
+Backend **893/893** (+10 — to'liq toza): §40 (jadval → generator → vazifa + topshiriqlar + Telegram navbati → ikkinchi yurish va **uch parallel yurish** — dublikat yo'q), dam olish kuni/oraliqdan tashqari/to'xtatilgan/guruh faol emas/muddat o'tgan — yaratilmaydi, haftalik va muddat siljishi, o'chirilsa vazifa qoladi, yaratilganda darhol, validatsiya (422), ruxsat va doira. Test sanalari 2030 — real soat bilan chalkashmaydi. Frontend **130/130** (+3), E2E **47/47** (+1 §40: o'qituvchi web'da jadval yaratadi → bugungi vazifa darhol → to'xtatish/davom — dublikat yo'q). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Generator — bitta so'rov (bugun hali yaratilmagan faol jadvallar), har mosiga bitta tranzaksiya; indeks `(isActive, startDate)`.
+
+## Documentation
+
+`docs/homework.md` — "Takrorlanuvchi vazifa" bo'limi.
+
+## Known Issues
+
+- Bayram/dam olish kunlari kalendari yo'q — faqat hafta kunlari bo'yicha (kerak bo'lsa jadval to'xtatiladi).
+- O'tkazib yuborilgan kunlar (server o'chiq) orqaga to'ldirilmaydi — ataylab.
+- Jadval faqat butun guruhga (tanlangan o'quvchilarga emas); fayl biriktirish yo'q — vazifa berilgach qo'shiladi.
+- Botdan jadval yaratish yo'q (web'da).
+
+## Next Phase
+
+**PHASE 19 — Programming homework sandbox (GAP-19)**: avval arxitektura (izolyatsiya: gVisor/alohida runner — infra qarori), kod bajarishni soxtalashtirmaslik.

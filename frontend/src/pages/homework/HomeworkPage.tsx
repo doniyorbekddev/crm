@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Eye, Pencil, Plus, Scale, Trash2 } from 'lucide-react';
+import { ClipboardList, Eye, Pencil, Plus, Repeat, Scale, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -27,6 +27,7 @@ import { HOMEWORK_STATUS_LABELS, HOMEWORK_STATUS_ORDER, HOMEWORK_STATUS_TONES } 
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { HomeworkDetailModal } from './HomeworkDetailModal';
 import { HomeworkFormModal } from './HomeworkFormModal';
+import { RecurringHomeworkModal } from './RecurringHomeworkModal';
 import { RubricsModal } from './RubricsModal';
 
 const PAGE_SIZE = 20;
@@ -49,6 +50,7 @@ export default function HomeworkPage() {
   const [status, setStatus] = useState<HomeworkStatus | ''>('');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [recurringOpen, setRecurringOpen] = useState(false);
 
   const params: HomeworkListParams = {
     page,
@@ -101,6 +103,9 @@ export default function HomeworkPage() {
             <>
               <Button variant="secondary" leftIcon={<Scale className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'rubrics' })}>
                 Rubrikalar
+              </Button>
+              <Button variant="secondary" leftIcon={<Repeat className="size-4" aria-hidden />} onClick={() => setRecurringOpen(true)}>
+                Takrorlanuvchi
               </Button>
               <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
                 Vazifa berish
@@ -255,6 +260,8 @@ export default function HomeworkPage() {
           }}
         />
       )}
+
+      {recurringOpen && <RecurringHomeworkModal canManage={canManage} onClose={() => setRecurringOpen(false)} />}
 
       {dialog?.type === 'detail' && (
         <HomeworkDetailModal homeworkId={dialog.id} onClose={() => setDialog(null)} onChanged={refresh} />

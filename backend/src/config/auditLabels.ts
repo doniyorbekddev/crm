@@ -46,6 +46,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'employee.leave_cancelled': 'Ta’til bekor qilindi',
   'payment.intent_created': 'Onlayn to‘lov so‘rovi yaratildi',
   'payment.online_received': 'Onlayn to‘lov qabul qilindi',
+  'payment.online_refund_requested': 'Onlayn to‘lovni qaytarish so‘raldi (Click)',
   'automation.rule_updated': 'Avtomatlashtirish qoidasi o‘zgartirildi',
   'inventory.product_created': 'Mahsulot qo‘shildi',
   'inventory.product_updated': 'Mahsulot tahrirlandi',
@@ -103,6 +104,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'attendance.marked': 'Davomat belgilandi',
 
   'homework.created': 'Uy vazifasi berildi',
+  'homework.recurring_created': 'Takrorlanuvchi vazifa jadvali yaratildi',
+  'homework.recurring_updated': 'Takrorlanuvchi vazifa jadvali o‘zgartirildi',
+  'homework.recurring_deleted': 'Takrorlanuvchi vazifa jadvali o‘chirildi',
   'homework.updated': 'Uy vazifasi tahrirlandi',
   'homework.graded': 'Uy vazifasi baholandi',
   'homework.deleted': 'Uy vazifasi o‘chirildi',

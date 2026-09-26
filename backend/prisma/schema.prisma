@@ -283,72 +283,73 @@ model User {
   updatedSettings      Setting[]
 
   // O'quv markaz modullari
-  preferences              UserPreference[]
-  teacherProfile           TeacherProfile?
-  taughtSessions           AttendanceSession[]    @relation("SessionTeacher")
-  markedSessions           AttendanceSession[]    @relation("SessionMarkedBy")
-  xpAwards                 XpTransaction[]        @relation("XpAwardedBy")
-  createdSalaryRules       TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
-  approvedSalaries         TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
-  salaryPaymentsCreated    TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
-  createdTransactions      Transaction[]          @relation("TransactionCreatedBy")
-  voidedTransactions       Transaction[]          @relation("TransactionVoidedBy")
-  incomesResponsible       Income[]               @relation("IncomeResponsible")
-  expensesResponsible      Expense[]              @relation("ExpenseResponsible")
-  createdBudgets           Budget[]               @relation("BudgetCreatedBy")
-  createdHomework          Homework[]             @relation("HomeworkTeacher")
-  gradedSubmissions        HomeworkSubmission[]   @relation("SubmissionGradedBy")
-  createdExams             Exam[]                 @relation("ExamTeacher")
-  gradedExamResults        ExamResult[]           @relation("ExamResultGradedBy")
-  salesTargets             SalesTarget[]          @relation("SalesTargetUser")
-  createdSalesTargets      SalesTarget[]          @relation("SalesTargetCreatedBy")
-  resolvedAlerts           Alert[]                @relation("AlertResolvedBy")
-  alertsRead               Alert[]                @relation("AlertReadBy")
-  taughtPayments           Payment[]              @relation("PaymentTeacher")
-  commissionEntries        CommissionEntry[]      @relation("CommissionTeacher")
-  createdCommissions       CommissionEntry[]      @relation("CommissionCreatedBy")
-  unlockedSalaries         TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
-  createdAdjustments       PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
-  approvedAdjustments      PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
-  voidedAdjustments        PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
-  employee                 Employee?              @relation("EmployeeUser")
-  createdEmployees         Employee[]             @relation("EmployeeCreatedBy")
-  createdRefunds           PaymentRefund[]        @relation("PaymentRefundCreatedBy")
-  closedFinancialPeriods   FinancialPeriod[]      @relation("FinancialPeriodClosedBy")
-  reopenedFinancialPeriods FinancialPeriod[]      @relation("FinancialPeriodReopenedBy")
-  approvedExpenses         Expense[]              @relation("ExpenseApprovedBy")
-  rejectedExpenses         Expense[]              @relation("ExpenseRejectedBy")
-  createdRecurringExpenses RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
-  groupChanges             StudentGroupChange[]   @relation("GroupChangeBy")
-  statusChanges            StudentStatusChange[]
+  preferences               UserPreference[]
+  teacherProfile            TeacherProfile?
+  taughtSessions            AttendanceSession[]    @relation("SessionTeacher")
+  markedSessions            AttendanceSession[]    @relation("SessionMarkedBy")
+  xpAwards                  XpTransaction[]        @relation("XpAwardedBy")
+  createdSalaryRules        TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
+  approvedSalaries          TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
+  salaryPaymentsCreated     TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
+  createdTransactions       Transaction[]          @relation("TransactionCreatedBy")
+  voidedTransactions        Transaction[]          @relation("TransactionVoidedBy")
+  incomesResponsible        Income[]               @relation("IncomeResponsible")
+  expensesResponsible       Expense[]              @relation("ExpenseResponsible")
+  createdBudgets            Budget[]               @relation("BudgetCreatedBy")
+  createdHomework           Homework[]             @relation("HomeworkTeacher")
+  recurringHomeworksCreated RecurringHomework[]    @relation("RecurringHomeworkCreatedBy")
+  gradedSubmissions         HomeworkSubmission[]   @relation("SubmissionGradedBy")
+  createdExams              Exam[]                 @relation("ExamTeacher")
+  gradedExamResults         ExamResult[]           @relation("ExamResultGradedBy")
+  salesTargets              SalesTarget[]          @relation("SalesTargetUser")
+  createdSalesTargets       SalesTarget[]          @relation("SalesTargetCreatedBy")
+  resolvedAlerts            Alert[]                @relation("AlertResolvedBy")
+  alertsRead                Alert[]                @relation("AlertReadBy")
+  taughtPayments            Payment[]              @relation("PaymentTeacher")
+  commissionEntries         CommissionEntry[]      @relation("CommissionTeacher")
+  createdCommissions        CommissionEntry[]      @relation("CommissionCreatedBy")
+  unlockedSalaries          TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
+  createdAdjustments        PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
+  approvedAdjustments       PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
+  voidedAdjustments         PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
+  employee                  Employee?              @relation("EmployeeUser")
+  createdEmployees          Employee[]             @relation("EmployeeCreatedBy")
+  createdRefunds            PaymentRefund[]        @relation("PaymentRefundCreatedBy")
+  closedFinancialPeriods    FinancialPeriod[]      @relation("FinancialPeriodClosedBy")
+  reopenedFinancialPeriods  FinancialPeriod[]      @relation("FinancialPeriodReopenedBy")
+  approvedExpenses          Expense[]              @relation("ExpenseApprovedBy")
+  rejectedExpenses          Expense[]              @relation("ExpenseRejectedBy")
+  createdRecurringExpenses  RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
+  groupChanges              StudentGroupChange[]   @relation("GroupChangeBy")
+  statusChanges             StudentStatusChange[]
   /// Portal hisobi qaysi o'quvchiga tegishli (o'quvchi kabineti)
-  studentAccount           Student?               @relation("StudentPortalAccount")
+  studentAccount            Student?               @relation("StudentPortalAccount")
   /// Portal hisobi qaysi ota-onaga tegishli (ota-ona kabineti)
-  parentAccount            Parent?                @relation("ParentPortalAccount")
-  telegramLinks            TelegramLink[]
-  markedTopics             StudentTopicProgress[]
-  leadAssignmentRule       LeadAssignmentRule?
-  createdQuestions         Question[]
-  gradedAttempts           ExamAttempt[]
-  issuedCertificates       Certificate[]          @relation("CertificateIssuer")
-  revokedCertificates      Certificate[]          @relation("CertificateRevoker")
-  grantedDiscounts         StudentDiscount[]      @relation("DiscountGrantedBy")
-  revokedDiscounts         StudentDiscount[]      @relation("DiscountRevokedBy")
-  createdPromoCodes        PromoCode[]            @relation("PromoCodeCreatedBy")
-  rewardedReferrals        Referral[]             @relation("ReferralRewardedBy")
-  receivedFeedback         Feedback[]             @relation("FeedbackTeacher")
-  requestedLeaves          EmployeeLeave[]        @relation("LeaveRequestedBy")
-  stockMovements           StockMovement[]        @relation("StockMovementCreatedBy")
-  aiQueries                AiQuery[]
-  aiAnalysesCreated        AiAnalysis[]           @relation("AiAnalysisCreatedBy")
-  aiAnalysesDecided        AiAnalysis[]           @relation("AiAnalysisDecidedBy")
-  savedAutomations         AutomationRule[]       @relation("AutomationUpdatedBy")
-  createdPaymentIntents    PaymentIntent[]        @relation("PaymentIntentCreatedBy")
-  decidedLeaves            EmployeeLeave[]        @relation("LeaveDecidedBy")
-  handledFeedback          Feedback[]             @relation("FeedbackHandledBy")
-  taughtLessons            Lesson[]               @relation("LessonTeacher")
-  createdLessons           Lesson[]               @relation("LessonCreatedBy")
-  createdRubrics           Rubric[]               @relation("RubricCreatedBy")
+  parentAccount             Parent?                @relation("ParentPortalAccount")
+  telegramLinks             TelegramLink[]
+  markedTopics              StudentTopicProgress[]
+  leadAssignmentRule        LeadAssignmentRule?
+  createdQuestions          Question[]
+  gradedAttempts            ExamAttempt[]
+  issuedCertificates        Certificate[]          @relation("CertificateIssuer")
+  revokedCertificates       Certificate[]          @relation("CertificateRevoker")
+  grantedDiscounts          StudentDiscount[]      @relation("DiscountGrantedBy")
+  revokedDiscounts          StudentDiscount[]      @relation("DiscountRevokedBy")
+  createdPromoCodes         PromoCode[]            @relation("PromoCodeCreatedBy")
+  rewardedReferrals         Referral[]             @relation("ReferralRewardedBy")
+  receivedFeedback          Feedback[]             @relation("FeedbackTeacher")
+  requestedLeaves           EmployeeLeave[]        @relation("LeaveRequestedBy")
+  stockMovements            StockMovement[]        @relation("StockMovementCreatedBy")
+  aiQueries                 AiQuery[]
+  aiAnalysesCreated         AiAnalysis[]           @relation("AiAnalysisCreatedBy")
+  aiAnalysesDecided         AiAnalysis[]           @relation("AiAnalysisDecidedBy")
+  savedAutomations          AutomationRule[]       @relation("AutomationUpdatedBy")
+  createdPaymentIntents     PaymentIntent[]        @relation("PaymentIntentCreatedBy")
+  decidedLeaves             EmployeeLeave[]        @relation("LeaveDecidedBy")
+  handledFeedback           Feedback[]             @relation("FeedbackHandledBy")
+  taughtLessons             Lesson[]               @relation("LessonTeacher")
+  createdLessons            Lesson[]               @relation("LessonCreatedBy")
+  createdRubrics            Rubric[]               @relation("RubricCreatedBy")
 
   branch                 Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
   tasksAssigned          Task[]           @relation("TaskAssignee")
@@ -941,19 +942,20 @@ model Group {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  course       Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  roomRef      Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  teacher      User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  students     Student[]
-  attendances  Attendance[]
-  sessions     AttendanceSession[]
-  homework     Homework[]
-  exams        Exam[]
-  payments     Payment[]
-  certificates Certificate[]
-  feedback     Feedback[]
-  changesFrom  StudentGroupChange[] @relation("GroupChangeFrom")
-  changesTo    StudentGroupChange[] @relation("GroupChangeTo")
+  course            Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  roomRef           Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  teacher           User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  students          Student[]
+  attendances       Attendance[]
+  sessions          AttendanceSession[]
+  homework          Homework[]
+  recurringHomework RecurringHomework[]
+  exams             Exam[]
+  payments          Payment[]
+  certificates      Certificate[]
+  feedback          Feedback[]
+  changesFrom       StudentGroupChange[] @relation("GroupChangeFrom")
+  changesTo         StudentGroupChange[] @relation("GroupChangeTo")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -2278,41 +2280,88 @@ model StudentParent {
 // ---------------------------------------------------------------------
 
 model Homework {
-  id             String              @id @default(cuid())
-  title          String              @db.VarChar(200)
-  description    String?
-  courseId       String?
-  groupId        String
-  teacherId      String?
-  assignedAt     DateTime            @default(now())
-  deadline       DateTime
-  maxPoints      Int                 @default(100) @db.SmallInt
-  xpReward       Int                 @default(20)
-  attachmentPath String?             @db.VarChar(500)
-  status         HomeworkStatus      @default(PUBLISHED)
+  id                  String              @id @default(cuid())
+  title               String              @db.VarChar(200)
+  description         String?
+  courseId            String?
+  groupId             String
+  teacherId           String?
+  assignedAt          DateTime            @default(now())
+  deadline            DateTime
+  maxPoints           Int                 @default(100) @db.SmallInt
+  xpReward            Int                 @default(20)
+  attachmentPath      String?             @db.VarChar(500)
+  status              HomeworkStatus      @default(PUBLISHED)
   /// Kurs dasturidagi mavzu va dars (LMS) — mastery va hisobotlar uchun
-  topicId        String?
-  lessonId       String?
-  difficulty     QuestionDifficulty?
-  targetType     HomeworkTarget      @default(GROUP)
-  rubricId       String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  topicId             String?
+  lessonId            String?
+  difficulty          QuestionDifficulty?
+  targetType          HomeworkTarget      @default(GROUP)
+  rubricId            String?
+  /// Takrorlanuvchi jadvaldan yaratilgan bo'lsa (TZ 3.1 GAP-18) — jadval va o'sha kun (biznes sanasi)
+  recurringHomeworkId String?
+  occurrenceDate      DateTime?           @db.Date
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  course      Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  teacher     User?                @relation("HomeworkTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
-  submissions HomeworkSubmission[]
-  topic       CourseTopic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
-  lesson      Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  rubric      Rubric?              @relation(fields: [rubricId], references: [id], onDelete: SetNull)
-  attachments HomeworkAttachment[]
+  course            Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  group             Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  recurringHomework RecurringHomework?   @relation(fields: [recurringHomeworkId], references: [id], onDelete: SetNull)
+  teacher           User?                @relation("HomeworkTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  submissions       HomeworkSubmission[]
+  topic             CourseTopic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  lesson            Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  rubric            Rubric?              @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+  attachments       HomeworkAttachment[]
 
+  /// Bitta jadval bir kunda bitta vazifa — dublikatdan himoya (parallel job ham)
+  @@unique([recurringHomeworkId, occurrenceDate])
   @@index([groupId, deadline])
   @@index([status, deadline])
   @@index([createdAt])
   @@index([topicId])
   @@map("homework")
+}
+
+enum RecurringHomeworkFrequency {
+  /// Har kuni
+  DAILY
+  /// Haftada bir marta — `weekdays` da bitta kun
+  WEEKLY
+  /// Tanlangan kunlar (masalan dushanba–juma)
+  WEEKDAYS
+}
+
+/// Takrorlanuvchi uy vazifasi jadvali (TZ 3.1 GAP-18): generator har kuni mos bo'lsa oddiy `Homework` yaratadi
+model RecurringHomework {
+  id                 String                     @id @default(cuid())
+  groupId            String
+  title              String                     @db.VarChar(200)
+  description        String?
+  maxPoints          Int                        @default(100) @db.SmallInt
+  xpReward           Int                        @default(20)
+  frequency          RecurringHomeworkFrequency
+  weekdays           WeekDay[]
+  /// Biznes sanalari (o'quv markaz vaqti)
+  startDate          DateTime                   @db.Date
+  endDate            DateTime?                  @db.Date
+  /// Shu soatdan keyin e'lon qilinadi, "HH:mm"
+  publishTime        String                     @default("08:00") @db.VarChar(5)
+  /// Muddat: e'lon kunidan `deadlineOffsetDays` kun keyin, "HH:mm"
+  deadlineTime       String                     @default("23:59") @db.VarChar(5)
+  deadlineOffsetDays Int                        @default(0) @db.SmallInt
+  isActive           Boolean                    @default(true)
+  createdById        String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User?      @relation("RecurringHomeworkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  homework  Homework[]
+
+  @@index([isActive, startDate])
+  @@index([groupId])
+  @@map("recurring_homeworks")
 }
 
 model HomeworkSubmission {

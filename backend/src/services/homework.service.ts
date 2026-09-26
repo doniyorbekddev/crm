@@ -464,6 +464,68 @@ function contentData(input: StudentDraftInput): Prisma.HomeworkSubmissionUpdateI
   };
 }
 
+/**
+ * Vazifa yaratishning tranzaksiya ichidagi qismi — bitta joyda: yozuv, o'quvchi topshiriqlari, bildirishnoma
+ * (faqat e'lon qilinganda), audit. Xodim (`create`) va takrorlanuvchi jadval generatori (TZ 3.1 GAP-18, xodimsiz)
+ * shu funksiyani ishlatadi — mantiq takrorlanmaydi.
+ */
+export async function createHomeworkInTransaction(
+  tx: Prisma.TransactionClient,
+  params: {
+    group: { id: string; courseId: string; name: string };
+    input: Omit<CreateHomeworkInput, 'groupId' | 'studentIds'> & { targetType: NonNullable<CreateHomeworkInput['targetType']> };
+    targets: string[] | undefined;
+    teacherId: string | null;
+    actorId: string | null;
+    client: ClientInfo;
+    recurring?: { recurringHomeworkId: string; occurrenceDate: Date };
+  },
+): Promise<string> {
+  const { group, input, targets } = params;
+  const homework = await tx.homework.create({
+    data: {
+      title: input.title,
+      description: input.description ?? null,
+      groupId: group.id,
+      courseId: group.courseId,
+      teacherId: params.teacherId,
+      deadline: input.deadline,
+      maxPoints: input.maxPoints,
+      xpReward: input.xpReward,
+      status: input.status,
+      targetType: input.targetType,
+      topicId: input.topicId ?? null,
+      lessonId: input.lessonId ?? null,
+      difficulty: input.difficulty ?? null,
+      rubricId: input.rubricId ?? null,
+      ...(params.recurring ? { recurringHomeworkId: params.recurring.recurringHomeworkId, occurrenceDate: params.recurring.occurrenceDate } : {}),
+    },
+    select: { id: true },
+  });
+
+  // Qoralamada ham nishon saqlanishi uchun tanlangan o'quvchilar yozuvi darhol ochiladi
+  const students = input.status === 'PUBLISHED' || targets ? await ensureSubmissions(tx, homework.id, group.id, targets) : 0;
+  // O'quvchi va ota-onaga xabar — shu tranzaksiyada, e'lon bekor bo'lsa xabar ham ketmaydi
+  if (input.status === 'PUBLISHED') await notifyHomeworkCreated(tx, homework.id);
+
+  await auditService.recordInTransaction(tx, {
+    userId: params.actorId,
+    action: 'homework.created',
+    entityType: 'homework',
+    entityId: homework.id,
+    metadata: {
+      title: input.title,
+      group: group.name,
+      deadline: input.deadline.toISOString(),
+      students,
+      targetType: input.targetType,
+      ...(params.recurring ? { recurringHomeworkId: params.recurring.recurringHomeworkId } : {}),
+    },
+    ...params.client,
+  });
+  return homework.id;
+}
+
 export const homeworkService = {
   /**
    * O'quvchi vazifani **o'zi** topshiradi (Telegram yoki kabinet).
@@ -666,42 +728,16 @@ export const homeworkService = {
     const targets = targetType === 'GROUP' ? undefined : (input.studentIds ?? []);
     if (targets) await assertTargets(group.id, targets);
 
-    const id = await prisma.$transaction(async (tx) => {
-      const homework = await tx.homework.create({
-        data: {
-          title: input.title,
-          description: input.description ?? null,
-          groupId: group.id,
-          courseId: group.courseId,
-          teacherId: group.teacherId ?? actor.id,
-          deadline: input.deadline,
-          maxPoints: input.maxPoints,
-          xpReward: input.xpReward,
-          status: input.status,
-          targetType,
-          topicId: input.topicId ?? null,
-          lessonId: input.lessonId ?? null,
-          difficulty: input.difficulty ?? null,
-          rubricId: input.rubricId ?? null,
-        },
-        select: { id: true },
-      });
-
-      // Qoralamada ham nishon saqlanishi uchun tanlangan o'quvchilar yozuvi darhol ochiladi
-      const students = input.status === 'PUBLISHED' || targets ? await ensureSubmissions(tx, homework.id, group.id, targets) : 0;
-      // O'quvchi va ota-onaga xabar — shu tranzaksiyada, e'lon bekor bo'lsa xabar ham ketmaydi
-      if (input.status === 'PUBLISHED') await notifyHomeworkCreated(tx, homework.id);
-
-      await auditService.recordInTransaction(tx, {
-        userId: actor.id,
-        action: 'homework.created',
-        entityType: 'homework',
-        entityId: homework.id,
-        metadata: { title: input.title, group: group.name, deadline: input.deadline.toISOString(), students, targetType },
-        ...client,
-      });
-      return homework.id;
-    });
+    const id = await prisma.$transaction((tx) =>
+      createHomeworkInTransaction(tx, {
+        group,
+        input: { ...input, targetType },
+        targets,
+        teacherId: group.teacherId ?? actor.id,
+        actorId: actor.id,
+        client,
+      }),
+    );
 
     return this.getById(actor, id);
   },

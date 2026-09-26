@@ -63,3 +63,33 @@ Matn (≤ 2000), **havola** (faqat http/https), **kod** (≤ 20 000, til belgisi
 ## 8. Testlar
 
 `backend/tests/homeworkV2.test.ts` (8): nishon va xabarlar, keyin qo‘shilgan o‘quvchi, mavzu/dars bog‘lanishi, qoralama → 5 fayl → havola/kod → o‘qituvchi ko‘rishi (begona 404), qaytarish va qayta topshirish, rubrika (hisob, to‘liqlik, muallif), job (eslatma bir marta, MISSED → LATE), o‘qituvchi fayli/qoralama ko‘rinmasligi. Frontend: `PortalHomeworkDetailPage.test.tsx` (4). E2E: kabinetda topshirish.
+
+## Takrorlanuvchi vazifa (3.1, GAP-18)
+
+O'qituvchi/admin (`homework.manage`) guruh uchun **jadval** yaratadi — tizim har mos kuni oddiy vazifa beradi
+(o'quvchi topshiriqlari, o'quvchi/ota-ona bildirishnomasi va Telegram — oddiy vazifa bilan **bitta funksiya**,
+`createHomeworkInTransaction`).
+
+| Maydon | Qiymat |
+|---|---|
+| Takrorlanish | har kuni (`DAILY`) · tanlangan kunlar (`WEEKDAYS`, masalan Du–Ju) · haftada bir marta (`WEEKLY`, bitta kun) |
+| Oraliq | boshlanish (majburiy) — tugash (ixtiyoriy, ≤ 400 kun) |
+| E'lon vaqti | `HH:mm` (standart 08:00) — shundan keyin beriladi |
+| Muddat | `HH:mm` + necha kundan keyin (0–14); 0 kun bo'lsa muddat e'londan keyin bo'lishi shart |
+
+Misol: *Frontend A · ish kunlari · "JavaScript Practice" · e'lon 08:00 · muddat o'sha kuni 23:59*.
+
+**Generator** (`jobs/recurringHomework.job.ts`, har 15 daqiqa, `recurringHomeworkService.generate`): faqat **bugungi**
+(o'quv markaz sanasi) takrorlanish — e'lon vaqti kelgan, guruh faol, jadval faol va oraliqda, muddat hali o'tmagan.
+Server o'chiq bo'lgan kunlar orqaga to'ldirilmaydi (muddati o'tgan vazifa berilmaydi). Jadval yaratilganda bugun ham
+mos bo'lsa — darhol beriladi.
+
+**Dublikatdan himoya:** `homework (recurringHomeworkId, occurrenceDate)` — unikal indeks. Qayta yurish, bir nechta
+server nusxasi yoki parallel job — P2002, o'tkazib yuboriladi (test: uch parallel yurish → bitta vazifa).
+
+**Tahrir va o'chirish:** tahrir keyingi takrorlanishlarga ta'sir qiladi; "To'xtatish/Davom ettirish"; jadval
+o'chirilsa berilgan vazifalar qoladi (bog'lanish uziladi). Doira — oddiy vazifa kabi: o'qituvchi faqat o'z guruhlari.
+Audit: `homework.recurring_created/updated/deleted`, har berilgan vazifa — `homework.created` (tizim nomidan).
+
+API: `GET/POST /api/homework/recurring`, `PATCH/DELETE /api/homework/recurring/:id`. Web: "Uy vazifalari" →
+"Takrorlanuvchi". Testlar: `tests/recurringHomework.test.ts` (§40), `RecurringHomeworkModal.test.tsx`, E2E §40.

@@ -4,6 +4,7 @@ import { examController, homeworkController } from '../controllers/homework.cont
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { questionController } from '../controllers/question.controller.js';
+import { recurringHomeworkController } from '../controllers/recurringHomework.controller.js';
 import { rubricController } from '../controllers/rubric.controller.js';
 import { uploadBody } from './document.routes.js';
 
@@ -18,6 +19,11 @@ const homeworkGrade = requirePermission(PERMISSIONS.HOMEWORK_GRADE);
 homeworkRouter.get('/', homeworkView, homeworkController.list);
 homeworkRouter.get('/attachments/:id/download', homeworkView, homeworkController.downloadAttachment);
 homeworkRouter.delete('/attachments/:id', homeworkManage, homeworkController.removeAttachment);
+// Takrorlanuvchi vazifa (TZ 3.1 GAP-18) — `/:id` dan oldin
+homeworkRouter.get('/recurring', homeworkView, recurringHomeworkController.list);
+homeworkRouter.post('/recurring', homeworkManage, recurringHomeworkController.create);
+homeworkRouter.patch('/recurring/:id', homeworkManage, recurringHomeworkController.update);
+homeworkRouter.delete('/recurring/:id', homeworkManage, recurringHomeworkController.remove);
 homeworkRouter.get('/:id', homeworkView, homeworkController.getById);
 homeworkRouter.post('/', homeworkManage, homeworkController.create);
 homeworkRouter.put('/:id', homeworkManage, homeworkController.update);

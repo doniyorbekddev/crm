@@ -558,3 +558,44 @@ test('§39 to‘lov: PaymentIntent → Payme (sinov) → Check/Create/Perform �
   await expect(row).toBeVisible();
   await expect(row.getByText('sinov')).toBeVisible();
 });
+
+test('§40 takrorlanuvchi vazifa: o‘qituvchi jadval yaratadi → bugungi vazifa beriladi → qayta yurish — dublikat yo‘q', async ({ page, request }) => {
+  const teacher = await apiLogin(request, 'teacher');
+  const groups = (await (await request.get(`${API}/groups`, { params: { status: 'ACTIVE', limit: 50 }, headers: teacher })).json()).data as Array<{ id: string; name: string }>;
+  expect(groups.length, 'seed: o‘qituvchi guruhi').toBeGreaterThan(0);
+  const group = groups[0]!;
+  const title = `JS Practice ${Date.now()}`;
+
+  await login(page, 'teacher');
+  await page.goto('/homework');
+  await page.getByRole('button', { name: 'Takrorlanuvchi' }).click();
+  const modal = page.getByRole('dialog', { name: 'Takrorlanuvchi vazifalar' });
+  await modal.getByRole('button', { name: 'Yangi jadval' }).click();
+  await modal.getByRole('combobox', { name: /^Guruh/ }).selectOption({ label: group.name });
+  await modal.getByLabel(/^Vazifa/).fill(title);
+  await modal.getByRole('combobox', { name: /^Takrorlanish/ }).selectOption('DAILY');
+  await modal.getByLabel(/^E’lon vaqti/).fill('00:00');
+  // Muddat ertaga — sinov tunda yurganda ham "muddati o'tgan" bo'lmasin
+  await modal.getByLabel(/^Muddat — necha kundan keyin/).fill('1');
+  await modal.getByRole('button', { name: 'Saqlash' }).click();
+  await expect(page.getByText('Takrorlanuvchi vazifa yaratildi')).toBeVisible();
+  const row = modal.getByRole('listitem').filter({ hasText: title });
+  await expect(row.getByText('Berildi: 1 ta')).toBeVisible();
+
+  const count = () => withDb(async (db) => (await db.query<{ n: string }>('SELECT COUNT(*)::text AS n FROM homework WHERE title = $1', [title])).rows[0]!.n);
+  expect(await count()).toBe('1');
+  // O'quvchilar topshiriqlari ochilgan
+  const submissions = await withDb(async (db) => (await db.query<{ n: string }>('SELECT COUNT(*)::text AS n FROM homework_submissions s JOIN homework h ON h.id = s."homeworkId" WHERE h.title = $1', [title])).rows[0]!.n);
+  expect(Number(submissions)).toBeGreaterThan(0);
+
+  // Jadvalni to'xtatib-yoqish (tahrir) — qayta yaratmaydi
+  await row.getByRole('button', { name: 'To‘xtatish' }).click();
+  await expect(row.getByText('to‘xtatilgan')).toBeVisible();
+  await row.getByRole('button', { name: 'Davom ettirish' }).click();
+  await expect(row.getByText('to‘xtatilgan')).toBeHidden();
+  expect(await count()).toBe('1');
+
+  await page.keyboard.press('Escape');
+  await page.getByPlaceholder('Sarlavha yoki guruh').fill(title);
+  await expect(page.getByText(title)).toHaveCount(1);
+});

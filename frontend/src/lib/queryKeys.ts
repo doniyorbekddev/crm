@@ -304,6 +304,7 @@ export const queryKeys = {
     detail: (id: string) => ['homework', 'detail', id] as const,
     submission: (id: string, studentId: string) => ['homework', 'submission', id, studentId] as const,
     rubrics: (includeInactive: boolean) => ['homework', 'rubrics', includeInactive] as const,
+    recurring: ['homework', 'recurring'] as const,
   },
   aiAcademic: {
     all: ['ai-academic'] as const,
