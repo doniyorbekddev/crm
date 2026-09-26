@@ -94,6 +94,26 @@ const envSchema = z
     SENTRY_DSN: optionalString,
     /** Sinov to'lov provayderi uchun imzo kaliti — bo'sh bo'lsa provayder o'chiq */
     PAYMENT_SANDBOX_SECRET: optionalString,
+
+    // --- Click / Payme (TZ 3.1 GAP-17). Bo'sh — provayder o'chiq (webhook 503, havola yo'q) ---
+    /** `test` — sinov kabineti (UI'da "sinov" deb ko'rsatiladi); `production` — faqat haqiqiy merchant bilan */
+    CLICK_MODE: z.enum(['test', 'production']).default('test'),
+    CLICK_SERVICE_ID: optionalString,
+    CLICK_MERCHANT_ID: optionalString,
+    CLICK_SECRET_KEY: optionalString,
+    /** Merchant API (to'lovni qaytarish) uchun — ixtiyoriy */
+    CLICK_MERCHANT_USER_ID: optionalString,
+    PAYME_MODE: z.enum(['test', 'production']).default('test'),
+    PAYME_MERCHANT_ID: optionalString,
+    /** Kassa kaliti (test yoki production) — Basic auth paroli */
+    PAYME_KEY: optionalString,
+    /** Payme kabinetida sozlangan hisob maydoni (`account.<maydon>`) */
+    PAYME_ACCOUNT_FIELD: z.string().trim().regex(/^[a-z_]{2,32}$/).default('order_id'),
+    /** Fiskal chek (OFD) uchun: MXIK (IKPU) va o'lchov birligi kodi — ikkalasi berilsa `detail` qaytariladi */
+    PAYME_FISCAL_MXIK: optionalString,
+    PAYME_FISCAL_PACKAGE_CODE: optionalString,
+    /** To'lovdan keyin qaytiladigan sahifa (bo'lmasa — birinchi CLIENT_URL) */
+    PAYMENT_RETURN_URL: optionalString,
   })
   .refine((values) => values.JWT_SECRET !== values.JWT_REFRESH_SECRET, {
     message: 'JWT_SECRET va JWT_REFRESH_SECRET bir-biridan farq qilishi kerak',

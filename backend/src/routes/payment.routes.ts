@@ -19,6 +19,8 @@ paymentRouter.use(authenticate);
 paymentRouter.get('/online/providers', requirePermission(PERMISSIONS.PAYMENT_VIEW), onlinePaymentController.providers);
 paymentRouter.get('/online/intents', requirePermission(PERMISSIONS.PAYMENT_VIEW), onlinePaymentController.list);
 paymentRouter.post('/online/intents', requirePermission(PERMISSIONS.PAYMENT_CREATE), onlinePaymentController.createIntent);
+paymentRouter.get('/online/intents/:id', requirePermission(PERMISSIONS.PAYMENT_VIEW), onlinePaymentController.getIntent);
+paymentRouter.post('/online/intents/:id/refund', requirePermission(PERMISSIONS.PAYMENT_REFUND), onlinePaymentController.refundIntent);
 
 paymentRouter.get('/', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentController.list);
 paymentRouter.get('/stats', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentController.stats);

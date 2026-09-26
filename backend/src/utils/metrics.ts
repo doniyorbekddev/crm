@@ -85,6 +85,8 @@ export const metrics = {
   notificationFailures: new Counter('crm_notification_delivery_failures_total', 'Yetkazilmagan bildirishnomalar (oxirgi urinishdan keyin)'),
   telegramFailures: new Counter('crm_telegram_failures_total', 'Telegram API xatolari'),
   jobFailures: new Counter('crm_job_failures_total', 'Fon vazifalari xatolari'),
+  /** To'lov webhooklari: provider × natija (ok, duplicate, rejected, unauthorized, error) — TZ 3.1 GAP-17 */
+  paymentWebhooks: new Counter('crm_payment_webhooks_total', 'To‘lov provayderi so‘rovlari natijasi bo‘yicha'),
 };
 
 /** Scrape paytida hisoblanadigan o'lchagichlar (masalan navbat hajmi) */

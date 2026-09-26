@@ -3643,6 +3643,41 @@ enum PaymentProviderKey {
 ///  CANCELLED — foydalanuvchi bekor qildi
 ///  FAILED    — provayder rad etdi
 ///  REFUNDED  — provayder orqali qaytarildi
+/// Click/Payme tranzaksiyasi (TZ 3.1 GAP-17). Bitta so'rovga (buyurtma) bir nechta urinish bo'lishi mumkin:
+/// Payme bekor qilingan tranzaksiyadan keyin shu buyurtmaga yangisini ochadi. Holat — Payme kodlari:
+/// 1 yaratilgan (Click: prepare), 2 bajarilgan (Click: complete), -1 bajarilishdan oldin bekor, -2 bajarilgandan keyin bekor (qaytarildi).
+model PaymentProviderTransaction {
+  id           String             @id @default(cuid())
+  /// Butun son identifikator — Click `merchant_prepare_id` / `merchant_confirm_id`
+  number       Int                @unique @default(autoincrement())
+  provider     PaymentProviderKey
+  /// Payme `id` / Click `click_trans_id`
+  providerTxId String             @db.VarChar(64)
+  /// Click `click_paydoc_id` (qaytarish — Merchant API uchun)
+  providerRef  String?            @db.VarChar(64)
+  intentId     String
+  /// So'm
+  amount       Decimal            @db.Decimal(14, 2)
+  state        Int                @db.SmallInt
+  /// Payme `time` (ms) — tranzaksiya provayderda yaratilgan vaqt
+  providerTime BigInt?
+  performedAt  DateTime?
+  cancelledAt  DateTime?
+  /// Payme bekor qilish sababi (1…10)
+  reason       Int?               @db.SmallInt
+  /// Bajarilganda yaratilgan kvitansiya
+  paymentId    String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  intent PaymentIntent @relation(fields: [intentId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerTxId])
+  @@index([intentId])
+  @@index([provider, createdAt])
+  @@map("payment_provider_transactions")
+}
+
 enum PaymentIntentStatus {
   PENDING
   PAID
@@ -3676,9 +3711,10 @@ model PaymentIntent {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  createdBy User?    @relation("PaymentIntentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  student              Student                      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  payment              Payment?                     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdBy            User?                        @relation("PaymentIntentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  providerTransactions PaymentProviderTransaction[]
 
   @@unique([provider, externalId])
   @@index([studentId, createdAt])

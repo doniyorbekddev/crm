@@ -1096,3 +1096,80 @@ Yuqoridagi 5 yangi hujjat + 4 hujjat yangilandi; havolalar tekshirildi (hammasi 
 ## Next Phase
 
 **PHASE 17 — Click/Payme (GAP-17)**: provayder adapterlari (merchant kalitlarisiz — "Ready" holati, soxta muvaffaqiyat yo'q), imzo tekshiruvi, test fixture'lar.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 17
+
+Sana: 2026-09-27. GAP-17 "Click/Payme production provider integration" + audit **S8**. Holat: **Ready (merchant kalitlarisiz)**.
+
+## Implemented
+
+- **Payme adapteri** (JSON-RPC): `CheckPerformTransaction`, `CreateTransaction`, `PerformTransaction`, `CancelTransaction`, `CheckTransaction`, `GetStatement`; Basic auth (`Paycom:<kalit>`, timing-safe), tiyin, 12 soatlik timeout (sabab 4), rasmiy xato kodlari (−32504, −32600/−32601/−32400, −31001, −31003, −31007, −31008, −31050, −31051) uz/ru/en xabar bilan; fiskal `detail` (MXIK sozlansa).
+- **Click adapteri** (SHOP API): Prepare/Complete, MD5 imzo (`service_id` ham tekshiriladi), xato kodlari −1…−9, Complete `error<0` — bekor; **Merchant API reversal** (qaytarish, `CLICK_MERCHANT_USER_ID` bilan).
+- **Umumiy dvigatel** (`providerTransactions`): holatlar 1 → 2 / −1 / −2; kvitansiya mavjud `paymentService.create` orqali (idempotent kalit), qaytarish mavjud `paymentService.refund` orqali (tizim nomidan) — qarz, komissiya, bildirishnoma, audit oddiy to'lov bilan bir xil.
+- **Provayder interfeysi** kengaydi: `signed` (sinov) va `protocol` (Click/Payme); `mode()` — `sandbox`/`test`/`production`; `checkoutUrl()` — to'lov havolasi (Payme: test/production host, Click: my.click.uz).
+- **Konfiguratsiya**: `CLICK_*`, `PAYME_*`, `PAYMENT_RETURN_URL` — env, `.env.example`, `docker-compose.prod.yml` (PHASE 21 dan oldinga olindi). Kalitsiz — o'chiq (503).
+- **Sinov rejimi yashirilmaydi**: provayderlar ro'yxati `mode` qaytaradi; web "Onlayn to'lovlar" — "PAYME — sinov kassasi" belgisi va har so'rovda "sinov"; bot — "(sinov)" tugmasi va "haqiqiy pul yechilmaydi".
+- **Bot "💳 To'lash"**: Click/Payme sozlangan bo'lsa — haqiqiy to'lov havolasi tugmalari (keyingi muddat summasi, qoldiqdan oshmaydi; 24 soat ichidagi so'rov qayta ishlatiladi). Avval: "yaqin orada".
+- **Web**: to'lov havolasi, Click to'lovini qaytarish (tasdiq bilan, `payment.refund`).
+- **S8**: sinov provayderida parallel birinchi webhook P2002 → endi `duplicate` (200), 409/500 emas.
+- Metrika `crm_payment_webhooks_total{provider, result}`.
+
+## Existing Code Reused
+
+`PaymentIntent`, `paymentService.create` (idempotencyKey) va `.refund`, `auditService`, `safeEquals`, webhook yo'li va `webhookLimiter`, `usePermission`, `ConfirmDialog`.
+
+## New Files
+
+`backend/prisma/migrations/20260927130000_payment_provider_transactions/migration.sql`, `backend/src/services/payments/{providerTransactions,payme.provider,click.provider}.ts`, `backend/tests/paymentProviders.test.ts`, `frontend/src/pages/payments/OnlinePaymentsCard.test.tsx`, `docs/payments-online.md`.
+
+## Modified Files
+
+Backend: `schema.prisma`, `config/env.ts`, `services/payments/{provider,sandbox.provider,onlinePayment.service}.ts`, `controllers/onlinePayment.controller.ts`, `routes/payment.routes.ts`, `services/payment.service.ts` (`refund` — `actor: AuthUser | null`), `services/commission.service.ts` (`actorId: string | null`), `utils/metrics.ts`, `telegram/handlers/extras.ts`, `tests/onlinePayment.test.ts` (CLICK endi ro'yxatda, lekin kalitsiz — 404 o'rniga **503**, "hech narsa yozilmaydi" va noma'lum provayder 404 tekshiruvlari qo'shildi; S8 testi), `.env.example`. Frontend: `types/onlinePayment.ts`, `services/onlinePayment.service.ts`, `pages/payments/OnlinePaymentsCard.tsx`. Boshqa: `docker-compose.prod.yml`, `playwright.config.ts`, `e2e/env.ts`, `e2e/specs/flows.spec.ts`.
+
+## Database Changes
+
+(oldin `pg_dump`) Yangi jadval `payment_provider_transactions` (`number SERIAL` — Click prepare/confirm id, `(provider, providerTxId)` unikal, `intentId` FK) — faqat qo'shish; dev va test bazalarida qo'llandi. `PaymentIntentStatus.REFUNDED` endi ishlatiladi.
+
+## API Changes
+
+- `POST /api/payments/webhook/click` va `/payme` — endi protokol bo'yicha (kalitsiz 503).
+- `GET /api/payments/online/intents/:id` (`payment.view`), `POST /api/payments/online/intents/:id/refund` (`payment.refund`).
+- `GET /api/payments/online/providers` — `mode` qo'shildi; intent DTO — `checkoutUrl`.
+
+## Telegram Changes
+
+"💳 To'lash" — havola tugmalari (Click/Payme), sinov belgisi.
+
+## Permissions
+
+Yangi ruxsat yo'q: `payment.view`, `payment.create`, `payment.refund` (mavjud).
+
+## Security
+
+Payme: Basic auth timing-safe, noto'g'ri — −32504 va hech narsa yozilmaydi. Click: MD5 imzo + `service_id`, noto'g'ri — −1. Summa va buyurtma har bosqichda tekshiriladi; boshqa provayder so'rovini to'lab bo'lmaydi; to'langan/band buyurtmaga yangi tranzaksiya yo'q. Idempotentlik: tranzaksiya unikal, kvitansiya idempotent kalit, shartli holat o'tishlari — parallel Perform'da bitta kvitansiya va bitta audit (test). Qaytarish kalitsiz — rad. Sirlar logga tushmaydi.
+
+## Tests
+
+Backend **885** (+15: Payme 7, Click 4, havola/rejim, bot havolasi, kalitsiz 503, S8). To'liq yugurishda 1 ta `finance` testi yuklama ostida 5 s timeout (load ~7) — alohida o'tdi. **S8 testi tuzatishsiz kodda yiqilishi tasdiqlandi** (409). Frontend **127/127** (+2), E2E **46/46** (+1 §39: sinov rejimidagi Payme — intent → havola → noto'g'ri kalit rad → Check/Create/Perform → takror Perform — bitta kvitansiya → web'da "sinov kassasi" va "To'landi"). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Har protokol so'rovi — bir nechta indeksli so'rov; `GetStatement` 5000 ta bilan cheklangan.
+
+## Documentation
+
+`docs/payments-online.md` — oqim, sozlash, Payme/Click kodlari, qaytarish, idempotentlik, chek, kuzatish, production'ga yoqish tartibi.
+
+## Known Issues
+
+- **Haqiqiy merchant bilan sinalmagan** — adapterlar rasmiy protokol bo'yicha va avtomatik testlar bilan; production'ga yoqishdan oldin Payme/Click sinov stendida to'liq ssenariy (hujjatdagi 5 qadam).
+- Click reversal (Merchant API) — faqat mock bilan testlangan.
+- Payme buzilgan JSON — global parser 400 (−32700 emas).
+- Payme `ChangePassword` — qo'llanmaydi (kalit `.env` da).
+- Uzum — hali adapter yo'q (TZ talab qilmagan).
+
+## Next Phase
+
+**PHASE 18 — Recurring homework (GAP-18)**: takrorlanuvchi (kunlik/haftalik) vazifa — seriya, generator job, dublikatsiz, dam olish kunlari.

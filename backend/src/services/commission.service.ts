@@ -390,7 +390,7 @@ interface PaymentRef {
 async function reverseAccrual(
   db: Db,
   payment: PaymentRef,
-  options: { sourceKey: string; baseAmount: number; actorId: string; reason: string; client: ClientInfo },
+  options: { sourceKey: string; baseAmount: number; actorId: string | null; reason: string; client: ClientInfo },
 ): Promise<void> {
   if (!payment.teacherId) return;
   const profile = await db.teacherProfile.findUnique({ where: { userId: payment.teacherId }, select: { id: true } });
@@ -524,7 +524,7 @@ export const commissionService = {
   async reverseForRefund(
     db: Db,
     input: { payment: PaymentRef; refund: { id: string; amount: number } },
-    options: { actorId: string; reason: string; client: ClientInfo },
+    options: { actorId: string | null; reason: string; client: ClientInfo },
   ): Promise<void> {
     await reverseAccrual(db, input.payment, { ...options, sourceKey: `refund:${input.refund.id}`, baseAmount: input.refund.amount });
   },

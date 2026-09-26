@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
@@ -193,8 +193,31 @@ describe.skipIf(!hasTestDatabase)('Onlayn to‘lov: webhook oqimi', () => {
       .set('Content-Type', 'application/json')
       .send(JSON.stringify({ transactionId: 'x', amount: 1000, status: 'paid' }));
 
-    // CLICK ro'yxatda yo'q — provayder topilmadi
-    expect(response.status).toBe(404);
+    // TZ 3.1 GAP-17: CLICK endi ro'yxatda, lekin kalitlarsiz — yo'l yopiq (503), hech narsa yozilmaydi
+    expect(response.status).toBe(503);
+    expect(await prisma.paymentIntent.count()).toBe(0);
+    expect(await prisma.paymentProviderTransaction.count()).toBe(0);
+
+    // Ro'yxatda yo'q provayder — topilmadi
+    const unknown = await request(app).post('/api/payments/webhook/nomalum').set('Content-Type', 'application/json').send('{}');
+    expect(unknown.status).toBe(404);
+  });
+
+  it('audit S8: bir xil webhook parallel kelsa — 500 yo‘q, kvitansiya bitta', async () => {
+    const course = await createCourse('Parallel');
+    const student = await createStudent(course.id);
+    const body = { transactionId: 'tx-par', amount: 100_000, status: 'paid', studentId: student.id };
+    const responses = await Promise.all([sendWebhook(body), sendWebhook(body), sendWebhook(body), sendWebhook(body)]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200, 200, 200]);
+    expect(await prisma.payment.count({ where: { studentId: student.id } })).toBe(1);
+
+    // Poyga aniq takrorlanadi: "bormi?" tekshiruvi o'tib ketdi (boshqa so'rov hali yozmagan edi), yaratishda P2002
+    const lookup = vi.spyOn(prisma.paymentIntent, 'findUnique').mockResolvedValueOnce(null);
+    const raced = await sendWebhook(body);
+    lookup.mockRestore();
+    expect(raced.status).toBe(200);
+    expect(await prisma.payment.count({ where: { studentId: student.id } })).toBe(1);
+    expect(await prisma.paymentIntent.count()).toBe(1);
   });
 
   it('onlayn to‘lov auditga tushadi', async () => {

@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
-import { API_PORT, BACKEND_DIR, E2E_WEBHOOK_SECRET, FRONTEND_DIR, WEB_PORT, e2eDatabaseUrl } from './e2e/env';
+import { API_PORT, BACKEND_DIR, E2E_PAYME_KEY, E2E_WEBHOOK_SECRET, FRONTEND_DIR, WEB_PORT, e2eDatabaseUrl } from './e2e/env';
 
 const isCI = Boolean(process.env.CI);
 // Lokal mashinada o'rnatilgan Google Chrome; CI'da `npx playwright install chromium`
@@ -61,6 +61,10 @@ export default defineConfig({
         TELEGRAM_POLLING: 'false',
         // E2E qayta-qayta yuguradi — ommaviy xabar soatlik limiti sinovga xalaqit bermasin
         BROADCAST_HOURLY_LIMIT: '1000',
+        // §39: Payme **sinov** rejimi, soxta sinov kalitlari — haqiqiy merchant yo'q, UI "sinov kassasi" deb ko'rsatadi
+        PAYME_MODE: 'test',
+        PAYME_MERCHANT_ID: 'e2e-test-merchant',
+        PAYME_KEY: E2E_PAYME_KEY,
         // Webhook'ni E2E testlari o'zi chaqiradi (§35) — dev .env dagi sir emas, alohida test qiymati
         TELEGRAM_WEBHOOK_SECRET: E2E_WEBHOOK_SECRET,
         ANTHROPIC_API_KEY: '',

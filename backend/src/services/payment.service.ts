@@ -571,7 +571,11 @@ export const paymentService = {
    * To‘lovni to‘liq yoki qisman qaytarish. Kvitansiya o‘chirilmaydi: qaytarish alohida yozuv,
    * daftarga REFUND (kassadan chiqim); o‘quvchi qarzi va o‘qituvchi foizi mos ravishda kamayadi.
    */
-  async refund(actor: AuthUser, id: string, input: RefundPaymentInput, client: ClientInfo): Promise<PaymentDto> {
+  /**
+   * `actor = null` — provayder tashabbusi bilan qaytarish (Payme `CancelTransaction`, Click reversal, TZ 3.1 GAP-17):
+   * xodim yo'q, audit va daftar yozuvi "tizim" nomidan.
+   */
+  async refund(actor: AuthUser | null, id: string, input: RefundPaymentInput, client: ClientInfo): Promise<PaymentDto> {
     const payment = await prisma.payment.findUnique({
       where: { id },
       select: {
@@ -630,7 +634,7 @@ export const paymentService = {
         description: `To‘lov qaytarildi — ${studentName} (${formatPaymentNumber(payment.number)})`,
         categoryName: 'O‘quvchi to‘lovi qaytarildi',
         entityType: 'paymentRefund',
-        createdById: actor.id,
+        createdById: actor?.id ?? null,
       });
       const refund = await tx.paymentRefund.create({
         data: {
@@ -641,7 +645,7 @@ export const paymentService = {
           refundedAt,
           reason: input.reason,
           transactionId: transaction.id,
-          createdById: actor.id,
+          createdById: actor?.id ?? null,
         },
         select: { id: true, number: true },
       });
@@ -654,11 +658,11 @@ export const paymentService = {
           payment: { id, number: payment.number, amount: payment.amount.toNumber(), paidAt: payment.paidAt, teacherId: payment.teacherId },
           refund: { id: refund.id, amount: input.amount },
         },
-        { actorId: actor.id, reason: input.reason, client },
+        { actorId: actor?.id ?? null, reason: input.reason, client },
       );
 
       await auditService.recordInTransaction(tx, {
-        userId: actor.id,
+        userId: actor?.id ?? null,
         action: 'payment.refunded',
         entityType: 'payment',
         entityId: id,

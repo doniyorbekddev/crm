@@ -60,10 +60,11 @@ export async function showPayNow(context: BotContext, scope: CommandScope): Prom
 
   const [schedule, providers] = await Promise.all([paymentScheduleService.get(studentId), Promise.resolve(onlinePaymentService.providers())]);
   const remaining = Math.max(0, schedule.contractTotal - schedule.paid);
-  // Sinov provayderi haqiqiy to'lov emas — o'quvchiga "ulangan" deb ko'rsatilmaydi
-  const configured = providers.filter((provider) => provider.configured && (provider.key as string) !== 'SANDBOX');
+  // Ichki sinov provayderi haqiqiy to'lov emas — o'quvchiga ko'rsatilmaydi; Click/Payme sinov kassasi — "sinov" belgisi bilan
+  const configured = providers.filter((provider) => provider.configured && (provider.key === 'CLICK' || provider.key === 'PAYME'));
 
   const lines = ['<b>💳 Onlayn to‘lov</b>', ''];
+  const keyboard: InlineKeyboard = [];
   if (remaining <= 0) {
     lines.push('✅ Qarzingiz yo‘q — to‘lash shart emas.');
   } else {
@@ -73,11 +74,27 @@ export async function showPayNow(context: BotContext, scope: CommandScope): Prom
     if (configured.length === 0) {
       lines.push('Onlayn to‘lov (Click/Payme) hali ulanmagan.', 'To‘lovni markaz kassasida yoki administrator bilan kelishib o‘tkazma orqali qiling.');
     } else {
-      lines.push(`Provayder: ${configured.map((provider) => provider.key).join(', ')}.`, 'To‘lov havolasi yaqin orada shu yerda chiqadi — hozircha kassaga murojaat qiling.');
+      // Summa — keyingi muddatdagi (bo'lmasa qoldiq), qoldiqdan oshmaydi; so'm butun
+      const amount = Math.round(Math.min(remaining, schedule.nextDue?.amount ?? remaining));
+      lines.push(`To‘lanadigan summa: <b>${moneyUz(amount)}</b>`, 'To‘lov tasdiqlangach kvitansiya CRM’da avtomatik yoziladi va shu yerga xabar keladi.');
+      for (const provider of configured) {
+        try {
+          const intent = await onlinePaymentService.intentForFamily(studentId, provider.key, amount);
+          if (intent.checkoutUrl) {
+            const label = provider.key === 'PAYME' ? 'Payme' : 'Click';
+            keyboard.push([{ text: `💳 ${label} orqali to‘lash${provider.mode === 'production' ? '' : ' (sinov)'}`, data: '', url: intent.checkoutUrl }]);
+          }
+        } catch {
+          // Summa juda kichik va h.k. — tugma chiqmaydi, kassaga yo'naltiriladi
+        }
+      }
+      if (configured.some((provider) => provider.mode !== 'production')) lines.push('', '⚠️ Sinov rejimi — haqiqiy pul yechilmaydi.');
+      if (keyboard.length === 0) lines.push('To‘lov havolasini yaratib bo‘lmadi — kassaga murojaat qiling.');
     }
   }
 
-  await context.render(lines.join('\n'), [[{ text: '⬅️ To‘lovlar', data: callback(STUDENT_ACTIONS.payments) }, ...menuRow()]]);
+  keyboard.push([{ text: '⬅️ To‘lovlar', data: callback(STUDENT_ACTIONS.payments) }, ...menuRow()]);
+  await context.render(lines.join('\n'), keyboard);
   return { action: EXTRA_ACTIONS.payNow };
 }
 

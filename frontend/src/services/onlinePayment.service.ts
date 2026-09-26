@@ -18,6 +18,12 @@ export const onlinePaymentService = {
     };
   },
 
+  /** Bajarilgan Click to'lovini qaytarish (Merchant API); Payme — kabinetdan */
+  async refund(id: string): Promise<MessageResult<PaymentIntent>> {
+    const response = await api.post<ApiSuccessResponse<PaymentIntent>>(`/payments/online/intents/${id}/refund`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async createIntent(payload: CreateIntentPayload): Promise<MessageResult<PaymentIntent>> {
     const response = await api.post<ApiSuccessResponse<PaymentIntent>>('/payments/online/intents', payload);
     return { data: response.data.data, message: response.data.message };

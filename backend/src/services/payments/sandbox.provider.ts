@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
 import { hmacSha256Hex, safeEquals } from './provider.js';
-import type { PaymentProvider, ParsedWebhook } from './provider.js';
+import type { ParsedWebhook, SignedWebhookProvider } from './provider.js';
 import { AppError } from '../../utils/AppError.js';
 
 /**
@@ -12,10 +12,12 @@ import { AppError } from '../../utils/AppError.js';
  *
  * Kalit sozlanmagan bo'lsa provayder o'chiq: webhook 503 qaytaradi.
  */
-export const sandboxProvider: PaymentProvider = {
+export const sandboxProvider: SignedWebhookProvider = {
   key: 'SANDBOX',
+  kind: 'signed',
 
   isConfigured: () => Boolean(env.PAYMENT_SANDBOX_SECRET),
+  mode: () => 'sandbox',
 
   verifySignature(rawBody, headers) {
     const secret = env.PAYMENT_SANDBOX_SECRET;

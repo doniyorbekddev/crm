@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { findProvider, onlinePaymentService } from '../services/payments/onlinePayment.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { AppError } from '../utils/AppError.js';
+import { metrics } from '../utils/metrics.js';
+import { idParamSchema } from '../validators/common.validator.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { createIntentSchema, intentListQuerySchema, webhookParamsSchema } from '../validators/onlinePayment.validator.js';
 
@@ -37,22 +39,43 @@ export const onlinePaymentController = {
     const provider = findProvider(providerKey);
     if (!provider) throw AppError.notFound('Bunday to‘lov provayderi yo‘q');
     if (!provider.isConfigured()) {
+      metrics.paymentWebhooks.inc({ provider: provider.key, result: 'disabled' });
       res.status(503).json({ ok: false, message: 'To‘lov provayderi sozlanmagan' });
+      return;
+    }
+    const headers = Object.fromEntries(Object.entries(req.headers).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]));
+
+    // Click / Payme: ko'p bosqichli protokol — provayder o'zi tekshiradi va o'z formatida javob beradi
+    if (provider.kind === 'protocol') {
+      const response = await provider.handle({ body: req.body, headers, client: getClientInfo(req) });
+      metrics.paymentWebhooks.inc({ provider: provider.key, result: response.result });
+      res.status(response.status).json(response.body);
       return;
     }
 
     const rawBody = (req as RawBodyRequest).rawBody ?? '';
-    const headers = Object.fromEntries(Object.entries(req.headers).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]));
     if (!provider.verifySignature(rawBody, headers)) {
+      metrics.paymentWebhooks.inc({ provider: provider.key, result: 'unauthorized' });
       throw AppError.unauthorized('Webhook imzosi noto‘g‘ri');
     }
 
     const outcome = await onlinePaymentService.handleWebhook(provider, req.body, getClientInfo(req));
+    metrics.paymentWebhooks.inc({ provider: provider.key, result: outcome.status });
     if (outcome.status === 'rejected') {
       // 200: provayder qayta yubormasin — xato takrorlanadi. Xodim ro‘yxatda ko‘radi.
       res.status(200).json({ ok: false, message: outcome.message });
       return;
     }
     res.status(200).json(provider.successResponse());
+  },
+
+  async getIntent(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await onlinePaymentService.getById(id));
+  },
+
+  async refundIntent(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await onlinePaymentService.refund(requireAuthUser(req), id, getClientInfo(req)), { message: 'To‘lov qaytarildi' });
   },
 };

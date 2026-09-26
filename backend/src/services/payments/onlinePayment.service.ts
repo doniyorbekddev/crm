@@ -8,8 +8,11 @@ import { toSkipTake } from '../../utils/pagination.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
 import { auditService } from '../audit.service.js';
 import { paymentService } from '../payment.service.js';
+import { clickProvider, clickReversal } from './click.provider.js';
+import { paymeProvider } from './payme.provider.js';
+import { TX_STATE, providerTransactions } from './providerTransactions.js';
 import { sandboxProvider } from './sandbox.provider.js';
-import type { PaymentProvider } from './provider.js';
+import type { PaymentProvider, ProviderMode, SignedWebhookProvider } from './provider.js';
 
 /**
  * Onlayn to'lov oqimi.
@@ -32,7 +35,11 @@ import type { PaymentProvider } from './provider.js';
  */
 
 /** Ro'yxatga olingan provayderlar. Click/Payme qo'shilganda shu ro'yxatga bitta qator qo'shiladi. */
-const PROVIDERS = new Map<PaymentProviderKey, PaymentProvider>([[sandboxProvider.key, sandboxProvider]]);
+const PROVIDERS = new Map<PaymentProviderKey, PaymentProvider>([
+  [sandboxProvider.key, sandboxProvider],
+  [clickProvider.key, clickProvider],
+  [paymeProvider.key, paymeProvider],
+]);
 
 export function findProvider(key: string): PaymentProvider | undefined {
   return PROVIDERS.get(key.toUpperCase() as PaymentProviderKey);
@@ -72,6 +79,17 @@ export interface PaymentIntentDto {
   paidAt: string | null;
   createdAt: string;
   student: { id: string; number: number; name: string };
+  /** To'lov sahifasi (faqat PENDING va provayder sozlangan bo'lsa) */
+  checkoutUrl: string | null;
+}
+
+function checkoutFor(record: { id: string; provider: PaymentProviderKey; amount: Prisma.Decimal; status: PaymentIntentStatus }): string | null {
+  if (record.status !== 'PENDING') return null;
+  return PROVIDERS.get(record.provider)?.checkoutUrl?.({ id: record.id, amount: record.amount.toNumber() }) ?? null;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
 }
 
 function toDto(record: IntentRecord): PaymentIntentDto {
@@ -90,6 +108,7 @@ function toDto(record: IntentRecord): PaymentIntentDto {
       number: record.student.number,
       name: `${record.student.firstName} ${record.student.lastName}`,
     },
+    checkoutUrl: checkoutFor(record),
   };
 }
 
@@ -102,8 +121,12 @@ export interface WebhookOutcome {
 
 export const onlinePaymentService = {
   /** Sozlangan provayderlar ro'yxati (UI "onlayn to'lov yoqilganmi?" deb so'raganda) */
-  providers(): Array<{ key: PaymentProviderKey; configured: boolean }> {
-    return [...PROVIDERS.values()].map((provider) => ({ key: provider.key, configured: provider.isConfigured() }));
+  /**
+   * `mode`: `sandbox` — ichki sinov, `test` — provayderning sinov kassasi, `production` — haqiqiy. UI va bot
+   * `test`/`sandbox` ni "sinov" deb ko'rsatadi — sinov merchant haqiqiy deb ko'rsatilmaydi.
+   */
+  providers(): Array<{ key: PaymentProviderKey; configured: boolean; mode: ProviderMode }> {
+    return [...PROVIDERS.values()].map((provider) => ({ key: provider.key, configured: provider.isConfigured(), mode: provider.mode() }));
   },
 
   async list(query: { page: number; limit: number; status?: PaymentIntentStatus | undefined; studentId?: string | undefined }): Promise<{
@@ -168,7 +191,7 @@ export const onlinePaymentService = {
    * Webhookni qayta ishlaydi. Imzo **controllerda** tekshiriladi (u xom tanani ko'radi),
    * bu yerda esa takrorlanish, so'rovni topish va kvitansiya yaratish bajariladi.
    */
-  async handleWebhook(provider: PaymentProvider, body: unknown, client: ClientInfo): Promise<WebhookOutcome> {
+  async handleWebhook(provider: SignedWebhookProvider, body: unknown, client: ClientInfo): Promise<WebhookOutcome> {
     const parsed = provider.parseWebhook(body);
 
     // 1) Takroriy webhook — provayder javobni olmagan bo'lsa qayta yuboradi
@@ -201,10 +224,20 @@ export const onlinePaymentService = {
         if (!studentId) throw AppError.unprocessable('To‘lov qaysi o‘quvchiga tegishli ekani ko‘rsatilmagan');
         const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { id: true } });
         if (!student) throw AppError.unprocessable('O‘quvchi topilmadi');
-        intent = await prisma.paymentIntent.create({
-          data: { provider: provider.key, externalId: parsed.externalId, studentId, amount: parsed.amount },
-          select: intentSelect,
-        });
+        try {
+          intent = await prisma.paymentIntent.create({
+            data: { provider: provider.key, externalId: parsed.externalId, studentId, amount: parsed.amount },
+            select: intentSelect,
+          });
+        } catch (error) {
+          // Audit S8: bir xil webhook parallel keldi — ikkinchisi P2002 (500 emas), birinchisi ishlayapti
+          if (!isUniqueViolation(error)) throw error;
+          const raced = await prisma.paymentIntent.findUniqueOrThrow({
+            where: { provider_externalId: { provider: provider.key, externalId: parsed.externalId } },
+            select: intentSelect,
+          });
+          return { status: 'duplicate', intent: toDto(raced), message: 'Bu to‘lov allaqachon qayta ishlanmoqda' };
+        }
       }
     }
 
@@ -290,5 +323,63 @@ export const onlinePaymentService = {
       `Onlayn to‘lov qabul qilindi: ${moneyUz(parsed.amount)}`,
     );
     return { status: 'ok', intent: toDto(updated), message: 'To‘lov qabul qilindi' };
+  },
+
+  async getById(id: string): Promise<PaymentIntentDto> {
+    const record = await prisma.paymentIntent.findUnique({ where: { id }, select: intentSelect });
+    if (!record) throw AppError.notFound('To‘lov so‘rovi topilmadi');
+    return toDto(record);
+  },
+
+  /**
+   * O'quvchi/ota-ona uchun to'lov havolasi (bot "To'lash" tugmasi). Hisob shart emas — xodim yo'q (`createdById`
+   * bo'sh). Shu o'quvchi, provayder va summa uchun 24 soat ichidagi PENDING so'rov qayta ishlatiladi.
+   */
+  async intentForFamily(studentId: string, providerKey: PaymentProviderKey, amount: number): Promise<PaymentIntentDto> {
+    const provider = PROVIDERS.get(providerKey);
+    if (!provider || provider.kind !== 'protocol' || !provider.isConfigured()) throw AppError.unprocessable('Onlayn to‘lov ulanmagan');
+    if (!Number.isInteger(amount) || amount < 1000) throw AppError.unprocessable('Summa noto‘g‘ri');
+    const since = new Date(Date.now() - 24 * 3_600_000);
+    const reusable = await prisma.paymentIntent.findFirst({
+      where: { studentId, provider: providerKey, amount, status: 'PENDING', createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      select: intentSelect,
+    });
+    if (reusable) return toDto(reusable);
+    const created = await prisma.paymentIntent.create({
+      data: { provider: providerKey, externalId: `crm-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, studentId, amount },
+      select: intentSelect,
+    });
+    return toDto(created);
+  },
+
+  /**
+   * Bajarilgan onlayn to'lovni qaytarish (xodim, `payment.refund`). Click — Merchant API reversal, muvaffaqiyatli
+   * bo'lsa CRM'da ham qaytariladi. Payme — merchant tomondan qaytarish API'si yo'q: Payme Business kabinetida
+   * bekor qilinadi, Payme bizga `CancelTransaction` yuboradi va qaytarish shu yerda avtomatik bo'ladi.
+   */
+  async refund(actor: AuthUser, intentId: string, client: ClientInfo): Promise<PaymentIntentDto> {
+    const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId }, select: { id: true, provider: true, status: true, studentId: true } });
+    if (!intent) throw AppError.notFound('To‘lov so‘rovi topilmadi');
+    if (intent.status !== 'PAID') throw AppError.conflict('Faqat to‘langan so‘rovni qaytarish mumkin');
+    if (intent.provider === 'PAYME') throw AppError.unprocessable('Payme to‘lovi Payme Business kabinetida bekor qilinadi — CRM’da qaytarish avtomatik yoziladi');
+    if (intent.provider !== 'CLICK') throw AppError.unprocessable('Bu provayder uchun onlayn qaytarish yo‘q — to‘lovlar sahifasidan qo‘lda qaytaring');
+    const tx = await prisma.paymentProviderTransaction.findFirst({ where: { intentId, state: TX_STATE.PERFORMED } });
+    const performed = tx ? await providerTransactions.find('CLICK', tx.providerTxId) : null;
+    if (!performed?.providerRef) throw AppError.conflict('Click tranzaksiyasi topilmadi');
+
+    const reversal = await clickReversal(performed.providerRef);
+    await auditService.record({
+      userId: actor.id,
+      action: 'payment.online_refund_requested',
+      entityType: 'student',
+      entityId: intent.studentId,
+      metadata: { provider: 'CLICK', intentId, providerTxId: performed.providerTxId, ok: reversal.ok, error: reversal.error },
+      ...client,
+    });
+    if (!reversal.ok) throw AppError.unprocessable(`Click qaytarishni rad etdi: ${reversal.error ?? 'noma’lum xato'}`);
+    const result = await providerTransactions.cancel(performed, null, client);
+    if ('refused' in result) throw AppError.unprocessable(`Click qaytardi, lekin CRM’da yozilmadi: ${result.refused} — to‘lovlar sahifasidan qo‘lda qaytaring`);
+    return this.getById(intentId);
   },
 };

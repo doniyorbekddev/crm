@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { API, apiLogin, createQuestion, createTopic, linkStaffTelegram, linkStudentTelegram, prepareFamily, telegramMessage, telegramPress, telegramTitles, withDb } from '../flows';
+import { E2E_PAYME_KEY } from '../env';
 import { PORTAL_PASSWORD, USERS, expect, login, loginWithTemporaryPassword, test } from '../fixtures';
 
 /**
@@ -513,4 +514,47 @@ test('§38 broadcast: rahbar webda auditoriya → rasm + tugma → oldindan ko�
   await expect(row.getByText('Rasm')).toBeVisible();
   await expect(row.getByText('1 tugma')).toBeVisible();
   await expect(row.getByRole('cell').nth(6)).toHaveText(String(broadcast!.recipients));
+});
+
+test('§39 to‘lov: PaymentIntent → Payme (sinov) → Check/Create/Perform → imzo → takror — bitta kvitansiya → web', async ({ page, request }) => {
+  const accountant = await apiLogin(request, 'accountant');
+  const providers = (await (await request.get(`${API}/payments/online/providers`, { headers: accountant })).json()).data as Array<{ key: string; configured: boolean; mode: string }>;
+  expect(providers.find((provider) => provider.key === 'PAYME')).toMatchObject({ configured: true, mode: 'test' });
+
+  const admin = await apiLogin(request, 'admin');
+  const students = (await (await request.get(`${API}/students`, { params: { status: 'ACTIVE', limit: 1 }, headers: admin })).json()).data as Array<{ id: string; firstName: string; lastName: string }>;
+  const student = students[0]!;
+  const amount = 10_000 + (Date.now() % 900) * 10;
+  const created = await request.post(`${API}/payments/online/intents`, { headers: accountant, data: { provider: 'PAYME', studentId: student.id, amount } });
+  expect(created.status(), await created.text()).toBe(201);
+  const intent = (await created.json()).data as { id: string; checkoutUrl: string };
+  expect(intent.checkoutUrl).toMatch(/^https:\/\/checkout\.test\.paycom\.uz\//);
+
+  let id = 0;
+  const rpc = async (method: string, params: object, key = E2E_PAYME_KEY) => {
+    const response = await request.post(`${API}/payments/webhook/payme`, {
+      headers: { Authorization: `Basic ${Buffer.from(`Paycom:${key}`).toString('base64')}` },
+      data: { method, params, id: (id += 1) },
+    });
+    expect(response.status()).toBe(200);
+    return (await response.json()) as { result?: Record<string, unknown>; error?: { code: number } };
+  };
+  const account = { order_id: intent.id };
+  const txId = `e2e-${Date.now()}`;
+  expect((await rpc('CheckPerformTransaction', { amount: amount * 100, account }, 'notogri-kalit')).error?.code).toBe(-32504);
+  expect((await rpc('CheckPerformTransaction', { amount: amount * 100, account })).result).toEqual({ allow: true });
+  expect((await rpc('CreateTransaction', { id: txId, time: Date.now(), amount: amount * 100, account })).result).toMatchObject({ state: 1 });
+  const performed = await rpc('PerformTransaction', { id: txId });
+  expect(performed.result).toMatchObject({ state: 2 });
+  // Takroriy webhook — o'sha javob, ikkinchi kvitansiya yo'q
+  expect((await rpc('PerformTransaction', { id: txId })).result).toEqual(performed.result);
+  const receipts = await withDb(async (db) => (await db.query<{ n: string }>(`SELECT COUNT(*)::text AS n FROM payments WHERE "idempotencyKey" = $1`, [`PAYME-${txId}`])).rows[0]!.n);
+  expect(receipts).toBe('1');
+
+  await login(page, 'accountant');
+  await page.goto('/payments');
+  await expect(page.getByText('PAYME — sinov kassasi')).toBeVisible();
+  const row = page.getByRole('listitem').filter({ hasText: `${student.firstName} ${student.lastName}` }).filter({ hasText: 'To‘landi' }).first();
+  await expect(row).toBeVisible();
+  await expect(row.getByText('sinov')).toBeVisible();
 });
