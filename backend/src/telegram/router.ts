@@ -14,7 +14,7 @@ import {
   handleHomeworkCreateFlow,
   handleTeacherAction,
 } from './handlers/teacher.js';
-import { CALL_NOTE_FLOW, FOLLOWUP_DATE_FLOW, LEAD_LOST_FLOW, SALES_COMMANDS, SALES_FLOW_ACTIONS, handleLeadLostFlow, handleSalesAction, handleSalesFlow } from './handlers/sales.js';
+import { CALL_NOTE_FLOW, FOLLOWUP_DATE_FLOW, LEAD_LOST_FLOW, SALES_COMMANDS, SALES_FLOW_ACTIONS, handleLeadLostFlow, handleSalesAction, handleSalesFlow, salesFlowForbidden } from './handlers/sales.js';
 import { OWNER_COMMANDS, handleOwnerAction } from './handlers/owner.js';
 import { BROADCAST_COMMANDS, BROADCAST_FLOW, BROADCAST_FLOW_ACTIONS, handleBroadcastAction, handleBroadcastFlow } from './handlers/broadcast.js';
 import { AI_FLOW, EXTRA_FLOW_ACTIONS, EXTRA_STAFF_COMMANDS, EXTRA_STUDENT_COMMANDS, handleAiFlow, handleExtraAction } from './handlers/extras.js';
@@ -278,8 +278,13 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
     if (session.flow === SEARCH_FLOW && scope.actor) return handleSearchFlow(context, scope);
     if (session.flow === GRADE_FLOW && scope.actor) return handleGradeFlow(context, scope, session);
     if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
-    if (session.flow === LEAD_LOST_FLOW && scope.actor) return handleLeadLostFlow(context, scope, session);
-    if ((session.flow === CALL_NOTE_FLOW || session.flow === FOLLOWUP_DATE_FLOW) && scope.actor) return handleSalesFlow(context, scope, session);
+    if ((session.flow === LEAD_LOST_FLOW || session.flow === CALL_NOTE_FLOW || session.flow === FOLLOWUP_DATE_FLOW) && scope.actor) {
+      // Oqim davomida ruxsat olib qo'yilgan bo'lishi mumkin (TZ 3.1 §28)
+      const forbidden = await salesFlowForbidden(context, scope, session.flow);
+      if (forbidden) return forbidden;
+      if (session.flow === LEAD_LOST_FLOW) return handleLeadLostFlow(context, scope, session);
+      return handleSalesFlow(context, scope, session);
+    }
     if (session.flow === BROADCAST_FLOW && scope.actor) return handleBroadcastFlow(context, scope, session);
     if (session.flow === AI_FLOW && scope.actor) return handleAiFlow(context, scope, session);
     // Davomat varag'i matn kutmaydi — tugmalar bilan ishlanadi; matn oddiy buyruq kabi ketadi

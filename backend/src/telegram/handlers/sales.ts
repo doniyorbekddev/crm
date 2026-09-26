@@ -13,6 +13,9 @@ import { fmtDate, fmtDateTime, localDayAt, parseLocalDateTime } from '../format.
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
 import { telegramSessionService, type SessionState } from '../session.service.js';
 import type { BotContext, HandlerResult } from '../types.js';
+import { PERMISSIONS } from '../../config/permissions.js';
+import type { PermissionKey } from '../../config/permissions.js';
+import { BOT_FORBIDDEN_TEXT, scopeCan } from '../permissions.js';
 
 /**
  * Sotuv bo'limlari: leadlar, qizigan leadlar, follow-uplar, lead statusini o'zgartirish.
@@ -35,8 +38,15 @@ export const SALES_ACTIONS = {
   followUpDone: 'sl_fuok',
   /** TZ §43 "Call logging": natija tanlash → izoh (ixtiyoriy) */
   call: 'sl_call',
+  /** Qo'ng'iroq turi: OUT (chiquvchi) / IN (kiruvchi) */
+  callType: 'sl_ct',
   callResult: 'sl_cr',
+  /** Davomiylik (soniya) */
+  callDuration: 'sl_cd',
+  /** Izohsiz davom etish */
   callSave: 'sl_cs',
+  /** Keyingi qadam va saqlash */
+  callNext: 'sl_cn',
   /** TZ §43 "Follow-up creation": tezkor muddat yoki o'z sanasi */
   followUpNew: 'sl_fn',
   followUpWhen: 'sl_fw',
@@ -46,7 +56,49 @@ export const SALES_ACTIONS = {
 export const CALL_NOTE_FLOW = 'call_note';
 export const FOLLOWUP_DATE_FLOW = 'followup_date';
 /** Oqim ichidagi tugmalar — sessiyani yopmaydi */
-export const SALES_FLOW_ACTIONS: ReadonlySet<string> = new Set([SALES_ACTIONS.callSave]);
+export const SALES_FLOW_ACTIONS: ReadonlySet<string> = new Set([SALES_ACTIONS.callType, SALES_ACTIONS.callResult, SALES_ACTIONS.callDuration, SALES_ACTIONS.callSave, SALES_ACTIONS.callNext]);
+
+/**
+ * Har sotuv amali uchun ruxsat — REST marshrutlari bilan bir xil kalitlar (TZ 3.1 §28, audit S1).
+ * Servis faqat ma'lumot doirasini (o'z/biriktirilmagan lead) tekshiradi; amalning o'zi shu yerda.
+ */
+const SALES_ACTION_PERMISSIONS: Readonly<Record<string, PermissionKey[]>> = {
+  sl_leads: [PERMISSIONS.LEAD_VIEW],
+  sl_hot: [PERMISSIONS.LEAD_VIEW],
+  sl_lead: [PERMISSIONS.LEAD_VIEW],
+  sl_st: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.LEAD_UPDATE],
+  sl_fu: [PERMISSIONS.FOLLOWUP_VIEW],
+  sl_fud: [PERMISSIONS.FOLLOWUP_VIEW],
+  sl_fuok: [PERMISSIONS.FOLLOWUP_UPDATE],
+  sl_call: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_ct: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_cr: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_cd: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_cs: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_cn: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  sl_fn: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
+  sl_fw: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
+};
+
+/** Matnli oqimlar uchun ruxsat (oqim davomida ruxsat olinib qo'yilishi mumkin) */
+const SALES_FLOW_PERMISSIONS: Readonly<Record<string, PermissionKey[]>> = {
+  call_note: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
+  followup_date: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
+  lead_lost: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.LEAD_UPDATE],
+};
+
+async function denySales(context: BotContext): Promise<HandlerResult> {
+  await telegramSessionService.clearFlow(context.chatId);
+  await context.render(BOT_FORBIDDEN_TEXT, [menuRow()]);
+  return { action: 'sales_forbidden' };
+}
+
+/** Oqim matni kelganda (router) — ruxsat yo'q bo'lsa null o'rniga rad javobi */
+export async function salesFlowForbidden(context: BotContext, scope: CommandScope, flow: string): Promise<HandlerResult | null> {
+  const required = SALES_FLOW_PERMISSIONS[flow];
+  if (!required || (await scopeCan(scope, ...required))) return null;
+  return denySales(context);
+}
 
 const CALL_RESULT_LABELS = {
   ANSWERED: '✅ Gaplashdik',
@@ -340,20 +392,102 @@ export async function completeFollowUp(context: BotContext, scope: CommandScope,
 // Qo'ng'iroq yozish (TZ §43 "Call logging") — CRM callService orqali (audit, faollik, lead holati)
 // ---------------------------------------------------------------------
 
+/** Qo'ng'iroq davomiyligi — tez tanlov (soniya); "Kiritmaslik" — 0 */
+const CALL_DURATIONS: ReadonlyArray<{ seconds: number; label: string }> = [
+  { seconds: 30, label: '< 1 daq' },
+  { seconds: 120, label: '1–3 daq' },
+  { seconds: 240, label: '3–5 daq' },
+  { seconds: 450, label: '5–10 daq' },
+  { seconds: 900, label: '10+ daq' },
+];
+/** Javob bo'lmagan qo'ng'iroqda davomiylik so'ralmaydi */
+const NO_CONVERSATION: ReadonlySet<string> = new Set(['NO_ANSWER', 'BUSY', 'WRONG_NUMBER']);
+const CALL_DIRECTIONS = { OUT: 'OUTGOING', IN: 'INCOMING' } as const;
+const DIRECTION_LABELS = { OUTGOING: '📤 Chiquvchi', INCOMING: '📥 Kiruvchi' } as const;
+
+/** Keyingi qadam: qayta qo'ng'iroq vaqti (`Call.nextCallAt`) yoki follow-up */
+const CALL_NEXT = {
+  none: { label: '✅ Saqlash', at: (): Date | undefined => undefined },
+  t10: { label: '📞 Ertaga 10:00 qayta', at: (now: Date) => localDayAt(1, 10, 0, now) },
+  d3: { label: '📞 3 kundan keyin', at: (now: Date) => localDayAt(3, 10, 0, now) },
+  fu: { label: '⏰ Saqlash va follow-up', at: (): Date | undefined => undefined },
+} as const;
+type CallNext = keyof typeof CALL_NEXT;
+
+interface CallDraft {
+  leadId: string;
+  direction?: 'OUTGOING' | 'INCOMING';
+  result?: CallResult;
+  durationSec?: number;
+  notes?: string | null;
+}
+
+async function callDraft(context: BotContext): Promise<CallDraft | null> {
+  const session = await telegramSessionService.get(context.chatId);
+  if (session?.flow !== CALL_NOTE_FLOW || typeof session.data.leadId !== 'string') return null;
+  return session.data as unknown as CallDraft;
+}
+
+async function saveDraft(context: BotContext, step: string, draft: CallDraft): Promise<void> {
+  await telegramSessionService.set(context.chatId, { flow: CALL_NOTE_FLOW, step, data: draft as never });
+}
+
+async function lostCall(context: BotContext): Promise<HandlerResult> {
+  await context.render('Qo‘ng‘iroq ma’lumoti topilmadi. Lead kartasidan qaytadan boshlang.', [menuRow()]);
+  return { action: 'call_lost' };
+}
+
+function cancelCallRow(leadId: string): InlineButton[] {
+  return [{ text: '❌ Bekor qilish', data: callback(SALES_ACTIONS.lead, leadId) }];
+}
+
+/** 1/5 — qo'ng'iroq turi (TZ 3.1 GAP-08) */
 export async function askCallResult(context: BotContext, scope: CommandScope, leadId: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor || !leadId) return { action: SALES_ACTIONS.call };
   return safely(context, SALES_ACTIONS.leads, async () => {
     const lead = await leadService.getById(actor, leadId);
-    const buttons = (Object.keys(CALL_RESULT_LABELS) as CallResult[]).map((result) => ({ text: CALL_RESULT_LABELS[result], data: callback(SALES_ACTIONS.callResult, `${lead.id}:${result}`) }));
-    const keyboard: InlineKeyboard = [];
-    for (let index = 0; index < buttons.length; index += 2) keyboard.push(buttons.slice(index, index + 2));
-    keyboard.push([{ text: '⬅️ Lead', data: callback(SALES_ACTIONS.lead, lead.id) }, ...menuRow()]);
-    await context.render(`<b>📞 ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.phone)}\n\nQo‘ng‘iroq natijasi?`, keyboard);
+    await saveDraft(context, 'type', { leadId: lead.id });
+    await context.render(`<b>📞 ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.phone)}\n\n1/5. Qo‘ng‘iroq turi?`, [
+      [
+        { text: DIRECTION_LABELS.OUTGOING, data: callback(SALES_ACTIONS.callType, 'OUT') },
+        { text: DIRECTION_LABELS.INCOMING, data: callback(SALES_ACTIONS.callType, 'IN') },
+      ],
+      [{ text: '⬅️ Lead', data: callback(SALES_ACTIONS.lead, lead.id) }, ...menuRow()],
+    ]);
     return { action: SALES_ACTIONS.call };
   });
 }
 
+/** 2/5 — natija (mavjud `CallResult` enum) */
+export async function chooseCallType(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const draft = await callDraft(context);
+  if (!actor || !draft || !arg || !(arg in CALL_DIRECTIONS)) return lostCall(context);
+  return safely(context, SALES_ACTIONS.leads, async () => {
+    await leadService.getById(actor, draft.leadId);
+    draft.direction = CALL_DIRECTIONS[arg as keyof typeof CALL_DIRECTIONS];
+    await saveDraft(context, 'result', draft);
+    const buttons = (Object.keys(CALL_RESULT_LABELS) as CallResult[]).map((result) => ({ text: CALL_RESULT_LABELS[result], data: callback(SALES_ACTIONS.callResult, `${draft.leadId}:${result}`) }));
+    const keyboard: InlineKeyboard = [];
+    for (let index = 0; index < buttons.length; index += 2) keyboard.push(buttons.slice(index, index + 2));
+    keyboard.push(cancelCallRow(draft.leadId));
+    await context.render(`${DIRECTION_LABELS[draft.direction]}\n\n2/5. Qo‘ng‘iroq natijasi?`, keyboard);
+    return { action: SALES_ACTIONS.callType };
+  });
+}
+
+function noteKeyboard(leadId: string): InlineKeyboard {
+  return [[{ text: '➡️ Izohsiz davom etish', data: callback(SALES_ACTIONS.callSave) }], cancelCallRow(leadId)];
+}
+
+async function askNote(context: BotContext, draft: CallDraft): Promise<HandlerResult> {
+  await saveDraft(context, 'note', draft);
+  await context.render('4/5. Qisqa izoh yozing (nima kelishildi) yoki izohsiz davom eting.', noteKeyboard(draft.leadId));
+  return { action: 'call_ask_note' };
+}
+
+/** 3/5 — davomiylik (javob bo'lmagan natijada o'tkazib yuboriladi) */
 export async function chooseCallResult(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor || !arg) return { action: SALES_ACTIONS.callResult };
@@ -361,42 +495,94 @@ export async function chooseCallResult(context: BotContext, scope: CommandScope,
   if (!leadId || !result || !(result in CALL_RESULT_LABELS)) return showLead(context, scope, leadId || null);
   return safely(context, SALES_ACTIONS.leads, async () => {
     await leadService.getById(actor, leadId);
-    await telegramSessionService.set(context.chatId, { flow: CALL_NOTE_FLOW, step: 'note', data: { leadId, result } });
-    await context.render(`${CALL_RESULT_LABELS[result as CallResult]}\n\nQisqa izoh yozing (nima kelishildi) yoki izohsiz saqlang.`, [
-      [{ text: '💾 Izohsiz saqlash', data: callback(SALES_ACTIONS.callSave) }],
-      [{ text: '❌ Bekor qilish', data: callback(SALES_ACTIONS.lead, leadId) }],
+    const existing = await callDraft(context);
+    // Callback'dagi lead sessiyadagisi bilan mos bo'lishi kerak; aks holda yangi qo'ng'iroq (chiquvchi)
+    const draft: CallDraft = existing && existing.leadId === leadId ? existing : { leadId, direction: 'OUTGOING' };
+    draft.direction ??= 'OUTGOING';
+    draft.result = result as CallResult;
+    if (NO_CONVERSATION.has(result)) {
+      draft.durationSec = 0;
+      return askNote(context, draft);
+    }
+    await saveDraft(context, 'duration', draft);
+    const buttons = CALL_DURATIONS.map((option) => ({ text: option.label, data: callback(SALES_ACTIONS.callDuration, String(option.seconds)) }));
+    await context.render(`${CALL_RESULT_LABELS[draft.result]}\n\n3/5. Qancha gaplashildi? Tugmani tanlang yoki daqiqani yozing (masalan: <code>7</code>).`, [
+      buttons.slice(0, 3),
+      buttons.slice(3),
+      cancelCallRow(leadId),
     ]);
     return { action: SALES_ACTIONS.callResult };
   });
 }
 
-async function saveCall(context: BotContext, actor: AuthUser, data: { leadId: string; result: CallResult }, notes: string | undefined): Promise<HandlerResult> {
-  await telegramSessionService.clearFlow(context.chatId);
-  return safely(context, SALES_ACTIONS.leads, async () => {
-    await callService.create(
-      actor,
-      { leadId: data.leadId, direction: 'OUTGOING', status: 'COMPLETED', result: data.result, durationSec: 0, notes, calledAt: undefined, nextCallAt: undefined },
-      BOT_CLIENT,
-    );
-    const next: InlineKeyboard = [
-      [{ text: '⏰ Follow-up qo‘yish', data: callback(SALES_ACTIONS.followUpNew, data.leadId) }, { text: '👤 Lead', data: callback(SALES_ACTIONS.lead, data.leadId) }],
-      menuRow(),
-    ];
-    await context.render(`✅ Qo‘ng‘iroq yozildi: ${CALL_RESULT_LABELS[data.result]}${notes ? `\n📝 ${escapeHtml(notes)}` : ''}`, next);
-    return { action: 'call_logged' };
-  });
+export async function chooseCallDuration(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const draft = await callDraft(context);
+  const seconds = Number(arg);
+  if (!actor || !draft?.result || !Number.isInteger(seconds) || seconds < 0 || seconds > 86_400) return lostCall(context);
+  draft.durationSec = seconds;
+  return askNote(context, draft);
 }
 
+async function askNext(context: BotContext, draft: CallDraft): Promise<HandlerResult> {
+  await saveDraft(context, 'next', draft);
+  const options = (Object.keys(CALL_NEXT) as CallNext[]).map((key) => ({ text: CALL_NEXT[key].label, data: callback(SALES_ACTIONS.callNext, key) }));
+  await context.render(
+    [
+      '5/5. <b>Keyingi qadam?</b>',
+      '',
+      `${draft.direction ? DIRECTION_LABELS[draft.direction] : ''} · ${draft.result ? CALL_RESULT_LABELS[draft.result] : ''}${draft.durationSec ? ` · ${Math.max(1, Math.round(draft.durationSec / 60))} daq` : ''}`,
+      draft.notes ? `📝 ${escapeHtml(draft.notes)}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    [options.slice(0, 2), options.slice(2), cancelCallRow(draft.leadId)],
+  );
+  return { action: 'call_ask_next' };
+}
+
+/** "Izohsiz davom etish" */
 export async function saveCallWithoutNote(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
-  const session = await telegramSessionService.get(context.chatId);
-  const leadId = typeof session?.data.leadId === 'string' ? session.data.leadId : null;
-  const result = typeof session?.data.result === 'string' ? (session.data.result as CallResult) : null;
-  if (!actor || session?.flow !== CALL_NOTE_FLOW || !leadId || !result) {
-    await context.render('Qo‘ng‘iroq ma’lumoti topilmadi. Lead kartasidan qaytadan boshlang.', [menuRow()]);
-    return { action: SALES_ACTIONS.callSave };
-  }
-  return saveCall(context, actor, { leadId, result }, undefined);
+  const draft = await callDraft(context);
+  if (!actor || !draft?.result) return lostCall(context);
+  draft.notes = null;
+  return askNext(context, draft);
+}
+
+/** Saqlash — CRM `callService.create` (lead doirasi, faollik, audit, oxirgi aloqa) */
+export async function chooseCallNext(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const draft = await callDraft(context);
+  if (!actor || !draft?.result || !arg || !(arg in CALL_NEXT)) return lostCall(context);
+  const next = arg as CallNext;
+  await telegramSessionService.clearFlow(context.chatId);
+  return safely(context, SALES_ACTIONS.leads, async () => {
+    const nextCallAt = CALL_NEXT[next].at(new Date());
+    await callService.create(
+      actor,
+      {
+        leadId: draft.leadId,
+        direction: draft.direction ?? 'OUTGOING',
+        status: 'COMPLETED',
+        result: draft.result!,
+        durationSec: draft.durationSec ?? 0,
+        notes: draft.notes ?? undefined,
+        calledAt: undefined,
+        nextCallAt,
+      },
+      BOT_CLIENT,
+    );
+    if (next === 'fu') return askFollowUpWhen(context, scope, draft.leadId);
+    const lines = [`✅ Qo‘ng‘iroq yozildi: ${CALL_RESULT_LABELS[draft.result!]}`];
+    if (draft.notes) lines.push(`📝 ${escapeHtml(draft.notes)}`);
+    if (nextCallAt) lines.push(`📞 Qayta qo‘ng‘iroq: ${fmtDateTime(nextCallAt)}`);
+    await context.render(lines.join('\n'), [
+      [{ text: '⏰ Follow-up qo‘yish', data: callback(SALES_ACTIONS.followUpNew, draft.leadId) }, { text: '👤 Lead', data: callback(SALES_ACTIONS.lead, draft.leadId) }],
+      menuRow(),
+    ]);
+    return { action: 'call_logged' };
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -452,12 +638,26 @@ export async function handleSalesFlow(context: BotContext, scope: CommandScope, 
   }
   const text = (context.text ?? '').trim();
   if (session.flow === CALL_NOTE_FLOW) {
-    const result = typeof session.data.result === 'string' ? (session.data.result as CallResult) : null;
-    if (!result || text.length < 2 || text.length > 2000) {
-      await context.reply('Izoh 2 dan 2000 belgigacha bo‘lsin yoki «Izohsiz saqlash» ni bosing.', [[{ text: '💾 Izohsiz saqlash', data: callback(SALES_ACTIONS.callSave) }]]);
-      return { action: 'call_note_invalid' };
+    const draft = session.data as unknown as CallDraft;
+    if (session.step === 'duration') {
+      const minutes = Number(text.replace(',', '.'));
+      if (!Number.isFinite(minutes) || minutes < 0 || minutes > 600) {
+        await context.reply('Daqiqani raqam bilan yozing (0–600) yoki tugmani tanlang.', [cancelCallRow(leadId)]);
+        return { action: 'call_duration_invalid' };
+      }
+      draft.durationSec = Math.round(minutes * 60);
+      return askNote(context, draft);
     }
-    return saveCall(context, scope.actor, { leadId, result }, text);
+    if (session.step === 'note') {
+      if (text.length < 2 || text.length > 2000) {
+        await context.reply('Izoh 2 dan 2000 belgigacha bo‘lsin yoki «Izohsiz davom etish» ni bosing.', noteKeyboard(leadId));
+        return { action: 'call_note_invalid' };
+      }
+      draft.notes = text;
+      return askNext(context, draft);
+    }
+    await context.reply('Tugmalardan birini tanlang.', [cancelCallRow(leadId)]);
+    return { action: 'call_wait_button' };
   }
   const dueAt = parseLocalDateTime(text);
   if (!dueAt || dueAt.getTime() < Date.now()) {
@@ -473,6 +673,8 @@ export const SALES_COMMANDS: Readonly<Record<string, string>> = {
 };
 
 export async function handleSalesAction(context: BotContext, scope: CommandScope, action: string, arg: string | null): Promise<HandlerResult | undefined> {
+  const required = SALES_ACTION_PERMISSIONS[action];
+  if (required && scope.actor && !(await scopeCan(scope, ...required))) return denySales(context);
   switch (action) {
     case SALES_ACTIONS.leads:
       return showLeads(context, scope, arg);
@@ -490,10 +692,16 @@ export async function handleSalesAction(context: BotContext, scope: CommandScope
       return completeFollowUp(context, scope, arg);
     case SALES_ACTIONS.call:
       return askCallResult(context, scope, arg);
+    case SALES_ACTIONS.callType:
+      return chooseCallType(context, scope, arg);
     case SALES_ACTIONS.callResult:
       return chooseCallResult(context, scope, arg);
+    case SALES_ACTIONS.callDuration:
+      return chooseCallDuration(context, scope, arg);
     case SALES_ACTIONS.callSave:
       return saveCallWithoutNote(context, scope);
+    case SALES_ACTIONS.callNext:
+      return chooseCallNext(context, scope, arg);
     case SALES_ACTIONS.followUpNew:
       return askFollowUpWhen(context, scope, arg);
     case SALES_ACTIONS.followUpWhen:

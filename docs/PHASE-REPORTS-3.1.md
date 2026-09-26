@@ -480,3 +480,69 @@ Fayl yuklab olish qabul paytida (tasdiqda kutish yo'q); e'londa fayllar allaqach
 ## Next Phase
 
 **PHASE 8 — Telegram sales call (GAP-08)** + S1 (`call.create`, `lead.view`): qo'ng'iroq turi, natija, davomiylik, izoh, keyingi qadam.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 8
+
+Sana: 2026-09-26. GAP-08 "Telegram sales call log" + audit **S1** (sotuv amallari).
+
+## Implemented
+
+- Lead kartasi (ism, telefon, kurs, status — mavjud) → **📞 Qo'ng'iroq yozish**: 5 qadam — **tur** (📤 chiquvchi / 📥 kiruvchi) → **natija** (mavjud `CallResult`: javob berdi, javob bermadi, band, noto'g'ri raqam, qiziqdi, qiziqmadi, qayta qo'ng'iroq) → **davomiylik** (tugma yoki daqiqa yoziladi; javob bo'lmagan natijada o'tkazib yuboriladi) → **izoh** (yoki izohsiz) → **keyingi qadam** (saqlash / ertaga 10:00 yoki 3 kundan keyin qayta qo'ng'iroq — `Call.nextCallAt` / saqlash va follow-up).
+- Oldin tur doim "chiquvchi", davomiylik 0, keyingi qadam bo'sh edi — endi hammasi CRM qo'ng'irog'ida.
+- **S1 (sotuv botida to'liq)**: har sotuv amali REST bilan bir xil kalitlar bilan — leadlar/karta `lead.view`, status `lead.update`, qo'ng'iroq `call.create`, follow-up ro'yxati `followup.view`, bajarildi `followup.update`, yaratish `followup.create`. Tugmada **va** matnli qadamda (router) — oqim o'rtasida ruxsat olinsa ham to'xtaydi.
+
+## Existing Code Reused
+
+`callService.create` (lead doirasi `leadAccess`, faollik `CALL_LOGGED`, `lastContactedAt`, audit), `CallResult`/`CallDirection`/`CallStatus` enumlari, `leadService.getById`, `localDayAt`, `telegram/permissions.ts` (PHASE 7).
+
+## New Files
+
+`backend/tests/telegramCall.test.ts`.
+
+## Modified Files
+
+`backend/src/telegram/handlers/sales.ts` (qo'ng'iroq oqimi, `SALES_ACTION_PERMISSIONS`, `SALES_FLOW_PERMISSIONS`), `backend/src/telegram/router.ts` (matnli sotuv oqimlari ruxsat bilan), `backend/tests/telegramV2.test.ts` (5 qadamli oqim; oldingi tekshiruvlar + tur va davomiylik), `docs/telegram.md`.
+
+## Database Changes
+
+Yo'q (`calls` jadvalining mavjud maydonlari: direction, durationSec, nextCallAt).
+
+## API Changes
+
+Yo'q.
+
+## Telegram Changes
+
+Yangi callbacklar: `sl_ct:<OUT|IN>`, `sl_cd:<soniya>`, `sl_cn:<none|t10|d3|fu>`; `sl_cr` va `sl_cs` endi oqim ichida (sessiyani yopmaydi); qo'ng'iroq sessiyasi `call_note` bosqichlari: type → result → duration → note → next.
+
+## Permissions
+
+Yangi ruxsat yo'q — mavjudlari botda qo'llanildi.
+
+## Security
+
+- Ruxsatsiz xodim (o'qituvchi) va `call.create` siz rol — rad (test); oqim o'rtasida ruxsat olinsa matnli qadam ham, tugma ham rad (test).
+- Boshqa menejerning leadi — `leadAccess` doirasi, soxta callback bilan ham qo'ng'iroq yozilmaydi (test).
+- Callback'da faqat lead id va tanlov; tur, natija, davomiylik sessiyada, har qadamda lead qayta tekshiriladi.
+
+## Tests
+
+Backend **824/824** (+4, to'liq toza), E2E **38/38**. TypeScript, lint (0 xato), build — o'tdi. §37 E2E (lead → qo'ng'iroq → follow-up → **eslatma**) PHASE 9 da — eslatma qismi (S4) shu fazada tuzatiladi.
+
+## Performance
+
+Har amalda bitta kesh qilingan ruxsat o'qish (`permissionService` keshi).
+
+## Documentation
+
+`docs/telegram.md`.
+
+## Known Issues
+
+- Qo'ng'iroq statusi botda doim `COMPLETED` (rejalashtirilgan qo'ng'iroq — web'da).
+
+## Next Phase
+
+**PHASE 9 — Telegram follow-up (GAP-09)** + **S4**: follow-up maydonlari (sana, vaqt, izoh, muhimlik — migratsiya), eslatma Telegram navbatiga (`notificationService` orqali, foydalanuvchi sozlamasi bilan), E2E §37.

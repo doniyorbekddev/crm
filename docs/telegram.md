@@ -20,7 +20,7 @@ handler qayta tekshiradi.
 | O'qituvchi | Bugungi darslar, guruhlar, davomat varag'i; **vazifa berish** (3.1): guruh → sarlavha → tavsif → muddat → fayl (PDF/rasm, 5 tagacha — qabul qilingan zahoti tekshiriladi va CRM xotirasiga saqlanadi) → tasdiq → e'lon (qoralama → fayllar → e'lon; fayl xatosida qoralamada qoladi) | `/bugun` `/guruhlar` | `attendance.mark`; vazifa — **`homework.manage`** (har qadamda, REST bilan bir xil) |
 | O'qituvchi | **KPI** — guruhlar: davomat, vazifa, imtihon, progress, xavf, kutilayotgan ishlar | `/kpi` | `attendance.mark` |
 | O'qituvchi | **Tekshirish** — navbat, javob matni/kod/havola, o'quvchi fayllari, baho (`85 izoh`), qaytarish, **AI tekshiruv** va qabul qilish | `/tekshirish` | `homework.grade` (+`ai.academic`) |
-| Sotuv | Leadlar, qizigan leadlar, status, follow-uplar; **qo'ng'iroq yozish** (natija + izoh); **follow-up yaratish** (tayyor muddat yoki sana) | `/leadlar` `/followup` | `lead.view` |
+| Sotuv | Leadlar, qizigan leadlar, status, follow-uplar; **qo'ng'iroq yozish** (3.1): tur (chiquvchi/kiruvchi) → natija (`CallResult`) → davomiylik (tugma yoki daqiqa; javob bo'lmasa o'tkaziladi) → izoh → keyingi qadam (ertaga 10:00 / 3 kun — `nextCallAt`, yoki follow-up); **follow-up yaratish** | `/leadlar` `/followup` | har amal REST bilan bir xil: `lead.view`, `lead.update` (status), `call.create`, `followup.view/create/update` — tugmada va matnli qadamda |
 | Rahbar | Ko'rsatkichlar, qarzdorlar, xavf ostidagilar, ogohlantirishlar | `/panel` `/qarzdorlar` | tegishli ruxsatlar |
 | Rahbar | **Hisobotlar** (joriy oy KPI) | `/hisobotlar` | `report.view` + hisobot turiga qo'shimcha ruxsat (web bilan bitta ro'yxat) |
 | Rahbar | **Marketing** — kanallar: lead, konversiya, xarajat, ROI | `/marketing` | `analytics.view` |

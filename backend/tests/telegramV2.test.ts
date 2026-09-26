@@ -158,17 +158,23 @@ describe.skipIf(!hasTestDatabase)('Telegram 2.0 (PHASE 11)', () => {
 
     await press(72_001, `sl_lead:${lead.id}`).expect(200);
     expect(bot.lastData()).toEqual(expect.arrayContaining([`sl_call:${lead.id}`, `sl_fn:${lead.id}`]));
+    // TZ 3.1 GAP-08: tur → natija → davomiylik → izoh → keyingi qadam
     await press(72_001, `sl_call:${lead.id}`).expect(200);
+    await press(72_001, 'sl_ct:OUT').expect(200);
     await press(72_001, `sl_cr:${lead.id}:INTERESTED`).expect(200);
+    await press(72_001, 'sl_cd:240').expect(200);
     await message(72_001, 'Ertaga sinov darsiga keladi').expect(200);
+    await press(72_001, 'sl_cn:none').expect(200);
     expect(bot.last().text).toContain('Qo‘ng‘iroq yozildi');
     await press(72_001, `sl_call:${lead.id}`).expect(200);
-    await press(72_001, `sl_cr:${lead.id}:NO_ANSWER`).expect(200);
+    await press(72_001, 'sl_ct:IN').expect(200);
+    await press(72_001, `sl_cr:${lead.id}:NO_ANSWER`).expect(200); // javob yo'q — davomiylik so'ralmaydi
     await press(72_001, 'sl_cs').expect(200);
-    const calls = await prisma.call.findMany({ where: { leadId: lead.id }, orderBy: { createdAt: 'asc' }, select: { result: true, notes: true, managerId: true } });
+    await press(72_001, 'sl_cn:none').expect(200);
+    const calls = await prisma.call.findMany({ where: { leadId: lead.id }, orderBy: { createdAt: 'asc' }, select: { result: true, notes: true, managerId: true, direction: true, durationSec: true } });
     expect(calls).toEqual([
-      { result: 'INTERESTED', notes: 'Ertaga sinov darsiga keladi', managerId: user.id },
-      { result: 'NO_ANSWER', notes: null, managerId: user.id },
+      { result: 'INTERESTED', notes: 'Ertaga sinov darsiga keladi', managerId: user.id, direction: 'OUTGOING', durationSec: 240 },
+      { result: 'NO_ANSWER', notes: null, managerId: user.id, direction: 'INCOMING', durationSec: 0 },
     ]);
 
     await press(72_001, `sl_fn:${lead.id}`).expect(200);
