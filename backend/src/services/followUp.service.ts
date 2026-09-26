@@ -1,7 +1,7 @@
 import { prisma } from '../config/database.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
-import type { FollowUpStatus, Prisma } from '../generated/prisma/client.js';
+import type { FollowUpStatus, LeadPriority, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { addDays, startOfBusinessDay } from '../utils/dates.js';
@@ -28,6 +28,7 @@ const followUpSelect = {
   leadId: true,
   title: true,
   notes: true,
+  priority: true,
   dueAt: true,
   remindAt: true,
   status: true,
@@ -48,6 +49,7 @@ export interface FollowUpDto {
   leadId: string;
   title: string;
   notes: string | null;
+  priority: LeadPriority;
   dueAt: string;
   remindAt: string | null;
   status: FollowUpStatus;
@@ -77,6 +79,7 @@ function toDto(record: FollowUpRecord, now: Date): FollowUpDto {
     leadId: record.leadId,
     title: record.title,
     notes: record.notes,
+    priority: record.priority,
     dueAt: record.dueAt.toISOString(),
     remindAt: record.remindAt?.toISOString() ?? null,
     status: record.status,
@@ -215,6 +218,7 @@ export const followUpService = {
           createdById: actor.id,
           title: input.title,
           notes: input.notes ?? null,
+          ...(input.priority ? { priority: input.priority } : {}),
           dueAt: input.dueAt,
           remindAt,
         },
@@ -274,6 +278,7 @@ export const followUpService = {
         data: {
           title: input.title,
           notes: input.notes ?? null,
+          ...(input.priority ? { priority: input.priority } : {}),
           dueAt: input.dueAt,
           remindAt,
           assignedToId: assigneeId,

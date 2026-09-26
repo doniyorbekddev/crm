@@ -27,3 +27,12 @@ Ohang qoidasi: ota-onaga ketadigan past natija/kechikish xabarlari qo'rqitmaydi 
 
 Kabinetda bildirishnoma bosilsa **kabinet sahifasiga** o'tadi (vazifa, imtihon, davomat) —
 xodim sahifalariga emas.
+
+## Xodim eslatmalari — bitta yo'l (3.1, audit S4)
+
+Follow-up eslatmasi (`FOLLOW_UP_REMINDER`, `TRIAL_LESSON_REMINDER`) va kechikish (`FOLLOW_UP_OVERDUE`) endi
+`notificationService.createManyInTransaction` orqali yaratiladi: ilova ichida **va** bog'langan Telegram chatiga
+(`NotificationDelivery` navbati — qayta urinish, backoff). Xodimning tur bo'yicha sozlamasi (`NotificationSetting`)
+va botdagi "ovozsiz" rejim hurmat qilinadi. Oldin job bildirishnomani to'g'ridan-to'g'ri yozardi — Telegramga
+eslatma ketmasdi (bot esa "eslatma shu chatga keladi" deb aytardi). Shoshilinch/yuqori muhimlikdagi follow-up
+xabari 🔴/🟠 belgisi bilan. Testlar: `backend/tests/followUpReminderTelegram.test.ts`, E2E §37.

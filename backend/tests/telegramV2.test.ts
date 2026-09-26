@@ -177,16 +177,24 @@ describe.skipIf(!hasTestDatabase)('Telegram 2.0 (PHASE 11)', () => {
       { result: 'NO_ANSWER', notes: null, managerId: user.id, direction: 'INCOMING', durationSec: 0 },
     ]);
 
+    // TZ 3.1 GAP-09: sana/vaqt → izoh → muhimlik. Oqimlar ko'p qadamli — chat chegarasi (20/10 s) qayta boshlanadi
+    resetRateLimits();
     await press(72_001, `sl_fn:${lead.id}`).expect(200);
     await press(72_001, `sl_fw:${lead.id}:t10`).expect(200);
+    await press(72_001, 'sl_fs').expect(200);
+    await press(72_001, 'sl_fp:MEDIUM').expect(200);
     expect(bot.last().text).toContain('Follow-up qo‘yildi');
     await press(72_001, `sl_fn:${lead.id}`).expect(200);
     await message(72_001, '01.01.2020 10:00').expect(200);
     expect(bot.last().text).toContain('kelajakdagi');
     await message(72_001, '25.12.2099 15:30').expect(200);
+    await message(72_001, 'Shartnomani muhokama qilish').expect(200);
+    await press(72_001, 'sl_fp:URGENT').expect(200);
     const followUps = await prisma.followUp.findMany({ where: { leadId: lead.id }, orderBy: { dueAt: 'asc' } });
     expect(followUps).toHaveLength(2);
     expect(followUps[1]!.dueAt.toISOString()).toBe('2099-12-25T10:30:00.000Z');
+    expect(followUps[1]).toMatchObject({ notes: 'Shartnomani muhokama qilish', priority: 'URGENT' });
+    expect(followUps[0]).toMatchObject({ notes: null, priority: 'MEDIUM' });
   });
 
   it('broadcast media: rasm izoh bilan — har chatga file_id orqali; matn ikki marta escape qilinmaydi', async () => {

@@ -1,5 +1,5 @@
 import type { CallLeadRef } from './call';
-import type { PersonRef } from './lead';
+import type { LeadPriority, PersonRef } from './lead';
 
 export type FollowUpStatus = 'PENDING' | 'DONE' | 'CANCELLED';
 /** OVERDUE serverda hisoblanadi: muddati o‘tgan bajarilmagan vazifa */
@@ -11,6 +11,7 @@ export interface FollowUpItem {
   leadId: string;
   title: string;
   notes: string | null;
+  priority: LeadPriority;
   dueAt: string;
   remindAt: string | null;
   status: FollowUpStatus;
@@ -44,6 +45,7 @@ export interface FollowUpPayload {
   remindAt?: string;
   notes?: string;
   assignedToId?: string;
+  priority?: LeadPriority;
 }
 
 export interface CreateFollowUpPayload extends FollowUpPayload {

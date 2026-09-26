@@ -644,6 +644,8 @@ model FollowUp {
   createdById       String?
   title             String         @db.VarChar(200)
   notes             String?
+  /// Muhimlik (TZ 3.1 GAP-09) — lead muhimligi bilan bir xil shkala
+  priority          LeadPriority   @default(MEDIUM)
   dueAt             DateTime
   remindAt          DateTime?
   reminderSentAt    DateTime?

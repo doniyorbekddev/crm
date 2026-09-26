@@ -317,3 +317,46 @@ test('§36 Telegram vazifa: o‘qituvchi botda beradi → o‘quvchi web’da to
   );
   expect(graded).toMatchObject({ status: 'GRADED', score: 90 });
 });
+
+test('§37 sotuv: menejer botda lead → qo‘ng‘iroq → follow-up → eslatma (ilova va Telegram navbati)', async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const admin = await apiLogin(request, 'admin');
+  const managerLogin = await request.post(`${API}/auth/login`, { data: { email: USERS.manager.email, password: USERS.manager.password } });
+  const managerId = (await managerLogin.json()).data.user.id as string;
+  const sources = (await (await request.get(`${API}/lookups/lead-form`, { headers: admin })).json()).data.sources as Array<{ id: string }>;
+  const stamp = Date.now();
+  const firstName = `Sotuv${String(stamp).slice(-5).replace(/\d/g, (d) => 'abcdefghij'[Number(d)]!)}`;
+  const created = await request.post(`${API}/leads`, { headers: admin, data: { firstName, phone: `+99894${String(stamp).slice(-7)}`, sourceId: sources[0]!.id, assignedToId: managerId } });
+  expect(created.status(), await created.text()).toBe(201);
+  const leadId = (await created.json()).data.id as string;
+
+  const chatId = Number(String(stamp).slice(-9)) + 7;
+  await linkStaffTelegram(managerId, chatId);
+  // Qo'ng'iroq: tur → natija → davomiylik → izoh → "saqlash va follow-up"
+  for (const data of [`sl_lead:${leadId}`, `sl_call:${leadId}`, 'sl_ct:OUT', `sl_cr:${leadId}:INTERESTED`, 'sl_cd:240']) await telegramPress(request, chatId, data);
+  await telegramMessage(request, chatId, 'Sinov darsiga yoziladi');
+  await telegramPress(request, chatId, 'sl_cn:fu');
+  // Follow-up: 30.5 daqiqadan keyin (eslatma 30 daqiqa oldin — ~30 soniyada), izoh, muhimlik
+  const due = new Date(Date.now() + 30.5 * 60_000 + 5 * 3_600_000); // o'quv markaz vaqti (+05:00)
+  const pad = (value: number) => String(value).padStart(2, '0');
+  await telegramMessage(request, chatId, `${pad(due.getUTCDate())}.${pad(due.getUTCMonth() + 1)}.${due.getUTCFullYear()} ${pad(due.getUTCHours())}:${pad(due.getUTCMinutes())}`);
+  await telegramMessage(request, chatId, 'Shartnoma haqida');
+  await telegramPress(request, chatId, 'sl_fp:HIGH');
+
+  const call = await withDb(async (db) => (await db.query<{ direction: string; durationSec: number; notes: string }>('SELECT direction, "durationSec", notes FROM calls WHERE "leadId" = $1', [leadId])).rows);
+  expect(call).toEqual([{ direction: 'OUTGOING', durationSec: 240, notes: 'Sinov darsiga yoziladi' }]);
+  const followUp = await withDb(async (db) => (await db.query<{ priority: string; notes: string }>('SELECT priority, notes FROM follow_ups WHERE "leadId" = $1', [leadId])).rows);
+  expect(followUp).toEqual([{ priority: 'HIGH', notes: 'Shartnoma haqida' }]);
+
+  // Eslatma jobi (har daqiqa) — ilova bildirishnomasi va menejer chatiga Telegram navbati
+  await expect
+    .poll(
+      () =>
+        withDb(async (db) => (await db.query<{ title: string }>(`SELECT d.title FROM notification_deliveries d JOIN telegram_links l ON l.id = d."telegramLinkId" WHERE l."userId" = $1 AND d.title = 'Follow-up eslatmasi' AND d.body LIKE $2`, [managerId, `%${firstName}%`])).rowCount ?? 0),
+      { timeout: 150_000, intervals: [5_000] },
+    )
+    .toBeGreaterThan(0);
+  await login(page, 'manager');
+  await page.goto('/notifications');
+  await expect(page.getByRole('listitem').filter({ hasText: 'Follow-up eslatmasi' }).filter({ hasText: firstName }).first()).toBeVisible();
+});

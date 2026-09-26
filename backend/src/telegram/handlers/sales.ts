@@ -50,13 +50,26 @@ export const SALES_ACTIONS = {
   /** TZ §43 "Follow-up creation": tezkor muddat yoki o'z sanasi */
   followUpNew: 'sl_fn',
   followUpWhen: 'sl_fw',
+  /** Follow-up izohisiz davom etish */
+  followUpSkipNote: 'sl_fs',
+  /** Follow-up muhimligi va yaratish */
+  followUpPriority: 'sl_fp',
 } as const;
 
 /** Qo'ng'iroq izohini kutish va follow-up sanasini kutish oqimlari */
 export const CALL_NOTE_FLOW = 'call_note';
 export const FOLLOWUP_DATE_FLOW = 'followup_date';
 /** Oqim ichidagi tugmalar — sessiyani yopmaydi */
-export const SALES_FLOW_ACTIONS: ReadonlySet<string> = new Set([SALES_ACTIONS.callType, SALES_ACTIONS.callResult, SALES_ACTIONS.callDuration, SALES_ACTIONS.callSave, SALES_ACTIONS.callNext]);
+export const SALES_FLOW_ACTIONS: ReadonlySet<string> = new Set([
+  SALES_ACTIONS.callType,
+  SALES_ACTIONS.callResult,
+  SALES_ACTIONS.callDuration,
+  SALES_ACTIONS.callSave,
+  SALES_ACTIONS.callNext,
+  SALES_ACTIONS.followUpWhen,
+  SALES_ACTIONS.followUpSkipNote,
+  SALES_ACTIONS.followUpPriority,
+]);
 
 /**
  * Har sotuv amali uchun ruxsat — REST marshrutlari bilan bir xil kalitlar (TZ 3.1 §28, audit S1).
@@ -78,6 +91,8 @@ const SALES_ACTION_PERMISSIONS: Readonly<Record<string, PermissionKey[]>> = {
   sl_cn: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE],
   sl_fn: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
   sl_fw: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
+  sl_fs: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
+  sl_fp: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.FOLLOWUP_CREATE],
 };
 
 /** Matnli oqimlar uchun ruxsat (oqim davomida ruxsat olinib qo'yilishi mumkin) */
@@ -573,12 +588,18 @@ export async function chooseCallNext(context: BotContext, scope: CommandScope, a
       },
       BOT_CLIENT,
     );
-    if (next === 'fu') return askFollowUpWhen(context, scope, draft.leadId);
+    // Follow-up — alohida ruxsat (qo'ng'iroq ruxsati uni bermaydi)
+    const canFollowUp = await scopeCan(scope, PERMISSIONS.FOLLOWUP_CREATE);
+    if (next === 'fu' && canFollowUp) return askFollowUpWhen(context, scope, draft.leadId);
     const lines = [`✅ Qo‘ng‘iroq yozildi: ${CALL_RESULT_LABELS[draft.result!]}`];
     if (draft.notes) lines.push(`📝 ${escapeHtml(draft.notes)}`);
     if (nextCallAt) lines.push(`📞 Qayta qo‘ng‘iroq: ${fmtDateTime(nextCallAt)}`);
+    if (next === 'fu') lines.push('⛔ Follow-up qo‘yish uchun ruxsatingiz yo‘q.');
     await context.render(lines.join('\n'), [
-      [{ text: '⏰ Follow-up qo‘yish', data: callback(SALES_ACTIONS.followUpNew, draft.leadId) }, { text: '👤 Lead', data: callback(SALES_ACTIONS.lead, draft.leadId) }],
+      [
+        ...(canFollowUp ? [{ text: '⏰ Follow-up qo‘yish', data: callback(SALES_ACTIONS.followUpNew, draft.leadId) }] : []),
+        { text: '👤 Lead', data: callback(SALES_ACTIONS.lead, draft.leadId) },
+      ],
       menuRow(),
     ]);
     return { action: 'call_logged' };
@@ -589,6 +610,27 @@ export async function chooseCallNext(context: BotContext, scope: CommandScope, a
 // Follow-up yaratish (TZ §43 "Follow-up creation")
 // ---------------------------------------------------------------------
 
+const FOLLOWUP_PRIORITY_LABELS = { LOW: '⚪ Past', MEDIUM: '🟢 O‘rta', HIGH: '🟠 Yuqori', URGENT: '🔴 Shoshilinch' } as const;
+type FollowUpPriority = keyof typeof FOLLOWUP_PRIORITY_LABELS;
+
+interface FollowUpDraft {
+  leadId: string;
+  dueAt?: string;
+  notes?: string | null;
+}
+
+async function followUpDraft(context: BotContext): Promise<FollowUpDraft | null> {
+  const session = await telegramSessionService.get(context.chatId);
+  if (session?.flow !== FOLLOWUP_DATE_FLOW || typeof session.data.leadId !== 'string') return null;
+  return session.data as unknown as FollowUpDraft;
+}
+
+async function lostFollowUp(context: BotContext): Promise<HandlerResult> {
+  await context.render('Follow-up ma’lumoti topilmadi. Lead kartasidan qaytadan boshlang.', [menuRow()]);
+  return { action: 'followup_lost' };
+}
+
+/** 1/3 — sana va vaqt (TZ 3.1 GAP-09: Lead, Date, Time, Note, Priority) */
 export async function askFollowUpWhen(context: BotContext, scope: CommandScope, leadId: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor || !leadId) return { action: SALES_ACTIONS.followUpNew };
@@ -597,27 +639,27 @@ export async function askFollowUpWhen(context: BotContext, scope: CommandScope, 
     await telegramSessionService.set(context.chatId, { flow: FOLLOWUP_DATE_FLOW, step: 'date', data: { leadId: lead.id } });
     const presets = (Object.keys(FOLLOWUP_PRESETS) as FollowUpPreset[]).map((key) => ({ text: FOLLOWUP_PRESETS[key].label, data: callback(SALES_ACTIONS.followUpWhen, `${lead.id}:${key}`) }));
     await context.render(
-      `<b>⏰ Follow-up: ${escapeHtml(leadName(lead))}</b>\n\nMuddatni tanlang yoki o‘zingiz yozing: <code>25.12.2026 15:30</code>`,
+      `<b>⏰ Follow-up: ${escapeHtml(leadName(lead))}</b>\n\n1/3. Sana va vaqtni tanlang yoki yozing: <code>25.12.2026 15:30</code>`,
       [presets.slice(0, 2), presets.slice(2, 4), [{ text: '⬅️ Lead', data: callback(SALES_ACTIONS.lead, lead.id) }, ...menuRow()]],
     );
     return { action: SALES_ACTIONS.followUpNew };
   });
 }
 
-async function createFollowUp(context: BotContext, actor: AuthUser, leadId: string, dueAt: Date): Promise<HandlerResult> {
-  await telegramSessionService.clearFlow(context.chatId);
-  return safely(context, SALES_ACTIONS.leads, async () => {
-    const created = await followUpService.create(
-      actor,
-      { leadId, title: 'Qayta bog‘lanish', dueAt, remindAt: undefined, notes: 'Telegram bot orqali', assignedToId: undefined },
-      BOT_CLIENT,
-    );
-    await context.render(`✅ Follow-up qo‘yildi: <b>${fmtDateTime(created.dueAt)}</b>\nEslatma muddatdan oldin shu chatga keladi.`, [
-      [{ text: '👤 Lead', data: callback(SALES_ACTIONS.lead, leadId) }, { text: '⏰ Follow-uplar', data: callback(SALES_ACTIONS.followUps) }],
-      menuRow(),
-    ]);
-    return { action: 'followup_created' };
-  });
+async function askFollowUpNote(context: BotContext, draft: FollowUpDraft): Promise<HandlerResult> {
+  await telegramSessionService.set(context.chatId, { flow: FOLLOWUP_DATE_FLOW, step: 'note', data: draft as never });
+  await context.render(`⏰ ${fmtDateTime(draft.dueAt ?? new Date())}\n\n2/3. Izoh yozing (nima haqida gaplashish kerak) yoki izohsiz davom eting.`, [
+    [{ text: '➡️ Izohsiz davom etish', data: callback(SALES_ACTIONS.followUpSkipNote) }],
+    [{ text: '❌ Bekor qilish', data: callback(SALES_ACTIONS.lead, draft.leadId) }],
+  ]);
+  return { action: 'followup_ask_note' };
+}
+
+async function askFollowUpPriority(context: BotContext, draft: FollowUpDraft): Promise<HandlerResult> {
+  await telegramSessionService.set(context.chatId, { flow: FOLLOWUP_DATE_FLOW, step: 'priority', data: draft as never });
+  const buttons = (Object.keys(FOLLOWUP_PRIORITY_LABELS) as FollowUpPriority[]).map((key) => ({ text: FOLLOWUP_PRIORITY_LABELS[key], data: callback(SALES_ACTIONS.followUpPriority, key) }));
+  await context.render('3/3. Muhimlik?', [buttons.slice(0, 2), buttons.slice(2), [{ text: '❌ Bekor qilish', data: callback(SALES_ACTIONS.lead, draft.leadId) }]]);
+  return { action: 'followup_ask_priority' };
 }
 
 export async function chooseFollowUpPreset(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
@@ -625,7 +667,53 @@ export async function chooseFollowUpPreset(context: BotContext, scope: CommandSc
   if (!actor || !arg) return { action: SALES_ACTIONS.followUpWhen };
   const [leadId, preset] = arg.split(':') as [string, string | undefined];
   if (!leadId || !preset || !(preset in FOLLOWUP_PRESETS)) return showLead(context, scope, leadId || null);
-  return createFollowUp(context, actor, leadId, FOLLOWUP_PRESETS[preset as FollowUpPreset].at(new Date()));
+  return safely(context, SALES_ACTIONS.leads, async () => {
+    await leadService.getById(actor, leadId);
+    return askFollowUpNote(context, { leadId, dueAt: FOLLOWUP_PRESETS[preset as FollowUpPreset].at(new Date()).toISOString() });
+  });
+}
+
+export async function skipFollowUpNote(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const draft = await followUpDraft(context);
+  if (!actor || !draft?.dueAt) return lostFollowUp(context);
+  draft.notes = null;
+  return askFollowUpPriority(context, draft);
+}
+
+/** Yaratish — CRM `followUpService.create` (lead doirasi, mas'ul, eslatma vaqti, faollik) */
+export async function chooseFollowUpPriority(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  const draft = await followUpDraft(context);
+  if (!actor || !draft?.dueAt || !arg || !(arg in FOLLOWUP_PRIORITY_LABELS)) return lostFollowUp(context);
+  await telegramSessionService.clearFlow(context.chatId);
+  const priority = arg as FollowUpPriority;
+  return safely(context, SALES_ACTIONS.leads, async () => {
+    const created = await followUpService.create(
+      actor,
+      {
+        leadId: draft.leadId,
+        title: draft.notes ? draft.notes.slice(0, 200) : 'Qayta bog‘lanish',
+        dueAt: new Date(draft.dueAt!),
+        remindAt: undefined,
+        notes: draft.notes ?? undefined,
+        assignedToId: undefined,
+        priority,
+      },
+      BOT_CLIENT,
+    );
+    await context.render(
+      [
+        `✅ Follow-up qo‘yildi: <b>${fmtDateTime(created.dueAt)}</b> · ${FOLLOWUP_PRIORITY_LABELS[priority]}`,
+        created.notes ? `📝 ${escapeHtml(created.notes)}` : '',
+        created.remindAt ? `🔔 Eslatma ${fmtDateTime(created.remindAt)} da — ilovada va (sozlamada o‘chirilmagan bo‘lsa) shu Telegram chatida.` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      [[{ text: '👤 Lead', data: callback(SALES_ACTIONS.lead, draft.leadId) }, { text: '⏰ Follow-uplar', data: callback(SALES_ACTIONS.followUps) }], menuRow()],
+    );
+    return { action: 'followup_created' };
+  });
 }
 
 /** Oqimlar: qo'ng'iroq izohi yoki follow-up sanasi matn bilan */
@@ -659,12 +747,25 @@ export async function handleSalesFlow(context: BotContext, scope: CommandScope, 
     await context.reply('Tugmalardan birini tanlang.', [cancelCallRow(leadId)]);
     return { action: 'call_wait_button' };
   }
+  const draft = session.data as unknown as FollowUpDraft;
+  if (session.step === 'note') {
+    if (text.length < 2 || text.length > 2000) {
+      await context.reply('Izoh 2 dan 2000 belgigacha bo‘lsin yoki «Izohsiz davom etish» ni bosing.', [[{ text: '➡️ Izohsiz davom etish', data: callback(SALES_ACTIONS.followUpSkipNote) }]]);
+      return { action: 'followup_note_invalid' };
+    }
+    draft.notes = text;
+    return askFollowUpPriority(context, draft);
+  }
+  if (session.step === 'priority') {
+    await context.reply('Muhimlik tugmasini tanlang.');
+    return { action: 'followup_wait_priority' };
+  }
   const dueAt = parseLocalDateTime(text);
   if (!dueAt || dueAt.getTime() < Date.now()) {
     await context.reply('Sanani <code>25.12.2026 15:30</code> ko‘rinishida, kelajakdagi vaqt bilan yozing.', [[{ text: '⬅️ Lead', data: callback(SALES_ACTIONS.lead, leadId) }]]);
     return { action: 'followup_date_invalid' };
   }
-  return createFollowUp(context, scope.actor, leadId, dueAt);
+  return askFollowUpNote(context, { leadId, dueAt: dueAt.toISOString() });
 }
 
 export const SALES_COMMANDS: Readonly<Record<string, string>> = {
@@ -706,6 +807,10 @@ export async function handleSalesAction(context: BotContext, scope: CommandScope
       return askFollowUpWhen(context, scope, arg);
     case SALES_ACTIONS.followUpWhen:
       return chooseFollowUpPreset(context, scope, arg);
+    case SALES_ACTIONS.followUpSkipNote:
+      return skipFollowUpNote(context, scope);
+    case SALES_ACTIONS.followUpPriority:
+      return chooseFollowUpPriority(context, scope, arg);
     default:
       return undefined;
   }

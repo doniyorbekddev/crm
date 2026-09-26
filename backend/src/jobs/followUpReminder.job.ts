@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
+import { notificationService } from '../services/notification.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure } from '../services/observability.js';
 
@@ -9,6 +10,7 @@ const BATCH_SIZE = 50;
 const followUpSelect = {
   id: true,
   title: true,
+  priority: true,
   dueAt: true,
   assignedToId: true,
   lead: { select: { id: true, number: true, firstName: true, lastName: true, status: true } },
@@ -17,6 +19,17 @@ const followUpSelect = {
 function leadLabel(lead: { number: number; firstName: string; lastName: string | null }): string {
   return `${[lead.firstName, lead.lastName].filter(Boolean).join(' ')} (${formatLeadNumber(lead.number)})`;
 }
+
+/** Muhim follow-up ro'yxatda va Telegramda ajralib tursin */
+function priorityMark(priority: string): string {
+  return priority === 'URGENT' ? '🔴 ' : priority === 'HIGH' ? '🟠 ' : '';
+}
+
+/*
+ * Bildirishnoma `notificationService` orqali (TZ 3.1 GAP-09, audit S4): ilova ichida **va** Telegram
+ * navbatiga (NotificationDelivery — qayta urinish bilan), xodimning tur bo'yicha sozlamasi hisobga olinadi.
+ * Oldin `tx.notification.createMany` to'g'ridan-to'g'ri yozilardi — Telegramga eslatma ketmasdi.
+ */
 
 /** Eslatma vaqti kelgan follow-uplar bo‘yicha bildirishnoma yuboradi. */
 export async function sendDueReminders(now: Date): Promise<number> {
@@ -34,20 +47,17 @@ export async function sendDueReminders(now: Date): Promise<number> {
     // alohida tur ishlatiladi: bildirishnomalar ro'yxatida uni ajratib ko'rish va filtrlash mumkin.
     const isTrial = item.lead.status === 'TRIAL_BOOKED';
     await prisma.$transaction(async (tx) => {
-      await tx.notification.createMany({
-        data: [
-          {
-            userId,
-            type: isTrial ? 'TRIAL_LESSON_REMINDER' : 'FOLLOW_UP_REMINDER',
-            title: isTrial ? 'Sinov darsi eslatmasi' : 'Follow-up eslatmasi',
-            message: `${leadLabel(item.lead)}: ${item.title}`,
-            entityType: 'followUp',
-            entityId: item.id,
-            dedupeKey: `followup-remind:${item.id}`,
-          },
-        ],
-        skipDuplicates: true,
-      });
+      await notificationService.createManyInTransaction(tx, [
+        {
+          userId,
+          type: isTrial ? 'TRIAL_LESSON_REMINDER' : 'FOLLOW_UP_REMINDER',
+          title: isTrial ? 'Sinov darsi eslatmasi' : 'Follow-up eslatmasi',
+          message: `${priorityMark(item.priority)}${leadLabel(item.lead)}: ${item.title}`,
+          entityType: 'followUp',
+          entityId: item.id,
+          dedupeKey: `followup-remind:${item.id}`,
+        },
+      ]);
       await tx.followUp.update({ where: { id: item.id }, data: { reminderSentAt: now } });
     });
   }
@@ -67,20 +77,17 @@ export async function sendOverdueAlerts(now: Date): Promise<number> {
     const userId = item.assignedToId;
     if (!userId) continue;
     await prisma.$transaction(async (tx) => {
-      await tx.notification.createMany({
-        data: [
-          {
-            userId,
-            type: 'FOLLOW_UP_OVERDUE',
-            title: 'Follow-up muddati o‘tdi',
-            message: `${leadLabel(item.lead)}: ${item.title}`,
-            entityType: 'followUp',
-            entityId: item.id,
-            dedupeKey: `followup-overdue:${item.id}`,
-          },
-        ],
-        skipDuplicates: true,
-      });
+      await notificationService.createManyInTransaction(tx, [
+        {
+          userId,
+          type: 'FOLLOW_UP_OVERDUE',
+          title: 'Follow-up muddati o‘tdi',
+          message: `${priorityMark(item.priority)}${leadLabel(item.lead)}: ${item.title}`,
+          entityType: 'followUp',
+          entityId: item.id,
+          dedupeKey: `followup-overdue:${item.id}`,
+        },
+      ]);
       await tx.followUp.update({ where: { id: item.id }, data: { overdueNotifiedAt: now } });
     });
   }

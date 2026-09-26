@@ -19,6 +19,7 @@ import { followUpsService } from '@/services/followUps.service';
 import { lookupsService } from '@/services/lookups.service';
 import type { FollowUpItem, FollowUpPayload } from '@/types/followUp';
 import { fromDateTimeInputValue, toDateTimeInputValue } from '@/utils/format';
+import { LEAD_PRIORITY_LABELS, LEAD_PRIORITY_ORDER } from '@/utils/leadLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
 /** Tez-tez uchraydigan vazifalar — bir bosishda to‘ldirish uchun */
@@ -35,6 +36,7 @@ const followUpFormSchema = z.object({
   dueAt: z.string().min(1, 'Sana va vaqtni kiriting'),
   assignedToId: z.string(),
   notes: z.string().trim().max(2000, 'Izoh 2000 belgidan oshmasligi kerak'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
 });
 
 type FollowUpFormValues = z.infer<typeof followUpFormSchema>;
@@ -62,6 +64,7 @@ export function FollowUpFormModal({ leadId, followUp, onClose, onSaved }: Follow
     dueAt: toDateTimeInputValue(followUp?.dueAt ?? null),
     assignedToId: followUp?.assignedTo?.id ?? '',
     notes: followUp?.notes ?? '',
+    priority: followUp?.priority ?? 'MEDIUM',
   };
 
   const {
@@ -81,6 +84,7 @@ export function FollowUpFormModal({ leadId, followUp, onClose, onSaved }: Follow
         dueAt,
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.assignedToId ? { assignedToId: values.assignedToId } : {}),
+        priority: values.priority,
       };
       return followUp ? followUpsService.update(followUp.id, payload) : followUpsService.create({ ...payload, leadId });
     },
@@ -154,6 +158,15 @@ export function FollowUpFormModal({ leadId, followUp, onClose, onSaved }: Follow
             aria-describedby={errors.dueAt ? fieldErrorId('followup-dueAt') : undefined}
             {...register('dueAt')}
           />
+        </FormField>
+        <FormField label="Muhimlik" htmlFor="followup-priority">
+          <Select id="followup-priority" {...register('priority')}>
+            {LEAD_PRIORITY_ORDER.map((priority) => (
+              <option key={priority} value={priority}>
+                {LEAD_PRIORITY_LABELS[priority]}
+              </option>
+            ))}
+          </Select>
         </FormField>
         {canViewAll && (
           <FormField label="Mas’ul xodim" htmlFor="followup-assignedToId" error={errors.assignedToId?.message}>

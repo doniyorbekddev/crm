@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { optionalField, paginationQuerySchema } from './common.validator.js';
 
+export const FOLLOW_UP_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
+
 export const FOLLOW_UP_SCOPES = ['all', 'overdue', 'today', 'tomorrow', 'upcoming', 'done'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
@@ -24,6 +26,8 @@ const followUpFieldsSchema = z.object({
   remindAt: optionalField(z.coerce.date('Sana noto‘g‘ri')),
   notes: optionalField(z.string().trim().max(2000, 'Izoh 2000 belgidan oshmasligi kerak')),
   assignedToId: optionalField(idSchema),
+  /** Muhimlik (TZ 3.1 GAP-09); berilmasa — yaratishda MEDIUM, tahrirda o'zgarmaydi */
+  priority: optionalField(z.enum(FOLLOW_UP_PRIORITIES, 'Muhimlik noto‘g‘ri')),
 });
 
 export const createFollowUpSchema = followUpFieldsSchema.extend({ leadId: idSchema });

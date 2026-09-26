@@ -145,3 +145,31 @@ describe.skipIf(!hasTestDatabase)('Telegram: qo‘ng‘iroq yozish (GAP-08)', ()
     expect(await prisma.call.count()).toBe(0);
   });
 });
+
+describe.skipIf(!hasTestDatabase)('Telegram: follow-up ruxsati (GAP-09, S1)', () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+    resetRateLimits();
+    permissionService.invalidate();
+    vi.restoreAllMocks();
+  });
+
+  it('followup.create siz rol: follow-up oqimi ochilmaydi, qo‘ng‘iroqdan keyin ham taklif qilinmaydi', async () => {
+    const role = await prisma.role.create({ data: { key: 'CALLER_ONLY', name: 'Faqat qo‘ng‘iroq', isSystem: false } });
+    const allowed = await prisma.permission.findMany({ where: { key: { in: [PERMISSIONS.LEAD_VIEW, PERMISSIONS.CALL_CREATE] } } });
+    await prisma.rolePermission.createMany({ data: allowed.map((permission) => ({ roleId: role.id, permissionId: permission.id })) });
+    const caller = await linked('CALLER_ONLY', 74_010);
+    const target = await lead(caller.id);
+    const bot = captureBot();
+
+    await press(`sl_fn:${target.id}`, 74_010).expect(200);
+    expect(bot.last().text).toContain('ruxsatingiz yo‘q');
+    for (const data of [`sl_call:${target.id}`, 'sl_ct:OUT', `sl_cr:${target.id}:BUSY`, 'sl_cs', 'sl_cn:fu']) await press(data, 74_010).expect(200);
+    expect(bot.last().text).toContain('Qo‘ng‘iroq yozildi');
+    expect(bot.last().text).toContain('Follow-up qo‘yish uchun ruxsatingiz yo‘q');
+    expect(bot.data().some((data) => data.startsWith('sl_fn:'))).toBe(false);
+    expect(await prisma.call.count()).toBe(1);
+    expect(await prisma.followUp.count()).toBe(0);
+  });
+});

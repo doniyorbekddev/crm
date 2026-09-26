@@ -546,3 +546,69 @@ Har amalda bitta kesh qilingan ruxsat o'qish (`permissionService` keshi).
 ## Next Phase
 
 **PHASE 9 — Telegram follow-up (GAP-09)** + **S4**: follow-up maydonlari (sana, vaqt, izoh, muhimlik — migratsiya), eslatma Telegram navbatiga (`notificationService` orqali, foydalanuvchi sozlamasi bilan), E2E §37.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 9
+
+Sana: 2026-09-26. GAP-09 "Telegram follow-up" + audit **S4** (eslatma Telegramga) + S1 (follow-up).
+
+## Implemented
+
+- Bot follow-up TZ maydonlari bilan: **Lead → Sana va vaqt** (tayyor tugma yoki `25.12.2026 15:30`) **→ Izoh** (yoki izohsiz) **→ Muhimlik** (past / o'rta / yuqori / shoshilinch) → yaratish. Oldin sarlavha va izoh doim bir xil ("Telegram bot orqali"), muhimlik yo'q edi.
+- **S4 — eslatma Telegramga**: `followUpReminder.job` endi `notificationService.createManyInTransaction` orqali — ilova ichida va Telegram `NotificationDelivery` navbatiga (qayta urinish), xodimning tur sozlamasi va "ovozsiz" rejimi hurmat qilinadi. Oldin job bildirishnomani to'g'ridan-to'g'ri yozardi — **Telegramga eslatma ketmasdi**, bot esa "shu chatga keladi" deyardi. Muhim follow-up xabarida 🔴/🟠.
+- **Muhimlik** web'da ham: follow-up formasi (standart "O'rta") va ro'yxatda yuqori/shoshilinch belgisi; REST `priority` (yaratish/tahrir).
+- S1: "Saqlash va follow-up" (qo'ng'iroqdan keyin) ham `followup.create` ni tekshiradi — oldin qo'ng'iroq ruxsati bilan follow-up oqimi ochilib ketardi.
+
+## Existing Code Reused
+
+`followUpService.create/update` (lead doirasi, mas'ul, `remindAt` = muddatdan 30 daqiqa oldin, faollik), `notificationService` (sozlama filtri + Telegram navbati), `NotificationDelivery` va uning job'i, mavjud `LeadPriority` enumi (yangi enum yaratilmadi), `FOLLOWUP_PRESETS`, `telegram/permissions.ts`.
+
+## New Files
+
+Backend: migratsiya `20260927110000_follow_up_priority`, `tests/followUpReminderTelegram.test.ts`. Frontend: `pages/leads/FollowUpFormModal.test.tsx`.
+
+## Modified Files
+
+Backend: `schema.prisma`, `jobs/followUpReminder.job.ts`, `services/followUp.service.ts`, `validators/followUp.validator.ts`, `telegram/handlers/sales.ts`, `tests/telegramV2.test.ts` (3 qadamli follow-up + chat chegarasini qayta boshlash), `tests/telegramCall.test.ts` (+follow-up ruxsati).
+Frontend: `types/followUp.ts`, `pages/leads/FollowUpFormModal.tsx`, `pages/followups/FollowUpsPage.tsx`. E2E: `flows.spec.ts` (+§37). Docs: `telegram.md`, `notifications.md`.
+
+## Database Changes
+
+(oldin `pg_dump`) `follow_ups.priority "LeadPriority" NOT NULL DEFAULT 'MEDIUM'` — faqat qo'shish; dev va test bazalarida qo'llandi.
+
+## API Changes
+
+`POST/PUT /api/follow-ups` — ixtiyoriy `priority` (LOW/MEDIUM/HIGH/URGENT; noto'g'ri — 422; tahrirda berilmasa o'zgarmaydi); javobda `priority`.
+
+## Telegram Changes
+
+Yangi callbacklar `sl_fs` (izohsiz), `sl_fp:<muhimlik>`; `sl_fw` endi darhol yaratmaydi — izoh va muhimlik so'raladi; follow-up sessiyasi bosqichlari date → note → priority.
+
+## Permissions
+
+Yangi yo'q; `followup.create` qo'ng'iroqdan keyingi follow-up'da ham.
+
+## Security
+
+S4: xodim tur sozlamasi (`telegram: false`) va "ovozsiz" chat — Telegramga ketmaydi, ilova ichida bor (test). S1: `followup.create` siz rol — follow-up oqimi ham, qo'ng'iroqdan keyingi taklif ham yo'q (test).
+
+## Tests
+
+Backend **827/827** (+3, to'liq toza), frontend **121/121** (+1), E2E **39/39** (+1 §37: bot lead → qo'ng'iroq → follow-up → eslatma ilovada va Telegram navbatida — job haqiqatan kutiladi). S4 testi eski job kodida yiqilishi tekshirildi. TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Eslatma — har follow-up uchun bitta tranzaksiya (avvalgidek); sozlama filtri bitta so'rov.
+
+## Documentation
+
+`docs/telegram.md`, `docs/notifications.md` ("Xodim eslatmalari — bitta yo'l").
+
+## Known Issues
+
+- Telegram eslatmasi haqiqiy yuborilishi bot tokeni bilan (production); E2E'da navbatga yozilishi tekshiriladi.
+
+## Next Phase
+
+**PHASE 10 — Owner Telegram Teacher KPI (GAP-10)**: o'qituvchilar ro'yxati va tanlangan o'qituvchi KPI (guruh, o'quvchi, davomat, vazifa, imtihon, progress, retention, fikr) — mavjud `academicAnalyticsService` (dimension=teacher) orqali.

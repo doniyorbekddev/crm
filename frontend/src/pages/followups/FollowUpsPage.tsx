@@ -26,6 +26,7 @@ import { FOLLOW_UP_SCOPE_LABELS, FOLLOW_UP_STATE_LABELS, FOLLOW_UP_STATE_TONES }
 import { formatDateTime, formatPhone } from '@/utils/format';
 import { leadFullName } from '@/utils/leadLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { LEAD_PRIORITY_LABELS, LEAD_PRIORITY_TONES } from '@/utils/leadLabels';
 
 const PAGE_SIZE = 20;
 
@@ -165,7 +166,14 @@ export default function FollowUpsPage() {
                         {formatDateTime(followUp.dueAt)}
                       </TD>
                       <TD>
-                        <p className="font-medium text-fg">{followUp.title}</p>
+                        <p className="font-medium text-fg">
+                          {followUp.title}
+                          {(followUp.priority === 'HIGH' || followUp.priority === 'URGENT') && (
+                            <Badge tone={LEAD_PRIORITY_TONES[followUp.priority]} className="ml-2 align-middle">
+                              {LEAD_PRIORITY_LABELS[followUp.priority]}
+                            </Badge>
+                          )}
+                        </p>
                         {followUp.notes && <p className="mt-0.5 max-w-md truncate text-xs text-fg-muted">{followUp.notes}</p>}
                       </TD>
                       <TD>
