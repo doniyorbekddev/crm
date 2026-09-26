@@ -14,7 +14,7 @@ import { homeworkService } from '../../services/homework.service.js';
 import { notificationService } from '../../services/notification.service.js';
 import { permissionService } from '../../services/permission.service.js';
 import { reportService, reportToTable } from '../../services/report.service.js';
-import { searchService } from '../../services/search.service.js';
+import { searchService, type SearchResultDto } from '../../services/search.service.js';
 import { escapeHtml, telegramService, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
 import type { CommandScope } from '../../services/telegramCommand.service.js';
 import { teachingService } from '../../services/teaching.service.js';
@@ -109,40 +109,61 @@ const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
 // Qidiruv (global search — ruxsatga qarab)
 // ---------------------------------------------------------------------
 
+/**
+ * Qidiruv (TZ 3.1 GAP-14) — mavjud qidiruv servislari:
+ *  - xodim: `searchService.search` (web global qidiruv bilan bir xil RBAC: o'qituvchi — o'z guruhlari va o'quvchilari,
+ *    sotuv — ruxsatidagi leadlar/o'quvchilar, rahbar — ruxsatiga qarab; filial doirasi);
+ *  - o'quvchi/ota-ona: `searchService.portal` — faqat o'z (tanlangan farzand) ma'lumoti, web kabinet bilan bir xil.
+ */
 export async function startSearch(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
-  const actor = await requireActor(context, scope);
-  if (!actor) return { action: WORKSPACE_ACTIONS.search };
-  await telegramSessionService.set(context.chatId, { flow: SEARCH_FLOW, step: 'query', data: {} });
-  await context.render('🔎 Qidirish uchun ism, telefon yoki kod yozing (masalan: <code>Ali</code>, <code>90 123</code>, <code>ST-45</code>).', [menuRow()]);
+  if (scope.kind === 'STAFF') {
+    const actor = await requireActor(context, scope);
+    if (!actor) return { action: WORKSPACE_ACTIONS.search };
+    await telegramSessionService.set(context.chatId, { flow: SEARCH_FLOW, step: 'query', data: {} });
+    await context.render('🔎 Qidirish uchun ism, telefon yoki kod yozing (masalan: <code>Ali</code>, <code>90 123</code>, <code>ST-45</code>, <code>L-12</code>, <code>PM-7</code>, guruh yoki kurs nomi).', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.search };
+  }
+  // Tanlangan farzand oqim davomida saqlanadi (clearFlow uni o'chirmaydi)
+  const session = await telegramSessionService.get(context.chatId);
+  const active = session?.data.activeStudentId;
+  await telegramSessionService.set(context.chatId, { flow: SEARCH_FLOW, step: 'query', data: typeof active === 'string' ? { activeStudentId: active } : {} });
+  await context.render('🔎 O‘z ma’lumotingizdan qidiring: vazifa, imtihon, dars, sertifikat nomi yoki kvitansiya raqami (<code>PM-7</code>).', [menuRow()]);
   return { action: WORKSPACE_ACTIONS.search };
 }
 
-export async function handleSearchFlow(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
-  const actor = scope.actor;
+function renderHits(query: string, result: SearchResultDto, linkBase: string): string {
+  const lines = [`<b>🔎 «${escapeHtml(query)}»</b> · ${result.total} ta`, ''];
+  for (const group of result.groups) {
+    lines.push(`<b>${escapeHtml(group.label)}</b>`);
+    for (const hit of group.hits.slice(0, 5)) {
+      const title = `${hit.code ? `${escapeHtml(hit.code)} · ` : ''}${escapeHtml(hit.title)}`;
+      lines.push(`• <a href="${linkBase}${hit.url}">${title}</a>${hit.subtitle ? ` — ${escapeHtml(hit.subtitle)}` : ''}`);
+    }
+    lines.push('');
+  }
+  lines.push('Yana qidirish uchun yozing.');
+  return lines.join('\n');
+}
+
+/** `studentId` — o'quvchi/ota-ona uchun router `resolveStudentId` bilan beradi (doira `scope.studentIds` dan) */
+export async function handleSearchFlow(context: BotContext, scope: CommandScope, studentId: string | null = null): Promise<HandlerResult> {
   const query = (context.text ?? '').trim();
-  if (!actor) return { action: 'search_denied' };
+  if (scope.kind === 'STAFF' && !scope.actor) return { action: 'search_denied' };
+  if (scope.kind !== 'STAFF' && (!studentId || !scope.studentIds.includes(studentId))) return { action: 'search_denied' };
   if (query.length < 2) {
     await context.reply('Kamida 2 belgi yozing.', [menuRow()]);
     return { action: 'search_short' };
   }
   return safely(context, async () => {
-    const result = await searchService.search(actor, query);
+    const result = scope.actor
+      ? await searchService.search(scope.actor, query)
+      : await searchService.portal(query, { studentIds: scope.studentIds, activeStudentId: studentId!, includeChildren: scope.kind === 'PARENT' });
     // Oqim ochiq qoladi — keyingi so'rovni darhol yozish mumkin
     if (result.total === 0) {
       await context.reply(`🔎 «${escapeHtml(query)}» bo‘yicha hech narsa topilmadi. Boshqacha yozib ko‘ring.`, [menuRow()]);
       return { action: 'search_empty' };
     }
-    const lines = [`<b>🔎 «${escapeHtml(query)}»</b> · ${result.total} ta`, ''];
-    for (const group of result.groups) {
-      lines.push(`<b>${escapeHtml(group.label)}</b>`);
-      for (const hit of group.hits.slice(0, 5)) {
-        const title = `${hit.code ? `${escapeHtml(hit.code)} · ` : ''}${escapeHtml(hit.title)}`;
-        lines.push(`• <a href="${primaryClientUrl}${hit.url}">${title}</a>${hit.subtitle ? ` — ${escapeHtml(hit.subtitle)}` : ''}`);
-      }
-      lines.push('');
-    }
-    lines.push('Yana qidirish uchun yozing.');
-    await context.reply(lines.join('\n'), [menuRow()]);
+    await context.reply(renderHits(query, result, primaryClientUrl), [menuRow()]);
     return { action: 'search_result' };
   });
 }

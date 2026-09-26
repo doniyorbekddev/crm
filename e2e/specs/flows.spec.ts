@@ -435,3 +435,27 @@ test('GAP-13 sozlamalar: menejer botda “Marketing” toifasini o‘chiradi —
   await telegramPress(request, chatId, 'ws_sc:MARKETING');
   expect(await marketingTelegram()).toEqual([true, true, true]);
 });
+
+test('GAP-14 qidiruv (S2): o‘qituvchi web va botda begona guruhni topmaydi; o‘quvchi botda qidiradi', async ({ request }) => {
+  const admin = await apiLogin(request, 'admin');
+  const teacher = await apiLogin(request, 'teacher');
+  const teacherId = (await (await request.get(`${API}/auth/me`, { headers: teacher })).json()).data.id as string;
+  const all = (await (await request.get(`${API}/groups`, { params: { limit: 100 }, headers: admin })).json()).data as Array<{ id: string; name: string; teacher: { id: string } | null }>;
+  const own = all.find((group) => group.teacher?.id === teacherId);
+  const foreign = all.find((group) => group.teacher?.id !== teacherId);
+  expect(own, 'seed: o‘qituvchining guruhi').toBeTruthy();
+  expect(foreign, 'seed: boshqa guruh').toBeTruthy();
+
+  const hits = async (q: string) =>
+    ((await (await request.get(`${API}/search`, { params: { q }, headers: teacher })).json()).data.groups as Array<{ key: string; hits: Array<{ id: string }> }>)
+      .filter((group) => group.key === 'groups')
+      .flatMap((group) => group.hits.map((hit) => hit.id));
+  expect(await hits(own!.name)).toContain(own!.id);
+  expect(await hits(foreign!.name)).not.toContain(foreign!.id);
+
+  // Bot: o'qituvchi va o'quvchi qidiruv oqimi to'liq stekda (javob matni backend testida)
+  const chatId = Number(String(Date.now()).slice(-9)) + 12;
+  await linkStaffTelegram(teacherId, chatId);
+  await telegramPress(request, chatId, 'ws_sr');
+  await telegramMessage(request, chatId, foreign!.name);
+});

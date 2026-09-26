@@ -8,6 +8,7 @@ import type { Prisma, TransactionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { permissionService } from './permission.service.js';
 import { moneyUz } from '../utils/money.js';
+import { branchFilter, getBranchAccess } from './branchAccess.js';
 import { isRosterLimited, teachingAccessFrom, teachingGroupFilter } from './teachingAccess.js';
 
 /** Har bir bo‘limdan ko‘rsatiladigan natijalar soni */
@@ -89,6 +90,10 @@ export const searchService = {
       return { query, total: 0, groups };
     }
 
+    // Filial doirasi (TZ 3.1, audit S3): `branch.view_all` bo'lmasa — faqat o'z filiali; ro'yxat sahifalari bilan bir xil
+    const branch = branchFilter(await getBranchAccess(actor));
+    const branchLimited = 'branchId' in branch;
+
     // "L-000012", "ST-000006", "PM-000008", "TX-12" — bu kodlar telefon raqami sifatida qidirilmaydi
     const isPrefixedCode = /^(?:l|st|pm|tx)[-\s]?\d+$|^[#№]\s?\d+$/i.test(query);
     const digits = isPrefixedCode ? '' : digitsOf(query);
@@ -110,6 +115,7 @@ export const searchService = {
       const leads = await prisma.lead.findMany({
         where: {
           deletedAt: null,
+          ...branch,
           ...(canViewAll ? {} : { OR: [{ assignedToId: actor.id }, { assignedToId: null }] }),
           AND: [{ OR: or }],
         },
@@ -157,6 +163,7 @@ export const searchService = {
       const students = await prisma.student.findMany({
         where: {
           deletedAt: null,
+          ...branch,
           ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}),
           AND: [{ OR: or }],
         },
@@ -195,11 +202,11 @@ export const searchService = {
     if (permissions.has(PERMISSIONS.PARENT_VIEW)) {
       const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE);
       const childFilter: Prisma.StudentParentWhereInput = {
-        student: { deletedAt: null, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) },
+        student: { deletedAt: null, ...branch, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) },
       };
       const parents = await prisma.parent.findMany({
         where: {
-          ...(onlyOwnGroups ? { students: { some: childFilter } } : {}),
+          ...(onlyOwnGroups || branchLimited ? { students: { some: childFilter } } : {}),
           OR: [
             { firstName: { contains: query, mode: 'insensitive' } },
             { lastName: { contains: query, mode: 'insensitive' } },
@@ -239,7 +246,7 @@ export const searchService = {
     if (permissions.has(PERMISSIONS.TEACHER_VIEW)) {
       const teachers = await prisma.teacherProfile.findMany({
         where: {
-          user: { deletedAt: null },
+          user: { deletedAt: null, ...branch },
           OR: [
             { specialization: { contains: query, mode: 'insensitive' } },
             { user: { firstName: { contains: query, mode: 'insensitive' } } },
@@ -294,8 +301,12 @@ export const searchService = {
 
     // --- Guruhlar ---
     if (permissions.has(PERMISSIONS.GROUP_VIEW)) {
+      // Audit S2: o'qituvchi (group.manage yo'q) — faqat o'z guruhlari, "Guruhlar" sahifasi bilan bir xil
+      const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE);
       const groupRows = await prisma.group.findMany({
         where: {
+          ...branch,
+          ...(onlyOwnGroups ? { teacherId: actor.id } : {}),
           OR: [{ name: { contains: query, mode: 'insensitive' } }, { room: { contains: query, mode: 'insensitive' } }],
         },
         select: {
@@ -326,12 +337,24 @@ export const searchService = {
       }
     }
 
-    // --- To‘lovlar (kvitansiya raqami bo‘yicha) ---
+    // --- To‘lovlar: kvitansiya raqami yoki o'quvchi ismi/telefoni/raqami bo'yicha (TZ 3.1 GAP-14) ---
     if (permissions.has(PERMISSIONS.PAYMENT_VIEW)) {
       const paymentNumber = numberFrom(query, 'pm');
-      if (paymentNumber !== null) {
+      const studentNumber = /^st[-\s]?\d+$/i.test(query) ? numberFrom(query, 'st') : null;
+      const byStudent: Prisma.StudentWhereInput[] =
+        isPrefixedCode
+          ? studentNumber !== null ? [{ number: studentNumber }] : []
+          : query.length >= 3
+            ? [{ firstName: { contains: query, mode: 'insensitive' } }, { lastName: { contains: query, mode: 'insensitive' } }, ...phoneCondition]
+            : [];
+      const or: Prisma.PaymentWhereInput[] = [
+        // "PM-7" — faqat raqam; oddiy "7" ham kvitansiya raqami bo'lishi mumkin
+        ...(paymentNumber !== null && (isPrefixedCode ? /^pm/i.test(query) : true) ? [{ number: paymentNumber }] : []),
+        ...(byStudent.length ? [{ student: { OR: byStudent } }] : []),
+      ];
+      if (or.length > 0) {
         const payments = await prisma.payment.findMany({
-          where: { number: paymentNumber },
+          where: { ...branch, OR: or },
           select: {
             id: true,
             number: true,
@@ -340,6 +363,7 @@ export const searchService = {
             deletedAt: true,
             student: { select: { firstName: true, lastName: true } },
           },
+          orderBy: { paidAt: 'desc' },
           take: PER_GROUP,
         });
 
@@ -370,7 +394,7 @@ export const searchService = {
 
       if (or.length > 0) {
         const transactions = await prisma.transaction.findMany({
-          where: { OR: or },
+          where: { ...branch, OR: or },
           select: {
             id: true,
             number: true,
@@ -414,6 +438,7 @@ export const searchService = {
       const users = await prisma.user.findMany({
         where: {
           deletedAt: null,
+          ...branch,
           OR: [
             { firstName: { contains: query, mode: 'insensitive' } },
             { lastName: { contains: query, mode: 'insensitive' } },
@@ -445,10 +470,13 @@ export const searchService = {
     // Raqam (CRT-2026-000001) yoki o'quvchi ismi bo'yicha. Tekshiruv kaliti (`verifyToken`)
     // qidiruvda ishlatilmaydi — u faqat ochiq tekshiruv sahifasi uchun.
     if (permissions.has(PERMISSIONS.STUDENT_VIEW)) {
+      // Audit S2: o'qituvchi — faqat o'z guruhidagi o'quvchilarniki (o'quvchilar qidiruvi bilan bir xil doira)
+      const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE);
       const numeric = Number(query.replace(/^crt[-\s]*\d{4}[-\s]*/i, '').replace(/\D/g, ''));
       const certificateNumber = Number.isInteger(numeric) && numeric > 0 && numeric < 2_000_000_000 ? numeric : null;
       const certificates = await prisma.certificate.findMany({
         where: {
+          ...(onlyOwnGroups || branchLimited ? { student: { ...branch, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) } } : {}),
           OR: [
             { studentName: { contains: query, mode: 'insensitive' } },
             { courseName: { contains: query, mode: 'insensitive' } },
@@ -477,7 +505,8 @@ export const searchService = {
     }
 
     // --- Uy vazifalari va imtihonlar (TZ 3.0 §45: o'qituvchi — o'z guruhlari) ---
-    const teacherScope = teachingGroupFilter(teachingAccessFrom(permissions, actor.id));
+    const ownGroups = teachingGroupFilter(teachingAccessFrom(permissions, actor.id));
+    const teacherScope: { group?: Prisma.GroupWhereInput } = branchLimited || 'group' in ownGroups ? { group: { ...branch, ...('group' in ownGroups ? ownGroups.group : {}) } } : {};
     if (permissions.has(PERMISSIONS.HOMEWORK_VIEW)) {
       const rows = await prisma.homework.findMany({
         where: { title: { contains: query, mode: 'insensitive' }, ...teacherScope },
@@ -537,7 +566,9 @@ export const searchService = {
     const student = await prisma.student.findFirst({ where: { id: input.activeStudentId, deletedAt: null }, select: { groupId: true, courseId: true } });
     if (!student) return { query, total: 0, groups };
 
-    const [children, homework, exams, lessons, certificates] = await Promise.all([
+    // O'z to'lovlari — kvitansiya raqami bo'yicha ("PM-7" yoki "7")
+    const paymentNumber = numberFrom(query, 'pm');
+    const [children, homework, exams, lessons, certificates, payments] = await Promise.all([
       input.includeChildren
         ? prisma.student.findMany({
             where: { id: { in: input.studentIds }, deletedAt: null, OR: [{ firstName: contains }, { lastName: contains }] },
@@ -571,6 +602,13 @@ export const searchService = {
         select: { id: true, number: true, courseName: true, issuedAt: true },
         take: PER_GROUP,
       }),
+      paymentNumber === null
+        ? Promise.resolve([])
+        : prisma.payment.findMany({
+            where: { studentId: input.activeStudentId, number: paymentNumber, deletedAt: null },
+            select: { id: true, number: true, amount: true, paidAt: true },
+            take: PER_GROUP,
+          }),
     ]);
 
     if (children.length) {
@@ -594,6 +632,13 @@ export const searchService = {
         key: 'certificates',
         label: 'Sertifikatlar',
         hits: certificates.map((row) => ({ id: row.id, title: row.courseName, subtitle: row.issuedAt.toISOString().slice(0, 10), code: certificateCode(row.number, row.issuedAt), url: '/portal' })),
+      });
+    }
+    if (payments.length) {
+      groups.push({
+        key: 'payments',
+        label: 'To‘lovlar',
+        hits: payments.map((row) => ({ id: row.id, title: moneyUz(row.amount.toNumber()), subtitle: row.paidAt.toISOString().slice(0, 10), code: formatPaymentNumber(row.number), url: '/portal/payments' })),
       });
     }
     return { query, total: groups.reduce((sum, group) => sum + group.hits.length, 0), groups };

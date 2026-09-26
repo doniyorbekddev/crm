@@ -175,6 +175,8 @@ describe.skipIf(!hasTestDatabase)('Telegram poydevor (integratsion)', () => {
       'st_cert',
       'st_week',
       'st_ref',
+      // TZ 3.1 GAP-14: o'quvchi/ota-ona ham qidiradi (faqat o'z ma'lumoti)
+      'ws_sr',
       'ws_set',
       'cmd:/holat',
       'cmd:/uzish',

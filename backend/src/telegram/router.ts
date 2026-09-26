@@ -275,7 +275,7 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   if (inFlow && !isCommand) {
     if (session.flow === HOMEWORK_FLOW && scope.kind !== 'STAFF') return handleHomeworkFlow(context, scope, session);
     if (session.flow === EXAM_FLOW && scope.kind === 'STUDENT') return handleExamFlow(context, scope, session);
-    if (session.flow === SEARCH_FLOW && scope.actor) return handleSearchFlow(context, scope);
+    if (session.flow === SEARCH_FLOW) return handleSearchFlow(context, scope, scope.kind === 'STAFF' ? null : await resolveStudentId(context, scope));
     if (session.flow === GRADE_FLOW && scope.actor) return handleGradeFlow(context, scope, session);
     if (session.flow === HOMEWORK_CREATE_FLOW && scope.actor) return handleHomeworkCreateFlow(context, scope, session);
     if ((session.flow === LEAD_LOST_FLOW || session.flow === CALL_NOTE_FLOW || session.flow === FOLLOWUP_DATE_FLOW) && scope.actor) {
@@ -295,6 +295,11 @@ async function handleMessage(context: BotContext, scope: NonNullable<BotContext[
   // Sozlamalar — hamma uchun (o'quvchi, ota-ona, xodim)
   if (command === '/sozlamalar') {
     const handled = await handleWorkspaceAction(context, scope, WORKSPACE_ACTIONS.settings, null);
+    if (handled) return handled;
+  }
+  // Qidiruv — o'quvchi/ota-ona uchun ham (o'z ma'lumoti, TZ 3.1 GAP-14)
+  if (scope.kind !== 'STAFF' && command === '/qidir') {
+    const handled = await handleWorkspaceAction(context, scope, WORKSPACE_ACTIONS.search, null);
     if (handled) return handled;
   }
   if (scope.kind !== 'STAFF' && EXAM_COMMANDS[command]) {

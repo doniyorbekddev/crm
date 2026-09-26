@@ -865,7 +865,7 @@ Backend **845/845** (+6 — to'liq toza yugurish): barcha tur toifalangan; kabin
 
 ## Performance
 
-Oilaviy xabar — har qabul qiluvchiga 2 ta indeksli `findUnique` (hisob egasi, sozlama) ko'shimcha; faqat Telegram bog'lash nuqtasida.
+Oilaviy xabar — har qabul qiluvchiga 2 ta indeksli `findUnique` (hisob egasi, sozlama) qo'shimcha; faqat Telegram bog'lash nuqtasida.
 
 ## Documentation
 
@@ -880,3 +880,70 @@ Oilaviy xabar — har qabul qiluvchiga 2 ta indeksli `findUnique` (hisob egasi, 
 ## Next Phase
 
 **PHASE 14 — Telegram search (GAP-14) + S2/S3**: o'quvchi/ota-ona o'z ma'lumotini qidiradi; xodim qidiruvida o'qituvchi doirasi (guruh, sertifikat — S2) va filial doirasi (S3); §34 matritsasi qidiruv uchun.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 14
+
+Sana: 2026-09-26. GAP-14 "Telegram search" + audit **S2** (o'qituvchi doirasi) + **S3** (filial doirasi — qidiruv).
+
+## Implemented
+
+- **O'quvchi va ota-ona** botda qidiradi ("🔎 Qidiruv" menyuda, `/qidir`): faqat o'z (ota-ona — tanlangan farzand) vazifa, imtihon, dars, sertifikat va **to'lovi** (`PM-7`); tanlangan farzand qidiruv oqimida saqlanadi.
+- **Xodim** qidiruvi — TZ turlari: o'quvchi ID, ism, telefon, guruh, kurs, lead ID, sertifikat, **to'lov** — endi kvitansiya raqamidan tashqari o'quvchi ismi/telefoni/`ST-` raqami bo'yicha ham.
+- **S2**: guruh natijalari — o'qituvchiga faqat o'z guruhlari; sertifikatlar — faqat o'z guruhidagi o'quvchilarniki (avval barcha guruh va sertifikat ko'rinardi — web va bot).
+- **S3** (qidiruv): `branch.view_all` siz xodim (masalan, filial admini) — faqat o'z filiali: lead, o'quvchi, ota-ona (farzandi orqali), o'qituvchi, guruh, to'lov, tranzaksiya, xodim, sertifikat, vazifa, imtihon.
+- Bir servis: bot va web global qidiruv (`/api/search`) bir xil tuzatishni oladi.
+
+## Existing Code Reused
+
+`searchService.search` (web global qidiruv), `searchService.portal` (web kabinet qidiruvi), `branchAccess.branchFilter` (ro'yxat sahifalaridagi filial doirasi), `isRosterLimited`/`teachingGroupFilter` (o'qituvchi doirasi), `resolveStudentId` (tanlangan farzand).
+
+## New Files
+
+`backend/tests/telegramSearch.test.ts`.
+
+## Modified Files
+
+`backend/src/services/search.service.ts` (S2, S3, to'lov ism bo'yicha, kabinetda to'lov), `backend/src/telegram/handlers/workspace.ts` (`startSearch`/`handleSearchFlow` oila uchun, `renderHits`), `backend/src/telegram/router.ts` (qidiruv oqimi va `/qidir` oila uchun), `backend/src/telegram/handlers/menu.ts` (o'quvchi/ota-ona menyusiga "🔎 Qidiruv"), `backend/src/services/telegramCommand.service.ts` (yordam), `backend/tests/telegramFoundation.test.ts` (menyu ro'yxatiga `ws_sr` — xatti-harakat ataylab o'zgardi, tekshiruv aniq ro'yxat bilan qat'iyligicha), `e2e/specs/flows.spec.ts`, `docs/telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+`GET /api/search` — natijalar endi filial va (guruh/sertifikat uchun) o'qituvchi doirasida; to'lovlar ism bo'yicha ham. `GET /api/portal/search` — o'z to'lovlari (`PM-…`). Javob formati o'zgarmadi.
+
+## Telegram Changes
+
+`ws_sr` va `/qidir` o'quvchi/ota-ona uchun ham; oila qidiruvi natijalari kabinet sahifalariga havola.
+
+## Permissions
+
+Yangi ruxsat yo'q; mavjud `branch.view_all`, `group.manage`, `student.manage` (o'qituvchi doirasi), `payment.view` va h.k.
+
+## Security
+
+§34 matritsasi qidiruv uchun (test): Student A → Student B, Parent A → Child B, Teacher A → Group B (web ham), Manager A → Lead B, Branch A → Branch B (web ham) — hammasi rad; direktor — hammasini topadi. **Yangi testlar eski `search.service.ts` bilan 6 dan 4 tasi yiqilishi tekshirildi** (S2/S3 haqiqiy oqish edi).
+
+## Tests
+
+Backend **851/851** (+6, to'liq toza). Frontend **121/121**, E2E **44/44** (+1: o'qituvchi web qidiruvida begona guruh yo'q, botda qidiruv oqimi to'liq stekda). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Qo'shimcha: bitta `getBranchAccess` (kesh qilingan ruxsatlar); to'lov ism bo'yicha — indeksli `student` relation filtri, `take: 5`.
+
+## Documentation
+
+`docs/telegram.md` — xodim va o'quvchi/ota-ona qidiruv qatorlari.
+
+## Known Issues
+
+- **S3 analitika va hisobotlarda hali yopilmagan** (audit: `analytics.service`, `report.service`): filial admini (`branch.view_all` yo'q) analitika/hisobot/kunlik hisobotda butun markaz raqamlarini ko'radi. Roadmap'da S3 faqat qidiruv uchun rejalangan edi — **PHASE 20 (regression/hardening) ga qo'shildi**, 15 hisobot turi va analitika servislari bo'yicha alohida ish.
+- Kurslar qidiruvi filialga bog'lanmagan (kurs modeli filialsiz — umumiy katalog).
+
+## Next Phase
+
+**PHASE 15 — Broadcast 2.0 (GAP-15)**: URL tugmalar (migratsiya), web UI, statistika, `retry_after`; oila "Marketing/e'lon" toifasi masalasi (PHASE 13 dan).

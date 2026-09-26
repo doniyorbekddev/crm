@@ -48,6 +48,7 @@ const STUDENT_ITEMS: readonly MenuItem[] = [
   { text: '📜 Sertifikatlar', data: callback(STUDENT_ACTIONS.certificates) },
   { text: '📊 Haftalik hisobot', data: callback(STUDENT_ACTIONS.weekly) },
   { text: '🎁 Do‘st taklifi', data: callback(EXTRA_ACTIONS.referral) },
+  { text: '🔎 Qidiruv', data: callback(WORKSPACE_ACTIONS.search) },
 ];
 
 const COMMON_ITEMS: readonly MenuItem[] = [

@@ -44,6 +44,7 @@ const STUDENT_COMMANDS = [
   '/qarz — to‘lovlar va qarz',
   '/sertifikat — sertifikatlar',
   '/taklif — do‘st taklifi kodi va bonuslar',
+  '/qidir — o‘z vazifa, imtihon, dars, sertifikat va to‘lovlaringizdan qidirish',
 ];
 
 const COMMON_COMMANDS = ['/sozlamalar — eslatmalar va sozlamalar', '/holat — bog‘lanish holati', '/uzish — bog‘lanishni uzish', '/help — shu ro‘yxat'];
@@ -261,7 +262,7 @@ export const BOT_COMMAND_MENU: ReadonlyArray<{ command: string; description: str
   { command: 'qarzdorlar', description: 'Qarzdorlar (rahbar)' },
   { command: 'xabar', description: 'Ommaviy xabar (admin)' },
   { command: 'ai', description: 'AI yordamchi' },
-  { command: 'qidir', description: 'Qidiruv (xodim)' },
+  { command: 'qidir', description: 'Qidiruv' },
   { command: 'kpi', description: 'KPI (o‘qituvchi)' },
   { command: 'tekshirish', description: 'Topshiriqlarni baholash (o‘qituvchi)' },
   { command: 'kunlik', description: 'Kunlik hisobot (rahbar)' },
