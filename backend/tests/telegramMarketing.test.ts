@@ -8,7 +8,7 @@ import * as telegram from '../src/services/telegram.service.js';
 import type { InlineKeyboard, TelegramMedia } from '../src/services/telegram.service.js';
 import { telegramLinkService } from '../src/services/telegramLink.service.js';
 import { moneyUz } from '../src/telegram/format.js';
-import { marketingRange } from '../src/telegram/handlers/workspace.js';
+import { periodRange } from '../src/telegram/handlers/workspace.js';
 import { resetRateLimits } from '../src/telegram/rateLimit.js';
 import { startOfBusinessMonth } from '../src/utils/dates.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
@@ -50,13 +50,13 @@ async function linked(role: string, chat = CHAT) {
   return { user, token };
 }
 
-describe('marketingRange — biznes sana bo‘yicha davrlar', () => {
+describe('periodRange — biznes sana bo‘yicha davrlar', () => {
   it('bu oy, o‘tgan oy (yil chegarasida ham), 30 kun', () => {
     // 2026-01-10 03:00 Toshkent
     const now = new Date('2026-01-09T22:00:00Z');
-    expect(marketingRange('month', now)).toEqual({ from: '2026-01-01', to: '2026-01-10' });
-    expect(marketingRange('last', now)).toEqual({ from: '2025-12-01', to: '2025-12-31' });
-    expect(marketingRange('d30', now)).toEqual({ from: '2025-12-12', to: '2026-01-10' });
+    expect(periodRange('month', now)).toEqual({ from: '2026-01-01', to: '2026-01-10' });
+    expect(periodRange('last', now)).toEqual({ from: '2025-12-01', to: '2025-12-31' });
+    expect(periodRange('d30', now)).toEqual({ from: '2025-12-12', to: '2026-01-10' });
   });
 });
 
@@ -97,7 +97,7 @@ describe.skipIf(!hasTestDatabase)('Telegram: marketing (GAP-11)', () => {
     await setup();
     const { token } = await linked('OWNER');
     const bot = captureBot();
-    const rest = (await request(app).get('/api/analytics/sources').query(marketingRange('month')).set(bearer(token)).expect(200)).body.data;
+    const rest = (await request(app).get('/api/analytics/sources').query(periodRange('month')).set(bearer(token)).expect(200)).body.data;
 
     await press('ws_mkt').expect(200);
     const text = bot.last().text;

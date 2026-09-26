@@ -745,3 +745,71 @@ Bitta `analyticsService.sources` chaqiruvi (avvalgidek); CSV — xotirada, bitta
 ## Next Phase
 
 **PHASE 12 — Owner Telegram reports (GAP-12)**: "📊 Kunlik hisobot" (o'quvchi, lead, tushum, qarz, davomat %, vazifa %, imtihon o'rtacha, xavf) mavjud servislardan; qolgan hisobot turlari ruxsatga qarab; CSV `sendDocument` bilan.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 12
+
+Sana: 2026-09-26. GAP-12 "Owner Telegram reports".
+
+## Implemented
+
+- **📊 Kunlik hisobot** (`/kunlik` yoki "📑 Hisobotlar" ichida) — TZ formati: 👨‍🎓 faol o'quvchilar (+bugungi), 📞 bugungi leadlar (+sinov darslari), 💰 bugungi va oylik tushum, 💳 qarz, 📚 davomat (bugun — belgilangan darslar bo'yicha, bo'lmasa "hali belgilanmagan"; 30 kun), 📝 vazifa %, 🎯 imtihon o'rtachasi, ⚠️ xavf ostida (kritik alohida); to'liq — "Direktor paneli" havolasi.
+- **Hisobotlar**: 8 tur → web'dagi **barcha 15 tur** (TZ: Sales, Finance, Attendance, Students, Courses, Groups, Teachers, Marketing; +menejerlar, kirim, maosh, reyting). Har birida davr (bu oy / o'tgan oy / 30 kun), KPI, **birinchi 5 qator** (3 ustun), jami qatorlar soni.
+- **📄 CSV** — hisobot chatga hujjat bo'lib keladi; fayl REST `/api/reports/:type/export?format=csv` bilan **baytma-bayt bir xil** (test).
+- "Academic" — alohida hisobot turi yo'q: kunlik hisobotdagi akademik ko'rsatkichlar + PHASE 10 o'qituvchilar KPI.
+
+## Existing Code Reused
+
+`executiveService.summary` va `academyOverviewService.overview` (web "Direktor paneli"), `reportService.build` + `reportToTable` + `tableToCsv` (web hisobotlar va eksport), `canViewReport` (web bilan bitta ruxsat ro'yxati), PHASE 11 davr yordamchilari (`BOT_PERIODS`, `periodRange` — marketing bilan umumiy; nomi umumlashtirildi).
+
+## New Files
+
+`backend/tests/telegramReports.test.ts`.
+
+## Modified Files
+
+`backend/src/telegram/handlers/workspace.ts` (`showDailyReport`, `sendReportCsv`, `showReports`/`showReport` davr va qatorlar bilan, 15 tur), `backend/src/services/telegramCommand.service.ts` (`/kunlik`, yordam matni), `backend/tests/telegramMarketing.test.ts` (import nomi `periodRange` — tekshiruvlar o'zgarmagan), `e2e/specs/flows.spec.ts`, `docs/telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q.
+
+## Telegram Changes
+
+Yangi: `/kunlik`, `ws_day`, `ws_rcsv:<tur>:<davr>`; `ws_r:<tur>[:davr]` (davrsiz — joriy oy, eski tugmalar ishlaydi).
+
+## Permissions
+
+Yangi ruxsat yo'q, REST bilan bir xil: kunlik hisobot — `analytics.view` (`/dashboard/executive`); hisobot — `report.view` + tur ruxsati (`debt.view`, `payment.view`, `salary.view`…); CSV — shularga qo'shimcha `report.export`. Tugma faqat ruxsat bo'lsa; qo'lda yuborilgan callback ham tekshiriladi.
+
+## Security
+
+Test: faqat `report.view` li rol — qarzdorlik (debt.view yo'q) ham ko'rish, ham CSV rad; CSV tugmasi yo'q va callback rad; noma'lum tur — rad; o'qituvchi — menyu, kunlik, hisobot, CSV — hammasi rad; buxgalter — kunlik hisobot rad. CSV faqat so'ragan xodimning chatiga, formula zararsizlantirish REST bilan bir xil funksiyada.
+
+## Tests
+
+Backend **839** (+4: kunlik hisobot REST bilan solishtiriladi; menyu — rahbar 15 tur, buxgalter qisman; davr/KPI/qatorlar va CSV REST eksport bilan baytma-bayt; ruxsat matritsasi). To'liq yugurishlarda har safar **boshqa-boshqa** 1–2 test 5 s timeout (fonda macOS indeksatsiyasi, load ~4.7) — har biri alohida o'tdi (attendance, notifications, gamification, executiveInsights, paymentSchedule). Frontend **121/121**, E2E **42/42** (+1: kunlik hisobot, davrlar, CSV to'liq stekda; o'qituvchi REST 403). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Kunlik hisobot — ikkita mavjud servis parallel (web panel bilan bir xil so'rovlar). Hisobot — bitta `reportService.build`; CSV xotirada.
+
+## Documentation
+
+`docs/telegram.md` — "Kunlik hisobot" va "Hisobotlar" qatorlari.
+
+## Known Issues
+
+- Kunlik hisobot so'rov bo'yicha; har kuni avtomatik yuborish (jadval bilan) — TZ talab qilmagan, qilinmadi.
+- PDF eksport yo'q (web'da ham CSV/XLSX); botda CSV.
+- Test to'plami kattalashib, yuklangan mashinada 5 s timeout ba'zan yetmaydi — PHASE 20 (regression) da `testTimeout` ni ko'rib chiqish.
+- Filial kesimi yo'q — audit S3 (PHASE 14).
+
+## Next Phase
+
+**PHASE 13 — Telegram settings (GAP-13)**: bildirishnoma toifalari (davomat, to'lov, vazifa, imtihon, yutuq, e'lon, tizim) — xodim, o'quvchi va ota-ona uchun; oilaviy Telegram yo'li sozlamani hisobga oladi.

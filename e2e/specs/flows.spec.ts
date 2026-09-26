@@ -399,3 +399,20 @@ test('GAP-11 rahbar: botda marketing (davrlar, CSV) — REST manbalar analitikas
   const manager = await apiLogin(request, 'manager');
   expect((await request.get(`${API}/analytics/sources`, { headers: manager })).status()).toBe(403);
 });
+
+test('GAP-12 rahbar: botda kunlik hisobot, hisobot davri va CSV — REST bilan bir manba', async ({ request }) => {
+  const owner = await apiLogin(request, 'owner');
+  const ownerId = (await (await request.get(`${API}/auth/me`, { headers: owner })).json()).data.id as string;
+  expect((await request.get(`${API}/dashboard/executive`, { headers: owner })).status()).toBe(200);
+  expect((await request.get(`${API}/dashboard/executive/academy`, { headers: owner })).status()).toBe(200);
+  expect((await request.get(`${API}/reports/payments/export?format=csv`, { headers: owner })).status()).toBe(200);
+
+  const chatId = Number(String(Date.now()).slice(-9)) + 10;
+  await linkStaffTelegram(ownerId, chatId);
+  // Bot javobi va hujjat E2E'da tashqariga ketmaydi (token yo'q) — matn va CSV backend integratsiya testida
+  await telegramMessage(request, chatId, '/kunlik');
+  for (const data of ['ws_rep', 'ws_day', 'ws_r:payments:last', 'ws_r:groups:d30', 'ws_rcsv:payments:month']) await telegramPress(request, chatId, data);
+
+  const teacher = await apiLogin(request, 'teacher');
+  expect((await request.get(`${API}/dashboard/executive`, { headers: teacher })).status()).toBe(403);
+});

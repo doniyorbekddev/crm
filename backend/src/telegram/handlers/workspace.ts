@@ -5,12 +5,14 @@ import { PERMISSIONS } from '../../config/permissions.js';
 import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
 import { academicAnalyticsService } from '../../services/academicAnalytics.service.js';
+import { academyOverviewService } from '../../services/academyOverview.service.js';
 import { aiAcademicService } from '../../services/ai/academic.service.js';
 import { analyticsExport, analyticsService } from '../../services/analytics.service.js';
+import { executiveService } from '../../services/executive.service.js';
 import { homeworkService } from '../../services/homework.service.js';
 import { notificationService } from '../../services/notification.service.js';
 import { permissionService } from '../../services/permission.service.js';
-import { reportService } from '../../services/report.service.js';
+import { reportService, reportToTable } from '../../services/report.service.js';
 import { searchService } from '../../services/search.service.js';
 import { escapeHtml, telegramService, type InlineButton, type InlineKeyboard } from '../../services/telegram.service.js';
 import type { CommandScope } from '../../services/telegramCommand.service.js';
@@ -46,7 +48,12 @@ export const WORKSPACE_ACTIONS = {
   /** Marketing CSV — hujjat sifatida chatga (`report.export`) */
   marketingCsv: 'ws_mcsv',
   reports: 'ws_rep',
+  /** `ws_r:<tur>[:davr]` */
   report: 'ws_r',
+  /** `ws_rcsv:<tur>:<davr>` — hisobot CSV hujjat bo'lib chatga (TZ 3.1 GAP-12) */
+  reportCsv: 'ws_rcsv',
+  /** Kunlik qisqa hisobot (TZ 3.1 GAP-12) */
+  daily: 'ws_day',
   review: 'ws_rv',
   reviewOne: 'ws_ro',
   grade: 'ws_rg',
@@ -321,19 +328,19 @@ function monthRange(now = new Date()): { from: string; to: string } {
   return { from: businessDateString(startOfBusinessMonth(now)), to: businessDateString(now) };
 }
 
-/** Bot marketing davrlari: joriy oy, o'tgan oy (to'liq), oxirgi 30 kun — biznes sana bo'yicha */
-export const MARKETING_PERIODS = ['month', 'last', 'd30'] as const;
-export type MarketingPeriod = (typeof MARKETING_PERIODS)[number];
-const PERIOD_LABELS: Record<MarketingPeriod, string> = { month: 'Bu oy', last: 'O‘tgan oy', d30: '30 kun' };
+/** Bot davrlari (marketing va hisobotlar): joriy oy, o'tgan oy (to'liq), oxirgi 30 kun — biznes sana bo'yicha */
+export const BOT_PERIODS = ['month', 'last', 'd30'] as const;
+export type BotPeriod = (typeof BOT_PERIODS)[number];
+const PERIOD_LABELS: Record<BotPeriod, string> = { month: 'Bu oy', last: 'O‘tgan oy', d30: '30 kun' };
 
-export function marketingRange(period: MarketingPeriod, now = new Date()): { from: string; to: string } {
+export function periodRange(period: BotPeriod, now = new Date()): { from: string; to: string } {
   if (period === 'last') return { from: businessDateString(startOfBusinessMonth(now, 1)), to: businessDateString(addDays(startOfBusinessMonth(now), -1)) };
   if (period === 'd30') return { from: businessDateString(addDays(startOfBusinessDay(now), -29)), to: businessDateString(now) };
   return monthRange(now);
 }
 
-function parsePeriod(arg: string | null): MarketingPeriod {
-  return MARKETING_PERIODS.includes(arg as MarketingPeriod) ? (arg as MarketingPeriod) : 'month';
+function parsePeriod(arg: string | null): BotPeriod {
+  return BOT_PERIODS.includes(arg as BotPeriod) ? (arg as BotPeriod) : 'month';
 }
 
 const shortDate = (value: string) => `${value.slice(8, 10)}.${value.slice(5, 7)}`;
@@ -349,7 +356,7 @@ export async function showMarketing(context: BotContext, scope: CommandScope, ar
   if (!actor || !(await requirePermission(context, actor, PERMISSIONS.ANALYTICS_VIEW))) return { action: WORKSPACE_ACTIONS.marketing };
   const period = parsePeriod(arg);
   return safely(context, async () => {
-    const range = marketingRange(period);
+    const range = periodRange(period);
     const data = await analyticsService.sources(range);
     const { totals } = data;
     const lines = [
@@ -370,7 +377,7 @@ export async function showMarketing(context: BotContext, scope: CommandScope, ar
     if (rows.length > 8) lines.push(`… yana ${rows.length - 8} ta manba — CSV yoki CRM’da: ${primaryClientUrl}/analytics`);
 
     const keyboard: InlineKeyboard = [
-      MARKETING_PERIODS.map((item) => ({ text: item === period ? `• ${PERIOD_LABELS[item]}` : PERIOD_LABELS[item], data: callback(WORKSPACE_ACTIONS.marketing, item) })),
+      BOT_PERIODS.map((item) => ({ text: item === period ? `• ${PERIOD_LABELS[item]}` : PERIOD_LABELS[item], data: callback(WORKSPACE_ACTIONS.marketing, item) })),
     ];
     if ((await permissionsOf(actor)).has(PERMISSIONS.REPORT_EXPORT)) keyboard.push([{ text: '📄 CSV', data: callback(WORKSPACE_ACTIONS.marketingCsv, period) }]);
     keyboard.push(menuRow());
@@ -390,7 +397,7 @@ export async function sendMarketingCsv(context: BotContext, scope: CommandScope,
   }
   const period = parsePeriod(arg);
   return safely(context, async () => {
-    const range = marketingRange(period);
+    const range = periodRange(period);
     const table = await analyticsExport.sources(range);
     const sent = await telegramService.sendMedia(
       context.chatId,
@@ -406,16 +413,37 @@ export async function sendMarketingCsv(context: BotContext, scope: CommandScope,
 // Hisobotlar (report.service — ruxsat web bilan bir xil)
 // ---------------------------------------------------------------------
 
+/** Web "Hisobotlar" dagi barcha turlar — ruxsat `canViewReport` (web bilan bitta ro'yxat) */
 const BOT_REPORTS: ReadonlyArray<{ type: ReportType; label: string }> = [
   { type: 'sales', label: '💼 Sotuv' },
+  { type: 'managers', label: '👔 Menejerlar' },
   { type: 'payments', label: '💳 To‘lovlar' },
   { type: 'debts', label: '⚠️ Qarzdorlik' },
-  { type: 'attendance', label: '✅ Davomat' },
+  { type: 'incomes', label: '📈 Kirimlar' },
   { type: 'expenses', label: '📉 Xarajatlar' },
   { type: 'profit', label: '💰 Foyda' },
+  { type: 'salaries', label: '🧾 Maoshlar' },
+  { type: 'attendance', label: '✅ Davomat' },
+  { type: 'retention', label: '🔁 O‘quvchilar oqimi' },
   { type: 'courses', label: '📚 Kurslar' },
+  { type: 'groups', label: '👥 Guruhlar' },
   { type: 'teachers', label: '👨‍🏫 O‘qituvchilar' },
+  { type: 'sources', label: '📣 Manbalar' },
+  { type: 'gamification', label: '🏆 Reyting' },
 ];
+
+const REPORT_ROW_PREVIEW = 5;
+
+function parseReportArg(arg: string | null): { item: (typeof BOT_REPORTS)[number] | undefined; period: BotPeriod } {
+  const [type, period] = (arg ?? '').split(':');
+  return { item: BOT_REPORTS.find((row) => row.type === type), period: parsePeriod(period ?? null) };
+}
+
+function formatCell(value: unknown, type: string): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'number') return type === 'money' ? moneyUz(value) : type === 'percent' ? `${value}%` : new Intl.NumberFormat('uz-UZ').format(value);
+  return escapeHtml(String(value).slice(0, 40));
+}
 
 export async function showReports(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
@@ -423,33 +451,103 @@ export async function showReports(context: BotContext, scope: CommandScope): Pro
   const permissions = await permissionsOf(actor);
   const allowed = BOT_REPORTS.filter((item) => canViewReport(permissions, item.type));
   const keyboard: InlineKeyboard = [];
+  if (permissions.has(PERMISSIONS.ANALYTICS_VIEW)) keyboard.push([{ text: '📊 Kunlik hisobot', data: callback(WORKSPACE_ACTIONS.daily) }]);
   for (let index = 0; index < allowed.length; index += 2) keyboard.push(allowed.slice(index, index + 2).map((item) => ({ text: item.label, data: callback(WORKSPACE_ACTIONS.report, item.type) })));
   keyboard.push(menuRow());
-  await context.render('<b>📑 Hisobotlar</b> · joriy oy\n\nQaysi hisobot?', keyboard);
+  await context.render('<b>📑 Hisobotlar</b>\n\nQaysi hisobot? (davrni hisobot ichida tanlaysiz)', keyboard);
   return { action: WORKSPACE_ACTIONS.reports };
 }
 
-export async function showReport(context: BotContext, scope: CommandScope, type: string | null): Promise<HandlerResult> {
+export async function showReport(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor) return { action: WORKSPACE_ACTIONS.report };
-  const item = BOT_REPORTS.find((row) => row.type === type);
+  const { item, period } = parseReportArg(arg);
+  const permissions = await permissionsOf(actor);
   // Callback'ga ishonilmaydi: tur ro'yxatda bo'lishi va ruxsat yetishi shart
-  if (!item || !canViewReport(await permissionsOf(actor), item.type)) {
+  if (!item || !canViewReport(permissions, item.type)) {
     await context.render('❌ Bu hisobotga ruxsatingiz yo‘q.', [menuRow()]);
     return { action: WORKSPACE_ACTIONS.report };
   }
   return safely(context, async () => {
-    const range = monthRange();
+    const range = periodRange(period);
     const report = await reportService.build(item.type, { ...range, groupBy: 'day' });
-    const lines = [`<b>${escapeHtml(report.title)}</b> · ${range.from.slice(8, 10)}.${range.from.slice(5, 7)} — ${range.to.slice(8, 10)}.${range.to.slice(5, 7)}`, ''];
-    for (const kpi of report.kpis) {
-      const value = kpi.type === 'money' ? moneyUz(kpi.value) : kpi.type === 'percent' ? `${kpi.value}%` : new Intl.NumberFormat('uz-UZ').format(kpi.value);
-      lines.push(`${escapeHtml(kpi.label)}: <b>${value}</b>`);
+    const lines = [`<b>${escapeHtml(report.title)}</b> · ${PERIOD_LABELS[period]} (${shortDate(report.from)} — ${shortDate(report.to)})`, ''];
+    for (const kpi of report.kpis) lines.push(`${escapeHtml(kpi.label)}: <b>${formatCell(kpi.value, kpi.type)}</b>`);
+    // Qisqa ko'rinish: birinchi qatorlar (dastlabki 3 ustun) — to'liq jadval CSV yoki CRM'da
+    if (report.rows.length > 0) {
+      const columns = report.columns.slice(0, 3);
+      if (report.kpis.length > 0) lines.push('');
+      for (const row of report.rows.slice(0, REPORT_ROW_PREVIEW)) {
+        const record = row as Record<string, unknown>;
+        lines.push(`• ${columns.map((column) => formatCell(record[column.key], column.type)).join(' · ')}`);
+      }
     }
-    if (report.kpis.length === 0) lines.push(`${report.rows.length} ta qator — to‘liq jadval CRM’da.`);
-    lines.push('', `To‘liq jadval: <a href="${primaryClientUrl}/reports">CRM → Hisobotlar</a>`);
-    await context.render(lines.join('\n'), [[{ text: '⬅️ Hisobotlar', data: callback(WORKSPACE_ACTIONS.reports) }, ...menuRow()]]);
+    lines.push('', `Jami ${report.truncatedFrom ?? report.rows.length} ta qator. To‘liq: <a href="${primaryClientUrl}/reports">CRM → Hisobotlar</a>`);
+    const keyboard: InlineKeyboard = [
+      BOT_PERIODS.map((value) => ({ text: value === period ? `• ${PERIOD_LABELS[value]}` : PERIOD_LABELS[value], data: callback(WORKSPACE_ACTIONS.report, `${item.type}:${value}`) })),
+    ];
+    if (permissions.has(PERMISSIONS.REPORT_EXPORT)) keyboard.push([{ text: '📄 CSV', data: callback(WORKSPACE_ACTIONS.reportCsv, `${item.type}:${period}`) }]);
+    keyboard.push([{ text: '⬅️ Hisobotlar', data: callback(WORKSPACE_ACTIONS.reports) }, ...menuRow()]);
+    await context.render(lines.join('\n'), keyboard);
     return { action: WORKSPACE_ACTIONS.report };
+  });
+}
+
+/** Hisobot CSV — REST `/api/reports/:type/export?format=csv` bilan bir xil fayl (report.export + tur ruxsati) */
+export async function sendReportCsv(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.reportCsv };
+  const { item, period } = parseReportArg(arg);
+  const permissions = await permissionsOf(actor);
+  if (!item || !canViewReport(permissions, item.type) || !permissions.has(PERMISSIONS.REPORT_EXPORT)) {
+    await context.render('⛔ Bu amal uchun ruxsatingiz yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.reportCsv };
+  }
+  return safely(context, async () => {
+    const report = await reportService.build(item.type, { ...periodRange(period), groupBy: 'day' });
+    const sent = await telegramService.sendMedia(
+      context.chatId,
+      { kind: 'document', buffer: Buffer.from(tableToCsv(reportToTable(report)), 'utf8'), fileName: `${item.type}-${report.from}_${report.to}.csv`, mimeType: 'text/csv' },
+      `📄 ${escapeHtml(report.title)} · ${shortDate(report.from)} — ${shortDate(report.to)}`,
+    );
+    if (!sent.ok) await context.reply('Faylni yuborib bo‘lmadi. Keyinroq qayta urinib ko‘ring yoki CRM’dan yuklab oling.');
+    return { action: WORKSPACE_ACTIONS.reportCsv };
+  });
+}
+
+/**
+ * Kunlik qisqa hisobot (TZ 3.1 GAP-12). Hisob-kitob botda yo'q: web rahbar paneli bilan bir xil
+ * `executiveService.summary` (o'quvchi, lead, tushum, qarz, bugungi davomat) va
+ * `academyOverviewService.overview` (30 kunlik davomat, vazifa, imtihon, xavf). Ruxsat — REST
+ * `/dashboard/executive` kabi `analytics.view`.
+ */
+export async function showDailyReport(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !(await requirePermission(context, actor, PERMISSIONS.ANALYTICS_VIEW))) return { action: WORKSPACE_ACTIONS.daily };
+  return safely(context, async () => {
+    const [executive, academy] = await Promise.all([executiveService.summary({}), academyOverviewService.overview()]);
+    const { kpi, today } = executive;
+    const days = academy.windowDays;
+    const todayAttendance = today.markedLessons > 0 ? `${today.attendanceRate}% (${today.markedLessons}/${today.lessons} dars)` : 'hali belgilanmagan';
+    const lines = [
+      `<b>📊 Kunlik hisobot</b> · ${today.date.slice(8, 10)}.${today.date.slice(5, 7)}.${today.date.slice(0, 4)}`,
+      '',
+      `👨‍🎓 O‘quvchilar: <b>${kpi.activeStudents}</b> faol${today.newStudents ? ` (+${today.newStudents} bugun)` : ''}`,
+      `📞 Leadlar: <b>${today.newLeads}</b> bugun · sinov darsi ${today.trialLessons}`,
+      `💰 Tushum: <b>${moneyUz(today.netRevenue)}</b> bugun · oy ${moneyUz(kpi.monthRevenue)}`,
+      `💳 Qarz: <b>${moneyUz(kpi.totalDebt)}</b>`,
+      `📚 Davomat: bugun <b>${todayAttendance}</b> · ${days} kun ${pct(academy.attendance.rate)}`,
+      `📝 Vazifa: <b>${pct(academy.homework.submissionRate)}</b> (${days} kun) · baholash kutmoqda ${academy.homework.toGrade}`,
+      `🎯 Imtihon o‘rtachasi: <b>${pct(academy.exams.averagePercentage)}</b> (${days} kun)`,
+      `⚠️ Xavf ostida: <b>${academy.risk.atRisk + academy.risk.critical}</b> (kritik ${academy.risk.critical})`,
+      '',
+      `To‘liq: <a href="${primaryClientUrl}/executive">CRM → Direktor paneli</a>`,
+    ];
+    const keyboard: InlineKeyboard = [];
+    if ((await permissionsOf(actor)).has(PERMISSIONS.REPORT_VIEW)) keyboard.push([{ text: '📑 Hisobotlar', data: callback(WORKSPACE_ACTIONS.reports) }]);
+    keyboard.push(menuRow());
+    await context.render(lines.join('\n'), keyboard);
+    return { action: WORKSPACE_ACTIONS.daily };
   });
 }
 
@@ -613,6 +711,7 @@ export const WORKSPACE_COMMANDS: Readonly<Record<string, string>> = {
   '/kpi': WORKSPACE_ACTIONS.kpi,
   '/marketing': WORKSPACE_ACTIONS.marketing,
   '/hisobotlar': WORKSPACE_ACTIONS.reports,
+  '/kunlik': WORKSPACE_ACTIONS.daily,
   '/tekshirish': WORKSPACE_ACTIONS.review,
 };
 
@@ -638,6 +737,10 @@ export async function handleWorkspaceAction(context: BotContext, scope: CommandS
       return showReports(context, scope);
     case WORKSPACE_ACTIONS.report:
       return showReport(context, scope, arg);
+    case WORKSPACE_ACTIONS.reportCsv:
+      return sendReportCsv(context, scope, arg);
+    case WORKSPACE_ACTIONS.daily:
+      return showDailyReport(context, scope);
     case WORKSPACE_ACTIONS.review:
       return showReviewQueue(context, scope);
     case WORKSPACE_ACTIONS.reviewOne:
