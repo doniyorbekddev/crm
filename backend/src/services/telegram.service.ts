@@ -20,12 +20,20 @@ export interface TelegramSendResult {
   error?: string;
   /** Yuborilgan xabar identifikatori — keyin uni tahrirlash uchun */
   messageId?: number;
+  /** 429 da Telegram aytgan kutish (soniya) — navbat shuncha kutadi (TZ 3.1 GAP-15) */
+  retryAfter?: number;
+  /** Yuklangan fayl (rasm/hujjat) Telegram file_id si — qolgan chatlarga qayta yuklamasdan yuborish uchun */
+  fileId?: string;
 }
 
-/** Inline tugma: `callback_data` 64 baytdan oshmasligi kerak (Telegram cheklovi) */
+/**
+ * Inline tugma: `callback_data` 64 baytdan oshmasligi kerak (Telegram cheklovi).
+ * `url` berilsa — havola tugmasi (ommaviy xabar, TZ 3.1 GAP-15), `data` e'tiborsiz.
+ */
 export interface InlineButton {
   text: string;
   data: string;
+  url?: string;
 }
 
 export type InlineKeyboard = InlineButton[][];
@@ -33,8 +41,23 @@ export type InlineKeyboard = InlineButton[][];
 function toReplyMarkup(keyboard: InlineKeyboard | undefined): Record<string, unknown> | undefined {
   if (!keyboard || keyboard.length === 0) return undefined;
   return {
-    inline_keyboard: keyboard.map((row) => row.map((button) => ({ text: button.text, callback_data: button.data }))),
+    inline_keyboard: keyboard.map((row) => row.map((button) => (button.url ? { text: button.text, url: button.url } : { text: button.text, callback_data: button.data }))),
   };
+}
+
+/** Telegram xato javobi: `parameters.retry_after` (429 — "Too Many Requests: retry after N") */
+type TelegramErrorBody = { description?: string; parameters?: { retry_after?: number } } | null;
+
+function retryAfterOf(body: TelegramErrorBody): { retryAfter?: number } {
+  const value = body?.parameters?.retry_after;
+  return typeof value === 'number' && value > 0 ? { retryAfter: Math.min(value, 3600) } : {};
+}
+
+/** Yuklangan fayl javobidan file_id (rasm — eng katta o'lcham) */
+function fileIdOf(result: unknown): { fileId?: string } {
+  const value = result as { photo?: Array<{ file_id?: string }>; document?: { file_id?: string } } | undefined;
+  const id = value?.document?.file_id ?? value?.photo?.at(-1)?.file_id;
+  return typeof id === 'string' ? { fileId: id } : {};
 }
 
 export function isTelegramEnabled(): boolean {
@@ -71,13 +94,13 @@ async function request(method: string, payload: Record<string, unknown>): Promis
     if (response.ok) {
       const body = (await response.json().catch(() => null)) as { result?: { message_id?: number } } | null;
       const messageId = body?.result?.message_id;
-      return { ok: true, retryable: false, ...(messageId === undefined ? {} : { messageId }) };
+      return { ok: true, retryable: false, ...(messageId === undefined ? {} : { messageId }), ...fileIdOf(body?.result) };
     }
 
-    const body = (await response.json().catch(() => null)) as { description?: string } | null;
+    const body = (await response.json().catch(() => null)) as TelegramErrorBody;
     const description = body?.description ?? `HTTP ${response.status}`;
     metrics.telegramFailures.inc({ method });
-    return { ok: false, retryable: response.status === 429 || response.status >= 500, error: description.slice(0, 500) };
+    return { ok: false, retryable: response.status === 429 || response.status >= 500, error: description.slice(0, 500), ...retryAfterOf(body) };
   } catch (error) {
     metrics.telegramFailures.inc({ method });
     return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
@@ -125,12 +148,21 @@ export const MEDIA_CAPTION_LIMIT = 1024;
 
 export type TelegramMedia =
   | { kind: 'photo' | 'document'; fileId: string }
-  | { kind: 'document'; buffer: Buffer; fileName: string; mimeType: string };
+  | { kind: 'photo' | 'document'; buffer: Buffer; fileName: string; mimeType: string };
 
-/** Fayl yuklab yuborish (multipart) — CRM'da saqlangan faylni, masalan o'quvchi javobini o'qituvchiga */
-async function uploadDocument(chatId: string, media: { buffer: Buffer; fileName: string; mimeType: string }, caption: string | undefined): Promise<TelegramSendResult> {
+/**
+ * Fayl yuklab yuborish (multipart) — CRM'da saqlangan fayl: o'quvchi javobi o'qituvchiga, hisobot CSV,
+ * web'dan yuklangan ommaviy xabar rasmi/hujjati. Javobda `fileId` — keyingi chatlarga qayta yuklamaslik uchun.
+ */
+async function uploadMedia(
+  chatId: string,
+  media: { kind: 'photo' | 'document'; buffer: Buffer; fileName: string; mimeType: string },
+  caption: string | undefined,
+  keyboard?: InlineKeyboard,
+): Promise<TelegramSendResult> {
+  const method = media.kind === 'photo' ? 'sendPhoto' : 'sendDocument';
   if (!env.TELEGRAM_BOT_TOKEN) {
-    logger.info({ method: 'sendDocument' }, 'Telegram o‘chirilgan — fayl yuborilmadi');
+    logger.info({ method }, 'Telegram o‘chirilgan — fayl yuborilmadi');
     return { ok: false, retryable: false, error: 'Telegram bot tokeni sozlanmagan' };
   }
   const form = new FormData();
@@ -139,17 +171,22 @@ async function uploadDocument(chatId: string, media: { buffer: Buffer; fileName:
     form.append('caption', caption);
     form.append('parse_mode', 'HTML');
   }
-  form.append('document', new Blob([new Uint8Array(media.buffer)], { type: media.mimeType }), media.fileName);
+  const markup = toReplyMarkup(keyboard);
+  if (markup) form.append('reply_markup', JSON.stringify(markup));
+  form.append(media.kind, new Blob([new Uint8Array(media.buffer)], { type: media.mimeType }), media.fileName);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS * 3);
   try {
-    const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`, { method: 'POST', body: form, signal: controller.signal });
-    if (response.ok) return { ok: true, retryable: false };
-    const body = (await response.json().catch(() => null)) as { description?: string } | null;
-    metrics.telegramFailures.inc({ method: 'sendDocument' });
-    return { ok: false, retryable: response.status === 429 || response.status >= 500, error: (body?.description ?? `HTTP ${response.status}`).slice(0, 500) };
+    const response = await fetch(`${API_BASE}/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, { method: 'POST', body: form, signal: controller.signal });
+    if (response.ok) {
+      const body = (await response.json().catch(() => null)) as { result?: unknown } | null;
+      return { ok: true, retryable: false, ...fileIdOf(body?.result) };
+    }
+    const body = (await response.json().catch(() => null)) as TelegramErrorBody;
+    metrics.telegramFailures.inc({ method });
+    return { ok: false, retryable: response.status === 429 || response.status >= 500, error: (body?.description ?? `HTTP ${response.status}`).slice(0, 500), ...retryAfterOf(body) };
   } catch (error) {
-    metrics.telegramFailures.inc({ method: 'sendDocument' });
+    metrics.telegramFailures.inc({ method });
     return { ok: false, retryable: true, error: error instanceof Error ? error.message.slice(0, 500) : 'Tarmoq xatosi' };
   } finally {
     clearTimeout(timer);
@@ -166,16 +203,17 @@ export const telegramService = {
     const fits = !caption || caption.length <= MEDIA_CAPTION_LIMIT;
     const result =
       'buffer' in media
-        ? await uploadDocument(chatId, media, fits ? caption : undefined)
+        ? await uploadMedia(chatId, media, fits ? caption : undefined, fits ? keyboard : undefined)
         : await request(media.kind === 'photo' ? 'sendPhoto' : 'sendDocument', {
             chat_id: chatId,
             [media.kind]: media.fileId,
             ...(fits && caption ? { caption, parse_mode: 'HTML' } : {}),
             ...(fits && toReplyMarkup(keyboard) ? { reply_markup: toReplyMarkup(keyboard) } : {}),
           });
-    if (result.ok && (!fits || ('buffer' in media && keyboard))) {
-      if (!fits && caption) return telegramService.sendMessage(chatId, caption, keyboard);
-      if (keyboard) return telegramService.sendMessage(chatId, '⬆️', keyboard);
+    // Izoh sig'masa — matn (va tugmalar) alohida xabar; file_id saqlanadi
+    if (result.ok && !fits && caption) {
+      const text = await telegramService.sendMessage(chatId, caption, keyboard);
+      return { ...text, ...(result.fileId ? { fileId: result.fileId } : {}) };
     }
     return result;
   },
@@ -325,12 +363,12 @@ export const telegramService = {
         return { ok: true, retryable: false, ...(messageId === undefined ? {} : { messageId }) };
       }
 
-      const body = (await response.json().catch(() => null)) as { description?: string } | null;
+      const body = (await response.json().catch(() => null)) as TelegramErrorBody;
       const description = body?.description ?? `HTTP ${response.status}`;
-      // 429 — juda ko'p so'rov, 5xx — Telegram tomonidagi vaqtinchalik nosozlik
+      // 429 — juda ko'p so'rov (retry_after bilan), 5xx — Telegram tomonidagi vaqtinchalik nosozlik
       const retryable = response.status === 429 || response.status >= 500;
       metrics.telegramFailures.inc({ method: 'sendMessage' });
-      return { ok: false, retryable, error: description.slice(0, 500) };
+      return { ok: false, retryable, error: description.slice(0, 500), ...retryAfterOf(body) };
     } catch (error) {
       // Tarmoq xatosi yoki timeout — keyinroq qayta urinib ko'riladi
       metrics.telegramFailures.inc({ method: 'sendMessage' });

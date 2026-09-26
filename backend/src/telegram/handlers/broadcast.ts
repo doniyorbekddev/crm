@@ -8,7 +8,7 @@ import type { CommandScope } from '../../services/telegramCommand.service.js';
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
-import type { BroadcastInput } from '../../validators/broadcast.validator.js';
+import { MAX_BROADCAST_BUTTONS, broadcastButtonSchema, type BroadcastButton, type BroadcastInput } from '../../validators/broadcast.validator.js';
 import type { GroupListQuery } from '../../validators/group.validator.js';
 import { fmtDateTime } from '../format.js';
 import { MAIN_MENU, MAIN_MENU_BUTTON_TEXT, callback, paginationRow } from '../keyboards.js';
@@ -31,11 +31,14 @@ export const BROADCAST_ACTIONS = {
   parents: 'bc_par',
   send: 'bc_send',
   list: 'bc_list',
+  /** Havola tugmasi qo'shish (TZ 3.1 GAP-15) */
+  addButton: 'bc_btn',
+  clearButtons: 'bc_btnclr',
 } as const;
 
 export const BROADCAST_FLOW = 'broadcast';
 /** Oqim ichidagi tugmalar — sessiyani yopmaydi */
-export const BROADCAST_FLOW_ACTIONS: ReadonlySet<string> = new Set([BROADCAST_ACTIONS.send, BROADCAST_ACTIONS.parents]);
+export const BROADCAST_FLOW_ACTIONS: ReadonlySet<string> = new Set([BROADCAST_ACTIONS.send, BROADCAST_ACTIONS.parents, BROADCAST_ACTIONS.addButton, BROADCAST_ACTIONS.clearButtons]);
 
 const BOT_CLIENT: ClientInfo = { ip: null, userAgent: 'telegram-bot' };
 const PAGE_SIZE = 8;
@@ -47,6 +50,12 @@ interface Draft {
   message?: string;
   /** TZ §43 "Broadcast Media": rasm yoki hujjat (Telegram file_id) */
   media?: { kind: 'photo' | 'document'; fileId: string } | null;
+  /** Havola tugmalari: [{ text, url }] (https, ko'pi bilan 3) */
+  buttons?: BroadcastButton[];
+}
+
+function inputOf(draft: Draft, message: string): BroadcastInput {
+  return { audience: draft.audience, targetId: draft.targetId ?? undefined, includeParents: draft.includeParents ?? false, message, buttons: draft.buttons ?? [] };
 }
 
 function menuRow(): InlineButton[] {
@@ -199,8 +208,56 @@ export async function chooseParents(context: BotContext, scope: CommandScope, ar
 // Matn → oldindan ko'rish → yuborish
 // ---------------------------------------------------------------------
 
+/** Oldindan ko'rish: kimga, nechta chat, media, tugmalar, matn — va Yuborish / Tugma / Bekor */
+async function renderPreview(context: BotContext, actor: AuthUser, draft: Draft): Promise<HandlerResult> {
+  return safely(context, async () => {
+    const preview = await broadcastService.preview(actor, inputOf(draft, draft.message!));
+    await saveDraft(context.chatId, 'confirm', draft);
+
+    if (preview.recipients === 0) {
+      await telegramSessionService.clearFlow(context.chatId);
+      await context.reply(`«${escapeHtml(preview.label)}» auditoriyasida Telegram ulagan hech kim yo‘q — yuborishga hojat yo‘q.`, [menuRow()]);
+      return { action: 'broadcast_empty' };
+    }
+
+    const buttons = draft.buttons ?? [];
+    const keyboard: InlineKeyboard = [[{ text: `✅ Yuborish (${preview.recipients})`, data: callback(BROADCAST_ACTIONS.send) }]];
+    const extra: InlineButton[] = [];
+    if (buttons.length < MAX_BROADCAST_BUTTONS) extra.push({ text: '🔗 Tugma qo‘shish', data: callback(BROADCAST_ACTIONS.addButton) });
+    if (buttons.length > 0) extra.push({ text: '🧹 Tugmalarni olib tashlash', data: callback(BROADCAST_ACTIONS.clearButtons) });
+    keyboard.push(extra, [{ text: '❌ Bekor qilish', data: callback(MAIN_MENU) }]);
+    await context.reply(
+      [
+        '<b>📢 Oldindan ko‘rish</b>',
+        `Kimga: <b>${escapeHtml(preview.label)}</b> — <b>${preview.recipients}</b> ta chat`,
+        ...(draft.media ? [draft.media.kind === 'photo' ? '🖼 Rasm bilan' : '📎 Hujjat bilan'] : []),
+        '',
+        '— — —',
+        escapeHtml(draft.message!),
+        ...buttons.map((button) => `[🔗 ${escapeHtml(button.text)}] → ${escapeHtml(button.url)}`),
+        '— — —',
+        '',
+        'Yuborilsinmi?',
+      ].join('\n'),
+      keyboard,
+    );
+    return { action: 'broadcast_preview' };
+  });
+}
+
 export async function handleBroadcastFlow(context: BotContext, scope: CommandScope, session: SessionState): Promise<HandlerResult> {
   const draft = draftOf(session);
+  // Havola tugmasi: "Matn | https://..."
+  if (scope.actor && draft?.message && session.step === 'button') {
+    const [text, url] = (context.text ?? '').split('|').map((part) => part.trim());
+    const parsed = broadcastButtonSchema.safeParse({ text: text ?? '', url: url ?? '' });
+    if (!parsed.success) {
+      await context.reply(`❌ ${escapeHtml(parsed.error.issues[0]?.message ?? 'Noto‘g‘ri')}\n\nFormat: <code>Tugma matni | https://manzil.uz</code>`, cancelRow());
+      return { action: 'broadcast_button_invalid' };
+    }
+    draft.buttons = [...(draft.buttons ?? []), parsed.data].slice(0, MAX_BROADCAST_BUTTONS);
+    return renderPreview(context, scope.actor, draft);
+  }
   if (!scope.actor || !draft || session.step !== 'text') {
     if (session.step === 'confirm') {
       await context.reply('Yuborish uchun «✅ Yuborish» tugmasini bosing.', cancelRow());
@@ -220,34 +277,28 @@ export async function handleBroadcastFlow(context: BotContext, scope: CommandSco
   }
   draft.message = text;
   draft.media = media;
-  const actor = scope.actor;
+  return renderPreview(context, scope.actor, draft);
+}
 
-  return safely(context, async () => {
-    const preview = await broadcastService.preview(actor, { audience: draft.audience, targetId: draft.targetId ?? undefined, includeParents: draft.includeParents ?? false, message: text });
-    await saveDraft(context.chatId, 'confirm', draft);
+/** "🔗 Tugma qo'shish" — keyingi xabar "Matn | https://..." */
+export async function askButton(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: BROADCAST_ACTIONS.addButton };
+  const draft = draftOf(await telegramSessionService.get(context.chatId));
+  if (!draft?.message) return startBroadcast(context, scope);
+  if ((draft.buttons ?? []).length >= MAX_BROADCAST_BUTTONS) return renderPreview(context, actor, draft);
+  await saveDraft(context.chatId, 'button', draft);
+  await context.render('🔗 Tugma matni va havolani yozing:\n<code>Ro‘yxatdan o‘tish | https://example.uz/kurs</code>\n\nFaqat https:// havolalar.', cancelRow());
+  return { action: BROADCAST_ACTIONS.addButton };
+}
 
-    if (preview.recipients === 0) {
-      await telegramSessionService.clearFlow(context.chatId);
-      await context.reply(`«${escapeHtml(preview.label)}» auditoriyasida Telegram ulagan hech kim yo‘q — yuborishga hojat yo‘q.`, [menuRow()]);
-      return { action: 'broadcast_empty' };
-    }
-
-    await context.reply(
-      [
-        '<b>📢 Oldindan ko‘rish</b>',
-        `Kimga: <b>${escapeHtml(preview.label)}</b> — <b>${preview.recipients}</b> ta chat`,
-        ...(media ? [media.kind === 'photo' ? '🖼 Rasm bilan' : '📎 Hujjat bilan'] : []),
-        '',
-        '— — —',
-        escapeHtml(text),
-        '— — —',
-        '',
-        'Yuborilsinmi?',
-      ].join('\n'),
-      [[{ text: `✅ Yuborish (${preview.recipients})`, data: callback(BROADCAST_ACTIONS.send) }, { text: '❌ Bekor qilish', data: callback(MAIN_MENU) }]],
-    );
-    return { action: 'broadcast_preview' };
-  });
+export async function clearButtons(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: BROADCAST_ACTIONS.clearButtons };
+  const draft = draftOf(await telegramSessionService.get(context.chatId));
+  if (!draft?.message) return startBroadcast(context, scope);
+  draft.buttons = [];
+  return renderPreview(context, actor, draft);
 }
 
 export async function confirmBroadcast(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
@@ -263,7 +314,7 @@ export async function confirmBroadcast(context: BotContext, scope: CommandScope)
   return safely(context, async () => {
     const result = await broadcastService.send(
       actor,
-      { audience: draft.audience, targetId: draft.targetId ?? undefined, includeParents: draft.includeParents ?? false, message: draft.message! },
+      inputOf(draft, draft.message!),
       BOT_CLIENT,
       draft.media ?? null,
     );
@@ -289,7 +340,7 @@ export async function listBroadcasts(context: BotContext, scope: CommandScope): 
     const lines = ['<b>📋 Oxirgi xabarlar</b>', ''];
     for (const item of items) {
       lines.push(`📢 <b>${escapeHtml(item.label)}</b> · ${fmtDateTime(item.createdAt)}${item.createdBy ? ` · ${escapeHtml(item.createdBy)}` : ''}`);
-      lines.push(`   ✅ ${item.sent} yuborildi · ⏳ ${item.pending} kutmoqda · ❌ ${item.failed} yetmadi (jami ${item.recipients})`);
+      lines.push(`   🎯 ${item.recipients} mo‘ljal · ✅ ${item.sent} yuborildi · ⏳ ${item.pending} kutmoqda · ❌ ${item.failed} yetmadi${item.mediaKind ? (item.mediaKind === 'photo' ? ' · 🖼' : ' · 📎') : ''}${item.buttons.length ? ` · 🔗${item.buttons.length}` : ''}`);
       lines.push(`   <i>${escapeHtml(item.message.slice(0, 80))}${item.message.length > 80 ? '…' : ''}</i>`);
     }
     await context.render(lines.join('\n'), [[{ text: '📢 Yangi xabar', data: callback(BROADCAST_ACTIONS.start) }, ...menuRow()]]);
@@ -315,6 +366,10 @@ export async function handleBroadcastAction(context: BotContext, scope: CommandS
       return confirmBroadcast(context, scope);
     case BROADCAST_ACTIONS.list:
       return listBroadcasts(context, scope);
+    case BROADCAST_ACTIONS.addButton:
+      return askButton(context, scope);
+    case BROADCAST_ACTIONS.clearButtons:
+      return clearButtons(context, scope);
     default:
       return undefined;
   }

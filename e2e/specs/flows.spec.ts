@@ -459,3 +459,58 @@ test('GAP-14 qidiruv (S2): o‘qituvchi web va botda begona guruhni topmaydi; o�
   await telegramPress(request, chatId, 'ws_sr');
   await telegramMessage(request, chatId, foreign!.name);
 });
+
+test('§38 broadcast: rahbar webda auditoriya → rasm + tugma → oldindan ko‘rish → tasdiq → navbat → yuborish → statistika', async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const admin = await apiLogin(request, 'admin');
+  const groups = (await (await request.get(`${API}/groups`, { params: { status: 'ACTIVE', limit: 50 }, headers: admin })).json()).data as Array<{ id: string; name: string }>;
+  let target: { group: { id: string; name: string }; studentId: string } | null = null;
+  for (const group of groups) {
+    const students = (await (await request.get(`${API}/students`, { params: { groupId: group.id, status: 'ACTIVE', limit: 5 }, headers: admin })).json()).data as Array<{ id: string }>;
+    if (students[0]) {
+      target = { group, studentId: students[0].id };
+      break;
+    }
+  }
+  expect(target, 'seed: faol o‘quvchili guruh').toBeTruthy();
+  await linkStudentTelegram(target!.studentId, Number(String(Date.now()).slice(-9)) + 13);
+
+  const stamp = `E2E-${Date.now()}`;
+  await login(page, 'owner');
+  await page.goto('/broadcasts');
+  await page.getByLabel('Kimga').selectOption('GROUP');
+  await page.getByRole('combobox', { name: /^Guruh/ }).selectOption({ label: target!.group.name });
+  await page.getByRole('textbox', { name: /^Xabar/ }).fill(`Ochiq dars ${stamp}`);
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64, 1)]);
+  await page.getByLabel('Rasm yoki hujjat fayli').setInputFiles({ name: 'afisha.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('afisha.png')).toBeVisible();
+  await page.getByRole('button', { name: 'Tugma qo‘shish' }).click();
+  await page.getByLabel('Tugma 1 matni').fill('Ro‘yxatdan o‘tish');
+  await page.getByLabel('Havola').fill('https://example.uz/ochiq-dars');
+
+  await page.getByRole('button', { name: 'Oldindan ko‘rish' }).click();
+  const bubble = page.getByLabel('Xabar ko‘rinishi');
+  await expect(bubble.getByText(`Ochiq dars ${stamp}`)).toBeVisible();
+  await expect(bubble.getByRole('link', { name: /Ro‘yxatdan o‘tish/ })).toHaveAttribute('href', 'https://example.uz/ochiq-dars');
+  await page.getByRole('button', { name: /^Yuborish \(\d+\)$/ }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Yuborish' }).click();
+  await expect(page.getByText(/navbatga qo‘yildi/)).toBeVisible();
+
+  const broadcast = await withDb(async (db) => (await db.query<{ id: string; recipients: number; mediaKind: string; buttons: unknown }>('SELECT id, recipients, "mediaKind", buttons FROM telegram_broadcasts WHERE message = $1', [`Ochiq dars ${stamp}`])).rows[0]);
+  expect(broadcast).toMatchObject({ mediaKind: 'photo', buttons: [{ text: 'Ro‘yxatdan o‘tish', url: 'https://example.uz/ochiq-dars' }] });
+  expect(broadcast!.recipients).toBeGreaterThan(0);
+
+  // Navbat jobi (har daqiqa) qayta ishlaydi: E2E'da bot tokeni yo'q — "yetmadi" (soxta "yuborildi" yo'q)
+  await expect
+    .poll(
+      () => withDb(async (db) => (await db.query<{ n: string }>(`SELECT COUNT(*)::text AS n FROM notification_deliveries WHERE "broadcastId" = $1 AND status = 'PENDING'`, [broadcast!.id])).rows[0]!.n),
+      { timeout: 150_000, intervals: [5_000] },
+    )
+    .toBe('0');
+  await page.reload();
+  const row = page.getByRole('row').filter({ hasText: stamp });
+  await expect(row).toBeVisible();
+  await expect(row.getByText('Rasm')).toBeVisible();
+  await expect(row.getByText('1 tugma')).toBeVisible();
+  await expect(row.getByRole('cell').nth(6)).toHaveText(String(broadcast!.recipients));
+});

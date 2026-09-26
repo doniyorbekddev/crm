@@ -82,6 +82,7 @@ services:
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
       # Productionda har doim webhook — polling faqat ishlab chiqish uchun
       TELEGRAM_POLLING: "false"
+      BROADCAST_HOURLY_LIMIT: ${BROADCAST_HOURLY_LIMIT:-10}
       UPLOAD_DIR: /app/uploads
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
       # --- AI akademik markaz (ixtiyoriy; kalitsiz — qoidalar rejimi) ---

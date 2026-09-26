@@ -947,3 +947,78 @@ Qo'shimcha: bitta `getBranchAccess` (kesh qilingan ruxsatlar); to'lov ism bo'yic
 ## Next Phase
 
 **PHASE 15 — Broadcast 2.0 (GAP-15)**: URL tugmalar (migratsiya), web UI, statistika, `retry_after`; oila "Marketing/e'lon" toifasi masalasi (PHASE 13 dan).
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 15
+
+Sana: 2026-09-26. GAP-15 "Telegram Broadcast 2.0" (§38).
+
+## Implemented
+
+- **Havola tugmalari** (URL): web va botda, `https://` faqat, ko'pi bilan 3; Telegram'da `inline_keyboard` url tugmasi sifatida.
+- **Web "Ommaviy xabar" sahifasi** (avval faqat bot/REST): auditoriya (o'quvchilar, ota-onalar, o'qituvchilar, xodimlar, guruh, kurs + ota-onalar), matn, **rasm/PDF yuklash**, tugmalar, **oldindan ko'rish** (Telegram ko'rinishiga yaqin, chatlar soni), forma o'zgarsa ko'rish eskiradi, **tasdiq dialogi** (Yuborish / Bekor), tarix va statistika (navbatda bo'lsa avtomatik yangilanadi).
+- **Statistika**: Targeted (mo'ljal), Sent, Delivered, Failed (+ skipped), Pending. "Delivered" — Bot API yetkazilish tasdig'ini bermaydi, shuning uchun = Sent (hujjatlandi, soxta raqam yo'q).
+- **Navbat 2.0** (mavjud `NotificationDelivery`): bir chaqiruvda bir nechta partiya (avval 25/daqiqa → endi 1000/daqiqagacha), **`retry_after`** hurmat qilinadi (urinish sanalmaydi, partiya to'xtaydi), web fayli bir marta yuklanib `file_id` qayta ishlatiladi.
+- **Bot**: "🔗 Tugma qo'shish" / "🧹 Tugmalarni olib tashlash" qadamlari, tarixda mo'ljal/rasm/tugma belgilari.
+- Per-aktor limit: soatiga 10 ta (`BROADCAST_HOURLY_LIMIT`), oshsa 429.
+- Tarix va statistika **filial doirasida** (avval hamma filial xabarlari ko'rinardi).
+- Leadlar auditoriyasi — **yo'q** (audit qarori #5: leadlarda Telegram bog'lanishi yo'q).
+
+## Existing Code Reused
+
+`broadcastService` (auditoriya, filial doirasi, audit, tranzaksiya), `NotificationDelivery` navbati va qayta urinish, `telegramService.sendMedia`, `fileStorage` (magic bytes, saqlash, nom tozalash), `uploadBody` (xom yuklash), `groupsService`/`coursesService`, `ConfirmDialog`, `PermissionGate`.
+
+## New Files
+
+`backend/prisma/migrations/20260927120000_broadcast_buttons_media/migration.sql`, `backend/tests/broadcast2.test.ts`, `frontend/src/pages/broadcasts/BroadcastsPage.tsx` (+ `.test.tsx`), `frontend/src/services/broadcasts.service.ts`, `frontend/src/types/broadcast.ts`, `docs/broadcast.md`.
+
+## Modified Files
+
+Backend: `schema.prisma`, `config/env.ts` (`BROADCAST_HOURLY_LIMIT`), `validators/broadcast.validator.ts` (tugmalar, `mediaToken`, strict), `services/broadcast.service.ts` (media token, tugmalar, statistika, limit, filial), `services/notificationDelivery.service.ts` (partiyalar, retry_after, media yuklash, tugmalar), `services/telegram.service.ts` (url tugma, `retryAfter`, `fileId`, rasm multipart), `telegram/handlers/broadcast.ts`, `controllers/telegram.controller.ts`, `routes/telegram.routes.ts`, `tests/broadcast.test.ts` (tarix qatori formati ataylab o'zgardi — "jami 3" → "🎯 3 mo'ljal", aniq son bilan). Frontend: `navigation.ts`, `routes/index.tsx`, `queryKeys.ts`, `permissionKeys.ts`. Boshqa: `.env.example`, `docker-compose.prod.yml`, `playwright.config.ts` (E2E limit), `e2e/specs/flows.spec.ts`, `docs/telegram.md`.
+
+## Database Changes
+
+(oldin `pg_dump`) `telegram_broadcasts`: `buttons JSONB`, `mediaPath VARCHAR(255)`, `mediaFileName VARCHAR(200)`; `notification_deliveries`: `buttons JSONB` — faqat qo'shish, hammasi NULL-able; dev va test bazalarida qo'llandi.
+
+## API Changes
+
+- `POST /api/telegram/broadcasts/media` (yangi, `broadcast.send`) — xom fayl → `{ token, kind, fileName, size }` (201).
+- `GET /api/telegram/broadcasts/:id` (yangi) — bitta xabar statistikasi.
+- `POST /api/telegram/broadcasts[/preview]` — ixtiyoriy `buttons`, `mediaToken`; noma'lum maydon — 422; limit — 429.
+- DTO: `delivered`, `skipped`, `mediaKind`, `buttons` qo'shildi; ro'yxat 20 ta, filial doirasida.
+
+## Telegram Changes
+
+`bc_btn`, `bc_btnclr`; navbat `reply_markup` (url) bilan yuboradi; 429 da `retry_after`.
+
+## Permissions
+
+Yangi ruxsat yo'q — `broadcast.send` (REST, media, bot). Frontend kalitlariga `BROADCAST_SEND` qo'shildi (menyu va sahifa himoyasi; server tekshiruvi asosiy).
+
+## Security
+
+Tugma havolasi faqat https (javascript:, http:, tg:, login/parolli, localhost — 422; web'da ham oldindan). Media tokeni: alohida kalit (JWT_SECRET dan hosila, `aud=broadcast-media`) — access token sifatida ishlamaydi; faqat yuklagan xodim (boshqasi — 403), 1 soat. Fayl turi baytlar bo'yicha. Soatlik limit. Filial doirasi tarixda. `endpointSecurity` yangi marshrutlarni avtomatik tekshirdi (401/403).
+
+## Tests
+
+Backend **860/860** (+9 — to'liq toza): §38 to'liq oqim (media bir marta yuklanadi, keyin file_id; tugmalar har xabarda; escape), statistika (yetmadi va skipped alohida), retry_after, 60 chatli auditoriya bitta chaqiruvda, validatsiya/token/403, limit 429, filial, bot tugma qadami. Frontend **125/125** (+4), E2E **45/45** (+1 §38: web'da guruh → rasm → tugma → ko'rish → tasdiq → navbat jobi haqiqatan kutiladi → tarixda statistika). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Navbat: 25 → 1000 xabar/daqiqagacha (Telegram ~30/s chegarasidan past, ketma-ket so'rovlar); web fayli bitta yuklash + `file_id`. Statistika — har xabar uchun bitta `groupBy` (avvalgidek).
+
+## Documentation
+
+`docs/broadcast.md` (yangi), `docs/telegram.md`.
+
+## Known Issues
+
+- Yuklangan, lekin yuborilmagan web fayllari diskda qoladi (token 1 soatda eskiradi) — PHASE 21 dagi "yetim fayllar" tozalashiga qo'shildi.
+- "Delivered" = Sent (Telegram cheklovi, hujjatlangan).
+- Leadlarga yuborish — bog'lanish oqimi yo'q (qaror #5).
+- Oila "Marketing" toifasi (PHASE 13 dan): e'lonlar avvalgidek ovozsiz rejimda ham keladi — siyosat o'zgartirilmadi, hujjatlandi.
+
+## Next Phase
+
+**PHASE 16 — Telegram documentation (GAP-16)**: telegram-api, telegram-auth, telegram-permissions, telegram-notifications, telegram-testing; S9 (`telegram:webhook` skripti production image'da ishlamasligi).

@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { webhookLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import { uploadBody } from './document.routes.js';
 
 export const telegramRouter = Router();
 
@@ -23,3 +24,6 @@ const broadcast = requirePermission(PERMISSIONS.BROADCAST_SEND);
 telegramRouter.get('/broadcasts', authenticate, broadcast, telegramController.broadcastList);
 telegramRouter.post('/broadcasts/preview', authenticate, broadcast, telegramController.broadcastPreview);
 telegramRouter.post('/broadcasts', authenticate, broadcast, telegramController.broadcastSend);
+// Rasm/PDF yuklash (xom tana, nomi X-File-Name da) → yuborishda ishlatiladigan token (TZ 3.1 GAP-15)
+telegramRouter.post('/broadcasts/media', authenticate, broadcast, uploadBody, telegramController.broadcastMedia);
+telegramRouter.get('/broadcasts/:id', authenticate, broadcast, telegramController.broadcastGet);

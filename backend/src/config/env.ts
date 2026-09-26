@@ -78,6 +78,8 @@ const envSchema = z
      * botda ikkalasi birga ishlamaydi (Telegram `getUpdates` ni 409 bilan rad etadi).
      */
     TELEGRAM_POLLING: booleanString,
+    /** Bir xodim soatiga yuborishi mumkin bo'lgan ommaviy xabarlar (TZ 3.1 GAP-15) */
+    BROADCAST_HOURLY_LIMIT: z.coerce.number().int().min(1).max(1000).default(10),
     // --- AI (ixtiyoriy, TZ 3.0 §30–41) ---
     // Kalit berilmasa AI akademik markaz **qoidalar rejimida** ishlaydi: faktlar, ballar, tavsiyalar
     // CRM ma'lumotidan kod bilan hisoblanadi; til modeli faqat matnni boyitadi.

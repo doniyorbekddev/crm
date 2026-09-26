@@ -185,7 +185,8 @@ describe.skipIf(!hasTestDatabase)('Ommaviy xabar (broadcast)', () => {
 
     await press('bc_list').expect(200);
     expect(bot.last().text).toContain('A guruh');
-    expect(bot.last().text).toContain('jami 3');
+    // TZ 3.1 GAP-15: statistika qatori — mo'ljal (targeted) aniq son bilan
+    expect(bot.last().text).toContain('🎯 3 mo‘ljal');
   });
 
   it('bot oqimi: bekor qilinsa hech nima yuborilmaydi; ruxsatsiz xodimga tugma yo‘q', async () => {

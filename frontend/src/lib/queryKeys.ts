@@ -227,6 +227,11 @@ export const queryKeys = {
     all: ['reports'] as const,
     build: (type: ReportType, params: ReportParams) => ['reports', type, params] as const,
   },
+  broadcasts: {
+    all: ['broadcasts'] as const,
+    list: ['broadcasts', 'list'] as const,
+    targets: ['broadcasts', 'targets'] as const,
+  },
   notifications: {
     all: ['notifications'] as const,
     list: (params: NotificationListParams) => ['notifications', 'list', params] as const,

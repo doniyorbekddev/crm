@@ -53,7 +53,15 @@ export const telegramController = {
   },
 
   async broadcastList(req: Request, res: Response): Promise<void> {
-    sendSuccess(res, await broadcastService.list(requireAuthUser(req)));
+    sendSuccess(res, await broadcastService.list(requireAuthUser(req), 20));
+  },
+
+  async broadcastGet(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await broadcastService.getById(requireAuthUser(req), String(req.params.id)));
+  },
+
+  async broadcastMedia(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await broadcastService.uploadMedia(requireAuthUser(req), req.body, req.header('x-file-name')), { statusCode: 201, message: 'Fayl yuklandi' });
   },
 
   /**

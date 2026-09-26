@@ -1,4 +1,5 @@
 import {
+  Megaphone,
   Landmark,
   ListTodo,
   LineChart,
@@ -126,6 +127,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/branches', label: 'Filiallar', icon: Building2, permission: PERMISSIONS.BRANCH_MANAGE },
       { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
       { to: '/settings/academy', label: 'Markaz ma’lumotlari', icon: Landmark, permission: PERMISSIONS.SETTINGS_MANAGE },
+      { to: '/broadcasts', label: 'Ommaviy xabar', icon: Megaphone, permission: PERMISSIONS.BROADCAST_SEND },
       { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
     ],
   },

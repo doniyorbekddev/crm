@@ -48,6 +48,7 @@ export const PERMISSIONS = {
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
+  BROADCAST_SEND: 'broadcast.send',
   AUDIT_VIEW: 'audit.view',
 
   // --- O'quv markaz modullari ---

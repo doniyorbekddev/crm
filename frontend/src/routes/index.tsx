@@ -721,6 +721,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.BROADCAST_SEND} />
+                    ),
+                    children: [
+                      {
+                        path: "broadcasts",
+                        lazy: lazyComponent(
+                          () => import("@/pages/broadcasts/BroadcastsPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.AUDIT_VIEW} />
                     ),
                     children: [

@@ -59,6 +59,8 @@ export default defineConfig({
         // dotenv mavjud o'zgaruvchini almashtirmaydi). Telegram navbati baribir yoziladi va tekshiriladi.
         TELEGRAM_BOT_TOKEN: '',
         TELEGRAM_POLLING: 'false',
+        // E2E qayta-qayta yuguradi — ommaviy xabar soatlik limiti sinovga xalaqit bermasin
+        BROADCAST_HOURLY_LIMIT: '1000',
         // Webhook'ni E2E testlari o'zi chaqiradi (§35) — dev .env dagi sir emas, alohida test qiymati
         TELEGRAM_WEBHOOK_SECRET: E2E_WEBHOOK_SECRET,
         ANTHROPIC_API_KEY: '',

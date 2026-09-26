@@ -1342,6 +1342,8 @@ model NotificationDelivery {
   /// "photo" | "document" — bo'lsa xabar media bilan (izoh = body)
   mediaKind      String?         @db.VarChar(10)
   mediaFileId    String?         @db.VarChar(200)
+  /// URL tugmalar (broadcast): [{ text, url }]
+  buttons        Json?
   attempts       Int             @default(0) @db.SmallInt
   lastError      String?         @db.VarChar(500)
   /// Keyingi urinish vaqti (exponential backoff)
@@ -1454,19 +1456,24 @@ enum BroadcastAudience {
 /// chegarasi va qayta urinish o'sha yerda. Bu yozuv "kim, kimga, nima" ni saqlaydi;
 /// statistika (yuborildi/xato/kutmoqda) navbatdan `broadcastId` bo'yicha hisoblanadi.
 model TelegramBroadcast {
-  id          String            @id @default(cuid())
-  createdById String?
-  audience    BroadcastAudience
+  id            String            @id @default(cuid())
+  createdById   String?
+  audience      BroadcastAudience
   /// GROUP/COURSE uchun — guruh yoki kurs id
-  targetId    String?           @db.VarChar(50)
+  targetId      String?           @db.VarChar(50)
   /// Auditoriya nomi (guruh/kurs nomi) — keyin o'zgarsa ham jurnal o'zgarmasin
-  label       String            @db.VarChar(150)
-  message     String            @db.VarChar(2000)
+  label         String            @db.VarChar(150)
+  message       String            @db.VarChar(2000)
   /// Rasm yoki hujjat bilan yuborilgan bo'lsa — Telegram file_id (bot o'zi qayta yuboradi)
-  mediaKind   String?           @db.VarChar(10)
-  mediaFileId String?           @db.VarChar(200)
-  recipients  Int               @default(0)
-  createdAt   DateTime          @default(now())
+  mediaKind     String?           @db.VarChar(10)
+  mediaFileId   String?           @db.VarChar(200)
+  /// Web'dan yuklangan fayl (CRM xotirasida) — birinchi yuborishda Telegram file_id olinadi va qolganlarga ishlatiladi
+  mediaPath     String?           @db.VarChar(255)
+  mediaFileName String?           @db.VarChar(200)
+  /// URL tugmalar: [{ text, url }] (https, ko'pi bilan 3) — TZ 3.1 GAP-15
+  buttons       Json?
+  recipients    Int               @default(0)
+  createdAt     DateTime          @default(now())
 
   createdBy  User?                  @relation("BroadcastCreator", fields: [createdById], references: [id], onDelete: SetNull)
   deliveries NotificationDelivery[]
