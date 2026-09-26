@@ -106,6 +106,8 @@
 
 ## PHASE 20 — Full regression
 Barcha to'plamlar, E2E §35–38, yuk testi (broadcast katta auditoriya), `endpointSecurity`, bot ruxsat matritsasi.
+- **S3 qoldig'i** (PHASE 14 da faqat qidiruv yopildi): analitika (`analytics.service`, `academicAnalytics` dan tashqari), `executive`/`academyOverview`, 15 hisobot turi (`report.service`) — `branch.view_all` siz xodimga faqat o'z filiali; bot (kunlik hisobot, marketing, hisobotlar) avtomatik shu servislardan oladi.
+- Test to'plami `testTimeout` (yuklangan mashinada 5 s ba'zan yetmaydi).
 
 ## PHASE 21 — Production hardening
 Metrikalar (to'lov, job "oxirgi yurish", webhook 401, bot xatolari), Telegram env production tekshiruvi (token → secret majburiy), `PAYMENT_*`/`CLICK_*`/`PAYME_*` compose'ga, deployment hujjati, §55 qabul ro'yxati, yakuniy GAP matritsasi (§49), TZ.html/pdf.
