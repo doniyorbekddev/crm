@@ -615,7 +615,7 @@ Eslatma — har follow-up uchun bitta tranzaksiya (avvalgidek); sozlama filtri b
 
 ---
 
-# PHASE 10 — Owner Telegram Teacher KPI (GAP-10)
+# ACADEMY CRM 3.1 — PHASE 10
 
 ## Implemented
 
