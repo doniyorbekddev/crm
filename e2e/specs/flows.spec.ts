@@ -416,3 +416,22 @@ test('GAP-12 rahbar: botda kunlik hisobot, hisobot davri va CSV — REST bilan b
   const teacher = await apiLogin(request, 'teacher');
   expect((await request.get(`${API}/dashboard/executive`, { headers: teacher })).status()).toBe(403);
 });
+
+test('GAP-13 sozlamalar: menejer botda “Marketing” toifasini o‘chiradi — web API’da ko‘rinadi, qayta yoqadi', async ({ request }) => {
+  const manager = await apiLogin(request, 'manager');
+  const managerId = (await (await request.get(`${API}/auth/me`, { headers: manager })).json()).data.id as string;
+  const chatId = Number(String(Date.now()).slice(-9)) + 11;
+  await linkStaffTelegram(managerId, chatId);
+  const marketingTelegram = async () =>
+    ((await (await request.get(`${API}/notifications/settings`, { headers: manager })).json()).data as Array<{ type: string; telegram: boolean }>)
+      .filter((item) => ['NEW_LEAD', 'LEAD_ASSIGNED', 'FOLLOW_UP_REMINDER'].includes(item.type))
+      .map((item) => item.telegram);
+
+  // Boshlang'ich holat (oldingi yugurishdan qat'i nazar): hammasi yoqilgan bo'lguncha
+  if ((await marketingTelegram()).some((on) => !on)) await telegramPress(request, chatId, 'ws_sc:MARKETING');
+  expect(await marketingTelegram()).toEqual([true, true, true]);
+  await telegramPress(request, chatId, 'ws_sc:MARKETING');
+  expect(await marketingTelegram()).toEqual([false, false, false]);
+  await telegramPress(request, chatId, 'ws_sc:MARKETING');
+  expect(await marketingTelegram()).toEqual([true, true, true]);
+});

@@ -36,3 +36,18 @@ Follow-up eslatmasi (`FOLLOW_UP_REMINDER`, `TRIAL_LESSON_REMINDER`) va kechikish
 va botdagi "ovozsiz" rejim hurmat qilinadi. Oldin job bildirishnomani to'g'ridan-to'g'ri yozardi — Telegramga
 eslatma ketmasdi (bot esa "eslatma shu chatga keladi" deb aytardi). Shoshilinch/yuqori muhimlikdagi follow-up
 xabari 🔴/🟠 belgisi bilan. Testlar: `backend/tests/followUpReminderTelegram.test.ts`, E2E §37.
+
+## Toifalar va oilaviy Telegram (3.1, GAP-13)
+
+Toifa — `config/notificationTypes.ts` dagi `NOTIFICATION_CATEGORY` (har tur aynan bitta toifada; yangi tur toifasiz
+kompilyatsiya o'tmaydi): **ATTENDANCE** (kelmadi, kechikdi, xavf oshdi), **PAYMENT** (to'lov, qarz, muddat, xarajat tasdig'i),
+**HOMEWORK** (yangi, baholandi, muddat, qaytarildi), **EXAM** (rejalashtirildi, natija, past baho), **ACHIEVEMENT** (daraja,
+sertifikat), **MARKETING** (lead, biriktirish, follow-up, sinov darsi, lead → o'quvchi), **SYSTEM** (tizim — o'chirilmaydi,
+kunlik xulosa, haftalik hisobot, past baholi fikr).
+
+Yangi saqlash yo'q: toifa tugmasi mavjud `NotificationSetting` (userId + tur) qatorlarini yozadi — faqat `telegram`,
+`inApp` o'zgarmaydi. Web (`PUT /api/notifications/settings`) va bot bir xil qatorlarni ko'radi.
+
+**Oilaviy Telegram** (`notifyExternalInTransaction`, `studentId`/`parentId` bo'yicha) endi **tur** oladi: o'quvchi yoki
+ota-onaning kabinet hisobi bo'lsa, shu hisobning tur sozlamasi (`telegram: false`) chatga ham amal qiladi. Hisobsiz
+chatda — faqat umumiy "ovozsiz" rejim (`TelegramLink.muted`). Tizim turi har doim yuboriladi.

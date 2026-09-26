@@ -70,6 +70,7 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
   if (!channels.telegram) return queued;
   if (includeStudent) {
     queued += await notificationService.notifyExternalInTransaction(tx, {
+      type: event.type,
       title: event.title,
       message: event.message,
       studentId: event.studentId,
@@ -78,6 +79,7 @@ async function notifyFamily(tx: Tx, event: FamilyEvent): Promise<number> {
   }
   for (const parent of parentRows) {
     queued += await notificationService.notifyExternalInTransaction(tx, {
+      type: event.type,
       title: event.title,
       message: event.message,
       parentId: parent.id,

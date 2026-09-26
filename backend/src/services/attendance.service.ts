@@ -309,6 +309,7 @@ export const attendanceService = {
           // Ota-onalar: CRM hisobi bo'lmasligi mumkin, shuning uchun to'g'ridan-to'g'ri kanalga
           for (const parentId of parentsByStudent.get(record.studentId) ?? []) {
             await notificationService.notifyExternalInTransaction(tx, {
+              type: 'CHILD_ABSENT',
               title: 'Farzandingiz darsga kelmadi',
               message,
               parentId,
@@ -317,6 +318,7 @@ export const attendanceService = {
           }
           // O'quvchining o'ziga ham (Telegramni ulagan bo'lsa)
           await notificationService.notifyExternalInTransaction(tx, {
+            type: 'CHILD_ABSENT',
             title: 'Darsga kelmadingiz',
             message,
             studentId: record.studentId,

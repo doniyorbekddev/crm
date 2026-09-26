@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { prisma } from '../../config/database.js';
 import { primaryClientUrl } from '../../config/env.js';
 import { PERMISSIONS } from '../../config/permissions.js';
+import { NOTIFICATION_CATEGORIES, NOTIFICATION_CATEGORY, NOTIFICATION_CATEGORY_LABELS, isMutableNotificationType, isNotificationCategory } from '../../config/notificationTypes.js';
 import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
 import { academicAnalyticsService } from '../../services/academicAnalytics.service.js';
@@ -39,6 +40,8 @@ export const WORKSPACE_ACTIONS = {
   search: 'ws_sr',
   settings: 'ws_set',
   toggleType: 'ws_st',
+  /** `ws_sc:<toifa>` — toifa bo'yicha yoqish/o'chirish (TZ 3.1 GAP-13) */
+  toggleCategory: 'ws_sc',
   toggleMute: 'ws_mute',
   kpi: 'ws_kpi',
   /** Rahbar: bitta o'qituvchi KPI tafsiloti (TZ 3.1 GAP-10) */
@@ -154,6 +157,8 @@ const STAFF_TYPES: ReadonlyArray<{ type: NotificationType; label: string; permis
   { type: 'LEAD_ASSIGNED', label: 'Lead biriktirildi', permission: PERMISSIONS.LEAD_VIEW },
   { type: 'FOLLOW_UP_REMINDER', label: 'Follow-up eslatmasi', permission: PERMISSIONS.LEAD_VIEW },
   { type: 'FOLLOW_UP_OVERDUE', label: 'Kechikkan follow-up', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'TRIAL_LESSON_REMINDER', label: 'Sinov darsi eslatmasi', permission: PERMISSIONS.LEAD_VIEW },
+  { type: 'NEW_STUDENT', label: 'Lead o‘quvchi bo‘ldi', permission: PERMISSIONS.LEAD_VIEW },
   { type: 'NEW_PAYMENT', label: 'Yangi to‘lov', permission: PERMISSIONS.PAYMENT_VIEW },
   { type: 'DEBT_REMINDER', label: 'Qarzdorlik', permission: PERMISSIONS.DEBT_VIEW },
   { type: 'RISK_INCREASED', label: 'O‘quvchi xavfi oshdi', permission: PERMISSIONS.ATTENDANCE_MARK },
@@ -162,9 +167,48 @@ const STAFF_TYPES: ReadonlyArray<{ type: NotificationType; label: string; permis
   { type: 'DAILY_DIGEST', label: 'Kunlik xulosa', permission: PERMISSIONS.DASHBOARD_VIEW },
 ];
 
+/** O'quvchi/ota-onaga (oilaviy yo'l) keladigan turlar — `studentNotify` va davomat */
+const FAMILY_TYPES: readonly NotificationType[] = [
+  'CHILD_ABSENT',
+  'ATTENDANCE_LATE',
+  'PAYMENT_DUE_SOON',
+  'DEBT_REMINDER',
+  'HOMEWORK_CREATED',
+  'HOMEWORK_GRADED',
+  'HOMEWORK_DEADLINE',
+  'HOMEWORK_RETURNED',
+  'EXAM_SCHEDULED',
+  'EXAM_RESULT',
+  'LOW_SCORE',
+  'LEVEL_UP',
+  'CERTIFICATE_ISSUED',
+  'WEEKLY_REPORT',
+];
+
 async function linkOf(context: BotContext) {
-  return prisma.telegramLink.findFirst({ where: { chatId: context.chatId, isActive: true }, select: { id: true, muted: true } });
+  return prisma.telegramLink.findFirst({ where: { chatId: context.chatId, isActive: true }, select: { id: true, muted: true, studentId: true, parentId: true } });
 }
+
+/**
+ * Sozlama kimga yoziladi va qaysi turlar: xodim — o'zi (ruxsatidagi turlar); o'quvchi/ota-ona — chat
+ * bog'langan yozuvning **kabinet hisobi** (bazadan, callback'dan emas). Hisob bo'lmasa — null
+ * (yangi saqlash tizimi yaratilmaydi, faqat umumiy "ovozsiz").
+ */
+async function settingsOwner(context: BotContext, scope: CommandScope): Promise<{ userId: string; types: NotificationType[]; staff: boolean } | null> {
+  if (scope.actor) {
+    const permissions = await permissionsOf(scope.actor);
+    return { userId: scope.actor.id, types: STAFF_TYPES.filter((item) => !item.permission || permissions.has(item.permission)).map((item) => item.type), staff: true };
+  }
+  const link = await linkOf(context);
+  const owner = link?.studentId
+    ? await prisma.student.findFirst({ where: { id: link.studentId, deletedAt: null }, select: { userId: true } })
+    : link?.parentId
+      ? await prisma.parent.findUnique({ where: { id: link.parentId }, select: { userId: true } })
+      : null;
+  return owner?.userId ? { userId: owner.userId, types: [...FAMILY_TYPES], staff: false } : null;
+}
+
+const TYPE_LABELS = new Map<NotificationType, string>(STAFF_TYPES.map((item) => [item.type, item.label]));
 
 export async function showSettings(context: BotContext, scope: CommandScope, note = ''): Promise<HandlerResult> {
   const link = await linkOf(context);
@@ -173,20 +217,27 @@ export async function showSettings(context: BotContext, scope: CommandScope, not
   lines.push(link?.muted ? '🔕 Avtomatik eslatmalar <b>to‘xtatilgan</b> (markaz e’lonlari baribir keladi).' : '🔔 Avtomatik eslatmalar yoqilgan.');
   keyboard.push([{ text: link?.muted ? '🔔 Eslatmalarni yoqish' : '🔕 Eslatmalarni to‘xtatish', data: callback(WORKSPACE_ACTIONS.toggleMute) }]);
 
-  if (scope.actor) {
-    const permissions = await permissionsOf(scope.actor);
-    const settings = new Map((await notificationService.settings(scope.actor)).map((row) => [row.type, row]));
-    const types = STAFF_TYPES.filter((item) => !item.permission || permissions.has(item.permission));
-    if (types.length) {
-      lines.push('', 'Telegramga keladigan xabarlar (bosib yoqing/o‘chiring):');
-      for (const item of types) {
-        const on = settings.get(item.type)?.telegram ?? true;
-        keyboard.push([{ text: `${on ? '✅' : '⬜️'} ${item.label}`, data: callback(WORKSPACE_ACTIONS.toggleType, item.type) }]);
+  const owner = await settingsOwner(context, scope);
+  if (owner && owner.types.length > 0) {
+    const settings = new Map((await notificationService.settingsFor(owner.userId)).map((row) => [row.type, row]));
+    lines.push('', 'Telegramga keladigan xabarlar — toifa bo‘yicha (✅ yoqilgan, ◐ qisman, ⬜️ o‘chirilgan):');
+    for (const category of NOTIFICATION_CATEGORIES) {
+      const types = owner.types.filter((type) => NOTIFICATION_CATEGORY[type] === category);
+      if (types.length === 0) continue;
+      const on = types.filter((type) => settings.get(type)?.telegram ?? true).length;
+      const mark = on === types.length ? '✅' : on === 0 ? '⬜️' : '◐';
+      keyboard.push([{ text: `${mark} ${NOTIFICATION_CATEGORY_LABELS[category]}`, data: callback(WORKSPACE_ACTIONS.toggleCategory, category) }]);
+      // Xodim — toifa ichida turlar ham (avvalgidek bittalab)
+      if (owner.staff) {
+        const buttons = types.map((type) => ({ text: `${(settings.get(type)?.telegram ?? true) ? '✅' : '⬜️'} ${TYPE_LABELS.get(type) ?? type}`, data: callback(WORKSPACE_ACTIONS.toggleType, type) }));
+        for (let index = 0; index < buttons.length; index += 2) keyboard.push(buttons.slice(index, index + 2));
       }
     }
-  } else if (scope.kind === 'PARENT' && scope.studentIds.length > 1) {
-    keyboard.push([{ text: '👨‍👩‍👧 Farzandni tanlash', data: callback('st_child') }]);
+    lines.push('Hisob va xavfsizlik (tizim) xabarlari doim keladi.');
+  } else if (!scope.actor) {
+    lines.push('', 'Toifalar bo‘yicha sozlash (davomat, to‘lov, vazifa, imtihon, yutuqlar) — kabinet hisobi bilan ishlaydi; hisob ochish uchun markazga murojaat qiling.');
   }
+  if (scope.kind === 'PARENT' && scope.studentIds.length > 1) keyboard.push([{ text: '👨‍👩‍👧 Farzandni tanlash', data: callback('st_child') }]);
   lines.push('', 'Til: o‘zbekcha (lotin).');
   if (note) lines.push('', note);
   keyboard.push([{ text: '🚫 Bog‘lanishni uzish', data: callback('cmd', '/uzish') }], menuRow());
@@ -203,11 +254,29 @@ export async function toggleMute(context: BotContext, scope: CommandScope): Prom
 export async function toggleType(context: BotContext, scope: CommandScope, type: string | null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor) return { action: WORKSPACE_ACTIONS.toggleType };
-  const item = STAFF_TYPES.find((row) => row.type === type);
-  if (!item) return showSettings(context, scope);
-  const current = (await notificationService.settings(actor)).find((row) => row.type === item.type);
-  await notificationService.saveSettings(actor, [{ type: item.type, inApp: current?.inApp ?? true, telegram: !(current?.telegram ?? true) }]);
+  const owner = await settingsOwner(context, scope);
+  // Faqat ruxsatidagi tur (callback'ga ishonilmaydi)
+  const item = owner?.types.find((row) => row === type);
+  if (!owner || !item) return showSettings(context, scope);
+  const current = (await notificationService.settingsFor(owner.userId)).find((row) => row.type === item);
+  await notificationService.saveSettingsFor(owner.userId, [{ type: item, inApp: current?.inApp ?? true, telegram: !(current?.telegram ?? true) }]);
   return showSettings(context, scope);
+}
+
+/** Toifa: hammasi yoqilgan bo'lsa — hammasini o'chiradi, aks holda hammasini yoqadi. Ilova ichidagi sozlama o'zgarmaydi. */
+export async function toggleCategory(context: BotContext, scope: CommandScope, category: string | null): Promise<HandlerResult> {
+  if (!isNotificationCategory(category)) return showSettings(context, scope);
+  const owner = await settingsOwner(context, scope);
+  if (!owner) return showSettings(context, scope);
+  const types = owner.types.filter((type) => NOTIFICATION_CATEGORY[type] === category && isMutableNotificationType(type));
+  if (types.length === 0) return showSettings(context, scope);
+  const current = new Map((await notificationService.settingsFor(owner.userId)).map((row) => [row.type, row]));
+  const allOn = types.every((type) => current.get(type)?.telegram ?? true);
+  await notificationService.saveSettingsFor(
+    owner.userId,
+    types.map((type) => ({ type, inApp: current.get(type)?.inApp ?? true, telegram: !allOn })),
+  );
+  return showSettings(context, scope, `${NOTIFICATION_CATEGORY_LABELS[category]}: ${allOn ? 'o‘chirildi' : 'yoqildi'}.`);
 }
 
 // ---------------------------------------------------------------------
@@ -723,6 +792,8 @@ export async function handleWorkspaceAction(context: BotContext, scope: CommandS
       return toggleMute(context, scope);
     case WORKSPACE_ACTIONS.toggleType:
       return toggleType(context, scope, arg);
+    case WORKSPACE_ACTIONS.toggleCategory:
+      return toggleCategory(context, scope, arg);
     case WORKSPACE_ACTIONS.search:
       return startSearch(context, scope);
     case WORKSPACE_ACTIONS.kpi:

@@ -813,3 +813,70 @@ Kunlik hisobot — ikkita mavjud servis parallel (web panel bilan bir xil so'rov
 ## Next Phase
 
 **PHASE 13 — Telegram settings (GAP-13)**: bildirishnoma toifalari (davomat, to'lov, vazifa, imtihon, yutuq, e'lon, tizim) — xodim, o'quvchi va ota-ona uchun; oilaviy Telegram yo'li sozlamani hisobga oladi.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 13
+
+Sana: 2026-09-26. GAP-13 "Telegram settings".
+
+## Implemented
+
+- "⚙️ Sozlamalar" — TZ'dagi 7 toifa: 📚 davomat, 💳 to'lov, 📝 vazifa, 🎯 imtihon, 🏆 yutuqlar, 📣 marketing, ⚙️ tizim; holat ✅ (yoqilgan) / ◐ (qisman) / ⬜️ (o'chirilgan), bosilsa ON/OFF.
+- Xodim — faqat ruxsatidagi turlar bor toifalar; toifa ichida turlar ham (avvalgi bittalab boshqaruv saqlandi). Staff ro'yxatiga haqiqatda yuboriladigan 2 tur qo'shildi (sinov darsi eslatmasi, lead → o'quvchi).
+- **O'quvchi va ota-ona** — avval sozlama faqat "ovozsiz" edi: endi kabinet hisobi bo'lsa toifalar (davomat, to'lov, vazifa, imtihon, yutuqlar, tizim/haftalik hisobot).
+- **Oilaviy Telegram yo'li sozlamani hisobga oladi** (audit topilmasi): `notifyExternalInTransaction` tur oladi va hisob egasining `telegram: false` sozlamasida chatga yubormaydi — endi bot, web kabinet va navbat bitta sozlama bilan ishlaydi. Tizim turi doim yuboriladi.
+
+## Existing Code Reused
+
+TZ talabi "NotificationSetting architecture'ni reuse qil, yangi preference system yaratma": toifa — `NotificationSetting` (userId + tur) qatorlari to'plami, yangi jadval/ustun yo'q; `notificationService.settings/saveSettings` (userId variantlari `settingsFor/saveSettingsFor` — mavjud metodlar ularga yo'naltirildi, mantiq bitta), `isMutableNotificationType`, `studentNotify.notifyFamily`.
+
+## New Files
+
+`backend/tests/telegramSettings.test.ts`.
+
+## Modified Files
+
+`backend/src/config/notificationTypes.ts` (toifalar, yorliqlar, tur → toifa `Record`), `backend/src/services/notification.service.ts` (`settingsFor`, `saveSettingsFor`, oilaviy Telegram filtri), `backend/src/services/studentNotify.service.ts`, `backend/src/services/attendance.service.ts` (tur uzatiladi: `CHILD_ABSENT`), `backend/src/telegram/handlers/workspace.ts` (`settingsOwner`, `toggleCategory`, sozlamalar ekrani), `e2e/specs/flows.spec.ts`, `docs/telegram.md`, `docs/notifications.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q (REST `/api/notifications/settings` o'zgarmadi — bot bilan umumiy saqlash).
+
+## Telegram Changes
+
+Yangi callback `ws_sc:<ATTENDANCE|PAYMENT|HOMEWORK|EXAM|ACHIEVEMENT|MARKETING|SYSTEM>`; `ws_st` endi ham faqat ruxsatdagi turni qabul qiladi.
+
+## Permissions
+
+Yangi ruxsat yo'q. Xodim — turlar ruxsatiga qarab; o'quvchi/ota-ona — sozlama egasi chat bog'langan yozuvdan (bazadan) aniqlanadi, callback'dan emas.
+
+## Security
+
+Soxta callback: noma'lum toifa, ruxsatsiz toifa (sotuvda davomat), ruxsatsiz tur (`EXPENSE_APPROVAL`), `SYSTEM` — hech narsa yozilmaydi (test). Hisobsiz chatda toifa callback'i hech narsa yozmaydi. Tizim xabarini o'chirib bo'lmaydi (test).
+
+## Tests
+
+Backend **845/845** (+6 — to'liq toza yugurish): barcha tur toifalangan; kabinetli o'quvchi toifani o'chiradi — Telegram navbati yo'q, ilova ichida bor, boshqa toifa keladi, qayta yoqiladi; web ↔ bot bitta sozlama (◐ qisman); kabinetli ota-ona — davomat o'chsa "kelmadi" chatga ketmaydi, tizim ketadi; hisobsiz o'quvchi; xodim toifasi va soxta callback'lar. Frontend **121/121**, E2E **43/43** (+1: menejer botda marketing toifasini o'chiradi/yoqadi — web API'da ko'rinadi, qayta ishga tushirishga chidamli). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Oilaviy xabar — har qabul qiluvchiga 2 ta indeksli `findUnique` (hisob egasi, sozlama) ko'shimcha; faqat Telegram bog'lash nuqtasida.
+
+## Documentation
+
+`docs/telegram.md` (Sozlamalar qatori), `docs/notifications.md` ("Toifalar va oilaviy Telegram").
+
+## Known Issues
+
+- Hisobsiz o'quvchi/ota-ona chati — faqat umumiy "ovozsiz" (TZ: yangi preference tizimi yaratilmasin; `NotificationSetting` userId talab qiladi).
+- "Marketing" toifasi — xodim turlari (lead, follow-up); oilaga markaz e'lonlari (broadcast) toifa emas, avvalgidek ovozsiz rejimda ham keladi — PHASE 15 (Broadcast 2.0) da ko'rib chiqiladi.
+- Web kabinetda (portal) toifa bo'yicha sozlama sahifasi yo'q — API bor, bot orqali boshqariladi.
+
+## Next Phase
+
+**PHASE 14 — Telegram search (GAP-14) + S2/S3**: o'quvchi/ota-ona o'z ma'lumotini qidiradi; xodim qidiruvida o'qituvchi doirasi (guruh, sertifikat — S2) va filial doirasi (S3); §34 matritsasi qidiruv uchun.

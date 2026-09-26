@@ -52,3 +52,54 @@ export const ALWAYS_ON_NOTIFICATION_TYPES: readonly NotificationType[] = [Notifi
 export function isMutableNotificationType(type: NotificationType): boolean {
   return !ALWAYS_ON_NOTIFICATION_TYPES.includes(type);
 }
+
+/**
+ * Bildirishnoma toifalari (TZ 3.1 GAP-13) — sozlamada tur o'rniga toifa bo'yicha yoqish/o'chirish.
+ * Yangi saqlash tizimi yo'q: toifa — mavjud `NotificationSetting` (userId + tur) qatorlari to'plami.
+ * `Record` tufayli yangi tur qo'shilsa, toifasi berilmaguncha kompilyatsiya o'tmaydi.
+ */
+export const NOTIFICATION_CATEGORIES = ['ATTENDANCE', 'PAYMENT', 'HOMEWORK', 'EXAM', 'ACHIEVEMENT', 'MARKETING', 'SYSTEM'] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
+  ATTENDANCE: '📚 Davomat',
+  PAYMENT: '💳 To‘lov',
+  HOMEWORK: '📝 Vazifa',
+  EXAM: '🎯 Imtihon',
+  ACHIEVEMENT: '🏆 Yutuqlar',
+  MARKETING: '📣 Marketing',
+  SYSTEM: '⚙️ Tizim',
+};
+
+export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategory> = {
+  CHILD_ABSENT: 'ATTENDANCE',
+  ATTENDANCE_LATE: 'ATTENDANCE',
+  RISK_INCREASED: 'ATTENDANCE',
+  NEW_PAYMENT: 'PAYMENT',
+  DEBT_REMINDER: 'PAYMENT',
+  PAYMENT_DUE_SOON: 'PAYMENT',
+  EXPENSE_APPROVAL: 'PAYMENT',
+  HOMEWORK_CREATED: 'HOMEWORK',
+  HOMEWORK_GRADED: 'HOMEWORK',
+  HOMEWORK_DEADLINE: 'HOMEWORK',
+  HOMEWORK_RETURNED: 'HOMEWORK',
+  EXAM_RESULT: 'EXAM',
+  EXAM_SCHEDULED: 'EXAM',
+  LOW_SCORE: 'EXAM',
+  LEVEL_UP: 'ACHIEVEMENT',
+  CERTIFICATE_ISSUED: 'ACHIEVEMENT',
+  NEW_LEAD: 'MARKETING',
+  LEAD_ASSIGNED: 'MARKETING',
+  FOLLOW_UP_REMINDER: 'MARKETING',
+  FOLLOW_UP_OVERDUE: 'MARKETING',
+  TRIAL_LESSON_REMINDER: 'MARKETING',
+  NEW_STUDENT: 'MARKETING',
+  SYSTEM: 'SYSTEM',
+  DAILY_DIGEST: 'SYSTEM',
+  WEEKLY_REPORT: 'SYSTEM',
+  NEGATIVE_FEEDBACK: 'SYSTEM',
+};
+
+export function isNotificationCategory(value: string | null | undefined): value is NotificationCategory {
+  return NOTIFICATION_CATEGORIES.includes(value as NotificationCategory);
+}

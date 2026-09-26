@@ -196,8 +196,19 @@ export const notificationService = {
    */
   async notifyExternalInTransaction(
     tx: Prisma.TransactionClient,
-    input: { title: string; message: string; studentId?: string | null; parentId?: string | null; dedupeKey?: string | null },
+    input: { type: NotificationType; title: string; message: string; studentId?: string | null; parentId?: string | null; dedupeKey?: string | null },
   ): Promise<number> {
+    // TZ 3.1 GAP-13: o'quvchi/ota-onaning kabinet hisobi bo'lsa — uning tur sozlamasi (Telegram) shu chatga ham
+    // amal qiladi (web va botdagi bitta `NotificationSetting`). Hisobsiz chatda — faqat umumiy "ovozsiz" rejim.
+    if (isMutableNotificationType(input.type) && (input.studentId || input.parentId)) {
+      const owner = input.studentId
+        ? await tx.student.findUnique({ where: { id: input.studentId }, select: { userId: true } })
+        : await tx.parent.findUnique({ where: { id: input.parentId! }, select: { userId: true } });
+      if (owner?.userId) {
+        const setting = await tx.notificationSetting.findUnique({ where: { userId_type: { userId: owner.userId, type: input.type } }, select: { telegram: true } });
+        if (setting && !setting.telegram) return 0;
+      }
+    }
     return notificationDeliveryService.enqueueInTransaction(tx, {
       title: input.title,
       body: input.message,
@@ -245,8 +256,13 @@ export const notificationService = {
    * o'zidan paydo bo'ladi.
    */
   async settings(actor: AuthUser): Promise<NotificationSettingDto[]> {
+    return this.settingsFor(actor.id);
+  },
+
+  /** Foydalanuvchi id bo'yicha (bot: kabinet hisobi bor o'quvchi/ota-ona chati uchun ham) */
+  async settingsFor(userId: string): Promise<NotificationSettingDto[]> {
     const rows = await prisma.notificationSetting.findMany({
-      where: { userId: actor.id },
+      where: { userId },
       select: { type: true, inApp: true, telegram: true },
     });
     const byType = new Map(rows.map((row) => [row.type, row]));
@@ -269,6 +285,10 @@ export const notificationService = {
    * e'tiborsiz qoldirilsa xodim "o'chirdim" deb o'ylab yurardi.
    */
   async saveSettings(actor: AuthUser, items: Array<{ type: NotificationType; inApp: boolean; telegram: boolean }>): Promise<NotificationSettingDto[]> {
+    return this.saveSettingsFor(actor.id, items);
+  },
+
+  async saveSettingsFor(userId: string, items: Array<{ type: NotificationType; inApp: boolean; telegram: boolean }>): Promise<NotificationSettingDto[]> {
     const locked = items.find((item) => !isMutableNotificationType(item.type));
     if (locked) {
       throw AppError.unprocessable('Bu turni o‘chirib bo‘lmaydi', [
@@ -279,13 +299,13 @@ export const notificationService = {
     await prisma.$transaction(
       items.map((item) =>
         prisma.notificationSetting.upsert({
-          where: { userId_type: { userId: actor.id, type: item.type } },
+          where: { userId_type: { userId, type: item.type } },
           update: { inApp: item.inApp, telegram: item.telegram },
-          create: { userId: actor.id, type: item.type, inApp: item.inApp, telegram: item.telegram },
+          create: { userId, type: item.type, inApp: item.inApp, telegram: item.telegram },
         }),
       ),
     );
-    return this.settings(actor);
+    return this.settingsFor(userId);
   },
 
   async markRead(actor: AuthUser, id: string): Promise<NotificationDto> {
