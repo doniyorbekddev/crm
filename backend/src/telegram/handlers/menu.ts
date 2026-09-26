@@ -79,7 +79,9 @@ async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
   const items: MenuItem[] = [];
   if (permissions.has(PERMISSIONS.DASHBOARD_VIEW)) items.push({ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) });
-  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS, { text: '📈 KPI', data: callback(WORKSPACE_ACTIONS.kpi) });
+  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS);
+  // KPI: o'qituvchi — o'z guruhlari, rahbar (analytics.view) — o'qituvchilar kesimi (TZ 3.1 GAP-10)
+  if (permissions.has(PERMISSIONS.ATTENDANCE_MARK) || permissions.has(PERMISSIONS.ANALYTICS_VIEW)) items.push({ text: '📈 KPI', data: callback(WORKSPACE_ACTIONS.kpi) });
   if (permissions.has(PERMISSIONS.HOMEWORK_GRADE)) items.push({ text: '✍️ Tekshirish', data: callback(WORKSPACE_ACTIONS.review) });
   if (permissions.has(PERMISSIONS.LEAD_VIEW)) items.push(...SALES_ITEMS);
   if (permissions.has(PERMISSIONS.DEBT_VIEW)) items.push({ text: '⚠️ Qarzdorlar', data: callback(OWNER_ACTIONS.debts) });

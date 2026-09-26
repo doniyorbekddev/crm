@@ -4,6 +4,7 @@ import { primaryClientUrl } from '../../config/env.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
+import { academicAnalyticsService } from '../../services/academicAnalytics.service.js';
 import { aiAcademicService } from '../../services/ai/academic.service.js';
 import { analyticsService } from '../../services/analytics.service.js';
 import { homeworkService } from '../../services/homework.service.js';
@@ -37,6 +38,8 @@ export const WORKSPACE_ACTIONS = {
   toggleType: 'ws_st',
   toggleMute: 'ws_mute',
   kpi: 'ws_kpi',
+  /** Rahbar: bitta o'qituvchi KPI tafsiloti (TZ 3.1 GAP-10) */
+  teacherKpi: 'ws_kt',
   marketing: 'ws_mkt',
   reports: 'ws_rep',
   report: 'ws_r',
@@ -197,13 +200,93 @@ export async function toggleType(context: BotContext, scope: CommandScope, type:
 }
 
 // ---------------------------------------------------------------------
-// O'qituvchi KPI (o'z guruhlari — o'qituvchi markazi bilan bir xil raqamlar)
+// O'qituvchi KPI (TZ 3.1 GAP-10). Hisob-kitob botda yo'q — mavjud servislar:
+//  • rahbar (analytics.view): o'qituvchilar kesimi — `academicAnalyticsService.build(dimension: 'teacher')`
+//    (web "Akademik analitika" bilan bir xil raqamlar) va tafsilotda o'qituvchi guruhlari — `teachingService`;
+//  • o'qituvchi: o'z guruhlari — `teachingService.overview` (o'qituvchi markazi bilan bir xil).
 // ---------------------------------------------------------------------
+
+const KPI_PAGE = 12;
+
+/** Boshqa o'qituvchilar KPI: analytics.view + barcha guruhlar (group.manage) — aks holda servis o'z guruhlariga cheklaydi */
+function canViewTeacherKpi(permissions: ReadonlySet<string>): boolean {
+  return permissions.has(PERMISSIONS.ANALYTICS_VIEW) && permissions.has(PERMISSIONS.GROUP_MANAGE);
+}
+
+function feedbackText(value: number | null): string {
+  return value === null ? '—' : `${value.toFixed(1)}/5`;
+}
+
+async function showTeacherList(context: BotContext, actor: AuthUser): Promise<HandlerResult> {
+  const [analytics, overview] = await Promise.all([academicAnalyticsService.build(actor, { dimension: 'teacher' }), teachingService.overview(actor)]);
+  const groupCount = new Map<string, number>();
+  for (const group of overview.groups) if (group.teacher) groupCount.set(group.teacher.id, (groupCount.get(group.teacher.id) ?? 0) + 1);
+  const rows = analytics.rows.filter((row) => row.key !== 'none').sort((a, b) => (b.students ?? 0) - (a.students ?? 0));
+  const lines = [`<b>📊 O‘qituvchilar KPI</b> · ${analytics.from} — ${analytics.to}`, ''];
+  if (rows.length === 0) lines.push('Faol guruhli o‘qituvchi yo‘q.');
+  const keyboard: InlineKeyboard = [];
+  for (const row of rows.slice(0, KPI_PAGE)) {
+    lines.push(`<b>${escapeHtml(row.label)}</b> · ${groupCount.get(row.key) ?? 0} guruh · ${row.students ?? 0} o‘quvchi`);
+    lines.push(`   Davomat ${pct(row.attendanceRate)} · vazifa ${pct(row.homeworkRate)} · imtihon ${pct(row.examAverage)} · progress ${pct(row.progress)}`);
+    keyboard.push([{ text: `👤 ${row.label.slice(0, 40)}`, data: callback(WORKSPACE_ACTIONS.teacherKpi, row.key) }]);
+  }
+  if (rows.length > KPI_PAGE) lines.push('', `… yana ${rows.length - KPI_PAGE} ta — to‘liq ro‘yxat CRM’da: ${primaryClientUrl}/academic-analytics`);
+  lines.push('', `Umumiy: davomat ${pct(analytics.totals.attendanceRate)} · vazifa ${pct(analytics.totals.homeworkRate)} · imtihon ${pct(analytics.totals.examAverage)} · retention ${pct(analytics.totals.retention)}`);
+  keyboard.push(menuRow());
+  await context.render(lines.join('\n'), keyboard);
+  return { action: WORKSPACE_ACTIONS.kpi };
+}
+
+/** Rahbar: tanlangan o'qituvchi — guruhlar, o'quvchilar, davomat, vazifa, imtihon, progress, retention, fikr */
+export async function showTeacherKpi(context: BotContext, scope: CommandScope, teacherId: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor || !teacherId) return { action: WORKSPACE_ACTIONS.teacherKpi };
+  if (!canViewTeacherKpi(await permissionsOf(actor))) {
+    await context.render('⛔ Bu amal uchun ruxsatingiz yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.teacherKpi };
+  }
+  return safely(context, async () => {
+    const [analytics, overview] = await Promise.all([
+      academicAnalyticsService.build(actor, { dimension: 'teacher' }),
+      teachingService.overview(actor, { teacherId }),
+    ]);
+    const row = analytics.rows.find((item) => item.key === teacherId);
+    if (!row) {
+      await context.render('O‘qituvchi topilmadi yoki faol guruhi yo‘q.', [[{ text: '⬅️ O‘qituvchilar', data: callback(WORKSPACE_ACTIONS.kpi) }, ...menuRow()]]);
+      return { action: WORKSPACE_ACTIONS.teacherKpi };
+    }
+    const lines = [
+      `<b>👤 ${escapeHtml(row.label)}</b> · ${analytics.from} — ${analytics.to}`,
+      '',
+      `Guruhlar: <b>${overview.totals.groups}</b> · o‘quvchilar: <b>${row.students ?? 0}</b>`,
+      `Davomat: <b>${pct(row.attendanceRate)}</b>`,
+      `Vazifa bajarilishi: <b>${pct(row.homeworkRate)}</b>`,
+      `Imtihon o‘rtachasi: <b>${pct(row.examAverage)}</b>`,
+      `Progress: <b>${pct(row.progress)}</b>`,
+      `Retention: <b>${pct(row.retention)}</b>`,
+      `Fikr-mulohaza: <b>${feedbackText(row.feedback)}</b>`,
+      `Xavf ostida: <b>${row.atRisk ?? 0}</b> · baholash kutmoqda: ${overview.totals.homeworkToGrade}`,
+      '',
+    ];
+    for (const group of overview.groups.slice(0, 10)) {
+      lines.push(`<b>${escapeHtml(group.name)}</b> (${group.students}) — davomat ${pct(group.attendanceRate)} · vazifa ${pct(group.homeworkRate)} · imtihon ${pct(group.examAverage)}`);
+    }
+    await context.render(lines.join('\n'), [[{ text: '⬅️ O‘qituvchilar', data: callback(WORKSPACE_ACTIONS.kpi) }, ...menuRow()]]);
+    return { action: WORKSPACE_ACTIONS.teacherKpi };
+  });
+}
 
 export async function showKpi(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor) return { action: WORKSPACE_ACTIONS.kpi };
+  const permissions = await permissionsOf(actor);
+  // REST `/analytics/academic` bilan bir xil: analytics.view yoki attendance.mark
+  if (!permissions.has(PERMISSIONS.ANALYTICS_VIEW) && !permissions.has(PERMISSIONS.ATTENDANCE_MARK)) {
+    await context.render('⛔ Bu amal uchun ruxsatingiz yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.kpi };
+  }
   return safely(context, async () => {
+    if (canViewTeacherKpi(permissions)) return showTeacherList(context, actor);
     const { totals, groups } = await teachingService.overview(actor);
     const lines = [
       '<b>📈 KPI</b>',
@@ -483,6 +566,8 @@ export async function handleWorkspaceAction(context: BotContext, scope: CommandS
       return startSearch(context, scope);
     case WORKSPACE_ACTIONS.kpi:
       return showKpi(context, scope);
+    case WORKSPACE_ACTIONS.teacherKpi:
+      return showTeacherKpi(context, scope, arg);
     case WORKSPACE_ACTIONS.marketing:
       return showMarketing(context, scope);
     case WORKSPACE_ACTIONS.reports:

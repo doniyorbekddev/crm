@@ -612,3 +612,68 @@ Eslatma — har follow-up uchun bitta tranzaksiya (avvalgidek); sozlama filtri b
 ## Next Phase
 
 **PHASE 10 — Owner Telegram Teacher KPI (GAP-10)**: o'qituvchilar ro'yxati va tanlangan o'qituvchi KPI (guruh, o'quvchi, davomat, vazifa, imtihon, progress, retention, fikr) — mavjud `academicAnalyticsService` (dimension=teacher) orqali.
+
+---
+
+# PHASE 10 — Owner Telegram Teacher KPI (GAP-10)
+
+## Implemented
+
+- Rahbar "📈 KPI" → **o'qituvchilar ro'yxati**: har o'qituvchi — guruhlar, o'quvchilar, davomat, vazifa, imtihon, progress; umumiy qator (+ retention); o'qituvchi tugmasi.
+- O'qituvchini tanlash (`ws_kt:<id>`) → **tafsilot**: guruhlar, o'quvchilar, davomat, vazifa bajarilishi, imtihon o'rtachasi, progress, retention, fikr-mulohaza (x/5), xavf ostida, baholash navbati, guruhlar kesimi; "⬅️ O'qituvchilar".
+- TZ talabi "Telegram uchun alohida KPI calculation yaratma": botda hisob-kitob yo'q — `academicAnalyticsService.build(dimension: 'teacher')` (web "Akademik analitika" bilan bir xil) va `teachingService.overview` (guruhlar).
+- O'qituvchining o'zi uchun mavjud ko'rinish (o'z guruhlari) o'zgarmadi.
+
+## Existing Code Reused
+
+`academicAnalyticsService`, `teachingService.overview(actor, { teacherId })`, `teachingAccessFrom` qoidasi (`group.manage` = barcha guruhlar), workspace yordamchilari (`requireActor`, `safely`, `pct`, `menuRow`).
+
+## New Files
+
+`backend/tests/telegramTeacherKpi.test.ts`.
+
+## Modified Files
+
+`backend/src/telegram/handlers/workspace.ts` (`showTeacherList`, `showTeacherKpi`, `canViewTeacherKpi`, ruxsat tekshiruvi `showKpi` da), `backend/src/telegram/handlers/menu.ts` (KPI tugmasi `analytics.view` bo'lsa ham), `e2e/specs/flows.spec.ts`, `docs/telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q (REST o'zgarmadi).
+
+## Telegram Changes
+
+Yangi callback `ws_kt:<teacherId>`; `ws_kpi` rahbar uchun ro'yxat, o'qituvchi uchun avvalgidek.
+
+## Permissions
+
+REST `/api/analytics/academic` bilan bir xil: KPI — `analytics.view` yoki `attendance.mark` (aks holda ⛔). Boshqa o'qituvchilar (ro'yxat va tafsilot) — `analytics.view` + `group.manage`; aks holda servislar o'z guruhlariga cheklaydi. Yangi ruxsat yo'q.
+
+## Security
+
+Audit S1 davomi: `ws_kpi` avval ruxsatsiz ham ochilardi (ma'lumot o'z guruhlari bilan cheklangan edi) — endi ruxsat tekshiriladi. `ws_kt` qo'lda yuborilgan callback bilan: o'qituvchi → boshqa o'qituvchi, buxgalter, sotuv menejeri — rad, ma'lumot chiqmaydi (test).
+
+## Tests
+
+Backend **830/830** (+3: rahbar ro'yxat va tafsilot — raqamlar REST bilan solishtiriladi; o'qituvchi faqat o'zi, begona tafsilot rad; buxgalter/sotuv rad). To'liq yugurishda 1 ta `examEngine` testi mashina yuklamasida 5 s timeout (E2E bilan parallel) — alohida 12/12 o'tdi. Frontend **121/121**, E2E **40/40** (+1: rahbar botda KPI → tafsilot to'liq stekda, REST parity, menejer 403). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Ro'yxat: bitta analitika + bitta overview so'rovi (parallel); ko'rsatish 12 o'qituvchi bilan cheklangan, qolgani — CRM havolasi.
+
+## Documentation
+
+`docs/telegram.md` — "Rahbar: O'qituvchilar KPI" qatori.
+
+## Known Issues
+
+- Davr — analitika standarti (joriy oy); botda davr tanlash yo'q (web'da bor).
+- Filial doirasi (Branch A → Branch B) analitikada hali yo'q — audit S3, PHASE 14.
+- E2E'da bot javob matni ko'rinmaydi (token yo'q) — matn backend integratsiya testida tekshiriladi.
+
+## Next Phase
+
+**PHASE 11 — Owner Telegram marketing (GAP-11)**: manba bo'yicha daromad, xarajat, ROI, foyda; davr tanlash; CSV havolasi — mavjud `analyticsService` orqali.

@@ -360,3 +360,24 @@ test('§37 sotuv: menejer botda lead → qo‘ng‘iroq → follow-up → eslatm
   await page.goto('/notifications');
   await expect(page.getByRole('listitem').filter({ hasText: 'Follow-up eslatmasi' }).filter({ hasText: firstName }).first()).toBeVisible();
 });
+
+test('GAP-10 rahbar: botda o‘qituvchilar KPI (ro‘yxat → tafsilot) — web akademik analitika bilan bir manba', async ({ request }) => {
+  const owner = await apiLogin(request, 'owner');
+  const ownerId = (await (await request.get(`${API}/auth/me`, { headers: owner })).json()).data.id as string;
+  const analytics = await request.get(`${API}/analytics/academic?dimension=teacher`, { headers: owner });
+  expect(analytics.status(), await analytics.text()).toBe(200);
+  const rows = (await analytics.json()).data.rows as Array<{ key: string; label: string }>;
+  const teacher = rows.find((row) => row.key !== 'none');
+  expect(teacher, 'seed: kamida bitta o‘qituvchi guruhli').toBeTruthy();
+
+  const chatId = Number(String(Date.now()).slice(-9)) + 8;
+  await linkStaffTelegram(ownerId, chatId);
+  // Bot javobi E2E'da tashqariga ketmaydi (token yo'q) — matn backend integratsiya testida tekshiriladi;
+  // bu yerda to'liq stek (webhook → router → servis → baza) xatosiz ishlashi
+  await telegramPress(request, chatId, 'ws_kpi');
+  await telegramPress(request, chatId, `ws_kt:${teacher!.key}`);
+
+  // Sotuv menejeri REST'da ham rad
+  const manager = await apiLogin(request, 'manager');
+  expect((await request.get(`${API}/analytics/academic?dimension=teacher`, { headers: manager })).status()).toBe(403);
+});
