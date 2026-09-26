@@ -65,7 +65,7 @@ function helpText(scope: CommandScope): string {
       '/kpi — guruhlarim ko‘rsatkichlari (o‘qituvchi)',
       '/tekshirish — topshiriqlarni baholash (o‘qituvchi)',
       '/hisobotlar — oylik hisobotlar',
-      '/marketing — kanallar bo‘yicha leadlar',
+      '/marketing — manbalar: lead, konversiya, tushum, xarajat, foyda, ROI, CSV',
       '(bo‘limlar ruxsatingizga qarab ochiladi)',
       '',
     );

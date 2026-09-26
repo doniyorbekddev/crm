@@ -677,3 +677,71 @@ Ro'yxat: bitta analitika + bitta overview so'rovi (parallel); ko'rsatish 12 o'qi
 ## Next Phase
 
 **PHASE 11 — Owner Telegram marketing (GAP-11)**: manba bo'yicha daromad, xarajat, ROI, foyda; davr tanlash; CSV havolasi — mavjud `analyticsService` orqali.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 11
+
+Sana: 2026-09-26. GAP-11 "Owner Telegram marketing".
+
+## Implemented
+
+- "📣 Marketing" — **davr tanlash**: bu oy / o'tgan oy (to'liq) / oxirgi 30 kun (biznes sana, UTC+5).
+- Jami: leadlar, o'quvchi bo'lganlar, konversiya, **tushum**, xarajat, **foyda** (manfiy — "−"), **ROI**; manbaga bog'lanmagan reklama xarajati alohida.
+- Har manba: lead → o'quvchi (konversiya), tushum, xarajat, foyda, ROI (8 tagacha, qolgani — CSV/CRM havolasi).
+- **📄 CSV** — fayl chatga hujjat bo'lib keladi (Telegram'da ochiladi; havola emas — API avtorizatsiya talab qiladi).
+- TZ metrikalari: Leads, Converted, Conversion rate, Source, ROI, Cost, Revenue — bor. **Campaign** — tizimda model yo'q (audit qarori #4), kesim manba bo'yicha; soxta "kampaniya" ko'rsatilmaydi.
+
+## Existing Code Reused
+
+`analyticsService.sources` (web "Analitika → Lead manbalari" bilan bitta hisob), `analyticsExport.sources` + `tableToCsv` (REST `/analytics/sources/export` bilan bir xil fayl, formula injeksiyasi zararsizlantirish bilan), `telegramService.sendMedia` (multipart hujjat), `startOfBusinessMonth`/`businessDateString`.
+
+## New Files
+
+`backend/tests/telegramMarketing.test.ts`.
+
+## Modified Files
+
+`backend/src/telegram/handlers/workspace.ts` (`marketingRange`, `showMarketing` davr bilan, `sendMarketingCsv`), `backend/src/services/telegramCommand.service.ts` (yordam matni), `e2e/specs/flows.spec.ts`, `docs/telegram.md`.
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Yo'q.
+
+## Telegram Changes
+
+`ws_mkt:<month|last|d30>` (noma'lum qiymat — joriy oy), yangi `ws_mcsv:<davr>`.
+
+## Permissions
+
+REST bilan bir xil: marketing — `analytics.view`; CSV — `analytics.view` + `report.export` (tugma faqat ruxsat bo'lsa; qo'lda yuborilgan callback ham tekshiriladi). Yangi ruxsat yo'q.
+
+## Security
+
+CSV faqat so'ragan xodimning bog'langan chatiga; formula injeksiyasi (`=HYPERLINK…` manba nomi) zararsizlanadi (test). Sotuv, buxgalter, o'qituvchi — marketing ham, CSV ham rad; `analytics.view` bor, `report.export` yo'q maxsus rol — CSV rad (test).
+
+## Tests
+
+Backend **835/835** (+5: davr chegaralari yil o'tishida; rahbar matni REST bilan solishtiriladi, manfiy foyda; o'tgan oy ajratilishi; CSV mazmuni/nomi/injeksiya; ruxsat matritsasi), toza to'liq yugurish. Frontend **121/121**, E2E **41/41** (+1: rahbar botda davrlar va CSV to'liq stekda, REST eksport, menejer 403). TypeScript, lint (0 xato), build — o'tdi.
+
+## Performance
+
+Bitta `analyticsService.sources` chaqiruvi (avvalgidek); CSV — xotirada, bitta multipart so'rov.
+
+## Documentation
+
+`docs/telegram.md` — Marketing qatori.
+
+## Known Issues
+
+- Campaign (kampaniya) kesimi yo'q — model yo'q; alohida funksiya (3.1 dan tashqari).
+- Ixtiyoriy sana oralig'i botda yo'q (3 ta tayyor davr); web'da bor.
+- Filial kesimi yo'q — audit S3 (PHASE 14).
+
+## Next Phase
+
+**PHASE 12 — Owner Telegram reports (GAP-12)**: "📊 Kunlik hisobot" (o'quvchi, lead, tushum, qarz, davomat %, vazifa %, imtihon o'rtacha, xavf) mavjud servislardan; qolgan hisobot turlari ruxsatga qarab; CSV `sendDocument` bilan.

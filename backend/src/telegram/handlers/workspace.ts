@@ -6,7 +6,7 @@ import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
 import { academicAnalyticsService } from '../../services/academicAnalytics.service.js';
 import { aiAcademicService } from '../../services/ai/academic.service.js';
-import { analyticsService } from '../../services/analytics.service.js';
+import { analyticsExport, analyticsService } from '../../services/analytics.service.js';
 import { homeworkService } from '../../services/homework.service.js';
 import { notificationService } from '../../services/notification.service.js';
 import { permissionService } from '../../services/permission.service.js';
@@ -18,7 +18,8 @@ import { teachingService } from '../../services/teaching.service.js';
 import { getTeachingAccess } from '../../services/teachingAccess.js';
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
-import { businessDateString, startOfBusinessMonth } from '../../utils/dates.js';
+import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../../utils/dates.js';
+import { tableToCsv } from '../../utils/tableExport.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
 import type { ReportType } from '../../validators/report.validator.js';
 import { moneyUz } from '../format.js';
@@ -40,7 +41,10 @@ export const WORKSPACE_ACTIONS = {
   kpi: 'ws_kpi',
   /** Rahbar: bitta o'qituvchi KPI tafsiloti (TZ 3.1 GAP-10) */
   teacherKpi: 'ws_kt',
+  /** `ws_mkt[:month|last|d30]` — davr (TZ 3.1 GAP-11) */
   marketing: 'ws_mkt',
+  /** Marketing CSV — hujjat sifatida chatga (`report.export`) */
+  marketingCsv: 'ws_mcsv',
   reports: 'ws_rep',
   report: 'ws_r',
   review: 'ws_rv',
@@ -317,26 +321,84 @@ function monthRange(now = new Date()): { from: string; to: string } {
   return { from: businessDateString(startOfBusinessMonth(now)), to: businessDateString(now) };
 }
 
-export async function showMarketing(context: BotContext, scope: CommandScope): Promise<HandlerResult> {
+/** Bot marketing davrlari: joriy oy, o'tgan oy (to'liq), oxirgi 30 kun — biznes sana bo'yicha */
+export const MARKETING_PERIODS = ['month', 'last', 'd30'] as const;
+export type MarketingPeriod = (typeof MARKETING_PERIODS)[number];
+const PERIOD_LABELS: Record<MarketingPeriod, string> = { month: 'Bu oy', last: 'O‘tgan oy', d30: '30 kun' };
+
+export function marketingRange(period: MarketingPeriod, now = new Date()): { from: string; to: string } {
+  if (period === 'last') return { from: businessDateString(startOfBusinessMonth(now, 1)), to: businessDateString(addDays(startOfBusinessMonth(now), -1)) };
+  if (period === 'd30') return { from: businessDateString(addDays(startOfBusinessDay(now), -29)), to: businessDateString(now) };
+  return monthRange(now);
+}
+
+function parsePeriod(arg: string | null): MarketingPeriod {
+  return MARKETING_PERIODS.includes(arg as MarketingPeriod) ? (arg as MarketingPeriod) : 'month';
+}
+
+const shortDate = (value: string) => `${value.slice(8, 10)}.${value.slice(5, 7)}`;
+const signedMoney = (value: number) => (value < 0 ? `−${moneyUz(-value)}` : moneyUz(value));
+
+/**
+ * Manbalar kesimi (TZ 3.1 GAP-11): lead, o'quvchi bo'lgan, konversiya, tushum, xarajat, foyda, ROI —
+ * hammasi web "Analitika → Lead manbalari" bilan bitta servisdan (`analyticsService.sources`).
+ * Campaign modeli tizimda yo'q — kesim manba (Source) bo'yicha (audit qarori #4).
+ */
+export async function showMarketing(context: BotContext, scope: CommandScope, arg: string | null = null): Promise<HandlerResult> {
   const actor = await requireActor(context, scope);
   if (!actor || !(await requirePermission(context, actor, PERMISSIONS.ANALYTICS_VIEW))) return { action: WORKSPACE_ACTIONS.marketing };
+  const period = parsePeriod(arg);
   return safely(context, async () => {
-    const range = monthRange();
+    const range = marketingRange(period);
     const data = await analyticsService.sources(range);
+    const { totals } = data;
     const lines = [
-      `<b>📣 Marketing</b> · ${range.from.slice(8, 10)}.${range.from.slice(5, 7)} — ${range.to.slice(8, 10)}.${range.to.slice(5, 7)}`,
+      `<b>📣 Marketing</b> · ${PERIOD_LABELS[period]} (${shortDate(data.from)} — ${shortDate(data.to)})`,
       '',
-      `Leadlar: <b>${data.totals.leads}</b> · o‘quvchi bo‘ldi: <b>${data.totals.won}</b> (${data.totals.conversion}%)`,
-      `Reklama xarajati: ${moneyUz(data.totals.spend)} · tushum: ${moneyUz(data.totals.revenue)}${data.totals.roi === null ? '' : ` · ROI ${data.totals.roi}%`}`,
-      '',
+      `Leadlar: <b>${totals.leads}</b> · o‘quvchi bo‘ldi: <b>${totals.won}</b> (${totals.conversion}%)`,
+      `Tushum: <b>${moneyUz(totals.revenue)}</b> · xarajat: ${moneyUz(totals.spend)}`,
+      `Foyda: <b>${signedMoney(totals.profit)}</b>${totals.roi === null ? '' : ` · ROI <b>${totals.roi}%</b>`}`,
     ];
-    const rows = [...data.rows].sort((a, b) => b.leads - a.leads).slice(0, 8);
-    for (const row of rows) {
-      lines.push(`<b>${escapeHtml(row.name)}</b>: ${row.leads} lead → ${row.won} (${row.conversion}%)${row.spend ? ` · ${moneyUz(row.spend)}` : ''}${row.costPerStudent ? ` · 1 o‘quvchi ${moneyUz(row.costPerStudent)}` : ''}`);
+    if (totals.unattributedSpend > 0) lines.push(`<i>Manbaga bog‘lanmagan reklama xarajati: ${moneyUz(totals.unattributedSpend)}</i>`);
+    lines.push('');
+    const rows = [...data.rows].sort((a, b) => b.leads - a.leads || b.revenue - a.revenue);
+    for (const row of rows.slice(0, 8)) {
+      lines.push(`<b>${escapeHtml(row.name)}</b>: ${row.leads} lead → ${row.won} (${row.conversion}%)`);
+      lines.push(`   tushum ${moneyUz(row.revenue)} · xarajat ${moneyUz(row.spend)} · foyda ${signedMoney(row.profit)} · ROI ${row.roi === null ? '—' : `${row.roi}%`}`);
     }
-    if (rows.length === 0) lines.push('Bu oyda lead yo‘q.');
-    await context.render(lines.join('\n'), [menuRow()]);
+    if (rows.length === 0) lines.push('Bu davrda lead yo‘q.');
+    if (rows.length > 8) lines.push(`… yana ${rows.length - 8} ta manba — CSV yoki CRM’da: ${primaryClientUrl}/analytics`);
+
+    const keyboard: InlineKeyboard = [
+      MARKETING_PERIODS.map((item) => ({ text: item === period ? `• ${PERIOD_LABELS[item]}` : PERIOD_LABELS[item], data: callback(WORKSPACE_ACTIONS.marketing, item) })),
+    ];
+    if ((await permissionsOf(actor)).has(PERMISSIONS.REPORT_EXPORT)) keyboard.push([{ text: '📄 CSV', data: callback(WORKSPACE_ACTIONS.marketingCsv, period) }]);
+    keyboard.push(menuRow());
+    await context.render(lines.join('\n'), keyboard);
     return { action: WORKSPACE_ACTIONS.marketing };
+  });
+}
+
+/** Manbalar jadvali CSV — REST `/analytics/sources/export` bilan bir xil fayl (analytics.view + report.export) */
+export async function sendMarketingCsv(context: BotContext, scope: CommandScope, arg: string | null): Promise<HandlerResult> {
+  const actor = await requireActor(context, scope);
+  if (!actor) return { action: WORKSPACE_ACTIONS.marketingCsv };
+  const permissions = await permissionsOf(actor);
+  if (!permissions.has(PERMISSIONS.ANALYTICS_VIEW) || !permissions.has(PERMISSIONS.REPORT_EXPORT)) {
+    await context.render('⛔ Bu amal uchun ruxsatingiz yo‘q.', [menuRow()]);
+    return { action: WORKSPACE_ACTIONS.marketingCsv };
+  }
+  const period = parsePeriod(arg);
+  return safely(context, async () => {
+    const range = marketingRange(period);
+    const table = await analyticsExport.sources(range);
+    const sent = await telegramService.sendMedia(
+      context.chatId,
+      { kind: 'document', buffer: Buffer.from(tableToCsv(table), 'utf8'), fileName: `lead-manbalari-${range.from}_${range.to}.csv`, mimeType: 'text/csv' },
+      `📄 Lead manbalari · ${shortDate(range.from)} — ${shortDate(range.to)}`,
+    );
+    if (!sent.ok) await context.reply('Faylni yuborib bo‘lmadi. Keyinroq qayta urinib ko‘ring yoki CRM’dan yuklab oling.');
+    return { action: WORKSPACE_ACTIONS.marketingCsv };
   });
 }
 
@@ -569,7 +631,9 @@ export async function handleWorkspaceAction(context: BotContext, scope: CommandS
     case WORKSPACE_ACTIONS.teacherKpi:
       return showTeacherKpi(context, scope, arg);
     case WORKSPACE_ACTIONS.marketing:
-      return showMarketing(context, scope);
+      return showMarketing(context, scope, arg);
+    case WORKSPACE_ACTIONS.marketingCsv:
+      return sendMarketingCsv(context, scope, arg);
     case WORKSPACE_ACTIONS.reports:
       return showReports(context, scope);
     case WORKSPACE_ACTIONS.report:

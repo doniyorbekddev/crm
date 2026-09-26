@@ -381,3 +381,21 @@ test('GAP-10 rahbar: botda o‘qituvchilar KPI (ro‘yxat → tafsilot) — web 
   const manager = await apiLogin(request, 'manager');
   expect((await request.get(`${API}/analytics/academic?dimension=teacher`, { headers: manager })).status()).toBe(403);
 });
+
+test('GAP-11 rahbar: botda marketing (davrlar, CSV) — REST manbalar analitikasi bilan bir manba', async ({ request }) => {
+  const owner = await apiLogin(request, 'owner');
+  const ownerId = (await (await request.get(`${API}/auth/me`, { headers: owner })).json()).data.id as string;
+  const sources = await request.get(`${API}/analytics/sources`, { headers: owner });
+  expect(sources.status(), await sources.text()).toBe(200);
+  const csv = await request.get(`${API}/analytics/sources/export?format=csv`, { headers: owner });
+  expect(csv.status()).toBe(200);
+  expect(await csv.text()).toContain('ROI');
+
+  const chatId = Number(String(Date.now()).slice(-9)) + 9;
+  await linkStaffTelegram(ownerId, chatId);
+  // Bot javobi va hujjat E2E'da tashqariga ketmaydi (token yo'q) — matn va CSV backend integratsiya testida
+  for (const data of ['ws_mkt', 'ws_mkt:last', 'ws_mkt:d30', 'ws_mcsv:month']) await telegramPress(request, chatId, data);
+
+  const manager = await apiLogin(request, 'manager');
+  expect((await request.get(`${API}/analytics/sources`, { headers: manager })).status()).toBe(403);
+});
