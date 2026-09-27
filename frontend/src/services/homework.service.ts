@@ -46,6 +46,12 @@ export const recurringHomeworkService = {
 };
 
 export const homeworkService = {
+  /** Sandbox tekshiruvini qayta yuborish (o'qituvchi) — TZ 3.1 GAP-19 */
+  async rerunCode(homeworkId: string, studentId: string): Promise<MessageResult<SubmissionDetail>> {
+    const response = await api.post<ApiSuccessResponse<SubmissionDetail>>(`/homework/${homeworkId}/submissions/${studentId}/code-run`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async list(params: HomeworkListParams): Promise<Paginated<Homework>> {
     const response = await api.get<ApiSuccessResponse<Homework[]>>('/homework', { params });
     const items = response.data.data;

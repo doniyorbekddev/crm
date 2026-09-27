@@ -5,7 +5,8 @@
   "description": "O‘quv markaz uchun Sales CRM — React + Express + PostgreSQL",
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "code-runner"
   ],
   "engines": {
     "node": ">=22.12.0",
@@ -16,7 +17,7 @@
     "dev:backend": "npm run dev -w @crm/backend",
     "dev:frontend": "npm run dev -w @crm/frontend",
     "dev:lan": "bash scripts/dev-lan.sh",
-    "build": "npm run build -w @crm/backend && npm run build -w @crm/frontend",
+    "build": "npm run build -w @crm/backend && npm run build -w @crm/frontend && npm run build -w @crm/code-runner",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces --if-present",

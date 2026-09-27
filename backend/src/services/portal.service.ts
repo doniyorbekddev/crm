@@ -20,6 +20,7 @@ import { studentSelect as studentDtoSelect, toStudentDto } from './student.servi
 import { buildStudentExamRows, buildStudentHomeworkRows } from './studentProgress.service.js';
 import { buildAttendanceCalendar } from './attendanceAnalytics.service.js';
 import { gamificationService } from './gamification.service.js';
+import { codeRunService, isRunnerEnabled, parseTests, type CodeRunDto } from './codeRun.service.js';
 import { MAX_SUBMISSION_FILES, homeworkService } from './homework.service.js';
 import type { AttachmentDto, StudentDraftInput } from './homework.service.js';
 import { detectFileType, saveFile } from '../utils/fileStorage.js';
@@ -193,6 +194,9 @@ export interface PortalHomeworkDetailDto {
     difficulty: QuestionDifficulty | null;
     topic: { id: string; title: string } | null;
     lesson: { id: string; title: string } | null;
+    /** Dasturlash vazifasi tili; testlar soni (yashirinlari ham) — kirish/chiqishlar o'quvchiga ochiq testlar uchun */
+    codeLanguage: string | null;
+    codeTests: Array<{ input: string | null; expected: string | null; hidden: boolean }>;
   };
   /** O'qituvchi biriktirgan fayl va havolalar */
   attachments: AttachmentDto[];
@@ -219,6 +223,9 @@ export interface PortalHomeworkDetailDto {
   canSubmit: boolean;
   /** Muddat o'tgan — topshirsa LATE bo'ladi */
   isLate: boolean;
+  /** Sandboxdagi oxirgi tekshiruv — yashirin testlar niqoblangan (TZ 3.1 GAP-19) */
+  codeRun: CodeRunDto | null;
+  codeRunnerEnabled: boolean;
 }
 
 export interface PortalExamDetailDto {
@@ -684,6 +691,7 @@ export const portalService = {
     const row = await prisma.homeworkSubmission.findUnique({
       where: { homeworkId_studentId: { homeworkId, studentId } },
       select: {
+        id: true,
         status: true,
         submittedAt: true,
         score: true,
@@ -708,6 +716,8 @@ export const portalService = {
             difficulty: true,
             topic: { select: { id: true, title: true } },
             lesson: { select: { id: true, title: true, status: true } },
+            codeLanguage: true,
+            codeTests: true,
           },
         },
       },
@@ -733,6 +743,8 @@ export const portalService = {
         topic: homework.topic,
         // O'quvchi faqat nashr qilingan darsga o'ta oladi
         lesson: homework.lesson && homework.lesson.status === 'PUBLISHED' ? { id: homework.lesson.id, title: homework.lesson.title } : null,
+        codeLanguage: homework.codeLanguage,
+        codeTests: parseTests(homework.codeTests).map((test) => (test.hidden ? { input: null, expected: null, hidden: true } : { input: test.input, expected: test.expected, hidden: false })),
       },
       attachments: extra.attachments,
       submission: {
@@ -754,6 +766,8 @@ export const portalService = {
       maxFiles: MAX_SUBMISSION_FILES,
       canSubmit: homework.status === 'PUBLISHED' && row.status !== 'GRADED',
       isLate: homework.deadline.getTime() < Date.now(),
+      codeRun: await codeRunService.latestForSubmission(row.id, { forStudent: true }),
+      codeRunnerEnabled: isRunnerEnabled(),
     };
   },
 

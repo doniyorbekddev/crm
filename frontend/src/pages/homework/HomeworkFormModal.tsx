@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -19,6 +20,7 @@ import { groupsService } from '@/services/groups.service';
 import { homeworkService, rubricsService } from '@/services/homework.service';
 import { lessonsService } from '@/services/lessons.service';
 import { studentsService } from '@/services/students.service';
+import type { CodeLanguage, CodeTest } from '@/types/codeRun';
 import type { Difficulty, Homework, HomeworkTarget } from '@/types/homework';
 import {
   DIFFICULTY_LABELS,
@@ -67,6 +69,10 @@ function defaultDeadline(): string {
  */
 export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormModalProps) {
   const [formError, setFormError] = useState<string | null>(null);
+  // Dasturlash vazifasi (TZ 3.1 GAP-19): til va testlar — sandboxda tekshiriladi
+  const [codeLanguage, setCodeLanguage] = useState<CodeLanguage | ''>(homework?.codeLanguage ?? '');
+  const [codeTests, setCodeTests] = useState<CodeTest[]>(homework?.codeTests ?? []);
+  const runnable = codeLanguage !== '' && codeLanguage !== 'html';
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const isEdit = Boolean(homework);
 
@@ -137,6 +143,8 @@ export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormMo
         lessonId: values.lessonId || null,
         difficulty: (values.difficulty || null) as Difficulty | null,
         rubricId: values.rubricId || null,
+        codeLanguage: codeLanguage || null,
+        codeTests: runnable ? codeTests : [],
       };
       const payload = {
         title: values.title,
@@ -330,6 +338,42 @@ export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormMo
             </Select>
           </FormField>
         </div>
+
+        <section className="space-y-2 rounded-lg border border-border p-3" aria-label="Dasturlash vazifasi">
+          <FormField label="Dasturlash tili (ixtiyoriy)" htmlFor="hw-code-language" hint={codeLanguage === 'html' ? 'HTML/CSS — o‘quvchi sahifasi brauzerda izolyatsiyada ko‘rsatiladi, serverda bajarilmaydi' : 'Testlar sandboxda (alohida serverda) tekshiriladi'}>
+            <Select id="hw-code-language" value={codeLanguage} onChange={(event) => setCodeLanguage(event.target.value as CodeLanguage | '')}>
+              <option value="">Dasturlash vazifasi emas</option>
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="python">Python</option>
+              <option value="html">HTML/CSS</option>
+            </Select>
+          </FormField>
+          {runnable && (
+            <div className="space-y-2">
+              <p className="text-xs text-fg-muted">Testlar: dastur standart kirishni o‘qiydi va natijani chiqaradi (qator oxiridagi bo‘shliqlar hisobga olinmaydi). Ko‘pi bilan 10 ta.</p>
+              {codeTests.map((test, index) => (
+                <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">
+                  <FormField label={`Test ${index + 1}: kirish`} htmlFor={`hw-test-input-${index}`}>
+                    <Textarea id={`hw-test-input-${index}`} rows={2} className="font-mono text-xs" value={test.input} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, input: event.target.value } : row)))} />
+                  </FormField>
+                  <FormField label="Kutilgan chiqish" htmlFor={`hw-test-expected-${index}`}>
+                    <Textarea id={`hw-test-expected-${index}`} rows={2} className="font-mono text-xs" value={test.expected} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, expected: event.target.value } : row)))} />
+                  </FormField>
+                  <Checkbox label="Yashirin" checked={Boolean(test.hidden)} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, hidden: event.target.checked } : row)))} />
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Test ${index + 1} ni o‘chirish`} onClick={() => setCodeTests(codeTests.filter((_, position) => position !== index))}>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
+              {codeTests.length < 10 && (
+                <Button type="button" variant="secondary" size="sm" leftIcon={<Plus className="size-4" />} onClick={() => setCodeTests([...codeTests, { input: '', expected: '' }])}>
+                  Test qo‘shish
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
 
         <FormField label="Tavsif" htmlFor="hw-description" error={errors.description?.message} hint="Ixtiyoriy">
           <Textarea id="hw-description" rows={3} placeholder="Nima qilish kerakligini yozing" {...register('description')} />

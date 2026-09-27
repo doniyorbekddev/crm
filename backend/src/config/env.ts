@@ -114,6 +114,10 @@ const envSchema = z
     PAYME_FISCAL_PACKAGE_CODE: optionalString,
     /** To'lovdan keyin qaytiladigan sahifa (bo'lmasa — birinchi CLIENT_URL) */
     PAYMENT_RETURN_URL: optionalString,
+
+    // --- Kod sandbox (TZ 3.1 GAP-19): alohida runner server. Bo'sh — kod bajarilmaydi (soxta natija yo'q) ---
+    CODE_RUNNER_URL: optionalString,
+    CODE_RUNNER_TOKEN: optionalString,
   })
   .refine((values) => values.JWT_SECRET !== values.JWT_REFRESH_SECRET, {
     message: 'JWT_SECRET va JWT_REFRESH_SECRET bir-biridan farq qilishi kerak',

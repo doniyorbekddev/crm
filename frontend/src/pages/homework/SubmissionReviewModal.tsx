@@ -18,6 +18,8 @@ import { formatDateTime } from '@/utils/format';
 import { SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 import { formatFileSize } from '@/utils/lessonLabels';
 import { AiReviewPanel } from '@/components/ai/AiReviewPanel';
+import { CodeRunPanel } from '@/components/code/CodeRunPanel';
+import { HtmlPreview } from '@/components/code/HtmlPreview';
 import { usePermission } from '@/hooks/usePermission';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -62,6 +64,15 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
     void queryClient.invalidateQueries({ queryKey: queryKeys.homework.all });
     onChanged();
   };
+
+  const rerun = useMutation({
+    mutationFn: () => homeworkService.rerunCode(homework.id, studentId),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.homework.submission(homework.id, studentId), result.data);
+      toast.success(result.message);
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
 
   const grade = useMutation({
     mutationFn: () =>
@@ -160,6 +171,15 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
                     <code>{submission.codeText}</code>
                   </pre>
                 </section>
+              )}
+              {submission.codeText && homework.codeLanguage === 'html' && <HtmlPreview code={submission.codeText} />}
+              {submission.codeText && (
+                <CodeRunPanel
+                  run={submission.codeRun}
+                  enabled={submission.codeRunnerEnabled}
+                  hasTests={homework.codeTests.length > 0}
+                  {...(canGrade ? { onRerun: () => rerun.mutate(), rerunning: rerun.isPending } : {})}
+                />
               )}
               {submission.files.length > 0 && (
                 <ul className="divide-y divide-border rounded-lg border border-border">

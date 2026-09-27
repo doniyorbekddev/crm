@@ -1,3 +1,4 @@
+import type { CodeLanguage, CodeRun, CodeTest } from '@/types/codeRun';
 import type { PersonRef } from './lead';
 
 export type HomeworkStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED';
@@ -86,6 +87,9 @@ export interface Homework {
   lesson: { id: string; title: string } | null;
   rubric: { id: string; name: string } | null;
   attachmentCount: number;
+  /** Dasturlash vazifasi (TZ 3.1 GAP-19) */
+  codeLanguage: CodeLanguage | null;
+  codeTests: CodeTest[];
 }
 
 export interface Submission {
@@ -131,6 +135,8 @@ export interface SubmissionDetail extends Submission {
   rubricScores: Record<string, number> | null;
   returnedAt: string | null;
   files: SubmissionFile[];
+  codeRun: CodeRun | null;
+  codeRunnerEnabled: boolean;
 }
 
 export interface ExamStats {
@@ -217,6 +223,8 @@ export interface ExamListParams {
 }
 
 export interface HomeworkPayload {
+  codeLanguage?: CodeLanguage | null;
+  codeTests?: CodeTest[] | null;
   title: string;
   description?: string;
   groupId: string;

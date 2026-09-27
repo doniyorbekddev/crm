@@ -1243,3 +1243,74 @@ Generator — bitta so'rov (bugun hali yaratilmagan faol jadvallar), har mosiga 
 ## Next Phase
 
 **PHASE 19 — Programming homework sandbox (GAP-19)**: avval arxitektura (izolyatsiya: gVisor/alohida runner — infra qarori), kod bajarishni soxtalashtirmaslik.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 19
+
+Sana: 2026-09-27. GAP-19 "Programming homework sandbox" (§41). Infra qarori (foydalanuvchi, 2026-09-27): **alohida runner server**.
+
+## Implemented
+
+- **Avval arxitektura va infra talablari** (TZ talabi): `docs/code-sandbox.md` — oqim, himoya qatlamlari jadvali, runner server talablari (2 vCPU/2–4 GB, Docker + gVisor, firewall faqat CRM IP, TLS/WireGuard, faqat token), CRM tomoni, HTML/CSS, sozlash, §41 va tekshiruv holati.
+- **Runner xizmati** (`code-runner/`, yangi workspace, runtime bog'liqliksiz): `POST /v1/runs` (Bearer token, timing-safe), `GET /health`, parallel chegara + navbat (to'lsa 429), qat'iy kirish tekshiruvi (til, kod ≤ 64 KB, ≤ 10 test, vaqt 0.5–10 s). Har test — **yangi konteyner**: `--network none`, `--read-only` + `tmpfs /tmp` (noexec, 16 MB), bind mount yo'q, `--user 65534`, `--cap-drop ALL`, `no-new-privileges`, xotira 128 MB (swapsiz), CPU 0.5, pids 64, `fsize` 1 MB, `nofile` 64, vaqt (`timeout -s KILL` + `docker kill`), chiqish ≤ 64 KB, production'da `--runtime runsc` (gVisor). Kod va kirish — docker'ga argv emas, muhit orqali; runner muhiti (token) konteynerga o'tmaydi; kod ishga tushishidan oldin `env -i`.
+- **Til darajasidagi qo'shimcha to'siq:** Node — permission model (fayl faqat o'quvchi fayli, child_process/worker yo'q); Python — audit hook (subprocess, exec, fork, socket, ctypes, yozish, begona fayl o'qish, papka ro'yxati — bloklangan).
+- **CRM tomoni:** vazifada `codeLanguage` (JS/TS/Python/HTML) va `codeTests` (≤ 10, yashirin testlar); topshirilganda (kabinet yoki Telegram — bitta `submitByStudent`) navbatga (`code_runs`), job har 30 s (shartli olish, osilib qolganini qaytarish, 3 urinish, keyin ERROR); natija o'qituvchiga to'liq, o'quvchiga yashirin testlar niqoblangan; "Qayta tekshirish" (`homework.grade`).
+- **Soxta natija yo'q:** runner sozlanmagan — run yaratilmaydi, UI "sandbox ulanmagan"; runner ishlamasa — ERROR, hech qachon "o'tdi" emas.
+- **HTML/CSS:** serverda bajarilmaydi — brauzerda `iframe sandbox="allow-scripts"` (`allow-same-origin` yo'q) + CSP `default-src 'none'`.
+- **Web:** vazifa formasida til va testlar muharriri; o'qituvchi ko'rish oynasida va o'quvchi kabinetida natija paneli (holat, x/y, har test sababi: vaqt, xotira, xato), HTML ko'rinishi; kabinetda "N ta test (k yashirin)" va ochiq test namunalari.
+
+## Existing Code Reused
+
+`homeworkService.submitByStudent` (bitta topshirish yo'li — web va bot), vazifa DTO/sozlash oqimi, `getTeachingAccess` (o'z guruhlari), job naqshi, `reportJobFailure`, UI komponentlari.
+
+## New Files
+
+`code-runner/` (`src/{config,executor,runner,server}.ts`, `tests/{security,server}.test.ts`, `README.md`, `deploy/code-runner.service`, `.env.example`, konfiguratsiya), `backend/prisma/migrations/20260927150000_code_runs/migration.sql`, `backend/src/services/codeRun.service.ts`, `backend/src/jobs/codeRun.job.ts`, `backend/tests/codeRun.test.ts`, `frontend/src/types/codeRun.ts`, `frontend/src/components/code/{CodeRunPanel,HtmlPreview}.tsx` (+ test), `docs/code-sandbox.md`.
+
+## Modified Files
+
+`package.json` (workspace, build), `package-lock.json` (faqat code-runner yozuvlari, +23/−1), `docker-compose.prod.yml`, `backend/.env.example`, `backend/prisma/schema.prisma`, `backend/src/config/env.ts`, `backend/src/validators/homework.validator.ts`, `backend/src/services/{homework,portal}.service.ts`, `backend/src/controllers/homework.controller.ts`, `backend/src/routes/homework.routes.ts`, `backend/src/server.ts`, `frontend/src/types/{homework,portal}.ts`, `frontend/src/services/homework.service.ts`, `frontend/src/pages/homework/{HomeworkFormModal,SubmissionReviewModal}.tsx`, `frontend/src/pages/portal/PortalHomeworkDetailPage.tsx` (+ test fiksturasi yangi maydonlar bilan), `e2e/specs/flows.spec.ts`.
+
+## Database Changes
+
+(oldin `pg_dump`) Enum `CodeRunStatus`, jadval `code_runs`; `homework.codeLanguage`, `homework.codeTests` — NULL-able. Faqat qo'shish; dev va test bazalarida qo'llandi.
+
+## API Changes
+
+`GET /api/homework/code-runner` (`homework.view`), `POST /api/homework/:id/submissions/:studentId/code-run` (`homework.grade`); vazifa create/update — `codeLanguage`, `codeTests` (testlar faqat JS/TS/Python — 422); topshiriq tafsiloti va kabinet vazifasi — `codeRun`, `codeRunnerEnabled`. Runner: `POST /v1/runs`, `GET /health` (alohida server).
+
+## Telegram Changes
+
+Yo'q (botdan topshirilgan kod ham o'sha yo'l bilan navbatga tushadi).
+
+## Permissions
+
+Yangi ruxsat yo'q: `homework.view`, `homework.manage` (testlar), `homework.grade` (qayta tekshirish).
+
+## Security
+
+TZ talablari: o'quvchi kodi asosiy serverda emas (alohida server), baza/fayl tizimi/tarmoq/sirlar/hostga kirish yo'q. **§41 — 16 ta test haqiqiy Docker konteynerlarida (runc) o'tdi**: cheksiz sikl (JS, Python), xotira bombasi (JS, Python), fayl tizimi (til qatlami + konteyner: rootfs faqat o'qish, /tmp noexec, host papkalari va docker socket yo'q, uid 65534), tarmoq (JS, Python + konteyner: faqat `lo`), jarayon (child_process, Worker, subprocess, os.system, os.fork + konteyner: pids chegarasi), sirlar (runner tokeni va baza manzili ko'rinmaydi, CapEff=0), chiqish bombasi. Runner: token timing-safe, 401/422/429. O'quvchiga yashirin test kirish/chiqishi berilmaydi.
+
+## Tests
+
+Backend **899** (+6: runner yo'q — soxta natija yo'q; test validatsiyasi; navbat → runner (token, tana) → natija, o'qituvchi/o'quvchi ko'rinishi; qayta urinish/ERROR/401; parallel olish va osilgan run; **haqiqiy runner alohida jarayonda** — PASSED va taqiqlangan kod FAILED). To'liq yugurishda 1 ta `studentProgress` testi yuklama ostida 5 s timeout (load ~7, Colima VM ham ishlamoqda) — alohida o'tdi. code-runner **22** (+1 Docker yo'qligi uchun o'tkazib yuboriladigan belgi). Frontend **134/134** (+4), E2E **48/48** (+1: o'qituvchi web'da Python testli vazifa → o'quvchi kod topshiradi → "sandbox ulanmagan", `code_runs` bo'sh). TypeScript, lint (3 workspace, 0 xato), build (code-runner ham) — o'tdi.
+
+## Performance
+
+Har test ~0.2–0.5 s (konteyner ishga tushishi); runner parallel chegarasi (standart 2) va navbat; CRM job — 5 ta run/30 s, runner so'rovi timeout 150 s.
+
+## Documentation
+
+`docs/code-sandbox.md` (arxitektura, infra, tekshiruv holati), `code-runner/README.md` (server tayyorlash: Docker, gVisor, systemd, firewall).
+
+## Known Issues
+
+- **gVisor (`runsc`) bilan hali sinalmagan** — macOS'da mavjud emas; runner serverda `CODE_RUNNER_RUNTIME=runsc npm test` bajarilishi shart (hujjatda).
+- Runner server hali yo'q (infra) — shu sababli production'da kod bajarilmaydi, UI buni aniq aytadi.
+- Test modeli — stdin/stdout; unit-test freymvorklari (jest, pytest) yo'q; HTML/CSS avtomatik tekshirilmaydi (faqat ko'rish).
+- Python audit hook — qo'shimcha qatlam (nazariy chetlab o'tish mumkin); asosiy chegara konteyner + gVisor.
+
+## Next Phase
+
+**PHASE 20 — Full regression**: barcha to'plamlar, E2E §35–41, yuk testi (broadcast), `endpointSecurity`, bot ruxsat matritsasi; **S3 qoldig'i** (analitika/hisobot/kunlik hisobot filial doirasi); test `testTimeout`.

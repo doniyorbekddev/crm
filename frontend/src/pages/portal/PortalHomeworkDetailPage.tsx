@@ -3,6 +3,8 @@ import { ArrowLeft, Download, ExternalLink, Paperclip, Save, Send, Trash2 } from
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { CodeRunPanel } from '@/components/code/CodeRunPanel';
+import { HtmlPreview } from '@/components/code/HtmlPreview';
 import { MaterialList } from '@/components/lesson/LessonBody';
 import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/ui/Alert';
@@ -40,7 +42,8 @@ function draftFrom(detail: PortalHomeworkDetail | undefined): Draft {
     answerText: detail?.submission.answerText ?? '',
     linkUrl: detail?.submission.linkUrl ?? '',
     codeText: detail?.submission.codeText ?? '',
-    codeLanguage: detail?.submission.codeLanguage ?? '',
+    // Vazifa tili (dasturlash vazifasi) — o'quvchi tanlamasa ham to'g'ri til bilan topshiriladi
+    codeLanguage: detail?.submission.codeLanguage ?? detail?.homework.codeLanguage ?? '',
   };
 }
 
@@ -211,6 +214,8 @@ export default function PortalHomeworkDetailPage() {
                     <code>{submission.codeText}</code>
                   </pre>
                 )}
+                {submission.codeText && homework.codeLanguage === 'html' && <HtmlPreview code={submission.codeText} title="Mening sahifam" />}
+                {submission.codeText && <CodeRunPanel run={query.data.codeRun} enabled={query.data.codeRunnerEnabled} hasTests={homework.codeTests.length > 0} />}
                 {submission.files.length > 0 && (
                   <ul className="divide-y divide-border rounded-lg border border-border">
                     {submission.files.map((file) => (
@@ -298,6 +303,20 @@ export default function PortalHomeworkDetailPage() {
                   <Input id="linkUrl" type="url" placeholder="https://…" value={draft.linkUrl} onChange={(event) => set({ linkUrl: event.target.value })} />
                 </FormField>
                 <div className="grid gap-2 sm:grid-cols-[1fr_10rem]">
+                  {homework.codeTests.length > 0 && (
+                    <p className="text-xs text-fg-muted sm:col-span-2">
+                      Kod avtomatik tekshiriladi: {homework.codeTests.length} ta test
+                      {homework.codeTests.some((test) => test.hidden) ? ` (${homework.codeTests.filter((test) => test.hidden).length} tasi yashirin)` : ''}. Dastur kirishni standart kirishdan o‘qib, javobni chiqarsin.
+                      {homework.codeTests
+                        .filter((test) => !test.hidden)
+                        .slice(0, 2)
+                        .map((test, index) => (
+                          <span key={index} className="mt-1 block font-mono">
+                            Masalan: «{test.input}» → «{test.expected}»
+                          </span>
+                        ))}
+                    </p>
+                  )}
                   <FormField label="Kod" htmlFor="codeText">
                     <Textarea id="codeText" rows={5} className="font-mono text-xs" spellCheck={false} value={draft.codeText} onChange={(event) => set({ codeText: event.target.value })} />
                   </FormField>

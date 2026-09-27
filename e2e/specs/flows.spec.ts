@@ -599,3 +599,37 @@ test('§40 takrorlanuvchi vazifa: o‘qituvchi jadval yaratadi → bugungi vazif
   await page.getByPlaceholder('Sarlavha yoki guruh').fill(title);
   await expect(page.getByText(title)).toHaveCount(1);
 });
+
+test('GAP-19 dasturlash vazifasi: o‘qituvchi Python testlari bilan beradi → o‘quvchi kod topshiradi → sandbox ulanmagan — soxta natija yo‘q', async ({ page, request }) => {
+  const family = await prepareFamily(request);
+  const teacher = await apiLogin(request, 'teacher');
+  expect((await (await request.get(`${API}/homework/code-runner`, { headers: teacher })).json()).data).toEqual({ enabled: false });
+  const title = `Python ${Date.now()}`;
+
+  await login(page, 'teacher');
+  await page.goto('/homework');
+  await page.getByRole('button', { name: 'Vazifa berish' }).click();
+  await page.getByLabel(/^Sarlavha/).fill(title);
+  await page.getByRole('dialog').getByRole('combobox', { name: /^Guruh/ }).selectOption(family.groupId);
+  await page.getByLabel('Dasturlash tili (ixtiyoriy)').selectOption('python');
+  await page.getByRole('button', { name: 'Test qo‘shish' }).click();
+  await page.getByLabel('Test 1: kirish').fill('2 3');
+  await page.getByLabel('Kutilgan chiqish').fill('5');
+  await page.getByRole('button', { name: 'Saqlash' }).click();
+  await expect(page.getByText(title)).toBeVisible();
+  const saved = await withDb(async (db) => (await db.query<{ codeLanguage: string; codeTests: unknown }>('SELECT "codeLanguage", "codeTests" FROM homework WHERE title = $1', [title])).rows[0]);
+  expect(saved).toEqual({ codeLanguage: 'python', codeTests: [{ input: '2 3', expected: '5' }] });
+  await page.context().clearCookies();
+
+  await loginWithTemporaryPassword(page, family.student.login, family.student.password);
+  await page.goto('/portal/homework');
+  await page.getByRole('link', { name: title }).click();
+  await expect(page.getByText(/Kod avtomatik tekshiriladi: 1 ta test/)).toBeVisible();
+  await page.getByLabel('Kod').fill('a, b = map(int, input().split())\nprint(a + b)');
+  await page.getByRole('button', { name: 'Topshirish' }).click();
+  await expect(page.getByText('Topshirdi', { exact: true })).toBeVisible();
+  await expect(page.getByText(/sandbox .* hali ulanmagan/)).toBeVisible();
+
+  const runs = await withDb(async (db) => (await db.query<{ n: string }>('SELECT COUNT(*)::text AS n FROM code_runs r JOIN homework h ON h.id = r."homeworkId" WHERE h.title = $1', [title])).rows[0]!.n);
+  expect(runs).toBe('0');
+});

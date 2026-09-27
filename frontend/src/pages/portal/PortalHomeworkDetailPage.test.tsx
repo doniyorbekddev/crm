@@ -40,6 +40,8 @@ const DETAIL: PortalHomeworkDetail = {
     difficulty: null,
     topic: null,
     lesson: null,
+    codeLanguage: null,
+    codeTests: [],
   },
   attachments: [],
   submission: {
@@ -61,6 +63,8 @@ const DETAIL: PortalHomeworkDetail = {
   maxFiles: 5,
   canSubmit: true,
   isLate: false,
+  codeRun: null,
+  codeRunnerEnabled: false,
 };
 
 function renderPage(detail: PortalHomeworkDetail) {

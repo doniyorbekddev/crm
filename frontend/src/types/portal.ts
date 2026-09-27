@@ -1,3 +1,4 @@
+import type { CodeLanguage, CodeRun } from '@/types/codeRun';
 import type { StudentProfile } from './studentProfile';
 import type { PaymentSchedule } from './paymentSchedule';
 import type { PaymentMethod } from './payment';
@@ -101,6 +102,8 @@ export interface PortalHomeworkDetail {
     difficulty: Difficulty | null;
     topic: { id: string; title: string } | null;
     lesson: { id: string; title: string } | null;
+    codeLanguage: CodeLanguage | null;
+    codeTests: Array<{ input: string | null; expected: string | null; hidden: boolean }>;
   };
   attachments: HomeworkAttachment[];
   submission: {
@@ -122,6 +125,9 @@ export interface PortalHomeworkDetail {
   maxFiles: number;
   canSubmit: boolean;
   isLate: boolean;
+  /** Sandboxdagi oxirgi tekshiruv (yashirin testlar niqoblangan) */
+  codeRun: CodeRun | null;
+  codeRunnerEnabled: boolean;
 }
 
 export interface PortalExamDetail {

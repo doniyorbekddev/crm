@@ -2298,6 +2298,9 @@ model Homework {
   difficulty          QuestionDifficulty?
   targetType          HomeworkTarget      @default(GROUP)
   rubricId            String?
+  /// Dasturlash vazifasi (TZ 3.1 GAP-19): til va testlar `[{ input, expected, hidden? }]` — sandbox runnerda tekshiriladi
+  codeLanguage        String?             @db.VarChar(20)
+  codeTests           Json?
   /// Takrorlanuvchi jadvaldan yaratilgan bo'lsa (TZ 3.1 GAP-18) — jadval va o'sha kun (biznes sanasi)
   recurringHomeworkId String?
   occurrenceDate      DateTime?           @db.Date
@@ -2321,6 +2324,44 @@ model Homework {
   @@index([createdAt])
   @@index([topicId])
   @@map("homework")
+}
+
+enum CodeRunStatus {
+  QUEUED
+  RUNNING
+  /// Hamma testlar o'tdi
+  PASSED
+  /// Kod ishladi, lekin testlarning bir qismi o'tmadi (vaqt, xotira, xato ham shu yerda — testlar bo'yicha)
+  FAILED
+  /// Runner ishlamadi / javob bermadi — natija YO'Q (hech qachon "o'tdi" emas)
+  ERROR
+}
+
+/// O'quvchi kodining sandboxda tekshirilishi (TZ 3.1 GAP-19) — navbat va natija
+model CodeRun {
+  id            String        @id @default(cuid())
+  submissionId  String
+  homeworkId    String
+  studentId     String
+  language      String        @db.VarChar(20)
+  status        CodeRunStatus @default(QUEUED)
+  passed        Int?          @db.SmallInt
+  total         Int?          @db.SmallInt
+  /// Runner javobi: har test — o'tdi, holat, vaqt, qisqartirilgan chiqish
+  result        Json?
+  error         String?       @db.VarChar(500)
+  attempts      Int           @default(0) @db.SmallInt
+  nextAttemptAt DateTime      @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  submission HomeworkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([submissionId, createdAt])
+  @@map("code_runs")
 }
 
 enum RecurringHomeworkFrequency {
@@ -2393,6 +2434,7 @@ model HomeworkSubmission {
   student     Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
   gradedBy    User?                  @relation("SubmissionGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
   attachments SubmissionAttachment[]
+  codeRuns    CodeRun[]
 
   @@unique([homeworkId, studentId])
   @@index([studentId, status])

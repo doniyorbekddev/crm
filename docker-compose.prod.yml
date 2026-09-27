@@ -98,6 +98,9 @@ services:
       PAYME_ACCOUNT_FIELD: ${PAYME_ACCOUNT_FIELD:-order_id}
       PAYME_FISCAL_MXIK: ${PAYME_FISCAL_MXIK:-}
       PAYME_FISCAL_PACKAGE_CODE: ${PAYME_FISCAL_PACKAGE_CODE:-}
+      # --- Kod sandbox: alohida runner server (docs/code-sandbox.md). Bo'sh — kod bajarilmaydi ---
+      CODE_RUNNER_URL: ${CODE_RUNNER_URL:-}
+      CODE_RUNNER_TOKEN: ${CODE_RUNNER_TOKEN:-}
       # --- AI akademik markaz (ixtiyoriy; kalitsiz — qoidalar rejimi) ---
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-claude-sonnet-5}

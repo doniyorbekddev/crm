@@ -19,6 +19,8 @@ const homeworkGrade = requirePermission(PERMISSIONS.HOMEWORK_GRADE);
 homeworkRouter.get('/', homeworkView, homeworkController.list);
 homeworkRouter.get('/attachments/:id/download', homeworkView, homeworkController.downloadAttachment);
 homeworkRouter.delete('/attachments/:id', homeworkManage, homeworkController.removeAttachment);
+// Kod sandbox holati (TZ 3.1 GAP-19) — `/:id` dan oldin
+homeworkRouter.get('/code-runner', homeworkView, homeworkController.codeRunnerStatus);
 // Takrorlanuvchi vazifa (TZ 3.1 GAP-18) — `/:id` dan oldin
 homeworkRouter.get('/recurring', homeworkView, recurringHomeworkController.list);
 homeworkRouter.post('/recurring', homeworkManage, recurringHomeworkController.create);
@@ -33,6 +35,7 @@ homeworkRouter.patch('/:id/submissions/:studentId', homeworkGrade, homeworkContr
 homeworkRouter.get('/:id/submissions/:studentId', homeworkView, homeworkController.submission);
 homeworkRouter.get('/:id/submissions/:studentId/files/:fileId', homeworkView, homeworkController.submissionFile);
 homeworkRouter.post('/:id/submissions/:studentId/return', homeworkGrade, homeworkController.returnSubmission);
+homeworkRouter.post('/:id/submissions/:studentId/code-run', homeworkGrade, homeworkController.rerunCode);
 homeworkRouter.post('/:id/attachments', homeworkManage, homeworkController.addLink);
 homeworkRouter.post('/:id/attachments/upload', homeworkManage, uploadBody, homeworkController.uploadAttachment);
 

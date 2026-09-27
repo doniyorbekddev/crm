@@ -1,0 +1,25 @@
+# /etc/systemd/system/code-runner.service — runner server (TZ 3.1 GAP-19, docs/code-sandbox.md)
+[Unit]
+Description=Academy CRM code runner (sandbox)
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=coderunner
+Group=docker
+WorkingDirectory=/opt/code-runner
+EnvironmentFile=/opt/code-runner/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=3
+# Xizmatning o'zi uchun qattiqlashtirish (o'quvchi kodi baribir alohida konteynerda)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/code-runner
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

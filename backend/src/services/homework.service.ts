@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
-import type { HomeworkStatus, HomeworkTarget, Prisma, QuestionDifficulty, SubmissionStatus } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { HomeworkStatus, HomeworkTarget, QuestionDifficulty, SubmissionStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { detectFileType, removeStoredFile, resolveStoredPath, sanitizeFileName, saveFile, mimeForStoredPath } from '../utils/fileStorage.js';
@@ -22,6 +23,7 @@ import { gamificationHooks } from './gamification.service.js';
 import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
 import type { TeachingAccess } from './teachingAccess.js';
 import { masteryService } from './mastery.service.js';
+import { codeRunService, isRunnable, isRunnerEnabled, parseTests, type CodeRunDto, type CodeTest } from './codeRun.service.js';
 
 // Egalik qoidasi endi `teachingAccess.ts` da — eski importlar ishlashi uchun qayta eksport
 export { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
@@ -83,6 +85,9 @@ export interface HomeworkDto {
   topic: { id: string; title: string } | null;
   lesson: { id: string; title: string } | null;
   rubric: { id: string; name: string } | null;
+  /** Dasturlash vazifasi (TZ 3.1 GAP-19): til va testlar (o'qituvchi ko'rinishi) */
+  codeLanguage: string | null;
+  codeTests: CodeTest[];
   attachmentCount: number;
   /** Muddati o‘tgan va yopilmagan */
   isOverdue: boolean;
@@ -138,6 +143,10 @@ export interface SubmissionDetailDto extends SubmissionDto {
   rubricScores: Record<string, number> | null;
   returnedAt: string | null;
   files: Array<{ id: string; originalName: string; mimeType: string; size: number; createdAt: string }>;
+  /** Sandboxdagi oxirgi tekshiruv (TZ 3.1 GAP-19) — bo'lmasa null */
+  codeRun: CodeRunDto | null;
+  /** Runner ulanganmi — ulanmagan bo'lsa UI "kod bajarish ulanmagan" deydi */
+  codeRunnerEnabled: boolean;
 }
 
 // ---------------------------------------------------------------------
@@ -169,6 +178,8 @@ const homeworkSelect = {
   topic: { select: { id: true, title: true } },
   lesson: { select: { id: true, title: true } },
   rubric: { select: { id: true, name: true, criteria: true } },
+  codeLanguage: true,
+  codeTests: true,
   _count: { select: { attachments: true } },
   course: { select: { id: true, name: true } },
   group: { select: { id: true, name: true, courseId: true } },
@@ -227,6 +238,8 @@ function toDto(homework: HomeworkRecord): HomeworkDto {
     topic: homework.topic,
     lesson: homework.lesson,
     rubric: homework.rubric ? { id: homework.rubric.id, name: homework.rubric.name } : null,
+    codeLanguage: homework.codeLanguage,
+    codeTests: parseTests(homework.codeTests),
     attachmentCount: homework._count.attachments,
     isOverdue: homework.status !== 'CLOSED' && homework.deadline.getTime() < Date.now(),
     course: homework.course,
@@ -498,6 +511,8 @@ export async function createHomeworkInTransaction(
       lessonId: input.lessonId ?? null,
       difficulty: input.difficulty ?? null,
       rubricId: input.rubricId ?? null,
+      codeLanguage: input.codeLanguage ?? null,
+      ...(input.codeTests && input.codeTests.length ? { codeTests: input.codeTests as Prisma.InputJsonValue } : {}),
       ...(params.recurring ? { recurringHomeworkId: params.recurring.recurringHomeworkId, occurrenceDate: params.recurring.occurrenceDate } : {}),
     },
     select: { id: true },
@@ -578,6 +593,9 @@ export const homeworkService = {
           },
         });
       }
+
+      // Dasturlash vazifasi: kod testlari sandbox navbatiga (runner sozlangan bo'lsa; aks holda hech narsa)
+      await codeRunService.enqueueInTransaction(tx, submission.id);
 
       // dedupeKey bilan — qayta topshirilsa yoki keyin baholansa ikki marta berilmaydi
       const points = await gamificationHooks.onHomeworkSubmitted(tx, { studentId, submissionId: submission.id, onTime: !late });
@@ -750,12 +768,20 @@ export const homeworkService = {
       lessonId: input.lessonId,
       rubricId: input.rubricId,
     });
+    // Testlar faqat bajariladigan tilda (tahrirda — yangi va eski qiymatlar birgalikda)
+    const language = input.codeLanguage === undefined ? homework.codeLanguage : input.codeLanguage;
+    const tests = input.codeTests === undefined ? parseTests(homework.codeTests) : (input.codeTests ?? []);
+    if (tests.length > 0 && !isRunnable(language)) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'codeTests', message: 'Testlar faqat JavaScript, TypeScript yoki Python uchun' }]);
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.homework.update({
         where: { id },
         data: {
           ...(input.title === undefined ? {} : { title: input.title }),
+          ...(input.codeLanguage === undefined ? {} : { codeLanguage: input.codeLanguage }),
+          ...(input.codeTests === undefined ? {} : { codeTests: input.codeTests && input.codeTests.length ? (input.codeTests as Prisma.InputJsonValue) : Prisma.DbNull }),
           ...(input.description === undefined ? {} : { description: input.description }),
           ...(input.deadline === undefined ? {} : { deadline: input.deadline }),
           ...(input.maxPoints === undefined ? {} : { maxPoints: input.maxPoints }),
@@ -819,6 +845,7 @@ export const homeworkService = {
     const full = await prisma.homeworkSubmission.findUniqueOrThrow({
       where: { homeworkId_studentId: { homeworkId: id, studentId } },
       select: {
+        id: true,
         codeLanguage: true,
         rubricScores: true,
         returnedAt: true,
@@ -836,7 +863,21 @@ export const homeworkService = {
       rubricScores: (full.rubricScores as Record<string, number> | null) ?? null,
       returnedAt: full.returnedAt?.toISOString() ?? null,
       files: full.attachments.map((file) => ({ ...file, createdAt: file.createdAt.toISOString() })),
+      codeRun: await codeRunService.latestForSubmission(full.id, { forStudent: false }),
+      codeRunnerEnabled: isRunnerEnabled(),
     };
+  },
+
+  /** O'qituvchi tekshiruvni qayta yuboradi (runner ishlamagan yoki testlar o'zgargan bo'lsa) */
+  async rerunCode(actor: AuthUser, id: string, studentId: string): Promise<SubmissionDetailDto> {
+    const access = await getTeachingAccess(actor);
+    await findVisible(access, id);
+    if (!isRunnerEnabled()) throw AppError.unprocessable('Kod bajarish (sandbox) ulanmagan');
+    const submission = await prisma.homeworkSubmission.findUnique({ where: { homeworkId_studentId: { homeworkId: id, studentId } }, select: { id: true } });
+    if (!submission) throw AppError.notFound('Topshiriq topilmadi');
+    const queued = await prisma.$transaction((tx) => codeRunService.enqueueInTransaction(tx, submission.id));
+    if (!queued) throw AppError.unprocessable('Tekshirib bo‘lmaydi: vazifada til/testlar yoki javobda kod yo‘q');
+    return this.submissionDetail(actor, id, studentId);
   },
 
   /** O'quvchi faylini o'qituvchi oladi — faqat o'z guruhidagi vazifa */

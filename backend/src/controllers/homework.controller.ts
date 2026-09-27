@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { examService } from '../services/exam.service.js';
 import { homeworkService } from '../services/homework.service.js';
+import { isRunnerEnabled } from '../services/codeRun.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { sendStoredFile } from '../utils/sendStoredFile.js';
@@ -62,6 +63,17 @@ export const homeworkController = {
     const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
     const fileId = idParamSchema.parse({ id: req.params.fileId }).id;
     await sendStoredFile(res, await homeworkService.submissionFile(requireAuthUser(req), id, studentId, fileId));
+  },
+
+  /** Kod sandbox ulanganmi (UI "ulanmagan" yozuvi uchun) — TZ 3.1 GAP-19 */
+  async codeRunnerStatus(_req: Request, res: Response): Promise<void> {
+    sendSuccess(res, { enabled: isRunnerEnabled() });
+  },
+
+  async rerunCode(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const studentId = idParamSchema.parse({ id: req.params.studentId }).id;
+    sendSuccess(res, await homeworkService.rerunCode(requireAuthUser(req), id, studentId), { message: 'Kod tekshiruvga yuborildi' });
   },
 
   async returnSubmission(req: Request, res: Response): Promise<void> {

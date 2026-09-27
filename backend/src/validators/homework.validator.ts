@@ -38,6 +38,9 @@ export const homeworkListQuerySchema = paginationQuerySchema.extend({
   sortBy: z.enum(['deadline', 'assignedAt', 'title']).default('deadline'),
 });
 
+/** Sandbox tillari (JS/TS/Python bajariladi) va HTML (faqat brauzerda ko'rish) */
+export const CODE_LANGUAGES = ['javascript', 'typescript', 'python', 'html'] as const;
+
 const homeworkFieldsSchema = z.object({
   title: z.string('Sarlavhani kiriting').trim().min(3, 'Kamida 3 belgi').max(200, 'Sarlavha juda uzun'),
   description: optionalField(z.string().trim().max(2000, 'Tavsif juda uzun')),
@@ -59,6 +62,19 @@ const homeworkFieldsSchema = z.object({
   lessonId: idSchema.nullable().optional(),
   difficulty: z.enum(DIFFICULTIES, 'Qiyinlik noto‘g‘ri').nullable().optional(),
   rubricId: idSchema.nullable().optional(),
+  /** Dasturlash vazifasi (TZ 3.1 GAP-19): til; testlar faqat JS/TS/Python uchun (HTML — brauzerda ko'rish) */
+  codeLanguage: z.enum(CODE_LANGUAGES, 'Til noto‘g‘ri').nullable().optional(),
+  codeTests: z
+    .array(
+      z.object({
+        input: z.string().max(16_384, 'Kirish juda katta'),
+        expected: z.string().max(16_384, 'Kutilgan chiqish juda katta'),
+        hidden: z.boolean().optional(),
+      }).strict(),
+    )
+    .max(10, 'Ko‘pi bilan 10 ta test')
+    .nullable()
+    .optional(),
 });
 
 export const createHomeworkSchema = homeworkFieldsSchema
@@ -75,6 +91,9 @@ export const createHomeworkSchema = homeworkFieldsSchema
     if (value.targetType === 'SELECTED' && count === 0) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Kamida bitta o‘quvchini tanlang' });
     if (value.targetType === 'INDIVIDUAL' && count !== 1) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Bitta o‘quvchini tanlang' });
     if (value.targetType === 'GROUP' && count > 0) ctx.addIssue({ code: 'custom', path: ['studentIds'], message: 'Butun guruhga berilganda o‘quvchi tanlanmaydi' });
+    if ((value.codeTests?.length ?? 0) > 0 && !['javascript', 'typescript', 'python'].includes(value.codeLanguage ?? '')) {
+      ctx.addIssue({ code: 'custom', path: ['codeTests'], message: 'Testlar faqat JavaScript, TypeScript yoki Python uchun' });
+    }
   });
 // Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
 export const updateHomeworkSchema = homeworkFieldsSchema.omit({ groupId: true }).partial();
