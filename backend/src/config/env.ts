@@ -26,6 +26,63 @@ const booleanString = z
   .default('false')
   .transform((value) => value === 'true');
 
+/** `productionEnvIssues` tekshiradigan qiymatlar (sxema natijasining bir qismi) */
+export interface EnvRuleInput {
+  NODE_ENV: 'development' | 'test' | 'production';
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
+  TELEGRAM_POLLING: boolean;
+  CLICK_SERVICE_ID?: string;
+  CLICK_MERCHANT_ID?: string;
+  CLICK_SECRET_KEY?: string;
+  PAYME_MERCHANT_ID?: string;
+  PAYME_KEY?: string;
+  CODE_RUNNER_URL?: string;
+  CODE_RUNNER_TOKEN?: string;
+}
+
+/** Telegram `secret_token` faqat shu belgilarni qabul qiladi (setWebhook, 1–256 belgi) */
+const TELEGRAM_SECRET_PATTERN = /^[A-Za-z0-9_-]{1,256}$/;
+
+/**
+ * TZ 3.1 §45 — ishga tushishdan oldingi tekshiruv (PHASE 21). Qisman sozlangan provayder yoki productionda xavfsiz
+ * bo'lmagan Telegram rejimi — server **umuman ko'tarilmaydi** (jimgina o'chiq ishlash o'rniga).
+ */
+export function productionEnvIssues(values: EnvRuleInput): Array<{ path: string; message: string }> {
+  const issues: Array<{ path: string; message: string }> = [];
+  const production = values.NODE_ENV === 'production';
+
+  if (values.TELEGRAM_WEBHOOK_SECRET && !TELEGRAM_SECRET_PATTERN.test(values.TELEGRAM_WEBHOOK_SECRET)) {
+    issues.push({ path: 'TELEGRAM_WEBHOOK_SECRET', message: 'Faqat A-Z, a-z, 0-9, "_" va "-" (Telegram talabi)' });
+  }
+  if (production && values.TELEGRAM_BOT_TOKEN) {
+    if (!values.TELEGRAM_WEBHOOK_SECRET || values.TELEGRAM_WEBHOOK_SECRET.length < 32) {
+      issues.push({ path: 'TELEGRAM_WEBHOOK_SECRET', message: 'Productionda bot yoqilgan bo‘lsa webhook siri majburiy (kamida 32 belgi)' });
+    }
+  }
+  if (production && values.TELEGRAM_POLLING) {
+    issues.push({ path: 'TELEGRAM_POLLING', message: 'Productionda faqat webhook: TELEGRAM_POLLING=false qiling' });
+  }
+
+  const click = [values.CLICK_SERVICE_ID, values.CLICK_MERCHANT_ID, values.CLICK_SECRET_KEY];
+  if (click.some(Boolean) && !click.every(Boolean)) {
+    issues.push({ path: 'CLICK_SECRET_KEY', message: 'Click qisman sozlangan: CLICK_SERVICE_ID, CLICK_MERCHANT_ID va CLICK_SECRET_KEY birga berilishi kerak' });
+  }
+  if (Boolean(values.PAYME_MERCHANT_ID) !== Boolean(values.PAYME_KEY)) {
+    issues.push({ path: 'PAYME_KEY', message: 'Payme qisman sozlangan: PAYME_MERCHANT_ID va PAYME_KEY birga berilishi kerak' });
+  }
+
+  if (values.CODE_RUNNER_URL) {
+    if (!z.url().safeParse(values.CODE_RUNNER_URL).success) {
+      issues.push({ path: 'CODE_RUNNER_URL', message: 'To‘g‘ri URL bo‘lishi kerak' });
+    }
+    if (!values.CODE_RUNNER_TOKEN || values.CODE_RUNNER_TOKEN.length < 32) {
+      issues.push({ path: 'CODE_RUNNER_TOKEN', message: 'Runner ulangan bo‘lsa token majburiy (kamida 32 belgi, runner bilan bir xil)' });
+    }
+  }
+  return issues;
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -122,6 +179,9 @@ const envSchema = z
   .refine((values) => values.JWT_SECRET !== values.JWT_REFRESH_SECRET, {
     message: 'JWT_SECRET va JWT_REFRESH_SECRET bir-biridan farq qilishi kerak',
     path: ['JWT_REFRESH_SECRET'],
+  })
+  .superRefine((values, context) => {
+    for (const issue of productionEnvIssues(values)) context.addIssue({ code: 'custom', path: [issue.path], message: issue.message });
   });
 
 export type Env = z.infer<typeof envSchema>;

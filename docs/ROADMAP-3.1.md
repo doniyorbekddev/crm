@@ -109,6 +109,6 @@ Barcha to'plamlar, E2E §35–38, yuk testi (broadcast katta auditoriya), `endpo
 - **S3 qoldig'i** (PHASE 14 da faqat qidiruv yopildi): analitika (`analytics.service`, `academicAnalytics` dan tashqari), `executive`/`academyOverview`, 15 hisobot turi (`report.service`), o'qituvchi "bugungi darslar" (`attendanceAnalytics.teacherOverview`, `group.manage` li xodim uchun) — `branch.view_all` siz xodimga faqat o'z filiali; bot (kunlik hisobot, marketing, hisobotlar) avtomatik shu servislardan oladi.
 - Test to'plami `testTimeout` (yuklangan mashinada 5 s ba'zan yetmaydi).
 
-## PHASE 21 — Production hardening
+## PHASE 21 — Production hardening ✅ (2026-09-28)
 - Yetim fayllar tozalash: bekor qilingan bot vazifasi fayllari (PHASE 7) va yuborilmagan ommaviy xabar fayllari (PHASE 15, `telegram_broadcasts.mediaPath` ga bog'lanmagan, 1 soatdan eski).
 Metrikalar (to'lov, job "oxirgi yurish", webhook 401, bot xatolari), Telegram env production tekshiruvi (token → secret majburiy), `PAYMENT_*`/`CLICK_*`/`PAYME_*` compose'ga, deployment hujjati, §55 qabul ro'yxati, yakuniy GAP matritsasi (§49), TZ.html/pdf.

@@ -1,5 +1,5 @@
 import { notificationDeliveryService } from '../services/notificationDelivery.service.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /**
  * Yetkazish navbatini qayta ishlaydi. Har daqiqada — foydalanuvchi xabarni tez olishi kerak,
@@ -14,6 +14,7 @@ async function runOnce(): Promise<void> {
   running = true;
   try {
     await notificationDeliveryService.processQueue(new Date());
+    reportJobSuccess('notificationDelivery');
   } catch (error) {
     reportJobFailure('notificationDelivery', error, 'Yetkazish navbati jobida xatolik');
   } finally {

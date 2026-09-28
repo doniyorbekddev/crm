@@ -12,6 +12,7 @@ import { detectFileType, resolveStoredPath, sanitizeFileName, saveFile } from '.
 import type { BroadcastButton, BroadcastInput } from '../validators/broadcast.validator.js';
 import { auditService } from './audit.service.js';
 import { branchFilter, getBranchAccess } from './branchAccess.js';
+import { PENDING_UPLOAD_KIND, pendingUploadService } from './pendingUpload.service.js';
 import { permissionService } from './permission.service.js';
 import { escapeHtml } from './telegram.service.js';
 
@@ -225,6 +226,8 @@ export const broadcastService = {
     if (kind === 'photo' && buffer.length > PHOTO_MAX_BYTES) throw AppError.unprocessable('Rasm 10 MB dan oshmasin', [{ field: 'file', message: 'Rasm juda katta' }]);
     const fileName = sanitizeFileName(rawName, type.ext);
     const path = await saveFile(buffer, type.ext);
+    // Token olinib xabar yuborilmasa fayl yetim qolmasin (PHASE 21)
+    await pendingUploadService.track(path, PENDING_UPLOAD_KIND.BROADCAST_MEDIA);
     const claims: MediaClaims = { p: path, k: kind, n: fileName, u: actor.id };
     const token = jwt.sign(claims, mediaSecret(), { algorithm: 'HS256', audience: 'broadcast-media', expiresIn: MEDIA_TOKEN_TTL_SECONDS });
     return { token, kind, fileName, size: buffer.length };
@@ -268,6 +271,7 @@ export const broadcastService = {
         },
         select: broadcastSelect,
       });
+      if (stored) await pendingUploadService.release([stored.path], tx);
 
       // Matn HTML rejimida yuboriladi — foydalanuvchi yozgan `<` belgisi xabarni buzmasin
       const body = escapeHtml(input.message);

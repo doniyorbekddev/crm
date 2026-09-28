@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getErrorMessage } from '@/lib/api';
 import { appEnv } from '@/lib/env';
+import { usePermission } from '@/hooks/usePermission';
 import { healthService } from '@/services/health.service';
 import { formatDateTime, formatDuration, formatTime } from '@/utils/format';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 const HEALTH_REFETCH_INTERVAL_MS = 15_000;
 
@@ -22,7 +24,50 @@ function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+/**
+ * Fon vazifalari (TZ 3.1 §44): oxirgi muvaffaqiyatli va xato yurish. Xato muvaffaqiyatdan keyin bo'lsa — qizil.
+ * Server qayta ishga tushgandan keyin birinchi yurishgacha ro'yxat bo'sh bo'lishi mumkin.
+ */
+function JobsCard() {
+  const jobs = useQuery({ queryKey: ['health', 'jobs'], queryFn: healthService.jobs, refetchInterval: 60_000 });
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <div>
+          <CardTitle>Fon vazifalari</CardTitle>
+          <CardDescription>Eslatmalar, navbat, takrorlanuvchi vazifalar, sandbox va boshqalar — oxirgi yurish</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {jobs.isPending ? (
+          <Skeleton className="h-24 rounded-lg" />
+        ) : jobs.isError ? (
+          <p className="text-sm text-fg-muted">{getErrorMessage(jobs.error)}</p>
+        ) : jobs.data.length === 0 ? (
+          <p className="text-sm text-fg-muted">Server yaqinda ishga tushgan — vazifalar hali yurmagan.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {jobs.data.map((job) => {
+              const failing = job.lastFailureAt !== null && (job.lastSuccessAt === null || job.lastFailureAt > job.lastSuccessAt);
+              return (
+                <li key={job.job} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                  <span className="font-mono text-xs">{job.job}</span>
+                  <span className="flex items-center gap-2 text-xs text-fg-muted">
+                    {job.lastSuccessAt ? `oxirgi: ${formatDateTime(job.lastSuccessAt)}` : 'hali muvaffaqiyatli emas'}
+                    {failing ? <Badge tone="red">xato: {formatDateTime(job.lastFailureAt)}</Badge> : <Badge tone="green">ishlayapti</Badge>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SystemStatusPage() {
+  const canSeeJobs = usePermission(PERMISSIONS.SETTINGS_MANAGE);
   const { data, error, isPending, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['health'],
     queryFn: healthService.check,
@@ -123,6 +168,8 @@ export default function SystemStatusPage() {
           )}
         </CardContent>
       </Card>
+
+      {canSeeJobs && <JobsCard />}
 
       <p className="mt-3 text-xs text-fg-muted">
         {dataUpdatedAt > 0 ? `Oxirgi tekshiruv: ${formatTime(new Date(dataUpdatedAt))}` : 'Tekshirilmoqda...'} · har{' '}

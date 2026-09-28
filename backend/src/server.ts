@@ -17,6 +17,7 @@ import { startFollowUpReminderJob } from './jobs/followUpReminder.job.js';
 import { startRecurringExpensesJob } from './jobs/recurringExpenses.job.js';
 import { startRecurringHomeworkJob } from './jobs/recurringHomework.job.js';
 import { startCodeRunJob } from './jobs/codeRun.job.js';
+import { startOrphanUploadsJob } from './jobs/orphanUploads.job.js';
 import { telegramService } from './services/telegram.service.js';
 import { BOT_COMMAND_MENU } from './services/telegramCommand.service.js';
 import { startTelegramPolling } from './telegram/polling.js';
@@ -42,6 +43,8 @@ const stopRecurringExpenses = startRecurringExpensesJob();
 const stopRecurringHomework = startRecurringHomeworkJob();
 // Kod sandbox navbati (runner sozlangan bo'lsa)
 const stopCodeRuns = startCodeRunJob();
+// Bog'lanmay qolgan yuklamalarni tozalash (har 6 soatda, 24 soatdan eskilari)
+const stopOrphanUploads = startOrphanUploadsJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
 // Haftalik hisobot o'quvchi va ota-onaga (yakshanba kechqurun)
@@ -82,6 +85,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopRecurringExpenses();
   stopRecurringHomework();
   stopCodeRuns();
+  stopOrphanUploads();
   stopTelegramPolling();
   stopDailyDigest();
   stopWeeklyReport();

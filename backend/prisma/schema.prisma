@@ -3812,3 +3812,16 @@ model PaymentIntent {
   @@index([status, createdAt])
   @@map("payment_intents")
 }
+
+/// TZ 3.1 PHASE 21 — hali hech narsaga bog'lanmagan yuklangan fayl (bot vazifa qoralamasi, web broadcast media).
+/// Bog'langanda yozuv o'chiriladi; 24 soatdan keyin ham qolgani (va hech bir ustun ishlatmasa) — fayl tozalanadi.
+model PendingUpload {
+  /// Saqlash papkasiga nisbiy yo'l ("2026/09/<uuid>.pdf")
+  path      String   @id @db.VarChar(255)
+  /// homework_attachment | broadcast_media
+  kind      String   @db.VarChar(40)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("pending_uploads")
+}

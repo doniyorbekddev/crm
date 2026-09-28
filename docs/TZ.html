@@ -41,8 +41,57 @@
 <div class="page">
 
 <h1>IT-Academy CRM — texnik topshiriqlar bajarilishi hisoboti</h1>
-<p class="sub">To'rtta TZ: <b><code>promt3.md</code> (Academy CRM 3.0) — 0-bo'lim, 2026-09-25</b>; <code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code> — 1–8-bo'limlar, 2026-09-24 holati (<code>448916a</code>).</p>
+<p class="sub">Beshta TZ: <b><code>promt3.1.md</code> (Academy CRM 3.1) — 00-bo'lim, 2026-09-28</b>; <code>promt3.md</code> (Academy CRM 3.0) — 0-bo'lim, 2026-09-25; <code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code> — 1–8-bo'limlar, 2026-09-24 holati (<code>448916a</code>).</p>
 
+
+<h2>00. promt3.1.md — "Academy CRM 3.1" (19 GAP, 21 faza)</h2>
+<p class="small">2026-09-28 holati. PHASE 0 audit source code bo'yicha (<code>docs/ACADEMY-3.1-AUDIT.md</code>), keyin 21 faza — har biri test, commit va §53 hisobot bilan (<code>docs/PHASE-REPORTS-3.1.md</code>). Qabul hujjati: <code>docs/ACCEPTANCE-3.1.md</code>.</p>
+<div class="kpi">
+  <div><b>936 + 136 + 48 + 22</b><span>backend · frontend · E2E · code-runner (hammasi o'tadi)</span></div>
+  <div><b>25</b><span>3.1 kommitlari</span></div>
+  <div><b>7</b><span>migratsiya — DROP/DELETE 0 ta</span></div>
+  <div><b>≈ +18 000</b><span>qator, 265 fayl</span></div>
+</div>
+<h3>00.1. Yakuniy GAP matritsasi (§49)</h3>
+<table>
+<tr><th style="width:62px">GAP</th><th style="width:130px">Yo'nalish</th><th style="width:90px">Oldin</th><th>Nima qilindi</th><th style="width:130px">Holat</th><th style="width:70px">Commit</th></tr>
+<tr><td>GAP-01</td><td>Academy Settings</td><td class="small">MISSING</td><td>Markaz ma'lumotlari: nom, logo, aloqa, ish vaqti, o'quv yili</td><td><span class="s ok">COMPLETE</span></td><td><code>70b1743</code></td></tr>
+<tr><td>GAP-02</td><td>Badge Creation</td><td class="small">PARTIAL</td><td>Admin nishon yaratadi: toifa, REFERRAL, dublikat nazorati</td><td><span class="s ok">COMPLETE</span></td><td><code>782da9b</code></td></tr>
+<tr><td>GAP-03</td><td>Column Visibility</td><td class="small">MISSING</td><td>Jadval ustunlari: ko'rsatish/yashirish, tartib, kenglik (profilda)</td><td><span class="s ok">COMPLETE</span></td><td><code>6a43a3b</code></td></tr>
+<tr><td>GAP-04</td><td>Date Filters</td><td class="small">COMPLETE</td><td>"O'tgan yil" davri, regressiya testlari</td><td><span class="s ok">COMPLETE</span></td><td><code>dd4a525</code></td></tr>
+<tr><td>GAP-05</td><td>Exam Variants</td><td class="small">PARTIAL</td><td>Xodim yo'li ham snapshot bilan; egalik va aralashtirish testlari</td><td><span class="s ok">COMPLETE</span></td><td><code>49f0fc0</code></td></tr>
+<tr><td>GAP-06</td><td>Telegram Exam</td><td class="small">PARTIAL</td><td>Tafsilot, tasdiq, navigatsiya, har callbackda holat tekshiruvi</td><td><span class="s ok">COMPLETE</span></td><td><code>8ac0e97</code></td></tr>
+<tr><td>GAP-07</td><td>Telegram File Homework</td><td class="small">PARTIAL</td><td>Fayl qabulda tekshiriladi, atomik e'lon, ruxsat</td><td><span class="s ok">COMPLETE</span></td><td><code>7db57f1</code></td></tr>
+<tr><td>GAP-08</td><td>Telegram Call</td><td class="small">PARTIAL</td><td>Tur, natija, davomiylik, izoh, keyingi qadam</td><td><span class="s ok">COMPLETE</span></td><td><code>fe426e8</code></td></tr>
+<tr><td>GAP-09</td><td>Telegram Follow-up</td><td class="small">PARTIAL</td><td>Sana, izoh, muhimlik; eslatma Telegramga (S4)</td><td><span class="s ok">COMPLETE</span></td><td><code>e8ab637</code></td></tr>
+<tr><td>GAP-10</td><td>Teacher KPI</td><td class="small">PARTIAL</td><td>Rahbar botda o'qituvchilar KPI</td><td><span class="s ok">COMPLETE</span></td><td><code>f476262</code></td></tr>
+<tr><td>GAP-11</td><td>Marketing</td><td class="small">PARTIAL</td><td>Manba bo'yicha tushum/xarajat/foyda/ROI, davr, CSV</td><td><span class="s ok">COMPLETE</span></td><td><code>b18b8eb</code></td></tr>
+<tr><td>GAP-12</td><td>Reports</td><td class="small">PARTIAL</td><td>Kunlik hisobot, 15 tur, davr, CSV</td><td><span class="s ok">COMPLETE</span></td><td><code>d96151d</code></td></tr>
+<tr><td>GAP-13</td><td>Telegram Settings</td><td class="small">PARTIAL</td><td>Bildirishnoma toifalari, oilaviy yo'l ham</td><td><span class="s ok">COMPLETE</span></td><td><code>d634976</code></td></tr>
+<tr><td>GAP-14</td><td>Telegram Search</td><td class="small">PARTIAL</td><td>O'quvchi/ota-ona qidiruvi; o'qituvchi va filial doirasi</td><td><span class="s ok">COMPLETE</span></td><td><code>e63e022</code></td></tr>
+<tr><td>GAP-15</td><td>Broadcast Media</td><td class="small">PARTIAL</td><td>URL tugmalar, web sahifa (rasm/PDF), statistika</td><td><span class="s ok">COMPLETE</span></td><td><code>173361f</code></td></tr>
+<tr><td>GAP-16</td><td>Documentation</td><td class="small">PARTIAL</td><td>telegram-api/auth/permissions/notifications/testing</td><td><span class="s ok">COMPLETE</span></td><td><code>786366e</code></td></tr>
+<tr><td>GAP-17</td><td>Click/Payme</td><td class="small">PARTIAL + BLOCKED</td><td>Payme va Click adapterlari, tranzaksiyalar, refund, sinov belgisi</td><td><span class="s warn">READY (merchant kalitlarisiz)</span></td><td><code>6762e09</code></td></tr>
+<tr><td>GAP-18</td><td>Recurring Homework</td><td class="small">MISSING</td><td>Jadval, generator job, dublikatdan himoya, web</td><td><span class="s ok">COMPLETE</span></td><td><code>b5ca7db</code></td></tr>
+<tr><td>GAP-19</td><td>Secure Sandbox</td><td class="small">MISSING</td><td>Alohida code-runner, izolyatsiyalangan konteyner, CRM navbati, HTML iframe</td><td><span class="s warn">CRM COMPLETE + INFRA READY (runner server / gVisor kutilmoqda)</span></td><td><code>1fefe1e</code></td></tr>
+</table>
+<h3>00.2. Audit topgan xavfsizlik nuqsonlari (GAP ro'yxatida yo'q edi)</h3>
+<table>
+<tr><th style="width:36px">#</th><th>Nuqson</th><th>Tuzatish</th><th style="width:70px">Holat</th></tr>
+<tr><td>S1</td><td>Telegram bot amallari REST ruxsatlarini chetlab o'tardi</td><td>Har xodim amali ruxsat jadvalida (<code>botCan</code>); strukturaviy test — yangi amal ruxsatsiz qo'shilsa test yiqiladi</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S2</td><td>Qidiruvda guruh va sertifikat o'qituvchi doirasisiz</td><td>O'qituvchi faqat o'z guruhlari (web va bot)</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S3</td><td>Analitika, hisobotlar, moliya, dashboard, bot va AI filial doirasisiz</td><td><code>services/branchScope.ts</code> — hamma joyda bitta qoida (raw SQL parametrli); 21 test, 9 tasi eski kodda yiqilgan</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S4</td><td>Follow-up eslatmasi Telegram navbatini chetlab o'tardi</td><td><code>notificationService</code> orqali, sozlamalar hisobga olinadi</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S8</td><td>Onlayn to'lovda parallel webhook — 500 (unikal kalit poygasi)</td><td>P2002 idempotent qayta o'qish; test tuzatishsiz kodda yiqilgan</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S9</td><td>Production image'da Telegram CLI ishlamasdi (<code>tsx</code> yo'q)</td><td><code>telegram:webhook:prod</code>, <code>telegram:check:prod</code> — <code>dist/cli</code></td><td><span class="s ok">yopildi</span></td></tr>
+</table>
+<h3>00.3. Production hardening (PHASE 21)</h3>
+<ul>
+<li><b>Fon vazifalari salomatligi</b>: 17 job oxirgi muvaffaqiyatli/xato yurishini yozadi — Prometheus (<code>crm_job_last_success_timestamp_seconds</code>) va "Tizim holati" sahifasi (faqat direktor).</li>
+<li><b>Yetim fayllar</b>: bot vazifa qoralamasi yoki yuborilmagan broadcast media 24 soatdan keyin o'chiriladi; ishlatilayotgan fayl hech qachon o'chirilmaydi.</li>
+<li><b>Production sozlamasi tekshiruvi</b>: webhook siri (≥ 32), polling taqiqlangan, qisman Click/Payme, tokensiz runner — server ishga tushmaydi va sababni aytadi.</li>
+</ul>
+<div class="box warn"><b>Ochiq, tashqi omilga bog'liq:</b> Click/Payme haqiqiy merchant bilan hech qachon yurmagan (kalitlar kerak); kod sandbox §41 testlari lokal Docker'da o'tdi, gVisor bilan runner serverda qayta tekshirilishi kerak (server hali yo'q). Runner ulanmaguncha kod bajarilmaydi — soxta natija yo'q.</div>
 
 <h2>0. promt3.md — "Academy CRM 3.0" (81 bo'lim, 16 faza)</h2>
 <p class="small">2026-09-25 holati. 16 faza bosqichma-bosqich bajarildi, har biri test, commit va §70 hisobot bilan (<code>docs/PHASE-REPORTS-3.0.md</code>).</p>
@@ -316,36 +365,37 @@
 </ul>
 
 <h2>7. Qilinmagan yoki qisman — bir joyda</h2>
+<p class="small">2026-09-24 dagi ro'yxat. Hammasi 3.1 da ko'rib chiqildi (00-bo'lim).</p>
 <table>
-<tr><th style="width:36px">#</th><th>Band</th><th>Nima yetishmaydi</th><th style="width:70px">Hajm</th><th style="width:80px">Muhimlik</th></tr>
-<tr><td>1</td><td>promt.md §50</td><td>Umumiy "Markaz ma'lumotlari" sozlamalar sahifasi (nom, logo, telefon, manzil, ish vaqti, valyuta, o'quv yili)</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
-<tr><td>2</td><td>promt.md §13</td><td>Admin yangi nishon yaratishi (hozir faqat tahrirlash/berish)</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>3</td><td>promt.md §45</td><td>Jadvallarda ustun ko'rinishini boshqarish</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>4</td><td>promt.md §66</td><td>Business overview: "bugun", "hafta", "o'tgan oy", "ixtiyoriy oraliq"</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>5</td><td>promt2.md §10</td><td>Har o'quvchiga alohida tasodifiy variant (tanlashning o'zi bor)</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
-<tr><td>6</td><td>promt2.md §26</td><td>Bildirishnoma turi nomlari (INFO/SUCCESS/WARNING/CRITICAL) — ma'no bajarilgan, nom farq qiladi</td><td>—</td><td class="small">hujjatlashtirilgan</td></tr>
-<tr><td>7</td><td>telegramBot.md §12</td><td>Onlayn imtihonni botdan boshlash</td><td>katta</td><td><span class="s warn">o'rta</span></td></tr>
-<tr><td>8</td><td>telegramBot.md §19</td><td>O'qituvchi botdan vazifaga fayl biriktirishi</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>9</td><td>telegramBot.md §20</td><td>Botdan qo'ng'iroq yozish va follow-up yaratish</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
-<tr><td>10</td><td>telegramBot.md §22</td><td>Owner botida Teacher KPI, Marketing, Hisobotlar</td><td>o'rta</td><td><span class="s warn">past</span></td></tr>
-<tr><td>11</td><td>telegramBot.md §25</td><td>Botda ⚙️ Sozlamalar (bildirishnoma yoqish/o'chirish) — CRM va kabinetda bor</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>12</td><td>telegramBot.md §30</td><td>Bot ichida qidiruv</td><td>o'rta</td><td><span class="s warn">past</span></td></tr>
-<tr><td>13</td><td>telegramBot.md §34</td><td>Broadcast rasm/hujjat/tugma bilan</td><td>o'rta</td><td><span class="s warn">o'rta</span></td></tr>
-<tr><td>14</td><td>telegramBot.md §62</td><td>api/auth/permissions/notifications/testing — alohida hujjat fayllari</td><td>kichik</td><td><span class="s warn">past</span></td></tr>
-<tr><td>15</td><td>telegramBot.md §36, promt2 §7</td><td>Click/Payme haqiqiy provayderi — <b>merchant kalitlari sizdan</b></td><td>kichik (1 fayl)</td><td><span class="s bad">sizga bog'liq</span></td></tr>
+<tr><th style="width:36px">#</th><th>Band</th><th>Nima yetishmas edi</th><th style="width:150px">3.1 dan keyin</th></tr>
+<tr><td>1</td><td>promt.md §50</td><td>"Markaz ma'lumotlari" sozlamalar sahifasi</td><td><span class="s ok">GAP-01 — bajarildi</span></td></tr>
+<tr><td>2</td><td>promt.md §13</td><td>Admin yangi nishon yaratishi</td><td><span class="s ok">GAP-02 — bajarildi</span></td></tr>
+<tr><td>3</td><td>promt.md §45</td><td>Jadvallarda ustun ko'rinishini boshqarish</td><td><span class="s ok">GAP-03 — bajarildi</span></td></tr>
+<tr><td>4</td><td>promt.md §66</td><td>Business overview davrlari</td><td><span class="s ok">GAP-04 — bajarildi</span></td></tr>
+<tr><td>5</td><td>promt2.md §10</td><td>Har o'quvchiga alohida tasodifiy variant</td><td><span class="s ok">GAP-05 — bajarildi</span></td></tr>
+<tr><td>6</td><td>promt2.md §26</td><td>Bildirishnoma turi nomlari (INFO/SUCCESS/WARNING/CRITICAL)</td><td class="small">hujjatlashtirilgan (ma'no bajarilgan)</td></tr>
+<tr><td>7</td><td>telegramBot.md §12</td><td>Onlayn imtihonni botdan boshlash</td><td><span class="s ok">GAP-06 — bajarildi</span></td></tr>
+<tr><td>8</td><td>telegramBot.md §19</td><td>O'qituvchi botdan vazifaga fayl biriktirishi</td><td><span class="s ok">GAP-07 — bajarildi</span></td></tr>
+<tr><td>9</td><td>telegramBot.md §20</td><td>Botdan qo'ng'iroq va follow-up</td><td><span class="s ok">GAP-08/09 — bajarildi</span></td></tr>
+<tr><td>10</td><td>telegramBot.md §22</td><td>Owner botida Teacher KPI, Marketing, Hisobotlar</td><td><span class="s ok">GAP-10…12 — bajarildi</span></td></tr>
+<tr><td>11</td><td>telegramBot.md §25</td><td>Botda ⚙️ Sozlamalar</td><td><span class="s ok">GAP-13 — bajarildi</span></td></tr>
+<tr><td>12</td><td>telegramBot.md §30</td><td>Bot ichida qidiruv</td><td><span class="s ok">GAP-14 — bajarildi</span></td></tr>
+<tr><td>13</td><td>telegramBot.md §34</td><td>Broadcast rasm/hujjat/tugma bilan</td><td><span class="s ok">GAP-15 — bajarildi</span></td></tr>
+<tr><td>14</td><td>telegramBot.md §62</td><td>api/auth/permissions/notifications/testing hujjatlari</td><td><span class="s ok">GAP-16 — bajarildi</span></td></tr>
+<tr><td>15</td><td>telegramBot.md §36, promt2 §7</td><td>Click/Payme haqiqiy provayderi</td><td><span class="s warn">GAP-17 — tayyor, merchant kalitlari sizdan</span></td></tr>
 </table>
-<div class="box ok">Bulardan hech biri mavjud funksiyaga xalaqit bermaydi. 1, 5, 7, 9, 13 — foydali kengaytmalar; qolganlari qulaylik.</div>
 
 <h2>8. Production uchun sizdan kerak</h2>
 <ul>
-<li><code>.env.production</code>: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_BOT_USERNAME</code>, <code>TELEGRAM_WEBHOOK_SECRET</code> (kompyuterdagi bilan boshqa), <code>TELEGRAM_POLLING=false</code>.</li>
-<li>Deploy → <code>npm run telegram:webhook -- https://&lt;domen&gt;</code> → <code>npm run telegram:check</code>.</li>
+<li><code>.env.production</code>: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_BOT_USERNAME</code>, <code>TELEGRAM_WEBHOOK_SECRET</code> (≥ 32 belgi, kompyuterdagi bilan boshqa), <code>TELEGRAM_POLLING=false</code> — aks holda server ishga tushmaydi.</li>
+<li>Deploy → <code>npm run telegram:webhook:prod -- https://&lt;domen&gt;</code> → <code>npm run telegram:check:prod</code> (backend konteyneri ichida, <code>docs/deployment.md</code> §4.2).</li>
 <li>Kompyuterda polling ishlab tursa, u production webhook'ini o'chiradi — serverga chiqargach kompyuterda <code>false</code> qiling.</li>
-<li>Click/Payme merchant kalitlari — <code>backend/src/services/payments/</code> ga bitta provayder fayli.</li>
-<li>Bot tokeni chatda bir marta ochilib qolgan edi — <code>/revoke</code> qilinganiga ishonch hosil qiling.</li>
+<li>Click/Payme: merchant kabineti → kalitlar <code>.env.production</code> ga (to'liq to'plam) → avval <code>*_MODE=test</code> bilan tekshiruv (<code>docs/payments-online.md</code>).</li>
+<li>Kod sandbox: alohida VM (Docker + gVisor), <code>code-runner</code> o'rnatish, <code>CODE_RUNNER_URL</code>/<code>CODE_RUNNER_TOKEN</code>; runner'da §41 testlarini <code>runsc</code> bilan qayta yurgizish (<code>docs/code-sandbox.md</code>).</li>
+<li>Bot tokeni chatda ochilib qolgan edi — <code>/revoke</code> qilinganiga ishonch hosil qiling.</li>
 </ul>
 
-<p class="small">Hisobot 2026-09-24 da tayyorlandi. Testlar: <code>npm test --workspace backend</code> (684), <code>npm test --workspace frontend</code> (55), <code>npm run test:e2e</code> (14). Yuklama: <code>npm run telegram:load --workspace backend</code>.</p>
+<p class="small">Hisobot 2026-09-28 da yangilandi. Testlar: <code>npm test --workspace backend</code> (936), <code>npm test --workspace frontend</code> (136), <code>npm run test:e2e</code> (48), code-runner (22, Docker kerak). Yuklama: <code>npm run telegram:load --workspace backend</code>.</p>
 
 </div>
 </body>

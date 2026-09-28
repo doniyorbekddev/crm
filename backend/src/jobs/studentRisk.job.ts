@@ -1,6 +1,6 @@
 import { studentRiskService } from '../services/studentRisk.service.js';
 import { logger } from '../utils/logger.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /**
  * O'quvchilarning ketib qolish xavfini qayta hisoblaydi.
@@ -21,6 +21,7 @@ async function runOnce(): Promise<void> {
     if (result.updated > 0) {
       logger.info(result, 'O‘quvchilar xavf bahosi yangilandi');
     }
+    reportJobSuccess('studentRisk');
   } catch (error) {
     reportJobFailure('studentRisk', error, 'Xavf bahosi jobida xatolik');
   } finally {

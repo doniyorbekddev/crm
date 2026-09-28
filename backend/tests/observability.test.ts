@@ -3,9 +3,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { env } from '../src/config/env.js';
 import { prisma } from '../src/config/database.js';
+import { jobHealth, reportJobFailure, reportJobSuccess } from '../src/services/observability.js';
 import { buildEvent, scrub } from '../src/utils/errorTracker.js';
 import { metrics, renderMetrics, resetMetrics } from '../src/utils/metrics.js';
-import { hasTestDatabase } from './helpers/db.js';
+import { bearer, createUserWithToken } from './helpers/auth.js';
+import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 
 /**
  * PHASE 14 — kuzatuv (TZ 3.0 §68): Prometheus metrikalari (API, DB, AI, bildirishnoma, Telegram,
@@ -75,5 +77,37 @@ describe('Metrikalar va xato kuzatuvi', () => {
     expect(event.user).toEqual({ id: 'u1' });
     expect(event.tags).toEqual({ route: '/api/students/:id', method: 'GET' });
     expect(JSON.stringify(event)).not.toContain('ali@example.com');
+  });
+
+  it('fon vazifalari salomatligi (PHASE 21): oxirgi muvaffaqiyat/xato — o‘lchagich va ro‘yxat', async () => {
+    reportJobSuccess('testJobA', new Date('2026-09-28T10:00:00Z'));
+    reportJobFailure('testJobB', new Error('sinov'), 'sinov xatosi');
+    const text = await renderMetrics();
+    expect(text).toContain('# TYPE crm_job_last_success_timestamp_seconds gauge');
+    expect(text).toContain(`crm_job_last_success_timestamp_seconds{job="testJobA"} ${Date.parse('2026-09-28T10:00:00Z') / 1000}`);
+    expect(text).toMatch(/crm_job_last_failure_timestamp_seconds\{job="testJobB"\} \d+/);
+    expect(text).not.toMatch(/crm_job_last_failure_timestamp_seconds\{job="testJobA"\}/);
+    const health = jobHealth();
+    expect(health.find((row) => row.job === 'testJobA')).toEqual({ job: 'testJobA', lastSuccessAt: '2026-09-28T10:00:00.000Z', lastFailureAt: null });
+    expect(health.find((row) => row.job === 'testJobB')).toMatchObject({ lastSuccessAt: null, lastFailureAt: expect.any(String) });
+  });
+
+  it.skipIf(!hasTestDatabase)('/api/health/jobs — faqat settings.manage (direktor); boshqalarga 403, tokensiz 401', async () => {
+    await resetDatabase();
+    await seedRolesAndPermissions();
+    reportJobSuccess('testJobA');
+    const { token: owner } = await createUserWithToken(app, { role: 'OWNER' });
+    const { token: teacher } = await createUserWithToken(app, { role: 'TEACHER' });
+    const ok = await request(app).get('/api/health/jobs').set(bearer(owner)).expect(200);
+    expect(ok.body.data.some((row: { job: string }) => row.job === 'testJobA')).toBe(true);
+    await request(app).get('/api/health/jobs').set(bearer(teacher)).expect(403);
+    await request(app).get('/api/health/jobs').expect(401);
+  });
+
+  it('Telegram webhook: noto‘g‘ri sir — 401 va rad etilganlar hisoblagichi oshadi', async () => {
+    resetMetrics();
+    await request(app).post('/api/telegram/webhook').set('X-Telegram-Bot-Api-Secret-Token', 'notogri').send({}).expect(401);
+    await request(app).post('/api/telegram/webhook').send({}).expect(401);
+    expect(await renderMetrics()).toContain('crm_telegram_webhook_rejected_total 2');
   });
 });

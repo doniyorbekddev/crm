@@ -1,6 +1,6 @@
 import { recurringExpenseService } from '../services/recurringExpense.service.js';
 import { logger } from '../utils/logger.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /** Har 6 soatda: joriy oy uchun kutilayotgan takroriy xarajatlar (pul yechilmaydi) */
 const INTERVAL_MS = 6 * 60 * 60_000;
@@ -15,6 +15,7 @@ async function runOnce(): Promise<void> {
     if (result.created > 0) {
       logger.info(result, 'Takroriy xarajatlar yaratildi');
     }
+    reportJobSuccess('recurringExpenses');
   } catch (error) {
     reportJobFailure('recurringExpenses', error, 'Takroriy xarajatlar jobida xatolik');
   } finally {

@@ -1,6 +1,6 @@
 import { examTakingService } from '../services/examTaking.service.js';
 import { logger } from '../utils/logger.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /**
  * Onlayn imtihon muddati (TZ 3.0 §25): o'quvchi sahifani yopib qo'ysa ham vaqt tugagach
@@ -17,6 +17,7 @@ async function runOnce(): Promise<void> {
   try {
     const finalized = await examTakingService.finalizeExpired();
     if (finalized > 0) logger.info({ finalized }, 'Muddati tugagan imtihon urinishlari yakunlandi');
+    reportJobSuccess('examAttempt');
   } catch (error) {
     reportJobFailure('examAttempt', error, 'Imtihon urinishlari jobida xatolik');
   } finally {

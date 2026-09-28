@@ -204,6 +204,71 @@ ochilmaydi); tavsiya etilgan ogohlantirishlar — [observability.md](observabili
 
 ---
 
+## 4.2. Academy CRM 3.1 ga yangilash (bir martalik)
+
+Tartib 4.1 bilan bir xil (zaxira → `migrate` → konteynerlar → sog'liq). 3.1 migratsiyalari ham **faqat qo'shuvchi**:
+
+| Migratsiya | Nima qo'shadi |
+|---|---|
+| `20260927100000_badge_category_referral` | nishon toifasi (mavjudlari qoidasiga qarab toifalanadi), `REFERRAL` qoidasi |
+| `20260927110000_follow_up_priority` | follow-up ustuvorligi |
+| `20260927120000_broadcast_buttons_media` | ommaviy xabar: URL tugmalar, web media |
+| `20260927130000_payment_provider_transactions` | Click/Payme tranzaksiyalari (idempotentlik) |
+| `20260927140000_recurring_homework` | takrorlanuvchi uy vazifasi jadvali |
+| `20260927150000_code_runs` | kod sandbox navbati, vazifa testlari |
+| `20260928120000_pending_uploads` | bog'lanmagan yuklamalar (yetim fayl tozalash) |
+
+**1. Yangi o'zgaruvchilar** (`docker-compose.prod.yml` uzatadi). Hammasi ixtiyoriy — bo'sh qolsa integratsiya
+**o'chiq** (soxta natija yo'q). Lekin **qisman** to'ldirilsa server ishga tushmaydi (TZ §45, pastda):
+
+| O'zgaruvchi | Bo'sh qolsa | Qo'llanma |
+|---|---|---|
+| `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` (+ `CLICK_MERCHANT_USER_ID`, `CLICK_MODE`) | Click o'chiq, webhook 503 | [payments-online.md](payments-online.md) |
+| `PAYME_MERCHANT_ID`, `PAYME_KEY` (+ `PAYME_MODE`, `PAYME_ACCOUNT_FIELD`, `PAYME_FISCAL_*`) | Payme o'chiq | payments-online.md |
+| `PAYMENT_RETURN_URL` | birinchi `CLIENT_URL` | payments-online.md |
+| `CODE_RUNNER_URL`, `CODE_RUNNER_TOKEN` (≥ 32) | kod bajarilmaydi, vazifa qo'lda baholanadi | [code-sandbox.md](code-sandbox.md) |
+| `BROADCAST_HOURLY_LIMIT` | 10 | [broadcast.md](broadcast.md) |
+
+**2. Ishga tushishdagi tekshiruv (TZ §45).** `backend/src/config/env.ts` → `productionEnvIssues`; xato bo'lsa
+konteyner loglarida sabab (qiymat emas, faqat o'zgaruvchi nomi) chiqadi va jarayon 1 kod bilan to'xtaydi:
+
+- productionda `TELEGRAM_BOT_TOKEN` bor → `TELEGRAM_WEBHOOK_SECRET` majburiy, **≥ 32** belgi, faqat `A-Z a-z 0-9 _ -`;
+- productionda `TELEGRAM_POLLING=true` — taqiqlangan (faqat webhook);
+- Click uchala kalit birga, Payme ikkala kalit birga (har qanday muhitda);
+- `CODE_RUNNER_URL` bor → `CODE_RUNNER_TOKEN` ≥ 32 belgi (runner'dagi bilan bir xil).
+
+**3. Telegram webhook** — production image'da `tsx` yo'q, `:prod` buyruqlari ishlatiladi
+([telegram-deployment.md](telegram-deployment.md)):
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend npm run telegram:webhook:prod -- https://crm.markaz.uz
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend npm run telegram:check:prod
+```
+
+**4. Click/Payme'ni yoqish** — faqat merchant kabineti berilgach: avval `*_MODE=test` bilan sinov kabinetida
+[payments-online.md](payments-online.md) "Production'ga yoqish" bo'limidagi tekshiruvlar, keyin `*_MODE=production`.
+Sinov rejimida UI va botda "sinov" belgisi ko'rinadi.
+
+**5. Kod sandbox runner server** — CRM serverida **emas**, alohida VM: Docker + gVisor (`runsc`), `code-runner/`
+workspace, `code-runner/deploy/code-runner.service` (systemd). O'rnatish va §41 xavfsizlik testlari —
+[code-sandbox.md](code-sandbox.md) §3, §6, §7. Runner porti faqat CRM serverining IP'siga ochiladi (UFW).
+Runner yo'q paytda ham CRM to'liq ishlaydi (avtomatik tekshirish tugmasi ko'rinmaydi).
+
+**6. Deploydan keyin:**
+
+```bash
+curl -s https://crm.example.uz/api/health        # "database":"up"
+```
+
+Brauzerda direktor sifatida: "Tizim holati" → **Fon vazifalari** kartasi (har job oxirgi muvaffaqiyatli/xato
+yurishi; server qayta ishga tushgach 1–15 daqiqada to'ladi). Prometheus: `crm_job_last_success_timestamp_seconds`,
+`crm_job_last_failure_timestamp_seconds` — tavsiya etilgan ogohlantirish [observability.md](observability.md).
+
+**7. Yetim fayllar**: bot vazifa qoralamasi va web broadcast media bog'lanmay qolsa, `orphanUploads` jobi (har 6 soat)
+24 soatdan keyin ularni `crm_uploads`dan o'chiradi; biror yozuv ishlatayotgan fayl hech qachon o'chirilmaydi.
+
+---
+
 ## 5. Zaxira nusxa (backup)
 
 > **Cheklar va hujjatlar** bazada emas, `crm_uploads` docker volume'ida (`/app/uploads`) saqlanadi.
@@ -274,6 +339,7 @@ crontab -e
 - [ ] `METRICS_TOKEN` o'rnatilgan bo'lsa — 24+ belgi; `/metrics` tashqaridan ochilmaydi (`curl https://domen/metrics` → 404)
 - [ ] `.env.production` huquqi `600`; `ANTHROPIC_API_KEY`/Sentry DSN faqat shu faylda
 - [ ] Telegram bot tokeni oshkor bo'lgan bo'lsa (chat, skrinshot) — @BotFather'da `/revoke` bilan yangilangan
+- [ ] 3.1: `TELEGRAM_WEBHOOK_SECRET` 32+ belgi, `TELEGRAM_POLLING=false`; Click/Payme kalitlari to'liq yoki butunlay bo'sh; runner tokeni 32+ belgi va runner porti faqat CRM IP'siga ochiq
 
 ---
 

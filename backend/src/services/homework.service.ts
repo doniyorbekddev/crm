@@ -24,6 +24,7 @@ import { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
 import type { TeachingAccess } from './teachingAccess.js';
 import { masteryService } from './mastery.service.js';
 import { codeRunService, isRunnable, isRunnerEnabled, parseTests, type CodeRunDto, type CodeTest } from './codeRun.service.js';
+import { PENDING_UPLOAD_KIND, pendingUploadService } from './pendingUpload.service.js';
 
 // Egalik qoidasi endi `teachingAccess.ts` da — eski importlar ishlashi uchun qayta eksport
 export { assertGroupVisible, getTeachingAccess } from './teachingAccess.js';
@@ -1041,7 +1042,10 @@ export const homeworkService = {
    * GAP-07). Siyosat `uploadAttachment` bilan bir xil (tur baytlar bo'yicha, PDF/rasm).
    */
   async prepareAttachment(file: { buffer: unknown; fileName: string | undefined }): Promise<PreparedAttachment> {
-    return storeUpload(file);
+    const stored = await storeUpload(file);
+    // Oqim tashlab ketilsa fayl yetim qolmasin — bog'lanmaguncha kuzatiladi (PHASE 21)
+    await pendingUploadService.track(stored.storagePath, PENDING_UPLOAD_KIND.HOMEWORK_ATTACHMENT);
+    return stored;
   },
 
   /** Oldindan saqlangan faylni biriktiradi (yo'l faqat saqlash papkasi ichida — `resolveStoredPath`) */
@@ -1049,17 +1053,21 @@ export const homeworkService = {
     const access = await getTeachingAccess(actor);
     await findVisible(access, id);
     resolveStoredPath(stored.storagePath);
-    const created = await prisma.homeworkAttachment.create({
-      data: {
-        homeworkId: id,
-        kind: 'FILE',
-        title: (title?.trim() || stored.originalName).slice(0, 200),
-        storagePath: stored.storagePath,
-        originalName: stored.originalName,
-        mimeType: stored.mimeType,
-        size: stored.size,
-      },
-      select: attachmentSelect,
+    const created = await prisma.$transaction(async (tx) => {
+      const row = await tx.homeworkAttachment.create({
+        data: {
+          homeworkId: id,
+          kind: 'FILE',
+          title: (title?.trim() || stored.originalName).slice(0, 200),
+          storagePath: stored.storagePath,
+          originalName: stored.originalName,
+          mimeType: stored.mimeType,
+          size: stored.size,
+        },
+        select: attachmentSelect,
+      });
+      await pendingUploadService.release([stored.storagePath], tx);
+      return row;
     });
     await auditService.record({ userId: actor.id, action: 'homework.attachment_added', entityType: 'homework', entityId: id, metadata: { kind: 'FILE', size: stored.size }, ...client });
     return created;

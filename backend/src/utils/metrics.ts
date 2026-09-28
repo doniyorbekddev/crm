@@ -84,6 +84,8 @@ export const metrics = {
   aiErrors: new Counter('crm_ai_errors_total', 'Til modeli xatolari (timeout, API, sxemaga mos kelmagan javob)'),
   notificationFailures: new Counter('crm_notification_delivery_failures_total', 'Yetkazilmagan bildirishnomalar (oxirgi urinishdan keyin)'),
   telegramFailures: new Counter('crm_telegram_failures_total', 'Telegram API xatolari'),
+  /** Imzosi noto'g'ri webhook so'rovlari (401) — skaner yoki eskirgan sir belgisi (TZ 3.1 §44, PHASE 21) */
+  telegramWebhookRejected: new Counter('crm_telegram_webhook_rejected_total', 'Rad etilgan Telegram webhook so‘rovlari (noto‘g‘ri sir)'),
   jobFailures: new Counter('crm_job_failures_total', 'Fon vazifalari xatolari'),
   /** To'lov webhooklari: provider × natija (ok, duplicate, rejected, unauthorized, error) — TZ 3.1 GAP-17 */
   paymentWebhooks: new Counter('crm_payment_webhooks_total', 'To‘lov provayderi so‘rovlari natijasi bo‘yicha'),

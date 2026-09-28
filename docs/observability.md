@@ -15,9 +15,9 @@ Hammasi **tashqi SDK'siz** va **ixtiyoriy**: sozlanmasa hech narsa yuborilmaydi 
 | DB latency | Prisma `query` hodisasi | `crm_db_query_duration_seconds` |
 | AI latency / errors | `completeJson` (maqsad bo'yicha) | `crm_ai_request_duration_seconds`, `crm_ai_errors_total{reason="request"\|"schema"}` |
 | Notification failures | oxirgi urinishdan keyin yetkazilmagan | `crm_notification_delivery_failures_total{channel}` |
-| Telegram failures | Telegram API xatolari | `crm_telegram_failures_total` |
+| Telegram failures | Telegram API xatolari; noto'g'ri sirli webhook (401) — 3.1 | `crm_telegram_failures_total`, `crm_telegram_webhook_rejected_total` |
 | Queue size | scrape paytida o'qiladi | `crm_notification_queue{channel,status}`, `crm_exam_attempts_in_progress`, `crm_tasks_open`, `crm_automation_errors_24h` |
-| Fon vazifalari | 14 ta job `reportJobFailure` orqali (log + metrika + Sentry) | `crm_job_failures_total{job}` |
+| Fon vazifalari | 17 ta job: `reportJobFailure` (log + metrika + Sentry) va `reportJobSuccess` (3.1 PHASE 21); "Tizim holati" → Fon vazifalari (`GET /api/health/jobs`, `settings.manage`) | `crm_job_failures_total{job}`, `crm_job_last_success_timestamp_seconds{job}`, `crm_job_last_failure_timestamp_seconds{job}` |
 | Jarayon | | `crm_process_uptime_seconds`, `crm_process_memory_bytes` |
 
 ## 2. `/metrics` (Prometheus)
@@ -36,6 +36,14 @@ scrape_configs:
 ```
 
 Tavsiya etilgan ogohlantirishlar: p95 API > 0.8 s (5 daq), `crm_http_errors_total` o'sishi, `crm_notification_queue{status="PENDING"}` > 500, `crm_job_failures_total` o'sishi, `crm_ai_errors_total` / so'rovlar > 20%.
+
+Job to'xtab qolganini (xato ham bermay) ushlash uchun: `time() - crm_job_last_success_timestamp_seconds{job="notificationDelivery"} > 600`
+(har daqiqalik joblar uchun 10 daqiqa; kunlik joblar — `auditCleanup`, `dailyDigest` — uchun 26 soat). Xato muvaffaqiyatdan
+yangi bo'lsa: `crm_job_last_failure_timestamp_seconds > crm_job_last_success_timestamp_seconds`. Qiymatlar xotirada —
+server qayta ishga tushgach job birinchi marta yurguncha seriya bo'lmaydi (`absent()` bilan ogohlantirmang).
+
+3.1 §44 xaritasi: Telegram — `crm_telegram_failures_total`, `crm_telegram_webhook_rejected_total`; to'lov — `crm_payment_webhooks_total{provider,result}`;
+takrorlanuvchi va sandbox joblari — `crm_job_*{job="recurringHomework"|"codeRun"}`; AI — `crm_ai_errors_total`; bildirishnoma — `crm_notification_delivery_failures_total`.
 
 ## 3. Maxfiylik
 

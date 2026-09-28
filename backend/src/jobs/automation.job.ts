@@ -1,6 +1,6 @@
 import { automationService } from '../services/automation.service.js';
 import { logger } from '../utils/logger.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /**
  * Avtomatlashtirish qoidalarini davriy ishga tushiradi.
@@ -19,6 +19,7 @@ async function runOnce(): Promise<void> {
   try {
     const result = await automationService.runAll(new Date());
     if (result.notified > 0) logger.info(result, 'Avtomatlashtirish qoidalari ishladi');
+    reportJobSuccess('automation');
   } catch (error) {
     reportJobFailure('automation', error, 'Avtomatlashtirish jobida xatolik');
   } finally {

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { isDatabaseReachable } from '../config/database.js';
 import { env } from '../config/env.js';
+import { jobHealth } from '../services/observability.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 export interface HealthStatus {
@@ -29,4 +30,9 @@ export async function getHealth(_req: Request, res: Response): Promise<void> {
     statusCode: databaseUp ? 200 : 503,
     message: databaseUp ? 'API ishlayapti' : 'API ishlayapti, lekin ma’lumotlar bazasiga ulanib bo‘lmadi',
   });
+}
+
+/** Fon vazifalari: oxirgi muvaffaqiyatli va xato yurish (jarayon ishga tushgandan beri) */
+export async function getJobHealth(_req: Request, res: Response): Promise<void> {
+  sendSuccess(res, jobHealth());
 }

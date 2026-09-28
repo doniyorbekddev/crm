@@ -1421,3 +1421,106 @@ Shu hisobot; `docs/ROADMAP-3.1.md`.
 
 **PHASE 21 — Production hardening**: yetim fayllar tozalash (bot vazifasi, broadcast media), "job oxirgi yurish" metrikalari,
 Telegram env production tekshiruvi (§45), deployment hujjati, §55 qabul ro'yxati, yakuniy GAP matritsasi (§49), TZ.html/pdf.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 21
+
+Sana: 2026-09-28. Production hardening (§44, §45) + yakuniy qabul (§49, §55). **3.1 ning oxirgi fazasi.**
+
+## Implemented
+
+- **Fon vazifalari salomatligi (§44).** 17 job har muvaffaqiyatli yurishda `reportJobSuccess`, xatoda `reportJobFailure`
+  (endi vaqtni ham yozadi). Prometheus: `crm_job_last_success_timestamp_seconds{job}`, `crm_job_last_failure_timestamp_seconds{job}`.
+  `GET /api/health/jobs` (`settings.manage`) → "Tizim holati" sahifasida **Fon vazifalari** kartasi: xato oxirgi
+  muvaffaqiyatdan yangi bo'lsa — qizil. Holat xotirada (qayta ishga tushgach birinchi yurishda to'ladi) — hujjatda aytilgan.
+- **Telegram webhook rad etilishi**: `crm_telegram_webhook_rejected_total` (noto'g'ri/yo'q sir, 401).
+- **Yetim fayllar.** Bog'lanishdan oldin diskka yoziladigan fayllar — bot vazifa qoralamasi (`prepareAttachment`) va web
+  broadcast media (`uploadMedia`) — `pending_uploads` ga yoziladi; bog'langanda (`attachStoredFile`, broadcast `send`)
+  **o'sha tranzaksiyada** o'chiriladi. `orphanUploads` job (har 6 soat) 24 soatdan eski yozuvlarni ko'radi: faylni faqat
+  tur bo'yicha aniq ustun (`homework_attachments.storagePath` / `telegram_broadcasts.mediaPath`) ishlatmasa o'chiradi;
+  ishlatilayotgan bo'lsa — faqat yozuvni. Noma'lum tur — o'chirilmaydi. Disk xatosida yozuv qoladi (keyingi yurishda qayta).
+- **Production env tekshiruvi (§45)** — `productionEnvIssues` (`config/env.ts`, zod `superRefine`), xato bo'lsa server
+  ishga tushmaydi va sababni (qiymatsiz) aytadi:
+  productionda bot bor → `TELEGRAM_WEBHOOK_SECRET` ≥ 32; sir faqat Telegram belgilari (`A-Z a-z 0-9 _ -`, har muhitda);
+  productionda `TELEGRAM_POLLING=true` taqiqlangan; Click (3 kalit) / Payme (2 kalit) qisman — xato (har muhitda);
+  `CODE_RUNNER_URL` → to'g'ri URL va `CODE_RUNNER_TOKEN` ≥ 32. Mavjud dev `.env`, test, E2E va compose sozlamalari
+  yangi qoidalarga mosligi oldindan tekshirildi (qiymatlar chiqarilmasdan).
+- **Hujjatlar**: `deployment.md` §4.2 (3.1 ga yangilash: 7 migratsiya, yangi env, §45, `:prod` webhook buyruqlari,
+  Click/Payme'ni yoqish, runner server, deploydan keyingi tekshiruv, yetim fayllar) va xavfsizlik ro'yxati; `observability.md`
+  (job metrikalari, to'xtab qolgan job ogohlantirishi, §44 xaritasi); `.env.example` izohlari;
+  **`docs/ACCEPTANCE-3.1.md`** — §49 yakuniy GAP matritsasi (before = audit), §55 qabul ro'yxati dalil bilan, §56;
+  `TZ.html` — yangi 00-bo'lim (3.1), 7-bo'lim (2026-09-24 ro'yxati — hammasi yopilgani), 8-bo'lim (production uchun kerak);
+  `TZ.pdf` qayta chiqarildi (headless Chrome, avvalgidek).
+
+## Existing Code Reused
+
+`observability.ts` (`registerGauge`, `reportJobFailure`), `utils/metrics.ts`, job naqshi (`auditCleanup.job.ts`),
+`fileStorage.ts` (`removeStoredFile`, `resolveStoredPath`, `saveFile`), `homework.service`/`broadcast.service` oqimlari,
+`health.routes` + `requirePermission`, `usePermission`, `Badge`/`Card`.
+
+## New Files
+
+`backend/src/services/pendingUpload.service.ts`, `backend/src/jobs/orphanUploads.job.ts`,
+`backend/prisma/migrations/20260928120000_pending_uploads/`, `backend/tests/orphanUploads.test.ts`,
+`backend/tests/envProduction.test.ts`, `frontend/src/pages/SystemStatusPage.test.tsx`, `docs/ACCEPTANCE-3.1.md`.
+
+## Modified Files
+
+`backend/src/services/observability.ts`, 16 ta `backend/src/jobs/*.job.ts` (bitta qator + import), `server.ts`,
+`routes/health.routes.ts`, `controllers/health.controller.ts`, `controllers/telegram.controller.ts`, `utils/metrics.ts`,
+`config/env.ts`, `services/homework.service.ts`, `services/broadcast.service.ts`, `prisma/schema.prisma`, `.env.example`,
+`tests/observability.test.ts`; `frontend/src/pages/SystemStatusPage.tsx`, `services/health.service.ts`;
+`docs/deployment.md`, `docs/observability.md`, `docs/TZ.html`, `docs/TZ.pdf`, `docs/ROADMAP-3.1.md`.
+
+## Database Changes
+
+(oldin `pg_dump`) Jadval `pending_uploads` (`path` PK, `kind`, `createdAt` + indeks). Faqat qo'shish; dev va test bazalarida qo'llandi.
+
+## API Changes
+
+`GET /api/health/jobs` (`settings.manage`) → `[{ job, lastSuccessAt, lastFailureAt }]`. Boshqa javoblar o'zgarmadi.
+
+## Telegram Changes
+
+Bot xatti-harakati o'zgarmadi. Webhook rad etilishi hisoblanadi; production'da polling va qisqa sir bilan server ko'tarilmaydi.
+
+## Permissions
+
+Yangi ruxsat yo'q — job holati mavjud `settings.manage` (OWNER, SUPER_ADMIN) bilan; boshqa rollarga 403 (test).
+
+## Security
+
+- Env xato xabarlarida faqat o'zgaruvchi nomi (zod `prettifyError` — qiymat yo'q); haqiqiy ishga tushirishda tekshirildi.
+- Yetim tozalash o'chirishdan oldin **aniq** ustunni tekshiradi; ishlatilayotgan fayl hech qachon o'chmaydi (test).
+- Sir skaneri (diff): token/kalit/`BEGIN`/parolli URL — topilmadi.
+
+## Tests
+
+Yangi: `orphanUploads` 4, `envProduction` 8, `observability` +3 (job metrikalari, `/health/jobs` 401/403/200, webhook 401
+hisoblagichi), frontend `SystemStatusPage` 2 (holatlar; ruxsatsiz — karta ham, so'rov ham yo'q).
+Backend **936** (+15). Uch to'liq yurish (935/936 test bilan): 934, 932, **935** o'tdi — har safar **boshqa** testlar (`rateLimit`, `examEngine`, `telegramMarketing`, `portal`: 20 s timeout, HTTP parse error yoki bo'sh tanali 400 — Node HTTP qatlami yuklama ostida; `fseventsd` 100% CPU, load ~5); har biri alohida o'tadi (`portal` 19/19 ×3, qolganlari 36/36). Frontend **136/136**, E2E **48/48**, code-runner **22/22** (Colima, `runc`). TypeScript, lint
+(3 workspace, 0 xato; frontendda 1 eski ogohlantirish), build — o'tdi.
+
+## Performance
+
+Job holati — xotirada `Map`, har yurishda O(1). Tozalash — 200 tadan partiya, har biri indeksli `count` (PK/`storagePath`).
+`pending_uploads` faqat bog'lanmagan fayllar uchun — odatda bo'sh.
+
+## Documentation
+
+`docs/ACCEPTANCE-3.1.md`, `docs/deployment.md` §4.2 + §7, `docs/observability.md`, `backend/.env.example`, `docs/TZ.html`/`TZ.pdf`, shu hisobot.
+
+## Known Issues
+
+- **GAP-17**: Click/Payme haqiqiy merchant bilan yurmagan — kalitlar kerak ("READY").
+- **GAP-19**: runner server yo'q; §41 testlari faqat lokal `runc` da — gVisor (`runsc`) bilan serverda qayta yurgizish kerak.
+- Budjet filial ustunisiz; direktor panelida filial admini uchun markaz ogohlantirishlari va umumiy reja — mahsulot qarori.
+- Job holati jarayon xotirasida: bir nechta backend nusxasi bo'lsa har biri o'zinikini ko'rsatadi (hozir bitta nusxa).
+- Katta to'liq yurishlarda yuklangan mashinada (`fseventsd` 100% CPU, load ~5) har safar boshqa 1–3 test timeout/parse
+  error bilan yiqiladi, alohida o'tadi — muhit, kod emas.
+- Colima lokal ishlab turibdi — kerak bo'lmasa `colima stop`.
+
+## Next Phase
+
+Yo'q — **Academy CRM 3.1 yakunlandi** (21/21 faza). Qolgani tashqi omil: merchant kalitlari va runner server.

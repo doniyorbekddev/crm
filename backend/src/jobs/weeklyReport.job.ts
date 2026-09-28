@@ -5,7 +5,7 @@ import { weeklyReportService } from '../services/weeklyReport.service.js';
 import { businessDateString, startOfBusinessWeek } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
 import { aiAcademicService } from '../services/ai/academic.service.js';
-import { reportJobFailure } from '../services/observability.js';
+import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 
 /**
  * Haftalik hisobot (TZ 3.0 §11): **yakshanba, 18:00 dan keyin** (o'quv markaz vaqti) har bir
@@ -61,6 +61,7 @@ async function runOnce(): Promise<void> {
   try {
     const result = await sendWeeklyReports();
     if (result.students > 0) logger.info(result, 'Haftalik hisobotlar yuborildi');
+    reportJobSuccess('weeklyReport');
   } catch (error) {
     reportJobFailure('weeklyReport', error, 'Haftalik hisobot jobida xatolik');
   } finally {

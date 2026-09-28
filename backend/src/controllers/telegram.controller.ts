@@ -5,6 +5,7 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import { AppError } from '../utils/AppError.js';
+import { metrics } from '../utils/metrics.js';
 import { broadcastService } from '../services/broadcast.service.js';
 import { broadcastSchema } from '../validators/broadcast.validator.js';
 import { getClientInfo } from '../utils/requestContext.js';
@@ -71,6 +72,7 @@ export const telegramController = {
   async webhook(req: Request, res: Response): Promise<void> {
     const header = req.get('x-telegram-bot-api-secret-token');
     if (!verifyWebhookSecret(header)) {
+      metrics.telegramWebhookRejected.inc();
       throw AppError.unauthorized('Webhook imzosi noto‘g‘ri');
     }
     const result = await telegramLinkService.handleUpdate(req.body);
