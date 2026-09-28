@@ -16,6 +16,10 @@ export default defineConfig({
     globalSetup: ['tests/globalSetup.ts'],
     // Integratsion testlar bitta bazani ishlatadi — fayllar ketma-ket bajariladi
     fileParallelism: false,
+    // TZ 3.1 PHASE 20: to'plam ~900 ta integratsion testga yetdi; yuklangan mashinada (E2E, VM parallel) ba'zi testlar
+    // 5 s standartdan oshib, tasodifiy yiqilardi (har safar boshqa test, alohida — o'tadi). Tekshiruvlar o'zgarmagan.
+    testTimeout: 20_000,
+    hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

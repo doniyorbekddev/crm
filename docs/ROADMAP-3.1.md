@@ -104,7 +104,7 @@
 - Keyin implementatsiya: navbat (DB `code_runs` + job), JS/TS/Python runner, HTML/CSS — brauzerda `iframe sandbox` (allow-same-origin'siz).
 - §41 xavfsizlik testlari (cheksiz sikl, xotira, fayl tizimi, tarmoq, jarayon, sir) — runner konteynerida. **Infra tayyor bo'lmasa — "Infrastructure Ready" deb belgilanadi, fake bajarish yo'q.**
 
-## PHASE 20 — Full regression
+## PHASE 20 — Full regression ✅ (2026-09-28)
 Barcha to'plamlar, E2E §35–38, yuk testi (broadcast katta auditoriya), `endpointSecurity`, bot ruxsat matritsasi.
 - **S3 qoldig'i** (PHASE 14 da faqat qidiruv yopildi): analitika (`analytics.service`, `academicAnalytics` dan tashqari), `executive`/`academyOverview`, 15 hisobot turi (`report.service`), o'qituvchi "bugungi darslar" (`attendanceAnalytics.teacherOverview`, `group.manage` li xodim uchun) — `branch.view_all` siz xodimga faqat o'z filiali; bot (kunlik hisobot, marketing, hisobotlar) avtomatik shu servislardan oladi.
 - Test to'plami `testTimeout` (yuklangan mashinada 5 s ba'zan yetmaydi).

@@ -10,6 +10,7 @@ import {
   startOfBusinessMonth,
 } from '../utils/dates.js';
 import type { ExecutiveQuery } from '../validators/dashboard.validator.js';
+import { ALL_BRANCHES, type BranchScope, inBranch, viaGroup, viaUser } from './branchScope.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { refundTotal } from './revenue.js';
 
@@ -244,10 +245,10 @@ function resolvePeriod(now: Date, query: ExecutiveQuery): ResolvedPeriod {
   return build('month', range.start, range.end, previous.start, previous.end, formatSalaryPeriod(year, month));
 }
 
-async function ledgerTotals(start: Date, end: Date): Promise<{ income: number; expense: number }> {
+async function ledgerTotals(start: Date, end: Date, scope: BranchScope): Promise<{ income: number; expense: number }> {
   const rows = await prisma.transaction.groupBy({
     by: ['type'],
-    where: { ...LEDGER_BASE, occurredAt: { gte: start, lt: end } },
+    where: { ...LEDGER_BASE, occurredAt: { gte: start, lt: end }, ...inBranch(scope) },
     _sum: { amount: true },
   });
   const sumOf = (type: TransactionType) => rows.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
@@ -256,10 +257,10 @@ async function ledgerTotals(start: Date, end: Date): Promise<{ income: number; e
 }
 
 /** Davomat foizi: kelgan va kechikkanlar umumiy belgilar soniga nisbatan */
-async function attendanceRate(start: Date, end: Date): Promise<{ rate: number; absent: number; total: number }> {
+async function attendanceRate(start: Date, end: Date, scope: BranchScope): Promise<{ rate: number; absent: number; total: number }> {
   const rows = await prisma.attendance.groupBy({
     by: ['status'],
-    where: { date: { gte: start, lt: end } },
+    where: { date: { gte: start, lt: end }, ...(scope.branchId ? { student: inBranch(scope) } : {}) },
     _count: { _all: true },
   });
   const countOf = (status: string) => rows.find((row) => row.status === status)?._count._all ?? 0;
@@ -268,34 +269,34 @@ async function attendanceRate(start: Date, end: Date): Promise<{ rate: number; a
   return { rate: total === 0 ? 0 : Math.round((present / total) * 100), absent: countOf('ABSENT'), total };
 }
 
-async function todayBlock(now: Date): Promise<ExecutiveTodayDto> {
+async function todayBlock(now: Date, scope: BranchScope): Promise<ExecutiveTodayDto> {
   const dayStart = startOfBusinessDay(now);
   const dayEnd = addDays(dayStart, 1);
   const dateString = businessDateString(now);
   const sessionDay = dateOnlyUtc(dateString);
   const sessionNextDay = addDays(sessionDay, 1);
 
-  const newLeads = await prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: dayStart, lt: dayEnd } } });
+  const newLeads = await prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: dayStart, lt: dayEnd }, ...inBranch(scope) } });
   const newStudents = await prisma.student.count({
-    where: { deletedAt: null, createdAt: { gte: dayStart, lt: dayEnd } },
+    where: { deletedAt: null, createdAt: { gte: dayStart, lt: dayEnd }, ...inBranch(scope) },
   });
   const trialLessons = await prisma.lead.count({
-    where: { deletedAt: null, status: 'TRIAL_BOOKED', nextFollowUpAt: { gte: dayStart, lt: dayEnd } },
+    where: { deletedAt: null, status: 'TRIAL_BOOKED', nextFollowUpAt: { gte: dayStart, lt: dayEnd }, ...inBranch(scope) },
   });
   const lessons = await prisma.attendanceSession.count({
-    where: { date: { gte: sessionDay, lt: sessionNextDay }, status: { not: 'CANCELLED' } },
+    where: { date: { gte: sessionDay, lt: sessionNextDay }, status: { not: 'CANCELLED' }, ...viaGroup(scope) },
   });
   const markedLessons = await prisma.attendanceSession.count({
-    where: { date: { gte: sessionDay, lt: sessionNextDay }, status: 'HELD', attendances: { some: {} } },
+    where: { date: { gte: sessionDay, lt: sessionNextDay }, status: 'HELD', attendances: { some: {} }, ...viaGroup(scope) },
   });
-  const attendance = await attendanceRate(sessionDay, sessionNextDay);
-  const money = await ledgerTotals(dayStart, dayEnd);
+  const attendance = await attendanceRate(sessionDay, sessionNextDay, scope);
+  const money = await ledgerTotals(dayStart, dayEnd, scope);
   const payments = await prisma.payment.aggregate({
-    where: { deletedAt: null, paidAt: { gte: dayStart, lt: dayEnd } },
+    where: { deletedAt: null, paidAt: { gte: dayStart, lt: dayEnd }, ...inBranch(scope) },
     _sum: { amount: true },
   });
-  const activeGroups = await prisma.group.count({ where: { status: 'ACTIVE' } });
-  const activeTeachers = await prisma.teacherProfile.count({ where: { isActive: true, user: { deletedAt: null } } });
+  const activeGroups = await prisma.group.count({ where: { status: 'ACTIVE', ...inBranch(scope) } });
+  const activeTeachers = await prisma.teacherProfile.count({ where: { isActive: true, user: { deletedAt: null, ...inBranch(scope) } } });
 
   return {
     date: dateString,
@@ -306,7 +307,7 @@ async function todayBlock(now: Date): Promise<ExecutiveTodayDto> {
     markedLessons,
     attendanceRate: attendance.rate,
     absentStudents: attendance.absent,
-    payments: (payments._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart, lt: dayEnd })),
+    payments: (payments._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart, lt: dayEnd }, inBranch(scope))),
     expenses: money.expense,
     netRevenue: money.income - money.expense,
     activeGroups,
@@ -314,20 +315,20 @@ async function todayBlock(now: Date): Promise<ExecutiveTodayDto> {
   };
 }
 
-async function periodMetrics(start: Date, end: Date): Promise<ExecutivePeriodMetricsDto> {
-  const money = await ledgerTotals(start, end);
-  const newLeads = await prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: start, lt: end } } });
+async function periodMetrics(start: Date, end: Date, scope: BranchScope): Promise<ExecutivePeriodMetricsDto> {
+  const money = await ledgerTotals(start, end, scope);
+  const newLeads = await prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: start, lt: end }, ...inBranch(scope) } });
   const wonLeads = await prisma.lead.count({
-    where: { deletedAt: null, status: 'WON', convertedAt: { gte: start, lt: end } },
+    where: { deletedAt: null, status: 'WON', convertedAt: { gte: start, lt: end }, ...inBranch(scope) },
   });
   const lostLeads = await prisma.lead.count({
-    where: { deletedAt: null, status: 'LOST', updatedAt: { gte: start, lt: end } },
+    where: { deletedAt: null, status: 'LOST', updatedAt: { gte: start, lt: end }, ...inBranch(scope) },
   });
-  const newStudents = await prisma.student.count({ where: { deletedAt: null, createdAt: { gte: start, lt: end } } });
+  const newStudents = await prisma.student.count({ where: { deletedAt: null, createdAt: { gte: start, lt: end }, ...inBranch(scope) } });
   const droppedStudents = await prisma.student.count({
-    where: { deletedAt: null, status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
+    where: { deletedAt: null, status: 'DROPPED', statusChangedAt: { gte: start, lt: end }, ...inBranch(scope) },
   });
-  const attendance = await attendanceRate(start, end);
+  const attendance = await attendanceRate(start, end, scope);
   const closed = wonLeads + lostLeads;
 
   return {
@@ -346,6 +347,13 @@ async function periodMetrics(start: Date, end: Date): Promise<ExecutivePeriodMet
   };
 }
 
+/** Maosh davri filiali: o'qituvchi profili (xodim foydalanuvchisi) yoki xodim orqali */
+function salaryPeriodInBranch(scope: BranchScope): Prisma.TeacherSalaryPeriodWhereInput {
+  return scope.branchId
+    ? { AND: [{ OR: [{ teacherProfile: { user: inBranch(scope) } }, { employee: inBranch(scope) }] }] }
+    : {};
+}
+
 /** Davrga tushadigan oylar (maosh davrlari yil/oy bilan saqlanadi) */
 function monthsBetween(start: Date, end: Date): Array<{ year: number; month: number }> {
   const months: Array<{ year: number; month: number }> = [];
@@ -359,14 +367,14 @@ function monthsBetween(start: Date, end: Date): Array<{ year: number; month: num
   return months;
 }
 
-async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetricsDto): Promise<ExecutiveMonthDto> {
-  const activeStudents = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE' } });
+async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetricsDto, scope: BranchScope): Promise<ExecutiveMonthDto> {
+  const activeStudents = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } });
   const debt = await prisma.debt.aggregate({
-    where: { student: { deletedAt: null }, remainingAmount: { gt: 0 } },
+    where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } },
     _sum: { remainingAmount: true },
   });
   const salary = await prisma.teacherSalaryPeriod.aggregate({
-    where: { OR: monthsBetween(period.start, period.end) },
+    where: { OR: monthsBetween(period.start, period.end), ...salaryPeriodInBranch(scope) },
     _sum: { totalAmount: true, paidAmount: true },
   });
 
@@ -383,11 +391,11 @@ async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetric
 }
 
 /** Davr oxirigacha oxirgi 6 oy: tushum, xarajat va foyda dinamikasi */
-async function trendBlock(anchor: Date): Promise<ExecutiveTrendPointDto[]> {
+async function trendBlock(anchor: Date, scope: BranchScope): Promise<ExecutiveTrendPointDto[]> {
   const start = startOfBusinessMonth(anchor, 5);
   const end = addDays(startOfBusinessDay(anchor), 1);
   const transactions = await prisma.transaction.findMany({
-    where: { ...LEDGER_BASE, occurredAt: { gte: start, lt: end } },
+    where: { ...LEDGER_BASE, occurredAt: { gte: start, lt: end }, ...inBranch(scope) },
     select: { type: true, amount: true, occurredAt: true },
   });
 
@@ -411,18 +419,20 @@ async function trendBlock(anchor: Date): Promise<ExecutiveTrendPointDto[]> {
 }
 
 /** Diqqat talab qiladigan holatlar — Owner birinchi navbatda shularni ko‘radi */
-async function attentionBlock(now: Date): Promise<ExecutiveSummaryDto['attention']> {
+async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveSummaryDto['attention']> {
   const dayStart = startOfBusinessDay(now);
   const sessionDay = dateOnlyUtc(businessDateString(now));
 
-  const debtors = await prisma.debt.count({ where: { student: { deletedAt: null }, remainingAmount: { gt: 0 } } });
+  const debtors = await prisma.debt.count({ where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } } });
   const unmarkedLessons = await prisma.attendanceSession.count({
-    where: { date: { gte: sessionDay, lt: addDays(sessionDay, 1) }, status: { not: 'CANCELLED' }, attendances: { none: {} } },
+    where: { date: { gte: sessionDay, lt: addDays(sessionDay, 1) }, status: { not: 'CANCELLED' }, attendances: { none: {} }, ...viaGroup(scope) },
   });
-  const overdueFollowUps = await prisma.followUp.count({ where: { status: 'PENDING', dueAt: { lt: dayStart } } });
-  const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED' } });
-  const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING' } });
-  const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL' } });
+  const overdueFollowUps = await prisma.followUp.count({
+    where: { status: 'PENDING', dueAt: { lt: dayStart }, ...(scope.branchId ? { lead: inBranch(scope) } : {}) },
+  });
+  const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED', ...salaryPeriodInBranch(scope) } });
+  const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING', ...inBranch(scope) } });
+  const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL', ...inBranch(scope) } });
 
   const rows: ExecutiveSummaryDto['attention'] = [
     { key: 'criticalAlerts', label: 'Kritik ogohlantirishlar', value: criticalAlerts, tone: 'danger' },
@@ -445,9 +455,9 @@ function scale(value: number, bad: number, good: number): number {
  * Markaz sog‘lomlik bahosi. Har bir yo‘nalish 0–100 ball, vazn bilan o‘rtacha olinadi.
  * Ma’lumoti yo‘q yo‘nalish (masalan, davrda davomat belgilanmagan) bahoga kirmaydi.
  */
-async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: number): Promise<ExecutiveHealthDto> {
+async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: number, scope: BranchScope): Promise<ExecutiveHealthDto> {
   const debtors = await prisma.debt.count({
-    where: { remainingAmount: { gt: 0 }, student: { deletedAt: null, status: 'ACTIVE' } },
+    where: { remainingAmount: { gt: 0 }, student: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } },
   });
   const debtShare = percentOf(debtors, activeStudents);
   const retentionBase = activeStudents + metrics.droppedStudents;
@@ -506,19 +516,19 @@ async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: n
 }
 
 /** Joriy oy uchun oy oxiri prognozi */
-async function forecastBlock(now: Date, metrics: ExecutivePeriodMetricsDto): Promise<ExecutiveForecastDto> {
+async function forecastBlock(now: Date, metrics: ExecutivePeriodMetricsDto, scope: BranchScope): Promise<ExecutiveForecastDto> {
   const { year, month } = currentBusinessMonth(now);
   const range = businessMonthRange(year, month);
   const daysInMonth = Math.round((range.end.getTime() - range.start.getTime()) / DAY_MS);
   const daysElapsed = Math.min(Math.floor((startOfBusinessDay(now).getTime() - range.start.getTime()) / DAY_MS) + 1, daysInMonth);
 
   const upcoming = await prisma.expense.aggregate({
-    where: { status: { in: ['UPCOMING', 'PENDING', 'APPROVED'] }, spentAt: { gte: range.start, lt: range.end } },
+    where: { status: { in: ['UPCOMING', 'PENDING', 'APPROVED'] }, spentAt: { gte: range.start, lt: range.end }, ...inBranch(scope) },
     _sum: { amount: true },
   });
   // Umumiy (jamoa) reja bo'lsa — o'sha, aks holda managerlar rejalari yig'indisi
   const targets = await prisma.salesTarget.findMany({
-    where: { year, month, type: 'REVENUE' },
+    where: { year, month, type: 'REVENUE', ...viaUser(scope) },
     select: { userId: true, targetValue: true },
   });
   const teamTarget = targets.find((target) => target.userId === null);
@@ -606,19 +616,19 @@ function insightsBlock(
 }
 
 export const executiveService = {
-  async summary(query: ExecutiveQuery): Promise<ExecutiveSummaryDto> {
+  async summary(query: ExecutiveQuery, scope: BranchScope = ALL_BRANCHES): Promise<ExecutiveSummaryDto> {
     const now = new Date();
     const period = resolvePeriod(now, query);
     const [today, current, previous, attention] = await Promise.all([
-      todayBlock(now),
-      periodMetrics(period.start, period.end),
-      periodMetrics(period.previousStart, period.previousEnd),
-      attentionBlock(now),
+      todayBlock(now, scope),
+      periodMetrics(period.start, period.end, scope),
+      periodMetrics(period.previousStart, period.previousEnd, scope),
+      attentionBlock(now, scope),
     ]);
-    const month = await monthBlock(period, current);
-    const trend = await trendBlock(new Date(period.end.getTime() - 1));
-    const health = await healthBlock(current, month.activeStudents);
-    const forecast = period.kind === 'current-month' ? await forecastBlock(now, current) : null;
+    const month = await monthBlock(period, current, scope);
+    const trend = await trendBlock(new Date(period.end.getTime() - 1), scope);
+    const health = await healthBlock(current, month.activeStudents, scope);
+    const forecast = period.kind === 'current-month' ? await forecastBlock(now, current, scope) : null;
 
     const changes: ExecutiveSummaryDto['changes'] = {
       revenue: changeOf(current.revenue, previous.revenue),
@@ -633,9 +643,9 @@ export const executiveService = {
       attendanceRate: previous.attendanceMarks === 0 ? null : current.attendanceRate - previous.attendanceRate,
     };
 
-    const totalStudents = await prisma.student.count({ where: { deletedAt: null } });
-    const totalGroups = await prisma.group.count();
-    const totalTeachers = await prisma.teacherProfile.count({ where: { user: { deletedAt: null } } });
+    const totalStudents = await prisma.student.count({ where: { deletedAt: null, ...inBranch(scope) } });
+    const totalGroups = await prisma.group.count({ where: inBranch(scope) });
+    const totalTeachers = await prisma.teacherProfile.count({ where: { user: { deletedAt: null, ...inBranch(scope) } } });
 
     return {
       period: {

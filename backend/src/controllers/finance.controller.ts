@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { branchScopeOf } from '../services/branchScope.js';
 import { financeService } from '../services/finance.service.js';
 import {
   budgetService,
@@ -32,27 +33,27 @@ import {
 export const financeController = {
   async summary(req: Request, res: Response): Promise<void> {
     const query = financeRangeQuerySchema.parse(req.query);
-    sendSuccess(res, await financeService.summary(query));
+    sendSuccess(res, await financeService.summary(query, await branchScopeOf(requireAuthUser(req))));
   },
 
   async cashFlow(req: Request, res: Response): Promise<void> {
     const query = cashFlowQuerySchema.parse(req.query);
-    sendSuccess(res, await financeService.cashFlow(query));
+    sendSuccess(res, await financeService.cashFlow(query, await branchScopeOf(requireAuthUser(req))));
   },
 
   async profitLoss(req: Request, res: Response): Promise<void> {
     const query = financeRangeQuerySchema.parse(req.query);
-    sendSuccess(res, await financeService.profitLoss(query));
+    sendSuccess(res, await financeService.profitLoss(query, await branchScopeOf(requireAuthUser(req))));
   },
 
   async cashFlowStatement(req: Request, res: Response): Promise<void> {
     const query = financeRangeQuerySchema.parse(req.query);
-    sendSuccess(res, await financeService.cashFlowStatement(query));
+    sendSuccess(res, await financeService.cashFlowStatement(query, await branchScopeOf(requireAuthUser(req))));
   },
 
   async accounts(req: Request, res: Response): Promise<void> {
     const query = financeRangeQuerySchema.parse(req.query);
-    sendSuccess(res, await financeService.accounts(query));
+    sendSuccess(res, await financeService.accounts(query, await branchScopeOf(requireAuthUser(req))));
   },
 
   async createAccount(req: Request, res: Response): Promise<void> {
@@ -70,7 +71,7 @@ export const financeController = {
 
   async transactions(req: Request, res: Response): Promise<void> {
     const query = transactionListQuerySchema.parse(req.query);
-    const { items, total } = await financeService.transactions(query);
+    const { items, total } = await financeService.transactions(query, await branchScopeOf(requireAuthUser(req)));
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 

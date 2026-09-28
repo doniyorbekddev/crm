@@ -6,9 +6,12 @@ import { PAYMENT_METHOD_LABELS } from '../config/paymentLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { ATTENDANCE_STATUS_LABELS, STUDENT_STATUS_LABELS, formatStudentNumber } from '../config/studentLabels.js';
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
-import type { Prisma, SalaryType, StudentStatus } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { SalaryType, StudentStatus } from '../generated/prisma/client.js';
 import { addDays, startOfBusinessDay } from '../utils/dates.js';
 import type { ReportGroupBy, ReportQuery, ReportType } from '../validators/report.validator.js';
+import { ALL_BRANCHES, branchSql, inBranch, viaGroup } from './branchScope.js';
+import type { BranchScope } from './branchScope.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { tableToCsv } from '../utils/tableExport.js';
 import type { ExportTable } from '../utils/tableExport.js';
@@ -178,10 +181,10 @@ function percent(part: number, whole: number): number {
 // Hisobotlar
 // ---------------------------------------------------------------------
 
-async function salesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function salesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const buckets = buildBuckets(start, end, query.groupBy);
-  const managerFilter: Prisma.LeadWhereInput = query.managerId ? { assignedToId: query.managerId } : {};
+  const managerFilter: Prisma.LeadWhereInput = { ...(query.managerId ? { assignedToId: query.managerId } : {}), ...inBranch(scope) };
 
   const createdLeads = await prisma.lead.findMany({
     where: { deletedAt: null, ...managerFilter, createdAt: { gte: start, lt: end } },
@@ -199,11 +202,12 @@ async function salesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns
     where: {
       deletedAt: null,
       ...(query.managerId ? { managerId: query.managerId } : {}),
+      ...inBranch(scope),
       paidAt: { gte: start, lt: end },
     },
     select: { paidAt: true, amount: true },
   });
-  const refunds = await refundRows({ gte: start, lt: end }, query.managerId ? { managerId: query.managerId } : {});
+  const refunds = await refundRows({ gte: start, lt: end }, { ...(query.managerId ? { managerId: query.managerId } : {}), ...inBranch(scope) });
 
   const rows: Array<Record<string, ReportCell>> = buckets.map((bucket) => ({
     period: bucket.label,
@@ -258,12 +262,13 @@ async function salesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns
   };
 }
 
-async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function managersReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const users = await prisma.user.findMany({
     where: {
       deletedAt: null,
       ...(query.managerId ? { id: query.managerId } : {}),
+      ...inBranch(scope),
       role: { permissions: { some: { permission: { key: PERMISSIONS.LEAD_VIEW } } } },
     },
     orderBy: [{ firstName: 'asc' }],
@@ -274,22 +279,22 @@ async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
 
   // Har bir ko'rsatkich uchun bitta guruhlangan so'rov — managerlar soniga bog'liq emas
   const [leads, won, lost, calls, revenue] = await Promise.all([
-    prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, assignedToId: { in: ids }, createdAt: range }, _count: { _all: true } }),
+    prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, assignedToId: { in: ids }, ...inBranch(scope), createdAt: range }, _count: { _all: true } }),
     prisma.lead.groupBy({
       by: ['assignedToId'],
-      where: { deletedAt: null, assignedToId: { in: ids }, status: 'WON', convertedAt: range },
+      where: { deletedAt: null, assignedToId: { in: ids }, ...inBranch(scope), status: 'WON', convertedAt: range },
       _count: { _all: true },
     }),
     prisma.lead.groupBy({
       by: ['assignedToId'],
-      where: { deletedAt: null, assignedToId: { in: ids }, status: 'LOST', updatedAt: range },
+      where: { deletedAt: null, assignedToId: { in: ids }, ...inBranch(scope), status: 'LOST', updatedAt: range },
       _count: { _all: true },
     }),
-    prisma.call.groupBy({ by: ['managerId'], where: { managerId: { in: ids }, status: 'COMPLETED', calledAt: range }, _count: { _all: true } }),
-    prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: range }, _sum: { amount: true } }),
+    prisma.call.groupBy({ by: ['managerId'], where: { managerId: { in: ids }, ...(scope.branchId ? { lead: inBranch(scope) } : {}), status: 'COMPLETED', calledAt: range }, _count: { _all: true } }),
+    prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, ...inBranch(scope), paidAt: range }, _sum: { amount: true } }),
   ]);
 
-  const managerRefunds = await refundsBy('managerId', range, { managerId: { in: ids } });
+  const managerRefunds = await refundsBy('managerId', range, { managerId: { in: ids }, ...inBranch(scope) });
 
   const rows: Array<Record<string, ReportCell>> = [];
   for (const user of users) {
@@ -335,7 +340,7 @@ async function managersReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
   };
 }
 
-async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const courses = await prisma.course.findMany({
     where: query.courseId ? { id: query.courseId } : {},
@@ -345,27 +350,27 @@ async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
   const ids = courses.map((course) => course.id);
 
   const [students, active, fresh, groups, revenue, debts] = await Promise.all([
-    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null }, _count: { _all: true } }),
-    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope) }, _count: { _all: true } }),
+    prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), status: 'ACTIVE' }, _count: { _all: true } }),
     prisma.student.groupBy({
       by: ['courseId'],
-      where: { courseId: { in: ids }, deletedAt: null, createdAt: { gte: start, lt: end } },
+      where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), createdAt: { gte: start, lt: end } },
       _count: { _all: true },
     }),
-    prisma.group.groupBy({ by: ['courseId'], where: { courseId: { in: ids } }, _count: { _all: true } }),
+    prisma.group.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, ...inBranch(scope) }, _count: { _all: true } }),
     prisma.payment.groupBy({
       by: ['courseId'],
-      where: { courseId: { in: ids }, deletedAt: null, paidAt: { gte: start, lt: end } },
+      where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), paidAt: { gte: start, lt: end } },
       _sum: { amount: true },
     }),
     // Qarz o'quvchi orqali kursga bog'lanadi — bitta so'rovda olib, shu yerda jamlanadi
     prisma.debt.findMany({
-      where: { student: { courseId: { in: ids }, deletedAt: null } },
+      where: { student: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope) } },
       select: { remainingAmount: true, student: { select: { courseId: true } } },
     }),
   ]);
 
-  const courseRefunds = await refundsBy('courseId', { gte: start, lt: end }, { courseId: { in: ids } });
+  const courseRefunds = await refundsBy('courseId', { gte: start, lt: end }, { courseId: { in: ids }, ...inBranch(scope) });
 
   const countOf = (list: ReadonlyArray<{ courseId: string; _count: { _all: number } }>, id: string) =>
     list.find((row) => row.courseId === id)?._count._all ?? 0;
@@ -409,12 +414,13 @@ async function coursesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
   };
 }
 
-async function groupsReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function groupsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const groups = await prisma.group.findMany({
     where: {
       ...(query.groupId ? { id: query.groupId } : {}),
       ...(query.courseId ? { courseId: query.courseId } : {}),
+      ...inBranch(scope),
     },
     orderBy: { name: 'asc' },
     select: {
@@ -429,7 +435,7 @@ async function groupsReport(query: ReportQuery): Promise<Pick<ReportDto, 'column
 
   const ids = groups.map((group) => group.id);
   const [students, attendance] = await Promise.all([
-    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: ids }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: ids }, deletedAt: null, ...inBranch(scope), status: 'ACTIVE' }, _count: { _all: true } }),
     prisma.attendance.groupBy({
       by: ['groupId', 'status'],
       where: { groupId: { in: ids }, date: { gte: start, lt: end } },
@@ -479,7 +485,7 @@ async function groupsReport(query: ReportQuery): Promise<Pick<ReportDto, 'column
   };
 }
 
-async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function paymentsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const where: Prisma.PaymentWhereInput = {
     deletedAt: null,
@@ -487,6 +493,7 @@ async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
     ...(query.courseId ? { courseId: query.courseId } : {}),
     ...(query.managerId ? { managerId: query.managerId } : {}),
     ...(query.groupId ? { student: { groupId: query.groupId } } : {}),
+    ...inBranch(scope),
   };
 
   const refunded = await refundTotal(
@@ -495,6 +502,7 @@ async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
       ...(query.courseId ? { courseId: query.courseId } : {}),
       ...(query.managerId ? { managerId: query.managerId } : {}),
       ...(query.groupId ? { student: { groupId: query.groupId } } : {}),
+      ...inBranch(scope),
     },
   );
   const buckets = buildBuckets(start, end, query.groupBy);
@@ -550,12 +558,13 @@ async function paymentsReport(query: ReportQuery): Promise<Pick<ReportDto, 'colu
   };
 }
 
-async function debtsReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function debtsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const where: Prisma.DebtWhereInput = {
     student: {
       deletedAt: null,
       ...(query.courseId ? { courseId: query.courseId } : {}),
       ...(query.groupId ? { groupId: query.groupId } : {}),
+      ...inBranch(scope),
     },
   };
 
@@ -621,7 +630,7 @@ async function debtsReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns
   };
 }
 
-async function attendanceReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function attendanceReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const students = await prisma.student.findMany({
     where: {
@@ -629,6 +638,7 @@ async function attendanceReport(query: ReportQuery): Promise<Pick<ReportDto, 'co
       status: { in: ['ACTIVE', 'FROZEN'] },
       ...(query.courseId ? { courseId: query.courseId } : {}),
       ...(query.groupId ? { groupId: query.groupId } : {}),
+      ...inBranch(scope),
     },
     orderBy: [{ firstName: 'asc' }],
     take: MAX_ROWS,
@@ -707,7 +717,7 @@ async function attendanceReport(query: ReportQuery): Promise<Pick<ReportDto, 'co
   };
 }
 
-async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
+async function sourcesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const sources = await prisma.source.findMany({ orderBy: [{ sortOrder: 'asc' }], select: { id: true, name: true } });
 
@@ -716,6 +726,7 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     deletedAt: null,
     sourceId: { in: ids },
     ...(query.managerId ? { assignedToId: query.managerId } : {}),
+    ...inBranch(scope),
   };
   const range = { gte: start, lt: end };
   const [leads, won, lost, payments] = await Promise.all([
@@ -729,7 +740,7 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
       FROM "payments" p
       JOIN "students" s ON s."id" = p."studentId"
       JOIN "leads" l ON l."id" = s."leadId"
-      WHERE p."deletedAt" IS NULL AND p."paidAt" >= ${start} AND p."paidAt" < ${end}
+      WHERE p."deletedAt" IS NULL AND p."paidAt" >= ${start} AND p."paidAt" < ${end}${branchSql(scope, Prisma.raw('p."branchId"'))}
       GROUP BY l."sourceId"
     `,
   ]);
@@ -737,7 +748,7 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
   // Kanalga bog'langan marketing xarajati (faqat to'langan xarajatlar)
   const spendRows = await prisma.expense.groupBy({
     by: ['sourceId'],
-    where: { sourceId: { in: ids }, status: 'PAID', spentAt: range },
+    where: { sourceId: { in: ids }, ...inBranch(scope), status: 'PAID', spentAt: range },
     _sum: { amount: true },
   });
   const spendBySource = new Map(spendRows.map((row) => [row.sourceId ?? '', row._sum.amount?.toNumber() ?? 0]));
@@ -748,7 +759,7 @@ async function sourcesReport(query: ReportQuery): Promise<Pick<ReportDto, 'colum
     JOIN "payments" p ON p."id" = r."paymentId"
     JOIN "students" s ON s."id" = p."studentId"
     JOIN "leads" l ON l."id" = s."leadId"
-    WHERE p."deletedAt" IS NULL AND r."refundedAt" >= ${start} AND r."refundedAt" < ${end}
+    WHERE p."deletedAt" IS NULL AND r."refundedAt" >= ${start} AND r."refundedAt" < ${end}${branchSql(scope, Prisma.raw('p."branchId"'))}
     GROUP BY l."sourceId"
   `;
   for (const row of sourceRefunds) {
@@ -846,20 +857,20 @@ function dateOnlyUtc(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
+async function teachersReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { from, to, start, end } = resolveRange(query);
   const sessionFrom = dateOnlyUtc(from);
   const sessionTo = dateOnlyUtc(to);
 
   const profiles = await prisma.teacherProfile.findMany({
-    where: { user: { deletedAt: null } },
+    where: { user: { deletedAt: null, ...inBranch(scope) } },
     select: { id: true, userId: true, specialization: true, user: { select: { firstName: true, lastName: true } } },
     orderBy: [{ user: { firstName: 'asc' } }, { user: { lastName: 'asc' } }],
   });
   const userIds = profiles.map((profile) => profile.userId);
 
   const groups = await prisma.group.findMany({
-    where: { teacherId: { in: userIds }, ...(query.courseId ? { courseId: query.courseId } : {}) },
+    where: { teacherId: { in: userIds }, ...(query.courseId ? { courseId: query.courseId } : {}), ...inBranch(scope) },
     select: { id: true, teacherId: true },
   });
   const teacherOfGroup = new Map(groups.map((group) => [group.id, group.teacherId]));
@@ -867,10 +878,10 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
 
   // Barcha o'qituvchilar uchun ~10 ta so'rov (avval har bir o'qituvchiga ~11 ta edi)
   const [active, dropped, sessions, attendance, exams, homework, revenueByTeacher, salaries] = await Promise.all([
-    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds }, deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds }, deletedAt: null, ...inBranch(scope), status: 'ACTIVE' }, _count: { _all: true } }),
     prisma.student.groupBy({
       by: ['groupId'],
-      where: { groupId: { in: groupIds }, deletedAt: null, status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
+      where: { groupId: { in: groupIds }, deletedAt: null, ...inBranch(scope), status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
       _count: { _all: true },
     }),
     prisma.attendanceSession.groupBy({
@@ -878,6 +889,7 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
       where: {
         status: 'HELD',
         date: { gte: sessionFrom, lte: sessionTo },
+        ...viaGroup(scope),
         OR: [{ teacherId: { in: userIds } }, { teacherId: null, groupId: { in: groupIds } }],
       },
       _count: { _all: true },
@@ -903,6 +915,7 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
         paidAt: { gte: start, lt: end },
         teacherId: { in: userIds },
         ...(query.courseId ? { courseId: query.courseId } : {}),
+        ...inBranch(scope),
       },
       _sum: { amount: true },
     }),
@@ -998,6 +1011,7 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
   const teacherRefunds = await refundsBy('teacherId', { gte: start, lt: end }, {
     teacherId: { in: userIds },
     ...(query.courseId ? { courseId: query.courseId } : {}),
+    ...inBranch(scope),
   });
   for (const [teacherId, amount] of teacherRefunds) {
     const entry = bucket(teacherId);
@@ -1050,10 +1064,13 @@ async function teachersReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-async function salariesReport(query: ReportQuery): Promise<BuilderResult> {
+async function salariesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { from, to } = resolveRange(query);
   const periods = await prisma.teacherSalaryPeriod.findMany({
-    where: { OR: monthsInRange(from, to) },
+    where: {
+      OR: monthsInRange(from, to),
+      ...(scope.branchId ? { AND: [{ OR: [{ teacherProfile: { user: inBranch(scope) } }, { employee: inBranch(scope) }] }] } : {}),
+    },
     orderBy: [{ year: 'desc' }, { month: 'desc' }, { totalAmount: 'desc' }],
     take: MAX_ROWS + 1,
     select: {
@@ -1117,10 +1134,11 @@ async function ledgerByCategory(
   types: Array<'INCOME' | 'EXPENSE' | 'REFUND'>,
   start: Date,
   end: Date,
+  scope: BranchScope = ALL_BRANCHES,
 ): Promise<Array<{ category: string; count: number; total: number }>> {
   const grouped = await prisma.transaction.groupBy({
     by: ['categoryName'],
-    where: { ...LEDGER_WHERE, type: { in: types }, occurredAt: { gte: start, lt: end } },
+    where: { ...LEDGER_WHERE, ...inBranch(scope), type: { in: types }, occurredAt: { gte: start, lt: end } },
     _sum: { amount: true },
     _count: { _all: true },
   });
@@ -1129,9 +1147,9 @@ async function ledgerByCategory(
     .sort((a, b) => b.total - a.total);
 }
 
-async function incomesReport(query: ReportQuery): Promise<BuilderResult> {
+async function incomesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { start, end } = resolveRange(query);
-  const categories = await ledgerByCategory(['INCOME'], start, end);
+  const categories = await ledgerByCategory(['INCOME'], start, end, scope);
   const total = categories.reduce((sum, row) => sum + row.total, 0);
   const studentPayments = categories.find((row) => row.category === 'O‘quvchi to‘lovi')?.total ?? 0;
 
@@ -1152,9 +1170,9 @@ async function incomesReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-async function expensesReport(query: ReportQuery): Promise<BuilderResult> {
+async function expensesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { from, to, start, end } = resolveRange(query);
-  const categories = await ledgerByCategory(['EXPENSE', 'REFUND'], start, end);
+  const categories = await ledgerByCategory(['EXPENSE', 'REFUND'], start, end, scope);
   const total = categories.reduce((sum, row) => sum + row.total, 0);
 
   // Budjet: davrga tushgan oylarning rejalari kategoriya nomi bo'yicha jamlanadi
@@ -1205,7 +1223,7 @@ async function expensesReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-async function profitReport(query: ReportQuery): Promise<BuilderResult> {
+async function profitReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { start, end } = resolveRange(query);
   const buckets = buildBuckets(start, end, query.groupBy);
   const rows = buckets.map((bucket) => ({
@@ -1219,7 +1237,7 @@ async function profitReport(query: ReportQuery): Promise<BuilderResult> {
   }));
 
   const transactions = await prisma.transaction.findMany({
-    where: { ...LEDGER_WHERE, occurredAt: { gte: start, lt: end } },
+    where: { ...LEDGER_WHERE, ...inBranch(scope), occurredAt: { gte: start, lt: end } },
     select: { type: true, amount: true, occurredAt: true },
   });
   bucketize(buckets, transactions, (item) => item.occurredAt, (index, item) => {
@@ -1260,7 +1278,7 @@ async function profitReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-async function retentionReport(query: ReportQuery): Promise<BuilderResult> {
+async function retentionReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { start, end } = resolveRange(query);
   const buckets = buildBuckets(start, end, query.groupBy);
   const students = await prisma.student.findMany({
@@ -1269,6 +1287,7 @@ async function retentionReport(query: ReportQuery): Promise<BuilderResult> {
       createdAt: { lt: end },
       ...(query.courseId ? { courseId: query.courseId } : {}),
       ...(query.groupId ? { groupId: query.groupId } : {}),
+      ...inBranch(scope),
     },
     select: { createdAt: true, status: true, statusChangedAt: true },
   });
@@ -1322,12 +1341,13 @@ async function retentionReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-async function gamificationReport(query: ReportQuery): Promise<BuilderResult> {
+async function gamificationReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<BuilderResult> {
   const { start, end } = resolveRange(query);
   const studentFilter: Prisma.StudentWhereInput = {
     deletedAt: null,
     ...(query.courseId ? { courseId: query.courseId } : {}),
     ...(query.groupId ? { groupId: query.groupId } : {}),
+    ...inBranch(scope),
   };
 
   const grouped = await prisma.xpTransaction.groupBy({
@@ -1403,7 +1423,7 @@ async function gamificationReport(query: ReportQuery): Promise<BuilderResult> {
   };
 }
 
-const BUILDERS: Record<ReportType, (query: ReportQuery) => Promise<BuilderResult>> = {
+const BUILDERS: Record<ReportType, (query: ReportQuery, scope: BranchScope) => Promise<BuilderResult>> = {
   sales: salesReport,
   managers: managersReport,
   courses: coursesReport,
@@ -1447,9 +1467,9 @@ function localizeCodes(rows: Array<Record<string, ReportCell>>): Array<Record<st
 }
 
 export const reportService = {
-  async build(type: ReportType, query: ReportQuery): Promise<ReportDto> {
+  async build(type: ReportType, query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<ReportDto> {
     const { from, to } = resolveRange(query);
-    const result = await BUILDERS[type](query);
+    const result = await BUILDERS[type](query, scope);
     const rows = localizeCodes(result.rows);
     const truncated = rows.length > MAX_ROWS;
 

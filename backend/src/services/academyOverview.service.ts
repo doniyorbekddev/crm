@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { llmAvailable } from './ai/llm.js';
+import { ALL_BRANCHES, type BranchScope, inBranch, viaGroup, viaStudent } from './branchScope.js';
 
 /**
  * TZ 3.0 §76 "Owner uchun final control": rahbar bitta dashboarddan barcha yo'nalish holatini
@@ -32,9 +33,14 @@ function percent(part: number, whole: number): number | null {
 }
 
 export const academyOverviewService = {
-  async overview(now: Date = new Date()): Promise<AcademyOverviewDto> {
+  async overview(now: Date = new Date(), scope: BranchScope = ALL_BRANCHES): Promise<AcademyOverviewDto> {
     const since = new Date(now.getTime() - WINDOW_DAYS * DAY_MS);
-    const activeStudent = { deletedAt: null, status: 'ACTIVE' as const };
+    const activeStudent = { deletedAt: null, status: 'ACTIVE' as const, ...inBranch(scope) };
+    // Ota-ona filiali — farzandlari orqali; Telegram bog'lanishi — o'quvchi, ota-ona yoki xodim orqali
+    const parentInBranch = scope.branchId ? { students: { some: { student: inBranch(scope) } } } : {};
+    const linkInBranch = scope.branchId
+      ? { OR: [{ student: inBranch(scope) }, { parent: parentInBranch }, { user: inBranch(scope) }] }
+      : {};
 
     const [
       parentsTotal,
@@ -59,31 +65,37 @@ export const academyOverviewService = {
       analyses,
       awaiting,
     ] = await Promise.all([
-      prisma.parent.count(),
-      prisma.parent.count({ where: { userId: { not: null } } }),
-      prisma.telegramLink.count({ where: { parentId: { not: null }, verifiedAt: { not: null }, isActive: true } }),
+      prisma.parent.count({ where: parentInBranch }),
+      prisma.parent.count({ where: { userId: { not: null }, ...parentInBranch } }),
+      prisma.telegramLink.count({
+        where: { parentId: { not: null }, verifiedAt: { not: null }, isActive: true, ...(scope.branchId ? { parent: parentInBranch } : {}) },
+      }),
       prisma.course.count({ where: { status: 'ACTIVE' } }),
-      prisma.group.groupBy({ by: ['status'], where: { status: { in: ['ACTIVE', 'PLANNED'] } }, _count: { _all: true } }),
+      prisma.group.groupBy({ by: ['status'], where: { status: { in: ['ACTIVE', 'PLANNED'] }, ...inBranch(scope) }, _count: { _all: true } }),
       prisma.attendance.groupBy({ by: ['status'], where: { date: { gte: since, lte: now }, student: activeStudent }, _count: { _all: true } }),
-      prisma.homework.count({ where: { status: 'PUBLISHED', deadline: { gte: now } } }),
+      prisma.homework.count({ where: { status: 'PUBLISHED', deadline: { gte: now }, ...viaGroup(scope) } }),
       prisma.homeworkSubmission.groupBy({
         by: ['status'],
         where: { homework: { status: { not: 'DRAFT' }, deadline: { gte: since, lte: now } }, student: activeStudent },
         _count: { _all: true },
       }),
-      prisma.exam.count({ where: { date: { gte: since, lte: now }, status: { not: 'CANCELLED' } } }),
-      prisma.examResult.aggregate({ where: { exam: { date: { gte: since, lte: now } } }, _avg: { percentage: true } }),
-      prisma.examAttempt.count({ where: { status: 'NEEDS_REVIEW' } }),
+      prisma.exam.count({ where: { date: { gte: since, lte: now }, status: { not: 'CANCELLED' }, ...viaGroup(scope) } }),
+      prisma.examResult.aggregate({ where: { exam: { date: { gte: since, lte: now } }, ...viaStudent(scope) }, _avg: { percentage: true } }),
+      prisma.examAttempt.count({ where: { status: 'NEEDS_REVIEW', ...viaStudent(scope) } }),
       prisma.topicMastery.aggregate({ where: { score: { not: null }, student: activeStudent }, _avg: { score: true }, _count: { _all: true } }),
       prisma.topicMastery.count({ where: { status: 'MASTERED', score: { not: null }, student: activeStudent } }),
       prisma.student.groupBy({ by: ['riskLevel'], where: { ...activeStudent, riskLevel: { not: null } }, _count: { _all: true } }),
-      prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: since } } }),
-      prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: since }, status: 'WON' } }),
-      prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, createdAt: { gte: since } }, _count: { _all: true }, orderBy: { _count: { sourceId: 'desc' } }, take: 1 }),
-      prisma.telegramLink.count({ where: { verifiedAt: { not: null }, isActive: true, chatId: { not: null } } }),
+      prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: since }, ...inBranch(scope) } }),
+      prisma.lead.count({ where: { deletedAt: null, createdAt: { gte: since }, status: 'WON', ...inBranch(scope) } }),
+      prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, createdAt: { gte: since }, ...inBranch(scope) }, _count: { _all: true }, orderBy: { _count: { sourceId: 'desc' } }, take: 1 }),
+      prisma.telegramLink.count({ where: { verifiedAt: { not: null }, isActive: true, chatId: { not: null }, ...linkInBranch } }),
       prisma.notificationDelivery.groupBy({
         by: ['status'],
-        where: { channel: 'TELEGRAM', OR: [{ status: 'PENDING' }, { status: 'FAILED', createdAt: { gte: new Date(now.getTime() - DAY_MS) } }] },
+        where: {
+          channel: 'TELEGRAM',
+          OR: [{ status: 'PENDING' }, { status: 'FAILED', createdAt: { gte: new Date(now.getTime() - DAY_MS) } }],
+          ...(scope.branchId ? { telegramLink: linkInBranch } : {}),
+        },
         _count: { _all: true },
       }),
       prisma.aiAnalysis.count({ where: { createdAt: { gte: since } } }),

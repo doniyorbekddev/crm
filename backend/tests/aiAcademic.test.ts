@@ -248,7 +248,12 @@ describe.skipIf(!hasTestDatabase)('AI akademik markaz (PHASE 9)', () => {
   });
 
   it('ota-ona haftalik xulosasi: tavsiyalar (qoidalar) va model bo‘lsa iliq matn — hafta bo‘yicha keshlanadi', async () => {
-    const { admin, anvar } = await setup();
+    const { admin, anvar, group } = await setup();
+    // Haftalik hisobot joriy haftani (dushanbadan) oladi — "3 kun oldin" dushanba–chorshanba o'tgan haftaga tushardi
+    // (dushanba kuni test yiqilardi). Bugungi darsda ham kelmagan — har doim joriy haftada.
+    const today = dateColumn(new Date());
+    await prisma.attendanceSession.create({ data: { groupId: group.id, date: today, status: 'HELD' } });
+    await prisma.attendance.create({ data: { studentId: anvar.id, groupId: group.id, date: today, status: 'ABSENT' } });
     const account = await request(app).post(`/api/students/${anvar.id}/portal-account`).set(bearer(admin)).send({});
     const studentToken = await loginWithTemporaryPassword(app, account.body.data.login, account.body.data.temporaryPassword);
 

@@ -11,6 +11,7 @@ import type {
   AttendanceStatsQuery,
 } from '../validators/attendanceSession.validator.js';
 import { getSessionAccess, parseDateOnly } from './attendanceSession.service.js';
+import { branchScopeOf, inBranch } from './branchScope.js';
 
 /** Qatnashgan deb hisoblanadigan holatlar (sababsiz qoldirilgandan tashqari hammasi) */
 /** Yagona ta'rif — `utils/attendance.ts` (ogohlantirish tizimi ham shuni ishlatadi) */
@@ -323,6 +324,7 @@ export const attendanceAnalyticsService = {
   /** O‘qituvchi paneli: bugungi darslar, belgilanmagan guruhlar, kelmaganlar */
   async teacherOverview(actor: AuthUser): Promise<TeacherOverviewDto> {
     const access = await getSessionAccess(actor);
+    const scope = await branchScopeOf(actor);
     // O'quv markaz sanasi bo'yicha (bot "Bugungi darslar", dashboard) — UTC sanasi tunda kechagi kun
     const todayDate = parseDateOnly(businessDateString(new Date()));
     const weekDays = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
@@ -331,7 +333,7 @@ export const attendanceAnalyticsService = {
     const groups = await prisma.group.findMany({
       where: {
         status: 'ACTIVE',
-        ...(access.onlyOwnGroups ? { teacherId: access.userId } : {}),
+        ...(access.onlyOwnGroups ? { teacherId: access.userId } : inBranch(scope)),
       },
       select: {
         id: true,
@@ -384,7 +386,7 @@ export const attendanceAnalyticsService = {
     const monthCounts = await groupedCounts({
       date: { gte: monthStart },
       student: { deletedAt: null },
-      ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}),
+      ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : { group: inBranch(scope) }),
     });
 
     const scheduledToday = rows.filter((row) => row.isScheduledToday);

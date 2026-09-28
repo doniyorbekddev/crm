@@ -9,6 +9,7 @@ import type {
 import type { ExportTable } from '../utils/tableExport.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { refundTotal, refundsBy } from './revenue.js';
+import { ALL_BRANCHES, inBranch, viaUser, type BranchScope } from './branchScope.js';
 
 /**
  * Kengaytirilgan analitika: unit economics, rentabellik, kohortlar va lead manbalari.
@@ -157,41 +158,41 @@ function monthsBetween(start: Date, end: Date): Array<{ year: number; month: num
 }
 
 export const analyticsService = {
-  async unitEconomics(query: AnalyticsRangeQuery): Promise<UnitEconomicsDto> {
+  async unitEconomics(query: AnalyticsRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<UnitEconomicsDto> {
     const now = new Date();
     const { start, end, from, to } = resolveAnalyticsRange(query, now);
     const range = { gte: start, lt: end };
 
-    const newStudents = await prisma.student.count({ where: { deletedAt: null, createdAt: range } });
-    const leads = await prisma.lead.count({ where: { deletedAt: null, createdAt: range } });
-    const wonLeads = await prisma.lead.count({ where: { deletedAt: null, status: 'WON', convertedAt: range } });
+    const newStudents = await prisma.student.count({ where: { deletedAt: null, createdAt: range, ...inBranch(scope) } });
+    const leads = await prisma.lead.count({ where: { deletedAt: null, createdAt: range, ...inBranch(scope) } });
+    const wonLeads = await prisma.lead.count({ where: { deletedAt: null, status: 'WON', convertedAt: range, ...inBranch(scope) } });
 
     const marketingCategory = await prisma.expenseCategory.findUnique({ where: { key: MARKETING_CATEGORY_KEY }, select: { name: true } });
     const spend = marketingCategory
       ? await prisma.transaction.aggregate({
-          where: { ...OPERATING_LEDGER_WHERE, type: 'EXPENSE', categoryName: marketingCategory.name, occurredAt: range },
+          where: { ...OPERATING_LEDGER_WHERE, type: 'EXPENSE', categoryName: marketingCategory.name, occurredAt: range, ...inBranch(scope) },
           _sum: { amount: true },
         })
       : null;
     const marketingSpend = spend?._sum.amount?.toNumber() ?? 0;
 
     // Haqiqiy LTV — butun davr bo'yicha to'lov qilgan o'quvchi boshiga sof tushum
-    const paid = await prisma.payment.aggregate({ where: { deletedAt: null }, _sum: { amount: true } });
-    const payers = await prisma.payment.findMany({ where: { deletedAt: null }, distinct: ['studentId'], select: { studentId: true } });
-    const lifetimeRevenue = (paid._sum.amount?.toNumber() ?? 0) - (await refundTotal(undefined));
+    const paid = await prisma.payment.aggregate({ where: { deletedAt: null, ...inBranch(scope) }, _sum: { amount: true } });
+    const payers = await prisma.payment.findMany({ where: { deletedAt: null, ...inBranch(scope) }, distinct: ['studentId'], select: { studentId: true } });
+    const lifetimeRevenue = (paid._sum.amount?.toNumber() ?? 0) - (await refundTotal(undefined, inBranch(scope)));
     const ltv = payers.length > 0 ? Math.round(lifetimeRevenue / payers.length) : null;
 
     const finished = await prisma.student.findMany({
-      where: { deletedAt: null, status: { in: ['DROPPED', 'COMPLETED', 'GRADUATED'] }, statusChangedAt: { not: null } },
+      where: { deletedAt: null, status: { in: ['DROPPED', 'COMPLETED', 'GRADUATED'] }, statusChangedAt: { not: null }, ...inBranch(scope) },
       select: { startDate: true, statusChangedAt: true },
     });
     const lifetimes = finished.map((student) => Math.max((student.statusChangedAt!.getTime() - student.startDate.getTime()) / DAY_MS, 0) / AVG_MONTH_DAYS);
     const avgLifetimeMonths = lifetimes.length > 0 ? round1(lifetimes.reduce((sum, value) => sum + value, 0) / lifetimes.length) : null;
 
     const recentStart = addDays(startOfBusinessDay(now), -89);
-    const recent = await prisma.payment.aggregate({ where: { deletedAt: null, paidAt: { gte: recentStart } }, _sum: { amount: true } });
-    const recentRevenue = (recent._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: recentStart }));
-    const activeStudents = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE' } });
+    const recent = await prisma.payment.aggregate({ where: { deletedAt: null, paidAt: { gte: recentStart }, ...inBranch(scope) }, _sum: { amount: true } });
+    const recentRevenue = (recent._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: recentStart }, inBranch(scope)));
+    const activeStudents = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } });
     const monthlyArpu = activeStudents > 0 ? Math.round(recentRevenue / 3 / activeStudents) : null;
 
     const cac = newStudents > 0 ? Math.round(marketingSpend / newStudents) : null;
@@ -219,17 +220,17 @@ export const analyticsService = {
    * Rentabellik: sof tushum − o‘qituvchi maoshi. Maosh o‘qituvchi bo‘yicha hisoblanadi, shuning uchun
    * kurs/guruhga o‘qituvchining shu davrdagi tushum ulushiga qarab taqsimlanadi.
    */
-  async profitability(query: ProfitabilityQuery): Promise<ProfitabilityDto> {
+  async profitability(query: ProfitabilityQuery, scope: BranchScope = ALL_BRANCHES): Promise<ProfitabilityDto> {
     const { start, end, from, to } = resolveAnalyticsRange(query);
     const { dimension } = query;
     const range = { gte: start, lt: end };
 
     const payments = await prisma.payment.findMany({
-      where: { deletedAt: null, paidAt: range },
+      where: { deletedAt: null, paidAt: range, ...inBranch(scope) },
       select: { amount: true, courseId: true, groupId: true, teacherId: true },
     });
     const refunds = await prisma.paymentRefund.findMany({
-      where: { refundedAt: range, transaction: { status: 'COMPLETED' }, payment: { deletedAt: null } },
+      where: { refundedAt: range, transaction: { status: 'COMPLETED' }, payment: { deletedAt: null, ...inBranch(scope) } },
       select: { amount: true, payment: { select: { courseId: true, groupId: true, teacherId: true } } },
     });
 
@@ -249,7 +250,7 @@ export const analyticsService = {
     for (const refund of refunds) addRevenue(refund.payment, -refund.amount.toNumber());
 
     const periods = await prisma.teacherSalaryPeriod.findMany({
-      where: { teacherProfileId: { not: null }, OR: monthsBetween(start, end) },
+      where: { teacherProfileId: { not: null }, OR: monthsBetween(start, end), ...(scope.branchId ? { teacherProfile: viaUser(scope) } : {}) },
       select: { totalAmount: true, teacherProfile: { select: { userId: true } } },
     });
     const salaryByTeacher = new Map<string, number>();
@@ -279,10 +280,11 @@ export const analyticsService = {
     if (dimension === 'course') {
       const courses = await prisma.course.findMany({ select: { id: true, name: true } });
       for (const course of courses) names.set(course.id, { name: course.name, subtitle: null });
-      const counts = await prisma.student.groupBy({ by: ['courseId'], where: { deletedAt: null, status: 'ACTIVE' }, _count: { _all: true } });
+      const counts = await prisma.student.groupBy({ by: ['courseId'], where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) }, _count: { _all: true } });
       for (const row of counts) active.set(row.courseId, row._count._all);
     } else {
       const groups = await prisma.group.findMany({
+        where: inBranch(scope),
         select: {
           id: true,
           name: true,
@@ -293,7 +295,7 @@ export const analyticsService = {
       });
       const counts = await prisma.student.groupBy({
         by: ['groupId'],
-        where: { deletedAt: null, status: 'ACTIVE', groupId: { not: null } },
+        where: { deletedAt: null, status: 'ACTIVE', groupId: { not: null }, ...inBranch(scope) },
         _count: { _all: true },
       });
       const activeByGroup = new Map(counts.map((row) => [row.groupId ?? NONE, row._count._all]));
@@ -368,20 +370,20 @@ export const analyticsService = {
   },
 
   /** Oylik kohortlar: qo‘shilgan oy bo‘yicha o‘quvchilarning keyingi oylarda qolish foizi */
-  async cohorts(query: CohortQuery): Promise<CohortsDto> {
+  async cohorts(query: CohortQuery, scope: BranchScope = ALL_BRANCHES): Promise<CohortsDto> {
     const now = new Date();
     const { months } = query;
     const students = await prisma.student.findMany({
-      where: { deletedAt: null, createdAt: { gte: startOfBusinessMonth(now, months - 1) } },
+      where: { deletedAt: null, createdAt: { gte: startOfBusinessMonth(now, months - 1) }, ...inBranch(scope) },
       select: { id: true, createdAt: true, status: true, statusChangedAt: true },
     });
     const ids = students.map((student) => student.id);
     const paid =
       ids.length === 0
         ? []
-        : await prisma.payment.groupBy({ by: ['studentId'], where: { deletedAt: null, studentId: { in: ids } }, _sum: { amount: true } });
+        : await prisma.payment.groupBy({ by: ['studentId'], where: { deletedAt: null, studentId: { in: ids }, ...inBranch(scope) }, _sum: { amount: true } });
     const paidByStudent = new Map(paid.map((row) => [row.studentId, row._sum.amount?.toNumber() ?? 0]));
-    const refunded = ids.length === 0 ? new Map<string, number>() : await refundsBy('studentId', undefined, { studentId: { in: ids } });
+    const refunded = ids.length === 0 ? new Map<string, number>() : await refundsBy('studentId', undefined, { studentId: { in: ids }, ...inBranch(scope) });
 
     const rows: CohortRowDto[] = [];
     for (let index = months - 1; index >= 0; index -= 1) {
@@ -421,37 +423,37 @@ export const analyticsService = {
   },
 
   /** Lead manbalari: konversiya, o‘quvchiga aylanganlar, sof tushum va sotuv tezligi */
-  async sources(query: AnalyticsRangeQuery): Promise<SourceAnalyticsDto> {
+  async sources(query: AnalyticsRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<SourceAnalyticsDto> {
     const { start, end, from, to } = resolveAnalyticsRange(query);
     const range = { gte: start, lt: end };
 
     const sources = await prisma.source.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } });
-    const created = await prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, createdAt: range }, _count: { _all: true } });
-    const lost = await prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, status: 'LOST', updatedAt: range }, _count: { _all: true } });
+    const created = await prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, createdAt: range, ...inBranch(scope) }, _count: { _all: true } });
+    const lost = await prisma.lead.groupBy({ by: ['sourceId'], where: { deletedAt: null, status: 'LOST', updatedAt: range, ...inBranch(scope) }, _count: { _all: true } });
     const won = await prisma.lead.findMany({
-      where: { deletedAt: null, status: 'WON', convertedAt: range },
+      where: { deletedAt: null, status: 'WON', convertedAt: range, ...inBranch(scope) },
       select: { sourceId: true, createdAt: true, convertedAt: true },
     });
     const students = await prisma.student.findMany({
-      where: { deletedAt: null, createdAt: range, lead: { isNot: null } },
+      where: { deletedAt: null, createdAt: range, lead: { isNot: null }, ...inBranch(scope) },
       select: { lead: { select: { sourceId: true } } },
     });
     const payments = await prisma.payment.findMany({
-      where: { deletedAt: null, paidAt: range, student: { lead: { isNot: null } } },
+      where: { deletedAt: null, paidAt: range, student: { lead: { isNot: null } }, ...inBranch(scope) },
       select: { amount: true, student: { select: { lead: { select: { sourceId: true } } } } },
     });
     const refunds = await prisma.paymentRefund.findMany({
-      where: { refundedAt: range, transaction: { status: 'COMPLETED' }, payment: { deletedAt: null, student: { lead: { isNot: null } } } },
+      where: { refundedAt: range, transaction: { status: 'COMPLETED' }, payment: { deletedAt: null, student: { lead: { isNot: null } }, ...inBranch(scope) } },
       select: { amount: true, payment: { select: { student: { select: { lead: { select: { sourceId: true } } } } } } },
     });
     // Kanalga bog'langan xarajat (har qanday kategoriya) va bog'lanmagan reklama xarajati
     const spendRows = await prisma.expense.groupBy({
       by: ['sourceId'],
-      where: { sourceId: { not: null }, status: 'PAID', spentAt: range },
+      where: { sourceId: { not: null }, status: 'PAID', spentAt: range, ...inBranch(scope) },
       _sum: { amount: true },
     });
     const unattributed = await prisma.expense.aggregate({
-      where: { sourceId: null, status: 'PAID', spentAt: range, category: { key: MARKETING_CATEGORY_KEY } },
+      where: { sourceId: null, status: 'PAID', spentAt: range, category: { key: MARKETING_CATEGORY_KEY }, ...inBranch(scope) },
       _sum: { amount: true },
     });
     const spendBySource = new Map(spendRows.map((row) => [row.sourceId ?? '', row._sum.amount?.toNumber() ?? 0]));
@@ -529,8 +531,8 @@ const DIMENSION_TITLES: Record<ProfitabilityDimension, { title: string; column: 
 
 /** Analitika jadvallarini CSV/Excel eksport uchun tayyorlaydi */
 export const analyticsExport = {
-  async profitability(query: ProfitabilityQuery): Promise<ExportTable> {
-    const data = await analyticsService.profitability(query);
+  async profitability(query: ProfitabilityQuery, scope: BranchScope = ALL_BRANCHES): Promise<ExportTable> {
+    const data = await analyticsService.profitability(query, scope);
     const titles = DIMENSION_TITLES[data.dimension];
     return {
       title: titles.title,
@@ -559,8 +561,8 @@ export const analyticsExport = {
     };
   },
 
-  async cohorts(query: CohortQuery): Promise<ExportTable> {
-    const data = await analyticsService.cohorts(query);
+  async cohorts(query: CohortQuery, scope: BranchScope = ALL_BRANCHES): Promise<ExportTable> {
+    const data = await analyticsService.cohorts(query, scope);
     const offsets = Array.from({ length: data.months }, (_, offset) => offset);
     return {
       title: 'O‘quvchilar kohortlari',
@@ -583,8 +585,8 @@ export const analyticsExport = {
     };
   },
 
-  async sources(query: AnalyticsRangeQuery): Promise<ExportTable> {
-    const data = await analyticsService.sources(query);
+  async sources(query: AnalyticsRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<ExportTable> {
+    const data = await analyticsService.sources(query, scope);
     return {
       title: 'Lead manbalari samaradorligi',
       subtitle: `${data.from} — ${data.to}`,

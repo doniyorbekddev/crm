@@ -1314,3 +1314,110 @@ Har test ~0.2–0.5 s (konteyner ishga tushishi); runner parallel chegarasi (sta
 ## Next Phase
 
 **PHASE 20 — Full regression**: barcha to'plamlar, E2E §35–41, yuk testi (broadcast), `endpointSecurity`, bot ruxsat matritsasi; **S3 qoldig'i** (analitika/hisobot/kunlik hisobot filial doirasi); test `testTimeout`.
+
+---
+
+# ACADEMY CRM 3.1 — PHASE 20
+
+Sana: 2026-09-28. Full regression (§33–§48) + audit **S3 qoldig'i** (filial doirasi) + test barqarorligi.
+
+## Implemented
+
+- **S3 to'liq yopildi.** `branch.view_all` siz xodim (filial admini) endi faqat o'z filiali raqamlarini ko'radi:
+  analitika (unit-economics, rentabellik, kohortlar, manbalar + eksportlar), direktor paneli (`executive`), akademiya holati,
+  dashboard (xulosa, grafiklar, menejerlar, follow-uplar), **15 hisobot turi** (+ CSV/XLSX), **moliya paneli** (hisoblar,
+  tranzaksiyalar, xulosa, pul oqimi, oqim hisoboti, foyda-zarar — xom SQL ham), o'qituvchi paneli (`teacherOverview`,
+  barcha guruhlar huquqi bilan), bot (kunlik hisobot, marketing, hisobotlar, CSV) va AI yordamchi vositalari.
+  Direktor/Super Admin — avvalgidek hammasi.
+- Yagona yordamchi `services/branchScope.ts` (`branchScopeOf`, `inBranch`, `viaStudent/Group/Payment/User`, parametrlangan
+  `branchSql`). Servis funksiyalari oxirgi parametr sifatida `scope` oladi (standart — barcha filiallar: tizim joblari va mavjud
+  chaqiruvlar o'zgarmaydi); controller, bot va AI aktyordan hisoblab uzatadi. ~180 so'rov nuqtasi.
+- **Regressiya topilmasi:** `aiAcademic` ota-ona haftalik xulosasi testi **dushanba kuni yiqilardi** (sana bog'liq: "3 kun
+  oldin"gi darsda qatnashmaslik dushanba–chorshanba o'tgan haftaga tushadi) — commitlangan kodda ham yiqilishi tasdiqlandi;
+  test joriy haftadagi yozuv bilan barqarorlashtirildi (tekshiruv o'zgarmagan).
+- **Test barqarorligi:** to'plam ~920 integratsion testga yetdi; yuklangan mashinada (E2E, VM) har safar boshqa-boshqa test
+  5 s standartdan oshib yiqilardi → `testTimeout` 20 s, `hookTimeout` 30 s (tekshiruvlar o'zgarmagan). Shu fazada to'liq
+  yugurishlar 921/921 toza.
+- **Yuk (§42):** ommaviy xabar 1500 ta chat — navbatga yozish, bir yurishda 1000 ta (Telegram chegarasi), qolgani keyingisida,
+  takror/yo'qotish yo'q; butun ssenariy (fiksturalar bilan) ~2.1 s (Telegram tarmog'isiz — DB tomoni).
+- **Sirlar (§46):** kuzatiladigan 1152 fayl va **butun git tarixi** skanerlandi (Telegram token, Anthropic/AWS/GitHub kalitlari,
+  private key) — topilmadi; `.env*.example` larda faqat bo'sh yoki `CHANGE_ME` qiymatlar.
+
+## Regression matrix (§33–§48)
+
+| Talab | Holat | Qayerda |
+|---|---|---|
+| §34 Telegram xavfsizlik (Student/Parent/Teacher/Manager/Branch A→B) | ✅ | `telegramSearch.test.ts`, `branchScopeS3.test.ts`, `telegramPermissions.test.ts` |
+| §35 imtihon · §36 vazifa · §37 sotuv · §38 broadcast · §39 to'lov · §40 takroriy vazifa · §41 sandbox | ✅ | E2E `flows.spec.ts` + backend testlar; §41 — `code-runner/tests/security.test.ts` (haqiqiy konteynerlar) |
+| §42 yuk / N+1 | ✅ | `broadcastLoad.test.ts`; yangi funksiyalar indeksli, sahifalangan, tranzaksiyali (fazalar hisobotlarida) |
+| §43 rate limit | ✅ | chat 20/10 s, webhook 1200/min, broadcast soatiga 10 (`BROADCAST_HOURLY_LIMIT`), runner parallel/429 |
+| §44 kuzatish | ✅ qisman | Telegram (`crm_telegram_failures_total`), to'lov (`crm_payment_webhooks_total`), joblar (`crm_job_failures_total` — takroriy vazifa, sandbox, navbat), AI (`crm_ai_errors_total`), bildirishnoma (`crm_notification_delivery_failures_total`). "Job oxirgi yurish" o'lchagichi — PHASE 21 |
+| §45 production Telegram env | ⏳ | PHASE 21 (token → secret majburiy tekshiruvi) |
+| §46 sirlar | ✅ | skaner (yuqorida) |
+| §47 mavjud testlar | ✅ | o'chirilmadi; o'zgartirilganlar ataylab (har faza hisobotida sababi bilan) |
+| `endpointSecurity`, bot ruxsat matritsasi | ✅ | to'liq to'plamda |
+
+## Existing Code Reused
+
+`branchAccess` qoidasi (ro'yxat sahifalari bilan bir xil), `revenue.ts` qaytarish yordamchilarining `payment` filtri, mavjud
+servislar (faqat filtr qo'shildi).
+
+## New Files
+
+`backend/src/services/branchScope.ts`, `backend/tests/branchScopeS3.test.ts`, `backend/tests/broadcastLoad.test.ts`.
+
+## Modified Files
+
+Servislar: `analytics`, `executive`, `academyOverview`, `report`, `dashboard`, `attendanceAnalytics` (`teacherOverview`),
+`finance`, `ai/tools`. Controllerlar: `analytics`, `dashboard`, `finance`, `report`. Bot: `telegram/handlers/workspace.ts`.
+Test: `aiAcademic.test.ts` (sana bog'liqligi), `vitest.config.ts` (timeout).
+
+## Database Changes
+
+Yo'q.
+
+## API Changes
+
+Javob formatlari o'zgarmadi; filial admini uchun raqamlar/ro'yxatlar o'z filiali bilan cheklandi.
+
+## Telegram Changes
+
+Kunlik hisobot, marketing, hisobotlar va CSV — filial doirasida.
+
+## Permissions
+
+Yangi ruxsat yo'q — mavjud `branch.view_all`.
+
+## Security
+
+S3: `branchScopeS3.test.ts` (21 test) — ikki filial, noyob belgilar: filial admini javoblarida (va CSV'larda) boshqa filial
+belgilari **uchramaydi**, sonlar o'z filialiga mos; B filial admini — faqat B; direktor — ikkalasi (filtr haddan oshmagani
+nazorati). **Eski kodda 9 ta test yiqilishi tasdiqlandi** (oqishlar haqiqiy edi). Xom SQL faqat parametrlangan `branchSql` bilan.
+
+## Tests
+
+Backend **921/921** (+22: S3 21 ta, yuk 1) — to'liq toza yugurish. code-runner **22** (+1 Docker belgisi), frontend **134/134**,
+E2E **48/48**. TypeScript, lint (3 workspace, 0 xato), build — o'tdi.
+
+## Performance
+
+Filtrlar mavjud indekslardan foydalanadi (`branchId` indeksli); qo'shimcha so'rov yo'q (har servis chaqiruviga bitta
+`getBranchAccess` — keshlangan ruxsatlar).
+
+## Documentation
+
+Shu hisobot; `docs/ROADMAP-3.1.md`.
+
+## Known Issues
+
+- **Budjet** (`budget`/`budget_lines`) filialsiz — filial admini "Xarajatlar" hisobotida o'z filiali xarajatini **butun markaz
+  budjeti** bilan solishtiradi (sxema qarori kerak: budjetga filial ustuni).
+- Direktor panelida filial admini uchun: filialsiz (markaz) ogohlantirishlar sanalmaydi; daromad rejasi — filial menejerlari
+  rejalari yig'indisi (umumiy jamoa rejasi hisobga olinmaydi).
+- AI tahlillar soni (akademiya holati) — filial yo'li yo'q, umumiy.
+- Tizim joblari (ogohlantirishlar, kunlik xulosa) — ataylab butun markaz bo'yicha.
+
+## Next Phase
+
+**PHASE 21 — Production hardening**: yetim fayllar tozalash (bot vazifasi, broadcast media), "job oxirgi yurish" metrikalari,
+Telegram env production tekshiruvi (§45), deployment hujjati, §55 qabul ro'yxati, yakuniy GAP matritsasi (§49), TZ.html/pdf.

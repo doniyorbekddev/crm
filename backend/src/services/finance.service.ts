@@ -19,6 +19,7 @@ import type {
 import { auditService } from './audit.service.js';
 import { OPERATING_LEDGER_SQL, OPERATING_LEDGER_WHERE, balanceDelta, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
+import { ALL_BRANCHES, branchSql, inBranch, viaStudent, type BranchScope } from './branchScope.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
 const SALARY_CATEGORY = 'O‘qituvchi maoshi';
@@ -222,13 +223,13 @@ function businessDateSql(unit: 'day' | 'month'): Prisma.Sql {
  * Foyda-zarar uchun daftar oy × tur × modda bo‘yicha bazada yig‘iladi —
  * yil davomidagi o‘n minglab yozuvni JS'ga yuklash o‘rniga bir necha o‘nta qator qaytadi.
  */
-async function loadProfitLossRows(start: Date, end: Date) {
+async function loadProfitLossRows(start: Date, end: Date, scope: BranchScope = ALL_BRANCHES) {
   const rows = await prisma.$queryRaw<Array<{ month: string; type: TransactionType; entityType: string | null; categoryName: string | null; amount: unknown }>>`
     SELECT to_char(g."month", 'YYYY-MM') AS "month", g."type", g."entityType", g."categoryName", g."amount"
     FROM (
       SELECT ${businessDateSql('month')} AS "month", t."type"::text AS "type", t."entityType", t."categoryName", SUM(t."amount") AS "amount"
       FROM "transactions" t
-      WHERE ${OPERATING_LEDGER_SQL} AND t."occurredAt" >= ${start} AND t."occurredAt" < ${end}
+      WHERE ${OPERATING_LEDGER_SQL} AND t."occurredAt" >= ${start} AND t."occurredAt" < ${end}${branchSql(scope, Prisma.sql`t."branchId"`)}
       GROUP BY 1, 2, 3, 4
     ) g
   `;
@@ -305,20 +306,42 @@ export function resolveRange(query: FinanceRangeQuery): { start: Date; end: Date
   };
 }
 
+/**
+ * Kassa qoldig'i hisob (kassa) bo'yicha yuritiladi — filial doirasida qoldiq va undan ayriladigan harakatlar
+ * bir xil to'plam: filial kassalari va ularga yozilgan yozuvlar.
+ */
+function accountInBranch(scope: BranchScope): { account?: { branchId: string } } {
+  return scope.branchId ? { account: { branchId: scope.branchId } } : {};
+}
+
+/** Kassa harakati uchun: filial kassasidagi yozuv yoki kassaga bog'lanmagan filial yozuvi */
+function ledgerInBranch(scope: BranchScope): Prisma.TransactionWhereInput {
+  return scope.branchId
+    ? { OR: [{ account: { branchId: scope.branchId } }, { accountId: null, branchId: scope.branchId }] }
+    : {};
+}
+
+/** Maosh oluvchi (o'qituvchi yoki xodim) filiali bo'yicha */
+function salaryPeriodInBranch(scope: BranchScope): Prisma.TeacherSalaryPeriodWhereInput {
+  return scope.branchId
+    ? { OR: [{ teacherProfile: { user: { branchId: scope.branchId } } }, { employee: { branchId: scope.branchId } }] }
+    : {};
+}
+
 /** Berilgan vaqtdagi barcha kassalar qoldig‘i: joriy qoldiqdan shu vaqtdan keyingi harakatlar ayriladi */
-async function cashBalanceAt(date: Date): Promise<number> {
-  const total = await prisma.financialAccount.aggregate({ _sum: { balance: true } });
+async function cashBalanceAt(date: Date, scope: BranchScope = ALL_BRANCHES): Promise<number> {
+  const total = await prisma.financialAccount.aggregate({ where: inBranch(scope), _sum: { balance: true } });
   const since = await prisma.transaction.groupBy({
     by: ['type'],
-    where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date } },
+    where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date }, ...accountInBranch(scope) },
     _sum: { amount: true },
   });
   const delta = since.reduce((sum, row) => sum + balanceDelta(row.type, row._sum.amount?.toNumber() ?? 0), 0);
   return (total._sum.balance?.toNumber() ?? 0) - delta;
 }
 
-function buildTransactionWhere(query: TransactionListQuery): Prisma.TransactionWhereInput {
-  const conditions: Prisma.TransactionWhereInput[] = [];
+function buildTransactionWhere(query: TransactionListQuery, scope: BranchScope = ALL_BRANCHES): Prisma.TransactionWhereInput {
+  const conditions: Prisma.TransactionWhereInput[] = [inBranch(scope)];
   if (query.type) conditions.push({ type: query.type });
   if (query.status) conditions.push({ status: query.status });
   if (query.accountId) conditions.push({ accountId: query.accountId });
@@ -360,9 +383,10 @@ function toCategoryRows(
 
 export const financeService = {
   /** Kassalar va ulardagi qoldiq (+ tanlangan davrdagi harakat) */
-  async accounts(query: FinanceRangeQuery): Promise<{ items: AccountDto[]; totalBalance: number }> {
+  async accounts(query: FinanceRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<{ items: AccountDto[]; totalBalance: number }> {
     const { start, end } = resolveRange(query);
     const accounts = await prisma.financialAccount.findMany({
+      where: inBranch(scope),
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
@@ -378,7 +402,7 @@ export const financeService = {
 
     const movements = await prisma.transaction.groupBy({
       by: ['accountId', 'type'],
-      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end } },
+      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end }, ...accountInBranch(scope) },
       _sum: { amount: true },
       _count: { _all: true },
     });
@@ -482,8 +506,8 @@ export const financeService = {
     return updated;
   },
 
-  async transactions(query: TransactionListQuery): Promise<{ items: TransactionDto[]; total: number }> {
-    const where = buildTransactionWhere(query);
+  async transactions(query: TransactionListQuery, scope: BranchScope = ALL_BRANCHES): Promise<{ items: TransactionDto[]; total: number }> {
+    const where = buildTransactionWhere(query, scope);
     const items = await prisma.transaction.findMany({
       where,
       select: transactionSelect,
@@ -500,10 +524,10 @@ export const financeService = {
   },
 
   /** Moliyaviy panel: tushum, xarajat, sof foyda va kesimlar */
-  async summary(query: FinanceRangeQuery): Promise<FinanceSummaryDto> {
+  async summary(query: FinanceRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<FinanceSummaryDto> {
     const { start, end, from, to } = resolveRange(query);
     // O'tkazma va boshlang'ich qoldiq tushum ham, xarajat ham emas — faqat qoldiqni siljitadi
-    const where: Prisma.TransactionWhereInput = { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end } };
+    const where: Prisma.TransactionWhereInput = { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: start, lt: end }, ...inBranch(scope) };
 
     const byType = await prisma.transaction.groupBy({ by: ['type'], where, _sum: { amount: true } });
     const sumOf = (type: TransactionType) => byType.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
@@ -538,8 +562,8 @@ export const financeService = {
       : 0;
 
     const studentPayments = (incomeByCategory.find((row) => row.name === 'O‘quvchi to‘lovi')?.total ?? 0) - refunds;
-    const accounts = await prisma.financialAccount.aggregate({ where: { isActive: true }, _sum: { balance: true } });
-    const debt = await prisma.debt.aggregate({ _sum: { remainingAmount: true } });
+    const accounts = await prisma.financialAccount.aggregate({ where: { isActive: true, ...inBranch(scope) }, _sum: { balance: true } });
+    const debt = await prisma.debt.aggregate({ where: viaStudent(scope), _sum: { remainingAmount: true } });
 
     return {
       from,
@@ -562,7 +586,7 @@ export const financeService = {
   },
 
   /** Kunlik / haftalik / oylik pul oqimi (davr boshidan yig‘iladigan qoldiq va haqiqiy kassa qoldig‘i bilan) */
-  async cashFlow(query: CashFlowQuery): Promise<CashFlowPointDto[]> {
+  async cashFlow(query: CashFlowQuery, scope: BranchScope = ALL_BRANCHES): Promise<CashFlowPointDto[]> {
     const { start, end } = resolveRange(query);
     // Kun bo'yicha yig'indi bazada hisoblanadi. Tushum/xarajat — faqat operatsion yozuvlar;
     // kassa qoldig'i barcha yozuvlardan (o'tkazma va boshlang'ich qoldiq ham), balanceDelta qoidasi bilan
@@ -570,15 +594,15 @@ export const financeService = {
       SELECT to_char(g."day", 'YYYY-MM-DD') AS "day", g."income", g."expense", g."cashDelta"
       FROM (
         SELECT ${businessDateSql('day')} AS "day",
-          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" IN ('INCOME', 'TRANSFER')) AS "income",
-          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" NOT IN ('INCOME', 'TRANSFER')) AS "expense",
-          SUM(CASE WHEN t."type" IN ('INCOME', 'TRANSFER') THEN t."amount" ELSE -t."amount" END) FILTER (WHERE t."accountId" IS NOT NULL) AS "cashDelta"
+          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" IN ('INCOME', 'TRANSFER')${branchSql(scope, Prisma.sql`t."branchId"`)}) AS "income",
+          SUM(t."amount") FILTER (WHERE ${OPERATING_LEDGER_SQL} AND t."type" NOT IN ('INCOME', 'TRANSFER')${branchSql(scope, Prisma.sql`t."branchId"`)}) AS "expense",
+          SUM(CASE WHEN t."type" IN ('INCOME', 'TRANSFER') THEN t."amount" ELSE -t."amount" END) FILTER (WHERE t."accountId" IS NOT NULL${branchSql(scope, Prisma.sql`(SELECT a."branchId" FROM "financial_accounts" a WHERE a."id" = t."accountId")`)}) AS "cashDelta"
         FROM "transactions" t
         WHERE t."status" = 'COMPLETED' AND t."occurredAt" >= ${start} AND t."occurredAt" < ${end}
         GROUP BY 1
       ) g
     `;
-    const openingCash = await cashBalanceAt(start);
+    const openingCash = await cashBalanceAt(start, scope);
 
     const monthLabels = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
     const buckets = new Map<string, CashFlowPointDto & { cashDelta: number }>();
@@ -627,17 +651,18 @@ export const financeService = {
   },
 
   /** Pul harakati hisoboti: davr boshidagi va oxiridagi qoldiq, kirim-chiqim tarkibi, kassalar kesimi, 30 kunlik prognoz */
-  async cashFlowStatement(query: FinanceRangeQuery): Promise<CashFlowStatementDto> {
+  async cashFlowStatement(query: FinanceRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<CashFlowStatementDto> {
     const { start, end, from, to } = resolveRange(query);
 
     const accounts = await prisma.financialAccount.findMany({
+      where: inBranch(scope),
       select: { id: true, name: true, type: true, isActive: true, balance: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
     const deltaSince = async (date: Date) => {
       const rows = await prisma.transaction.groupBy({
         by: ['accountId', 'type'],
-        where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date } },
+        where: { status: 'COMPLETED', accountId: { not: null }, occurredAt: { gte: date }, ...accountInBranch(scope) },
         _sum: { amount: true },
       });
       const byAccount = new Map<string, number>();
@@ -652,7 +677,7 @@ export const financeService = {
 
     const groups = await prisma.transaction.groupBy({
       by: ['accountId', 'type', 'entityType'],
-      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end } },
+      where: { status: 'COMPLETED', occurredAt: { gte: start, lt: end }, ...ledgerInBranch(scope) },
       _sum: { amount: true },
     });
 
@@ -718,15 +743,15 @@ export const financeService = {
     // Prognoz — tanlangan davrdan qat'i nazar bugundan boshlab
     const horizon = addDays(startOfBusinessDay(), FORECAST_DAYS + 1);
     const upcoming = await prisma.expense.aggregate({
-      where: { status: { in: ['UPCOMING', 'PENDING', 'APPROVED'] }, spentAt: { lt: horizon } },
+      where: { status: { in: ['UPCOMING', 'PENDING', 'APPROVED'] }, spentAt: { lt: horizon }, ...inBranch(scope) },
       _sum: { amount: true },
       _count: { _all: true },
     });
     const salaries = await prisma.teacherSalaryPeriod.aggregate({
-      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 } },
+      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 }, ...salaryPeriodInBranch(scope) },
       _sum: { remainingAmount: true },
     });
-    const debts = await prisma.debt.aggregate({ where: { remainingAmount: { gt: 0 } }, _sum: { remainingAmount: true } });
+    const debts = await prisma.debt.aggregate({ where: { remainingAmount: { gt: 0 }, ...viaStudent(scope) }, _sum: { remainingAmount: true } });
     const currentBalance = accounts.filter((account) => account.isActive).reduce((sum, account) => sum + account.balance.toNumber(), 0);
     const upcomingExpenses = upcoming._sum.amount?.toNumber() ?? 0;
     const unpaidSalaries = salaries._sum.remainingAmount?.toNumber() ?? 0;
@@ -755,7 +780,7 @@ export const financeService = {
   },
 
   /** Foyda va zarar hisoboti: sof tushum → yalpi foyda → operatsion xarajatlar → sof foyda, oldingi davr bilan */
-  async profitLoss(query: FinanceRangeQuery): Promise<ProfitLossDto> {
+  async profitLoss(query: FinanceRangeQuery, scope: BranchScope = ALL_BRANCHES): Promise<ProfitLossDto> {
     const { start, end, from, to } = resolveRange(query);
     const length = end.getTime() - start.getTime();
     const previousStart = new Date(start.getTime() - length);
@@ -768,13 +793,13 @@ export const financeService = {
       const [year, month] = cursor.split('-').map(Number) as [number, number];
       cursor = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
     }
-    for (const row of await loadProfitLossRows(start, end)) {
+    for (const row of await loadProfitLossRows(start, end, scope)) {
       addToProfitLoss(current, row);
       const bucket = monthly.get(row.month);
       if (bucket) addToProfitLoss(bucket, row);
     }
     const previous = emptyProfitLoss();
-    for (const row of await loadProfitLossRows(previousStart, start)) addToProfitLoss(previous, row);
+    for (const row of await loadProfitLossRows(previousStart, start, scope)) addToProfitLoss(previous, row);
 
     const totals = profitLossTotals(current);
     const previousTotals = profitLossTotals(previous);

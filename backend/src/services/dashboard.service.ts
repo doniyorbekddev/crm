@@ -7,6 +7,7 @@ import type { AuthUser } from '../types/auth.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ChartPeriod, ChartQuery, ManagerStatsQuery } from '../validators/dashboard.validator.js';
 import { attendanceAnalyticsService } from './attendanceAnalytics.service.js';
+import { ALL_BRANCHES, type BranchScope, branchScopeOf, inBranch, viaUser } from './branchScope.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { permissionService } from './permission.service.js';
@@ -190,26 +191,30 @@ async function teachingBlock(actor: AuthUser, access: DashboardAccess, now: Date
   };
 }
 
-async function moneyBlock(access: DashboardAccess, now: Date): Promise<DashboardMoneyBlock> {
+async function moneyBlock(access: DashboardAccess, now: Date, branch: BranchScope): Promise<DashboardMoneyBlock> {
   const rows = await prisma.transaction.groupBy({
     by: ['type'],
-    where: { ...OPERATING_LEDGER_WHERE, occurredAt: { gte: startOfBusinessMonth(now) } },
+    where: { ...OPERATING_LEDGER_WHERE, ...inBranch(branch), occurredAt: { gte: startOfBusinessMonth(now) } },
     _sum: { amount: true },
   });
   const sumOf = (type: TransactionType) => rows.find((row) => row.type === type)?._sum.amount?.toNumber() ?? 0;
   const monthIncome = sumOf('INCOME');
   const monthExpense = sumOf('EXPENSE') + sumOf('REFUND');
-  const balance = await prisma.financialAccount.aggregate({ where: { isActive: true }, _sum: { balance: true } });
+  const balance = await prisma.financialAccount.aggregate({ where: { isActive: true, ...inBranch(branch) }, _sum: { balance: true } });
 
   let salaryDue: number | null = null;
   let salaryAwaitingApproval: number | null = null;
   if (access.canViewSalary) {
+    // Maosh davri filialga o'qituvchi (User) yoki xodim (Employee) orqali bog'lanadi
+    const salaryScope: Prisma.TeacherSalaryPeriodWhereInput = branch.branchId
+      ? { OR: [{ teacherProfile: viaUser(branch) }, { employee: inBranch(branch) }] }
+      : {};
     const due = await prisma.teacherSalaryPeriod.aggregate({
-      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] } },
+      where: { ...salaryScope, status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] } },
       _sum: { remainingAmount: true },
     });
     salaryDue = due._sum.remainingAmount?.toNumber() ?? 0;
-    salaryAwaitingApproval = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED' } });
+    salaryAwaitingApproval = await prisma.teacherSalaryPeriod.count({ where: { ...salaryScope, status: 'CALCULATED' } });
   }
 
   return {
@@ -227,11 +232,11 @@ function growthPercent(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-async function leadsBlock(access: DashboardAccess, now: Date): Promise<DashboardLeadsBlock> {
+async function leadsBlock(access: DashboardAccess, now: Date, branch: BranchScope): Promise<DashboardLeadsBlock> {
   const scope: Prisma.LeadWhereInput = access.canViewAllLeads
     ? {}
     : { OR: [{ assignedToId: access.userId }, { assignedToId: null }] };
-  const base: Prisma.LeadWhereInput = { deletedAt: null, ...scope };
+  const base: Prisma.LeadWhereInput = { deletedAt: null, ...inBranch(branch), ...scope };
   const dayStart = startOfBusinessDay(now);
   const monthStart = startOfBusinessMonth(now);
 
@@ -252,15 +257,15 @@ async function leadsBlock(access: DashboardAccess, now: Date): Promise<Dashboard
   };
 }
 
-async function studentsBlock(now: Date): Promise<DashboardStudentsBlock> {
+async function studentsBlock(now: Date, branch: BranchScope): Promise<DashboardStudentsBlock> {
   const monthStart = startOfBusinessMonth(now);
-  const active = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE' } });
-  const frozen = await prisma.student.count({ where: { deletedAt: null, status: 'FROZEN' } });
-  const monthNew = await prisma.student.count({ where: { deletedAt: null, createdAt: { gte: monthStart } } });
+  const active = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), status: 'ACTIVE' } });
+  const frozen = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), status: 'FROZEN' } });
+  const monthNew = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), createdAt: { gte: monthStart } } });
   return { active, frozen, monthNew };
 }
 
-async function financeBlock(now: Date): Promise<DashboardFinanceBlock> {
+async function financeBlock(now: Date, branch: BranchScope): Promise<DashboardFinanceBlock> {
   const dayStart = startOfBusinessDay(now);
   const monthStart = startOfBusinessMonth(now);
   const prevMonthStart = startOfBusinessMonth(now, 1);
@@ -268,33 +273,33 @@ async function financeBlock(now: Date): Promise<DashboardFinanceBlock> {
   const prevMonthSamePoint = new Date(prevMonthStart.getTime() + (now.getTime() - monthStart.getTime()));
 
   const today = await prisma.payment.aggregate({
-    where: { deletedAt: null, paidAt: { gte: dayStart } },
+    where: { deletedAt: null, ...inBranch(branch), paidAt: { gte: dayStart } },
     _sum: { amount: true },
   });
   const month = await prisma.payment.aggregate({
-    where: { deletedAt: null, paidAt: { gte: monthStart } },
+    where: { deletedAt: null, ...inBranch(branch), paidAt: { gte: monthStart } },
     _sum: { amount: true },
   });
   const prevMonth = await prisma.payment.aggregate({
-    where: { deletedAt: null, paidAt: { gte: prevMonthStart, lt: prevMonthSamePoint } },
+    where: { deletedAt: null, ...inBranch(branch), paidAt: { gte: prevMonthStart, lt: prevMonthSamePoint } },
     _sum: { amount: true },
   });
 
   // Sof tushum: qaytarilgan to'lovlar qaytarish sanasi bo'yicha ayriladi
-  const monthRevenue = (month._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: monthStart }));
+  const monthRevenue = (month._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: monthStart }, inBranch(branch)));
   const prevMonthRevenue =
-    (prevMonth._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: prevMonthStart, lt: prevMonthSamePoint }));
+    (prevMonth._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: prevMonthStart, lt: prevMonthSamePoint }, inBranch(branch)));
   return {
-    todayRevenue: (today._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart })),
+    todayRevenue: (today._sum.amount?.toNumber() ?? 0) - (await refundTotal({ gte: dayStart }, inBranch(branch))),
     monthRevenue,
     prevMonthRevenue,
     monthGrowth: growthPercent(monthRevenue, prevMonthRevenue),
   };
 }
 
-async function debtsBlock(): Promise<DashboardDebtBlock> {
+async function debtsBlock(branch: BranchScope): Promise<DashboardDebtBlock> {
   const aggregate = await prisma.debt.aggregate({
-    where: { student: { deletedAt: null }, remainingAmount: { gt: 0 } },
+    where: { student: { deletedAt: null, ...inBranch(branch) }, remainingAmount: { gt: 0 } },
     _sum: { remainingAmount: true },
     _count: { _all: true },
   });
@@ -304,20 +309,22 @@ async function debtsBlock(): Promise<DashboardDebtBlock> {
   };
 }
 
-async function tasksBlock(access: DashboardAccess, now: Date): Promise<DashboardTasksBlock> {
+async function tasksBlock(access: DashboardAccess, now: Date, branch: BranchScope): Promise<DashboardTasksBlock> {
   const dayStart = startOfBusinessDay(now);
   const mine: Prisma.FollowUpWhereInput = access.canViewAllLeads ? {} : { assignedToId: access.userId };
+  const leadBranch = branch.branchId ? { lead: { branchId: branch.branchId } } : {};
 
   const todayFollowUps = await prisma.followUp.count({
-    where: { ...mine, status: 'PENDING', dueAt: { gte: dayStart, lt: addDays(dayStart, 1) } },
+    where: { ...mine, ...leadBranch, status: 'PENDING', dueAt: { gte: dayStart, lt: addDays(dayStart, 1) } },
   });
   const overdueFollowUps = await prisma.followUp.count({
-    where: { ...mine, status: 'PENDING', dueAt: { lt: now } },
+    where: { ...mine, ...leadBranch, status: 'PENDING', dueAt: { lt: now } },
   });
   const todayCalls = await prisma.call.count({
     where: {
       status: 'COMPLETED',
       calledAt: { gte: dayStart },
+      ...leadBranch,
       ...(access.canViewAllLeads ? {} : { managerId: access.userId }),
     },
   });
@@ -428,17 +435,18 @@ async function averageStageDurations(scope: Prisma.LeadWhereInput | null): Promi
 export const dashboardService = {
   async summary(actor: AuthUser): Promise<DashboardSummaryDto> {
     const access = await getDashboardAccess(actor);
+    const branch = await branchScopeOf(actor);
     const now = new Date();
 
     return {
       date: businessDateString(now),
-      leads: access.canViewLeads ? await leadsBlock(access, now) : null,
-      students: access.canViewStudents ? await studentsBlock(now) : null,
-      finance: access.canViewPayments ? await financeBlock(now) : null,
-      debts: access.canViewDebts ? await debtsBlock() : null,
-      tasks: access.canViewFollowUps ? await tasksBlock(access, now) : null,
+      leads: access.canViewLeads ? await leadsBlock(access, now, branch) : null,
+      students: access.canViewStudents ? await studentsBlock(now, branch) : null,
+      finance: access.canViewPayments ? await financeBlock(now, branch) : null,
+      debts: access.canViewDebts ? await debtsBlock(branch) : null,
+      tasks: access.canViewFollowUps ? await tasksBlock(access, now, branch) : null,
       teaching: access.canTeach ? await teachingBlock(actor, access, now) : null,
-      money: access.canViewFinance ? await moneyBlock(access, now) : null,
+      money: access.canViewFinance ? await moneyBlock(access, now, branch) : null,
     };
   },
 
@@ -448,6 +456,7 @@ export const dashboardService = {
    */
   async charts(actor: AuthUser, query: ChartQuery): Promise<ChartPointDto[]> {
     const access = await getDashboardAccess(actor);
+    const branch = await branchScopeOf(actor);
     const now = new Date();
     const buckets = buildBuckets(query.period, now);
     const rangeStart = buckets[0]?.start ?? startOfBusinessDay(now);
@@ -467,11 +476,11 @@ export const dashboardService = {
     // Har bir ustun uchun alohida COUNT o‘rniga — davr bo‘yicha bitta so‘rov va JS’da guruhlash
     if (access.canViewLeads) {
       const created = await prisma.lead.findMany({
-        where: { deletedAt: null, ...scope, createdAt: { gte: rangeStart, lt: rangeEnd } },
+        where: { deletedAt: null, ...inBranch(branch), ...scope, createdAt: { gte: rangeStart, lt: rangeEnd } },
         select: { createdAt: true },
       });
       const won = await prisma.lead.findMany({
-        where: { deletedAt: null, ...scope, status: 'WON', convertedAt: { gte: rangeStart, lt: rangeEnd } },
+        where: { deletedAt: null, ...inBranch(branch), ...scope, status: 'WON', convertedAt: { gte: rangeStart, lt: rangeEnd } },
         select: { convertedAt: true },
       });
       assignToBuckets(buckets, created, (lead) => lead.createdAt, (index) => {
@@ -484,7 +493,7 @@ export const dashboardService = {
 
     if (access.canViewPayments) {
       const payments = await prisma.payment.findMany({
-        where: { deletedAt: null, paidAt: { gte: rangeStart, lt: rangeEnd } },
+        where: { deletedAt: null, ...inBranch(branch), paidAt: { gte: rangeStart, lt: rangeEnd } },
         select: { paidAt: true, amount: true },
       });
       assignToBuckets(buckets, payments, (payment) => payment.paidAt, (index, payment) => {
@@ -524,7 +533,7 @@ export const dashboardService = {
   },
 
   /** Managerlar reytingi: biriktirilgan leadlar, sotuvlar va olib kelgan tushum */
-  async managers(query: ManagerStatsQuery): Promise<ManagerStatsDto[]> {
+  async managers(query: ManagerStatsQuery, scope: BranchScope = ALL_BRANCHES): Promise<ManagerStatsDto[]> {
     const now = new Date();
     const monthsAgo = query.period === 'year' ? 11 : query.period === 'quarter' ? 2 : 0;
     const periodStart = startOfBusinessMonth(now, monthsAgo);
@@ -533,6 +542,7 @@ export const dashboardService = {
       where: {
         status: 'ACTIVE',
         deletedAt: null,
+        ...inBranch(scope),
         role: { permissions: { some: { permission: { key: PERMISSIONS.LEAD_VIEW } } } },
       },
       select: { id: true, firstName: true, lastName: true, role: { select: { name: true } } },
@@ -540,16 +550,16 @@ export const dashboardService = {
 
     const ids = users.map((user) => user.id);
     const [leads, won, revenue] = await Promise.all([
-      prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, assignedToId: { in: ids }, createdAt: { gte: periodStart } }, _count: { _all: true } }),
+      prisma.lead.groupBy({ by: ['assignedToId'], where: { deletedAt: null, ...inBranch(scope), assignedToId: { in: ids }, createdAt: { gte: periodStart } }, _count: { _all: true } }),
       prisma.lead.groupBy({
         by: ['assignedToId'],
-        where: { deletedAt: null, assignedToId: { in: ids }, status: 'WON', convertedAt: { gte: periodStart } },
+        where: { deletedAt: null, ...inBranch(scope), assignedToId: { in: ids }, status: 'WON', convertedAt: { gte: periodStart } },
         _count: { _all: true },
       }),
-      prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, managerId: { in: ids }, paidAt: { gte: periodStart } }, _sum: { amount: true } }),
+      prisma.payment.groupBy({ by: ['managerId'], where: { deletedAt: null, ...inBranch(scope), managerId: { in: ids }, paidAt: { gte: periodStart } }, _sum: { amount: true } }),
     ]);
 
-    const refunds = await refundsBy('managerId', { gte: periodStart }, { managerId: { in: ids } });
+    const refunds = await refundsBy('managerId', { gte: periodStart }, { managerId: { in: ids }, ...inBranch(scope) });
 
     const stats: ManagerStatsDto[] = users.map((user) => {
       const leadCount = leads.find((row) => row.assignedToId === user.id)?._count._all ?? 0;
@@ -575,6 +585,7 @@ export const dashboardService = {
   /** Bugungi va kechikkan follow-uplar (xodimning o‘z vazifalari) */
   async followUps(actor: AuthUser): Promise<DashboardFollowUpDto[]> {
     const access = await getDashboardAccess(actor);
+    const branch = await branchScopeOf(actor);
     const now = new Date();
     const dayStart = startOfBusinessDay(now);
 
@@ -583,7 +594,7 @@ export const dashboardService = {
         status: 'PENDING',
         dueAt: { lt: addDays(dayStart, 1) },
         ...(access.canViewAllLeads ? {} : { assignedToId: access.userId }),
-        lead: { deletedAt: null },
+        lead: { deletedAt: null, ...inBranch(branch) },
       },
       orderBy: { dueAt: 'asc' },
       take: 10,

@@ -7,6 +7,7 @@ import { canViewReport } from '../../config/reportPermissions.js';
 import type { NotificationType } from '../../generated/prisma/client.js';
 import { academicAnalyticsService } from '../../services/academicAnalytics.service.js';
 import { academyOverviewService } from '../../services/academyOverview.service.js';
+import { branchScopeOf } from '../../services/branchScope.js';
 import { aiAcademicService } from '../../services/ai/academic.service.js';
 import { analyticsExport, analyticsService } from '../../services/analytics.service.js';
 import { executiveService } from '../../services/executive.service.js';
@@ -448,7 +449,7 @@ export async function showMarketing(context: BotContext, scope: CommandScope, ar
   const period = parsePeriod(arg);
   return safely(context, async () => {
     const range = periodRange(period);
-    const data = await analyticsService.sources(range);
+    const data = await analyticsService.sources(range, await branchScopeOf(actor));
     const { totals } = data;
     const lines = [
       `<b>📣 Marketing</b> · ${PERIOD_LABELS[period]} (${shortDate(data.from)} — ${shortDate(data.to)})`,
@@ -489,7 +490,7 @@ export async function sendMarketingCsv(context: BotContext, scope: CommandScope,
   const period = parsePeriod(arg);
   return safely(context, async () => {
     const range = periodRange(period);
-    const table = await analyticsExport.sources(range);
+    const table = await analyticsExport.sources(range, await branchScopeOf(actor));
     const sent = await telegramService.sendMedia(
       context.chatId,
       { kind: 'document', buffer: Buffer.from(tableToCsv(table), 'utf8'), fileName: `lead-manbalari-${range.from}_${range.to}.csv`, mimeType: 'text/csv' },
@@ -561,7 +562,7 @@ export async function showReport(context: BotContext, scope: CommandScope, arg: 
   }
   return safely(context, async () => {
     const range = periodRange(period);
-    const report = await reportService.build(item.type, { ...range, groupBy: 'day' });
+    const report = await reportService.build(item.type, { ...range, groupBy: 'day' }, await branchScopeOf(actor));
     const lines = [`<b>${escapeHtml(report.title)}</b> · ${PERIOD_LABELS[period]} (${shortDate(report.from)} — ${shortDate(report.to)})`, ''];
     for (const kpi of report.kpis) lines.push(`${escapeHtml(kpi.label)}: <b>${formatCell(kpi.value, kpi.type)}</b>`);
     // Qisqa ko'rinish: birinchi qatorlar (dastlabki 3 ustun) — to'liq jadval CSV yoki CRM'da
@@ -595,7 +596,7 @@ export async function sendReportCsv(context: BotContext, scope: CommandScope, ar
     return { action: WORKSPACE_ACTIONS.reportCsv };
   }
   return safely(context, async () => {
-    const report = await reportService.build(item.type, { ...periodRange(period), groupBy: 'day' });
+    const report = await reportService.build(item.type, { ...periodRange(period), groupBy: 'day' }, await branchScopeOf(actor));
     const sent = await telegramService.sendMedia(
       context.chatId,
       { kind: 'document', buffer: Buffer.from(tableToCsv(reportToTable(report)), 'utf8'), fileName: `${item.type}-${report.from}_${report.to}.csv`, mimeType: 'text/csv' },
@@ -616,7 +617,8 @@ export async function showDailyReport(context: BotContext, scope: CommandScope):
   const actor = await requireActor(context, scope);
   if (!actor || !(await requirePermission(context, actor, PERMISSIONS.ANALYTICS_VIEW))) return { action: WORKSPACE_ACTIONS.daily };
   return safely(context, async () => {
-    const [executive, academy] = await Promise.all([executiveService.summary({}), academyOverviewService.overview()]);
+    const scope = await branchScopeOf(actor);
+    const [executive, academy] = await Promise.all([executiveService.summary({}, scope), academyOverviewService.overview(new Date(), scope)]);
     const { kpi, today } = executive;
     const days = academy.windowDays;
     const todayAttendance = today.markedLessons > 0 ? `${today.attendanceRate}% (${today.markedLessons}/${today.lessons} dars)` : 'hali belgilanmagan';

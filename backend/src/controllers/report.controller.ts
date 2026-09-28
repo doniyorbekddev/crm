@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { branchScopeOf } from '../services/branchScope.js';
 import { permissionService } from '../services/permission.service.js';
 import { reportService, reportToTable } from '../services/report.service.js';
 import { AppError } from '../utils/AppError.js';
@@ -23,7 +24,7 @@ export const reportController = {
     const { type } = reportTypeParamSchema.parse(req.params);
     await assertReportAccess(req, type);
     const query = reportQuerySchema.parse(req.query);
-    sendSuccess(res, await reportService.build(type, query));
+    sendSuccess(res, await reportService.build(type, query, await branchScopeOf(requireAuthUser(req))));
   },
 
   /** CSV (Excel uchun BOM bilan) yoki XLSX yuklab olish */
@@ -32,7 +33,7 @@ export const reportController = {
     await assertReportAccess(req, type);
     const query = reportQuerySchema.parse(req.query);
     const { format } = reportExportQuerySchema.parse({ format: req.query.format });
-    const report = await reportService.build(type, query);
+    const report = await reportService.build(type, query, await branchScopeOf(requireAuthUser(req)));
     sendTable(res, reportToTable(report), `${type}-${report.from}_${report.to}`, format);
   },
 };

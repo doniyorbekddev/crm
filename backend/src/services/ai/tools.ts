@@ -1,3 +1,4 @@
+import type { BranchScope } from '../branchScope.js';
 import { prisma } from '../../config/database.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PERMISSIONS } from '../../config/permissions.js';
@@ -28,6 +29,9 @@ import { feedbackService } from '../feedback.service.js';
  *    o'quvchilar ro'yxati) va faqat tegishli ruxsat bilan ko'rsatiladi; telefon, manzil, pasport
  *    kabi maydonlar hech qachon qaytarilmaydi.
  */
+
+/** AI vositalari ham hisobotlar kabi filial doirasida (TZ 3.1, audit S3) */
+const scopeOf = (branch: BranchAccess): BranchScope => ({ branchId: branch.canViewAll ? null : branch.branchId });
 
 export interface AiToolContext {
   actor: AuthUser;
@@ -80,8 +84,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Bugun qancha pul tushdi?'],
     keywords: ['bugun', 'tushum', 'pul', 'tushdi', 'kassa'],
     permission: PERMISSIONS.FINANCE_VIEW,
-    async run({ now }) {
-      const summary = await executiveService.summary(monthQuery(now));
+    async run({ now, branch }) {
+      const summary = await executiveService.summary(monthQuery(now), scopeOf(branch));
       const today = summary.today;
       return {
         answer: `Bugun ${moneyUz(today.payments)} tushum bo'ldi, ${moneyUz(today.expenses)} xarajat qilindi — sof ${moneyUz(today.netRevenue)}.`,
@@ -100,8 +104,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Bu oy qancha daromad qildik?', 'Bu oy foyda qancha?'],
     keywords: ['oy', 'daromad', 'foyda', 'tushum', 'revenue', 'profit'],
     permission: PERMISSIONS.FINANCE_VIEW,
-    async run({ now }) {
-      const summary = await executiveService.summary(monthQuery(now));
+    async run({ now, branch }) {
+      const summary = await executiveService.summary(monthQuery(now), scopeOf(branch));
       const { month, changes } = summary;
       return {
         answer: `${month.label}: tushum ${moneyUz(month.revenue)}, xarajat ${moneyUz(month.expense)}, sof foyda ${moneyUz(month.netProfit)}.`,
@@ -122,8 +126,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Bu oy o‘tgan oyga qaraganda qanday?'],
     keywords: ['solishtir', 'qaraganda', 'nisbatan', 'o\'tgan oy', 'otgan oy', 'taqqosla'],
     permission: PERMISSIONS.ANALYTICS_VIEW,
-    async run({ now }) {
-      const summary = await executiveService.summary(monthQuery(now));
+    async run({ now, branch }) {
+      const summary = await executiveService.summary(monthQuery(now), scopeOf(branch));
       const { month, previous, changes } = summary;
       const rows: Array<[string, number, number]> = [
         ['Tushum', month.revenue, previous.revenue],
@@ -170,8 +174,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Qaysi kurs eng ko‘p daromad keltiryapti?'],
     keywords: ['kurs', 'daromadli', 'ko\'p daromad', 'kop daromad', 'foydali kurs'],
     permission: PERMISSIONS.ANALYTICS_VIEW,
-    async run() {
-      const result = await analyticsService.profitability({ dimension: 'course' } as never);
+    async run({ branch }) {
+      const result = await analyticsService.profitability({ dimension: 'course' } as never, scopeOf(branch));
       const top = [...result.rows].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
       if (top.length === 0) return { answer: 'Tanlangan davrda kurslar bo\'yicha daromad yozuvi yo\'q.', link: '/analytics' };
       const best = top[0]!;
@@ -218,8 +222,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Qaysi manager eng ko‘p leadni studentga aylantirdi?'],
     keywords: ['manager', 'aylantir', 'konversiya', 'sotuvchi', 'lead'],
     permission: PERMISSIONS.REPORT_VIEW,
-    async run() {
-      const managers = await dashboardService.managers({ period: 'month' } as never);
+    async run({ branch }) {
+      const managers = await dashboardService.managers({ period: 'month' } as never, scopeOf(branch));
       const ranked = [...managers].sort((a, b) => b.won - a.won);
       if (ranked.length === 0 || ranked[0]!.won === 0) {
         return { answer: 'Bu oyda hali birorta lead o\'quvchiga aylantirilmagan.', link: '/dashboard' };
@@ -240,8 +244,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Marketing qaysi kanalda yaxshi ishlayapti?'],
     keywords: ['marketing', 'kanal', 'manba', 'reklama', 'roi', 'instagram', 'telegram'],
     permission: PERMISSIONS.ANALYTICS_VIEW,
-    async run() {
-      const result = await analyticsService.sources({} as never);
+    async run({ branch }) {
+      const result = await analyticsService.sources({} as never, scopeOf(branch));
       const withLeads = result.rows.filter((row) => row.leads > 0);
       if (withLeads.length === 0) return { answer: 'Tanlangan davrda manbalar bo\'yicha lead yo\'q.', link: '/analytics' };
       const best = [...withLeads].sort((a, b) => b.conversion - a.conversion)[0]!;
@@ -281,8 +285,8 @@ export const AI_TOOLS: readonly AiTool[] = [
     samples: ['Davomat qanday?', 'Bu oy davomat necha foiz?'],
     keywords: ['davomat', 'kelmadi', 'qatnash', 'attendance'],
     permission: PERMISSIONS.ATTENDANCE_VIEW,
-    async run({ now }) {
-      const summary = await executiveService.summary(monthQuery(now));
+    async run({ now, branch }) {
+      const summary = await executiveService.summary(monthQuery(now), scopeOf(branch));
       return {
         answer: `${summary.month.label}da davomat ${summary.kpi.attendanceRate}%.`,
         details: [`Bugun ${summary.today.absentStudents} o'quvchi darsga kelmadi`],
