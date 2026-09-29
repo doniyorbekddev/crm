@@ -82,6 +82,9 @@
 <tr><td>S2</td><td>Qidiruvda guruh va sertifikat o'qituvchi doirasisiz</td><td>O'qituvchi faqat o'z guruhlari (web va bot)</td><td><span class="s ok">yopildi</span></td></tr>
 <tr><td>S3</td><td>Analitika, hisobotlar, moliya, dashboard, bot va AI filial doirasisiz</td><td><code>services/branchScope.ts</code> — hamma joyda bitta qoida (raw SQL parametrli); 21 test, 9 tasi eski kodda yiqilgan</td><td><span class="s ok">yopildi</span></td></tr>
 <tr><td>S4</td><td>Follow-up eslatmasi Telegram navbatini chetlab o'tardi</td><td><code>notificationService</code> orqali, sozlamalar hisobga olinadi</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S5</td><td>Botdan vazifa avval e'lon qilinib, fayllar keyin yuklanardi</td><td>Fayl qabul qilinganda tekshiriladi; vazifa va biriktirmalar bitta tranzaksiyada — xato bo'lsa e'lon qilinmaydi</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S6</td><td>Imtihon holati urinish davomida qayta tekshirilmasdi</td><td>Har callbackda holat tekshiriladi — bekor qilingan imtihonga javob saqlanmaydi</td><td><span class="s ok">yopildi</span></td></tr>
+<tr><td>S7</td><td>Xodim yopgan urinish jonli savollar banki bo'yicha baholanardi; tasodif <code>Math.random</code> bilan</td><td>O'quvchi varianti snapshot'i bo'yicha baholanadi; kriptografik Fisher–Yates aralashtirish</td><td><span class="s ok">yopildi</span></td></tr>
 <tr><td>S8</td><td>Onlayn to'lovda parallel webhook — 500 (unikal kalit poygasi)</td><td>P2002 idempotent qayta o'qish; test tuzatishsiz kodda yiqilgan</td><td><span class="s ok">yopildi</span></td></tr>
 <tr><td>S9</td><td>Production image'da Telegram CLI ishlamasdi (<code>tsx</code> yo'q)</td><td><code>telegram:webhook:prod</code>, <code>telegram:check:prod</code> — <code>dist/cli</code></td><td><span class="s ok">yopildi</span></td></tr>
 </table>
@@ -92,6 +95,75 @@
 <li><b>Production sozlamasi tekshiruvi</b>: webhook siri (≥ 32), polling taqiqlangan, qisman Click/Payme, tokensiz runner — server ishga tushmaydi va sababni aytadi.</li>
 </ul>
 <div class="box warn"><b>Ochiq, tashqi omilga bog'liq:</b> Click/Payme haqiqiy merchant bilan hech qachon yurmagan (kalitlar kerak); kod sandbox §41 testlari lokal Docker'da o'tdi, gVisor bilan runner serverda qayta tekshirilishi kerak (server hali yo'q). Runner ulanmaguncha kod bajarilmaydi — soxta natija yo'q.</div>
+
+<h3>00.4. Fazalar bo'yicha bajarilgan ishlar</h3>
+<table>
+<tr><th style="width:44px">Faza</th><th style="width:150px">Yo'nalish</th><th>Nima qilindi</th><th style="width:80px">Commit</th></tr>
+<tr><td>0</td><td><b>Audit</b></td><td>19 GAP source code bo'yicha tekshirildi (1 COMPLETE, 13 PARTIAL, 4 MISSING, 1 BLOCKED) + GAP ro'yxatida yo'q 9 ta xavfsizlik nuqsoni (S1–S9); roadmap</td><td><code>ecf2315</code></td></tr>
+<tr><td>1</td><td><b>Markaz sozlamalari</b></td><td>Nom, logo, aloqa, ish vaqti, o'quv yili; login sahifasi va brendda ko'rinadi; <code>settings.manage</code>, audit</td><td><code>70b1743</code></td></tr>
+<tr><td>2</td><td><b>Nishon yaratish</b></td><td>Admin yangi nishon yaratadi: toifa, <code>REFERRAL</code> qoidasi, dublikat nazorati; mavjud nishonlar toifalandi</td><td><code>782da9b</code></td></tr>
+<tr><td>3</td><td><b>Jadval ustunlari</b></td><td>Ko'rsatish/yashirish, tartib, kenglik — foydalanuvchi profilida; 8 asosiy jadval</td><td><code>6a43a3b</code></td></tr>
+<tr><td>4</td><td><b>Sana filtrlari</b></td><td>"O'tgan yil" davri, kalendar yili; regressiya testlari</td><td><code>dd4a525</code></td></tr>
+<tr><td>5</td><td><b>Imtihon variantlari</b></td><td>Xodim yo'li ham snapshot bilan (S7); egalik va aralashtirish testlari</td><td><code>49f0fc0</code></td></tr>
+<tr><td>6</td><td><b>Botda imtihon</b></td><td>Tafsilot, tasdiq, navigatsiya, har bosishda holat tekshiruvi (S6); davomatda "bugun" UTC xatosi tuzatildi</td><td><code>8ac0e97</code></td></tr>
+<tr><td>7</td><td><b>Botda faylli vazifa</b></td><td>Fayl qabulda tekshiriladi, atomik e'lon (S5), <code>homework.manage</code> ruxsati</td><td><code>7db57f1</code></td></tr>
+<tr><td>8</td><td><b>Botda qo'ng'iroq</b></td><td>Tur, natija, davomiylik, izoh, keyingi qadam; sotuv ruxsatlari</td><td><code>fe426e8</code></td></tr>
+<tr><td>9</td><td><b>Botda follow-up</b></td><td>Sana, izoh, muhimlik; eslatma Telegram navbatiga (S4)</td><td><code>e8ab637</code></td></tr>
+<tr><td>10</td><td><b>O'qituvchilar KPI</b></td><td>Rahbar botda: ro'yxat → tafsilot (akademik analitika servisi)</td><td><code>f476262</code></td></tr>
+<tr><td>11</td><td><b>Marketing</b></td><td>Davr, manba bo'yicha tushum/xarajat/foyda/ROI, CSV hujjat</td><td><code>b18b8eb</code></td></tr>
+<tr><td>12</td><td><b>Hisobotlar</b></td><td><code>/kunlik</code> kunlik hisobot, 15 hisobot turi, davr, CSV (REST bilan baytma-bayt)</td><td><code>d96151d</code></td></tr>
+<tr><td>13</td><td><b>Bot sozlamalari</b></td><td>Bildirishnoma toifalari; oilaviy Telegram xabarlari ham sozlamaga bo'ysunadi</td><td><code>d634976</code></td></tr>
+<tr><td>14</td><td><b>Qidiruv</b></td><td>O'quvchi/ota-ona o'z ma'lumoti, to'lov ism bo'yicha; o'qituvchi (S2) va filial doirasi</td><td><code>e63e022</code></td></tr>
+<tr><td>15</td><td><b>Broadcast 2.0</b></td><td>URL tugmalar, web sahifa (rasm/PDF), oldindan ko'rish, tasdiq, statistika, soatlik limit, <code>retry_after</code></td><td><code>173361f</code></td></tr>
+<tr><td>16</td><td><b>Telegram hujjatlari</b></td><td>api/auth/permissions/notifications/testing; production CLI (S9); qolgan bot ruxsatlari (S1)</td><td><code>786366e</code></td></tr>
+<tr><td>17</td><td><b>Click/Payme</b></td><td>Payme (JSON-RPC) va Click (Prepare/Complete) adapterlari, provayder tranzaksiyalari, refund, sinov belgisi, bot havolasi, S8</td><td><code>6762e09</code></td></tr>
+<tr><td>18</td><td><b>Takrorlanuvchi vazifa</b></td><td>Jadval, generator job (15 daqiqa), (jadval, sana) unikal himoyasi, web boshqaruvi</td><td><code>b5ca7db</code></td></tr>
+<tr><td>19</td><td><b>Kod sandbox</b></td><td>Alohida <code>code-runner</code>: tarmoqsiz, imtiyozsiz konteyner, limitlar; CRM navbati va natija; HTML iframe sandbox</td><td><code>1fefe1e</code></td></tr>
+<tr><td>20</td><td><b>To'liq regressiya</b></td><td>S3 to'liq yopildi (analitika, hisobot, moliya, dashboard, bot, AI); yuk testi 1 500 chat; <code>testTimeout</code></td><td><code>8763f90</code></td></tr>
+<tr><td>21</td><td><b>Production hardening</b></td><td>Job salomatligi, yetim fayllar tozalash, §45 env tekshiruvi, webhook 401 metrikasi, qabul hujjati, TZ</td><td><code>c9f6e10</code></td></tr>
+</table>
+
+<h3>00.5. Ish davomida topilgan va tuzatilgan xatolar</h3>
+<table>
+<tr><th>Xato</th><th>Oqibati</th><th>Tuzatish</th></tr>
+<tr><td>Davomat obzori va statistikasida "bugun" UTC bo'yicha hisoblanardi</td><td>Toshkentda 00:00–05:00 oralig'ida o'qituvchi (bot "Bugungi darslar", dashboard) kechagi kun darslarini ko'rardi</td><td>O'quv markaz sanasi (UTC+5); regressiya testi vaqtni 00:30 ga qo'yib eski kodda yiqilishini tasdiqladi</td></tr>
+<tr><td>Filial admini analitika, hisobot, moliya va dashboardda butun markaz raqamlarini ko'rardi (S3)</td><td>Boshqa filial ma'lumoti oqib chiqardi</td><td>Bitta <code>branchScope.ts</code>; 21 test, 9 tasi eski kodda yiqilgan</td></tr>
+<tr><td>Parallel birinchi to'lov webhooki xato qaytarardi (S8, P2002)</td><td>Provayder qayta yuboraverardi, logda xato</td><td>Endi <code>duplicate</code> (200); test tuzatishsiz kodda 409 bilan yiqilgani tasdiqlangan</td></tr>
+<tr><td>AI ota-ona haftalik xulosasi testi dushanba kuni yiqilardi</td><td>Sana bog'liq test — CI ma'lum kunlarda qizarardi</td><td>Test ma'lumoti bugungi sana bilan; commitlangan kodda ham yiqilishi tasdiqlangan</td></tr>
+<tr><td>Bekor qilingan bot vazifasi va yuborilmagan broadcast fayllari diskda qolardi</td><td>Disk asta to'lardi</td><td><code>pending_uploads</code> + <code>orphanUploads</code> job (24 soat)</td></tr>
+<tr><td>Productionda noto'g'ri Telegram/to'lov/runner sozlamasi jimgina o'chiq ishlardi</td><td>Deploydan keyin funksiya ishlamasligi kech bilinardi</td><td>Server ishga tushmaydi va sababni aytadi (§45)</td></tr>
+</table>
+
+<h3>00.6. Tekshiruv natijalari (2026-09-28)</h3>
+<table>
+<tr><th>To'plam</th><th>Natija</th></tr>
+<tr><td>Backend (unit + integratsion, haqiqiy PostgreSQL)</td><td>936 ta (3.0 da 793). To'liq yurishlarda yuklangan mashinada har safar boshqa 1–3 test timeout bilan yiqiladi — hammasi alohida o'tadi</td></tr>
+<tr><td>Frontend (komponent)</td><td>136 / 136</td></tr>
+<tr><td>E2E (brauzer, bot → CRM → web oqimlari §35–§40)</td><td>48 / 48</td></tr>
+<tr><td>code-runner (haqiqiy konteynerlar, §41)</td><td>22 / 22 (lokal <code>runc</code>; gVisor — runner serverda)</td></tr>
+<tr><td>TypeScript, lint, build (3 workspace)</td><td>0 xato (frontendda 1 eski ogohlantirish)</td></tr>
+<tr><td>Yuk testi</td><td>Broadcast 1 500 chat ≈ 2,1 s</td></tr>
+<tr><td>Sir skaneri (fayllar + git tarixi)</td><td>toza</td></tr>
+</table>
+<p class="small">Hujjatlar: <code>ACADEMY-3.1-AUDIT.md</code>, <code>ROADMAP-3.1.md</code>, <code>PHASE-REPORTS-3.1.md</code>, <code>ACCEPTANCE-3.1.md</code>, <code>broadcast.md</code>, <code>telegram-api.md</code>, <code>telegram-auth.md</code>, <code>telegram-permissions.md</code>, <code>telegram-notifications.md</code>, <code>telegram-testing.md</code>, <code>payments-online.md</code>, <code>code-sandbox.md</code>, <code>deployment.md</code> §4.2, <code>observability.md</code>, <code>table-columns.md</code>, <code>academy-settings.md</code>.</p>
+
+<h3>00.7. Qolgan ishlar</h3>
+<table>
+<tr><th style="width:160px">Guruh</th><th>Ish</th><th style="width:80px">Hajm</th></tr>
+<tr><td rowspan="5"><b>Kod bilan qilsa bo'ladi</b></td><td>Ustun sozlamasini qolgan jadvallarga (hozir 29 tadan 8 tasida): maosh, hisobotlar, moliya tablari</td><td>o'rta</td></tr>
+<tr><td>Kabinetda bildirishnoma toifalari sahifasi (API bor, hozir bot orqali)</td><td>kichik</td></tr>
+<tr><td>Botdan takrorlanuvchi vazifa jadvali yaratish (hozir web'da)</td><td>kichik</td></tr>
+<tr><td>Botdagi hisobotlarda ixtiyoriy sana oralig'i (hozir 3 davr)</td><td>kichik</td></tr>
+<tr><td>Payme'ga buzilgan JSON — −32700 (hozir umumiy 400)</td><td>kichik</td></tr>
+<tr><td rowspan="3"><b>Sizdan (tashqi)</b></td><td>Click/Payme merchant kalitlari → sinov stendida to'liq ssenariy; Click reversal hozircha faqat mock bilan sinalgan</td><td><span class="s bad">sizga bog'liq</span></td></tr>
+<tr><td>Runner server (VM, Docker + gVisor) → §41 testlarini <code>runsc</code> bilan qayta yurgizish</td><td><span class="s bad">sizga bog'liq</span></td></tr>
+<tr><td>Deploydan keyin <code>telegram:check:prod</code> — production image'da CLI tekshiruvi</td><td>kichik</td></tr>
+<tr><td rowspan="4"><b>Qaror kerak</b></td><td>Byudjetga filial ustuni (hozir filial xarajati markaz byudjeti bilan solishtiriladi)</td><td><span class="s warn">qaror</span></td></tr>
+<tr><td>Direktor paneli filial admini uchun: markaz ogohlantirishlari va umumiy reja</td><td><span class="s warn">qaror</span></td></tr>
+<tr><td>Campaign (kampaniya) modeli — marketing hozir manba bo'yicha</td><td><span class="s warn">qaror</span></td></tr>
+<tr><td>Leadlarga broadcast — leadlarda Telegram bog'lanishi yo'q</td><td><span class="s warn">qaror</span></td></tr>
+<tr><td><b>Ataylab qilinmagan</b></td><td colspan="2" class="small">Valyuta faqat UZS, til faqat o'zbek; takrorlanuvchi vazifada bayram kalendari yo'q; sandbox testlari stdin/stdout (jest/pytest yo'q); kunlik hisobot avtomatik yuborilmaydi; Uzum adapteri yo'q (TZ talab qilmagan)</td></tr>
+</table>
 
 <h2>0. promt3.md — "Academy CRM 3.0" (81 bo'lim, 16 faza)</h2>
 <p class="small">2026-09-25 holati. 16 faza bosqichma-bosqich bajarildi, har biri test, commit va §70 hisobot bilan (<code>docs/PHASE-REPORTS-3.0.md</code>).</p>
