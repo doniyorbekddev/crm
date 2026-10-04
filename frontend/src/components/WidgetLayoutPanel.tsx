@@ -21,17 +21,17 @@ export function WidgetLayoutPanel({ widgets, onChange, onReset }: WidgetLayoutPa
     <Card className="mb-4 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-fg">Vidjetlar</p>
-          <p className="text-xs text-fg-muted">Ko‘rinishi va tartibi profilingizda saqlanadi — boshqa qurilmada ham shunday ochiladi</p>
+          <p className="text-h4 text-fg">Vidjetlar</p>
+          <p className="text-caption text-fg-muted">Ko‘rinishi va tartibi profilingizda saqlanadi — boshqa qurilmada ham shunday ochiladi</p>
         </div>
         <Button size="sm" variant="ghost" leftIcon={<RotateCcw className="size-4" aria-hidden />} onClick={onReset}>
           Standart holat
         </Button>
       </div>
-      <ul className="divide-y divide-border rounded-xl border border-border">
+      <ul className="divide-y divide-border rounded-control border border-border">
         {widgets.map((widget, index) => (
           <li key={widget.key} className="flex items-center gap-3 px-3 py-2">
-            <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm text-fg">
+            <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-body text-fg">
               <Checkbox
                 checked={widget.visible}
                 onChange={() =>

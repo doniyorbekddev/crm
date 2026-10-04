@@ -216,6 +216,17 @@ Modal — qisqa forma va tasdiq. Drawer — tezkor ko'rish/tahrir, sahifa kontek
 | **Kabinet** (`PortalLayout`) | 56px sarlavha, ostida chiziqli bo'limlar (kompyuter), pastki panel + "Yana" (telefon) |
 | **Mavzu** | Kompyuterda yuqori panelda; telefonda foydalanuvchi menyusi ichida |
 
+## 8.2. Grafiklar va KPI (PHASE 3)
+
+- **Grafik ranglari** — `components/charts/chartTheme.ts`: `CHART_COLORS.{brand, positive, negative, warning, accent, neutral}`
+  (CSS o'zgaruvchilari — dark'da o'zi almashadi). Seriya rangi ma'no bo'yicha: tushum — `positive`, xarajat — `negative`.
+  Komponentda hex yozilmaydi. O'q, to'r, maslahat va ustun uslubi: `CHART_AXIS`, `CHART_GRID`, `CHART_TOOLTIP_STYLE`, `CHART_BAR`.
+  To'ldirish chiziqlari uchun klasslar: `bg-chart-brand`, `bg-chart-positive` …
+- **KPI** — faqat `StatCard`. Qiymat doim neytral rangda; holat ikonka ohangida (`tone`) va izohda. `to` — karta bo'limiga
+  havola; `size="sm"` — zich to'rlar (Dashboard, Direktor paneli). O'zgarish: `trend` (`positive: false` — o'sishi yomon ko'rsatkich).
+- **Dashboard tuzilishi**: ko'rsatkichlar yo'nalish bo'yicha guruhlarda (`section` + sarlavha), so'ng grafik va ro'yxatlar.
+  Har ro'yxat kartasi o'z so'rovini o'zi yuboradi — ruxsatsiz yoki yashirilgan vidjet so'rov yubormaydi.
+
 ## 9. Ikonkalar
 
 Faqat `lucide-react`. O'lchamlar: 16 (`size-4`, standart), 18, 20 (`size-5`), 24. Bezak ikonka — `aria-hidden`.

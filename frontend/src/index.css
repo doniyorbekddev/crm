@@ -82,6 +82,14 @@
   --app-accent-subtle: #f5f3ff;
   --app-accent-border: #ddd6fe;
 
+  /* Grafik seriyalari (to'ldirish/chiziq): ma'no bo'yicha — brend, ijobiy, salbiy, ogohlantirish, neytral */
+  --app-chart-brand: #3354ec;
+  --app-chart-positive: #10b981;
+  --app-chart-negative: #ef4444;
+  --app-chart-warning: #f59e0b;
+  --app-chart-accent: #8b5cf6;
+  --app-chart-neutral: #94a3b8;
+
   /* Soya — faqat ikki daraja */
   --app-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
   --app-shadow-md: 0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.06);
@@ -143,6 +151,13 @@
   --app-accent-subtle: #251a47;
   --app-accent-border: #40307a;
 
+  --app-chart-brand: #7089fb;
+  --app-chart-positive: #34d399;
+  --app-chart-negative: #f87171;
+  --app-chart-warning: #fbbf24;
+  --app-chart-accent: #a78bfa;
+  --app-chart-neutral: #64748b;
+
   --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
   --app-shadow-md: 0 12px 28px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.35);
 }
@@ -184,6 +199,13 @@
   --color-accent: var(--app-accent);
   --color-accent-subtle: var(--app-accent-subtle);
   --color-accent-border: var(--app-accent-border);
+
+  --color-chart-brand: var(--app-chart-brand);
+  --color-chart-positive: var(--app-chart-positive);
+  --color-chart-negative: var(--app-chart-negative);
+  --color-chart-warning: var(--app-chart-warning);
+  --color-chart-accent: var(--app-chart-accent);
+  --color-chart-neutral: var(--app-chart-neutral);
 
   --shadow-sm: var(--app-shadow-sm);
   --shadow-md: var(--app-shadow-md);

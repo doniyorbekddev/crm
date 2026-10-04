@@ -39,7 +39,9 @@
 - **Bildirishnomalar drawer'i**: o'qilmagan, toifa, ustuvorlik, vaqt, amal — mavjud API.
 - Kabinet qobig'i (`PortalLayout`, `PortalNav`) ham shu tokenlar bilan.
 
-## PHASE 3 — Dashboard (§13)
+## PHASE 3 — Dashboard (§13) ✅ (2026-10-05)
+> Bajarildi: Dashboard KPI'lari yo'nalish bo'yicha guruhlangan `StatCard`larda, Direktor paneli 671 → 205 qator (kichik
+> komponentlar), grafiklar `components/charts/chartTheme.ts` tokenlarida. Vidjet kalitlari, so'rovlar va ko'rsatkichlar o'zgarmagan.
 - `DashboardPage` va `ExecutivePage`: sarlavha qatori (davr, filial, tezkor amallar), `StatCard` KPI (trend, taqqoslash),
   grafiklar (tushum, o'quvchilar o'sishi, lead voronkasi, davomat, kurslar), pastki ro'yxatlar.
 - Grafik ranglari tokenlardan (hozir TSX ichida hex). Vidjet tartibi (`WidgetLayoutPanel`) saqlanadi.

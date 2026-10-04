@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { Skeleton } from './Skeleton';
 
@@ -24,18 +25,24 @@ const TONES = {
   info: 'bg-info-subtle text-info',
 } as const;
 
+export type StatTone = keyof typeof TONES;
+
 interface StatCardProps {
   title: string;
   /** Tayyor formatlangan qiymat ("1 248", "12,4 mln so‘m") — komponent hisoblamaydi */
   value: ReactNode;
-  description?: string;
+  description?: ReactNode;
   /** "+12,5%" (belgisidan yo'nalish aniqlanadi) yoki to'liq obyekt */
   trend?: string | StatTrend | null;
   icon?: LucideIcon;
-  /** Ikonka foni ohangi — ko'rsatkichning ma'nosi (masalan qarz — `danger`) */
-  tone?: keyof typeof TONES;
+  /** Ikonka foni ohangi — ko'rsatkichning ma'nosi (masalan qarz — `danger`). Qiymatning o'zi doim neytral. */
+  tone?: StatTone;
+  /** `sm` — zich panellar uchun (12 ta ko'rsatkichli to'r) */
+  size?: 'md' | 'sm';
   loading?: boolean;
-  /** O'ng yuqoridagi amal (havola, menyu) */
+  /** Berilsa — butun karta havola (tegishli bo'limga) */
+  to?: string;
+  /** O'ng yuqoridagi amal (menyu). `to` bilan birga ishlatilmaydi. */
   action?: ReactNode;
   className?: string;
 }
@@ -48,34 +55,34 @@ function normalizeTrend(trend: string | StatTrend): StatTrend {
 }
 
 /** KPI kartasi: bitta ko'rsatkich, uning o'zgarishi va izohi. Biznes ma'lumoti tashqaridan beriladi. */
-export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', loading = false, action, className }: StatCardProps) {
+export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', size = 'md', loading = false, to, action, className }: StatCardProps) {
   const resolved = trend ? normalizeTrend(trend) : null;
   const good = resolved ? (resolved.direction === 'flat' ? null : (resolved.direction === 'up') === (resolved.positive ?? true)) : null;
   const TrendIcon = resolved?.direction === 'up' ? ArrowUpRight : resolved?.direction === 'down' ? ArrowDownRight : Minus;
+  const small = size === 'sm';
 
-  return (
-    <div className={cn('rounded-card border border-border bg-surface p-4', className)} aria-busy={loading || undefined}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          {Icon && (
-            <span className={cn('grid size-8 shrink-0 place-items-center rounded-control', TONES[tone])}>
-              <Icon className="size-4" aria-hidden />
-            </span>
-          )}
-          <p className="truncate text-body-sm font-medium text-fg-muted">{title}</p>
-        </div>
-        {action}
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <p className={cn('min-w-0 font-medium text-fg-muted', small ? 'text-caption' : 'truncate text-body-sm')}>{title}</p>
+        {Icon ? (
+          <span className={cn('grid shrink-0 place-items-center rounded-control', small ? 'size-7' : 'size-8', TONES[tone])}>
+            <Icon className="size-4" aria-hidden />
+          </span>
+        ) : (
+          action
+        )}
       </div>
       {loading ? (
-        <div className="mt-3 space-y-2" aria-hidden>
+        <div className="mt-2 space-y-2" aria-hidden>
           <Skeleton className="h-7 w-28" />
           <Skeleton className="h-4 w-36" />
         </div>
       ) : (
         <>
-          <p className="mt-3 text-h1 text-fg tabular-nums">{value}</p>
+          <p className={cn('text-fg tabular-nums', small ? 'mt-1 text-h3 sm:text-h2' : 'mt-2 text-h1')}>{value}</p>
           {(resolved || description) && (
-            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption text-fg-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption text-fg-muted">
               {resolved && (
                 <span
                   className={cn(
@@ -87,11 +94,26 @@ export function StatCard({ title, value, description, trend, icon: Icon, tone = 
                   {resolved.label}
                 </span>
               )}
-              {description && <span>{description}</span>}
-            </p>
+              {description && <span className="min-w-0">{description}</span>}
+            </div>
           )}
         </>
       )}
+      {Icon && action}
+    </>
+  );
+
+  const base = cn('block h-full min-w-0 rounded-card border border-border bg-surface', small ? 'p-3 sm:p-4' : 'p-4', className);
+  if (to) {
+    return (
+      <Link to={to} aria-busy={loading || undefined} className={cn(base, 'focus-ring transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted/50')}>
+        {body}
+      </Link>
+    );
+  }
+  return (
+    <div className={base} aria-busy={loading || undefined}>
+      {body}
     </div>
   );
 }

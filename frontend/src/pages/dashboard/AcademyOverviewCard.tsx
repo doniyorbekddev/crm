@@ -76,16 +76,16 @@ export function buildAcademyTiles(kpi: ExecutiveKpi, overview: AcademyOverview):
 function TileBody({ tile }: { tile: Tile }) {
   return (
     <>
-      <p className="text-xs text-fg-muted">{tile.label}</p>
+      <p className="text-caption font-medium text-fg-muted">{tile.label}</p>
       <p
         className={cn(
-          'mt-1 text-lg font-semibold tabular-nums',
-          tile.tone === 'danger' ? 'text-red-600 dark:text-red-400' : tile.tone === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-fg',
+          'mt-1 text-h3 tabular-nums',
+          tile.tone === 'danger' ? 'text-danger' : tile.tone === 'warning' ? 'text-warning' : 'text-fg',
         )}
       >
         {tile.value}
       </p>
-      <p className="mt-0.5 truncate text-xs text-fg-subtle" title={tile.hint}>
+      <p className="mt-0.5 truncate text-caption text-fg-muted" title={tile.hint}>
         {tile.hint}
       </p>
     </>
@@ -100,7 +100,7 @@ export function AcademyOverviewCard({ kpi }: { kpi: ExecutiveKpi }) {
     <Card className="min-w-0">
       <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>Akademiya holati</CardTitle>
-        {query.data && <span className="text-xs text-fg-muted">oxirgi {query.data.windowDays} kun</span>}
+        {query.data && <span className="text-caption text-fg-muted">oxirgi {query.data.windowDays} kun</span>}
       </CardHeader>
       <CardContent>
         {query.isPending ? (
@@ -112,11 +112,11 @@ export function AcademyOverviewCard({ kpi }: { kpi: ExecutiveKpi }) {
             {buildAcademyTiles(kpi, query.data).map((tile) => (
               <li key={tile.key} className="min-w-0">
                 {tile.to ? (
-                  <Link to={tile.to} className="block h-full rounded-xl border border-border p-3 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand-500">
+                  <Link to={tile.to} className="focus-ring block h-full rounded-control border border-border p-3 transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted/50">
                     <TileBody tile={tile} />
                   </Link>
                 ) : (
-                  <div className="h-full rounded-xl border border-border p-3">
+                  <div className="h-full rounded-control border border-border p-3">
                     <TileBody tile={tile} />
                   </div>
                 )}
