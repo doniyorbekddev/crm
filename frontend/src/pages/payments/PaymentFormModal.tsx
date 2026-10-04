@@ -200,7 +200,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
                         {item.code} · {formatPhone(item.phone)} · {item.course.name}
                       </span>
                     </span>
-                    <span className={cn('shrink-0 text-sm font-medium', (item.debt?.remaining ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+                    <span className={cn('shrink-0 text-sm font-medium', (item.debt?.remaining ?? 0) > 0 ? 'text-danger' : 'text-fg-muted')}>
                       {formatMoney(item.debt?.remaining ?? 0)}
                     </span>
                   </button>

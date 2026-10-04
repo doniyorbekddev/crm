@@ -171,14 +171,14 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
                           {transaction.entityType && ` · ${TRANSACTION_SOURCE_LABELS[transaction.entityType] ?? transaction.entityType}`}
                         </p>
                         {voided && transaction.voidReason && (
-                          <p className="truncate text-xs text-red-600 dark:text-red-400">{transaction.voidReason}</p>
+                          <p className="truncate text-xs text-danger">{transaction.voidReason}</p>
                         )}
                       </TD>
                       <TD className="whitespace-nowrap text-fg-muted">{transaction.account?.name ?? '—'}</TD>
                       <TD
                         className={cn(
                           'text-right font-medium whitespace-nowrap',
-                          voided ? 'text-fg-muted line-through' : outgoing ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400',
+                          voided ? 'text-fg-muted line-through' : outgoing ? 'text-danger' : 'text-success',
                         )}
                       >
                         {outgoing ? '−' : '+'}

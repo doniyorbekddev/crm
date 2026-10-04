@@ -136,7 +136,7 @@ export function AttachmentsModal({ owner, entityId, title, canManage, onClose, o
                       loading={remove.isPending && remove.variables?.id === document.id}
                       onClick={() => remove.mutate(document)}
                     >
-                      <Trash2 className="size-4 text-red-600 dark:text-red-400" aria-hidden />
+                      <Trash2 className="size-4 text-danger" aria-hidden />
                     </Button>
                   )}
                 </li>

@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight, CalendarClock } from 'lucide-react';
 import { Alert } from '@/components/ui/Alert';
@@ -39,7 +40,7 @@ function FlowList({ title, icon, rows, total, tone }: { title: string; icon: Rea
         )}
         <li className="flex items-center justify-between gap-3 bg-surface-muted px-3 py-2 font-semibold">
           <span className="text-fg">Jami</span>
-          <span className={cn('whitespace-nowrap tabular-nums', tone === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+          <span className={cn('whitespace-nowrap tabular-nums', tone === 'in' ? 'text-success' : 'text-danger')}>
             {signed(tone === 'in' ? total : -total)}
           </span>
         </li>
@@ -49,21 +50,7 @@ function FlowList({ title, icon, rows, total, tone }: { title: string; icon: Rea
 }
 
 function Metric({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'positive' | 'negative' }) {
-  return (
-    <div className="rounded-xl border border-border p-3">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-base font-semibold tabular-nums sm:text-lg',
-          tone === 'positive' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'negative' && 'text-red-600 dark:text-red-400',
-          tone === 'default' && 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
+  return <StatCard size="sm" title={label} value={value} valueTone={tone === 'positive' ? 'success' : tone === 'negative' ? 'danger' : 'default'} />;
 }
 
 const signed = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${formatMoney(Math.abs(value))}`;
@@ -106,7 +93,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
             <FlowList
               title="Kirim"
               tone="in"
-              icon={<ArrowDownLeft className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden />}
+              icon={<ArrowDownLeft className="size-4 text-success" aria-hidden />}
               total={data.inflow.total}
               rows={[
                 { label: 'O‘quvchi to‘lovlari', value: data.inflow.studentPayments },
@@ -118,7 +105,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
             <FlowList
               title="Chiqim"
               tone="out"
-              icon={<ArrowUpRight className="size-4 text-red-600 dark:text-red-400" aria-hidden />}
+              icon={<ArrowUpRight className="size-4 text-danger" aria-hidden />}
               total={data.outflow.total}
               rows={[
                 { label: 'Xarajatlar', value: data.outflow.expenses },
@@ -157,10 +144,10 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
                       </span>
                     </TD>
                     <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(account.opening)}</TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <TD className="text-right whitespace-nowrap tabular-nums text-success">
                       {account.inflow > 0 ? `+${formatMoney(account.inflow)}` : '—'}
                     </TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-red-600 dark:text-red-400">
+                    <TD className="text-right whitespace-nowrap tabular-nums text-danger">
                       {account.outflow > 0 ? `−${formatMoney(account.outflow)}` : '—'}
                     </TD>
                     <TD className="text-right font-semibold whitespace-nowrap tabular-nums text-fg">{formatMoney(account.closing)}</TD>
@@ -190,18 +177,18 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
                 Kutilayotgan xarajatlar
                 {forecast.upcomingExpenseCount > 0 && <span className="text-fg-subtle"> · {forecast.upcomingExpenseCount} ta</span>}
               </span>
-              <span className="whitespace-nowrap tabular-nums text-red-600 dark:text-red-400">{signed(-forecast.upcomingExpenses)}</span>
+              <span className="whitespace-nowrap tabular-nums text-danger">{signed(-forecast.upcomingExpenses)}</span>
             </li>
             <li className="flex items-center justify-between gap-3">
               <span className="text-fg-muted">To‘lanmagan maoshlar</span>
-              <span className="whitespace-nowrap tabular-nums text-red-600 dark:text-red-400">{signed(-forecast.unpaidSalaries)}</span>
+              <span className="whitespace-nowrap tabular-nums text-danger">{signed(-forecast.unpaidSalaries)}</span>
             </li>
             <li className="flex items-center justify-between gap-3 border-t border-border pt-2.5">
               <span className="font-medium text-fg">Taxminiy qoldiq</span>
               <span
                 className={cn(
                   'text-lg font-semibold whitespace-nowrap tabular-nums',
-                  forecast.projectedBalance < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg',
+                  forecast.projectedBalance < 0 ? 'text-danger' : 'text-fg',
                 )}
               >
                 {formatMoney(forecast.projectedBalance)}

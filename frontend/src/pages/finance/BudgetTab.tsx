@@ -25,14 +25,14 @@ import { MONTH_OPTIONS } from '@/utils/teacherLabels';
 const now = new Date();
 const YEAR_OPTIONS = Array.from({ length: 4 }, (_, index) => now.getFullYear() - index);
 
-const COLORS = { planned: '#94a3b8', actual: '#3354ec', over: '#ef4444' };
+const COLORS = { planned: 'var(--color-chart-neutral)', actual: 'var(--color-chart-brand)', over: 'var(--color-chart-negative)' };
 
 /** Bajarilishga qarab progress rangi */
 function usageTone(line: BudgetLine): string {
-  if (line.status === 'OVER' || line.status === 'UNPLANNED') return 'bg-red-500';
-  if (line.status === 'WARNING') return 'bg-amber-500';
-  if (line.status === 'OK') return 'bg-emerald-500';
-  return 'bg-slate-300 dark:bg-slate-600';
+  if (line.status === 'OVER' || line.status === 'UNPLANNED') return 'bg-chart-negative';
+  if (line.status === 'WARNING') return 'bg-chart-warning';
+  if (line.status === 'OK') return 'bg-chart-positive';
+  return 'bg-chart-neutral';
 }
 
 /** Y o‘qi uchun qisqa summa: 5 000 000 → "5 mln" */
@@ -49,8 +49,8 @@ function Summary({ label, value, tone = 'default', hint }: { label: string; valu
       <p
         className={cn(
           'mt-1 text-base font-semibold tabular-nums sm:text-lg',
-          tone === 'danger' && 'text-red-600 dark:text-red-400',
-          tone === 'success' && 'text-emerald-600 dark:text-emerald-400',
+          tone === 'danger' && 'text-danger',
+          tone === 'success' && 'text-success',
           tone === 'default' && 'text-fg',
         )}
       >
@@ -265,7 +265,7 @@ export function BudgetTab() {
                       <TD
                         className={cn(
                           'text-right whitespace-nowrap tabular-nums',
-                          planned === 0 && line.actual === 0 ? 'text-fg-subtle' : diff > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400',
+                          planned === 0 && line.actual === 0 ? 'text-fg-subtle' : diff > 0 ? 'text-danger' : 'text-success',
                         )}
                       >
                         {planned === 0 && line.actual === 0 ? '—' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}

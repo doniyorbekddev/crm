@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, Boxes, Package, Plus, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
@@ -34,18 +35,8 @@ type Dialog =
   | { type: 'history'; product?: Product }
   | null;
 
-function StatCard({ icon: Icon, label, value, tone }: { icon: typeof Package; label: string; value: string; tone?: 'bad' }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-fg-muted">{label}</p>
-          <p className={cn('mt-1 text-xl font-semibold tabular-nums', tone === 'bad' ? 'text-red-600 dark:text-red-400' : 'text-fg')}>{value}</p>
-        </div>
-        <Icon className="size-5 shrink-0 text-fg-subtle" aria-hidden />
-      </div>
-    </Card>
-  );
+function Stat({ icon, label, value, tone }: { icon: typeof Package; label: string; value: string; tone?: 'bad' }) {
+  return <StatCard size="sm" icon={icon} title={label} value={value} {...(tone === 'bad' ? { tone: 'danger' as const } : {})} />;
 }
 
 /**
@@ -110,10 +101,10 @@ export default function InventoryPage() {
         <ErrorState error={statsQuery.error} onRetry={() => void statsQuery.refetch()} />
       ) : stats ? (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={Package} label="Mahsulot turlari" value={formatNumber(stats.products)} />
-          <StatCard icon={Boxes} label="Qoldiq qiymati" value={formatMoney(stats.stockValue)} />
-          <StatCard icon={TriangleAlert} label="Kam qolgan" value={formatNumber(stats.lowStock)} tone={stats.lowStock > 0 ? 'bad' : undefined} />
-          <StatCard icon={TriangleAlert} label="Tugagan" value={formatNumber(stats.outOfStock)} tone={stats.outOfStock > 0 ? 'bad' : undefined} />
+          <Stat icon={Package} label="Mahsulot turlari" value={formatNumber(stats.products)} />
+          <Stat icon={Boxes} label="Qoldiq qiymati" value={formatMoney(stats.stockValue)} />
+          <Stat icon={TriangleAlert} label="Kam qolgan" value={formatNumber(stats.lowStock)} tone={stats.lowStock > 0 ? 'bad' : undefined} />
+          <Stat icon={TriangleAlert} label="Tugagan" value={formatNumber(stats.outOfStock)} tone={stats.outOfStock > 0 ? 'bad' : undefined} />
         </div>
       ) : null}
 
@@ -181,7 +172,7 @@ export default function InventoryPage() {
                       </TD>
                       <TD className="whitespace-nowrap text-fg-muted">{product.category.name}</TD>
                       <TD className="text-right whitespace-nowrap">
-                        <span className={cn('tabular-nums', product.quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                        <span className={cn('tabular-nums', product.quantity === 0 ? 'text-danger' : 'text-fg')}>
                           {formatNumber(product.quantity)} {product.unit}
                         </span>
                         {product.isLowStock && (

@@ -11,7 +11,7 @@ import { financeService } from '@/services/finance.service';
 import type { FinanceRangeParams } from '@/types/finance';
 import { formatDate, formatMoney } from '@/utils/format';
 
-const COLORS = { revenue: '#10b981', costs: '#ef4444', profit: '#3354ec' };
+const COLORS = { revenue: 'var(--color-chart-positive)', costs: 'var(--color-chart-negative)', profit: 'var(--color-chart-brand)' };
 
 /** Manfiy summa "−" belgisi bilan; nol hech qachon "-0" bo‘lib chiqmaydi */
 const signedMoney = (value: number) => (value < 0 ? `−${formatMoney(Math.abs(value))}` : formatMoney(Math.abs(value)));
@@ -26,7 +26,7 @@ function ChangeBadge({ value }: { value: number | null }) {
   const up = value >= 0;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={cn('inline-flex items-center gap-0.5 text-xs font-medium', up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+    <span className={cn('inline-flex items-center gap-0.5 text-xs font-medium', up ? 'text-success' : 'text-danger')}>
       <Icon className="size-3.5" aria-hidden />
       {up ? '+' : ''}
       {value}%
@@ -41,7 +41,7 @@ function Kpi({ label, value, hint, change, tone = 'default' }: { label: string; 
       <p
         className={cn(
           'mt-1 text-lg font-semibold tabular-nums sm:text-xl',
-          tone === 'signed' ? (value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400') : 'text-fg',
+          tone === 'signed' ? (value >= 0 ? 'text-success' : 'text-danger') : 'text-fg',
         )}
       >
         {signedMoney(value)}
@@ -145,7 +145,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                     return (
                       <TR key={`line-${index}`}>
                         <TD className="pl-8 text-fg-muted">{row.label}</TD>
-                        <TD className={cn('text-right whitespace-nowrap tabular-nums', row.negative ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                        <TD className={cn('text-right whitespace-nowrap tabular-nums', row.negative ? 'text-danger' : 'text-fg')}>
                           {row.amount === 0 ? '—' : `${row.negative ? '−' : ''}${formatMoney(row.amount)}`}
                         </TD>
                         <TD className="text-right text-xs whitespace-nowrap tabular-nums text-fg-muted">{row.share !== undefined ? `${row.share}%` : ''}</TD>
@@ -155,13 +155,13 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                   }
                   const isTotal = row.kind === 'total';
                   return (
-                    <TR key={`total-${index}`} className={cn(isTotal && 'bg-brand-50/60 dark:bg-brand-950/40')}>
+                    <TR key={`total-${index}`} className={cn(isTotal && 'bg-primary-subtle')}>
                       <TD className={cn('font-semibold text-fg', isTotal && 'text-base')}>{row.label}</TD>
                       <TD
                         className={cn(
                           'text-right font-semibold whitespace-nowrap tabular-nums',
                           isTotal && 'text-base',
-                          row.amount < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg',
+                          row.amount < 0 ? 'text-danger' : 'text-fg',
                         )}
                       >
                         {signedMoney(row.amount)}
@@ -201,7 +201,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                   />
                   <Tooltip
                     contentStyle={{
-                      background: 'var(--color-surface)',
+                      background: 'var(--color-surface-elevated)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 12,
                       fontSize: 12,

@@ -91,7 +91,8 @@
 - Jadval va kanban (bor) yangi kartalar bilan; lead tafsiloti drawer + sahifa; `Timeline` (qo'ng'iroq, follow-up,
   sinov darsi, status o'zgarishi). Bosqichlar — tizimdagi mavjud statuslar.
 
-## PHASE 10 — Moliya (§18)
+## PHASE 10 — Moliya (§18) ✅ (2026-10-05)
+> Bajarildi: moliya, to'lovlar, qarzdorlik, chegirmalar, ombor va HR papkalarida ranglar tokenlarda; ko'rsatkich kartalari yagona StatCard'da (ishora ma'no bo'lgan joyda valueTone); xarajat holati va pul oqimi davri Tabs'da; grafik ranglari tokenlardan (hex yo'q).
 - KPI (tushum, xarajat, foyda, qarz, kassa, bank), tranzaksiyalar jadvali, summalar bir xil formatda (`formatMoney`),
   musbat/manfiy — semantik rang; ortiqcha rang yo'q. To'lovlar, qarzlar, xarajatlar, maoshlar, ombor.
 

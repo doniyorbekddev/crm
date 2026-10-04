@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BadgeCheck, Ban, HandCoins, Paperclip, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -222,7 +223,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="p-4">
             <p className="text-xs text-fg-muted">Tanlangan davr</p>
-            <p className={cn('mt-1 text-xl font-semibold', isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+            <p className={cn('mt-1 text-xl font-semibold', isIncome ? 'text-success' : 'text-danger')}>
               {formatMoney(stats.total)}
             </p>
             <p className="mt-1 text-xs text-fg-muted">{formatNumber(stats.count)} ta yozuv</p>
@@ -239,26 +240,15 @@ export function MoneyPage({ kind }: MoneyPageProps) {
 
       <Card>
         {!isIncome && (
-          <div role="tablist" aria-label="Xarajat holati" className="-mx-1 flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
-            {(['', ...EXPENSE_STATUS_ORDER] as const).map((value) => {
-              const active = status === value;
-              return (
-                <button
-                  key={value || 'all'}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setStatus(value))}
-                  className={cn(
-                    'inline-flex h-8 shrink-0 items-center rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
-                    active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+          <Tabs value={status} onValueChange={(value) => changeFilter(() => setStatus(value as typeof status))} panels={false}>
+            <TabList label="Xarajat holati" className="px-4">
+              {(['', ...EXPENSE_STATUS_ORDER] as const).map((value) => (
+                <Tab key={value || 'all'} value={value}>
                   {value ? EXPENSE_STATUS_LABELS[value] : 'Barchasi'}
-                </button>
-              );
-            })}
-          </div>
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
         )}
         <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
           <SearchInput
@@ -351,16 +341,16 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                           </p>
                         )}
                         {entry.status === 'REJECTED' && entry.rejectReason && (
-                          <p className="truncate text-xs text-red-600 dark:text-red-400">{entry.rejectReason}</p>
+                          <p className="truncate text-xs text-danger">{entry.rejectReason}</p>
                         )}
                         {entry.isVoided && entry.voidReason && (
-                          <p className="truncate text-xs text-red-600 dark:text-red-400">{entry.voidReason}</p>
+                          <p className="truncate text-xs text-danger">{entry.voidReason}</p>
                         )}
                       </TD>
                       <TD
                         className={cn(
                           'font-medium whitespace-nowrap',
-                          entry.isVoided ? 'text-fg-muted line-through' : isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg',
+                          entry.isVoided ? 'text-fg-muted line-through' : isIncome ? 'text-success' : 'text-fg',
                         )}
                       >
                         {formatMoney(entry.amount)}

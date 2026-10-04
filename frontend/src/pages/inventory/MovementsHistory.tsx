@@ -69,7 +69,7 @@ export function MovementsHistory({ product, onClose }: { product?: Product; onCl
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={incoming ? 'text-sm tabular-nums text-emerald-600 dark:text-emerald-400' : 'text-sm tabular-nums text-fg'}>
+                    <p className={incoming ? 'text-sm tabular-nums text-success' : 'text-sm tabular-nums text-fg'}>
                       {incoming ? '+' : '−'}
                       {formatNumber(movement.quantity)} {movement.product.unit}
                     </p>

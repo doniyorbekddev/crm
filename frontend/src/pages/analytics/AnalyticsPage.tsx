@@ -215,12 +215,12 @@ export default function AnalyticsPage() {
                         <XAxis type="number" stroke="currentColor" fontSize={11} tickFormatter={(value: number) => `${Math.round((value / 1_000_000) * 10) / 10}mln`} />
                         <YAxis type="category" dataKey="name" stroke="currentColor" fontSize={11} width={120} />
                         <Tooltip
-                          contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 12, fontSize: 12, color: 'var(--color-fg)' }}
+                          contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', borderRadius: 12, fontSize: 12, color: 'var(--color-fg)' }}
                           formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
                         />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar dataKey="revenue" name="Sof tushum" fill="#10b981" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
-                        <Bar dataKey="cost" name="O‘qituvchi xarajati" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
+                        <Bar dataKey="revenue" name="Sof tushum" fill="var(--color-chart-positive)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
+                        <Bar dataKey="cost" name="O‘qituvchi xarajati" fill="var(--color-chart-negative)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

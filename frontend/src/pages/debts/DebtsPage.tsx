@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HandCoins, Phone, Wallet } from 'lucide-react';
 import { useState } from 'react';
@@ -9,7 +10,6 @@ import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
@@ -106,7 +106,7 @@ export default function DebtsPage() {
       required: true,
       cell: (debt: DebtTableRow) => (
         <>
-          <Link to={`/students/${debt.studentId}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+          <Link to={`/students/${debt.studentId}`} className="focus-ring rounded-sm font-medium text-fg hover:text-primary hover:underline">
             {debt.firstName} {debt.lastName}
           </Link>
           <p className="flex items-center gap-1 text-xs text-fg-muted">
@@ -153,7 +153,7 @@ export default function DebtsPage() {
       tdClassName: 'whitespace-nowrap',
       cell: (debt: DebtTableRow) => (
         <>
-          <p className={cn('font-medium', debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+          <p className={cn('font-medium', debt.remaining > 0 ? 'text-danger' : 'text-fg')}>
             {formatMoney(debt.remaining)}
           </p>
           <Badge tone={DEBT_STATUS_TONES[debt.status]}>{DEBT_STATUS_LABELS[debt.status]}</Badge>
@@ -171,7 +171,7 @@ export default function DebtsPage() {
           ) : debt.schedule.overdueAmount > 0 ? (
             <>
               <Badge tone="red">{debt.schedule.overdueDays} kun kechikdi</Badge>
-              <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{formatMoney(debt.schedule.overdueAmount)}</p>
+              <p className="mt-0.5 text-xs text-danger">{formatMoney(debt.schedule.overdueAmount)}</p>
             </>
           ) : debt.schedule.nextDueDate ? (
             <>
@@ -232,38 +232,23 @@ export default function DebtsPage() {
       <PageHeader title="Qarzdorlik" description="Shartnoma bo‘yicha qolgan summalar va oxirgi to‘lovlar" />
 
       {summary && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">Umumiy qarz</p>
-            <p className="mt-1 text-xl font-semibold text-red-600 dark:text-red-400">{formatMoney(summary.totalRemaining)}</p>
-            <p className="mt-1 text-xs text-fg-muted">{formatNumber(summary.students)} ta o‘quvchi</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">Muddati o‘tgan</p>
-            <p className={cn('mt-1 text-xl font-semibold', summary.overdue.amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
-              {formatMoney(summary.overdue.amount)}
-            </p>
-            <p className="mt-1 text-xs text-fg-muted">
-              {formatNumber(summary.overdue.students)} ta o‘quvchi · 7 kunda {formatMoney(summary.upcoming.amount)}
-            </p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">Yig‘ilgan to‘lov</p>
-            <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(summary.totalPaid)}</p>
-            <p className="mt-1 text-xs text-fg-muted">Shartnomalar: {formatMoney(summary.totalContracts)}</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">1 mln dan ortiq</p>
-            <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(summary.byRange['1m-plus'].remaining)}</p>
-            <p className="mt-1 text-xs text-fg-muted">{formatNumber(summary.byRange['1m-plus'].students)} ta o‘quvchi</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">Qarzi yo‘q</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-              {formatNumber(summary.byRange.zero.students)}
-            </p>
-            <p className="mt-1 text-xs text-fg-muted">to‘liq to‘lagan o‘quvchilar</p>
-          </Card>
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+          <StatCard size="sm" title="Umumiy qarz" value={formatMoney(summary.totalRemaining)} valueTone="danger" description={`${formatNumber(summary.students)} ta o‘quvchi`} />
+          <StatCard
+            size="sm"
+            title="Muddati o‘tgan"
+            value={formatMoney(summary.overdue.amount)}
+            valueTone={summary.overdue.amount > 0 ? 'danger' : 'default'}
+            description={`${formatNumber(summary.overdue.students)} ta o‘quvchi · 7 kunda ${formatMoney(summary.upcoming.amount)}`}
+          />
+          <StatCard size="sm" title="Yig‘ilgan to‘lov" value={formatMoney(summary.totalPaid)} description={`Shartnomalar: ${formatMoney(summary.totalContracts)}`} />
+          <StatCard
+            size="sm"
+            title="1 mln dan ortiq"
+            value={formatMoney(summary.byRange['1m-plus'].remaining)}
+            description={`${formatNumber(summary.byRange['1m-plus'].students)} ta o‘quvchi`}
+          />
+          <StatCard size="sm" title="Qarzi yo‘q" value={formatNumber(summary.byRange.zero.students)} valueTone="success" description="to‘liq to‘lagan o‘quvchilar" />
         </div>
       )}
 

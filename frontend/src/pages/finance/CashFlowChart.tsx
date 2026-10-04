@@ -1,9 +1,9 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Area, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { financeService } from '@/services/finance.service';
 import type { CashFlowParams, CashFlowPeriod, FinanceRangeParams } from '@/types/finance';
@@ -11,7 +11,7 @@ import { formatMoney } from '@/utils/format';
 import { CASH_FLOW_PERIODS } from '@/utils/financeLabels';
 
 /** Grafik ranglari — ikkala mavzuda ham o‘qiladigan to‘q ranglar */
-const COLORS = { income: '#10b981', expense: '#ef4444', balance: '#3354ec' };
+const COLORS = { income: 'var(--color-chart-positive)', expense: 'var(--color-chart-negative)', balance: 'var(--color-chart-brand)' };
 
 interface CashFlowChartProps {
   range: FinanceRangeParams;
@@ -30,28 +30,15 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle>Pul oqimi</CardTitle>
-        <div role="tablist" aria-label="Davr" className="flex gap-1">
-          {CASH_FLOW_PERIODS.map((item) => {
-            const active = period === item.value;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => onPeriodChange(item.value)}
-                className={cn(
-                  'h-8 rounded-lg px-2.5 text-xs font-medium transition-colors',
-                  active
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                    : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                )}
-              >
+        <Tabs value={period} onValueChange={(value) => onPeriodChange(value as typeof period)} variant="pill" panels={false}>
+          <TabList label="Davr">
+            {CASH_FLOW_PERIODS.map((item) => (
+              <Tab key={item.value} value={item.value}>
                 {item.label}
-              </button>
-            );
-          })}
-        </div>
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
       </CardHeader>
       <CardContent>
         {cashFlowQuery.isPending ? (
@@ -81,7 +68,7 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                 />
                 <Tooltip
                   contentStyle={{
-                    background: 'var(--color-surface)',
+                    background: 'var(--color-surface-elevated)',
                     border: '1px solid var(--color-border)',
                     borderRadius: 12,
                     fontSize: 12,

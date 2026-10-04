@@ -101,7 +101,7 @@ export function TransferModal({ product, onClose, onSaved }: { product: Product;
           <label className="block">
             <span className="mb-1 block text-sm text-fg-muted">Miqdor ({product.unit})</span>
             <Input type="number" min={1} max={product.quantity} value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-            {amount > product.quantity && <span className="mt-1 block text-xs text-red-600 dark:text-red-400">Omborda bunchasi yo‘q</span>}
+            {amount > product.quantity && <span className="mt-1 block text-xs text-danger">Omborda bunchasi yo‘q</span>}
           </label>
 
           <label className="block">

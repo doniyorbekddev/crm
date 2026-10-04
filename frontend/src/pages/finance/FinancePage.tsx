@@ -1,10 +1,10 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { BarChart3, Lock, ScrollText, Target, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
 import type { DateRangeValue } from '@/components/DateRangePicker';
 import { PageHeader } from '@/components/PageHeader';
 import { usePermission } from '@/hooks/usePermission';
-import { cn } from '@/lib/cn';
 import type { FinanceRangeParams } from '@/types/finance';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { BudgetTab } from './BudgetTab';
@@ -39,30 +39,15 @@ export default function FinancePage() {
       />
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div role="tablist" aria-label="Moliya bo‘limlari" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-          {tabs.map((item) => {
-            const active = tab === item.value;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(item.value)}
-                className={cn(
-                  'inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                  active
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                    : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                )}
-              >
-                <Icon className="size-4" aria-hidden />
+        <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} panels={false}>
+          <TabList label="Moliya bo‘limlari">
+            {tabs.map((item) => (
+              <Tab key={item.value} value={item.value} icon={<item.icon className="size-4" aria-hidden />}>
                 {item.label}
-              </button>
-            );
-          })}
-        </div>
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
 
         {tab !== 'budget' && tab !== 'periods' && (
           <DateRangePicker value={rangeValue} onChange={setRangeValue} className="sm:ml-auto" />

@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Wallet } from 'lucide-react';
 import { useState } from 'react';
@@ -22,32 +23,15 @@ interface FinanceOverviewProps {
   range: FinanceRangeParams;
 }
 
-function KpiCard({
-  label,
-  value,
-  hint,
-  tone = 'default',
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'default' | 'positive' | 'negative';
-}) {
+function KpiCard({ label, value, hint, tone = 'default' }: { label: string; value: string; hint?: string; tone?: 'default' | 'positive' | 'negative' }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-xl font-semibold',
-          tone === 'positive' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'negative' && 'text-red-600 dark:text-red-400',
-          tone === 'default' && 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-1 text-xs text-fg-muted">{hint}</p>}
-    </Card>
+    <StatCard
+      size="sm"
+      title={label}
+      value={value}
+      valueTone={tone === 'positive' ? 'success' : tone === 'negative' ? 'danger' : 'default'}
+      {...(hint ? { description: hint } : {})}
+    />
   );
 }
 
@@ -69,7 +53,7 @@ function CategoryList({ rows, tone }: { rows: Array<{ name: string; total: numbe
           <div className="mt-1.5 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
               <div
-                className={cn('h-full rounded-full', tone === 'income' ? 'bg-emerald-500' : 'bg-red-500')}
+                className={cn('h-full rounded-full', tone === 'income' ? 'bg-chart-positive' : 'bg-chart-negative')}
                 style={{ width: `${Math.max((row.total / max) * 100, 2)}%` }}
               />
             </div>

@@ -2,7 +2,7 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import type { ProgressPoint } from '@/types/studentProfile';
 
 /** Grafik ranglari — ikkala mavzuda ham o‘qiladigan to‘q ranglar */
-const COLORS = { attendance: '#10b981', homework: '#3354ec', exam: '#f59e0b' };
+const COLORS = { attendance: 'var(--color-chart-positive)', homework: 'var(--color-chart-brand)', exam: 'var(--color-chart-warning)' };
 
 export function ProgressChart({ data }: { data: ProgressPoint[] }) {
   const hasData = data.some((point) => point.attendanceRate !== null || point.homeworkRate !== null || point.examAverage !== null);
@@ -26,7 +26,7 @@ export function ProgressChart({ data }: { data: ProgressPoint[] }) {
           />
           <Tooltip
             contentStyle={{
-              background: 'var(--color-surface)',
+              background: 'var(--color-surface-elevated)',
               border: '1px solid var(--color-border)',
               borderRadius: 12,
               fontSize: 12,

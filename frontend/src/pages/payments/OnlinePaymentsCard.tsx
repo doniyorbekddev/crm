@@ -148,7 +148,7 @@ export function OnlinePaymentsCard() {
                   </div>
                   <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-fg">
                     {intent.checkoutUrl && (
-                      <a href={intent.checkoutUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-xs text-brand-700 hover:underline dark:text-brand-300">
+                      <a href={intent.checkoutUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                         <ExternalLink className="size-3.5" aria-hidden /> To‘lov havolasi
                       </a>
                     )}

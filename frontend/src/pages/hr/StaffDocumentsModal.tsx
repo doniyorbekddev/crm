@@ -151,7 +151,7 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
     <Modal open size="lg" title="Hujjatlar" description={personName} onClose={onClose} closeDisabled={upload.isPending}>
       <div className="space-y-4">
         <p className="flex items-start gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs text-fg-muted">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           Fayllarga ochiq havola berilmaydi — faqat hujjatlarni ko‘rish ruxsati bor xodimlar yuklab oladi. Har bir amal auditga yoziladi.
         </p>
 
@@ -233,7 +233,7 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
                             loading={remove.isPending && remove.variables?.id === document.id}
                             onClick={() => remove.mutate(document)}
                           >
-                            <Trash2 className="size-4 text-red-600 dark:text-red-400" aria-hidden />
+                            <Trash2 className="size-4 text-danger" aria-hidden />
                           </Button>
                         </>
                       )}

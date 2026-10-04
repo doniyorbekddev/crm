@@ -180,10 +180,10 @@ export default function AcademicAnalyticsPage() {
                       <XAxis dataKey="name" stroke="currentColor" fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis domain={[0, 100]} stroke="currentColor" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value: number) => `${value}%`} />
                       <Tooltip
-                        contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 12, fontSize: 12, color: 'var(--color-fg)' }}
+                        contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', borderRadius: 12, fontSize: 12, color: 'var(--color-fg)' }}
                         formatter={(value) => [value === null || value === undefined ? '—' : `${String(value)}%`, METRIC_LABELS[chartMetric]]}
                       />
-                      <Bar dataKey="value" fill="#3354ec" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="value" fill="var(--color-chart-brand)" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

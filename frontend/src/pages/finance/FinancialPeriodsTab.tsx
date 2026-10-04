@@ -102,7 +102,7 @@ export function FinancialPeriodsTab() {
               </THead>
               <TBody>
                 {query.data.map((period) => (
-                  <TR key={period.month} className={cn(period.isCurrent && 'bg-brand-50/50 dark:bg-brand-950/30')}>
+                  <TR key={period.month} className={cn(period.isCurrent && 'bg-primary-subtle')}>
                     <TD className="font-medium whitespace-nowrap text-fg">
                       {period.label}
                       {period.isCurrent && <span className="ml-2 text-xs text-fg-muted">joriy</span>}
@@ -112,7 +112,7 @@ export function FinancialPeriodsTab() {
                         {period.status === 'CLOSED' ? 'Yopilgan' : 'Ochiq'}
                       </Badge>
                       {period.status === 'OPEN' && period.reopenedAt && (
-                        <p className="mt-1 max-w-[12rem] truncate text-xs text-amber-600 dark:text-amber-400" title={period.reopenReason ?? ''}>
+                        <p className="mt-1 max-w-[12rem] truncate text-xs text-warning" title={period.reopenReason ?? ''}>
                           qayta ochilgan
                         </p>
                       )}
@@ -123,7 +123,7 @@ export function FinancialPeriodsTab() {
                     <TD
                       className={cn(
                         'text-right font-medium whitespace-nowrap tabular-nums',
-                        period.totals.net < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400',
+                        period.totals.net < 0 ? 'text-danger' : 'text-success',
                       )}
                     >
                       {formatMoney(period.totals.net)}

@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Plus, Undo2, Wallet } from 'lucide-react';
 import { useState } from 'react';
@@ -10,7 +11,6 @@ import { OnlinePaymentsCard } from './OnlinePaymentsCard';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -151,7 +151,7 @@ export default function PaymentsPage() {
         <>
           {formatMoney(payment.amount)}
           {payment.refundedAmount > 0 && (
-            <p className="text-xs font-normal text-amber-600 dark:text-amber-400">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
+            <p className="text-xs font-normal text-warning">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
           )}
         </>
       ),
@@ -183,7 +183,7 @@ export default function PaymentsPage() {
         <>
           {payment.accountant ? `${payment.accountant.firstName} ${payment.accountant.lastName}` : '—'}
           {payment.isDeleted && payment.deleteReason && (
-            <p className="max-w-[16rem] truncate text-xs text-red-600 dark:text-red-400">{payment.deleteReason}</p>
+            <p className="max-w-[16rem] truncate text-xs text-danger">{payment.deleteReason}</p>
           )}
         </>
       ),
@@ -249,18 +249,10 @@ export default function PaymentsPage() {
       />
 
       {stats && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="p-4">
-            <p className="text-xs text-fg-muted">Tanlangan davr tushumi</p>
-            <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(stats.total)}</p>
-            <p className="mt-1 text-xs text-fg-muted">{formatNumber(stats.count)} ta to‘lov</p>
-          </Card>
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard size="sm" title="Tanlangan davr tushumi" value={formatMoney(stats.total)} description={`${formatNumber(stats.count)} ta to‘lov`} />
           {stats.byMethod.slice(0, 3).map((row) => (
-            <Card key={row.method} className="p-4">
-              <p className="text-xs text-fg-muted">{PAYMENT_METHOD_LABELS[row.method]}</p>
-              <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(row.total)}</p>
-              <p className="mt-1 text-xs text-fg-muted">{formatNumber(row.count)} ta to‘lov</p>
-            </Card>
+            <StatCard key={row.method} size="sm" title={PAYMENT_METHOD_LABELS[row.method]} value={formatMoney(row.total)} description={`${formatNumber(row.count)} ta to‘lov`} />
           ))}
         </div>
       )}

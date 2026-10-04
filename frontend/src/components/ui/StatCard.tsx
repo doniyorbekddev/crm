@@ -35,8 +35,13 @@ interface StatCardProps {
   /** "+12,5%" (belgisidan yo'nalish aniqlanadi) yoki to'liq obyekt */
   trend?: string | StatTrend | null;
   icon?: LucideIcon;
-  /** Ikonka foni ohangi — ko'rsatkichning ma'nosi (masalan qarz — `danger`). Qiymatning o'zi doim neytral. */
+  /** Ikonka foni ohangi — ko'rsatkichning ma'nosi (masalan qarz — `danger`). */
   tone?: StatTone;
+  /**
+   * Qiymat rangi. Standart — neytral. Faqat ishora ma'no bo'lgan joyda (moliya: foyda/zarar, qarz) ishlatiladi —
+   * ikonkasiz ixcham kartalarda holatni ko'rsatishning yagona yo'li.
+   */
+  valueTone?: 'default' | 'success' | 'warning' | 'danger';
   /** `sm` — zich panellar uchun (12 ta ko'rsatkichli to'r) */
   size?: 'md' | 'sm';
   loading?: boolean;
@@ -55,7 +60,7 @@ function normalizeTrend(trend: string | StatTrend): StatTrend {
 }
 
 /** KPI kartasi: bitta ko'rsatkich, uning o'zgarishi va izohi. Biznes ma'lumoti tashqaridan beriladi. */
-export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', size = 'md', loading = false, to, action, className }: StatCardProps) {
+export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', valueTone = 'default', size = 'md', loading = false, to, action, className }: StatCardProps) {
   const resolved = trend ? normalizeTrend(trend) : null;
   const good = resolved ? (resolved.direction === 'flat' ? null : (resolved.direction === 'up') === (resolved.positive ?? true)) : null;
   const TrendIcon = resolved?.direction === 'up' ? ArrowUpRight : resolved?.direction === 'down' ? ArrowDownRight : Minus;
@@ -80,7 +85,15 @@ export function StatCard({ title, value, description, trend, icon: Icon, tone = 
         </div>
       ) : (
         <>
-          <p className={cn('text-fg tabular-nums', small ? 'mt-1 text-h3 sm:text-h2' : 'mt-2 text-h1')}>{value}</p>
+          <p
+            className={cn(
+              'tabular-nums',
+              valueTone === 'success' ? 'text-success' : valueTone === 'danger' ? 'text-danger' : valueTone === 'warning' ? 'text-warning' : 'text-fg',
+              small ? 'mt-1 text-h3 sm:text-h2' : 'mt-2 text-h1',
+            )}
+          >
+            {value}
+          </p>
           {(resolved || description) && (
             <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption text-fg-muted">
               {resolved && (

@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gift, HandCoins, TrendingUp, UserPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -38,19 +39,8 @@ const STATUS_TONES: Record<ReferralStatus, 'gray' | 'blue' | 'green' | 'red'> = 
   CANCELLED: 'gray',
 };
 
-function StatCard({ icon: Icon, label, value, hint }: { icon: typeof Gift; label: string; value: string; hint?: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-fg-muted">{label}</p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-fg">{value}</p>
-          {hint && <p className="mt-0.5 text-xs text-fg-subtle">{hint}</p>}
-        </div>
-        <Icon className="size-5 shrink-0 text-fg-subtle" aria-hidden />
-      </div>
-    </Card>
-  );
+function Stat({ icon, label, value, hint }: { icon: typeof Gift; label: string; value: string; hint?: string }) {
+  return <StatCard size="sm" icon={icon} title={label} value={value} {...(hint ? { description: hint } : {})} />;
 }
 
 /**
@@ -96,15 +86,15 @@ export default function ReferralsPage() {
         <ErrorState error={statsQuery.error} onRetry={() => void statsQuery.refetch()} />
       ) : stats ? (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={UserPlus} label="Takliflar" value={formatNumber(stats.total)} />
-          <StatCard
+          <Stat icon={UserPlus} label="Takliflar" value={formatNumber(stats.total)} />
+          <Stat
             icon={TrendingUp}
             label="O‘quvchiga aylandi"
             value={formatNumber(stats.converted)}
             hint={`${stats.conversionPercent}% konversiya`}
           />
-          <StatCard icon={Gift} label="Berilgan bonus" value={formatMoney(stats.bonusTotal)} hint={`${stats.rewarded} ta taklif uchun`} />
-          <StatCard icon={HandCoins} label="Taklif tushumi" value={formatMoney(stats.referralRevenue)} hint="taklif bo‘yicha kelganlardan" />
+          <Stat icon={Gift} label="Berilgan bonus" value={formatMoney(stats.bonusTotal)} hint={`${stats.rewarded} ta taklif uchun`} />
+          <Stat icon={HandCoins} label="Taklif tushumi" value={formatMoney(stats.referralRevenue)} hint="taklif bo‘yicha kelganlardan" />
         </div>
       ) : null}
 
