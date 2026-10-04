@@ -310,6 +310,7 @@ export default function TeachersPage() {
           </>
         }
         {...density}
+        mobileLayout="cards"
         {...(teachersQuery.data
           ? {
               pagination: {

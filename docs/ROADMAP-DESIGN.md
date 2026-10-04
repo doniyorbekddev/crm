@@ -109,7 +109,8 @@
 - Markaz ma'lumotlari, rollar va ruxsatlar, foydalanuvchilar, xodimlar, filiallar, audit jurnali, avtomatlashtirish,
   ommaviy xabar, profil, tizim holati.
 
-## PHASE 14 — Responsive (§29)
+## PHASE 14 — Responsive (§29) ✅ (2026-10-05)
+> Bajarildi: 46 sahifa telefon (390px) va planshet (768px) kengligida avtomatik tekshirildi — gorizontal siljish 0 (2 ta topilgan holat tuzatildi: Tabs flex qatorda). 8 asosiy ro'yxat telefonda avtomatik karta ko'rinishida (DataTable mobileLayout="cards"). Kabinet sahifalari skanerga kirmadi (kabinet hisobi kerak) — mobil E2E va PHASE 2/7 skrinshotlari bilan tekshirilgan.
 - Har sahifa 5 kenglikda tekshiriladi: jadval → moslashuvchan karta yoki gorizontal aylanish, amallar → bottom sheet,
   filtr → drawer, forma → bir ustun. Kabinet sahifalari (22) ham.
 

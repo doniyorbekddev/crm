@@ -246,6 +246,7 @@ export default function ParentsPage() {
           </>
         }
         {...density}
+        mobileLayout="cards"
         {...(parentsQuery.data
           ? {
               pagination: {

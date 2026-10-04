@@ -247,6 +247,7 @@ export default function GroupsPage() {
         }
         toolbarActions={<ColumnSettings control={groupTable} />}
         {...density}
+        mobileLayout="cards"
         {...(groupsQuery.data
           ? {
               pagination: {

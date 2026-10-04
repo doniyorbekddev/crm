@@ -238,6 +238,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
         </>
       }
       {...density}
+      mobileLayout="cards"
       {...(listQuery.data
         ? {
             pagination: {

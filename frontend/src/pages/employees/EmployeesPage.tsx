@@ -291,6 +291,7 @@ export default function EmployeesPage() {
         }
         toolbarActions={<ColumnSettings control={employeeTable} />}
         {...density}
+        mobileLayout="cards"
         {...(query.data
           ? {
               pagination: {

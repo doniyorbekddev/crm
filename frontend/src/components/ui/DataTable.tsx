@@ -86,6 +86,11 @@ interface DataTableProps<Row> {
   maxHeight?: number | string;
   /** Telefonda jadval o'rniga karta. Berilmasa — jadval gorizontal aylanadi. */
   mobileCard?: (row: Row) => ReactNode;
+  /**
+   * `cards` — telefonda ustunlardan avtomatik karta: birinchi ustun sarlavha, qolganlari "yorliq: qiymat",
+   * `fixed` ustun (amallar) o'ng yuqorida. Har sahifa uchun alohida karta yozish shart emas.
+   */
+  mobileLayout?: 'table' | 'cards';
   className?: string;
 }
 
@@ -128,6 +133,7 @@ export function DataTable<Row>({
   stickyHeader = false,
   maxHeight,
   mobileCard,
+  mobileLayout = 'table',
   className,
 }: DataTableProps<Row>) {
   const desktop = useMediaQuery(DESKTOP_QUERY);
@@ -172,6 +178,37 @@ export function DataTable<Row>({
     body = <TableSkeleton rows={6} columns={Math.min(columnCount, 6)} />;
   } else if (rows.length === 0) {
     body = <EmptyState {...empty} />;
+  } else if (!mobileCard && mobileLayout === 'cards' && !desktop) {
+    const [primary, ...rest] = visibleColumns.filter((column) => !column.fixed);
+    const fixed = visibleColumns.filter((column) => column.fixed);
+    body = (
+      <ul aria-label={label} className={cn('divide-y divide-border transition-opacity', stale && 'opacity-60')}>
+        {rows.map((row) => (
+          <li key={rowKey(row)} className={cn('px-4 py-3', onRowClick && 'cursor-pointer', rowClassName?.(row))} {...(onRowClick ? { onClick: () => onRowClick(row) } : {})}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 text-body">{primary?.cell(row)}</div>
+              {fixed.length > 0 && (
+                <div className="flex shrink-0 items-center gap-1" onClick={(event) => event.stopPropagation()}>
+                  {fixed.map((column) => (
+                    <span key={column.key}>{column.cell(row)}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {rest.length > 0 && (
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                {rest.map((column) => (
+                  <div key={column.key} className="min-w-0" {...(column.stopRowClick ? { onClick: (event) => event.stopPropagation() } : {})}>
+                    <dt className="text-caption text-fg-subtle">{column.label}</dt>
+                    <dd className="mt-0.5 min-w-0 text-body break-words text-fg">{column.cell(row)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
   } else if (mobileCard && !desktop) {
     body = (
       <ul aria-label={label} className="divide-y divide-border">

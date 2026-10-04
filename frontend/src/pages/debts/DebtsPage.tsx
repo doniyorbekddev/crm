@@ -321,6 +321,7 @@ export default function DebtsPage() {
           </>
         }
         {...density}
+        mobileLayout="cards"
         {...(debtsQuery.data
           ? {
               pagination: {

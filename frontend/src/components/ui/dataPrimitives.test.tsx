@@ -335,4 +335,29 @@ describe('DataTable', () => {
     expect(screen.getByRole('table').parentElement).toHaveClass('opacity-60');
     expect(screen.getByRole('button', { name: 'Keyingi sahifa' })).toBeDisabled();
   });
+
+  it('telefon, mobileLayout="cards": ustunlardan avtomatik karta — sarlavha, yorliq-qiymat, amallar', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    const onRowClick = vi.fn();
+    const onEdit = vi.fn();
+    const columns: DataTableColumn<Student>[] = [
+      ...COLUMNS,
+      { key: 'actions', label: 'Amallar', fixed: true, cell: (row) => <button type="button" onClick={() => onEdit(row.id)}>Tahrirlash</button> },
+    ];
+    render(<DataTable label="O‘quvchilar" columns={columns} rows={STUDENTS} rowKey={(row) => row.id} empty={EMPTY} mobileLayout="cards" onRowClick={onRowClick} />);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const cards = within(screen.getByRole('list', { name: 'O‘quvchilar' })).getAllByRole('listitem');
+    expect(cards).toHaveLength(3);
+    // Yashirin ustun kartada ham yo'q; ko'rinadigan ustun yorlig'i bilan
+    expect(within(cards[1]!).getByText('Qarz')).toBeInTheDocument();
+    expect(within(cards[1]!).getByText('500000')).toBeInTheDocument();
+    expect(within(cards[1]!).queryByText('Telefon')).not.toBeInTheDocument();
+    // Amal tugmasi qator bosilishini chaqirmaydi
+    await userEvent.click(within(cards[1]!).getByRole('button', { name: 'Tahrirlash' }));
+    expect(onEdit).toHaveBeenCalledWith('s2');
+    expect(onRowClick).not.toHaveBeenCalled();
+    await userEvent.click(within(cards[1]!).getByText('Vali Aliyev'));
+    expect(onRowClick).toHaveBeenCalledWith(STUDENTS[1]);
+    vi.unstubAllGlobals();
+  });
 });

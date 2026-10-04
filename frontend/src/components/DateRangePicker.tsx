@@ -30,7 +30,7 @@ interface DateRangePickerProps {
 /** Bugun, kecha, shu/o‘tgan hafta, shu/o‘tgan oy, chorak, yil yoki ixtiyoriy oraliq */
 export function DateRangePicker({ value, onChange, presets = STANDARD_PRESETS, className }: DateRangePickerProps) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+    <div className={cn('flex shrink-0 flex-wrap items-center gap-2', className)}>
       <Select
         value={value.preset}
         onChange={(event) => onChange({ ...value, preset: event.target.value as DateRangePreset })}

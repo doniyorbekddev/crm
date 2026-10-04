@@ -342,6 +342,7 @@ export default function PaymentsPage() {
           </>
         }
         {...density}
+        mobileLayout="cards"
         {...(paymentsQuery.data
           ? {
               pagination: {

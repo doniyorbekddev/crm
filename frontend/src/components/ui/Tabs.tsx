@@ -49,7 +49,8 @@ export function Tabs({ value, onValueChange, variant = 'underline', panels = tru
   const baseId = useId();
   return (
     <TabsContext.Provider value={{ value, onValueChange, baseId, variant, panels }}>
-      <div className={className}>{children}</div>
+      {/* `min-w-0`: flex qator ichida torayib, tablar o'z ichida aylansin (sahifani kengaytirmasin) */}
+      <div className={cn('max-w-full min-w-0', className)}>{children}</div>
     </TabsContext.Provider>
   );
 }

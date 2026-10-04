@@ -405,6 +405,7 @@ export default function StudentsPage() {
           </>
         }
         {...density}
+        mobileLayout="cards"
         {...(studentsQuery.data
           ? {
               pagination: {
