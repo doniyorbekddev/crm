@@ -83,7 +83,7 @@ export function LeadFollowUps({ leadId, canCreate, canUpdate, canDelete }: LeadF
               key={followUp.id}
               className={cn(
                 'rounded-lg border p-3',
-                followUp.state === 'OVERDUE' ? 'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/30' : 'border-border bg-surface-muted/40',
+                followUp.state === 'OVERDUE' ? 'border-danger-border bg-danger-subtle' : 'border-border bg-surface-muted/40',
               )}
             >
               <div className="flex items-start justify-between gap-3">

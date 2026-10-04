@@ -24,16 +24,16 @@ import type { LeadActivityType } from '@/types/lead';
 import { formatDateTime } from '@/utils/format';
 
 const ACTIVITY_ICONS: Record<LeadActivityType, { icon: LucideIcon; className: string }> = {
-  CREATED: { icon: Plus, className: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300' },
-  UPDATED: { icon: Pencil, className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' },
-  STATUS_CHANGED: { icon: ArrowRightLeft, className: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300' },
-  ASSIGNED: { icon: UserCheck, className: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-300' },
-  NOTE_ADDED: { icon: StickyNote, className: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300' },
-  CALL_LOGGED: { icon: PhoneCall, className: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300' },
-  FOLLOW_UP_CREATED: { icon: CalendarPlus, className: 'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-300' },
-  FOLLOW_UP_COMPLETED: { icon: CalendarCheck, className: 'bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-300' },
-  DOCUMENT_UPLOADED: { icon: Paperclip, className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' },
-  CONVERTED_TO_STUDENT: { icon: GraduationCap, className: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300' },
+  CREATED: { icon: Plus, className: 'bg-primary-subtle text-primary' },
+  UPDATED: { icon: Pencil, className: 'bg-surface-muted text-fg-muted' },
+  STATUS_CHANGED: { icon: ArrowRightLeft, className: 'bg-accent-subtle text-accent' },
+  ASSIGNED: { icon: UserCheck, className: 'bg-info-subtle text-info' },
+  NOTE_ADDED: { icon: StickyNote, className: 'bg-warning-subtle text-warning' },
+  CALL_LOGGED: { icon: PhoneCall, className: 'bg-success-subtle text-success' },
+  FOLLOW_UP_CREATED: { icon: CalendarPlus, className: 'bg-warning-subtle text-warning' },
+  FOLLOW_UP_COMPLETED: { icon: CalendarCheck, className: 'bg-success-subtle text-success' },
+  DOCUMENT_UPLOADED: { icon: Paperclip, className: 'bg-surface-muted text-fg-muted' },
+  CONVERTED_TO_STUDENT: { icon: GraduationCap, className: 'bg-success-subtle text-success' },
 };
 
 export function LeadTimeline({ leadId }: { leadId: string }) {

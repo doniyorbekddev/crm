@@ -154,7 +154,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
       label: 'Keyingi aloqa',
       tdClassName: (lead: LeadTableRow) => {
         const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;
-        return cn('whitespace-nowrap', overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg-muted');
+        return cn('whitespace-nowrap', overdue ? 'font-medium text-danger' : 'text-fg-muted');
       },
       cell: (lead: LeadTableRow) => {
         const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;

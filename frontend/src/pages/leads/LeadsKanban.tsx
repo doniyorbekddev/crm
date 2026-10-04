@@ -33,10 +33,10 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LostReasonModal } from './LostReasonModal';
 
 const PRIORITY_DOTS = {
-  LOW: 'bg-slate-300 dark:bg-slate-600',
+  LOW: 'bg-chart-neutral',
   MEDIUM: 'bg-brand-400',
-  HIGH: 'bg-amber-500',
-  URGENT: 'bg-red-500',
+  HIGH: 'bg-chart-warning',
+  URGENT: 'bg-chart-negative',
 } as const;
 
 function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: number; overlay?: boolean }) {
@@ -74,7 +74,7 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
       )}
       <div className="mt-3 flex items-center justify-between gap-2">
         {lead.nextFollowUpAt ? (
-          <span className={cn('inline-flex items-center gap-1 text-xs', overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+          <span className={cn('inline-flex items-center gap-1 text-xs', overdue ? 'font-medium text-danger' : 'text-fg-muted')}>
             <Clock className="size-3.5" aria-hidden />
             {formatDateTime(lead.nextFollowUpAt)}
           </span>
@@ -117,7 +117,7 @@ function KanbanColumnView({ column, canDrop, children }: { column: LeadKanbanCol
       aria-label={LEAD_STATUS_LABELS[column.status]}
       className={cn(
         'flex w-72 shrink-0 flex-col rounded-xl border border-border bg-surface-muted/60 transition-colors',
-        isOver && 'border-brand-400 bg-brand-50/70 dark:bg-brand-950/40',
+        isOver && 'border-brand-400 bg-primary-subtle',
       )}
     >
       <header className="flex items-center justify-between gap-2 px-3 py-2.5">

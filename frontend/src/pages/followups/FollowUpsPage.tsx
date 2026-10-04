@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarCheck, Check, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -97,41 +98,22 @@ export default function FollowUpsPage() {
       />
 
       <Card>
-        <div className="-mx-1 flex gap-1 overflow-x-auto border-b border-border p-3">
-          {SCOPES.map((item) => {
-            const active = scope === item;
-            const count = counts[item];
-            return (
-              <button
-                key={item}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => {
-                  setScope(item);
-                  setPage(1);
-                }}
-                className={cn(
-                  'inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                  active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                )}
-              >
+        <Tabs
+          value={scope}
+          onValueChange={(value) => {
+            setScope(value as typeof scope);
+            setPage(1);
+          }}
+          panels={false}
+        >
+          <TabList label="Follow-up holati" className="px-4">
+            {SCOPES.map((item) => (
+              <Tab key={item} value={item} {...(counts[item] !== undefined ? { count: counts[item] } : {})} {...(item === 'overdue' ? { countTone: 'danger' as const } : {})}>
                 {FOLLOW_UP_SCOPE_LABELS[item]}
-                {count !== undefined && (
-                  <span
-                    className={cn(
-                      'rounded-full px-1.5 text-xs tabular-nums',
-                      item === 'overdue' && count > 0 && !active && 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100',
-                      active ? 'bg-brand-100 dark:bg-brand-900' : 'bg-surface-muted',
-                    )}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
 
         {listQuery.isPending ? (
           <TableSkeleton rows={6} columns={5} />
@@ -162,7 +144,7 @@ export default function FollowUpsPage() {
                 <TBody>
                   {listQuery.data.items.map((followUp) => (
                     <TR key={followUp.id}>
-                      <TD className={cn('whitespace-nowrap', followUp.state === 'OVERDUE' ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+                      <TD className={cn('whitespace-nowrap', followUp.state === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg-muted')}>
                         {formatDateTime(followUp.dueAt)}
                       </TD>
                       <TD>
@@ -177,7 +159,7 @@ export default function FollowUpsPage() {
                         {followUp.notes && <p className="mt-0.5 max-w-md truncate text-xs text-fg-muted">{followUp.notes}</p>}
                       </TD>
                       <TD>
-                        <Link to={`/leads/${followUp.leadId}`} className="font-medium text-brand-600 hover:underline dark:text-brand-300">
+                        <Link to={`/leads/${followUp.leadId}`} className="font-medium text-primary hover:underline">
                           {leadFullName(followUp.lead)}
                         </Link>
                         <p className="text-xs text-fg-muted">

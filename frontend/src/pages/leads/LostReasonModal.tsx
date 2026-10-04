@@ -45,7 +45,7 @@ export function LostReasonModal({ leadName, loading = false, onClose, onConfirm 
             className={cn(
               'rounded-full border px-3 py-1 text-xs transition-colors',
               reason === item
-                ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
+                ? 'border-danger-border bg-danger-subtle text-danger'
                 : 'border-border text-fg-muted hover:bg-surface-muted hover:text-fg',
             )}
           >

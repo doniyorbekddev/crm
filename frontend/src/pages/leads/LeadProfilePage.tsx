@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, AtSign, GraduationCap, Mail, Pencil, Phone, SearchX, Send, Trash2, UserCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -138,7 +139,7 @@ export default function LeadProfilePage() {
         title="Lead topilmadi"
         description="Lead o‘chirilgan yoki sizga ko‘rinmaydi"
         action={
-          <Link to="/leads" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-300">
+          <Link to="/leads" className="text-sm font-medium text-primary hover:underline">
             Leadlar ro‘yxatiga qaytish
           </Link>
         }
@@ -232,7 +233,7 @@ export default function LeadProfilePage() {
             )}
             {canDelete && (
               <Button variant="ghost" size="icon" aria-label="Leadni o‘chirish" onClick={() => setDialog('delete')}>
-                <Trash2 className="size-4 text-red-600" aria-hidden />
+                <Trash2 className="size-4 text-danger" aria-hidden />
               </Button>
             )}
           </div>
@@ -254,7 +255,7 @@ export default function LeadProfilePage() {
                 <InfoRow label="Manba">{lead.source.name}</InfoRow>
                 <InfoRow label="Keyingi aloqa">
                   {lead.nextFollowUpAt ? (
-                    <span className={cn(overdue && 'font-medium text-red-600 dark:text-red-400')}>
+                    <span className={cn(overdue && 'font-medium text-danger')}>
                       {formatDateTime(lead.nextFollowUpAt)}
                       {overdue && ' — kechikkan'}
                     </span>
@@ -319,33 +320,24 @@ export default function LeadProfilePage() {
         </div>
 
         <Card className="lg:col-span-2">
-          <div role="tablist" aria-label="Lead tarixi" className="flex gap-1 border-b border-border px-3 pt-3">
-            {(
-              [
-                { value: 'timeline', label: 'Timeline', count: lead.counts.activities, visible: true },
-                { value: 'calls', label: 'Qo‘ng‘iroqlar', count: lead.counts.calls, visible: canCallView },
-                { value: 'followups', label: 'Follow-up', count: lead.counts.followUps, visible: canFollowUpView },
-                { value: 'notes', label: 'Izohlar', count: lead.counts.notes, visible: true },
-              ] as const
-            )
-              .filter((item) => item.visible)
-              .map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                role="tab"
-                aria-selected={tab === item.value}
-                onClick={() => setTab(item.value)}
-                className={cn(
-                  '-mb-px inline-flex items-center gap-2 border-b-2 px-3 pb-3 text-sm font-medium transition-colors',
-                  tab === item.value ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-fg-muted hover:text-fg',
-                )}
-              >
-                {item.label}
-                <span className="rounded-full bg-surface-muted px-1.5 text-xs tabular-nums">{item.count}</span>
-              </button>
-            ))}
-          </div>
+          <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} panels={false}>
+            <TabList label="Lead tarixi" className="px-4">
+              {(
+                [
+                  { value: 'timeline', label: 'Timeline', count: lead.counts.activities, visible: true },
+                  { value: 'calls', label: 'Qo‘ng‘iroqlar', count: lead.counts.calls, visible: canCallView },
+                  { value: 'followups', label: 'Follow-up', count: lead.counts.followUps, visible: canFollowUpView },
+                  { value: 'notes', label: 'Izohlar', count: lead.counts.notes, visible: true },
+                ] as const
+              )
+                .filter((item) => item.visible)
+                .map((item) => (
+                  <Tab key={item.value} value={item.value} count={item.count}>
+                    {item.label}
+                  </Tab>
+                ))}
+            </TabList>
+          </Tabs>
           {tab === 'timeline' && <LeadTimeline leadId={lead.id} />}
           {tab === 'calls' && (
             <LeadCalls leadId={lead.id} canCreate={canCallCreate} canUpdate={canCallUpdate} canDelete={canCallDelete} />

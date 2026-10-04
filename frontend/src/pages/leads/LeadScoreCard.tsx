@@ -46,7 +46,7 @@ export function LeadScoreCard({ leadId }: { leadId: string }) {
               <div
                 className={cn(
                   'h-full rounded-full transition-[width]',
-                  scoreQuery.data.score >= 70 ? 'bg-emerald-500' : scoreQuery.data.score >= 40 ? 'bg-amber-500' : 'bg-slate-400',
+                  scoreQuery.data.score >= 70 ? 'bg-chart-positive' : scoreQuery.data.score >= 40 ? 'bg-chart-warning' : 'bg-chart-neutral',
                 )}
                 style={{ width: `${scoreQuery.data.score}%` }}
               />
@@ -63,7 +63,7 @@ export function LeadScoreCard({ leadId }: { leadId: string }) {
                   <span
                     className={cn(
                       'shrink-0 font-medium tabular-nums',
-                      factor.points > 0 ? 'text-emerald-600 dark:text-emerald-400' : factor.points < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-subtle',
+                      factor.points > 0 ? 'text-success' : factor.points < 0 ? 'text-danger' : 'text-fg-subtle',
                     )}
                   >
                     {factor.points > 0 ? `+${factor.points}` : factor.points}

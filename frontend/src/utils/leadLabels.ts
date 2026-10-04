@@ -40,15 +40,15 @@ export const LEAD_STATUS_TONES: Record<LeadStatus, BadgeTone> = {
 
 /** Kanban ustunlari va badge’lardagi rangli nuqta */
 export const LEAD_STATUS_DOTS: Record<LeadStatus, string> = {
-  NEW: 'bg-sky-500',
-  CONTACTED: 'bg-indigo-500',
-  CALLBACK: 'bg-amber-500',
-  INTERESTED: 'bg-violet-500',
-  TRIAL_BOOKED: 'bg-orange-500',
-  TRIAL_ATTENDED: 'bg-teal-500',
-  NEGOTIATION: 'bg-blue-600',
-  WON: 'bg-emerald-500',
-  LOST: 'bg-red-500',
+  NEW: 'bg-chart-brand',
+  CONTACTED: 'bg-chart-accent',
+  CALLBACK: 'bg-chart-warning',
+  INTERESTED: 'bg-chart-accent',
+  TRIAL_BOOKED: 'bg-chart-warning',
+  TRIAL_ATTENDED: 'bg-chart-positive',
+  NEGOTIATION: 'bg-chart-brand',
+  WON: 'bg-chart-positive',
+  LOST: 'bg-chart-negative',
 };
 
 export const LEAD_PRIORITY_ORDER: readonly LeadPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];

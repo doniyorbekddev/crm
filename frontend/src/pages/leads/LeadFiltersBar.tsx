@@ -1,6 +1,5 @@
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { SearchInput } from '@/components/ui/SearchInput';
+import { Card } from '@/components/ui/Card';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
 import { Select } from '@/components/ui/Select';
 import type { LeadFilters, LeadFollowUpFilter, LeadFormLookups, LeadPriority, LeadTemperature } from '@/types/lead';
 import {
@@ -59,78 +58,84 @@ interface LeadFiltersBarProps {
 
 export function LeadFiltersBar({ value, onChange, lookups, canViewAll }: LeadFiltersBarProps) {
   const set = <K extends keyof LeadFilterState>(key: K, next: LeadFilterState[K]) => onChange({ ...value, [key]: next });
-  const hasFilters = Object.values(value).some((item) => item !== '');
+  const { search, ...rest } = value;
+  const activeCount = Object.values(rest).filter((item) => item !== '').length;
 
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-xs lg:flex-row lg:items-center">
-      <SearchInput
-        value={value.search}
-        onChange={(next) => set('search', next)}
-        placeholder="Ism, telefon, telegram yoki L-000123"
-        className="lg:max-w-xs"
-      />
-      <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-        <Select value={value.sourceId} onChange={(event) => set('sourceId', event.target.value)} aria-label="Manba">
-          <option value="">Barcha manbalar</option>
-          {lookups?.sources.map((source) => (
-            <option key={source.id} value={source.id}>
-              {source.name}
-            </option>
-          ))}
-        </Select>
-        <Select value={value.courseId} onChange={(event) => set('courseId', event.target.value)} aria-label="Kurs">
-          <option value="">Barcha kurslar</option>
-          {lookups?.courses.map((course) => (
-            <option key={course.id} value={course.id}>
-              {course.name}
-            </option>
-          ))}
-        </Select>
-        <Select value={value.assignedTo} onChange={(event) => set('assignedTo', event.target.value)} aria-label="Mas’ul xodim">
-          <option value="">Barcha mas’ullar</option>
-          <option value="me">Menga biriktirilgan</option>
-          <option value="unassigned">Biriktirilmagan</option>
-          {canViewAll &&
-            lookups?.managers.map((manager) => (
-              <option key={manager.id} value={manager.id}>
-                {manager.firstName} {manager.lastName}
+    <Card className="mb-4 px-4 py-3">
+      <FilterBar
+        search={{ value: search, onChange: (next) => set('search', next), placeholder: 'Ism, telefon, telegram yoki L-000123' }}
+        activeCount={activeCount}
+        onClear={() => onChange({ ...EMPTY_LEAD_FILTERS, search })}
+      >
+        <FilterField className="sm:w-44">
+          <Select value={value.sourceId} onChange={(event) => set('sourceId', event.target.value)} aria-label="Manba">
+            <option value="">Barcha manbalar</option>
+            {lookups?.sources.map((source) => (
+              <option key={source.id} value={source.id}>
+                {source.name}
               </option>
             ))}
-        </Select>
-        <Select value={value.priority} onChange={(event) => set('priority', event.target.value as LeadFilterState['priority'])} aria-label="Muhimlik">
-          <option value="">Barcha muhimlik</option>
-          {LEAD_PRIORITY_ORDER.map((priority) => (
-            <option key={priority} value={priority}>
-              {LEAD_PRIORITY_LABELS[priority]}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={value.temperature}
-          onChange={(event) => set('temperature', event.target.value as LeadFilterState['temperature'])}
-          aria-label="Qizish darajasi"
-        >
-          <option value="">Barcha darajalar</option>
-          {LEAD_TEMPERATURE_ORDER.map((temperature) => (
-            <option key={temperature} value={temperature}>
-              {LEAD_TEMPERATURE_LABELS[temperature]}
-            </option>
-          ))}
-        </Select>
-        <Select value={value.followUp} onChange={(event) => set('followUp', event.target.value as LeadFilterState['followUp'])} aria-label="Keyingi aloqa">
-          <option value="">Keyingi aloqa: barchasi</option>
-          {FOLLOW_UP_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-      </div>
-      {hasFilters && (
-        <Button variant="ghost" size="sm" leftIcon={<X className="size-4" aria-hidden />} onClick={() => onChange(EMPTY_LEAD_FILTERS)}>
-          Tozalash
-        </Button>
-      )}
-    </div>
+          </Select>
+        </FilterField>
+        <FilterField className="sm:w-44">
+          <Select value={value.courseId} onChange={(event) => set('courseId', event.target.value)} aria-label="Kurs">
+            <option value="">Barcha kurslar</option>
+            {lookups?.courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.name}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+        <FilterField className="sm:w-44">
+          <Select value={value.assignedTo} onChange={(event) => set('assignedTo', event.target.value)} aria-label="Mas’ul xodim">
+            <option value="">Barcha mas’ullar</option>
+            <option value="me">Menga biriktirilgan</option>
+            <option value="unassigned">Biriktirilmagan</option>
+            {canViewAll &&
+              lookups?.managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.firstName} {manager.lastName}
+                </option>
+              ))}
+          </Select>
+        </FilterField>
+        <FilterField className="sm:w-44">
+          <Select value={value.priority} onChange={(event) => set('priority', event.target.value as LeadFilterState['priority'])} aria-label="Muhimlik">
+            <option value="">Barcha muhimlik</option>
+            {LEAD_PRIORITY_ORDER.map((priority) => (
+              <option key={priority} value={priority}>
+                {LEAD_PRIORITY_LABELS[priority]}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+        <FilterField className="sm:w-44">
+          <Select
+            value={value.temperature}
+            onChange={(event) => set('temperature', event.target.value as LeadFilterState['temperature'])}
+            aria-label="Qizish darajasi"
+          >
+            <option value="">Barcha darajalar</option>
+            {LEAD_TEMPERATURE_ORDER.map((temperature) => (
+              <option key={temperature} value={temperature}>
+                {LEAD_TEMPERATURE_LABELS[temperature]}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+        <FilterField className="sm:w-44">
+          <Select value={value.followUp} onChange={(event) => set('followUp', event.target.value as LeadFilterState['followUp'])} aria-label="Keyingi aloqa">
+            <option value="">Keyingi aloqa: barchasi</option>
+            {FOLLOW_UP_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+      </FilterBar>
+    </Card>
   );
 }

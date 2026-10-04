@@ -119,7 +119,7 @@ export function LeadNotes({ leadId, canAdd, canDeleteAny, currentUserId }: LeadN
                       type="button"
                       onClick={() => setDeletingId(note.id)}
                       aria-label="Izohni o‘chirish"
-                      className="grid size-7 shrink-0 place-items-center rounded-md text-fg-subtle hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                      className="grid size-7 shrink-0 place-items-center rounded-md text-fg-subtle hover:bg-danger-subtle hover:text-danger"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>

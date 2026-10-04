@@ -86,7 +86,8 @@
 - Guruh → dars → ro'yxat; bitta bosishda status, ommaviy belgilash, klaviatura bilan ishlash, mobil'da qulay.
 - Mavjud mobil E2E testi saqlanadi.
 
-## PHASE 9 — Sotuv / Leadlar (§19)
+## PHASE 9 — Sotuv / Leadlar (§19) ✅ (2026-10-05)
+> Bajarildi: lead filtrlari FilterBar'da (telefonda panel, faol filtrlar soni), lead tarixi va follow-up tablari yagona Tabs'da (sanoq, kechikkanlar qizil), ranglar tokenlarda (kanban ustunlari, vaqt chizig'i, ball). Lead profili sarlavhasi tuzilishi o'zgarmadi (ko'p amalli, E2E bilan zich bog'langan).
 - Jadval va kanban (bor) yangi kartalar bilan; lead tafsiloti drawer + sahifa; `Timeline` (qo'ng'iroq, follow-up,
   sinov darsi, status o'zgarishi). Bosqichlar — tizimdagi mavjud statuslar.
 
