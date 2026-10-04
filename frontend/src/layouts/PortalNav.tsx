@@ -35,7 +35,7 @@ const SECONDARY = PORTAL_NAV_ITEMS.filter((item) => !item.primary);
 export function PortalTabs({ className }: { className?: string }) {
   return (
     <nav aria-label="Kabinet bo‘limlari" className={cn('hidden sm:block print:hidden', className)}>
-      <ul className="flex gap-1 overflow-x-auto">
+      <ul className="flex gap-5 overflow-x-auto">
         {PORTAL_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -43,9 +43,8 @@ export function PortalTabs({ className }: { className?: string }) {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                  'outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-                  isActive ? 'bg-brand-600 text-white' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                  'focus-ring inline-flex h-10 items-center gap-2 border-b-2 px-0.5 text-body font-medium whitespace-nowrap transition-colors',
+                  isActive ? 'border-brand-600 text-fg' : 'border-transparent text-fg-muted hover:border-border hover:text-fg',
                 )
               }
             >
@@ -61,8 +60,8 @@ export function PortalTabs({ className }: { className?: string }) {
 
 const bottomLinkClass = (isActive: boolean) =>
   cn(
-    'flex w-full flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-    isActive ? 'text-brand-600 dark:text-brand-300' : 'text-fg-muted',
+    'focus-ring flex w-full flex-col items-center gap-0.5 px-1 py-2 text-overline tracking-normal transition-colors',
+    isActive ? 'text-primary' : 'text-fg-muted',
   );
 
 /** Telefon: pastki panel — 4 ta asosiy bo‘lim va "Yana" menyusi (bosh barmoq yetadigan joyda) */
@@ -91,18 +90,18 @@ export function PortalBottomBar() {
   return (
     <nav
       aria-label="Kabinet bo‘limlari"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden print:hidden"
+      className="fixed inset-x-0 bottom-0 z-header border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden print:hidden"
     >
       <div ref={containerRef} className="relative">
         {open && (
-          <ul id="portal-more-menu" className="absolute right-2 bottom-full mb-2 w-52 overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-lg">
+          <ul id="portal-more-menu" className="absolute right-2 bottom-full mb-2 w-52 animate-fade-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md">
             {SECONDARY.map(({ to, label, icon: Icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
-                    cn('flex items-center gap-3 px-4 py-2.5 text-sm', isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg hover:bg-surface-muted')
+                    cn('flex items-center gap-3 px-4 py-2.5 text-body outline-none transition-colors focus-visible:bg-surface-muted', isActive ? 'bg-primary-subtle text-primary' : 'text-fg hover:bg-surface-muted')
                   }
                 >
                   <Icon className="size-4" aria-hidden />

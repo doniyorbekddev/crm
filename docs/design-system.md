@@ -203,6 +203,19 @@ izoh, amal; `size="sm"` — karta ichida); **xato** — `ErrorState` (xabar + "Q
 
 Modal — qisqa forma va tasdiq. Drawer — tezkor ko'rish/tahrir, sahifa konteksti kerak bo'lganda. Murakkab ma'lumot — to'liq sahifa.
 
+## 8.1. Ilova qobig'i (PHASE 2)
+
+| Qism | Qoida |
+|---|---|
+| **Sidebar** (`layouts/Sidebar.tsx`) | 240px; yig'ilganda 72px (ikonka + maslahat); telefonda drawer (Esc, fon bosilishi). Bandlar ruxsat bo'yicha |
+| **Navigatsiya** (`layouts/navigation.ts`) | 8 guruh: Umumiy · Sotuv · O'quv jarayoni · Moliya · Odamlar · Analitika · Avtomatlashtirish · Tizim. Guruh yig'iladi (tanlov saqlanadi); joriy sahifa guruhi doim ochiq. Yangi sahifa — tegishli guruhga bitta qator (`id` barqaror kalit) |
+| **Topbar** | 56px, `z-header`: menyu tugmasi, yo'l (`ShellBreadcrumb`), qidiruv, filial, bildirishnomalar, mavzu, foydalanuvchi |
+| **Yo'l** | Menyu tuzilmasidan avtomatik: "Guruh › Sahifa". Ichki sahifada sahifa nomi ro'yxatga havola. Sahifa o'z yo'lini bermoqchi bo'lsa — `PageHeader breadcrumb={<Breadcrumb items={…} />}` |
+| **Global qidiruv** | `Ctrl/Cmd+K`; `z-command`; natijalar toifa bo'yicha (soni bilan), ↑/↓/Enter, Esc; fokus oynada, yopilganda qaytadi |
+| **Bildirishnomalar** | Qo'ng'iroqcha → `Drawer`: Hammasi / O'qilmagan / Muhim (API filtrlari), "Hammasini o'qish", "Barchasini ko'rish" |
+| **Kabinet** (`PortalLayout`) | 56px sarlavha, ostida chiziqli bo'limlar (kompyuter), pastki panel + "Yana" (telefon) |
+| **Mavzu** | Kompyuterda yuqori panelda; telefonda foydalanuvchi menyusi ichida |
+
 ## 9. Ikonkalar
 
 Faqat `lucide-react`. O'lchamlar: 16 (`size-4`, standart), 18, 20 (`size-5`), 24. Bezak ikonka — `aria-hidden`.

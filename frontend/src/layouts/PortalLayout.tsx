@@ -31,7 +31,7 @@ export function PortalLayout() {
   const meQuery = useQuery({ queryKey: queryKeys.portal.me, queryFn: () => portalService.me() });
 
   return (
-    <div className="min-h-dvh bg-app">
+    <div className="min-h-dvh bg-bg">
       <PortalHeader />
       <main className="mx-auto max-w-5xl px-4 py-6 pb-24 sm:pb-6">
         {meQuery.isPending ? (
@@ -64,13 +64,13 @@ function PortalHeader() {
   const logout = useLogout();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur print:hidden">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+    <header className="sticky top-0 z-header border-b border-border bg-surface/90 backdrop-blur print:hidden">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
         <BrandMark />
         <div className="flex items-center gap-2">
           <NotificationBell listPath="/portal/notifications" />
           <ThemeToggle className="hidden sm:inline-flex" />
-          <span className="hidden text-sm text-fg-muted md:inline">
+          <span className="hidden text-body text-fg-muted md:inline">
             {user?.firstName} {user?.lastName}
           </span>
           <Button variant="secondary" onClick={() => logout.mutate()} loading={logout.isPending}>
@@ -79,7 +79,7 @@ function PortalHeader() {
         </div>
       </div>
       <div className="mx-auto max-w-5xl px-4">
-        <PortalTabs className="pb-2" />
+        <PortalTabs />
       </div>
     </header>
   );

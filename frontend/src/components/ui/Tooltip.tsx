@@ -19,6 +19,8 @@ interface TooltipProps {
    */
   describe?: boolean;
   className?: string;
+  /** O'rovchi element klasslari (masalan to'liq kenglikdagi havola uchun `flex`) */
+  wrapperClassName?: string;
 }
 
 const GAP = 6;
@@ -28,7 +30,7 @@ const EDGE = 8;
  * Maslahat (tooltip): sichqoncha ustiga kelganda **va klaviatura fokusida** ochiladi, Esc bilan yopiladi.
  * `title="..."` o'rniga — u klaviaturada va sensorli ekranda ko'rinmaydi.
  */
-export function Tooltip({ content, children, side = 'top', delay = 300, disabled = false, describe = true, className }: TooltipProps) {
+export function Tooltip({ content, children, side = 'top', delay = 300, disabled = false, describe = true, className, wrapperClassName = 'inline-flex' }: TooltipProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [style, setStyle] = useState<CSSProperties>({ visibility: 'hidden', top: 0, left: 0 });
@@ -85,7 +87,7 @@ export function Tooltip({ content, children, side = 'top', delay = 300, disabled
   return (
     <span
       ref={wrapperRef}
-      className="inline-flex"
+      className={wrapperClassName}
       onMouseEnter={() => show(delay)}
       onMouseLeave={hide}
       onFocus={() => show(0)}

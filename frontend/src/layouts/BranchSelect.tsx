@@ -31,7 +31,7 @@ export function BranchSelect() {
         value={branchId ?? ''}
         onChange={(event) => setBranchId(event.target.value || null)}
         aria-label="Filial"
-        className="h-9 rounded-lg border border-border bg-surface px-2 text-sm text-fg outline-none focus:border-brand-500"
+        className="h-9 max-w-44 rounded-control border border-border bg-surface px-2 text-body text-fg outline-none transition-colors hover:border-fg-subtle/60 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/20"
       >
         <option value="">Barcha filiallar</option>
         {branches.map((branch) => (

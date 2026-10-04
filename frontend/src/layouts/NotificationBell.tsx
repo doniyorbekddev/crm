@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Bell, BellOff, CheckCheck } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/Button';
+import { Drawer } from '@/components/ui/Drawer';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -18,14 +24,30 @@ import {
 
 /** O‘qilmaganlar soni shu oraliqda yangilanadi */
 const POLL_MS = 60_000;
-const PREVIEW_PARAMS: NotificationListParams = { page: 1, limit: 8 };
 
-/** `listPath` — "Barchasini ko‘rish" havolasi (kabinetda o‘z sahifasi bor) */
+/** Paneldagi ko'rinishlar — mavjud API filtrlari (`unreadOnly`, `priority`) */
+type Filter = 'all' | 'unread' | 'high';
+const FILTER_PARAMS: Record<Filter, NotificationListParams> = {
+  all: { page: 1, limit: 20 },
+  unread: { page: 1, limit: 20, unreadOnly: 'true' },
+  high: { page: 1, limit: 20, priority: 'HIGH' },
+};
+const EMPTY_TEXT: Record<Filter, { title: string; description: string }> = {
+  all: { title: 'Bildirishnoma yo‘q', description: 'Yangi voqealar shu yerda ko‘rinadi' },
+  unread: { title: 'Hammasi o‘qilgan', description: 'O‘qilmagan bildirishnoma qolmadi' },
+  high: { title: 'Muhim bildirishnoma yo‘q', description: 'Shoshilinch e’tibor talab qiladigan xabar yo‘q' },
+};
+
+/**
+ * Qo'ng'iroqcha va bildirishnomalar paneli (yon panel; telefonda pastdan).
+ * `listPath` — "Barchasini ko‘rish" havolasi (kabinetda o‘z sahifasi bor).
+ */
 export function NotificationBell({ listPath = '/notifications' }: { listPath?: string } = {}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+  const params = FILTER_PARAMS[filter];
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.notifications.summary,
@@ -35,26 +57,10 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
   });
 
   const listQuery = useQuery({
-    queryKey: queryKeys.notifications.list(PREVIEW_PARAMS),
-    queryFn: () => notificationsService.list(PREVIEW_PARAMS),
+    queryKey: queryKeys.notifications.list(params),
+    queryFn: () => notificationsService.list(params),
     enabled: open,
   });
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointerDown = (event: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
@@ -88,25 +94,25 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
   const unreadHigh = summaryQuery.data?.unreadHigh ?? 0;
 
   return (
-    <div ref={containerRef} className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-haspopup="menu"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={
           unread > 0
             ? `Bildirishnomalar (${unread} ta o‘qilmagan${unreadHigh > 0 ? `, ${unreadHigh} tasi muhim` : ''})`
             : 'Bildirishnomalar'
         }
-        className="relative grid size-9 place-items-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+        className="focus-ring relative grid size-9 shrink-0 place-items-center rounded-chip text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg"
       >
         <Bell className="size-5" aria-hidden />
         {unread > 0 && (
           <span
             className={cn(
-              'absolute top-1 right-1 grid min-w-4 place-items-center rounded-full px-1 text-[10px] leading-4 font-semibold text-white',
-              unreadHigh > 0 ? 'bg-red-600 ring-2 ring-red-300 dark:ring-red-900' : 'bg-brand-600',
+              'absolute top-0.5 right-0.5 grid min-w-4 place-items-center rounded-full px-1 text-overline leading-4 tracking-normal text-white ring-2 ring-surface',
+              unreadHigh > 0 ? 'bg-danger-solid' : 'bg-brand-600',
             )}
           >
             {unread > 99 ? '99+' : unread}
@@ -114,85 +120,103 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
         )}
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-surface shadow-lg sm:w-96"
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-            <p className="text-sm font-medium text-fg">
-              Bildirishnomalar
-              {unread > 0 && <span className="ml-1.5 text-xs text-fg-muted">({unread} ta yangi)</span>}
-            </p>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={() => markAllRead.mutate()}
-                disabled={markAllRead.isPending}
-                className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline disabled:opacity-60 dark:text-brand-300"
-              >
-                <CheckCheck className="size-3.5" aria-hidden />
-                Hammasini o‘qish
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-96 overflow-y-auto">
-            {listQuery.isPending ? (
-              <p className="px-4 py-6 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
-            ) : listQuery.isError ? (
-              <p className="px-4 py-6 text-center text-sm text-red-600 dark:text-red-400">{getErrorMessage(listQuery.error)}</p>
-            ) : listQuery.data.items.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-fg-muted">Bildirishnoma yo‘q</p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {listQuery.data.items.map((item) => {
-                  const Icon = NOTIFICATION_TYPE_ICONS[item.type];
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => openNotification(item)}
-                        className={cn(
-                          'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-muted',
-                          !item.isRead && 'bg-brand-50/40 dark:bg-brand-950/30',
-                        )}
-                      >
-                        <span className={cn('mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg', NOTIFICATION_TYPE_CLASSES[item.type])}>
-                          <Icon className="size-4" aria-hidden />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2">
-                            <span className={cn('truncate text-sm', item.isRead ? 'text-fg' : 'font-semibold text-fg')}>{item.title}</span>
-                            {item.priority === 'HIGH' && (
-                              <span className="shrink-0 rounded px-1 text-[10px] font-medium text-red-700 ring-1 ring-red-300 dark:text-red-300 dark:ring-red-800">
-                                muhim
-                              </span>
-                            )}
-                            {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
-                          </span>
-                          <span className="mt-0.5 block line-clamp-2 text-xs text-fg-muted">{item.message}</span>
-                          <span className="mt-1 block text-[11px] text-fg-subtle">
-                            {NOTIFICATION_TYPE_LABELS[item.type]} · {formatRelativeTime(item.createdAt)}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
+      <Drawer
+        open={open}
+        title="Bildirishnomalar"
+        description={unread > 0 ? `${unread} ta o‘qilmagan${unreadHigh > 0 ? `, ${unreadHigh} tasi muhim` : ''}` : 'Hammasi o‘qilgan'}
+        onClose={() => setOpen(false)}
+        footer={
           <Link
             to={listPath}
             onClick={() => setOpen(false)}
-            className="block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-brand-600 hover:bg-surface-muted dark:text-brand-300"
+            className="focus-ring inline-flex h-9 items-center justify-center rounded-control border border-border bg-surface px-3.5 text-body font-medium text-fg shadow-sm transition-colors hover:bg-surface-muted"
           >
             Barchasini ko‘rish
           </Link>
+        }
+      >
+        <div className="-mx-5 -my-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+            <Tabs value={filter} onValueChange={(value) => setFilter(value as Filter)} variant="pill">
+              <TabList label="Bildirishnomalar filtri">
+                <Tab value="all">Hammasi</Tab>
+                <Tab value="unread" {...(unread > 0 ? { count: unread } : {})}>
+                  O‘qilmagan
+                </Tab>
+                <Tab value="high" {...(unreadHigh > 0 ? { count: unreadHigh } : {})}>
+                  Muhim
+                </Tab>
+              </TabList>
+            </Tabs>
+            {unread > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={markAllRead.isPending}
+                leftIcon={<CheckCheck className="size-3.5" aria-hidden />}
+                onClick={() => markAllRead.mutate()}
+              >
+                Hammasini o‘qish
+              </Button>
+            )}
+          </div>
+
+          {listQuery.isPending ? (
+            <div className="space-y-4 px-5 py-4" aria-busy="true" aria-label="Yuklanmoqda">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="flex gap-3">
+                  <Skeleton className="size-8 shrink-0 rounded-control" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : listQuery.isError ? (
+            <ErrorState error={listQuery.error} onRetry={() => void listQuery.refetch()} retrying={listQuery.isRefetching} />
+          ) : listQuery.data.items.length === 0 ? (
+            <EmptyState icon={BellOff} size="sm" {...EMPTY_TEXT[filter]} />
+          ) : (
+            <ul className="divide-y divide-border">
+              {listQuery.data.items.map((item) => {
+                const Icon = NOTIFICATION_TYPE_ICONS[item.type];
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => openNotification(item)}
+                      className={cn(
+                        'flex w-full items-start gap-3 px-5 py-3 text-left outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted',
+                        !item.isRead && 'bg-primary-subtle/40',
+                      )}
+                    >
+                      <span className={cn('mt-0.5 grid size-8 shrink-0 place-items-center rounded-control', NOTIFICATION_TYPE_CLASSES[item.type])}>
+                        <Icon className="size-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className={cn('truncate text-body text-fg', !item.isRead && 'font-semibold')}>{item.title}</span>
+                          {item.priority === 'HIGH' && (
+                            <span className="shrink-0 rounded-sm bg-danger-subtle px-1 text-overline tracking-normal text-danger ring-1 ring-danger-border ring-inset">
+                              muhim
+                            </span>
+                          )}
+                          {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
+                        </span>
+                        <span className="mt-0.5 block line-clamp-2 text-caption text-fg-muted">{item.message}</span>
+                        <span className="mt-1 block text-caption text-fg-subtle">
+                          {NOTIFICATION_TYPE_LABELS[item.type]} · {formatRelativeTime(item.createdAt)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
-      )}
-    </div>
+      </Drawer>
+    </>
   );
 }

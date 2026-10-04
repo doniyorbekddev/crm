@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar } from '@/components/ui/Avatar';
 import { useLogout } from '@/hooks/useLogout';
 import { useAuthStore } from '@/store/auth.store';
@@ -36,14 +37,14 @@ export function UserMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2.5 rounded-lg p-1 pr-2 outline-none transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500"
+        className="focus-ring flex items-center gap-2.5 rounded-control p-1 transition-colors hover:bg-surface-muted sm:pr-2"
       >
         <Avatar firstName={user.firstName} lastName={user.lastName} size="sm" />
         <span className="hidden min-w-0 text-left sm:block">
-          <span className="block max-w-40 truncate text-sm font-medium text-fg">
+          <span className="block max-w-40 truncate text-body-sm font-medium text-fg">
             {user.firstName} {user.lastName}
           </span>
-          <span className="block max-w-40 truncate text-xs text-fg-muted">{user.role.name}</span>
+          <span className="block max-w-40 truncate text-caption text-fg-muted">{user.role.name}</span>
         </span>
         <ChevronDown className="hidden size-4 text-fg-subtle sm:block" aria-hidden />
       </button>
@@ -51,19 +52,23 @@ export function UserMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-lg"
+          className="absolute right-0 z-dropdown mt-2 w-60 animate-fade-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md"
         >
           <div className="border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-medium text-fg">
+            <p className="truncate text-body font-medium text-fg">
               {user.firstName} {user.lastName}
             </p>
-            <p className="truncate text-xs text-fg-muted">{user.email}</p>
+            <p className="truncate text-caption text-fg-muted">{user.email}</p>
+          </div>
+          {/* Telefonda mavzu tanlovi shu yerda (yuqori panelda joy tejaladi) */}
+          <div className="border-b border-border px-4 py-2.5 sm:hidden">
+            <ThemeToggle />
           </div>
           <Link
             to="/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg hover:bg-surface-muted"
+            className="flex items-center gap-2.5 px-4 py-2.5 text-body text-fg outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted"
           >
             <UserRound className="size-4 text-fg-muted" aria-hidden />
             Profil
@@ -73,7 +78,7 @@ export function UserMenu() {
             role="menuitem"
             disabled={logout.isPending}
             onClick={() => logout.mutate()}
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-body text-danger outline-none transition-colors hover:bg-danger-subtle focus-visible:bg-danger-subtle disabled:opacity-60"
           >
             <LogOut className="size-4" aria-hidden />
             Chiqish

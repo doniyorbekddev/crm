@@ -18,11 +18,12 @@ export default function AppLayout() {
       </div>
       <div
         className={cn(
-          'flex min-h-full flex-col transition-[padding] duration-200 print:pl-0',
-          collapsed ? 'lg:pl-[72px]' : 'lg:pl-64',
+          'flex min-h-full flex-col transition-[padding] duration-normal print:pl-0',
+          collapsed ? 'lg:pl-[72px]' : 'lg:pl-60',
         )}
       >
-        <div className="print:hidden">
+        {/* `sticky` shu o'rovchida: ichki elementda bo'lsa o'rovchi balandligi bilan cheklanib, ishlamaydi */}
+        <div className="sticky top-0 z-header print:hidden">
           <Topbar />
         </div>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:max-w-none print:p-0">

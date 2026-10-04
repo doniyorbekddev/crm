@@ -20,14 +20,14 @@ export function BrandMark({ showName = true, inverted = false, className }: Bran
         <img
           src={logoUrl}
           alt={showName ? '' : `${name} logosi`}
-          className={cn('size-9 shrink-0 rounded-xl object-contain', inverted ? 'bg-white/90 ring-1 ring-white/25' : 'bg-surface ring-1 ring-border')}
+          className={cn('size-8 shrink-0 rounded-control object-contain', inverted ? 'bg-white/90 ring-1 ring-white/25' : 'bg-surface ring-1 ring-border')}
           onError={() => setFailed(logoUrl)}
         />
       ) : (
         <div
           aria-hidden={showName}
           className={cn(
-            'grid size-9 shrink-0 place-items-center rounded-xl text-sm font-bold',
+            'grid size-8 shrink-0 place-items-center rounded-control text-caption font-bold',
             inverted ? 'bg-white/15 text-white ring-1 ring-white/25' : 'bg-brand-600 text-white',
           )}
         >
@@ -36,8 +36,8 @@ export function BrandMark({ showName = true, inverted = false, className }: Bran
       )}
       {showName && (
         <div className="min-w-0">
-          <p className={cn('truncate text-sm font-semibold', inverted ? 'text-white' : 'text-fg')}>{name}</p>
-          <p className={cn('truncate text-xs', inverted ? 'text-white/70' : 'text-fg-muted')}>Academy CRM</p>
+          <p className={cn('truncate text-body font-semibold', inverted ? 'text-white' : 'text-fg')}>{name}</p>
+          <p className={cn('truncate text-caption', inverted ? 'text-white/70' : 'text-fg-muted')}>Academy CRM</p>
         </div>
       )}
     </div>

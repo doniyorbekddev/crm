@@ -57,25 +57,29 @@ export interface NavItem {
 }
 
 export interface NavSection {
+  /** Barqaror kalit — yig'ilgan bo'limlar shu bo'yicha saqlanadi (nom o'zgarsa ham) */
+  id: string;
   title: string;
   items: NavItem[];
 }
 
-/** Sidebar menyusi. Har bir phase’da tayyor bo‘lgan modullar shu ro‘yxatga qo‘shiladi. */
+/**
+ * Sidebar menyusi — mantiqiy guruhlar (dizayn PHASE 2). Faqat mavjud marshrutlar: yo'llar, nomlar va ruxsatlar
+ * o'zgarmagan, faqat guruhlash. Yangi modul tayyor bo'lganda tegishli guruhga qo'shiladi.
+ */
 export const NAV_SECTIONS: readonly NavSection[] = [
   {
+    id: 'overview',
     title: 'Umumiy',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: BarChart3, permission: PERMISSIONS.DASHBOARD_VIEW },
       { to: '/executive', label: 'Direktor paneli', icon: Gauge, permission: PERMISSIONS.ANALYTICS_VIEW },
-      { to: '/analytics', label: 'Analitika', icon: Activity, permission: PERMISSIONS.ANALYTICS_VIEW },
-      { to: '/activity', label: 'Faoliyat', icon: History, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
-      { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: [PERMISSIONS.AI_ASSISTANT, PERMISSIONS.AI_ACADEMIC] },
-      { to: '/automation', label: 'Avtomatlashtirish', icon: Workflow, permission: PERMISSIONS.ALERT_VIEW },
+      { to: '/tasks', label: 'Ishlarim', icon: ListTodo },
     ],
   },
   {
+    id: 'sales',
     title: 'Sotuv',
     items: [
       { to: '/leads', label: 'Leadlar', icon: Target, permission: PERMISSIONS.LEAD_VIEW },
@@ -86,27 +90,23 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     ],
   },
   {
+    id: 'academic',
     title: 'O‘quv jarayoni',
     items: [
       { to: '/teaching', label: 'O‘qituvchi markazi', icon: Presentation, permission: PERMISSIONS.ATTENDANCE_MARK },
-      { to: '/tasks', label: 'Ishlarim', icon: ListTodo },
-      { to: '/academic-analytics', label: 'Akademik analitika', icon: LineChart, permission: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ATTENDANCE_MARK] },
-      { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
-      { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
-      { to: '/rooms', label: 'Xonalar', icon: DoorOpen, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/students', label: 'O‘quvchilar', icon: GraduationCap, permission: PERMISSIONS.STUDENT_VIEW },
-      { to: '/parents', label: 'Ota-onalar', icon: UsersRound, permission: PERMISSIONS.PARENT_VIEW },
+      { to: '/groups', label: 'Guruhlar', icon: Layers, permission: PERMISSIONS.GROUP_VIEW },
+      { to: '/courses', label: 'Kurslar', icon: BookOpen, permission: PERMISSIONS.COURSE_VIEW },
+      { to: '/rooms', label: 'Xonalar', icon: DoorOpen, permission: PERMISSIONS.GROUP_VIEW },
       { to: '/attendance', label: 'Davomat', icon: CalendarCheck, permission: PERMISSIONS.ATTENDANCE_VIEW },
       { to: '/homework', label: 'Uy vazifasi', icon: ClipboardList, permission: PERMISSIONS.HOMEWORK_VIEW },
       { to: '/exams', label: 'Imtihonlar', icon: FileCheck, permission: PERMISSIONS.EXAM_VIEW },
       { to: '/questions', label: 'Savollar bazasi', icon: HelpCircle, permission: PERMISSIONS.EXAM_VIEW },
       { to: '/gamification', label: 'Reyting', icon: Trophy, permission: PERMISSIONS.GAMIFICATION_VIEW },
-      { to: '/teachers', label: 'O‘qituvchilar', icon: UserCog, permission: PERMISSIONS.TEACHER_VIEW },
-      { to: '/feedback', label: 'Fikr-mulohaza', icon: MessageSquareHeart, permission: PERMISSIONS.FEEDBACK_VIEW },
-      { to: '/my-earnings', label: 'Mening daromadim', icon: Coins, permission: PERMISSIONS.COMMISSION_VIEW_OWN },
     ],
   },
   {
+    id: 'finance',
     title: 'Moliya',
     items: [
       { to: '/payments', label: 'To‘lovlar', icon: Wallet, permission: PERMISSIONS.PAYMENT_VIEW },
@@ -115,28 +115,63 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/incomes', label: 'Tushumlar', icon: TrendingUp, permission: PERMISSIONS.INCOME_VIEW },
       { to: '/expenses', label: 'Xarajatlar', icon: TrendingDown, permission: PERMISSIONS.EXPENSE_VIEW },
       { to: '/salaries', label: 'Maoshlar', icon: Wallet2, permission: PERMISSIONS.SALARY_VIEW },
+      { to: '/my-earnings', label: 'Mening daromadim', icon: Coins, permission: PERMISSIONS.COMMISSION_VIEW_OWN },
       { to: '/inventory', label: 'Ombor', icon: Package, permission: PERMISSIONS.INVENTORY_VIEW },
       { to: '/reports', label: 'Hisobotlar', icon: FileSpreadsheet, permission: PERMISSIONS.REPORT_VIEW },
     ],
   },
   {
-    title: 'Boshqaruv',
+    id: 'people',
+    title: 'Odamlar',
     items: [
+      { to: '/teachers', label: 'O‘qituvchilar', icon: UserCog, permission: PERMISSIONS.TEACHER_VIEW },
+      { to: '/parents', label: 'Ota-onalar', icon: UsersRound, permission: PERMISSIONS.PARENT_VIEW },
       { to: '/employees', label: 'Xodimlar', icon: IdCard, permission: PERMISSIONS.EMPLOYEE_VIEW },
-      { to: '/users', label: 'Foydalanuvchilar', icon: Users, permission: PERMISSIONS.USER_VIEW },
-      { to: '/branches', label: 'Filiallar', icon: Building2, permission: PERMISSIONS.BRANCH_MANAGE },
-      { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
-      { to: '/settings/academy', label: 'Markaz ma’lumotlari', icon: Landmark, permission: PERMISSIONS.SETTINGS_MANAGE },
-      { to: '/broadcasts', label: 'Ommaviy xabar', icon: Megaphone, permission: PERMISSIONS.BROADCAST_SEND },
-      { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
+      { to: '/feedback', label: 'Fikr-mulohaza', icon: MessageSquareHeart, permission: PERMISSIONS.FEEDBACK_VIEW },
     ],
   },
   {
-    title: 'Shaxsiy',
+    id: 'analytics',
+    title: 'Analitika',
     items: [
-      { to: '/profile', label: 'Profil', icon: UserRound },
+      { to: '/analytics', label: 'Analitika', icon: Activity, permission: PERMISSIONS.ANALYTICS_VIEW },
+      { to: '/academic-analytics', label: 'Akademik analitika', icon: LineChart, permission: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ATTENDANCE_MARK] },
+      { to: '/activity', label: 'Faoliyat', icon: History, permission: PERMISSIONS.ANALYTICS_VIEW },
+      { to: '/assistant', label: 'AI yordamchi', icon: Sparkles, permission: [PERMISSIONS.AI_ASSISTANT, PERMISSIONS.AI_ACADEMIC] },
+    ],
+  },
+  {
+    id: 'automation',
+    title: 'Avtomatlashtirish',
+    items: [
+      { to: '/automation', label: 'Avtomatlashtirish', icon: Workflow, permission: PERMISSIONS.ALERT_VIEW },
+      { to: '/broadcasts', label: 'Ommaviy xabar', icon: Megaphone, permission: PERMISSIONS.BROADCAST_SEND },
       { to: '/notifications', label: 'Bildirishnomalar', icon: Bell },
+    ],
+  },
+  {
+    id: 'system',
+    title: 'Tizim',
+    items: [
+      { to: '/users', label: 'Foydalanuvchilar', icon: Users, permission: PERMISSIONS.USER_VIEW },
+      { to: '/roles', label: 'Rollar va ruxsatlar', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
+      { to: '/branches', label: 'Filiallar', icon: Building2, permission: PERMISSIONS.BRANCH_MANAGE },
+      { to: '/settings/academy', label: 'Markaz ma’lumotlari', icon: Landmark, permission: PERMISSIONS.SETTINGS_MANAGE },
+      { to: '/audit-logs', label: 'Audit jurnali', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
       { to: '/status', label: 'Tizim holati', icon: Activity },
+      { to: '/profile', label: 'Profil', icon: UserRound },
     ],
   },
 ];
+
+/** Joriy manzilga mos menyu bandi (eng uzun mos yo'l) va uning bo'limi — breadcrumb va faol bo'lim uchun */
+export function findNavEntry(pathname: string): { section: NavSection; item: NavItem } | null {
+  let best: { section: NavSection; item: NavItem } | null = null;
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) {
+      const matches = pathname === item.to || pathname.startsWith(`${item.to}/`);
+      if (matches && (!best || item.to.length > best.item.to.length)) best = { section, item };
+    }
+  }
+  return best;
+}

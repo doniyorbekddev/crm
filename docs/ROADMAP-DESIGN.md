@@ -27,7 +27,10 @@
 - Yangi primitivlar: **IconButton, Tooltip, Tabs, Drawer, StatusBadge** (+ markaziy status registri), **StatCard**.
 - Xavf: 746 ta xom palitra klassi — bu fazada faqat primitivlar ichidagilari; sahifalardagilari o'z fazasida.
 
-## PHASE 2 — Sidebar + Topbar + navigatsiya (§11, §12, §24, §38, §39)
+## PHASE 2 — Sidebar + Topbar + navigatsiya (§11, §12, §24, §38, §39) ✅ (2026-10-04)
+> Bajarildi: 8 guruhli navigatsiya (46 marshrut o'zgarmagan), 240/72px sidebar yig'iladigan guruhlar bilan, yuqori panel +
+> avtomatik yo'l, qidiruv va bildirishnomalar paneli tokenlarda, kabinet qobig'i. Tafsilot sahifasi sarlavhasi varianti
+> (orqaga, avatar, status) — PHASE 5/6 da, toifa bo'yicha bildirishnoma filtri — API yo'q.
 - Sidebar 240px / 72px, bo'limlar yig'iladigan, faol holat; yig'ilganda Tooltip.
 - Navigatsiyani qayta guruhlash (faqat mavjud 46 marshrut): Umumiy · Sotuv · O'quv jarayoni · Moliya · Odamlar ·
   Analitika · Avtomatlashtirish · Tizim. Ruxsat bo'yicha ko'rinish o'zgarmaydi.
