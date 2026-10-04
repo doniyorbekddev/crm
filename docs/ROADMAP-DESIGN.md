@@ -74,7 +74,8 @@
 - **Guruh sahifasi** (hozir yo'q): sarlavha (o'qituvchi, kurs, xona, jadval, o'quvchilar soni) va tablar — faqat mavjud
   API beradigan bo'limlar. Kurslar, dars dasturi (LMS), xonalar.
 
-## PHASE 7 — Vazifa + Imtihon + Progress + Gamifikatsiya (§21, §22, §23)
+## PHASE 7 — Vazifa + Imtihon + Progress + Gamifikatsiya (§21, §22, §23) ✅ (2026-10-05)
+> Bajarildi: vazifa, imtihon, savollar, reyting va kabinet papkalarida ranglar tokenlarda; reyting davri yagona Tabs'da; kabinet ko'rsatkichlari StatCard'da; imtihon topshirish sahifasida jarayon chizig'i va savollar navigatsiyasi; emoji o'rniga ikonkalar (bazadagi nishon/daraja ikonkalari — foydalanuvchi ma'lumoti, o'zgarmagan).
 - Vazifa: holatlar bo'yicha ko'rinish, topshiriq (fayl/matn/kod, baho, izoh), yagona status tizimi.
 - Imtihon: boshqaruv va tafsilot (savollar, variantlar, urinishlar, natijalar); **o'quvchi imtihon interfeysi**
   (`PortalAttemptPage`) — chalg'itmaydigan, taymer, savollar navigatsiyasi, tasdiq.

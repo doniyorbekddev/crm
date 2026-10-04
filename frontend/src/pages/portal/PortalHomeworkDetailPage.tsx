@@ -171,7 +171,7 @@ export default function PortalHomeworkDetailPage() {
                   {homework.lesson && (
                     <>
                       {' · '}
-                      <Link to={`/portal/course/lessons/${homework.lesson.id}`} className="text-brand-600 hover:underline dark:text-brand-300">
+                      <Link to={`/portal/course/lessons/${homework.lesson.id}`} className="text-primary hover:underline">
                         Dars: {homework.lesson.title}
                       </Link>
                     </>
@@ -204,7 +204,7 @@ export default function PortalHomeworkDetailPage() {
               <CardContent className="space-y-3">
                 {!canSubmit && submission.answerText && <p className="text-sm whitespace-pre-wrap text-fg">{submission.answerText}</p>}
                 {!canSubmit && submission.linkUrl && (
-                  <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-300">
+                  <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
                     <ExternalLink className="size-4" aria-hidden />
                     {submission.linkUrl}
                   </a>
@@ -225,7 +225,7 @@ export default function PortalHomeworkDetailPage() {
                           <button
                             type="button"
                             onClick={() => void portalService.downloadHomeworkFile(id, file, activeChild).catch(onError)}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-brand-600 hover:bg-surface-muted dark:text-brand-300"
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-muted"
                           >
                             <Download className="size-3.5" aria-hidden />
                             {file.size > 0 ? formatFileSize(file.size) : 'Ochish'}
@@ -235,7 +235,7 @@ export default function PortalHomeworkDetailPage() {
                               type="button"
                               aria-label={`${file.originalName} — o‘chirish`}
                               onClick={() => removeFile.mutate(file.id)}
-                              className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                              className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
                             >
                               <Trash2 className="size-3.5" aria-hidden />
                             </button>

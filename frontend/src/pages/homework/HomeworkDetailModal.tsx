@@ -278,7 +278,7 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
                           type="button"
                           aria-label={`${item.title} — o‘chirish`}
                           onClick={() => removeAttachment.mutate(item.id)}
-                          className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                          className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
                         >
                           <Trash2 className="size-3.5" aria-hidden />
                         </button>

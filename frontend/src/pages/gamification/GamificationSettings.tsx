@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, RefreshCw, Save } from 'lucide-react';
+import { Plus, RefreshCw, Save, Star } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/Badge';
@@ -188,7 +188,7 @@ export function GamificationSettings() {
               <ul className="divide-y divide-border">
                 {levelsQuery.data.map((level) => (
                   <li key={level.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className="text-lg">{level.icon ?? '⭐'}</span>
+                    {level.icon ? <span className="text-lg" aria-hidden>{level.icon}</span> : <Star className="size-4 text-warning" aria-hidden />}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-fg">
                         {level.number}-daraja · {level.name}

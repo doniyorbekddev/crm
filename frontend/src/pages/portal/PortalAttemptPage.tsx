@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, Clock, Upload, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Upload, XCircle, Check } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -165,9 +165,9 @@ function TakeExam({ view }: { view: AttemptView }) {
 
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-14 z-sticky -mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur sm:top-24">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold text-fg">{view.examTitle}</h1>
+          <h1 className="truncate text-h3 text-fg">{view.examTitle}</h1>
           <p className="text-xs text-fg-muted">
             {EXAM_TYPE_LABELS[view.examType]} · {view.questions.length - unanswered}/{view.questions.length} javob berildi
           </p>
@@ -179,7 +179,7 @@ function TakeExam({ view }: { view: AttemptView }) {
               aria-label="Qolgan vaqt"
               className={cn(
                 'inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-sm tabular-nums',
-                remaining < 60_000 ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-surface-muted text-fg',
+                remaining < 60_000 ? 'bg-danger-subtle text-danger' : 'bg-surface-muted text-fg',
               )}
             >
               <Clock className="size-4" aria-hidden /> {remainingLabel(remaining)}
@@ -188,6 +188,38 @@ function TakeExam({ view }: { view: AttemptView }) {
           <Button onClick={() => setConfirmOpen(true)} disabled={expired}>
             Topshirish
           </Button>
+        </div>
+        {/* Jarayon va savollar orasida o'tish: javob berilgani belgilangan, bosilsa savolga olib boradi */}
+        <div className="w-full">
+          <div
+            role="progressbar"
+            aria-label="Javob berilgan savollar"
+            aria-valuemin={0}
+            aria-valuemax={view.questions.length}
+            aria-valuenow={view.questions.length - unanswered}
+            className="h-1 overflow-hidden rounded-full bg-surface-muted"
+          >
+            <div className="h-full rounded-full bg-chart-brand transition-[width] duration-normal" style={{ width: `${((view.questions.length - unanswered) / Math.max(view.questions.length, 1)) * 100}%` }} />
+          </div>
+          <nav aria-label="Savollar" className="mt-2 flex gap-1 overflow-x-auto pb-0.5">
+            {view.questions.map((question, index) => {
+              const done = isAnswered(question, answers[question.id]);
+              return (
+                <button
+                  key={question.id}
+                  type="button"
+                  aria-label={`${index + 1}-savol${done ? ' (javob berilgan)' : ''}`}
+                  onClick={() => document.getElementById(`q-${question.id}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })}
+                  className={cn(
+                    'focus-ring grid size-7 shrink-0 place-items-center rounded-chip text-caption font-medium tabular-nums transition-colors',
+                    done ? 'bg-primary-subtle text-primary ring-1 ring-primary-border ring-inset' : 'bg-surface-muted text-fg-muted hover:text-fg',
+                  )}
+                >
+                  {index + 1}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
@@ -221,7 +253,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                             key={option.id}
                             className={cn(
                               'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
-                              checked ? 'border-brand-500 bg-brand-50 dark:bg-brand-950' : 'border-border hover:bg-surface-muted',
+                              checked ? 'border-brand-500 bg-primary-subtle' : 'border-border hover:bg-surface-muted',
                             )}
                           >
                             <input
@@ -366,17 +398,23 @@ function AttemptResult({ view }: { view: AttemptView }) {
                           className={cn(
                             'rounded-md px-2 py-1',
                             correct
-                              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                              ? 'bg-success-subtle text-success'
                               : chosen && graded
-                                ? 'bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200'
+                                ? 'bg-danger-subtle text-danger'
                                 : chosen
-                                  ? 'bg-brand-50 text-fg dark:bg-brand-950'
+                                  ? 'bg-primary-subtle text-fg'
                                   : 'text-fg-muted',
                           )}
                         >
                           {option.text}
                           {chosen && ' — sizning javobingiz'}
-                          {correct && ' ✓'}
+                          {correct && (
+                            <>
+                              {' '}
+                              <Check className="inline size-4" aria-hidden />
+                              <span className="sr-only">(to‘g‘ri javob)</span>
+                            </>
+                          )}
                         </li>
                       );
                     })}
@@ -399,7 +437,7 @@ function ResultMark({ question }: { question: AttemptQuestionView }) {
   const result = question.result!;
   if (result.isCorrect === null) return <Badge tone="yellow">Tekshirilmoqda</Badge>;
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1 text-sm tabular-nums', result.isCorrect || result.score > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+    <span className={cn('inline-flex shrink-0 items-center gap-1 text-sm tabular-nums', result.isCorrect || result.score > 0 ? 'text-success' : 'text-danger')}>
       {result.isCorrect || result.score > 0 ? <CheckCircle2 className="size-4" aria-hidden /> : <XCircle className="size-4" aria-hidden />}
       {result.score}/{question.points}
     </span>

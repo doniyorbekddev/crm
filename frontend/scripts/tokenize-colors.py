@@ -32,6 +32,19 @@ def convert(text):
     rep(r'\b(' + V + r')text-brand-(?:600|700|800)(?: dark:(?:hover:)?text-brand-(?:200|300|400))', lambda m: f'{m.group(1)}text-primary')
     rep(r'\b(' + V + r')bg-brand-(?:50|100)(?!\d)(?:/\d+)? dark:(?:hover:)?bg-brand-(?:900|950)(?:/\d+)?', lambda m: f'{m.group(1)}bg-primary-subtle')
     rep(r'\b(border|ring)-brand-(?:200|300) dark:\1-brand-(?:700|800|900)', lambda m: f'{m.group(1)}-primary-border')
+    # brend: juftlik orasida boshqa klasslar bo'lsa (masalan `text-brand-600 hover:underline dark:text-brand-300`) — qator bo'yicha
+    lines = text.split('\n')
+    for i, line in enumerate(lines):
+        if re.search(r'dark:(?:hover:)?text-brand-(?:200|300|400)(?!\d)', line) and re.search(r'(?<![:\w-])text-brand-(?:600|700|800)(?!\d)', line):
+            line = re.sub(r'(?<![:\w-])text-brand-(?:600|700|800)(?!\d)', 'text-primary', line)
+            line = re.sub(r' dark:(?:hover:)?text-brand-(?:200|300|400)(?!\d)', '', line)
+            n += 1
+        if re.search(r'dark:bg-brand-(?:900|950)(?!\d)', line) and re.search(r'(?<![:\w-])bg-brand-(?:50|100)(?!\d)', line):
+            line = re.sub(r'(?<![:\w-])bg-brand-(?:50|100)(?!\d)(?:/\d+)?', 'bg-primary-subtle', line)
+            line = re.sub(r' dark:bg-brand-(?:900|950)(?!\d)(?:/\d+)?', '', line)
+            n += 1
+        lines[i] = line
+    text = '\n'.join(lines)
     # neytral
     rep(r'\bbg-(?:slate|gray|zinc)-(?:100|200)(?!\d)(?:/\d+)?(?: dark:bg-(?:slate|gray|zinc)-(?:700|800)(?:/\d+)?)?', lambda m: 'bg-surface-muted')
     rep(r'\btext-(?:slate|gray|zinc)-(?:500|600|700)(?!\d)(?: dark:text-(?:slate|gray|zinc)-(?:300|400))?', lambda m: 'text-fg-muted')
@@ -44,6 +57,8 @@ assert convert('text-amber-600 dark:text-amber-400')[0] == 'text-warning'
 assert convert('border-red-200 bg-red-50')[0] == 'border-danger-border bg-danger-subtle'
 assert convert('bg-brand-600 text-white')[0] == 'bg-brand-600 text-white'
 assert convert('bg-emerald-950/40')[0] == 'bg-emerald-950/40'
+assert convert('a text-brand-600 hover:underline dark:text-brand-300 b')[0] == 'a text-primary hover:underline b'
+assert convert('x bg-brand-50 text-fg dark:bg-brand-950')[0] == 'x bg-primary-subtle text-fg'
 
 total = 0
 for root in sys.argv[1:]:

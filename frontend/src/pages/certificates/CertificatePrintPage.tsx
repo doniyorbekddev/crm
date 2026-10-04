@@ -50,15 +50,15 @@ export default function CertificatePrintPage() {
 
       <article className="mx-auto flex aspect-[297/210] w-full max-w-[297mm] flex-col justify-between border-[6px] border-brand-600 bg-white p-[8mm] text-slate-900 shadow-lg print:aspect-auto print:h-[200mm] print:w-full print:max-w-none print:border-[4px] print:shadow-none">
         <header className="text-center">
-          <p className="text-xs tracking-[0.3em] text-slate-500 uppercase">{certificate.branchName ?? 'O‘quv markaz'}</p>
+          <p className="text-xs tracking-[0.3em] text-fg-muted uppercase">{certificate.branchName ?? 'O‘quv markaz'}</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-wide">SERTIFIKAT</h1>
-          <p className="mt-1 text-sm text-slate-500">Kursni muvaffaqiyatli tamomlagani uchun</p>
+          <p className="mt-1 text-sm text-fg-muted">Kursni muvaffaqiyatli tamomlagani uchun</p>
         </header>
 
         <section className="text-center">
-          <p className="text-sm text-slate-500">Ushbu sertifikat</p>
+          <p className="text-sm text-fg-muted">Ushbu sertifikat</p>
           <p className="mt-2 border-b border-slate-300 pb-2 text-3xl font-semibold">{certificate.studentName}</p>
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-fg-muted">
             «{certificate.courseName}» kursini {formatDate(certificate.startDate)} — {formatDate(certificate.completionDate)} oralig‘ida
             tamomlaganini tasdiqlaydi
           </p>
@@ -74,18 +74,18 @@ export default function CertificatePrintPage() {
         </section>
 
         <footer className="flex items-end justify-between gap-6">
-          <div className="text-left text-xs text-slate-500">
-            <p className="font-mono text-sm text-slate-700">{certificate.code}</p>
+          <div className="text-left text-xs text-fg-muted">
+            <p className="font-mono text-sm text-fg-muted">{certificate.code}</p>
             <p className="mt-1">Berilgan sana: {formatDate(certificate.issuedAt)}</p>
             <p className="mt-3 w-48 border-t border-slate-400 pt-1">O‘qituvchi: {certificate.teacherName ?? '—'}</p>
           </div>
 
           <div className="text-center">
             <QrCode value={verifyUrl} size={96} />
-            <p className="mt-1 text-[10px] text-slate-500">Haqiqiyligini tekshirish</p>
+            <p className="mt-1 text-[10px] text-fg-muted">Haqiqiyligini tekshirish</p>
           </div>
 
-          <div className="text-right text-xs text-slate-500">
+          <div className="text-right text-xs text-fg-muted">
             <p className="mt-3 w-48 border-t border-slate-400 pt-1">Direktor imzosi</p>
           </div>
         </footer>

@@ -81,7 +81,7 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
           {result.filesNote && <p className="text-xs text-fg-subtle">{result.filesNote}</p>}
 
           {analysis.status === 'ACCEPTED' ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-300">Qabul qilingan: {String(analysis.decision?.score ?? '')} ball</p>
+            <p className="text-sm text-success">Qabul qilingan: {String(analysis.decision?.score ?? '')} ball</p>
           ) : result.suggestedScore !== null ? (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
               <span className="text-sm text-fg">

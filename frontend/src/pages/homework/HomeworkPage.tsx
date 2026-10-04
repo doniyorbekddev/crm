@@ -202,10 +202,10 @@ export default function HomeworkPage() {
                             className={cn(
                               'h-full rounded-full',
                               homework.stats.submissionRate >= 80
-                                ? 'bg-emerald-500'
+                                ? 'bg-chart-positive'
                                 : homework.stats.submissionRate >= 50
-                                  ? 'bg-amber-500'
-                                  : 'bg-red-500',
+                                  ? 'bg-chart-warning'
+                                  : 'bg-chart-negative',
                             )}
                             style={{ width: `${Math.max(homework.stats.submissionRate, 2)}%` }}
                           />

@@ -159,7 +159,7 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
                 </section>
               )}
               {submission.linkUrl && (
-                <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-300">
+                <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
                   <ExternalLink className="size-4" aria-hidden />
                   {submission.linkUrl}
                 </a>
@@ -189,7 +189,7 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
                       <button
                         type="button"
                         onClick={() => void homeworkService.downloadSubmissionFile(homework.id, studentId, file).catch((error: unknown) => toast.error(getErrorMessage(error)))}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-300"
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
                       >
                         <Download className="size-3.5" aria-hidden />
                         {file.size > 0 ? formatFileSize(file.size) : 'Yuklab olish'}

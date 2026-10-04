@@ -56,13 +56,13 @@ export function CodeRunPanel({ run, enabled, hasTests, onRerun, rerunning = fals
           </Button>
         )}
       </div>
-      {run?.status === 'ERROR' && run.error && <p className="text-xs text-red-600 dark:text-red-400">{run.error}</p>}
+      {run?.status === 'ERROR' && run.error && <p className="text-xs text-danger">{run.error}</p>}
       {run && run.tests.length > 0 && (
         <ul className="space-y-1.5">
           {run.tests.map((test) => (
             <li key={test.index} className="rounded-md bg-surface-muted p-2 text-xs">
               <p className="flex items-center gap-1.5 font-medium">
-                {test.passed ? <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden /> : test.status === 'timeout' ? <Clock className="size-3.5 text-amber-600" aria-hidden /> : <XCircle className="size-3.5 text-red-600" aria-hidden />}
+                {test.passed ? <CheckCircle2 className="size-3.5 text-success" aria-hidden /> : test.status === 'timeout' ? <Clock className="size-3.5 text-warning" aria-hidden /> : <XCircle className="size-3.5 text-danger" aria-hidden />}
                 Test {test.index}: {test.passed ? 'o‘tdi' : `o‘tmadi${REASONS[test.status] ? ` (${REASONS[test.status]})` : ''}`}
                 <span className="font-normal text-fg-subtle">· {test.timeMs} ms</span>
                 {test.hidden && (
@@ -78,7 +78,7 @@ export function CodeRunPanel({ run, enabled, hasTests, onRerun, rerunning = fals
                   <pre className="overflow-auto rounded bg-surface p-1.5">chiqdi: {test.stdout || '—'}</pre>
                 </div>
               )}
-              {test.stderr ? <pre className="mt-1 max-h-32 overflow-auto rounded bg-surface p-1.5 text-red-700 dark:text-red-300">{test.stderr}</pre> : null}
+              {test.stderr ? <pre className="mt-1 max-h-32 overflow-auto rounded bg-surface p-1.5 text-danger">{test.stderr}</pre> : null}
             </li>
           ))}
         </ul>

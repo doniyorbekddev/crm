@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Flame, Trophy } from 'lucide-react';
 import { useState } from 'react';
@@ -50,28 +51,15 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
     <div className="space-y-4">
       <Card>
         <div className="flex flex-col gap-2 p-3 sm:flex-row">
-          <div role="tablist" aria-label="Davr" className="flex gap-1">
-            {LEADERBOARD_PERIODS.map((item) => {
-              const active = period === item.value;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setPeriod(item.value)}
-                  className={cn(
-                    'h-9 rounded-lg px-3 text-sm font-medium transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+          <Tabs value={period} onValueChange={(value) => setPeriod(value as typeof period)} variant="pill" panels={false}>
+            <TabList label="Davr">
+              {LEADERBOARD_PERIODS.map((item) => (
+                <Tab key={item.value} value={item.value}>
                   {item.label}
-                </button>
-              );
-            })}
-          </div>
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
           <Select
             value={courseId}
             onChange={(event) => {
@@ -110,7 +98,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                 className={cn(
                   'rounded-xl border p-4 text-left transition-colors',
                   index === 1
-                    ? 'border-amber-300 bg-amber-50/60 sm:-mt-3 dark:border-amber-800 dark:bg-amber-950/30'
+                    ? 'border-warning-border bg-warning-subtle sm:-mt-3'
                     : 'border-border bg-surface hover:bg-surface-muted',
                 )}
               >
@@ -122,7 +110,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                   {row.courseName}
                   {row.groupName && ` · ${row.groupName}`}
                 </p>
-                <p className="mt-2 text-lg font-bold text-brand-600 dark:text-brand-300">{formatXp(row.xp)}</p>
+                <p className="mt-2 text-lg font-bold text-primary">{formatXp(row.xp)}</p>
                 <p className="text-xs text-fg-muted">
                   {row.levelName} · {row.badges} nishon
                 </p>
@@ -162,7 +150,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                   <TR
                     key={row.studentId}
                     onClick={() => onSelectStudent(row.studentId)}
-                    className={cn('cursor-pointer', row.rank <= 3 && 'bg-amber-50/40 dark:bg-amber-950/20')}
+                    className={cn('cursor-pointer', row.rank <= 3 && 'bg-warning-subtle')}
                   >
                     <TD className="font-medium whitespace-nowrap text-fg">{RANK_MEDALS[row.rank - 1] ?? row.rank}</TD>
                     <TD>
@@ -182,7 +170,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                     </TD>
                     <TD className="text-right">
                       {row.streak > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
+                        <span className="inline-flex items-center gap-1 text-sm text-warning">
                           <Flame className="size-3.5" aria-hidden />
                           {row.streak}
                         </span>

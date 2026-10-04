@@ -8,7 +8,7 @@ export function LessonVideo({ url, title }: { url: string; title: string }) {
   const embed = youtubeEmbedUrl(url);
   if (!embed) {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-300">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
         <PlayCircle className="size-4" aria-hidden />
         Videoni ochish
       </a>
@@ -73,7 +73,7 @@ export function MaterialList({
                 <button
                   type="button"
                   onClick={() => onDownload(material)}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-surface-muted dark:text-brand-300"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted"
                 >
                   <Download className="size-3.5" aria-hidden />
                   Yuklab olish
@@ -83,7 +83,7 @@ export function MaterialList({
                   href={material.url ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-surface-muted dark:text-brand-300"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted"
                 >
                   <ExternalLink className="size-3.5" aria-hidden />
                   Ochish

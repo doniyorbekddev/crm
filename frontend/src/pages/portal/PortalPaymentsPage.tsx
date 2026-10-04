@@ -1,3 +1,5 @@
+import { AlertTriangle } from 'lucide-react';
+import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
 import { Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
@@ -14,15 +16,7 @@ import { PAYMENT_METHOD_LABELS } from '@/utils/paymentLabels';
 import { INSTALLMENT_STATUS_LABELS, INSTALLMENT_STATUS_TONES } from '@/utils/scheduleLabels';
 
 function Tile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'danger' }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="text-sm text-fg-muted">{label}</p>
-      <p className={tone === 'danger' ? 'mt-1 text-2xl font-semibold tabular-nums text-red-600 dark:text-red-400' : 'mt-1 text-2xl font-semibold tabular-nums text-fg'}>
-        {value}
-      </p>
-      {hint && <p className="mt-1 text-xs text-fg-subtle">{hint}</p>}
-    </div>
-  );
+  return <StatCard size="sm" title={label} value={value} {...(hint ? { description: hint } : {})} {...(tone ? { tone, icon: AlertTriangle } : {})} />;
 }
 
 /** To‘lov jadvali va tarixi. Onlayn to‘lov tugmasi — Telegram botda (`/qarz`). */

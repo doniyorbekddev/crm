@@ -52,14 +52,14 @@ export default function PortalLessonPage() {
           isStudent ? (
             <Button
               variant={lesson.completed ? 'secondary' : 'primary'}
-              leftIcon={lesson.completed ? <CheckCircle2 className="size-4 text-emerald-500" aria-hidden /> : <Circle className="size-4" aria-hidden />}
+              leftIcon={lesson.completed ? <CheckCircle2 className="size-4 text-success" aria-hidden /> : <Circle className="size-4" aria-hidden />}
               loading={complete.isPending}
               onClick={() => complete.mutate(!lesson.completed)}
             >
               {lesson.completed ? 'O‘rganildi' : 'O‘rgandim'}
             </Button>
           ) : lesson.completed ? (
-            <span className="inline-flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-sm text-success">
               <CheckCircle2 className="size-4" aria-hidden />
               Farzandingiz o‘rgangan
             </span>

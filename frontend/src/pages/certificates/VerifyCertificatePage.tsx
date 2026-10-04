@@ -44,7 +44,7 @@ export default function VerifyCertificatePage() {
           <PageLoader />
         ) : query.isError ? (
           <div className="rounded-xl border border-border bg-surface p-6 text-center">
-            <ShieldX className="mx-auto size-10 text-red-500" aria-hidden />
+            <ShieldX className="mx-auto size-10 text-danger" aria-hidden />
             <h1 className="mt-3 text-lg font-semibold text-fg">Sertifikat topilmadi</h1>
             <p className="mt-1 text-sm text-fg-muted">
               Kod noto‘g‘ri yoki bunday sertifikat berilmagan. Havolani qaytadan tekshiring.
@@ -54,9 +54,9 @@ export default function VerifyCertificatePage() {
           <div className="rounded-xl border border-border bg-surface p-6">
             <div className="flex flex-col items-center text-center">
               {query.data.valid ? (
-                <BadgeCheck className="size-12 text-emerald-500" aria-hidden />
+                <BadgeCheck className="size-12 text-success" aria-hidden />
               ) : (
-                <ShieldX className="size-12 text-red-500" aria-hidden />
+                <ShieldX className="size-12 text-danger" aria-hidden />
               )}
               <h1 className="mt-3 text-xl font-semibold text-fg">
                 {query.data.valid ? 'Sertifikat haqiqiy' : 'Sertifikat bekor qilingan'}

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Flame, Plus, Sparkles } from 'lucide-react';
+import { Flame, Plus, Sparkles, Star } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
@@ -100,7 +100,7 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="flex items-center gap-2 text-sm text-fg-muted">
-                  <span className="text-xl">{profile.level.icon ?? '⭐'}</span>
+                  {profile.level.icon ? <span className="text-xl" aria-hidden>{profile.level.icon}</span> : <Star className="size-5 text-warning" aria-hidden />}
                   {profile.level.number}-daraja · {profile.level.name}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-fg">{formatXp(profile.totalXp)}</p>
@@ -169,7 +169,7 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge tone={XP_SOURCE_TONES[item.source]}>{XP_SOURCE_LABELS[item.source]}</Badge>
-                      <span className={cn('text-sm font-semibold', item.points >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                      <span className={cn('text-sm font-semibold', item.points >= 0 ? 'text-success' : 'text-danger')}>
                         {item.points >= 0 ? '+' : ''}
                         {item.points}
                       </span>

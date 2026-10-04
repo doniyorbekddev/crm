@@ -48,7 +48,7 @@ export function CurriculumCard({ studentId }: { studentId?: string }) {
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
                   <div
-                    className={cn('h-full rounded-full', module.percent === 100 ? 'bg-emerald-500' : 'bg-brand-500')}
+                    className={cn('h-full rounded-full', module.percent === 100 ? 'bg-chart-positive' : 'bg-brand-500')}
                     style={{ width: `${module.percent}%` }}
                   />
                 </div>

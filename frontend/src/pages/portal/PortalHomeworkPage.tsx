@@ -76,7 +76,7 @@ export default function PortalHomeworkPage() {
                     </Link>
                     <p className="text-xs text-fg-muted">
                       {row.groupName} · muddat:{' '}
-                      <span className={cn(overdue && 'text-red-600 dark:text-red-400')}>
+                      <span className={cn(overdue && 'text-danger')}>
                         {formatDateTime(row.deadline)} ({formatRelativeTime(row.deadline)})
                       </span>
                     </p>

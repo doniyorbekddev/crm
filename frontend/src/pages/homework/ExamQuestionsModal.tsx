@@ -124,7 +124,7 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
                         <div
                           className={cn(
                             'h-full rounded-full',
-                            topic.percent >= 85 ? 'bg-emerald-500' : topic.percent >= 60 ? 'bg-brand-500' : 'bg-red-500',
+                            topic.percent >= 85 ? 'bg-chart-positive' : topic.percent >= 60 ? 'bg-brand-500' : 'bg-chart-negative',
                           )}
                           style={{ width: `${topic.percent}%` }}
                         />

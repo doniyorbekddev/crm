@@ -157,9 +157,9 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
                       {passed === null ? (
                         <span className="text-fg-subtle">—</span>
                       ) : passed ? (
-                        <span className="text-emerald-600 dark:text-emerald-400">O‘tdi</span>
+                        <span className="text-success">O‘tdi</span>
                       ) : (
-                        <span className="text-red-600 dark:text-red-400">O‘tmadi</span>
+                        <span className="text-danger">O‘tmadi</span>
                       )}
                     </span>
                   </li>

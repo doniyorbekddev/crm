@@ -6,8 +6,8 @@ import type { Insight, InsightType } from '@/types/aiAcademic';
 
 const META: Record<InsightType, { label: string; icon: LucideIcon; className: string }> = {
   FACT: { label: 'Fakt', icon: ListChecks, className: 'text-fg' },
-  OBSERVATION: { label: 'Kuzatuv', icon: Search, className: 'text-amber-700 dark:text-amber-300' },
-  RECOMMENDATION: { label: 'Tavsiya', icon: Lightbulb, className: 'text-brand-700 dark:text-brand-300' },
+  OBSERVATION: { label: 'Kuzatuv', icon: Search, className: 'text-warning' },
+  RECOMMENDATION: { label: 'Tavsiya', icon: Lightbulb, className: 'text-primary' },
 };
 
 /**

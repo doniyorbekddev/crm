@@ -26,13 +26,13 @@ export const MASTERY_LEVEL_LABELS: Record<MasteryLevel, string> = {
 export function masteryBarClass(level: MasteryLevel | null): string {
   switch (level) {
     case 'MASTERED':
-      return 'bg-emerald-500';
+      return 'bg-chart-positive';
     case 'GOOD':
       return 'bg-brand-500';
     case 'DEVELOPING':
-      return 'bg-amber-500';
+      return 'bg-chart-warning';
     case 'WEAK':
-      return 'bg-red-500';
+      return 'bg-chart-negative';
     default:
       return 'bg-slate-300 dark:bg-slate-700';
   }
@@ -50,13 +50,13 @@ export function levelFor(score: number | null, thresholds: { developing: number;
 export function masteryCellClass(level: MasteryLevel | null): string {
   switch (level) {
     case 'MASTERED':
-      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
+      return 'bg-success-subtle text-success';
     case 'GOOD':
       return 'bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200';
     case 'DEVELOPING':
-      return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200';
+      return 'bg-warning-subtle text-warning';
     case 'WEAK':
-      return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200';
+      return 'bg-danger-subtle text-danger';
     default:
       return 'text-fg-subtle';
   }

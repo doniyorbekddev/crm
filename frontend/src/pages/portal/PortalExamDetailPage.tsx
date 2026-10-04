@@ -16,9 +16,9 @@ import { formatDate, formatDateTime } from '@/utils/format';
 import { EXAM_STATUS_LABELS, EXAM_STATUS_TONES, GRADE_TONES } from '@/utils/homeworkLabels';
 
 function topicTone(percent: number): string {
-  if (percent >= 85) return 'bg-emerald-500';
+  if (percent >= 85) return 'bg-chart-positive';
   if (percent >= 60) return 'bg-brand-500';
-  return 'bg-red-500';
+  return 'bg-chart-negative';
 }
 
 function TopicBars({ topics }: { topics: TopicBreakdown[] }) {
@@ -91,7 +91,7 @@ export default function PortalExamDetailPage() {
                 <span className="flex items-center gap-2">
                   {result.grade && <Badge tone={GRADE_TONES[result.grade] ?? 'gray'}>{result.grade}</Badge>}
                   {result.passed !== null && (
-                    <span className={cn('text-xs font-medium', result.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                    <span className={cn('text-xs font-medium', result.passed ? 'text-success' : 'text-danger')}>
                       {result.passed ? 'O‘tdi' : 'O‘tmadi'}
                     </span>
                   )}
@@ -144,7 +144,7 @@ export default function PortalExamDetailPage() {
                         <span
                           className={cn(
                             'shrink-0 text-sm tabular-nums',
-                            answer.isCorrect === null ? 'text-fg-muted' : answer.isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+                            answer.isCorrect === null ? 'text-fg-muted' : answer.isCorrect ? 'text-success' : 'text-danger',
                           )}
                         >
                           {answer.needsReview ? 'tekshirilmoqda' : `${answer.score}/${answer.points}`}

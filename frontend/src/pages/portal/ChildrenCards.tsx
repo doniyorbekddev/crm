@@ -12,10 +12,10 @@ import { formatDate, formatMoney } from '@/utils/format';
 
 /** Ota-onaga yumshoq so‘z bilan — "kritik" emas */
 const RISK_TEXT: Record<RiskLevel, { label: string; className: string }> = {
-  HEALTHY: { label: 'Hammasi yaxshi', className: 'text-emerald-600 dark:text-emerald-400' },
-  ATTENTION: { label: 'E’tibor kerak', className: 'text-amber-600 dark:text-amber-400' },
-  AT_RISK: { label: 'Yordam kerak', className: 'text-orange-600 dark:text-orange-400' },
-  CRITICAL: { label: 'Yordam kerak', className: 'text-red-600 dark:text-red-400' },
+  HEALTHY: { label: 'Hammasi yaxshi', className: 'text-success' },
+  ATTENTION: { label: 'E’tibor kerak', className: 'text-warning' },
+  AT_RISK: { label: 'Yordam kerak', className: 'text-warning' },
+  CRITICAL: { label: 'Yordam kerak', className: 'text-danger' },
 };
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -58,7 +58,7 @@ export function ChildrenCards() {
                   </p>
                 </div>
                 {active ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-300">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
                     <Check className="size-3.5" aria-hidden />
                     Tanlangan
                   </span>
@@ -66,7 +66,7 @@ export function ChildrenCards() {
                   <button
                     type="button"
                     onClick={() => setActiveChild(child.studentId)}
-                    className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:text-brand-300"
+                    className="rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
                   >
                     Tanlash
                   </button>
@@ -86,7 +86,7 @@ export function ChildrenCards() {
                   </span>
                   {risk && <span className={cn('font-medium', risk.className)}>{risk.label}</span>}
                 </div>
-                <p className={cn('text-xs', child.debt.overdue > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+                <p className={cn('text-xs', child.debt.overdue > 0 ? 'text-danger' : 'text-fg-muted')}>
                   {child.debt.remaining > 0
                     ? `Qolgan to‘lov: ${formatMoney(child.debt.remaining)}${child.debt.overdue > 0 ? ` · muddati o‘tgan: ${formatMoney(child.debt.overdue)}` : ''}`
                     : 'Qarz yo‘q'}

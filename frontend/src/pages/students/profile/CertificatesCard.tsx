@@ -82,14 +82,14 @@ export function CertificatesCard({ studentId }: { studentId: string }) {
                     href={verifyUrl(certificate.verifyToken)}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     Tekshirish sahifasi
                     <ExternalLink className="size-3" aria-hidden />
                   </a>
                   <Link
                     to={`/certificates/${certificate.id}/print`}
-                    className="mt-1 ml-3 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                    className="mt-1 ml-3 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     Chop etish / PDF
                     <Printer className="size-3" aria-hidden />

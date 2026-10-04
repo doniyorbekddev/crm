@@ -48,7 +48,7 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
             {report.student.groupName ? ` · ${report.student.groupName}` : ''}
           </p>
           {report.aiSummary && (
-            <p className="mt-3 rounded-md bg-brand-50 p-3 text-sm text-fg dark:bg-brand-950" aria-label="AI xulosa">
+            <p className="mt-3 rounded-md bg-primary-subtle p-3 text-sm text-fg" aria-label="AI xulosa">
               {report.aiSummary}
             </p>
           )}
@@ -154,12 +154,12 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
             <div className="space-y-2">
               {topics.strong.length > 0 && (
                 <p>
-                  <span className="text-emerald-600 dark:text-emerald-400">Kuchli:</span> {topics.strong.join(', ')}
+                  <span className="text-success">Kuchli:</span> {topics.strong.join(', ')}
                 </p>
               )}
               {topics.weak.length > 0 && (
                 <p>
-                  <span className="text-amber-600 dark:text-amber-400">Mashq kerak:</span> {topics.weak.join(', ')}
+                  <span className="text-warning">Mashq kerak:</span> {topics.weak.join(', ')}
                 </p>
               )}
             </div>

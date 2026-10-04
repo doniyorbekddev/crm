@@ -193,10 +193,10 @@ export default function ExamsPage() {
                           exam.stats.graded === 0
                             ? 'text-fg-subtle'
                             : exam.stats.averagePercentage >= 80
-                              ? 'text-emerald-600 dark:text-emerald-400'
+                              ? 'text-success'
                               : exam.stats.averagePercentage >= 60
-                                ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-red-600 dark:text-red-400',
+                                ? 'text-warning'
+                                : 'text-danger',
                         )}
                       >
                         {exam.stats.graded === 0 ? '—' : `${exam.stats.averagePercentage}%`}

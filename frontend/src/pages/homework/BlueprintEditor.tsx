@@ -169,7 +169,7 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
           </div>
 
           {parsed.error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{parsed.error}</p>
+            <p className="text-sm text-danger">{parsed.error}</p>
           ) : (
             <Button
               variant="secondary"
@@ -197,7 +197,7 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
                       {cell.topicTitle}
                       {cell.difficulty ? ` · ${DIFFICULTY_LABELS[cell.difficulty]}` : ''}
                     </span>
-                    <span className={cn('tabular-nums', cell.available < cell.target ? 'text-amber-600 dark:text-amber-400' : 'text-fg')}>
+                    <span className={cn('tabular-nums', cell.available < cell.target ? 'text-warning' : 'text-fg')}>
                       {cell.target} kerak / {cell.available} bor
                     </span>
                   </li>

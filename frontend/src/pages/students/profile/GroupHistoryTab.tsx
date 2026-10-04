@@ -70,7 +70,7 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
                       ? 'border-danger-border bg-danger-subtle text-danger'
                       : change.kind === 'ENROLLED'
                         ? 'border-success-border bg-success-subtle text-success'
-                        : 'border-brand-200 bg-brand-50 text-brand-600 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-300',
+                        : 'border-brand-200 bg-primary-subtle text-primary dark:border-brand-900',
                   )}
                 >
                   <Icon className="size-3.5" aria-hidden />

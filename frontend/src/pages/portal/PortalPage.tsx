@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -22,23 +23,7 @@ import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { INSTALLMENT_STATUS_LABELS, INSTALLMENT_STATUS_TONES } from '@/utils/scheduleLabels';
 
 function Tile({ label, value, hint, to }: { label: string; value: string; hint?: string; to?: string }) {
-  const body = (
-    <>
-      <p className="text-sm text-fg-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-fg">{value}</p>
-      {hint && <p className="mt-1 text-xs text-fg-subtle">{hint}</p>}
-    </>
-  );
-  return to ? (
-    <Link
-      to={to}
-      className="block rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
-    >
-      {body}
-    </Link>
-  ) : (
-    <div className="rounded-xl border border-border bg-surface p-4">{body}</div>
-  );
+  return <StatCard size="sm" title={label} value={value} {...(hint ? { description: hint } : {})} {...(to ? { to } : {})} />;
 }
 
 /**
@@ -165,7 +150,7 @@ export function PortalPage() {
                           <p
                             className={cn(
                               'truncate font-medium',
-                              item.tone === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-fg',
+                              item.tone === 'negative' ? 'text-danger' : 'text-fg',
                             )}
                           >
                             {item.title}
@@ -184,7 +169,7 @@ export function PortalPage() {
           <Card>
             <CardHeader>
               <CardTitle>Progress (6 oy)</CardTitle>
-              <Link to="/portal/weekly-report" className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-300">
+              <Link to="/portal/weekly-report" className="text-xs font-medium text-primary hover:underline">
                 Haftalik hisobot
               </Link>
             </CardHeader>

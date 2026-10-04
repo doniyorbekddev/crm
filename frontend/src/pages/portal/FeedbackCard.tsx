@@ -91,7 +91,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
                   onClick={() => setNps(score)}
                   className={cn(
                     'size-9 rounded-lg border text-sm tabular-nums transition-colors',
-                    nps === score ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'border-border text-fg-muted hover:bg-surface-muted',
+                    nps === score ? 'border-brand-500 bg-primary-subtle text-primary' : 'border-border text-fg-muted hover:bg-surface-muted',
                   )}
                 >
                   {score}
@@ -103,7 +103,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
           <div className="flex items-center gap-1" role="group" aria-label="Baho">
             {[1, 2, 3, 4, 5].map((star) => (
               <button key={star} type="button" aria-label={`${star} yulduz`} aria-pressed={rating === star} onClick={() => setRating(star)}>
-                <Star className={cn('size-7 transition-colors', star <= rating ? 'fill-amber-400 text-amber-400' : 'text-border hover:text-amber-300')} aria-hidden />
+                <Star className={cn('size-7 transition-colors', star <= rating ? 'fill-chart-warning text-chart-warning' : 'text-border hover:text-chart-warning')} aria-hidden />
               </button>
             ))}
           </div>

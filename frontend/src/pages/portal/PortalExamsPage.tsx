@@ -59,7 +59,7 @@ export default function PortalExamsPage() {
                   </span>
                   {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
                   {row.passed !== null && (
-                    <span className={cn('text-xs font-medium', row.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                    <span className={cn('text-xs font-medium', row.passed ? 'text-success' : 'text-danger')}>
                       {row.passed ? 'O‘tdi' : 'O‘tmadi'}
                     </span>
                   )}

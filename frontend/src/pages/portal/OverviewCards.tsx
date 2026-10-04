@@ -14,10 +14,10 @@ import { formatDate, formatDateTime, formatRelativeTime } from '@/utils/format';
  * Sabablar backenddan keladi (eng past balli omillar), ball ko'rsatilmaydi.
  */
 const RISK_VIEW: Record<RiskLevel, { label: string; className: string }> = {
-  HEALTHY: { label: 'Hammasi yaxshi', className: 'text-emerald-600 dark:text-emerald-400' },
-  ATTENTION: { label: 'E’tibor kerak', className: 'text-amber-600 dark:text-amber-400' },
-  AT_RISK: { label: 'Yordam kerak', className: 'text-orange-600 dark:text-orange-400' },
-  CRITICAL: { label: 'Yordam kerak', className: 'text-red-600 dark:text-red-400' },
+  HEALTHY: { label: 'Hammasi yaxshi', className: 'text-success' },
+  ATTENTION: { label: 'E’tibor kerak', className: 'text-warning' },
+  AT_RISK: { label: 'Yordam kerak', className: 'text-warning' },
+  CRITICAL: { label: 'Yordam kerak', className: 'text-danger' },
 };
 
 function InfoCard({

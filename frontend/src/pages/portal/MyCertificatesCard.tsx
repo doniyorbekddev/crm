@@ -49,7 +49,7 @@ export function MyCertificatesCard({ studentId }: { studentId?: string }) {
                   </p>
                   <Link
                     to={`/certificates/${certificate.id}/print`}
-                    className="mt-1 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     Chop etish / PDF
                     <Printer className="size-3" aria-hidden />

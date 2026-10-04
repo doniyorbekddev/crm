@@ -36,7 +36,7 @@ export default function PortalCoursePage() {
       ) : (
         <div className="space-y-4">
           <div className="h-2 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Kurs darslari progressi">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} />
+            <div className="h-full rounded-full bg-chart-positive" style={{ width: `${percent}%` }} />
           </div>
           {tree.modules.map((module) => (
             <Card key={module.id}>
@@ -55,7 +55,7 @@ export default function PortalCoursePage() {
                             className="flex items-center gap-3 px-3 py-2.5 hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
                           >
                             {lesson.completed ? (
-                              <CheckCircle2 className="size-5 shrink-0 text-emerald-500" aria-label="O‘rganilgan" />
+                              <CheckCircle2 className="size-5 shrink-0 text-success" aria-label="O‘rganilgan" />
                             ) : (
                               <Circle className="size-5 shrink-0 text-fg-subtle" aria-hidden />
                             )}

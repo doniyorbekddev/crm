@@ -148,7 +148,7 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
             >
               Mezon qo‘shish
             </Button>
-            <span className={total === 100 ? 'text-sm text-emerald-600 dark:text-emerald-400' : 'text-sm text-red-600 dark:text-red-400'}>Jami: {total}%</span>
+            <span className={total === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>Jami: {total}%</span>
           </div>
           <div className="flex justify-end">
             <Button
