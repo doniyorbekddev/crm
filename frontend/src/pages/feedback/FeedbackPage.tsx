@@ -1,3 +1,4 @@
+import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageSquareHeart, Star } from 'lucide-react';
 import { useState } from 'react';
@@ -38,7 +39,7 @@ function Stars({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={cn('size-3.5', star <= value ? 'fill-amber-400 text-amber-400' : 'text-border')}
+          className={cn('size-3.5', star <= value ? 'fill-chart-warning text-chart-warning' : 'text-border')}
           aria-hidden
         />
       ))}
@@ -46,21 +47,8 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-function StatCard({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'good' | 'bad' }) {
-  return (
-    <Card className="p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-xl font-semibold tabular-nums',
-          tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : tone === 'bad' ? 'text-red-600 dark:text-red-400' : 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 text-xs text-fg-subtle">{hint}</p>}
-    </Card>
-  );
+function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'good' | 'bad' }) {
+  return <StatCard size="sm" title={label} value={value} valueTone={tone === 'good' ? 'success' : tone === 'bad' ? 'danger' : 'default'} {...(hint ? { description: hint } : {})} />;
 }
 
 /**
@@ -114,18 +102,18 @@ export default function FeedbackPage() {
       ) : stats ? (
         <>
           <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
+            <Stat
               label="NPS"
               value={stats.nps === null ? '—' : String(stats.nps)}
               hint={stats.npsResponses > 0 ? `${stats.promoters} tarafdor · ${stats.detractors} tanqidchi` : 'Javob yo‘q'}
               tone={stats.nps === null ? undefined : stats.nps >= 30 ? 'good' : stats.nps < 0 ? 'bad' : undefined}
             />
-            <StatCard
+            <Stat
               label="O‘qituvchi bahosi"
               value={stats.teacherAverage === null ? '—' : `${stats.teacherAverage} / 5`}
             />
-            <StatCard label="Kurs bahosi" value={stats.courseAverage === null ? '—' : `${stats.courseAverage} / 5`} />
-            <StatCard
+            <Stat label="Kurs bahosi" value={stats.courseAverage === null ? '—' : `${stats.courseAverage} / 5`} />
+            <Stat
               label="Ochiq salbiy fikr"
               value={formatNumber(stats.openNegative)}
               hint={stats.openNegative > 0 ? 'Ishlanishi kerak' : 'Hammasi ishlangan'}
@@ -146,7 +134,7 @@ export default function FeedbackPage() {
                       <span className="w-14 shrink-0 text-fg-muted">{row.rating} yulduz</span>
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-muted">
                         <div
-                          className={cn('h-full rounded-full', row.rating >= 4 ? 'bg-emerald-500' : row.rating === 3 ? 'bg-amber-500' : 'bg-red-500')}
+                          className={cn('h-full rounded-full', row.rating >= 4 ? 'bg-chart-positive' : row.rating === 3 ? 'bg-chart-warning' : 'bg-chart-negative')}
                           style={{ width: `${Math.round((row.count / maxRating) * 100)}%` }}
                         />
                       </div>

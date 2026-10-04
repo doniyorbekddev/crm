@@ -96,7 +96,8 @@
 - KPI (tushum, xarajat, foyda, qarz, kassa, bank), tranzaksiyalar jadvali, summalar bir xil formatda (`formatMoney`),
   musbat/manfiy — semantik rang; ortiqcha rang yo'q. To'lovlar, qarzlar, xarajatlar, maoshlar, ombor.
 
-## PHASE 11 — Analitika / Hisobotlar
+## PHASE 11 — Analitika / Hisobotlar ✅ (2026-10-05)
+> Bajarildi: analitika, akademik analitika, hisobotlar, faoliyat, fikr-mulohaza va ogohlantirishlarda ranglar tokenlarda; kesim va holat tanlovlari yagona Tabs'da; ko'rsatkichlar StatCard'da; grafiklar chart tokenlarida (PHASE 10 da).
 - Analitika, akademik analitika, hisobotlar, faoliyat: yagona grafik uslubi, `DataTable`, davr tanlash.
 
 ## PHASE 12 — AI (§25)

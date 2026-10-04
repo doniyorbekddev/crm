@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Download, LineChart as ChartIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -70,7 +71,7 @@ function tone(key: MetricKey, value: number | null | undefined): string {
   const inverted = key === 'lateRate' || key === 'missedRate';
   const good = inverted ? value <= 10 : value >= 80;
   const bad = inverted ? value >= 30 : value < 60;
-  return good ? 'text-emerald-600 dark:text-emerald-400' : bad ? 'text-red-600 dark:text-red-400' : 'text-fg';
+  return good ? 'text-success' : bad ? 'text-danger' : 'text-fg';
 }
 
 /**
@@ -119,22 +120,23 @@ export default function AcademicAnalyticsPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div role="tablist" aria-label="Kesim" className="flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1">
-          {DIMENSIONS.map((item) => (
-            <button
-              key={item.value}
-              role="tab"
-              aria-selected={dimension === item.value}
-              className={cn('rounded-md px-3 py-1.5 text-sm', dimension === item.value ? 'bg-brand-600 text-white' : 'text-fg-muted hover:bg-surface-muted')}
-              onClick={() => {
-                setDimension(item.value);
-                setSortKey('label');
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          value={dimension}
+          onValueChange={(value) => {
+            setDimension(value as typeof dimension);
+            setSortKey('label');
+          }}
+          variant="pill"
+          panels={false}
+        >
+          <TabList label="Kesim">
+            {DIMENSIONS.map((item) => (
+              <Tab key={item.value} value={item.value}>
+                {item.label}
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
         <FormField label="Dan" htmlFor="aa-from">
           <Input id="aa-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
         </FormField>
@@ -216,7 +218,7 @@ export default function AcademicAnalyticsPage() {
                           <p className="font-medium text-fg">{row.label}</p>
                           {row.sublabel && <p className="text-xs text-fg-subtle">{row.sublabel}</p>}
                           {row.weakTopics && row.weakTopics.length > 0 && (
-                            <p className="text-xs text-amber-700 dark:text-amber-300">Zaif mavzular: {row.weakTopics.map((topic) => `${topic.title} (${topic.mastery}%)`).join(', ')}</p>
+                            <p className="text-xs text-warning">Zaif mavzular: {row.weakTopics.map((topic) => `${topic.title} (${topic.mastery}%)`).join(', ')}</p>
                           )}
                         </TD>
                         {columns.map((key) => (

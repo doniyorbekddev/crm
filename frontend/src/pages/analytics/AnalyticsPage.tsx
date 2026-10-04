@@ -1,3 +1,5 @@
+import { StatCard } from '@/components/ui/StatCard';
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useState } from 'react';
@@ -39,22 +41,7 @@ const signedMoney = (value: number) => (value < 0 ? `−${formatMoney(Math.abs(v
 // ---------------------------------------------------------------------
 
 function Metric({ label, value, hint, tone = 'default' }: { label: string; value: string; hint: string; tone?: 'default' | 'good' | 'bad' }) {
-  return (
-    <Card className="min-w-0 p-3 sm:p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-base font-semibold tabular-nums sm:text-xl',
-          tone === 'good' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'bad' && 'text-red-600 dark:text-red-400',
-          tone === 'default' && 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-fg-muted">{hint}</p>
-    </Card>
-  );
+  return <StatCard size="sm" title={label} value={value} description={hint} valueTone={tone === 'good' ? 'success' : tone === 'bad' ? 'danger' : 'default'} />;
 }
 
 function UnitEconomicsBlock({ data }: { data: UnitEconomics }) {
@@ -146,25 +133,15 @@ export default function AnalyticsPage() {
           <CardHeader className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>Rentabellik</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
-              <div role="tablist" aria-label="Kesim" className="flex gap-1">
-                {DIMENSIONS.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    role="tab"
-                    aria-selected={dimension === item.value}
-                    onClick={() => setDimension(item.value)}
-                    className={cn(
-                      'h-8 rounded-lg px-2.5 text-xs font-medium transition-colors',
-                      dimension === item.value
-                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                        : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <Tabs value={dimension} onValueChange={(value) => setDimension(value as typeof dimension)} variant="pill" panels={false}>
+                <TabList label="Kesim">
+                  {DIMENSIONS.map((item) => (
+                    <Tab key={item.value} value={item.value}>
+                      {item.label}
+                    </Tab>
+                  ))}
+                </TabList>
+              </Tabs>
               {canExport && (
                 <ExportMenu
                   loading={exporting}
@@ -196,7 +173,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div>
                   <p className="text-xs text-fg-muted">Hissa (contribution)</p>
-                  <p className={cn('mt-0.5 font-semibold tabular-nums', profitability.totals.contribution < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                  <p className={cn('mt-0.5 font-semibold tabular-nums', profitability.totals.contribution < 0 ? 'text-danger' : 'text-success')}>
                     {signedMoney(profitability.totals.contribution)}
                   </p>
                 </div>
@@ -256,7 +233,7 @@ export default function AnalyticsPage() {
                           </TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(row.revenue)}</TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{row.teacherCost > 0 ? formatMoney(row.teacherCost) : '—'}</TD>
-                          <TD className={cn('text-right font-semibold whitespace-nowrap tabular-nums', row.contribution < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                          <TD className={cn('text-right font-semibold whitespace-nowrap tabular-nums', row.contribution < 0 ? 'text-danger' : 'text-fg')}>
                             {signedMoney(row.contribution)}
                           </TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{row.margin === null ? '—' : `${row.margin}%`}</TD>
@@ -421,7 +398,7 @@ export default function AnalyticsPage() {
                           <TD
                             className={cn(
                               'text-right whitespace-nowrap tabular-nums',
-                              row.roi === null ? 'text-fg-muted' : row.roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+                              row.roi === null ? 'text-fg-muted' : row.roi >= 0 ? 'text-success' : 'text-danger',
                             )}
                           >
                             {row.roi === null ? '—' : `${row.roi}%`}

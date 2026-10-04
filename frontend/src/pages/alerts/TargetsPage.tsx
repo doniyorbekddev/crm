@@ -35,7 +35,7 @@ function ProgressCell({ type, cell }: { type: TargetType; cell: TargetCell }) {
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
         <div
-          className={cn('h-full rounded-full', cell.progress >= 100 ? 'bg-emerald-500' : cell.progress >= 70 ? 'bg-amber-500' : 'bg-brand-500')}
+          className={cn('h-full rounded-full', cell.progress >= 100 ? 'bg-chart-positive' : cell.progress >= 70 ? 'bg-chart-warning' : 'bg-brand-500')}
           style={{ width: `${cell.target > 0 ? Math.min(Math.max(cell.progress, 2), 100) : 0}%` }}
         />
       </div>
@@ -117,7 +117,7 @@ export default function TargetsPage() {
             {TARGET_TYPE_ORDER.map((type) => (
               <span key={type} className="text-fg-muted">
                 {TARGET_TYPE_LABELS[type]}:{' '}
-                <strong className={cn(data.totals[type].progress >= 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg')}>
+                <strong className={cn(data.totals[type].progress >= 100 ? 'text-success' : 'text-fg')}>
                   {data.totals[type].target > 0 ? `${data.totals[type].progress}%` : '—'}
                 </strong>
               </span>

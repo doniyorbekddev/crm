@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, CheckCheck, CheckCircle2, Newspaper, RefreshCw, Settings2, Siren } from 'lucide-react';
 import { useState } from 'react';
@@ -81,8 +82,8 @@ function DigestCard({ digest }: { digest: DailyDigest }) {
               <dd
                 className={cn(
                   'text-sm font-semibold tabular-nums',
-                  item.tone === 'good' && 'text-emerald-600 dark:text-emerald-400',
-                  item.tone === 'bad' && 'text-red-600 dark:text-red-400',
+                  item.tone === 'good' && 'text-success',
+                  item.tone === 'bad' && 'text-danger',
                   !item.tone && 'text-fg',
                 )}
               >
@@ -226,29 +227,15 @@ export default function AlertsPage() {
 
       <Card>
         <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <div role="tablist" aria-label="Holat" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {STATUS_OPTIONS.map((option) => {
-              const active = status === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setStatus(option.value))}
-                  className={cn(
-                    'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                    active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+          <Tabs value={status} onValueChange={(value) => changeFilter(() => setStatus(value as typeof status))} variant="pill" panels={false}>
+            <TabList label="Holat">
+              {STATUS_OPTIONS.map((option) => (
+                <Tab key={option.value} value={option.value} {...(option.value === 'unread' && unread > 0 ? { count: unread, countTone: 'danger' as const } : {})}>
                   {option.label}
-                  {option.value === 'unread' && unread > 0 && (
-                    <span className="rounded-full bg-red-500 px-1.5 text-[11px] leading-5 font-semibold text-white">{unread}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
           <Select
             value={type}
             onChange={(event) => changeFilter(() => setType(event.target.value as AlertType | ''))}
@@ -290,7 +277,7 @@ export default function AlertsPage() {
                       'flex flex-col gap-3 border-l-4 px-4 py-3 sm:flex-row sm:items-center',
                       SEVERITY_BORDER[alert.severity],
                       alert.resolvedAt && 'opacity-70',
-                      isUnread && 'bg-brand-50/40 dark:bg-brand-950/20',
+                      isUnread && 'bg-primary-subtle',
                     )}
                   >
                     <div className="min-w-0 flex-1">

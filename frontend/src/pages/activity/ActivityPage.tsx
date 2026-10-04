@@ -19,13 +19,13 @@ import { STANDARD_PRESETS, toDateString } from '@/utils/dateRange';
 import { formatMoney } from '@/utils/format';
 
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: LucideIcon; className: string }> = {
-  student: { label: 'O‘quvchilar', icon: GraduationCap, className: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-300' },
-  payment: { label: 'To‘lovlar', icon: Wallet, className: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300' },
-  expense: { label: 'Xarajatlar', icon: Receipt, className: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300' },
-  lead: { label: 'Leadlar', icon: Target, className: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300' },
-  attendance: { label: 'Davomat', icon: CalendarCheck, className: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300' },
-  teaching: { label: 'O‘qituvchi amallari', icon: BookOpen, className: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-300' },
-  salary: { label: 'Maoshlar', icon: Coins, className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' },
+  student: { label: 'O‘quvchilar', icon: GraduationCap, className: 'bg-accent-subtle text-accent' },
+  payment: { label: 'To‘lovlar', icon: Wallet, className: 'bg-success-subtle text-success' },
+  expense: { label: 'Xarajatlar', icon: Receipt, className: 'bg-danger-subtle text-danger' },
+  lead: { label: 'Leadlar', icon: Target, className: 'bg-primary-subtle text-primary' },
+  attendance: { label: 'Davomat', icon: CalendarCheck, className: 'bg-warning-subtle text-warning' },
+  teaching: { label: 'O‘qituvchi amallari', icon: BookOpen, className: 'bg-info-subtle text-info' },
+  salary: { label: 'Maoshlar', icon: Coins, className: 'bg-surface-muted text-fg-muted' },
 };
 
 const TYPE_ORDER: readonly ActivityType[] = ['payment', 'student', 'lead', 'expense', 'attendance', 'teaching', 'salary'];
@@ -67,7 +67,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
             <span
               className={cn(
                 'text-sm font-semibold whitespace-nowrap tabular-nums',
-                item.amount < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400',
+                item.amount < 0 ? 'text-danger' : 'text-success',
               )}
             >
               {item.amount < 0 ? '−' : '+'}
@@ -84,7 +84,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
             </span>
           )}
           {item.link && (
-            <Link to={item.link} className="inline-flex items-center gap-0.5 text-brand-600 hover:underline dark:text-brand-400">
+            <Link to={item.link} className="inline-flex items-center gap-0.5 text-primary hover:underline">
               Ochish
               <ArrowRight className="size-3" aria-hidden />
             </Link>
@@ -143,7 +143,7 @@ export default function ActivityPage() {
                 className={cn(
                   'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
                   active
-                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
+                    ? 'border-brand-500 bg-primary-subtle text-primary'
                     : 'border-border bg-surface text-fg-muted hover:bg-surface-muted hover:text-fg',
                 )}
               >

@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { BarChart3, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
@@ -140,28 +141,15 @@ export default function ReportsPage() {
 
       <Card className="mb-4">
         <div className="flex flex-col gap-3 p-3">
-          <div role="tablist" aria-label="Hisobot turi" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {availableReports.map((item) => {
-              const active = type === item.value;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setType(item.value)}
-                  className={cn(
-                    'inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-xs font-medium whitespace-nowrap transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+          <Tabs value={type} onValueChange={(value) => setType(value as typeof type)} panels={false}>
+            <TabList label="Hisobot turi">
+              {availableReports.map((item) => (
+                <Tab key={item.value} value={item.value}>
                   {item.label}
-                </button>
-              );
-            })}
-          </div>
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <DateRangePicker value={range} onChange={setRange} />
