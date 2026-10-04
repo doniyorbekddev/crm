@@ -47,8 +47,8 @@ export function Modal({ open, title, description, onClose, children, footer, siz
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-slate-950/50" aria-hidden onClick={() => !closeDisabled && onClose()} />
+    <div className="fixed inset-0 z-modal flex items-end justify-center sm:items-center sm:p-4">
+      <div className="absolute inset-0 animate-fade-in bg-overlay" aria-hidden onClick={() => !closeDisabled && onClose()} />
       <div
         ref={dialogRef}
         role="dialog"
@@ -56,23 +56,23 @@ export function Modal({ open, title, description, onClose, children, footer, siz
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'relative flex max-h-[92vh] w-full flex-col outline-none rounded-t-2xl border border-border bg-surface shadow-xl sm:rounded-xl',
+          'relative flex max-h-[92vh] w-full animate-slide-in-up flex-col rounded-t-dialog border border-border bg-surface-elevated shadow-md outline-none sm:animate-pop-in sm:rounded-dialog',
           SIZES[size],
         )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-fg">
+            <h2 id={titleId} className="text-h3 text-fg">
               {title}
             </h2>
-            {description && <p className="mt-1 text-sm text-fg-muted">{description}</p>}
+            {description && <p className="mt-1 text-body text-fg-muted">{description}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={closeDisabled}
             aria-label="Yopish"
-            className="grid size-8 shrink-0 place-items-center rounded-md text-fg-muted hover:bg-surface-muted hover:text-fg disabled:opacity-50"
+            className="focus-ring grid size-8 shrink-0 place-items-center rounded-chip text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg disabled:opacity-50"
           >
             <X className="size-4" aria-hidden />
           </button>

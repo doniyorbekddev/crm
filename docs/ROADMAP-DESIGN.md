@@ -16,7 +16,9 @@
 ## PHASE 0 — Audit ✅ (2026-10-04)
 `DESIGN-AUDIT.md`, ushbu roadmap. Kod o'zgarmadi.
 
-## PHASE 1 — Design tokens + asosiy primitivlar (§6–10, §31–34)
+## PHASE 1 — Design tokens + asosiy primitivlar (§6–10, §31–34) ✅ (2026-10-04)
+> Bajarildi: tokenlar, lokal Inter, 18 primitiv tokenlarda, 14 yangi primitiv, `docs/design-system.md`. Sahifalardagi xom
+> ranglar (677), `title=` (242) va qo'lda yasalgan tablar o'z fazasida ko'chiriladi.
 - **Tokenlar** (`index.css`): `success / warning / danger / info` (fon, matn, chegara — light va dark), neytral shkala,
   tipografiya (display, h1–h3, body, small, caption, table, label), radius 6/8/12/16, soya 2 daraja, z-index, o'tish vaqtlari.
 - **Inter** shriftini haqiqatan yuklash (o'zimizda saqlanadigan fayl).

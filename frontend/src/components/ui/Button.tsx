@@ -3,16 +3,16 @@ import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 const variantClasses = {
-  primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:ring-brand-500',
-  secondary: 'border border-border bg-surface text-fg shadow-sm hover:bg-surface-muted focus-visible:ring-brand-500',
-  ghost: 'text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:ring-brand-500',
-  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500',
+  primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800',
+  secondary: 'border border-border bg-surface text-fg shadow-sm hover:bg-surface-muted active:bg-surface-muted',
+  ghost: 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+  danger: 'bg-danger-solid text-white shadow-sm hover:bg-danger-solid-hover',
 } as const;
 
 const sizeClasses = {
-  sm: 'h-8 gap-1.5 px-3 text-xs',
-  md: 'h-9 gap-2 px-4 text-sm',
-  lg: 'h-11 gap-2 px-5 text-sm',
+  sm: 'h-8 gap-1.5 px-3 text-caption',
+  md: 'h-9 gap-2 px-3.5 text-body',
+  lg: 'h-11 gap-2 px-5 text-body',
   icon: 'size-9',
 } as const;
 
@@ -43,8 +43,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors outline-none',
-        'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+        'focus-ring inline-flex shrink-0 items-center justify-center rounded-control font-medium whitespace-nowrap transition-colors',
         'disabled:pointer-events-none disabled:opacity-50',
         variantClasses[variant],
         sizeClasses[size],

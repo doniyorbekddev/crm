@@ -1,10 +1,10 @@
 import { cn } from '@/lib/cn';
 
 const SIZES = {
-  xs: 'size-6 text-[10px]',
-  sm: 'size-8 text-xs',
-  md: 'size-10 text-sm',
-  lg: 'size-16 text-xl',
+  xs: 'size-6 text-overline tracking-normal',
+  sm: 'size-8 text-caption',
+  md: 'size-10 text-body',
+  lg: 'size-16 text-h2',
 } as const;
 
 interface AvatarProps {
@@ -20,7 +20,7 @@ export function Avatar({ firstName, lastName, size = 'md', className }: AvatarPr
     <span
       aria-hidden
       className={cn(
-        'inline-grid shrink-0 place-items-center rounded-full bg-brand-100 font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-200',
+        'inline-grid shrink-0 place-items-center rounded-full bg-primary-subtle font-semibold text-primary ring-1 ring-primary-border ring-inset',
         SIZES[size],
         className,
       )}

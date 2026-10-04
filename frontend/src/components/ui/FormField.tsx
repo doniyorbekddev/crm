@@ -20,19 +20,19 @@ export function FormField({ label, htmlFor, error, hint, required = false, label
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={htmlFor} className="text-sm font-medium text-fg">
+        <label htmlFor={htmlFor} className="text-label text-fg">
           {label}
-          {required && <span className="ml-0.5 text-red-500">*</span>}
+          {required && <span className="ml-0.5 text-danger">*</span>}
         </label>
         {labelAction}
       </div>
       {children}
       {error ? (
-        <p id={fieldErrorId(htmlFor)} role="alert" className="text-xs text-red-600 dark:text-red-400">
+        <p id={fieldErrorId(htmlFor)} role="alert" className="text-caption text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-fg-muted">{hint}</p>
+        <p className="text-caption text-fg-muted">{hint}</p>
       ) : null}
     </div>
   );

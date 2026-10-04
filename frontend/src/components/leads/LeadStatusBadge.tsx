@@ -1,9 +1,8 @@
 import { Badge } from '@/components/ui/Badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/cn';
 import type { LeadPriority, LeadStatus, LeadTemperature } from '@/types/lead';
 import {
-  LEAD_PRIORITY_LABELS,
-  LEAD_PRIORITY_TONES,
   LEAD_STATUS_DOTS,
   LEAD_STATUS_LABELS,
   LEAD_STATUS_TONES,
@@ -22,7 +21,7 @@ export function LeadStatusBadge({ status }: { status: LeadStatus }) {
 }
 
 export function LeadPriorityBadge({ priority }: { priority: LeadPriority }) {
-  return <Badge tone={LEAD_PRIORITY_TONES[priority]}>{LEAD_PRIORITY_LABELS[priority]}</Badge>;
+  return <StatusBadge kind="leadPriority" status={priority} />;
 }
 
 /**

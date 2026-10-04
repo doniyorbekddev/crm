@@ -26,7 +26,7 @@ export function SearchInput({ value, onChange, placeholder = 'Qidirish...', clas
               type="button"
               onClick={() => onChange('')}
               aria-label="Qidiruvni tozalash"
-              className="grid size-8 place-items-center rounded-md text-fg-subtle hover:text-fg"
+              className="focus-ring grid size-8 place-items-center rounded-chip text-fg-subtle transition-colors hover:text-fg"
             >
               <X className="size-4" aria-hidden />
             </button>

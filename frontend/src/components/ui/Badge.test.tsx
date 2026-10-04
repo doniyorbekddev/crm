@@ -10,7 +10,10 @@ describe('Badge', () => {
 
   it('ohangga qarab rang sinfini qo‘yadi', () => {
     render(<Badge tone="red">Qarzdor</Badge>);
-    expect(screen.getByText('Qarzdor').className).toContain('red');
+    // Ranglar semantik tokenlardan (dizayn tizimi PHASE 1): "red" → danger
+    expect(screen.getByText('Qarzdor')).toHaveClass('bg-danger-subtle', 'text-danger');
+    render(<Badge tone="success">To‘langan</Badge>);
+    expect(screen.getByText('To‘langan')).toHaveClass('bg-success-subtle', 'text-success');
   });
 
   it('qo‘shimcha sinf berilgani saqlanadi', () => {

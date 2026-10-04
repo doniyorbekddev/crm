@@ -47,8 +47,8 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/50" aria-hidden onClick={() => !loading && onCancel()} />
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      <div className="absolute inset-0 animate-fade-in bg-overlay" aria-hidden onClick={() => !loading && onCancel()} />
       <div
         ref={dialogRef}
         role="alertdialog"
@@ -56,24 +56,24 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl outline-none"
+        className="relative w-full max-w-md animate-pop-in rounded-dialog border border-border bg-surface-elevated p-6 shadow-md outline-none"
       >
         <div className="flex gap-4">
           <div
             className={cn(
               'grid size-10 shrink-0 place-items-center rounded-full',
               tone === 'danger'
-                ? 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400'
-                : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300',
+                ? 'bg-danger-subtle text-danger'
+                : 'bg-primary-subtle text-primary',
             )}
           >
             <AlertTriangle className="size-5" aria-hidden />
           </div>
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-fg">
+            <h2 id={titleId} className="text-h3 text-fg">
               {title}
             </h2>
-            <div id={descriptionId} className="mt-1.5 text-sm text-fg-muted">
+            <div id={descriptionId} className="mt-1.5 text-body text-fg-muted">
               {description}
             </div>
           </div>

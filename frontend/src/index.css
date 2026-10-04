@@ -1,40 +1,192 @@
 @import 'tailwindcss';
 
+/*
+ * DIZAYN TOKENLARI — yagona manba (docs/design-system.md).
+ * Komponentlar xom palitra (text-red-600, bg-emerald-50) o'rniga shu tokenlardan foydalanadi:
+ * bg-surface, text-fg, text-danger, bg-success-subtle, rounded-control, shadow-sm, z-modal, text-h2 ...
+ */
+
+/* Inter — lokal (tashqi CDN yo'q). O'zgaruvchan shrift: 100–900. Litsenziya: assets/fonts/LICENSE-Inter.txt (OFL-1.1) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/inter-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/inter-cyrillic-wght-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 /* Dark mode <html class="dark"> orqali boshqariladi (Light / Dark / System). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Semantik ranglar: komponentlar bg-surface, text-fg, border-border kabi klasslardan foydalanadi,
-   shuning uchun dark mode uchun alohida klass yozish shart emas. */
+/* Light va dark qiymatlari. Komponentlar shu o'zgaruvchilarga @theme orqali ulanadi —
+   dark mode uchun alohida klass yozish shart emas. Matn tokenlari sirt ustida ≥ 4.5:1 (fg-subtle — yordamchi, ≥ 3:1). */
 :root {
   color-scheme: light;
+
+  /* Sirtlar */
   --app-bg: #f5f7fb;
   --app-surface: #ffffff;
   --app-surface-muted: #f4f6fa;
+  --app-surface-elevated: #ffffff;
   --app-border: #e4e8ef;
+  --app-border-muted: #eef1f6;
   --app-fg: #0f172a;
-  --app-fg-muted: #5f6b7e;
-  --app-fg-subtle: #94a3b8;
+  --app-fg-muted: #5b6779;
+  --app-fg-subtle: #7a8699;
+  --app-overlay: rgb(15 23 42 / 0.45);
+  --app-skeleton: #e6eaf1;
+  --app-focus: #4c64f6;
+
+  /* Semantik holatlar: matn/ikonka · yumshoq fon · chegara · to'liq fon (oq matn bilan) */
+  --app-success: #047857;
+  --app-success-subtle: #ecfdf5;
+  --app-success-border: #a7f3d0;
+  --app-success-solid: #047857;
+  --app-warning: #b45309;
+  --app-warning-subtle: #fffbeb;
+  --app-warning-border: #fde68a;
+  --app-warning-solid: #b45309;
+  --app-danger: #b91c1c;
+  --app-danger-subtle: #fef2f2;
+  --app-danger-border: #fecaca;
+  --app-danger-solid: #dc2626;
+  --app-danger-solid-hover: #b91c1c;
+  --app-info: #0369a1;
+  --app-info-subtle: #f0f9ff;
+  --app-info-border: #bae6fd;
+  --app-info-solid: #0369a1;
+  /* Brend ohangi (asosiy amal, tanlangan holat) va ikkinchi urg'u (toifalash uchun) */
+  --app-primary: #2940cf;
+  --app-primary-subtle: #eef3ff;
+  --app-primary-border: #c5d3ff;
+  --app-accent: #6d28d9;
+  --app-accent-subtle: #f5f3ff;
+  --app-accent-border: #ddd6fe;
+
+  /* Soya — faqat ikki daraja */
+  --app-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+  --app-shadow-md: 0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.06);
+
+  /* Qatlamlar (z-index) — tasodifiy z-[9999] ishlatilmaydi */
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-overlay: 40;
+  --z-drawer: 50;
+  --z-modal: 60;
+  --z-command: 65;
+  --z-dropdown: 70;
+  --z-toast: 80;
+  --z-tooltip: 90;
+
+  /* Harakat */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
 }
 
 .dark {
   color-scheme: dark;
+
   --app-bg: #0b1020;
   --app-surface: #111827;
   --app-surface-muted: #1a2234;
+  --app-surface-elevated: #161f31;
   --app-border: #253046;
+  --app-border-muted: #1c2638;
   --app-fg: #e6e9ef;
   --app-fg-muted: #a0aabb;
-  --app-fg-subtle: #6b7689;
+  --app-fg-subtle: #7c879b;
+  --app-overlay: rgb(2 6 17 / 0.65);
+  --app-skeleton: #1f2a3f;
+  --app-focus: #7089fb;
+
+  --app-success: #6ee7b7;
+  --app-success-subtle: #0d2e26;
+  --app-success-border: #14503f;
+  --app-success-solid: #047857;
+  --app-warning: #fcd34d;
+  --app-warning-subtle: #33270b;
+  --app-warning-border: #5f4712;
+  --app-warning-solid: #b45309;
+  --app-danger: #fca5a5;
+  --app-danger-subtle: #3a1519;
+  --app-danger-border: #6b2126;
+  --app-danger-solid: #dc2626;
+  --app-danger-solid-hover: #b91c1c;
+  --app-info: #7dd3fc;
+  --app-info-subtle: #0c2a3d;
+  --app-info-border: #124a68;
+  --app-info-solid: #0369a1;
+  --app-primary: #9fb5ff;
+  --app-primary-subtle: #171f4d;
+  --app-primary-border: #253584;
+  --app-accent: #c4b5fd;
+  --app-accent-subtle: #251a47;
+  --app-accent-border: #40307a;
+
+  --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --app-shadow-md: 0 12px 28px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.35);
 }
 
 @theme inline {
   --color-bg: var(--app-bg);
   --color-surface: var(--app-surface);
   --color-surface-muted: var(--app-surface-muted);
+  --color-surface-elevated: var(--app-surface-elevated);
   --color-border: var(--app-border);
+  --color-border-muted: var(--app-border-muted);
   --color-fg: var(--app-fg);
   --color-fg-muted: var(--app-fg-muted);
   --color-fg-subtle: var(--app-fg-subtle);
+  --color-overlay: var(--app-overlay);
+  --color-skeleton: var(--app-skeleton);
+  --color-focus: var(--app-focus);
+
+  --color-success: var(--app-success);
+  --color-success-subtle: var(--app-success-subtle);
+  --color-success-border: var(--app-success-border);
+  --color-success-solid: var(--app-success-solid);
+  --color-warning: var(--app-warning);
+  --color-warning-subtle: var(--app-warning-subtle);
+  --color-warning-border: var(--app-warning-border);
+  --color-warning-solid: var(--app-warning-solid);
+  --color-danger: var(--app-danger);
+  --color-danger-subtle: var(--app-danger-subtle);
+  --color-danger-border: var(--app-danger-border);
+  --color-danger-solid: var(--app-danger-solid);
+  --color-danger-solid-hover: var(--app-danger-solid-hover);
+  --color-info: var(--app-info);
+  --color-info-subtle: var(--app-info-subtle);
+  --color-info-border: var(--app-info-border);
+  --color-info-solid: var(--app-info-solid);
+  --color-primary: var(--app-primary);
+  --color-primary-subtle: var(--app-primary-subtle);
+  --color-primary-border: var(--app-primary-border);
+  --color-accent: var(--app-accent);
+  --color-accent-subtle: var(--app-accent-subtle);
+  --color-accent-border: var(--app-accent-border);
+
+  --shadow-sm: var(--app-shadow-sm);
+  --shadow-md: var(--app-shadow-md);
 }
 
 @theme {
@@ -51,6 +203,132 @@
   --color-brand-800: #2637a7;
   --color-brand-900: #253584;
   --color-brand-950: #171f4d;
+
+  /* Tipografiya shkalasi: text-display … text-overline (o'lcham + qator balandligi + vazn birga) */
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 2rem;
+  --text-h1--font-weight: 600;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h3--font-weight: 600;
+  --text-h4: 0.875rem;
+  --text-h4--line-height: 1.25rem;
+  --text-h4--font-weight: 600;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 500;
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1rem;
+  --text-overline--font-weight: 600;
+  --text-overline--letter-spacing: 0.06em;
+
+  /* Radius: 6 / 8 / 12 / 16 */
+  --radius-chip: 0.375rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-dialog: 1rem;
+
+  /* Harakat */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --default-transition-duration: var(--duration-fast);
+  --default-transition-timing-function: var(--ease-standard);
+
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-standard);
+  --animate-pop-in: pop-in var(--duration-normal) var(--ease-standard);
+  --animate-slide-in-right: slide-in-right var(--duration-slow) var(--ease-standard);
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-standard);
+  --animate-slide-in-up: slide-in-up var(--duration-slow) var(--ease-standard);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98) translateY(4px);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-in-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+}
+
+/* Qatlam va davomiylik utilitalari (Tailwind 4 da bular uchun theme nomlar maydoni yo'q) */
+@utility z-sticky {
+  z-index: var(--z-sticky);
+}
+@utility z-header {
+  z-index: var(--z-header);
+}
+@utility z-overlay {
+  z-index: var(--z-overlay);
+}
+@utility z-drawer {
+  z-index: var(--z-drawer);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-command {
+  z-index: var(--z-command);
+}
+@utility z-dropdown {
+  z-index: var(--z-dropdown);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+@utility z-tooltip {
+  z-index: var(--z-tooltip);
+}
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+}
+@utility duration-normal {
+  transition-duration: var(--duration-normal);
+}
+@utility duration-slow {
+  transition-duration: var(--duration-slow);
+}
+
+/* Klaviatura fokusi: har doim ko'rinadigan halqa. `outline-none` faqat shu utilita bilan birga. */
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  &:focus-visible {
+    outline-color: var(--color-focus);
+  }
 }
 
 @layer base {
@@ -69,4 +347,39 @@
   ::after {
     @apply border-border;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Toast (sonner) — dizayn tokenlari bilan. Qatlam: sonner o'zi eng yuqorida turadi (modal ustida ham ko'rinishi kerak). */
+:root [data-sonner-toaster][data-sonner-theme] {
+  --border-radius: var(--radius-card);
+  --normal-bg: var(--app-surface-elevated);
+  --normal-border: var(--app-border);
+  --normal-text: var(--app-fg);
+  --success-bg: var(--app-success-subtle);
+  --success-border: var(--app-success-border);
+  --success-text: var(--app-success);
+  --error-bg: var(--app-danger-subtle);
+  --error-border: var(--app-danger-border);
+  --error-text: var(--app-danger);
+  --warning-bg: var(--app-warning-subtle);
+  --warning-border: var(--app-warning-border);
+  --warning-text: var(--app-warning);
+  --info-bg: var(--app-info-subtle);
+  --info-border: var(--app-info-border);
+  --info-text: var(--app-info);
+  font-family: var(--font-sans);
+}
+:root [data-sonner-toast] {
+  box-shadow: var(--app-shadow-md);
 }

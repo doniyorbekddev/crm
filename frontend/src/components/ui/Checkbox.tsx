@@ -21,7 +21,7 @@ export function Checkbox({ indeterminate = false, className, label, ...props }: 
       ref={ref}
       type="checkbox"
       className={cn(
-        'size-4 cursor-pointer rounded border-border accent-brand-600 outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+        'focus-ring size-4 cursor-pointer rounded-sm border-border accent-brand-600',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
@@ -30,7 +30,7 @@ export function Checkbox({ indeterminate = false, className, label, ...props }: 
   );
   if (!label) return input;
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-fg">
+    <label className="flex cursor-pointer items-center gap-2 text-body text-fg">
       {input}
       <span>{label}</span>
     </label>

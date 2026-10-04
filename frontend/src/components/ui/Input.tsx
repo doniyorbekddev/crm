@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { controlClass, controlInvalidClass } from './controlStyles';
 
 export interface InputProps extends ComponentProps<'input'> {
   invalid?: boolean;
@@ -16,12 +17,11 @@ export function Input({ className, invalid = false, leftIcon, rightSlot, ...prop
       <input
         aria-invalid={invalid || undefined}
         className={cn(
-          'h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-fg shadow-xs outline-none transition',
-          'placeholder:text-fg-subtle focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15',
-          'disabled:cursor-not-allowed disabled:opacity-60',
+          controlClass,
+          'h-10 px-3',
           leftIcon ? 'pl-9' : undefined,
           rightSlot ? 'pr-11' : undefined,
-          invalid && 'border-red-500 focus:border-red-500 focus:ring-red-500/15',
+          invalid && controlInvalidClass,
           className,
         )}
         {...props}

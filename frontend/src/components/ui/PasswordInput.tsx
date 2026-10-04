@@ -15,7 +15,7 @@ export function PasswordInput(props: Omit<InputProps, 'type' | 'rightSlot'>) {
           type="button"
           onClick={() => setVisible((value) => !value)}
           aria-label={visible ? 'Parolni yashirish' : 'Parolni ko‘rsatish'}
-          className="grid size-8 place-items-center rounded-md text-fg-subtle outline-none transition-colors hover:text-fg focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="focus-ring grid size-8 place-items-center rounded-chip text-fg-subtle transition-colors hover:text-fg"
         >
           {visible ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
         </button>

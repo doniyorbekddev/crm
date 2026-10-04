@@ -32,11 +32,11 @@ export function Pagination({ page, totalPages, total, limit, onPageChange, disab
   const from = (page - 1) * limit + 1;
   const to = Math.min(page * limit, total);
   const buttonClass =
-    'inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-40';
+    'focus-ring inline-flex h-8 min-w-8 items-center justify-center rounded-chip px-2 text-body font-medium tabular-nums transition-colors disabled:pointer-events-none disabled:opacity-40';
 
   return (
     <nav aria-label="Sahifalar" className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-      <p className="text-sm text-fg-muted">
+      <p className="text-body text-fg-muted tabular-nums">
         {formatNumber(from)}–{formatNumber(to)} / {formatNumber(total)} ta
       </p>
       {totalPages > 1 && (
@@ -61,7 +61,7 @@ export function Pagination({ page, totalPages, total, limit, onPageChange, disab
                 className={cn(
                   buttonClass,
                   item === page
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-primary-subtle text-primary ring-1 ring-primary-border ring-inset'
                     : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
                   'hidden sm:inline-flex',
                   item === page && 'inline-flex',

@@ -1,8 +1,9 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
+/** Ierarxiya chegara va fon kontrasti bilan — soyasiz (soya faqat suzuvchi qatlamlarda) */
 export function Card({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('rounded-xl border border-border bg-surface shadow-xs', className)} {...props} />;
+  return <div className={cn('rounded-card border border-border bg-surface', className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
@@ -15,11 +16,11 @@ export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
 }
 
 export function CardTitle({ className, ...props }: ComponentProps<'h3'>) {
-  return <h3 className={cn('text-sm font-semibold text-fg', className)} {...props} />;
+  return <h3 className={cn('text-h4 text-fg', className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: ComponentProps<'p'>) {
-  return <p className={cn('mt-0.5 text-xs text-fg-muted', className)} {...props} />;
+  return <p className={cn('mt-0.5 text-caption text-fg-muted', className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: ComponentProps<'div'>) {

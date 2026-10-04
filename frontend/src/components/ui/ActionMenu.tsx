@@ -62,17 +62,43 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // Faqat menyu yopiladi — ostidagi Modal/Drawer ochiq qoladi (shu sabab tinglovchi "capture" bosqichida)
+        event.stopPropagation();
         close();
         buttonRef.current?.focus();
+        return;
       }
+      if (event.key === 'Tab') {
+        close();
+        return;
+      }
+      // ↑/↓, Home/End — menyu bandlari orasida (WAI-ARIA menu)
+      const entries = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not([disabled])') ?? []);
+      if (entries.length === 0) return;
+      const current = entries.indexOf(document.activeElement as HTMLButtonElement);
+      const next =
+        event.key === 'ArrowDown'
+          ? (current + 1) % entries.length
+          : event.key === 'ArrowUp'
+            ? (current - 1 + entries.length) % entries.length
+            : event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? entries.length - 1
+                : -1;
+      if (next === -1) return;
+      event.preventDefault();
+      entries[next]!.focus();
     };
+    // Ochilganda fokus birinchi bandga — klaviatura bilan darhol tanlash mumkin
+    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not([disabled])')?.focus();
     document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('scroll', follow, true);
     window.addEventListener('resize', follow);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('scroll', follow, true);
       window.removeEventListener('resize', follow);
     };
@@ -103,10 +129,10 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
         aria-label={trigger ? undefined : label}
         disabled={disabled}
         className={cn(
-          'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-60',
+          'focus-ring transition-colors disabled:pointer-events-none disabled:opacity-60',
           trigger
-            ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg shadow-xs hover:bg-surface-muted'
-            : 'grid size-8 place-items-center rounded-md text-fg-muted hover:bg-surface-muted hover:text-fg',
+            ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-control border border-border bg-surface px-3.5 text-body font-medium text-fg shadow-sm hover:bg-surface-muted'
+            : 'grid size-8 place-items-center rounded-chip text-fg-muted hover:bg-surface-muted hover:text-fg',
         )}
       >
         {trigger ? (
@@ -124,7 +150,7 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
             ref={menuRef}
             role="menu"
             style={{ top: position.top, left: position.left, width: MENU_WIDTH }}
-            className="fixed z-50 overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-lg"
+            className="fixed z-dropdown animate-fade-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md"
           >
             {items.map(({ label: itemLabel, icon: Icon, onSelect, tone = 'default', disabled = false }) => (
               <button
@@ -137,10 +163,10 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
                   onSelect();
                 }}
                 className={cn(
-                  'flex h-10 w-full items-center gap-2.5 px-3 text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-50',
+                  'flex h-10 w-full items-center gap-2.5 px-3 text-left text-body outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
                   tone === 'danger'
-                    ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950'
-                    : 'text-fg hover:bg-surface-muted',
+                    ? 'text-danger hover:bg-danger-subtle focus-visible:bg-danger-subtle'
+                    : 'text-fg hover:bg-surface-muted focus-visible:bg-surface-muted',
                 )}
               >
                 <Icon className={cn('size-4 shrink-0', tone === 'default' && 'text-fg-muted')} aria-hidden />

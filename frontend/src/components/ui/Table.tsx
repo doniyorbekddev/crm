@@ -12,11 +12,11 @@ export function TableContainer({ className, ...props }: ComponentProps<'div'>) {
 }
 
 export function Table({ className, ...props }: ComponentProps<'table'>) {
-  return <table className={cn('w-full border-collapse text-sm', className)} {...props} />;
+  return <table className={cn('w-full border-collapse text-body', className)} {...props} />;
 }
 
 export function THead({ className, ...props }: ComponentProps<'thead'>) {
-  return <thead className={cn('bg-surface-muted/70 text-left text-xs text-fg-muted', className)} {...props} />;
+  return <thead className={cn('bg-surface-muted/70 text-left text-caption text-fg-muted', className)} {...props} />;
 }
 
 export function TBody(props: ComponentProps<'tbody'>) {
@@ -24,7 +24,7 @@ export function TBody(props: ComponentProps<'tbody'>) {
 }
 
 export function TR({ className, ...props }: ComponentProps<'tr'>) {
-  return <tr className={cn('border-t border-border transition-colors hover:bg-surface-muted/50', className)} {...props} />;
+  return <tr className={cn('border-t border-border transition-colors hover:bg-surface-muted/60', className)} {...props} />;
 }
 
 export function TH({ className, ...props }: ComponentProps<'th'>) {

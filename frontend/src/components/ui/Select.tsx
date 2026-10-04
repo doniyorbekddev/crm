@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
+import { controlClass, controlInvalidClass } from './controlStyles';
 
 export interface SelectProps extends ComponentProps<'select'> {
   invalid?: boolean;
@@ -13,9 +14,9 @@ export function Select({ className, wrapperClassName, invalid = false, children,
       <select
         aria-invalid={invalid || undefined}
         className={cn(
-          'h-10 w-full appearance-none rounded-lg border border-border bg-surface pr-9 pl-3 text-sm text-fg shadow-xs outline-none transition',
-          'focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15 disabled:cursor-not-allowed disabled:opacity-60',
-          invalid && 'border-red-500 focus:border-red-500 focus:ring-red-500/15',
+          controlClass,
+          'h-10 appearance-none pr-9 pl-3',
+          invalid && controlInvalidClass,
           className,
         )}
         {...props}
