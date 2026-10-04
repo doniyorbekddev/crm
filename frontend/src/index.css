@@ -38,7 +38,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Light va dark qiymatlari. Komponentlar shu o'zgaruvchilarga @theme orqali ulanadi —
-   dark mode uchun alohida klass yozish shart emas. Matn tokenlari sirt ustida ≥ 4.5:1 (fg-subtle — yordamchi, ≥ 3:1). */
+   dark mode uchun alohida klass yozish shart emas. Barcha matn tokenlari (fg-subtle ham) har qanday sirt va
+   `-subtle` fon ustida ≥ 4.5:1 — avtomatik skaner bilan tekshirilgan (PHASE 15). */
 :root {
   color-scheme: light;
 
@@ -50,8 +51,8 @@
   --app-border: #e4e8ef;
   --app-border-muted: #eef1f6;
   --app-fg: #0f172a;
-  --app-fg-muted: #5b6779;
-  --app-fg-subtle: #7a8699;
+  --app-fg-muted: #4f5b6d;
+  --app-fg-subtle: #647085;
   --app-overlay: rgb(15 23 42 / 0.45);
   --app-skeleton: #e6eaf1;
   --app-focus: #4c64f6;
@@ -125,7 +126,7 @@
   --app-border-muted: #1c2638;
   --app-fg: #e6e9ef;
   --app-fg-muted: #a0aabb;
-  --app-fg-subtle: #7c879b;
+  --app-fg-subtle: #8f9aad;
   --app-overlay: rgb(2 6 17 / 0.65);
   --app-skeleton: #1f2a3f;
   --app-focus: #7089fb;

@@ -1,3 +1,4 @@
+import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -209,7 +210,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                     }}
                     formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
                   />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
                   <Bar dataKey="revenue" name="Sof tushum" fill={COLORS.revenue} radius={[4, 4, 0, 0]} maxBarSize={36} />
                   <Bar dataKey="costs" name="Xarajatlar" fill={COLORS.costs} radius={[4, 4, 0, 0]} maxBarSize={36} />
                   <Line type="monotone" dataKey="profit" name="Sof foyda" stroke={COLORS.profit} strokeWidth={2} dot />

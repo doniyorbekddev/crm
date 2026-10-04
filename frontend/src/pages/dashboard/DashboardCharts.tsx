@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE } from '@/components/charts/chartTheme';
+import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -68,7 +68,7 @@ export function DashboardCharts({ showRevenue }: DashboardChartsProps) {
                         return [label === 'Tushum' ? formatMoney(amount) : formatNumber(amount), label];
                       }}
                     />
-                    <Legend wrapperStyle={CHART_LEGEND_STYLE} />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
                     <Bar yAxisId="left" dataKey="leads" name="Yangi leadlar" fill={CHART_COLORS.brand} {...CHART_BAR} />
                     <Bar yAxisId="left" dataKey="won" name="Sotildi" fill={CHART_COLORS.positive} {...CHART_BAR} />
                     {showRevenue && (

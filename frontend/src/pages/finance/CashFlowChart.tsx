@@ -1,3 +1,4 @@
+import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Area, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -76,7 +77,7 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                   }}
                   formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
                 <Area
                   type="monotone"
                   dataKey="cashBalance"

@@ -75,9 +75,9 @@ export const ATTENDANCE_STATUS_TONES: Record<AttendanceStatus, BadgeTone> = {
 
 /** Davomat tugmalari uchun ranglar — belgilangani to‘liq bo‘yaladi */
 export const ATTENDANCE_BUTTON_CLASSES: Record<AttendanceStatus, string> = {
-  PRESENT: 'bg-chart-positive text-white border-chart-positive',
-  ABSENT: 'bg-chart-negative text-white border-chart-negative',
-  LATE: 'bg-chart-warning text-white border-chart-warning',
+  PRESENT: 'bg-success-solid text-white border-success-solid',
+  ABSENT: 'bg-danger-solid text-white border-danger-solid',
+  LATE: 'bg-warning-solid text-white border-warning-solid',
   EXCUSED: 'bg-brand-600 text-white border-brand-600',
 };
 

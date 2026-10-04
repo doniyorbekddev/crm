@@ -1,3 +1,4 @@
+import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Save } from 'lucide-react';
 import { useState } from 'react';
@@ -204,7 +205,7 @@ export function BudgetTab() {
                   <XAxis type="number" tickFormatter={shortMoney} tick={{ fontSize: 12 }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={124} />
                   <Tooltip formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]} />
-                  <Legend />
+                  <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
                   <Bar dataKey="planned" name="Reja" fill={COLORS.planned} radius={[0, 4, 4, 0]} barSize={12} />
                   <Bar dataKey="actual" name="Fakt" fill={COLORS.actual} radius={[0, 4, 4, 0]} barSize={12}>
                     {chartData.map((row) => (

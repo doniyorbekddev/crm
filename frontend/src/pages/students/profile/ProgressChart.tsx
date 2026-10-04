@@ -1,3 +1,4 @@
+import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ProgressPoint } from '@/types/studentProfile';
 
@@ -34,7 +35,7 @@ export function ProgressChart({ data }: { data: ProgressPoint[] }) {
             }}
             formatter={(value, name) => [value === null || value === undefined ? '—' : `${String(value)}%`, String(name ?? '')]}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
           <Line type="monotone" dataKey="attendanceRate" name="Davomat" stroke={COLORS.attendance} strokeWidth={2} connectNulls dot={{ r: 3 }} />
           <Line type="monotone" dataKey="homeworkRate" name="Uy vazifasi" stroke={COLORS.homework} strokeWidth={2} connectNulls dot={{ r: 3 }} />
           <Line type="monotone" dataKey="examAverage" name="Imtihon" stroke={COLORS.exam} strokeWidth={2} connectNulls dot={{ r: 3 }} />

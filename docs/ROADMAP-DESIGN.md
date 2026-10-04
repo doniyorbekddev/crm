@@ -114,7 +114,8 @@
 - Har sahifa 5 kenglikda tekshiriladi: jadval → moslashuvchan karta yoki gorizontal aylanish, amallar → bottom sheet,
   filtr → drawer, forma → bir ustun. Kabinet sahifalari (22) ham.
 
-## PHASE 15 — Dark mode (§30)
+## PHASE 15 — Dark mode (§30) ✅ (2026-10-05)
+> Bajarildi: 45 sahifa light va dark rejimda avtomatik kontrast skaneridan o'tkazildi (har matn tuguni, haqiqiy fon bilan). Topilganlar tuzatildi: fg-subtle va fg-muted tokenlari (light 3.69 → 5.0:1; dark 4.0 → 5.2:1+), davomat tugmalari (oq matn -solid fonda), grafik legendasi matn rangida. Yakuniy skaner: past kontrast 0. Komponentlarda dark: klasslari yo'q — hammasi tokenlar orqali.
 - Neytral qorong'i sirtlar, har token juftligi uchun kontrast o'lchanadi; grafiklar va status ranglari dark'da.
 
 ## PHASE 16 — Accessibility + Performance + hujjat (§35, §36, §40)

@@ -1,5 +1,5 @@
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, formatMillions } from '@/components/charts/chartTheme';
+import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartLegendFormatter, formatMillions } from '@/components/charts/chartTheme';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import type { ExecutiveSummary } from '@/types/dashboard';
 import { formatMoney } from '@/utils/format';
@@ -24,7 +24,7 @@ export function TrendChart({ trend }: { trend: ExecutiveSummary['trend'] }) {
                 cursor={{ fill: 'var(--color-surface-muted)' }}
                 formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
               />
-              <Legend wrapperStyle={CHART_LEGEND_STYLE} />
+              <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
               <Bar dataKey="revenue" name="Sof tushum" fill={CHART_COLORS.positive} {...CHART_BAR} />
               <Bar dataKey="expense" name="Xarajat" fill={CHART_COLORS.negative} {...CHART_BAR} />
               <Line type="monotone" dataKey="profit" name="Sof foyda" stroke={CHART_COLORS.brand} strokeWidth={2} dot={false} />

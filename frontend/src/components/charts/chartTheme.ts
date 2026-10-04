@@ -1,3 +1,6 @@
+import { createElement } from 'react';
+import type { ReactNode } from 'react';
+
 /**
  * Grafiklar (recharts) uchun yagona uslub. Ranglar CSS o'zgaruvchilari orqali — light/dark o'zi almashadi,
  * komponent ichida hex yozilmaydi. Seriya rangi **ma'no** bo'yicha tanlanadi (tushum — ijobiy, xarajat — salbiy).
@@ -28,6 +31,14 @@ export const CHART_TOOLTIP_STYLE = {
 } as const;
 
 export const CHART_LEGEND_STYLE = { fontSize: 12 } as const;
+
+/**
+ * `<Legend formatter={chartLegendFormatter} />` — yozuv matn rangida (seriya rangi faqat belgida):
+ * seriya ranglari oq fonda matn uchun yetarli kontrast bermaydi.
+ */
+export function chartLegendFormatter(value: string): ReactNode {
+  return createElement('span', { className: 'text-fg-muted' }, value);
+}
 
 /** Ustun burchaklari va eng katta eni */
 export const CHART_BAR = { radius: [4, 4, 0, 0] as [number, number, number, number], maxBarSize: 28 } as const;

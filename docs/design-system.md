@@ -34,7 +34,7 @@ Light va dark qiymatlari `:root` / `.dark` da (`--app-*`), Tailwind klasslari `@
 | `border` / `border-muted` | `border-border` | Chegara / juda yumshoq ajratgich |
 | `fg` | `text-fg` | Asosiy matn |
 | `fg-muted` | `text-fg-muted` | Ikkilamchi matn (≥ 4.5:1) |
-| `fg-subtle` | `text-fg-subtle` | Placeholder, yordamchi ikonka (≥ 3:1 — asosiy matn uchun emas) |
+| `fg-subtle` | `text-fg-subtle` | Uchinchi darajali matn: vaqt, kod, placeholder (≥ 4.5:1) |
 | `overlay` | `bg-overlay` | Modal/drawer orqa foni |
 | `skeleton` | `bg-skeleton` | Yuklanish to'ldirgichi |
 | `focus` | `focus-ring` utilitasi | Klaviatura fokusi halqasi |
@@ -55,7 +55,10 @@ Har biri to'rt qismli: **matn/ikonka** · `-subtle` (fon) · `-border` · `-soli
 Brend shkalasi `brand-50…950` saqlangan (asosiy tugma: `bg-brand-600`).
 **Rang faqat ma'no beradi** — bezak uchun emas; holat faqat rang bilan berilmaydi (matn yoki ikonka ham bo'ladi).
 
-Kontrast (o'lchangan): matn tokenlari sirt va o'z `-subtle` foni ustida light'da 4.8–7.7:1, dark'da 7.5–14.6:1.
+Kontrast: barcha matn tokenlari har qanday sirt va `-subtle` fon ustida ≥ 4.5:1. PHASE 15 da 45 sahifa light va
+dark rejimda avtomatik skaner qilindi (har matn tuguni: rang va haqiqiy fon) — past kontrastli matn 0.
+Oq matnli to'liq fon uchun `-solid` tokenlar (`bg-danger-solid text-white`); `chart-*` ranglar ustiga matn yozilmaydi.
+Grafik legendasi: `formatter={chartLegendFormatter}` — yozuv matn rangida, seriya rangi faqat belgida.
 
 ## 2. Tipografiya
 
