@@ -27,9 +27,9 @@ function monthStart(): string {
 
 /** Davomat foiziga qarab rang */
 function rateTone(rate: number): string {
-  if (rate >= 90) return 'text-emerald-600 dark:text-emerald-400';
-  if (rate >= 75) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
+  if (rate >= 90) return 'text-success';
+  if (rate >= 75) return 'text-warning';
+  return 'text-danger';
 }
 
 function CountsCard({ label, counts }: { label: string; counts: AttendanceCounts }) {
@@ -142,7 +142,7 @@ export function AttendanceStats() {
                           <div
                             className={cn(
                               'h-full rounded-full',
-                              bucket.key === '0-70' ? 'bg-red-500' : bucket.key === '70-80' ? 'bg-amber-500' : 'bg-emerald-500',
+                              bucket.key === '0-70' ? 'bg-chart-negative' : bucket.key === '70-80' ? 'bg-chart-warning' : 'bg-chart-positive',
                             )}
                             style={{ width: `${Math.round((bucket.students / maxBucket) * 100)}%` }}
                           />

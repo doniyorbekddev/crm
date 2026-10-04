@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, CalendarCheck, CheckCheck, LayoutDashboard, Layers, NotebookPen, Trophy } from 'lucide-react';
 import { useState } from 'react';
@@ -132,30 +133,15 @@ export default function AttendancePage() {
     <>
       <PageHeader title="Davomat" description="Jurnal, statistika va o‘quvchilar reytingi" />
 
-      <div role="tablist" aria-label="Davomat bo‘limlari" className="mb-4 -mx-1 flex gap-1 overflow-x-auto px-1">
-        {TABS.map((item) => {
-          const active = tab === item.value;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(item.value)}
-              className={cn(
-                'inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                active
-                  ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                  : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-              )}
-            >
-              <Icon className="size-4" aria-hidden />
+      <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} panels={false}>
+        <TabList label="Davomat bo‘limlari" className="mb-4">
+          {TABS.map((item) => (
+            <Tab key={item.value} value={item.value} icon={<item.icon className="size-4" aria-hidden />}>
               {item.label}
-            </button>
-          );
-        })}
-      </div>
+            </Tab>
+          ))}
+        </TabList>
+      </Tabs>
 
       {tab === 'stats' && <AttendanceStats />}
       {tab === 'ranking' && <AttendanceRanking />}
@@ -272,7 +258,7 @@ export default function AttendancePage() {
                       <div className="min-w-0">
                         <p className="truncate font-medium text-fg">
                           {row.firstName} {row.lastName}
-                          {changed && <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">saqlanmagan</span>}
+                          {changed && <span className="ml-2 text-xs font-normal text-warning">saqlanmagan</span>}
                         </p>
                         <p className="text-xs text-fg-muted">
                           {row.code} · {formatPhone(row.phone)}

@@ -81,7 +81,8 @@
   (`PortalAttemptPage`) — chalg'itmaydigan, taymer, savollar navigatsiyasi, tasdiq.
 - Progress / o'zlashtirish; XP, nishon, daraja, reyting — professional, "o'yinchoq" emas. Emoji → ikonka.
 
-## PHASE 8 — Davomat (§20)
+## PHASE 8 — Davomat (§20) ✅ (2026-10-05)
+> Bajarildi: davomat bo'limlari yagona Tabs'da, ranglar tokenlarda, reytingda emoji medallar o'rniga o'rin belgisi. Belgilash oqimi (bitta bosish, "Hammasi keldi", saqlash) va mobil E2E o'zgarmagan.
 - Guruh → dars → ro'yxat; bitta bosishda status, ommaviy belgilash, klaviatura bilan ishlash, mobil'da qulay.
 - Mavjud mobil E2E testi saqlanadi.
 

@@ -26,9 +26,9 @@ export const MONTH_NAMES = [
 const WEEK_DAY_SHORT = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
 const DAY_CLASSES: Record<AttendanceStatus, string> = {
-  PRESENT: 'bg-emerald-500 text-white',
-  ABSENT: 'bg-red-500 text-white',
-  LATE: 'bg-amber-500 text-white',
+  PRESENT: 'bg-chart-positive text-white',
+  ABSENT: 'bg-chart-negative text-white',
+  LATE: 'bg-chart-warning text-white',
   EXCUSED: 'bg-brand-500 text-white',
 };
 
@@ -109,7 +109,7 @@ export function AttendanceCalendarView({ calendar }: { calendar: AttendanceCalen
         </div>
         <div>
           <p className="text-xs text-fg-muted">Sababsiz qoldirgan</p>
-          <p className="text-lg font-semibold text-red-600 dark:text-red-400">{formatNumber(calendar.overall.ABSENT)}</p>
+          <p className="text-lg font-semibold text-danger">{formatNumber(calendar.overall.ABSENT)}</p>
           <p className="text-xs text-fg-muted">butun davr bo‘yicha</p>
         </div>
       </div>

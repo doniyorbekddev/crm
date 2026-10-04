@@ -49,14 +49,14 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
         </Card>
         <Card className="p-4">
           <p className="text-xs text-fg-muted">Davomat belgilandi</p>
-          <p className={cn('mt-1 text-xl font-semibold', pending > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+          <p className={cn('mt-1 text-xl font-semibold', pending > 0 ? 'text-warning' : 'text-success')}>
             {formatNumber(data.markedLessons)} / {formatNumber(data.todayLessons)}
           </p>
           <p className="mt-1 text-xs text-fg-muted">{pending > 0 ? `${pending} ta dars kutilmoqda` : 'Hammasi belgilangan'}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-fg-muted">Bugun kelmaganlar</p>
-          <p className={cn('mt-1 text-xl font-semibold', data.todayAbsent.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+          <p className={cn('mt-1 text-xl font-semibold', data.todayAbsent.length > 0 ? 'text-danger' : 'text-fg')}>
             {formatNumber(data.todayAbsent.length)}
           </p>
           <p className="mt-1 text-xs text-fg-muted">sababsiz qoldirganlar</p>
@@ -67,10 +67,10 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
             className={cn(
               'mt-1 text-xl font-semibold',
               data.monthRate >= 90
-                ? 'text-emerald-600 dark:text-emerald-400'
+                ? 'text-success'
                 : data.monthRate >= 75
-                  ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-red-600 dark:text-red-400',
+                  ? 'text-warning'
+                  : 'text-danger',
             )}
           >
             {data.monthRate}%
@@ -144,7 +144,7 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
                     </div>
                     <a
                       href={`tel:${student.phone}`}
-                      className="inline-flex shrink-0 items-center gap-1.5 text-xs text-brand-600 hover:underline dark:text-brand-300"
+                      className="inline-flex shrink-0 items-center gap-1.5 text-xs text-primary hover:underline"
                     >
                       <Phone className="size-3.5" aria-hidden />
                       {formatPhone(student.phone)}

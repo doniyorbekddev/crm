@@ -48,7 +48,19 @@ function rangeFor(period: Period): { from?: string; to?: string } {
   }
 }
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+/** Birinchi uch o'rin ajratib ko'rsatiladi (emoji o'rniga belgi) */
+function Rank({ place }: { place: number }) {
+  return (
+    <span
+      className={cn(
+        'inline-grid size-6 place-items-center rounded-chip text-caption font-semibold tabular-nums',
+        place === 1 ? 'bg-warning-subtle text-warning' : place <= 3 ? 'bg-primary-subtle text-primary' : 'text-fg-muted',
+      )}
+    >
+      {place}
+    </span>
+  );
+}
 
 export function AttendanceRanking() {
   const [period, setPeriod] = useState<Period>('month');
@@ -147,8 +159,10 @@ export function AttendanceRanking() {
             </THead>
             <TBody>
               {rankingQuery.data.map((row, index) => (
-                <TR key={row.studentId} className={cn(index < 3 && 'bg-amber-50/40 dark:bg-amber-950/20')}>
-                  <TD className="font-medium whitespace-nowrap text-fg">{MEDALS[index] ?? index + 1}</TD>
+                <TR key={row.studentId} className={cn(index < 3 && 'bg-warning-subtle')}>
+                  <TD className="whitespace-nowrap">
+                    <Rank place={index + 1} />
+                  </TD>
                   <TD>
                     <p className="font-medium text-fg">
                       {row.firstName} {row.lastName}
@@ -165,7 +179,7 @@ export function AttendanceRanking() {
                   </TD>
                   <TD className="text-right">
                     {row.streak > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
+                      <span className="inline-flex items-center gap-1 text-sm text-warning">
                         <Flame className="size-3.5" aria-hidden />
                         {row.streak}
                       </span>
@@ -178,10 +192,10 @@ export function AttendanceRanking() {
                       className={cn(
                         'text-sm font-semibold',
                         row.rate >= 90
-                          ? 'text-emerald-600 dark:text-emerald-400'
+                          ? 'text-success'
                           : row.rate >= 75
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-red-600 dark:text-red-400',
+                            ? 'text-warning'
+                            : 'text-danger',
                       )}
                     >
                       {row.rate}%
