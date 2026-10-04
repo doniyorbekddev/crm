@@ -10,6 +10,7 @@ import { FilterBar, FilterField } from './FilterBar';
 import { Modal } from './Modal';
 import { MultiSelect } from './MultiSelect';
 import { Select } from './Select';
+import { Tab, TabList, Tabs } from './Tabs';
 
 /** Dizayn tizimi PHASE 1 — Combobox, MultiSelect, FilterBar, DataTable poydevori */
 
@@ -294,5 +295,44 @@ describe('DataTable', () => {
     expect(within(screen.getByRole('list', { name: 'O‘quvchilar' })).getAllByRole('listitem')).toHaveLength(3);
     expect(screen.getByText('Ali Valiyev — karta')).toBeInTheDocument();
     vi.unstubAllGlobals();
+  });
+
+  it('sarlavha uyasi (filtr tablari), qator klassi, eskirgan ma’lumot va sahifalashni bloklash', async () => {
+    const onTab = vi.fn();
+    render(
+      <DataTable
+        label="O‘quvchilar"
+        columns={COLUMNS}
+        rows={STUDENTS}
+        rowKey={(row) => row.id}
+        empty={EMPTY}
+        stale
+        rowClassName={(row) => row.debt > 0 && 'opacity-60'}
+        header={
+          <Tabs value="all" onValueChange={onTab} panels={false}>
+            <TabList label="Holat bo‘yicha filtr">
+              <Tab value="all" count={3}>
+                Barchasi
+              </Tab>
+              <Tab value="overdue" count={2} countTone="danger">
+                Muddati o‘tgan
+              </Tab>
+            </TabList>
+          </Tabs>
+        }
+        pagination={{ page: 1, totalPages: 2, total: 6, limit: 3, onPageChange: vi.fn(), disabled: true }}
+      />,
+    );
+    // Filtr tablari panelsiz: mavjud bo'lmagan elementga aria-controls qo'yilmaydi
+    const overdue = screen.getByRole('tab', { name: /^Muddati o‘tgan/ });
+    expect(overdue).not.toHaveAttribute('aria-controls');
+    expect(within(overdue).getByText('2')).toHaveClass('text-danger');
+    await userEvent.click(overdue);
+    expect(onTab).toHaveBeenCalledWith('overdue');
+
+    expect(screen.getByRole('row', { name: /Vali Aliyev/ })).toHaveClass('opacity-60');
+    expect(screen.getByRole('row', { name: /Ali Valiyev/ })).not.toHaveClass('opacity-60');
+    expect(screen.getByRole('table').parentElement).toHaveClass('opacity-60');
+    expect(screen.getByRole('button', { name: 'Keyingi sahifa' })).toBeDisabled();
   });
 });

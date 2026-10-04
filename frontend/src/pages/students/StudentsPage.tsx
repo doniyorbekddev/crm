@@ -3,18 +3,16 @@ import { KeyRound, ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, R
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -46,7 +44,6 @@ import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 import { TransferGroupModal } from './TransferGroupModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -305,6 +302,7 @@ export default function StudentsPage() {
     },
   ];
   const studentTable = useTableColumns('students', studentTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -335,126 +333,91 @@ export default function StudentsPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-3">
-          <div role="tablist" aria-label="Holat bo‘yicha filtr" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {tabs.map((tab) => {
-              const active = status === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setStatus(tab))}
-                  className={cn(
-                    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+      <DataTable
+        label="O‘quvchilar"
+        columns={studentTable.visibleColumns}
+        rows={studentsQuery.data?.items}
+        rowKey={(student) => student.id}
+        loading={studentsQuery.isPending}
+        error={studentsQuery.error}
+        onRetry={() => void studentsQuery.refetch()}
+        retrying={studentsQuery.isFetching}
+        stale={studentsQuery.isPlaceholderData}
+        empty={{
+          icon: GraduationCap,
+          title: 'O‘quvchi topilmadi',
+          description: canManage ? 'Yangi o‘quvchi qo‘shing yoki leadni o‘quvchiga aylantiring' : 'Filtrlarni o‘zgartirib ko‘ring',
+        }}
+        header={
+          <Tabs value={status} onValueChange={(value) => changeFilter(() => setStatus(value as StudentStatus | 'ALL'))} panels={false}>
+            <TabList label="Holat bo‘yicha filtr" className="px-4">
+              {tabs.map((tab) => (
+                <Tab key={tab} value={tab} {...(summary ? { count: summary[tab] } : {})}>
                   {tab === 'ALL' ? 'Barchasi' : STUDENT_STATUS_LABELS[tab]}
-                  {summary && (
-                    <span className={cn('rounded-full px-1.5 tabular-nums', active ? 'bg-brand-100 dark:bg-brand-900' : 'bg-surface-muted')}>
-                      {summary[tab]}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <SearchInput
-              value={searchInput}
-              onChange={(value) => changeFilter(() => setSearchInput(value))}
-              placeholder="Ism, telefon, ST-raqam yoki shartnoma"
-              className="sm:max-w-xs"
-            />
-            <Select
-              value={riskLevel}
-              onChange={(event) => changeFilter(() => setRiskLevel(event.target.value as RiskLevel | 'ALL'))}
-              aria-label="Xavf darajasi"
-              wrapperClassName="sm:w-44"
-            >
-              <option value="ALL">Xavf: barchasi</option>
-              {RISK_LEVEL_ORDER.map((level) => (
-                <option key={level} value={level}>
-                  {RISK_LEVEL_LABELS[level]}
-                </option>
+                </Tab>
               ))}
-            </Select>
-            <Select
-              value={courseId}
-              onChange={(event) => changeFilter(() => setCourseId(event.target.value))}
-              aria-label="Kurs"
-              wrapperClassName="sm:w-52"
-            >
-              <option value="">Barcha kurslar</option>
-              {lookupsQuery.data?.courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={sort}
-              onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))}
-              aria-label="Saralash"
-              wrapperClassName="sm:w-52 sm:ml-auto"
-            >
+            </TabList>
+          </Tabs>
+        }
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Ism, telefon, ST-raqam yoki shartnoma' }}
+            activeCount={Number(riskLevel !== 'ALL') + Number(Boolean(courseId))}
+            onClear={() =>
+              changeFilter(() => {
+                setRiskLevel('ALL');
+                setCourseId('');
+              })
+            }
+          >
+            <FilterField>
+              <Select value={riskLevel} onChange={(event) => changeFilter(() => setRiskLevel(event.target.value as RiskLevel | 'ALL'))} aria-label="Xavf darajasi">
+                <option value="ALL">Xavf: barchasi</option>
+                {RISK_LEVEL_ORDER.map((level) => (
+                  <option key={level} value={level}>
+                    {RISK_LEVEL_LABELS[level]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField className="sm:w-52">
+              <Select value={courseId} onChange={(event) => changeFilter(() => setCourseId(event.target.value))} aria-label="Kurs">
+                <option value="">Barcha kurslar</option>
+                {lookupsQuery.data?.courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={
+          <>
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Select>
-          </div>
-        </div>
-
-        {studentsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
-        ) : studentsQuery.isError ? (
-          <ErrorState error={studentsQuery.error} retrying={studentsQuery.isFetching} onRetry={() => void studentsQuery.refetch()} />
-        ) : studentsQuery.data.items.length === 0 ? (
-          <EmptyState
-            icon={GraduationCap}
-            title="O‘quvchi topilmadi"
-            description={canManage ? 'Yangi o‘quvchi qo‘shing yoki leadni o‘quvchiga aylantiring' : 'Filtrlarni o‘zgartirib ko‘ring'}
-          />
-        ) : (
-          <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={studentTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', studentsQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={studentTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {studentsQuery.data.items.map((student) => (
-                    <TR key={student.id}>
-                      <ColumnCells columns={studentTable.visibleColumns} row={student} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={studentsQuery.data.meta.page}
-              totalPages={studentsQuery.data.meta.totalPages}
-              total={studentsQuery.data.meta.total}
-              limit={studentsQuery.data.meta.limit}
-              onPageChange={setPage}
-              disabled={studentsQuery.isFetching}
-            />
+            <ColumnSettings control={studentTable} />
           </>
-        )}
-      </Card>
+        }
+        {...density}
+        {...(studentsQuery.data
+          ? {
+              pagination: {
+                page: studentsQuery.data.meta.page,
+                totalPages: studentsQuery.data.meta.totalPages,
+                total: studentsQuery.data.meta.total,
+                limit: studentsQuery.data.meta.limit,
+                onPageChange: setPage,
+                disabled: studentsQuery.isFetching,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'create' && (
         <StudentFormModal

@@ -90,7 +90,20 @@ export function FilterBar({ search, children, activeCount = 0, onClear, actions,
   );
 }
 
-/** Bitta filtr boshqaruvi: telefonda to'liq kenglik, kompyuterda — `className` dagi kenglik (standart 176px) */
-export function FilterField({ children, className = 'sm:w-44' }: { children: ReactNode; className?: string }) {
-  return <div className={cn('w-full', className)}>{children}</div>;
+/**
+ * Bitta filtr boshqaruvi: telefonda to'liq kenglik, kompyuterda — `className` dagi kenglik (standart 176px).
+ * `caption` — telefon panelida maydon ustidagi yozuv (masalan sana maydonlari: placeholder ma'no bermaydi).
+ * Ekran o'quvchi uchun nom baribir boshqaruvning o'zida (`aria-label`) bo'ladi.
+ */
+export function FilterField({ children, className = 'sm:w-44', caption }: { children: ReactNode; className?: string; caption?: string }) {
+  return (
+    <div className={cn('w-full', className)}>
+      {caption && (
+        <span aria-hidden className="mb-1 block text-caption font-medium text-fg-muted sm:hidden">
+          {caption}
+        </span>
+      )}
+      {children}
+    </div>
+  );
 }

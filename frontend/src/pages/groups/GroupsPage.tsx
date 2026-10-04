@@ -2,18 +2,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -27,7 +24,6 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupFormModal } from './GroupFormModal';
 import { GroupMasteryModal } from './GroupMasteryModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -184,6 +180,7 @@ export default function GroupsPage() {
     },
   ];
   const groupTable = useTableColumns('groups', groupTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -199,69 +196,65 @@ export default function GroupsPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <SearchInput value={searchInput} onChange={(value) => changeFilter(() => setSearchInput(value))} placeholder="Guruh, xona yoki kurs" className="sm:max-w-xs" />
-          <Select value={courseId} onChange={(event) => changeFilter(() => setCourseId(event.target.value))} aria-label="Kurs" wrapperClassName="sm:w-52">
-            <option value="">Barcha kurslar</option>
-            {lookupsQuery.data?.courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.name}
-              </option>
-            ))}
-          </Select>
-          <Select value={status} onChange={(event) => changeFilter(() => setStatus(event.target.value as GroupStatus | ''))} aria-label="Holat" wrapperClassName="sm:w-44">
-            <option value="">Barcha holatlar</option>
-            {GROUP_STATUS_ORDER.map((item) => (
-              <option key={item} value={item}>
-                {GROUP_STATUS_LABELS[item]}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {groupsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
-        ) : groupsQuery.isError ? (
-          <ErrorState error={groupsQuery.error} retrying={groupsQuery.isFetching} onRetry={() => void groupsQuery.refetch()} />
-        ) : groupsQuery.data.items.length === 0 ? (
-          <EmptyState
-            icon={Layers}
-            title="Guruh topilmadi"
-            description={canManage ? 'Yangi guruh qo‘shing' : 'Filtrlarni o‘zgartirib ko‘ring'}
-          />
-        ) : (
-          <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={groupTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', groupsQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={groupTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {groupsQuery.data.items.map((group) => (
-                    <TR key={group.id}>
-                      <ColumnCells columns={groupTable.visibleColumns} row={group} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={groupsQuery.data.meta.page}
-              totalPages={groupsQuery.data.meta.totalPages}
-              total={groupsQuery.data.meta.total}
-              limit={groupsQuery.data.meta.limit}
-              onPageChange={setPage}
-              disabled={groupsQuery.isFetching}
-            />
-          </>
-        )}
-      </Card>
+      <DataTable
+        label="Guruhlar"
+        columns={groupTable.visibleColumns}
+        rows={groupsQuery.data?.items}
+        rowKey={(group) => group.id}
+        loading={groupsQuery.isPending}
+        error={groupsQuery.error}
+        onRetry={() => void groupsQuery.refetch()}
+        retrying={groupsQuery.isFetching}
+        stale={groupsQuery.isPlaceholderData}
+        empty={{ icon: Layers, title: 'Guruh topilmadi', description: canManage ? 'Yangi guruh qo‘shing' : 'Filtrlarni o‘zgartirib ko‘ring' }}
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Guruh, xona yoki kurs' }}
+            activeCount={Number(Boolean(courseId)) + Number(Boolean(status))}
+            onClear={() =>
+              changeFilter(() => {
+                setCourseId('');
+                setStatus('');
+              })
+            }
+          >
+            <FilterField className="sm:w-52">
+              <Select value={courseId} onChange={(event) => changeFilter(() => setCourseId(event.target.value))} aria-label="Kurs">
+                <option value="">Barcha kurslar</option>
+                {lookupsQuery.data?.courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField>
+              <Select value={status} onChange={(event) => changeFilter(() => setStatus(event.target.value as GroupStatus | ''))} aria-label="Holat">
+                <option value="">Barcha holatlar</option>
+                {GROUP_STATUS_ORDER.map((item) => (
+                  <option key={item} value={item}>
+                    {GROUP_STATUS_LABELS[item]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={<ColumnSettings control={groupTable} />}
+        {...density}
+        {...(groupsQuery.data
+          ? {
+              pagination: {
+                page: groupsQuery.data.meta.page,
+                totalPages: groupsQuery.data.meta.totalPages,
+                total: groupsQuery.data.meta.total,
+                limit: groupsQuery.data.meta.limit,
+                onPageChange: setPage,
+                disabled: groupsQuery.isFetching,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'create' && (
         <GroupFormModal

@@ -2,16 +2,15 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { HandCoins, Phone, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -28,7 +27,6 @@ import { DEBT_DUE_LABELS, DEBT_DUE_ORDER } from '@/utils/scheduleLabels';
 import { DEBT_STATUS_LABELS, DEBT_STATUS_TONES } from '@/utils/studentLabels';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -227,6 +225,7 @@ export default function DebtsPage() {
     }] : []),
   ];
   const debtTable = useTableColumns('debts', debtTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -268,146 +267,88 @@ export default function DebtsPage() {
         </div>
       )}
 
-      <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-3">
-          <div role="tablist" aria-label="Qarz oralig‘i" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {DEBT_RANGE_ORDER.map((item) => {
-              const active = range === item;
-              const rangeSummary = item === 'all' ? null : summary?.byRange[item];
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setRange(item))}
-                  className={cn(
-                    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
-                  {DEBT_RANGE_LABELS[item]}
-                  <span className={cn('rounded-full px-1.5 tabular-nums', active ? 'bg-brand-100 dark:bg-brand-900' : 'bg-surface-muted')}>
-                    {item === 'all' ? (summary?.students ?? 0) : (rangeSummary?.students ?? 0)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div role="tablist" aria-label="To‘lov muddati" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {DEBT_DUE_ORDER.map((item) => {
-              const active = due === item;
-              const count = item === 'overdue' ? summary?.overdue.students : item === 'upcoming' ? summary?.upcoming.students : undefined;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setDue(item))}
-                  className={cn(
-                    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
-                  {DEBT_DUE_LABELS[item]}
-                  {count !== undefined && (
-                    <span
-                      className={cn(
-                        'rounded-full px-1.5 tabular-nums',
-                        active
-                          ? 'bg-brand-100 dark:bg-brand-900'
-                          : item === 'overdue' && count > 0
-                            ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-                            : 'bg-surface-muted',
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <SearchInput
-              value={searchInput}
-              onChange={(value) => changeFilter(() => setSearchInput(value))}
-              placeholder="Ism, telefon yoki ST-raqam"
-              className="sm:max-w-xs"
-            />
-            <Select
-              value={courseId}
-              onChange={(event) => changeFilter(() => setCourseId(event.target.value))}
-              aria-label="Kurs"
-              wrapperClassName="sm:w-52"
-            >
-              <option value="">Barcha kurslar</option>
-              {lookupsQuery.data?.courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={sort}
-              onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))}
-              aria-label="Saralash"
-              wrapperClassName="sm:w-52 sm:ml-auto"
-            >
+      <DataTable
+        label="Qarzdorlar"
+        columns={debtTable.visibleColumns}
+        rows={debtsQuery.data?.items}
+        rowKey={(debt) => debt.studentId}
+        loading={debtsQuery.isPending}
+        error={debtsQuery.error}
+        onRetry={() => void debtsQuery.refetch()}
+        retrying={debtsQuery.isFetching}
+        stale={debtsQuery.isPlaceholderData}
+        empty={{ icon: HandCoins, title: 'Qarzdor topilmadi', description: 'Filtrlarni o‘zgartirib ko‘ring' }}
+        header={
+          <>
+            <Tabs value={range} onValueChange={(value) => changeFilter(() => setRange(value as DebtRange))} panels={false}>
+              <TabList label="Qarz oralig‘i" className="px-4">
+                {DEBT_RANGE_ORDER.map((item) => (
+                  <Tab key={item} value={item} count={item === 'all' ? (summary?.students ?? 0) : (summary?.byRange[item]?.students ?? 0)}>
+                    {DEBT_RANGE_LABELS[item]}
+                  </Tab>
+                ))}
+              </TabList>
+            </Tabs>
+            <div className="border-b border-border px-4 py-2">
+              <Tabs value={due} onValueChange={(value) => changeFilter(() => setDue(value as DebtDueFilter))} variant="pill" panels={false}>
+                <TabList label="To‘lov muddati">
+                  {DEBT_DUE_ORDER.map((item) => {
+                    const count = item === 'overdue' ? summary?.overdue.students : item === 'upcoming' ? summary?.upcoming.students : undefined;
+                    return (
+                      <Tab key={item} value={item} {...(count !== undefined ? { count } : {})} {...(item === 'overdue' ? { countTone: 'danger' as const } : {})}>
+                        {DEBT_DUE_LABELS[item]}
+                      </Tab>
+                    );
+                  })}
+                </TabList>
+              </Tabs>
+            </div>
+          </>
+        }
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Ism, telefon yoki ST-raqam' }}
+            activeCount={Number(Boolean(courseId))}
+            onClear={() => changeFilter(() => setCourseId(''))}
+          >
+            <FilterField className="sm:w-52">
+              <Select value={courseId} onChange={(event) => changeFilter(() => setCourseId(event.target.value))} aria-label="Kurs">
+                <option value="">Barcha kurslar</option>
+                {lookupsQuery.data?.courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={
+          <>
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Select>
-          </div>
-        </div>
-
-        {debtsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={7} />
-        ) : debtsQuery.isError ? (
-          <ErrorState error={debtsQuery.error} retrying={debtsQuery.isFetching} onRetry={() => void debtsQuery.refetch()} />
-        ) : debtsQuery.data.items.length === 0 ? (
-          <EmptyState icon={HandCoins} title="Qarzdor topilmadi" description="Filtrlarni o‘zgartirib ko‘ring" />
-        ) : (
-          <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={debtTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', debtsQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={debtTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {debtsQuery.data.items.map((debt) => (
-                    <TR key={debt.studentId}>
-                      <ColumnCells columns={debtTable.visibleColumns} row={debt} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={debtsQuery.data.meta.page}
-              totalPages={debtsQuery.data.meta.totalPages}
-              total={debtsQuery.data.meta.total}
-              limit={debtsQuery.data.meta.limit}
-              onPageChange={setPage}
-              disabled={debtsQuery.isFetching}
-            />
+            <ColumnSettings control={debtTable} />
           </>
-        )}
-      </Card>
+        }
+        {...density}
+        {...(debtsQuery.data
+          ? {
+              pagination: {
+                page: debtsQuery.data.meta.page,
+                totalPages: debtsQuery.data.meta.totalPages,
+                total: debtsQuery.data.meta.total,
+                limit: debtsQuery.data.meta.limit,
+                onPageChange: setPage,
+                disabled: debtsQuery.isFetching,
+              },
+            }
+          : {})}
+      />
 
       {payFor && (
         <PaymentFormModal

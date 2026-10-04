@@ -69,11 +69,17 @@ interface DataTableProps<Row> {
   /** Berilsa — zichlik almashtirgichi ko'rinadi (qiymatni chaqiruvchi saqlaydi) */
   onDensityChange?: (density: TableDensity) => void;
 
+  /** Eng yuqori qator: holat tablari (`Tabs panels={false}`) */
+  header?: ReactNode;
   /** Jadval ustidagi qator: odatda `<FilterBar>` */
   toolbar?: ReactNode;
   /** Zichlik tugmasi yonidagi amallar: eksport (`ExportMenu`), ustunlar (`ColumnSettings`) */
   toolbarActions?: ReactNode;
-  pagination?: { page: number; totalPages: number; total: number; limit: number; onPageChange: (page: number) => void };
+  pagination?: { page: number; totalPages: number; total: number; limit: number; onPageChange: (page: number) => void; disabled?: boolean };
+  /** Oldingi sahifa ma'lumoti ko'rsatilmoqda (yangisi yuklanayapti) — jadval xiralashadi */
+  stale?: boolean;
+  /** Qatorga bog'liq klass (masalan bekor qilingan to'lov xiraroq) */
+  rowClassName?: (row: Row) => string | false | undefined;
 
   /** Sarlavha aylantirishda yuqorida qoladi (`maxHeight` bilan birga) */
   stickyHeader?: boolean;
@@ -113,9 +119,12 @@ export function DataTable<Row>({
   onRowClick,
   density = 'comfortable',
   onDensityChange,
+  header,
   toolbar,
   toolbarActions,
   pagination,
+  stale = false,
+  rowClassName,
   stickyHeader = false,
   maxHeight,
   mobileCard,
@@ -190,7 +199,7 @@ export function DataTable<Row>({
     );
   } else {
     body = (
-      <div className="relative overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
+      <div className={cn('relative overflow-x-auto transition-opacity', stale && 'opacity-60')} style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
         <Table aria-label={label}>
           <THead className={cn(stickyHeader && 'sticky top-0 z-sticky bg-surface-muted shadow-[inset_0_-1px_0_var(--color-border)]')}>
             <tr>
@@ -249,7 +258,7 @@ export function DataTable<Row>({
                 <TR
                   key={key}
                   aria-selected={selection ? selected : undefined}
-                  className={cn(onRowClick && 'cursor-pointer', selected && 'bg-primary-subtle/50 hover:bg-primary-subtle/60')}
+                  className={cn(onRowClick && 'cursor-pointer', selected && 'bg-primary-subtle/50 hover:bg-primary-subtle/60', rowClassName?.(row))}
                   {...(onRowClick ? { onClick: () => onRowClick(row) } : {})}
                 >
                   {selection && (
@@ -290,18 +299,20 @@ export function DataTable<Row>({
 
   return (
     <Card className={cn('overflow-hidden', className)} aria-busy={loading || undefined}>
+      {header}
       {showToolbar && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-          <div className="min-w-0 flex-1">{toolbar}</div>
+        <div className="flex flex-wrap items-start gap-2 border-b border-border px-4 py-3">
+          {toolbar && <div className="min-w-0 flex-1 basis-72">{toolbar}</div>}
           {(toolbarActions || onDensityChange) && (
-            <div className="flex items-center gap-1">
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
               {toolbarActions}
               {onDensityChange && (
                 <IconButton
                   label={density === 'compact' ? 'Keng qatorlar' : 'Zich qatorlar'}
                   aria-pressed={density === 'compact'}
+                  variant="secondary"
                   onClick={() => onDensityChange(density === 'compact' ? 'comfortable' : 'compact')}
-                  className="hidden sm:inline-grid"
+                  className="hidden size-10 rounded-control sm:inline-grid"
                 >
                   {density === 'compact' ? <Rows3 aria-hidden /> : <Rows4 aria-hidden />}
                 </IconButton>
@@ -322,7 +333,7 @@ export function DataTable<Row>({
         </div>
       )}
       {body}
-      {pagination && rows && rows.length > 0 && <Pagination {...pagination} disabled={loading} />}
+      {pagination && rows && rows.length > 0 && <Pagination {...pagination} disabled={pagination.disabled ?? loading} />}
     </Card>
   );
 }

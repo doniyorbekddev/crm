@@ -227,6 +227,33 @@ Modal — qisqa forma va tasdiq. Drawer — tezkor ko'rish/tahrir, sahifa kontek
 - **Dashboard tuzilishi**: ko'rsatkichlar yo'nalish bo'yicha guruhlarda (`section` + sarlavha), so'ng grafik va ro'yxatlar.
   Har ro'yxat kartasi o'z so'rovini o'zi yuboradi — ruxsatsiz yoki yashirilgan vidjet so'rov yubormaydi.
 
+## 8.3. Ro'yxat sahifasi qolipi (PHASE 4)
+
+```tsx
+const table = useTableColumns('students', columns);   // ustun sozlamalari (profilda)
+const density = useTableDensity();                    // zichlik (barcha jadvallar uchun bitta, brauzerda)
+
+<DataTable
+  label="O‘quvchilar" columns={table.visibleColumns} rows={query.data?.items} rowKey={(row) => row.id}
+  loading={query.isPending} error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching}
+  stale={query.isPlaceholderData}
+  empty={{ icon: GraduationCap, title: 'O‘quvchi topilmadi', description: '…' }}
+  header={<Tabs value={status} onValueChange={…} panels={false}><TabList label="Holat bo‘yicha filtr" className="px-4">…</TabList></Tabs>}
+  toolbar={<FilterBar search={…} activeCount={n} onClear={…}><FilterField>…</FilterField></FilterBar>}
+  toolbarActions={<><Select aria-label="Saralash" …/><ColumnSettings control={table} /></>}
+  {...density}
+  pagination={…} onRowClick={…} rowClassName={…}
+/>
+```
+
+- **Holat tablari** — `header` da, `Tabs panels={false}` (sanoq `count`, e'tibor talab qilsa `countTone="danger"`).
+- **Filtrlar** — `FilterBar`: qidiruv doim ko'rinadi; boshqalar `FilterField` ichida, telefonda "Filtrlar" paneliga yig'iladi.
+  `activeCount` + `onClear` — "Tozalash" tugmasi. Sana maydoniga `caption` (telefonda ko'rinadigan yozuv).
+- **Saralash** — API qo'llaydigan tayyor variantlar (`Select`), `toolbarActions` da. Ustun sarlavhasi bo'yicha saralash
+  faqat API shunday parametr qabul qilganda (`sortable` + `onSortChange`).
+- **Amallar** — `actions` ustunida bitta `ActionMenu`; ko'p ishlatiladigan bitta amal tugma bo'lishi mumkin.
+- Sahifa butun oyna bo'yicha aylanadi — yopishqoq sarlavha faqat `maxHeight` berilgan jadvalda (`stickyHeader`).
+
 ## 9. Ikonkalar
 
 Faqat `lucide-react`. O'lchamlar: 16 (`size-4`, standart), 18, 20 (`size-5`), 24. Bezak ikonka — `aria-hidden`.

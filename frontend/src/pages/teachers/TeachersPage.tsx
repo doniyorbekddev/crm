@@ -2,22 +2,18 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Coins, Eye, FolderLock, Pencil, Plus, Power, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { teachersService } from '@/services/teachers.service';
 import type { SalaryType, TeacherItem, TeacherListParams } from '@/types/teacher';
@@ -30,7 +26,6 @@ import { SalaryRuleModal } from './SalaryRuleModal';
 import { TeacherDetailModal } from './TeacherDetailModal';
 import { TeacherFormModal } from './TeacherFormModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -238,6 +233,7 @@ export default function TeachersPage() {
     },
   ];
   const teacherTable = useTableColumns('teachers', teacherTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -254,105 +250,79 @@ export default function TeachersPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <SearchInput
-            value={searchInput}
-            onChange={(value) => changeFilter(() => setSearchInput(value))}
-            placeholder="Ism, email yoki mutaxassislik"
-            className="sm:max-w-xs"
-          />
-          <Select
-            value={isActive}
-            onChange={(event) => changeFilter(() => setIsActive(event.target.value as '' | 'true' | 'false'))}
-            aria-label="Holat"
-            wrapperClassName="sm:w-40"
-          >
-            <option value="true">Faol</option>
-            <option value="false">Faolsiz</option>
-            <option value="">Barchasi</option>
-          </Select>
-          <Select
-            value={salaryType}
-            onChange={(event) => changeFilter(() => setSalaryType(event.target.value as SalaryType | ''))}
-            aria-label="Maosh modeli"
-            wrapperClassName="sm:w-48"
-          >
-            <option value="">Barcha modellar</option>
-            {SALARY_TYPE_ORDER.map((type) => (
-              <option key={type} value={type}>
-                {SALARY_TYPE_LABELS[type]}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={sort}
-            onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))}
-            aria-label="Saralash"
-            wrapperClassName="sm:w-52 sm:ml-auto"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {teachersQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
-        ) : teachersQuery.isError ? (
-          <ErrorState
-            error={teachersQuery.error}
-            retrying={teachersQuery.isFetching}
-            onRetry={() => void teachersQuery.refetch()}
-          />
-        ) : teachersQuery.data.items.length === 0 ? (
-          <EmptyState
-            icon={UserCog}
-            title="O‘qituvchi topilmadi"
-            description={
-              canManage
-                ? 'Dars belgilash ruxsati bor xodimga o‘qituvchi profili oching'
-                : 'Filtrlarni o‘zgartirib ko‘ring'
+      <DataTable
+        label="O‘qituvchilar"
+        columns={teacherTable.visibleColumns}
+        rows={teachersQuery.data?.items}
+        rowKey={(teacher) => teacher.id}
+        onRowClick={(teacher) => setDialog({ type: 'detail', teacherId: teacher.id })}
+        rowClassName={(teacher) => !teacher.isActive && 'opacity-60'}
+        loading={teachersQuery.isPending}
+        error={teachersQuery.error}
+        onRetry={() => void teachersQuery.refetch()}
+        retrying={teachersQuery.isFetching}
+        stale={teachersQuery.isPlaceholderData}
+        empty={{
+          icon: UserCog,
+          title: 'O‘qituvchi topilmadi',
+          description: canManage ? 'Dars belgilash ruxsati bor xodimga o‘qituvchi profili oching' : 'Filtrlarni o‘zgartirib ko‘ring',
+        }}
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Ism, email yoki mutaxassislik' }}
+            activeCount={Number(isActive !== 'true') + Number(Boolean(salaryType))}
+            onClear={() =>
+              changeFilter(() => {
+                setIsActive('true');
+                setSalaryType('');
+              })
             }
-          />
-        ) : (
+          >
+            <FilterField className="sm:w-40">
+              <Select value={isActive} onChange={(event) => changeFilter(() => setIsActive(event.target.value as '' | 'true' | 'false'))} aria-label="Holat">
+                <option value="true">Faol</option>
+                <option value="false">Faolsiz</option>
+                <option value="">Barchasi</option>
+              </Select>
+            </FilterField>
+            <FilterField className="sm:w-48">
+              <Select value={salaryType} onChange={(event) => changeFilter(() => setSalaryType(event.target.value as SalaryType | ''))} aria-label="Maosh modeli">
+                <option value="">Barcha modellar</option>
+                {SALARY_TYPE_ORDER.map((type) => (
+                  <option key={type} value={type}>
+                    {SALARY_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={
           <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={teacherTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', teachersQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={teacherTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {teachersQuery.data.items.map((teacher) => (
-                    <TR
-                      key={teacher.id}
-                      onClick={() => setDialog({ type: 'detail', teacherId: teacher.id })}
-                      className={cn('cursor-pointer', !teacher.isActive && 'opacity-60')}
-                    >
-                      <ColumnCells columns={teacherTable.visibleColumns} row={teacher} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={page}
-              totalPages={teachersQuery.data.meta.totalPages}
-              total={teachersQuery.data.meta.total}
-              limit={PAGE_SIZE}
-              onPageChange={setPage}
-              disabled={teachersQuery.isPlaceholderData}
-            />
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            <ColumnSettings control={teacherTable} />
           </>
-        )}
-      </Card>
+        }
+        {...density}
+        {...(teachersQuery.data
+          ? {
+              pagination: {
+                page,
+                totalPages: teachersQuery.data.meta.totalPages,
+                total: teachersQuery.data.meta.total,
+                limit: PAGE_SIZE,
+                onPageChange: setPage,
+                disabled: teachersQuery.isPlaceholderData,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'documents' && (
         <StaffDocumentsModal

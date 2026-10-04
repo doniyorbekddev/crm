@@ -47,7 +47,10 @@
 - Grafik ranglari tokenlardan (hozir TSX ichida hex). Vidjet tartibi (`WidgetLayoutPanel`) saqlanadi.
 - Faqat API qaytaradigan ko'rsatkichlar — yo'q KPI o'ylab topilmaydi.
 
-## PHASE 4 — Jadvallar + filtrlar + qidiruv + formalar (§14, §27, §28)
+## PHASE 4 — Jadvallar + filtrlar + qidiruv + formalar (§14, §27, §28) ✅ (2026-10-05)
+> Bajarildi: 8 asosiy ro'yxat (o'quvchilar, leadlar, to'lovlar, qarzdorlar, guruhlar, ota-onalar, o'qituvchilar, xodimlar)
+> `DataTable` + `FilterBar`da; zichlik tanlovi, "Tozalash", telefonda filtr paneli, holat tablari yagona `Tabs`da.
+> Qolgan jadvallar va formalarni yangi maydonlarga (Combobox, CurrencyInput …) o'tkazish — o'z bo'limi fazasida.
 - **DataTable**: yopishqoq sarlavha, saralash, ustun ko'rinishi/tartibi (mavjud `ColumnSettings`), zichlik
   (compact/comfortable), qator tanlash + ommaviy amallar, qator amallari bitta menyuda, skeleton/bo'sh/xato holatlari.
 - **FilterBar** (mobil'da drawer), eksport (mavjud `ExportMenu`), sahifalash.

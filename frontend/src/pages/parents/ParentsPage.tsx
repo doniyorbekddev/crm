@@ -4,23 +4,19 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BulkPortalAccountsModal } from '@/components/BulkPortalAccountsModal';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { PageHeader } from '@/components/PageHeader';
 import { PortalAccountModal } from '@/components/PortalAccountModal';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { parentsService } from '@/services/parents.service';
 import { studentsService } from '@/services/students.service';
@@ -31,7 +27,6 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LinkStudentModal } from './LinkModals';
 import { ParentFormModal } from './ParentFormModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -185,6 +180,7 @@ export default function ParentsPage() {
     }] : []),
   ];
   const parentTable = useTableColumns('parents', parentTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -210,76 +206,59 @@ export default function ParentsPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <SearchInput
-            value={searchInput}
-            onChange={(value) => {
-              setSearchInput(value);
-              setPage(1);
+      <DataTable
+        label="Ota-onalar"
+        columns={parentTable.visibleColumns}
+        rows={parentsQuery.data?.items}
+        rowKey={(parent) => parent.id}
+        loading={parentsQuery.isPending}
+        error={parentsQuery.error}
+        onRetry={() => void parentsQuery.refetch()}
+        retrying={parentsQuery.isFetching}
+        stale={parentsQuery.isPlaceholderData}
+        empty={{
+          icon: UsersRound,
+          title: 'Ota-ona topilmadi',
+          description: canManage ? 'Yangi ota-ona qo‘shing yoki o‘quvchi profilidan biriktiring' : 'Qidiruvni o‘zgartirib ko‘ring',
+        }}
+        toolbar={
+          <FilterBar
+            search={{
+              value: searchInput,
+              onChange: (value) => {
+                setSearchInput(value);
+                setPage(1);
+              },
+              placeholder: 'Ism, telefon yoki farzand ismi',
             }}
-            placeholder="Ism, telefon yoki farzand ismi"
-            className="sm:max-w-xs"
           />
-          <Select
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as typeof sort);
-              setPage(1);
-            }}
-            aria-label="Saralash"
-            wrapperClassName="sm:w-52 sm:ml-auto"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {parentsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={4} />
-        ) : parentsQuery.isError ? (
-          <ErrorState error={parentsQuery.error} retrying={parentsQuery.isFetching} onRetry={() => void parentsQuery.refetch()} />
-        ) : parentsQuery.data.items.length === 0 ? (
-          <EmptyState
-            icon={UsersRound}
-            title="Ota-ona topilmadi"
-            description={canManage ? 'Yangi ota-ona qo‘shing yoki o‘quvchi profilidan biriktiring' : 'Qidiruvni o‘zgartirib ko‘ring'}
-          />
-        ) : (
+        }
+        toolbarActions={
           <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={parentTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', parentsQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={parentTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {parentsQuery.data.items.map((parent) => (
-                    <TR key={parent.id}>
-                      <ColumnCells columns={parentTable.visibleColumns} row={parent} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={page}
-              totalPages={parentsQuery.data.meta.totalPages}
-              total={parentsQuery.data.meta.total}
-              limit={PAGE_SIZE}
-              onPageChange={setPage}
-              disabled={parentsQuery.isPlaceholderData}
-            />
+            <Select value={sort} onChange={(event) => { setSort(event.target.value as typeof sort); setPage(1); }} aria-label="Saralash" wrapperClassName="w-44">
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            <ColumnSettings control={parentTable} />
           </>
-        )}
-      </Card>
+        }
+        {...density}
+        {...(parentsQuery.data
+          ? {
+              pagination: {
+                page,
+                totalPages: parentsQuery.data.meta.totalPages,
+                total: parentsQuery.data.meta.total,
+                limit: PAGE_SIZE,
+                onPageChange: setPage,
+                disabled: parentsQuery.isPlaceholderData,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'create' && <ParentFormModal onClose={close} onSaved={saved} />}
       {dialog?.type === 'edit' && <ParentFormModal parent={dialog.parent} onClose={close} onSaved={saved} />}

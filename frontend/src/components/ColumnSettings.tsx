@@ -15,7 +15,7 @@ export function ColumnSettings<Row>({ control, title = 'Jadval ustunlari' }: { c
 
   return (
     <>
-      <Button variant="secondary" size="sm" leftIcon={<Columns3 className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
+      <Button variant="secondary" className="h-10" leftIcon={<Columns3 className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
         Ustunlar{hiddenCount > 0 ? ` (${hiddenCount} yashirin)` : ''}
       </Button>
       <Modal
@@ -32,7 +32,7 @@ export function ColumnSettings<Row>({ control, title = 'Jadval ustunlari' }: { c
           </>
         }
       >
-        <ul className="divide-y divide-border rounded-xl border border-border" aria-label="Ustunlar ro‘yxati">
+        <ul className="divide-y divide-border rounded-control border border-border" aria-label="Ustunlar ro‘yxati">
           {configurable.map((column, index) => (
             <li key={column.key} className="flex flex-wrap items-center gap-2 px-3 py-2">
               <div className="min-w-0 flex-1">
@@ -42,13 +42,13 @@ export function ColumnSettings<Row>({ control, title = 'Jadval ustunlari' }: { c
                   disabled={column.required}
                   onChange={(event) => control.setVisible(column.key, event.target.checked)}
                 />
-                {column.required && <p className="ml-6 text-xs text-fg-subtle">Doim ko‘rinadi</p>}
+                {column.required && <p className="ml-6 text-caption text-fg-subtle">Doim ko‘rinadi</p>}
               </div>
               <Select
                 aria-label={`${column.label} kengligi`}
                 value={column.width === null ? '' : String(column.width)}
                 wrapperClassName="w-28"
-                className="h-8 text-xs"
+                className="h-8 text-caption sm:text-caption"
                 onChange={(event) => control.setWidth(column.key, event.target.value ? Number(event.target.value) : null)}
               >
                 {COLUMN_WIDTHS.map((option) => (

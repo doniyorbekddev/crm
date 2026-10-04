@@ -1,15 +1,13 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Target } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LeadPriorityBadge, LeadStatusBadge, LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useNow } from '@/hooks/useNow';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -22,7 +20,6 @@ import { useExport } from '@/hooks/useExport';
 import { usePermission } from '@/hooks/usePermission';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -181,41 +178,41 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
     },
   ];
   const leadTable = useTableColumns('leads', leadTableColumns);
+  const density = useTableDensity();
 
   return (
-    <Card>
-      <div className="flex flex-col gap-3 border-b border-border p-3 lg:flex-row lg:items-center lg:justify-between">
-        <div role="tablist" aria-label="Status bo‘yicha filtr" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-          {tabs.map((tab) => {
-            const active = status === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => {
-                  setStatus(tab);
-                  setPage(1);
-                }}
-                className={cn(
-                  'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
-                  active
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                    : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                )}
-              >
+    <DataTable
+      label="Leadlar"
+      columns={leadTable.visibleColumns}
+      rows={listQuery.data?.items}
+      rowKey={(lead) => lead.id}
+      onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
+      loading={listQuery.isPending}
+      error={listQuery.error}
+      onRetry={() => void listQuery.refetch()}
+      retrying={listQuery.isFetching}
+      stale={listQuery.isPlaceholderData}
+      empty={{ icon: Target, title: 'Lead topilmadi', description: 'Qidiruv yoki filtrlarni o‘zgartirib ko‘ring yoki yangi lead qo‘shing' }}
+      header={
+        <Tabs
+          value={status}
+          onValueChange={(value) => {
+            setStatus(value as typeof status);
+            setPage(1);
+          }}
+          panels={false}
+        >
+          <TabList label="Status bo‘yicha filtr" className="px-4">
+            {tabs.map((tab) => (
+              <Tab key={tab} value={tab} {...(summary ? { count: summary[tab] } : {})}>
                 {tab === 'ALL' ? 'Barchasi' : LEAD_STATUS_LABELS[tab]}
-                {summary && (
-                  <span className={cn('rounded-full px-1.5 tabular-nums', active ? 'bg-brand-100 dark:bg-brand-900' : 'bg-surface-muted')}>
-                    {summary[tab]}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex shrink-0 gap-2">
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
+      }
+      toolbarActions={
+        <>
           <Select
             value={sort}
             onChange={(event) => {
@@ -223,7 +220,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
               setPage(1);
             }}
             aria-label="Saralash"
-            wrapperClassName="min-w-0 flex-1 lg:w-56"
+            wrapperClassName="w-44 sm:w-56"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -234,60 +231,25 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
           {canExport && (
             <ExportMenu
               loading={exporting}
-              onExport={(format) =>
-                void runExport(
-                  '/leads/export',
-                  { ...filters, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) },
-                  'leadlar',
-                  format,
-                )
-              }
+              onExport={(format) => void runExport('/leads/export', { ...filters, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) }, 'leadlar', format)}
             />
           )}
-        </div>
-      </div>
-
-      {listQuery.isPending ? (
-        <TableSkeleton rows={8} columns={8} />
-      ) : listQuery.isError ? (
-        <ErrorState error={listQuery.error} retrying={listQuery.isFetching} onRetry={() => void listQuery.refetch()} />
-      ) : listQuery.data.items.length === 0 ? (
-        <EmptyState
-          icon={Target}
-          title="Lead topilmadi"
-          description="Qidiruv yoki filtrlarni o‘zgartirib ko‘ring yoki yangi lead qo‘shing"
-        />
-      ) : (
-        <>
-          <div className="flex justify-end border-b border-border px-4 py-2">
-            <ColumnSettings control={leadTable} />
-          </div>
-          <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-            <Table>
-              <THead>
-                <tr>
-                  <ColumnHeaders columns={leadTable.visibleColumns} />
-                </tr>
-              </THead>
-              <TBody>
-                {listQuery.data.items.map((lead) => (
-                  <TR key={lead.id} className="cursor-pointer" onClick={() => navigate(`/leads/${lead.id}`)}>
-                    <ColumnCells columns={leadTable.visibleColumns} row={lead} />
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
-          <Pagination
-            page={listQuery.data.meta.page}
-            totalPages={listQuery.data.meta.totalPages}
-            total={listQuery.data.meta.total}
-            limit={listQuery.data.meta.limit}
-            onPageChange={setPage}
-            disabled={listQuery.isFetching}
-          />
+          <ColumnSettings control={leadTable} />
         </>
-      )}
-    </Card>
+      }
+      {...density}
+      {...(listQuery.data
+        ? {
+            pagination: {
+              page: listQuery.data.meta.page,
+              totalPages: listQuery.data.meta.totalPages,
+              total: listQuery.data.meta.total,
+              limit: listQuery.data.meta.limit,
+              onPageChange: setPage,
+              disabled: listQuery.isFetching,
+            },
+          }
+        : {})}
+    />
   );
 }

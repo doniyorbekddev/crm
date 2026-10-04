@@ -7,6 +7,7 @@ interface TabsContextValue {
   onValueChange: (value: string) => void;
   baseId: string;
   variant: 'underline' | 'pill';
+  panels: boolean;
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null);
@@ -24,6 +25,11 @@ interface TabsProps {
   onValueChange: (value: string) => void;
   /** `underline` — sahifa bo'limlari; `pill` — ixcham almashtirgich (karta ichida, filtr) */
   variant?: 'underline' | 'pill';
+  /**
+   * `false` — tablar filtr sifatida ishlatiladi (`TabPanel` yo'q, mazmun tashqarida — masalan jadval):
+   * mavjud bo'lmagan panelga `aria-controls` qo'yilmaydi.
+   */
+  panels?: boolean;
   children: ReactNode;
   className?: string;
 }
@@ -39,10 +45,10 @@ interface TabsProps {
  *     <TabPanel value="overview">…</TabPanel>
  *   </Tabs>
  */
-export function Tabs({ value, onValueChange, variant = 'underline', children, className }: TabsProps) {
+export function Tabs({ value, onValueChange, variant = 'underline', panels = true, children, className }: TabsProps) {
   const baseId = useId();
   return (
-    <TabsContext.Provider value={{ value, onValueChange, baseId, variant }}>
+    <TabsContext.Provider value={{ value, onValueChange, baseId, variant, panels }}>
       <div className={className}>{children}</div>
     </TabsContext.Provider>
   );
@@ -94,11 +100,13 @@ interface TabProps {
   icon?: ReactNode;
   /** Yonidagi son (masalan, yozuvlar soni) */
   count?: number;
+  /** Son e'tibor talab qilsa (masalan muddati o'tganlar) */
+  countTone?: 'default' | 'danger';
   disabled?: boolean;
 }
 
-export function Tab({ value, children, icon, count, disabled = false }: TabProps) {
-  const { value: active, onValueChange, baseId, variant } = useTabs();
+export function Tab({ value, children, icon, count, countTone = 'default', disabled = false }: TabProps) {
+  const { value: active, onValueChange, baseId, variant, panels } = useTabs();
   const selected = active === value;
   return (
     <button
@@ -106,7 +114,7 @@ export function Tab({ value, children, icon, count, disabled = false }: TabProps
       role="tab"
       id={`${baseId}-tab-${safeId(value)}`}
       aria-selected={selected}
-      aria-controls={`${baseId}-panel-${safeId(value)}`}
+      aria-controls={panels ? `${baseId}-panel-${safeId(value)}` : undefined}
       tabIndex={selected ? 0 : -1}
       disabled={disabled}
       onClick={() => onValueChange(value)}
@@ -124,7 +132,12 @@ export function Tab({ value, children, icon, count, disabled = false }: TabProps
       {icon}
       {children}
       {count !== undefined && (
-        <span className={cn('rounded-chip px-1.5 text-caption tabular-nums', selected ? 'bg-primary-subtle text-primary' : 'bg-surface-muted text-fg-muted')}>
+        <span
+          className={cn(
+            'rounded-chip px-1.5 text-caption tabular-nums',
+            countTone === 'danger' && count > 0 ? 'bg-danger-subtle text-danger' : selected ? 'bg-primary-subtle text-primary' : 'bg-surface-muted text-fg-muted',
+          )}
+        >
           {count}
         </span>
       )}

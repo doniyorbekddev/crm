@@ -1,17 +1,14 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarOff, FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -33,7 +30,6 @@ import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { EmployeeFormModal } from './EmployeeFormModal';
 import { LeavesModal } from './LeavesModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -227,6 +223,7 @@ export default function EmployeesPage() {
     }] : []),
   ];
   const employeeTable = useTableColumns('employees', employeeTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -243,84 +240,70 @@ export default function EmployeesPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <SearchInput
-            value={searchInput}
-            onChange={(value) => changeFilter(() => setSearchInput(value))}
-            placeholder="Ism yoki telefon"
-            className="sm:max-w-xs"
-          />
-          <Select
-            value={position}
-            onChange={(event) => changeFilter(() => setPosition(event.target.value as EmployeePosition | ''))}
-            aria-label="Lavozim"
-            wrapperClassName="sm:w-52"
+      <DataTable
+        label="Xodimlar"
+        columns={employeeTable.visibleColumns}
+        rows={query.data?.items}
+        rowKey={(employee) => employee.id}
+        rowClassName={(employee) => employee.status === 'RESIGNED' && 'opacity-60'}
+        loading={query.isPending}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+        stale={query.isPlaceholderData}
+        empty={{
+          icon: IdCard,
+          title: 'Xodim topilmadi',
+          description: canManage ? 'Administrator, buxgalter, farrosh kabi xodimlarni qo‘shing — maoshi Maoshlar bo‘limida hisoblanadi' : 'Filtrlarni o‘zgartirib ko‘ring',
+        }}
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Ism yoki telefon' }}
+            activeCount={Number(Boolean(position)) + Number(Boolean(status))}
+            onClear={() =>
+              changeFilter(() => {
+                setPosition('');
+                setStatus('');
+              })
+            }
           >
-            <option value="">Barcha lavozimlar</option>
-            {EMPLOYEE_POSITION_ORDER.map((value) => (
-              <option key={value} value={value}>
-                {EMPLOYEE_POSITION_LABELS[value]}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={status}
-            onChange={(event) => changeFilter(() => setStatus(event.target.value as EmployeeStatus | ''))}
-            aria-label="Holat"
-            wrapperClassName="sm:w-44 sm:ml-auto"
-          >
-            <option value="">Barcha holatlar</option>
-            {EMPLOYEE_STATUS_ORDER.map((value) => (
-              <option key={value} value={value}>
-                {EMPLOYEE_STATUS_LABELS[value]}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        {query.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
-        ) : query.isError ? (
-          <ErrorState error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />
-        ) : query.data.items.length === 0 ? (
-          <EmptyState
-            icon={IdCard}
-            title="Xodim topilmadi"
-            description={canManage ? 'Administrator, buxgalter, farrosh kabi xodimlarni qo‘shing — maoshi Maoshlar bo‘limida hisoblanadi' : 'Filtrlarni o‘zgartirib ko‘ring'}
-          />
-        ) : (
-          <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={employeeTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={employeeTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {query.data.items.map((employee) => (
-                    <TR key={employee.id} className={cn(employee.status === 'RESIGNED' && 'opacity-60')}>
-                      <ColumnCells columns={employeeTable.visibleColumns} row={employee} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={page}
-              totalPages={query.data.meta.totalPages}
-              total={query.data.meta.total}
-              limit={PAGE_SIZE}
-              onPageChange={setPage}
-              disabled={query.isPlaceholderData}
-            />
-          </>
-        )}
-      </Card>
+            <FilterField className="sm:w-52">
+              <Select value={position} onChange={(event) => changeFilter(() => setPosition(event.target.value as EmployeePosition | ''))} aria-label="Lavozim">
+                <option value="">Barcha lavozimlar</option>
+                {EMPLOYEE_POSITION_ORDER.map((value) => (
+                  <option key={value} value={value}>
+                    {EMPLOYEE_POSITION_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField>
+              <Select value={status} onChange={(event) => changeFilter(() => setStatus(event.target.value as EmployeeStatus | ''))} aria-label="Holat">
+                <option value="">Barcha holatlar</option>
+                {EMPLOYEE_STATUS_ORDER.map((value) => (
+                  <option key={value} value={value}>
+                    {EMPLOYEE_STATUS_LABELS[value]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={<ColumnSettings control={employeeTable} />}
+        {...density}
+        {...(query.data
+          ? {
+              pagination: {
+                page,
+                totalPages: query.data.meta.totalPages,
+                total: query.data.meta.total,
+                limit: PAGE_SIZE,
+                onPageChange: setPage,
+                disabled: query.isPlaceholderData,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'create' && <EmployeeFormModal departments={departments} onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog?.type === 'edit' && (

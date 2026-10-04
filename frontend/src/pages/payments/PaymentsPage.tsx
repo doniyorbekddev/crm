@@ -1,19 +1,18 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Plus, Undo2, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { DataTable } from '@/components/ui/DataTable';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { useTableDensity } from '@/hooks/useTableDensity';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { PageHeader } from '@/components/PageHeader';
 import { OnlinePaymentsCard } from './OnlinePaymentsCard';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
-import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -30,7 +29,6 @@ import { RefundPaymentModal } from './RefundPaymentModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
 import { ColumnSettings } from '@/components/ColumnSettings';
-import { ColumnCells, ColumnHeaders } from '@/components/ui/ColumnTable';
 import { useTableColumns } from '@/hooks/useTableColumns';
 import type { ColumnDef } from '@/utils/tableColumns';
 
@@ -226,6 +224,7 @@ export default function PaymentsPage() {
     }] : []),
   ];
   const paymentTable = useTableColumns('payments', paymentTableColumns);
+  const density = useTableDensity();
 
   return (
     <>
@@ -266,137 +265,104 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <Card>
-        <div className="flex flex-col gap-2 border-b border-border p-3">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <SearchInput
-              value={searchInput}
-              onChange={(value) => changeFilter(() => setSearchInput(value))}
-              placeholder="Ism, telefon, PM- yoki ST-raqam"
-              className="sm:max-w-xs"
-            />
-            <Select
-              value={method}
-              onChange={(event) => changeFilter(() => setMethod(event.target.value as PaymentMethod | ''))}
-              aria-label="To‘lov usuli"
-              wrapperClassName="sm:w-44"
-            >
-              <option value="">Barcha usullar</option>
-              {PAYMENT_METHOD_ORDER.map((item) => (
-                <option key={item} value={item}>
-                  {PAYMENT_METHOD_LABELS[item]}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={courseId}
-              onChange={(event) => changeFilter(() => setCourseId(event.target.value))}
-              aria-label="Kurs"
-              wrapperClassName="sm:w-48"
-            >
-              <option value="">Barcha kurslar</option>
-              {lookupsQuery.data?.courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={managerId}
-              onChange={(event) => changeFilter(() => setManagerId(event.target.value))}
-              aria-label="Manager"
-              wrapperClassName="sm:w-48"
-            >
-              <option value="">Barcha managerlar</option>
-              {lookupsQuery.data?.managers.map((manager) => (
-                <option key={manager.id} value={manager.id}>
-                  {manager.firstName} {manager.lastName}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input
-              type="date"
-              value={from}
-              onChange={(event) => changeFilter(() => setFrom(event.target.value))}
-              aria-label="Boshlanish sanasi"
-              className="sm:w-44"
-            />
-            <Input
-              type="date"
-              value={to}
-              onChange={(event) => changeFilter(() => setTo(event.target.value))}
-              aria-label="Tugash sanasi"
-              className="sm:w-44"
-            />
-            <label className="flex items-center gap-2 text-sm text-fg-muted">
-              <input
-                type="checkbox"
-                checked={includeDeleted}
-                onChange={(event) => changeFilter(() => setIncludeDeleted(event.target.checked))}
-                className="size-4 rounded border-border text-brand-600 focus:ring-brand-500"
-              />
-              Bekor qilinganlar ham
-            </label>
-            <Select
-              value={sort}
-              onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))}
-              aria-label="Saralash"
-              wrapperClassName="sm:w-48 sm:ml-auto"
-            >
+      <DataTable
+        label="To‘lovlar"
+        columns={paymentTable.visibleColumns}
+        rows={paymentsQuery.data?.items}
+        rowKey={(payment) => payment.id}
+        rowClassName={(payment) => payment.isDeleted && 'opacity-60'}
+        loading={paymentsQuery.isPending}
+        error={paymentsQuery.error}
+        onRetry={() => void paymentsQuery.refetch()}
+        retrying={paymentsQuery.isFetching}
+        stale={paymentsQuery.isPlaceholderData}
+        empty={{
+          icon: Wallet,
+          title: 'To‘lov topilmadi',
+          description: canCreate ? 'Yangi to‘lov qabul qiling yoki filtrlarni o‘zgartiring' : 'Filtrlarni o‘zgartirib ko‘ring',
+        }}
+        toolbar={
+          <FilterBar
+            search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Ism, telefon, PM- yoki ST-raqam' }}
+            activeCount={[method, courseId, managerId, from, to].filter(Boolean).length + Number(includeDeleted)}
+            onClear={() =>
+              changeFilter(() => {
+                setMethod('');
+                setCourseId('');
+                setManagerId('');
+                setFrom('');
+                setTo('');
+                setIncludeDeleted(false);
+              })
+            }
+          >
+            <FilterField>
+              <Select value={method} onChange={(event) => changeFilter(() => setMethod(event.target.value as PaymentMethod | ''))} aria-label="To‘lov usuli">
+                <option value="">Barcha usullar</option>
+                {PAYMENT_METHOD_ORDER.map((item) => (
+                  <option key={item} value={item}>
+                    {PAYMENT_METHOD_LABELS[item]}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField className="sm:w-48">
+              <Select value={courseId} onChange={(event) => changeFilter(() => setCourseId(event.target.value))} aria-label="Kurs">
+                <option value="">Barcha kurslar</option>
+                {lookupsQuery.data?.courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField className="sm:w-48">
+              <Select value={managerId} onChange={(event) => changeFilter(() => setManagerId(event.target.value))} aria-label="Manager">
+                <option value="">Barcha managerlar</option>
+                {lookupsQuery.data?.managers.map((manager) => (
+                  <option key={manager.id} value={manager.id}>
+                    {manager.firstName} {manager.lastName}
+                  </option>
+                ))}
+              </Select>
+            </FilterField>
+            <FilterField className="sm:w-40" caption="Boshlanish sanasi">
+              <Input type="date" value={from} onChange={(event) => changeFilter(() => setFrom(event.target.value))} aria-label="Boshlanish sanasi" />
+            </FilterField>
+            <FilterField className="sm:w-40" caption="Tugash sanasi">
+              <Input type="date" value={to} onChange={(event) => changeFilter(() => setTo(event.target.value))} aria-label="Tugash sanasi" />
+            </FilterField>
+            <FilterField className="sm:w-auto">
+              <Checkbox label="Bekor qilinganlar ham" checked={includeDeleted} onChange={(event) => changeFilter(() => setIncludeDeleted(event.target.checked))} />
+            </FilterField>
+          </FilterBar>
+        }
+        toolbarActions={
+          <>
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Select>
-          </div>
-        </div>
-
-        {paymentsQuery.isPending ? (
-          <TableSkeleton rows={6} columns={6} />
-        ) : paymentsQuery.isError ? (
-          <ErrorState error={paymentsQuery.error} retrying={paymentsQuery.isFetching} onRetry={() => void paymentsQuery.refetch()} />
-        ) : paymentsQuery.data.items.length === 0 ? (
-          <EmptyState
-            icon={Wallet}
-            title="To‘lov topilmadi"
-            description={canCreate ? 'Yangi to‘lov qabul qiling yoki filtrlarni o‘zgartiring' : 'Filtrlarni o‘zgartirib ko‘ring'}
-          />
-        ) : (
-          <>
-            <div className="flex justify-end border-b border-border px-4 py-2">
-              <ColumnSettings control={paymentTable} />
-            </div>
-            <TableContainer className={cn('transition-opacity', paymentsQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
-                <THead>
-                  <tr>
-                    <ColumnHeaders columns={paymentTable.visibleColumns} />
-                  </tr>
-                </THead>
-                <TBody>
-                  {paymentsQuery.data.items.map((payment) => (
-                    <TR key={payment.id} className={cn(payment.isDeleted && 'opacity-60')}>
-                      <ColumnCells columns={paymentTable.visibleColumns} row={payment} />
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
-            <Pagination
-              page={paymentsQuery.data.meta.page}
-              totalPages={paymentsQuery.data.meta.totalPages}
-              total={paymentsQuery.data.meta.total}
-              limit={paymentsQuery.data.meta.limit}
-              onPageChange={setPage}
-              disabled={paymentsQuery.isFetching}
-            />
+            <ColumnSettings control={paymentTable} />
           </>
-        )}
-      </Card>
+        }
+        {...density}
+        {...(paymentsQuery.data
+          ? {
+              pagination: {
+                page: paymentsQuery.data.meta.page,
+                totalPages: paymentsQuery.data.meta.totalPages,
+                total: paymentsQuery.data.meta.total,
+                limit: paymentsQuery.data.meta.limit,
+                onPageChange: setPage,
+                disabled: paymentsQuery.isFetching,
+              },
+            }
+          : {})}
+      />
 
       {dialog?.type === 'create' && (
         <PaymentFormModal
