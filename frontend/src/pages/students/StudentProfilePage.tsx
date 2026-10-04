@@ -1,35 +1,70 @@
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, FileBarChart, FileCheck, Flame, History, LayoutDashboard, Target, UsersRound, Wallet, Bot } from 'lucide-react';
-import { WeeklyReportModal } from '@/components/weekly/WeeklyReportModal';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowLeftRight,
+  Award,
+  BookOpen,
+  BookOpenCheck,
+  Bot,
+  CalendarCheck,
+  CalendarClock,
+  CalendarDays,
+  FileBarChart,
+  FileCheck,
+  Flame,
+  Gift,
+  Hash,
+  History,
+  Layers,
+  LayoutDashboard,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  RefreshCw,
+  Star,
+  Target,
+  UsersRound,
+  Wallet,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { PageHeader } from '@/components/PageHeader';
-import { Avatar } from '@/components/ui/Avatar';
-import { Badge } from '@/components/ui/Badge';
+import { useParams } from 'react-router-dom';
+import { ProfileHeader, ProfileStat } from '@/components/ProfileHeader';
+import type { ProfileMetaItem } from '@/components/ProfileHeader';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Tab, TabList, TabPanel, Tabs } from '@/components/ui/Tabs';
+import { WeeklyReportModal } from '@/components/weekly/WeeklyReportModal';
 import { usePermission } from '@/hooks/usePermission';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
+import { PaymentFormModal } from '@/pages/payments/PaymentFormModal';
 import { studentsService } from '@/services/students.service';
 import { formatDate, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
-import { STUDENT_STATUS_LABELS, STUDENT_STATUS_TONES } from '@/utils/studentLabels';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { StudentFormModal } from './StudentFormModal';
+import { StudentStatusModal } from './StudentStatusModal';
+import { AiAnalysisTab } from './profile/AiAnalysisTab';
 import { GroupHistoryTab } from './profile/GroupHistoryTab';
 import { MasteryTab } from './profile/MasteryTab';
-import { AiAnalysisTab } from './profile/AiAnalysisTab';
 import { ParentsTab } from './profile/ParentsTab';
 import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type Tab = 'overview' | 'mastery' | 'ai' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
+type TabKey = 'overview' | 'mastery' | 'ai' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
+type Dialog = 'calendar' | 'weekly' | 'edit' | 'payment' | 'status' | null;
 
+const BACK = { to: '/students', label: 'O‘quvchilar' };
+
+/**
+ * O'quvchi profili ("Student 360"): sarlavhada kim, holati va eng kerakli amallar; pastda bo'limlar.
+ * Amallar ro'yxat sahifasidagi bilan bir xil oynalar va ruxsatlar — yangi funksiya yo'q.
+ */
 export default function StudentProfilePage() {
   const { id = '' } = useParams();
+  const queryClient = useQueryClient();
   const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
   const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const canUseAi = usePermission(PERMISSIONS.AI_ACADEMIC);
@@ -38,9 +73,9 @@ export default function StudentProfilePage() {
   const canViewDebts = usePermission(PERMISSIONS.DEBT_VIEW);
   const canViewPayments = usePermission(PERMISSIONS.PAYMENT_VIEW);
   const canManageStudents = usePermission(PERMISSIONS.STUDENT_MANAGE);
-  const [tab, setTab] = useState<Tab>('overview');
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [weeklyOpen, setWeeklyOpen] = useState(false);
+  const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
+  const [tab, setTab] = useState<TabKey>('overview');
+  const [dialog, setDialog] = useState<Dialog>(null);
 
   const profileQuery = useQuery({
     queryKey: queryKeys.students.profile(id),
@@ -48,40 +83,49 @@ export default function StudentProfilePage() {
     enabled: Boolean(id),
   });
 
-  const back = (
-    <Link to="/students" className="mb-3 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg">
-      <ArrowLeft className="size-4" aria-hidden />
-      O‘quvchilar
-    </Link>
-  );
-
   if (profileQuery.isPending) {
     return (
-      <>
-        {back}
-        <Skeleton className="mb-4 h-36 w-full rounded-xl" />
+      <div aria-busy="true" aria-label="Yuklanmoqda">
+        <Skeleton className="mb-3 h-5 w-28" />
+        <Skeleton className="mb-5 h-48 w-full rounded-card" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-card" />
           ))}
         </div>
-      </>
+      </div>
     );
   }
 
   if (profileQuery.isError) {
-    return (
-      <>
-        {back}
-        <ErrorState error={profileQuery.error} retrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />
-      </>
-    );
+    return <ErrorState error={profileQuery.error} retrying={profileQuery.isFetching} onRetry={() => void profileQuery.refetch()} />;
   }
 
   const profile = profileQuery.data;
-  const { student, gamification } = profile;
+  const { student, gamification, attendance } = profile;
+  const fullName = `${student.firstName} ${student.lastName}`;
+  const debt = student.debt?.remaining ?? 0;
 
-  const tabs: ReadonlyArray<{ value: Tab; label: string; icon: LucideIcon }> = [
+  // Ro'yxat sahifasidagi bilan bir xil kesh yangilanishi
+  const saved = () => {
+    setDialog(null);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.lookups.studentForm });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.debts.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+  };
+
+  const meta: ProfileMetaItem[] = [
+    { name: 'ID raqam', icon: Hash, label: <span className="font-mono">{student.code}</span> },
+    { name: 'Kurs', icon: BookOpen, label: student.course.name },
+    ...(student.group ? [{ name: 'Guruh', icon: Layers, label: student.group.name }] : []),
+    { name: 'Telefon', icon: Phone, label: formatPhone(student.phone) },
+    { name: 'O‘qish boshlangan', icon: CalendarDays, label: `${formatDate(student.startDate)} dan` },
+    ...(student.referralCode ? [{ name: 'Taklif kodi', icon: Gift, label: <span className="font-mono">{student.referralCode}</span> }] : []),
+  ];
+
+  const tabs: ReadonlyArray<{ value: TabKey; label: string; icon: LucideIcon }> = [
     { value: 'overview', label: 'Umumiy', icon: LayoutDashboard },
     { value: 'mastery', label: 'O‘zlashtirish', icon: Target },
     ...(canUseAi ? [{ value: 'ai' as const, label: 'AI tahlil', icon: Bot }] : []),
@@ -95,129 +139,132 @@ export default function StudentProfilePage() {
     { value: 'activity', label: 'Faollik', icon: History },
   ];
 
+  const moreActions = [
+    ...(canViewAttendance ? [{ label: 'Davomat kalendari', icon: CalendarCheck, onSelect: () => setDialog('calendar') }] : []),
+    ...(canManageStudents ? [{ label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog('status') }] : []),
+  ];
+
   return (
     <>
-      <PageHeader
-        title={`${student.firstName} ${student.lastName}`}
-        documentTitle={`${student.firstName} ${student.lastName}`}
+      <ProfileHeader
+        back={BACK}
+        firstName={student.firstName}
+        lastName={student.lastName}
+        title={fullName}
+        badges={
+          <>
+            <StatusBadge kind="student" status={student.status} />
+            {student.riskLevel && <StatusBadge kind="risk" status={student.riskLevel} />}
+          </>
+        }
+        meta={meta}
         actions={
-          <Button variant="secondary" leftIcon={<FileBarChart className="size-4" aria-hidden />} onClick={() => setWeeklyOpen(true)}>
-            Haftalik hisobot
-          </Button>
+          <>
+            {canCreatePayment && debt > 0 && (
+              <Button leftIcon={<Wallet className="size-4" aria-hidden />} onClick={() => setDialog('payment')}>
+                To‘lov qabul qilish
+              </Button>
+            )}
+            <Button variant="secondary" leftIcon={<FileBarChart className="size-4" aria-hidden />} onClick={() => setDialog('weekly')}>
+              Haftalik hisobot
+            </Button>
+            {canManageStudents && (
+              <Button variant="secondary" leftIcon={<Pencil className="size-4" aria-hidden />} onClick={() => setDialog('edit')}>
+                Tahrirlash
+              </Button>
+            )}
+            <ActionMenu label={`${fullName} — boshqa amallar`} trigger={{ label: 'Yana', icon: MoreHorizontal }} items={moreActions} />
+          </>
+        }
+        stats={
+          <>
+            <ProfileStat
+              label="Daraja"
+              value={
+                <span className="inline-flex items-center gap-1.5">
+                  {gamification.level.icon ? <span aria-hidden>{gamification.level.icon}</span> : <Star className="size-4 text-warning" aria-hidden />}
+                  {gamification.level.number}
+                </span>
+              }
+              hint={gamification.level.name}
+            >
+              <span className="mt-1.5 block h-1.5 max-w-44 overflow-hidden rounded-full bg-surface-muted" aria-hidden>
+                <span className="block h-full rounded-full bg-chart-brand" style={{ width: `${Math.max(gamification.progress, 2)}%` }} />
+              </span>
+              <span className="mt-1 block text-caption text-fg-muted">
+                {formatNumber(gamification.totalXp)} XP
+                {gamification.nextLevel && ` · keyingisiga ${formatNumber(gamification.nextLevel.xpLeft)}`}
+              </span>
+            </ProfileStat>
+            <ProfileStat label="Reyting" value={gamification.rank ? `#${gamification.rank}` : '—'} />
+            <ProfileStat
+              label="Davomat"
+              value={attendance.total ? `${attendance.rate}%` : '—'}
+              tone={!attendance.total ? 'default' : attendance.rate >= 85 ? 'success' : 'warning'}
+              hint={attendance.total ? `${formatNumber(attendance.total)} dars` : undefined}
+            />
+            <ProfileStat
+              label="Seriya"
+              value={
+                <span className="inline-flex items-center gap-1">
+                  <Flame className="size-4 text-warning" aria-hidden />
+                  {gamification.streak.current}
+                </span>
+              }
+              hint="kun ketma-ket"
+            />
+          </>
         }
       />
-      {weeklyOpen && <WeeklyReportModal studentId={student.id} onClose={() => setWeeklyOpen(false)} />}
-      <div className="-mt-4">{back}</div>
 
-      <Card className="mb-4 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Avatar firstName={student.firstName} lastName={student.lastName} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-fg">
-              {student.firstName} {student.lastName}
-              <Badge tone={STUDENT_STATUS_TONES[student.status]}>{STUDENT_STATUS_LABELS[student.status]}</Badge>
-            </p>
-            <p className="mt-0.5 text-sm text-fg-muted">
-              <span className="font-mono">{student.code}</span> · {student.course.name}
-              {student.group && ` · ${student.group.name}`} · {formatPhone(student.phone)}
-            </p>
-            <p className="text-xs text-fg-subtle">
-              O‘qish boshlangan: {formatDate(student.startDate)}
-              {student.referralCode && (
-                <>
-                  {' · '}
-                  Taklif kodi: <span className="font-mono text-fg-muted">{student.referralCode}</span>
-                </>
-              )}
-            </p>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
+        <TabList label="Profil bo‘limlari" className="mb-4">
+          {tabs.map(({ value, label, icon: Icon }) => (
+            <Tab key={value} value={value} icon={<Icon className="size-4" aria-hidden />}>
+              {label}
+            </Tab>
+          ))}
+        </TabList>
+        <TabPanel value="overview">
+          <OverviewTab profile={profile} onOpenCalendar={() => canViewAttendance && setDialog('calendar')} />
+        </TabPanel>
+        <TabPanel value="mastery">
+          <MasteryTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="ai">
+          <AiAnalysisTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="groups">
+          <GroupHistoryTab student={student} canManage={canManageStudents} />
+        </TabPanel>
+        <TabPanel value="parents">
+          <ParentsTab student={{ id: student.id, name: fullName }} />
+        </TabPanel>
+        <TabPanel value="homework">
+          <HomeworkTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="exams">
+          <ExamsTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="payments">
+          <PaymentsTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="schedule">
+          <PaymentScheduleTab studentId={student.id} startDate={student.startDate} />
+        </TabPanel>
+        <TabPanel value="achievements">
+          <AchievementsTab profile={profile} />
+        </TabPanel>
+        <TabPanel value="activity">
+          <ActivityTab profile={profile} />
+        </TabPanel>
+      </Tabs>
 
-            <div className="mt-3 max-w-md">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-fg">
-                  {gamification.level.icon ?? '⭐'} {gamification.level.number}-daraja · {gamification.level.name}
-                </span>
-                <span className="text-fg-muted">
-                  {formatNumber(gamification.totalXp)} XP
-                  {gamification.nextLevel && ` · keyingisiga ${formatNumber(gamification.nextLevel.xpLeft)}`}
-                </span>
-              </div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-muted">
-                <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.max(gamification.progress, 2)}%` }} />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 sm:w-auto">
-            <div className="rounded-xl border border-border px-3 py-2 text-center">
-              <p className="text-xs text-fg-muted">Reyting</p>
-              <p className="text-lg font-semibold text-fg">{gamification.rank ? `#${gamification.rank}` : '—'}</p>
-            </div>
-            <div className="rounded-xl border border-border px-3 py-2 text-center">
-              <p className="text-xs text-fg-muted">Davomat</p>
-              <p
-                className={cn(
-                  'text-lg font-semibold',
-                  profile.attendance.rate >= 85 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400',
-                )}
-              >
-                {profile.attendance.total ? `${profile.attendance.rate}%` : '—'}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border px-3 py-2 text-center">
-              <p className="text-xs text-fg-muted">Seriya</p>
-              <p className="inline-flex items-center gap-1 text-lg font-semibold text-amber-600 dark:text-amber-400">
-                <Flame className="size-4" aria-hidden />
-                {gamification.streak.current}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {canViewAttendance && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-            <Button variant="secondary" size="sm" leftIcon={<CalendarCheck className="size-4" aria-hidden />} onClick={() => setCalendarOpen(true)}>
-              Davomat kalendari
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      <div role="tablist" aria-label="Profil bo‘limlari" className="mb-4 -mx-1 flex gap-1 overflow-x-auto px-1">
-        {tabs.map((item) => {
-          const active = tab === item.value;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(item.value)}
-              className={cn(
-                'inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-              )}
-            >
-              <Icon className="size-4" aria-hidden />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {tab === 'overview' && <OverviewTab profile={profile} onOpenCalendar={() => canViewAttendance && setCalendarOpen(true)} />}
-      {tab === 'mastery' && <MasteryTab studentId={student.id} />}
-      {tab === 'ai' && <AiAnalysisTab studentId={student.id} />}
-      {tab === 'groups' && <GroupHistoryTab student={student} canManage={canManageStudents} />}
-      {tab === 'parents' && <ParentsTab student={{ id: student.id, name: `${student.firstName} ${student.lastName}` }} />}
-      {tab === 'homework' && <HomeworkTab studentId={student.id} />}
-      {tab === 'exams' && <ExamsTab studentId={student.id} />}
-      {tab === 'payments' && <PaymentsTab studentId={student.id} />}
-      {tab === 'schedule' && <PaymentScheduleTab studentId={student.id} startDate={student.startDate} />}
-      {tab === 'achievements' && <AchievementsTab profile={profile} />}
-      {tab === 'activity' && <ActivityTab profile={profile} />}
-
-      {calendarOpen && <StudentAttendanceModal student={student} onClose={() => setCalendarOpen(false)} />}
+      {dialog === 'calendar' && <StudentAttendanceModal student={student} onClose={() => setDialog(null)} />}
+      {dialog === 'weekly' && <WeeklyReportModal studentId={student.id} onClose={() => setDialog(null)} />}
+      {dialog === 'edit' && <StudentFormModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog === 'status' && <StudentStatusModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog === 'payment' && <PaymentFormModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
     </>
   );
 }

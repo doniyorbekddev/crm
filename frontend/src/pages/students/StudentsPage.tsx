@@ -191,7 +191,7 @@ export default function StudentsPage() {
         <>
           {student.debt ? (
             <>
-              <p className={cn('font-medium', student.debt.remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+              <p className={cn('font-medium', student.debt.remaining > 0 ? 'text-danger' : 'text-fg')}>
                 {formatMoney(student.debt.remaining)}
               </p>
               <Badge tone={DEBT_STATUS_TONES[student.debt.status]}>{DEBT_STATUS_LABELS[student.debt.status]}</Badge>

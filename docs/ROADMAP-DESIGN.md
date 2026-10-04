@@ -57,7 +57,10 @@
 - Forma tizimi: Combobox (qidiruvli tanlash), Multi-select, sana/vaqt, valyuta kiritish, fayl yuklash; inline validatsiya.
 - 3 xil jadval yo'li (39 + 8 + 5 fayl) bittaga keltiriladi — asosiy ro'yxatlardan boshlab, qolganlari o'z fazasida.
 
-## PHASE 5 — O'quvchi / O'qituvchi / Ota-ona (§15, §16)
+## PHASE 5 — O'quvchi / O'qituvchi / Ota-ona (§15, §16) ✅ (2026-10-05)
+> Bajarildi: O'quvchi 360 (`ProfileHeader`: holat, xavf, asosiy ma'lumot, tezkor amallar, ko'rsatkichlar; yagona `Tabs`),
+> o'qituvchi profili modaldan sahifaga (`/teachers/:id`), o'quvchi/o'qituvchi/ota-ona papkalarida ranglar tokenlarda
+> (`frontend/scripts/tokenize-colors.py`).
 - **Student 360**: sarlavha (avatar, ID, status, kurs, guruh, filial), tezkor amallar, tablar (Umumiy, Akademik,
   Davomat, Vazifa, Imtihon, To'lov, XP, Sertifikat, Faoliyat) — mavjud `students/profile/*` qayta kompozitsiya qilinadi.
 - **O'qituvchi profili**: modal (`TeacherDetailModal`) → to'liq sahifa; KPI vizualizatsiyasi. Yangi marshrut qo'shiladi,

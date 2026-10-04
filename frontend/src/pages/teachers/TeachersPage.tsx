@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Coins, Eye, FolderLock, Pencil, Plus, Power, UserCog } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FilterBar, FilterField } from '@/components/ui/FilterBar';
@@ -23,7 +24,6 @@ import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_TONES } from '@/utils/employeeL
 import { SALARY_TYPE_LABELS, SALARY_TYPE_ORDER, salaryRuleSummary } from '@/utils/teacherLabels';
 import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { SalaryRuleModal } from './SalaryRuleModal';
-import { TeacherDetailModal } from './TeacherDetailModal';
 import { TeacherFormModal } from './TeacherFormModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
 import { useTableColumns } from '@/hooks/useTableColumns';
@@ -41,7 +41,6 @@ const SORT_OPTIONS = [
 type Dialog =
   | { type: 'create' }
   | { type: 'edit'; teacher: TeacherItem }
-  | { type: 'detail'; teacherId: string }
   | { type: 'salary-rule'; teacher: TeacherItem }
   | { type: 'toggle'; teacher: TeacherItem }
   | { type: 'documents'; teacher: TeacherItem }
@@ -49,6 +48,7 @@ type Dialog =
 
 export default function TeachersPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const canManage = usePermission(PERMISSIONS.TEACHER_MANAGE);
   const canViewSalary = usePermission(PERMISSIONS.SALARY_VIEW);
   const canViewDocuments = usePermission(PERMISSIONS.STAFF_DOCUMENT_VIEW);
@@ -107,7 +107,7 @@ export default function TeachersPage() {
   };
 
   const rowActions = (teacher: TeacherItem) => [
-    { label: 'Tafsilotlar', icon: Eye, onSelect: () => setDialog({ type: 'detail', teacherId: teacher.id }) },
+    { label: 'Profil', icon: Eye, onSelect: () => navigate(`/teachers/${teacher.id}`) },
     ...(canViewDocuments
       ? [{ label: teacher.documents > 0 ? `Hujjatlar (${teacher.documents})` : 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', teacher }) }]
       : []),
@@ -255,7 +255,7 @@ export default function TeachersPage() {
         columns={teacherTable.visibleColumns}
         rows={teachersQuery.data?.items}
         rowKey={(teacher) => teacher.id}
-        onRowClick={(teacher) => setDialog({ type: 'detail', teacherId: teacher.id })}
+        onRowClick={(teacher) => navigate(`/teachers/${teacher.id}`)}
         rowClassName={(teacher) => !teacher.isActive && 'opacity-60'}
         loading={teachersQuery.isPending}
         error={teachersQuery.error}
@@ -367,10 +367,6 @@ export default function TeachersPage() {
             refresh();
           }}
         />
-      )}
-
-      {dialog?.type === 'detail' && (
-        <TeacherDetailModal teacherId={dialog.teacherId} onClose={() => setDialog(null)} />
       )}
 
       <ConfirmDialog

@@ -71,7 +71,7 @@ export function AiAnalysisTab({ studentId }: { studentId: string }) {
                 return (
                   <div key={scoreKey} className="rounded-lg border border-border p-2">
                     <dt className="text-xs text-fg-muted">{SCORE_LABELS[scoreKey]}</dt>
-                    <dd className={cn('text-lg font-semibold tabular-nums', value === null ? 'text-fg-subtle' : value >= 80 ? 'text-emerald-600 dark:text-emerald-400' : value >= 60 ? 'text-fg' : 'text-red-600 dark:text-red-400')}>
+                    <dd className={cn('text-lg font-semibold tabular-nums', value === null ? 'text-fg-subtle' : value >= 80 ? 'text-success' : value >= 60 ? 'text-fg' : 'text-danger')}>
                       {value === null ? '—' : value}
                     </dd>
                   </div>

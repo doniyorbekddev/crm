@@ -254,6 +254,29 @@ const density = useTableDensity();                    // zichlik (barcha jadvall
 - **Amallar** — `actions` ustunida bitta `ActionMenu`; ko'p ishlatiladigan bitta amal tugma bo'lishi mumkin.
 - Sahifa butun oyna bo'yicha aylanadi — yopishqoq sarlavha faqat `maxHeight` berilgan jadvalda (`stickyHeader`).
 
+## 8.4. Tafsilot sahifasi (PHASE 5)
+
+`components/ProfileHeader.tsx` — o'quvchi, o'qituvchi (keyin guruh, lead) sahifalari uchun yagona sarlavha:
+
+```tsx
+<ProfileHeader
+  back={{ to: '/students', label: 'O‘quvchilar' }}
+  firstName={…} lastName={…} title={fullName}                 // title — sahifaning h1
+  badges={<StatusBadge kind="student" status={student.status} />}
+  meta={[{ name: 'Guruh', icon: Layers, label: group.name }, …]}   // name — ekran o'quvchi uchun
+  actions={<>…asosiy tugma, ikkilamchi tugmalar, <ActionMenu trigger={{ label: 'Yana', … }} /></>}
+  stats={<><ProfileStat label="Davomat" value="80%" tone="warning" /> …</>}
+/>
+<Tabs value={tab} onValueChange={setTab}> <TabList label="Profil bo‘limlari"> … </TabList> <TabPanel …/> </Tabs>
+```
+
+- Sarlavhada eng ko'pi bitta asosiy (to'ldirilgan) tugma; kam ishlatiladigan amallar "Yana" menyusida.
+- Amallar ro'yxat sahifasidagi bilan **bir xil oynalar va ruxsatlar** — tafsilot sahifasi yangi funksiya qo'shmaydi.
+- Bo'lim mazmuni alohida fayllarda (`profile/*`); sahifa fayli faqat qobiq.
+
+**Ranglarni ko'chirish**: `python3 frontend/scripts/tokenize-colors.py src/pages/<papka>` — xom palitra klasslarini
+(`text-red-600 dark:text-red-400` …) semantik tokenlarga almashtiradi. Ishga tushirgach `git diff` ni ko'rib chiqing.
+
 ## 9. Ikonkalar
 
 Faqat `lucide-react`. O'lchamlar: 16 (`size-4`, standart), 18, 20 (`size-5`), 24. Bezak ikonka — `aria-hidden`.

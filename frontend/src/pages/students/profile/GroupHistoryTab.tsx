@@ -67,9 +67,9 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
                   className={cn(
                     'z-10 grid size-7 shrink-0 place-items-center rounded-full border',
                     change.kind === 'REMOVED'
-                      ? 'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
+                      ? 'border-danger-border bg-danger-subtle text-danger'
                       : change.kind === 'ENROLLED'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400'
+                        ? 'border-success-border bg-success-subtle text-success'
                         : 'border-brand-200 bg-brand-50 text-brand-600 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-300',
                   )}
                 >

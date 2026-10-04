@@ -62,8 +62,8 @@ function Kpi({
         className={cn(
           'mt-1 font-semibold whitespace-nowrap tabular-nums',
           compact ? 'text-base' : 'text-xl',
-          tone === 'positive' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'negative' && 'text-red-600 dark:text-red-400',
+          tone === 'positive' && 'text-success',
+          tone === 'negative' && 'text-danger',
           tone === 'default' && 'text-fg',
         )}
       >
@@ -151,7 +151,7 @@ export function CommissionEntriesTable({ entries }: { entries: CommissionEntry[]
               <TD
                 className={cn(
                   'text-right font-medium whitespace-nowrap tabular-nums',
-                  entry.amount < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg',
+                  entry.amount < 0 ? 'text-danger' : 'text-fg',
                 )}
               >
                 {entry.amount > 0 ? '+' : ''}
@@ -195,11 +195,11 @@ export function CommissionHistoryTable({
               <TR
                 key={`${row.year}-${row.month}`}
                 onClick={() => onSelect({ year: row.year, month: row.month })}
-                className={cn('cursor-pointer', active && 'bg-brand-50/60 dark:bg-brand-950/40')}
+                className={cn('cursor-pointer', active && 'bg-primary-subtle')}
               >
                 <TD className="font-medium whitespace-nowrap text-fg">{row.label}</TD>
                 <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(row.revenue)}</TD>
-                <TD className={cn('text-right whitespace-nowrap tabular-nums', row.commission < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                <TD className={cn('text-right whitespace-nowrap tabular-nums', row.commission < 0 ? 'text-danger' : 'text-fg')}>
                   {formatMoney(row.commission)}
                 </TD>
                 <TD className="text-right whitespace-nowrap tabular-nums text-fg">{row.salary ? formatMoney(row.salary.totalAmount) : '—'}</TD>

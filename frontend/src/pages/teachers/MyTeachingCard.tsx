@@ -76,7 +76,7 @@ export function MyTeachingCard() {
                   <div className="text-right">
                     <p className="text-sm font-medium text-fg">{formatMoney(period.totalAmount)}</p>
                     {period.remainingAmount > 0 && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-warning">
                         qolgan {formatMoney(period.remainingAmount)}
                       </p>
                     )}

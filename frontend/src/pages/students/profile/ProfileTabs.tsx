@@ -4,6 +4,8 @@ import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { StatCard } from '@/components/ui/StatCard';
+import type { StatTone } from '@/components/ui/StatCard';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
@@ -20,30 +22,10 @@ import { DiscountsCard } from './DiscountsCard';
 import { CurriculumProgressCard } from './CurriculumProgressCard';
 import { RiskCard } from './RiskCard';
 
-function StatTile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'good' | 'warn' | 'bad' }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p
-        className={cn(
-          'mt-1 text-xl font-semibold',
-          tone === 'good' && 'text-emerald-600 dark:text-emerald-400',
-          tone === 'warn' && 'text-amber-600 dark:text-amber-400',
-          tone === 'bad' && 'text-red-600 dark:text-red-400',
-          !tone && 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-1 text-xs text-fg-muted">{hint}</p>}
-    </div>
-  );
-}
-
-function rateTone(rate: number): 'good' | 'warn' | 'bad' {
-  if (rate >= 85) return 'good';
-  if (rate >= 60) return 'warn';
-  return 'bad';
+function rateTone(rate: number): StatTone {
+  if (rate >= 85) return 'success';
+  if (rate >= 60) return 'warning';
+  return 'danger';
 }
 
 export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfile; onOpenCalendar: () => void }) {
@@ -52,32 +34,41 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <button type="button" onClick={onOpenCalendar} className="text-left">
-          <StatTile
-            label="Davomat"
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <button type="button" onClick={onOpenCalendar} className="focus-ring rounded-card text-left" aria-label="Davomat — kalendarni ochish">
+          <StatCard
+            size="sm"
+            icon={CalendarCheck}
+            title="Davomat"
             value={`${attendance.rate}%`}
-            hint={`${formatNumber(attendance.total)} dars · ${formatNumber(attendance.absent)} ta qoldirgan`}
-            tone={attendance.total ? rateTone(attendance.rate) : undefined}
+            description={`${formatNumber(attendance.total)} dars · ${formatNumber(attendance.absent)} ta qoldirgan`}
+            tone={attendance.total ? rateTone(attendance.rate) : 'neutral'}
+            className="transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted/50"
           />
         </button>
-        <StatTile
-          label="Uy vazifasi"
+        <StatCard
+          size="sm"
+          icon={BookOpenCheck}
+          title="Uy vazifasi"
           value={`${homework.rate}%`}
-          hint={`${formatNumber(homework.submitted)}/${formatNumber(homework.assigned)} · o‘rtacha ${homework.averagePercent}%`}
-          tone={homework.assigned ? rateTone(homework.rate) : undefined}
+          description={`${formatNumber(homework.submitted)}/${formatNumber(homework.assigned)} · o‘rtacha ${homework.averagePercent}%`}
+          tone={homework.assigned ? rateTone(homework.rate) : 'neutral'}
         />
-        <StatTile
-          label="Imtihonlar o‘rtachasi"
+        <StatCard
+          size="sm"
+          icon={FileCheck}
+          title="Imtihonlar o‘rtachasi"
           value={exams.count ? `${exams.averagePercent}%` : '—'}
-          hint={exams.count ? `${formatNumber(exams.count)} ta · eng yuqori ${exams.best ?? 0}%` : 'Hali imtihon yo‘q'}
-          tone={exams.count ? rateTone(exams.averagePercent) : undefined}
+          description={exams.count ? `${formatNumber(exams.count)} ta · eng yuqori ${exams.best ?? 0}%` : 'Hali imtihon yo‘q'}
+          tone={exams.count ? rateTone(exams.averagePercent) : 'neutral'}
         />
-        <StatTile
-          label="Qarzdorlik"
+        <StatCard
+          size="sm"
+          icon={Wallet}
+          title="Qarzdorlik"
           value={formatMoney(debt)}
-          hint={student.debt ? `Shartnoma: ${formatMoney(student.debt.total)}` : undefined}
-          tone={debt > 0 ? 'bad' : 'good'}
+          {...(student.debt ? { description: `Shartnoma: ${formatMoney(student.debt.total)}` } : {})}
+          tone={debt > 0 ? 'danger' : 'success'}
         />
       </div>
 
@@ -228,7 +219,7 @@ export function ExamsTab({ studentId }: { studentId: string }) {
                     <span className="flex items-center gap-2">
                       {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
                       {row.passed !== null && (
-                        <span className={cn('text-xs', row.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                        <span className={cn('text-xs', row.passed ? 'text-success' : 'text-danger')}>
                           {row.passed ? 'O‘tdi' : 'O‘tmadi'}
                         </span>
                       )}
@@ -338,7 +329,7 @@ export function AchievementsTab({ profile }: { profile: StudentProfile }) {
                     <p className="truncate text-sm text-fg">{row.description}</p>
                     <p className="text-xs text-fg-muted">{formatDateTime(row.createdAt)}</p>
                   </div>
-                  <span className={cn('shrink-0 text-sm font-semibold', row.points >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                  <span className={cn('shrink-0 text-sm font-semibold', row.points >= 0 ? 'text-success' : 'text-danger')}>
                     {row.points > 0 ? '+' : ''}
                     {row.points} XP
                   </span>
@@ -381,8 +372,8 @@ export function ActivityTab({ profile }: { profile: StudentProfile }) {
               <span
                 className={cn(
                   'z-10 grid size-7 shrink-0 place-items-center rounded-full border',
-                  item.tone === 'positive' && 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400',
-                  item.tone === 'negative' && 'border-red-200 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400',
+                  item.tone === 'positive' && 'border-success-border bg-success-subtle text-success',
+                  item.tone === 'negative' && 'border-danger-border bg-danger-subtle text-danger',
                   item.tone === 'neutral' && 'border-border bg-surface-muted text-fg-muted',
                 )}
               >

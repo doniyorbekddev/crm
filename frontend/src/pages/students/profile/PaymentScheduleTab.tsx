@@ -41,7 +41,7 @@ function Tile({ label, value, hint, tone }: { label: string; value: string; hint
       <p
         className={cn(
           'mt-1 text-base font-semibold break-words sm:text-lg',
-          tone === 'bad' ? 'text-red-600 dark:text-red-400' : tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg',
+          tone === 'bad' ? 'text-danger' : tone === 'good' ? 'text-success' : 'text-fg',
         )}
       >
         {value}
@@ -167,7 +167,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
                     <TD
                       className={cn(
                         'whitespace-nowrap',
-                        item.status === 'OVERDUE' ? 'font-medium text-red-600 dark:text-red-400' : 'text-fg',
+                        item.status === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg',
                       )}
                     >
                       {formatMoney(item.remaining)}
@@ -175,7 +175,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
                     <TD className="whitespace-nowrap">
                       <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>{INSTALLMENT_STATUS_LABELS[item.status]}</Badge>
                       {item.status === 'OVERDUE' && (
-                        <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{item.overdueDays} kun kechikdi</p>
+                        <p className="mt-0.5 text-xs text-danger">{item.overdueDays} kun kechikdi</p>
                       )}
                     </TD>
                   </TR>
@@ -427,9 +427,9 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
         </Button>
         <div className="text-right text-sm">
           <p className="text-fg">Jami: {formatMoney(total)}</p>
-          {difference > 0 && <p className="text-amber-600 dark:text-amber-400">Yana {formatMoney(difference)} taqsimlash kerak</p>}
-          {difference < 0 && <p className="text-red-600 dark:text-red-400">Shartnomadan {formatMoney(-difference)} ortiq</p>}
-          {!ordered && <p className="text-red-600 dark:text-red-400">Muddatlar o‘sib boruvchi tartibda bo‘lsin</p>}
+          {difference > 0 && <p className="text-warning">Yana {formatMoney(difference)} taqsimlash kerak</p>}
+          {difference < 0 && <p className="text-danger">Shartnomadan {formatMoney(-difference)} ortiq</p>}
+          {!ordered && <p className="text-danger">Muddatlar o‘sib boruvchi tartibda bo‘lsin</p>}
         </div>
       </div>
     </Modal>

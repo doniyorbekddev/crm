@@ -137,11 +137,11 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
           </div>
           <div className="flex justify-between">
             <span className="text-fg-muted">Qo‘shimcha bonus</span>
-            <span className="text-emerald-600 tabular-nums dark:text-emerald-400">+{formatMoney(extraBonus)}</span>
+            <span className="text-success tabular-nums">+{formatMoney(extraBonus)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-fg-muted">Jarimalar</span>
-            <span className="text-red-600 tabular-nums dark:text-red-400">−{formatMoney(current.penalty)}</span>
+            <span className="text-danger tabular-nums">−{formatMoney(current.penalty)}</span>
           </div>
           <div className="mt-1 flex justify-between border-t border-border pt-1 sm:col-span-2">
             <span className="font-medium text-fg">Jami maosh</span>
@@ -247,7 +247,7 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
                       <span
                         className={cn(
                           'font-semibold whitespace-nowrap tabular-nums',
-                          row.type === 'BONUS' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+                          row.type === 'BONUS' ? 'text-success' : 'text-danger',
                         )}
                       >
                         {row.type === 'BONUS' ? '+' : '−'}

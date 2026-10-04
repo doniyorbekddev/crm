@@ -559,6 +559,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/teachers/TeachersPage"),
                         ),
                       },
+                      {
+                        path: "teachers/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/teachers/TeacherProfilePage"),
+                        ),
+                      },
                     ],
                   },
                   {

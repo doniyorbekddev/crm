@@ -122,7 +122,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
                 </div>
                 <div>
                   <dt className="text-xs text-fg-muted">Chegirma</dt>
-                  <dd className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <dd className="tabular-nums text-success">
                     {summary.discountTotal > 0 ? `−${formatMoney(summary.discountTotal)}` : '—'}
                     {summary.discountTotal > 0 && <span className="ml-1 text-xs text-fg-subtle">({summary.percent}%)</span>}
                   </dd>

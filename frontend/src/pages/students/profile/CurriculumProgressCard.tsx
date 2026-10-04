@@ -7,10 +7,10 @@ import { queryKeys } from '@/lib/queryKeys';
 import { curriculumService } from '@/services/curriculum.service';
 
 function barTone(percent: number): string {
-  if (percent >= 80) return 'bg-emerald-500';
+  if (percent >= 80) return 'bg-chart-positive';
   if (percent >= 50) return 'bg-brand-500';
-  if (percent > 0) return 'bg-amber-500';
-  return 'bg-slate-300 dark:bg-slate-700';
+  if (percent > 0) return 'bg-chart-warning';
+  return 'bg-chart-neutral';
 }
 
 /**

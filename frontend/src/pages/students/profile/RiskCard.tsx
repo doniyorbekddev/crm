@@ -13,10 +13,10 @@ import { RISK_LEVEL_LABELS, RISK_LEVEL_TONES } from '@/utils/studentLabels';
 
 /** Signal balliga qarab rang: past ball — qizil chiziq */
 function barTone(score: number): string {
-  if (score >= 80) return 'bg-emerald-500';
+  if (score >= 80) return 'bg-chart-positive';
   if (score >= 60) return 'bg-brand-500';
-  if (score >= 40) return 'bg-amber-500';
-  return 'bg-red-500';
+  if (score >= 40) return 'bg-chart-warning';
+  return 'bg-chart-negative';
 }
 
 function FactorRow({ factor }: { factor: RiskFactor }) {
@@ -73,8 +73,8 @@ export function RiskCard({ studentId }: { studentId: string }) {
                     className={cn(
                       'flex h-12 w-12 items-center justify-center rounded-full',
                       riskQuery.data.riskLevel === 'HEALTHY'
-                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
-                        : 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400',
+                        ? 'bg-success-subtle text-success'
+                        : 'bg-danger-subtle text-danger',
                     )}
                   >
                     {riskQuery.data.riskLevel === 'HEALTHY' ? <ShieldCheck size={22} /> : <ShieldAlert size={22} />}

@@ -171,11 +171,11 @@ export default function SalariesPage() {
           </Card>
           <Card className="p-4">
             <p className="text-xs text-fg-muted">To‘langan</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">{formatMoney(summary.paid)}</p>
+            <p className="mt-1 text-xl font-semibold text-success">{formatMoney(summary.paid)}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs text-fg-muted">Qolgan</p>
-            <p className={cn('mt-1 text-xl font-semibold', summary.remaining > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-fg')}>
+            <p className={cn('mt-1 text-xl font-semibold', summary.remaining > 0 ? 'text-warning' : 'text-fg')}>
               {formatMoney(summary.remaining)}
             </p>
           </Card>
@@ -307,7 +307,7 @@ export default function SalariesPage() {
                         {period.payee.type === 'EMPLOYEE' ? <span className="text-fg-subtle">—</span> : formatMoney(period.groupRevenue)}
                       </TD>
                       <TD className="text-right whitespace-nowrap">
-                        <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-red-600 dark:text-red-400' : 'text-fg')}>
+                        <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-danger' : 'text-fg')}>
                           {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
                         </span>
                         {period.commissionRate > 0 && <p className="text-xs text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
@@ -317,8 +317,8 @@ export default function SalariesPage() {
                           <span className="text-fg-subtle">—</span>
                         ) : (
                           <>
-                            {period.bonus > 0 && <p className="text-emerald-600 dark:text-emerald-400">+{formatMoney(period.bonus)}</p>}
-                            {period.penalty > 0 && <p className="text-red-600 dark:text-red-400">−{formatMoney(period.penalty)}</p>}
+                            {period.bonus > 0 && <p className="text-success">+{formatMoney(period.bonus)}</p>}
+                            {period.penalty > 0 && <p className="text-danger">−{formatMoney(period.penalty)}</p>}
                           </>
                         )}
                       </TD>
@@ -328,7 +328,7 @@ export default function SalariesPage() {
                           {formatMoney(period.paidAmount)}
                           {advance > 0 && <span className="text-xs text-fg-subtle"> (avans {formatMoney(advance)})</span>}
                         </p>
-                        <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-fg-subtle')}>
+                        <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-warning' : 'text-fg-subtle')}>
                           qolgan {formatMoney(period.remainingAmount)}
                         </p>
                       </TD>
@@ -338,7 +338,7 @@ export default function SalariesPage() {
                           {period.lockedAt && <Lock className="size-3.5 text-fg-subtle" aria-label="Qotirilgan" />}
                         </span>
                         {!period.lockedAt && period.unlockedAt && (
-                          <p className="mt-1 text-xs whitespace-nowrap text-amber-600 dark:text-amber-400">qayta ochilgan</p>
+                          <p className="mt-1 text-xs whitespace-nowrap text-warning">qayta ochilgan</p>
                         )}
                       </TD>
                       <TD className="text-right">
