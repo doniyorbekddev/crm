@@ -48,9 +48,9 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
   const result = analysis?.result;
 
   return (
-    <section aria-label="AI tekshiruv" className="space-y-3 rounded-lg border border-border p-3">
+    <section aria-label="AI tekshiruv" className="space-y-3 rounded-card border border-border bg-surface-muted/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-fg">
+        <h3 className="flex flex-wrap items-center gap-2 text-h4 text-fg">
           <Bot className="size-4" aria-hidden /> AI tekshiruv
           {analysis && <AiSourceBadge source={analysis.source} model={analysis.model} />}
         </h3>
@@ -65,8 +65,8 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
           {result.criteria && (
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {Object.entries(result.criteria).map(([criterion, value]) => (
-                <div key={criterion} className="rounded-md bg-surface-muted px-2 py-1">
-                  <dt className="text-xs text-fg-muted">{CRITERIA_LABELS[criterion] ?? criterion}</dt>
+                <div key={criterion} className="rounded-control border border-border bg-surface px-3 py-2">
+                  <dt className="text-caption text-fg-muted">{CRITERIA_LABELS[criterion] ?? criterion}</dt>
                   <dd className="font-medium tabular-nums text-fg">{value}%</dd>
                 </div>
               ))}

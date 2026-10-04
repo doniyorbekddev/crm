@@ -100,7 +100,8 @@
 > Bajarildi: analitika, akademik analitika, hisobotlar, faoliyat, fikr-mulohaza va ogohlantirishlarda ranglar tokenlarda; kesim va holat tanlovlari yagona Tabs'da; ko'rsatkichlar StatCard'da; grafiklar chart tokenlarida (PHASE 10 da).
 - Analitika, akademik analitika, hisobotlar, faoliyat: yagona grafik uslubi, `DataTable`, davr tanlash.
 
-## PHASE 12 — AI (§25)
+## PHASE 12 — AI (§25) ✅ (2026-10-05)
+> Bajarildi: AI xulosalari bloklarda (Fakt — CRM ma'lumoti, Kuzatuv, Tavsiya), manba belgisi aniq (AI · model yoki Qoidalar rejimi), AI yordamchi javobi alohida blokda manba va havola bilan. Chat oynasi emas; mantiq va matnlar o'zgarmagan.
 - "Xulosa → Sabab → Tavsiya → Amal" bloklari; **AI Generated** belgisi; xavf tahlili, qoralama. Chat oynasi emas.
 
 ## PHASE 13 — Sozlamalar va boshqaruv

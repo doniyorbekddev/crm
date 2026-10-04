@@ -90,24 +90,29 @@ export default function AssistantPage() {
           {ask.isPending && <Skeleton className="mt-4 h-20 w-full" />}
 
           {answer && !ask.isPending && (
-            <div className="mt-4 rounded-lg border border-border bg-surface-muted p-4">
-              <p className="text-sm text-fg-subtle">{answer.question}</p>
-              <p className="mt-1 text-base font-medium text-fg">{answer.answer}</p>
+            <section aria-label="Javob" className="mt-4 rounded-card border border-border bg-surface-muted/50 p-4">
+              <p className="flex items-center gap-2 text-caption text-fg-muted">
+                <span className="grid size-6 place-items-center rounded-chip bg-primary-subtle text-primary">
+                  <Sparkles className="size-3.5" aria-hidden />
+                </span>
+                {answer.question}
+              </p>
+              <p className="mt-2 text-body-lg font-medium text-fg">{answer.answer}</p>
 
               {answer.details.length > 0 && (
-                <ul className="mt-2 space-y-1 text-sm text-fg-muted">
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-body text-fg-muted marker:text-fg-subtle">
                   {answer.details.map((detail) => (
-                    <li key={detail}>· {detail}</li>
+                    <li key={detail}>{detail}</li>
                   ))}
                 </ul>
               )}
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                {answer.tool && <span className="text-xs text-fg-subtle">Manba: {answer.tool.title}</span>}
+                {answer.tool && <span className="rounded-chip bg-surface px-2 py-0.5 text-caption text-fg-muted ring-1 ring-border ring-inset">Manba: {answer.tool.title}</span>}
                 {answer.link && (
                   <Link
                     to={answer.link}
-                    className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     To‘liq ko‘rish
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -124,7 +129,7 @@ export default function AssistantPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           )}
         </CardContent>
       </Card>
@@ -147,7 +152,7 @@ export default function AssistantPage() {
                     <button
                       type="button"
                       onClick={() => submit(tool.samples[0] ?? tool.title, tool.key)}
-                      className="w-full rounded-lg border border-border px-3 py-2 text-left transition-colors hover:border-brand-300 hover:bg-surface-muted dark:hover:border-brand-800"
+                      className="focus-ring w-full rounded-control border border-border px-3 py-2 text-left transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted"
                     >
                       <span className="block text-sm text-fg">{tool.samples[0] ?? tool.title}</span>
                       <span className="block text-xs text-fg-subtle">{tool.title}</span>
