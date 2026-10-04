@@ -25,7 +25,7 @@ export default function RouteErrorPage() {
 
   return (
     <main className="flex min-h-full flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <div className="grid size-14 place-items-center rounded-full bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
+      <div className="grid size-14 place-items-center rounded-full bg-danger-subtle text-danger">
         <AlertTriangle className="size-7" aria-hidden />
       </div>
       <div>

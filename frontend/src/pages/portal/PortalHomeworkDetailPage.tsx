@@ -210,7 +210,7 @@ export default function PortalHomeworkDetailPage() {
                   </a>
                 )}
                 {!canSubmit && submission.codeText && (
-                  <pre className="max-h-60 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
+                  <pre className="max-h-60 overflow-auto rounded-lg bg-code p-3 text-xs text-code-fg">
                     <code>{submission.codeText}</code>
                   </pre>
                 )}

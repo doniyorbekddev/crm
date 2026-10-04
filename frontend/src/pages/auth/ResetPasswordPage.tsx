@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
       <>
         <h1 className="mb-6 text-2xl font-semibold tracking-tight">Havola noto‘g‘ri</h1>
         <Alert tone="error">Parolni tiklash havolasi to‘liq emas. Emaildagi havolani qaytadan oching yoki yangisini so‘rang.</Alert>
-        <Link to="/forgot-password" className="mt-6 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-300">
+        <Link to="/forgot-password" className="mt-6 inline-block text-sm font-medium text-primary hover:underline">
           Yangi havola so‘rash
         </Link>
       </>

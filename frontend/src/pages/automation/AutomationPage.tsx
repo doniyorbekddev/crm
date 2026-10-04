@@ -243,7 +243,7 @@ export default function AutomationPage() {
                         {run.matched} holat · {run.notified} xabar
                       </span>
                     )}
-                    {run.error && <p className="mt-0.5 max-w-xs truncate text-xs text-red-600 dark:text-red-400">{run.error}</p>}
+                    {run.error && <p className="mt-0.5 max-w-xs truncate text-xs text-danger">{run.error}</p>}
                   </div>
                 </li>
               ))}

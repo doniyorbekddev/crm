@@ -1,3 +1,4 @@
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CheckCircle2, KeyRound, Pencil, Plus, Trash2, UserCheck, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -166,39 +167,15 @@ export default function UsersPage() {
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 xl:flex-row xl:items-center xl:justify-between">
-          <div role="tablist" aria-label="Holat bo‘yicha filtr" className="-mx-1 flex gap-1 overflow-x-auto px-1">
-            {STATUS_TABS.map((tab) => {
-              const active = status === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => changeFilter(() => setStatus(tab.value))}
-                  className={cn(
-                    'inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors',
-                    active
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
-                      : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  )}
-                >
+          <Tabs value={status} onValueChange={(value) => changeFilter(() => setStatus(value as typeof status))} variant="pill" panels={false}>
+            <TabList label="Holat bo‘yicha filtr">
+              {STATUS_TABS.map((tab) => (
+                <Tab key={tab.value} value={tab.value} {...(summary ? { count: summary[tab.value] } : {})} {...(tab.value === 'PENDING' ? { countTone: 'warning' as const } : {})}>
                   {tab.label}
-                  {summary && (
-                    <span
-                      className={cn(
-                        'rounded-full px-1.5 text-xs tabular-nums',
-                        active ? 'bg-brand-100 dark:bg-brand-900' : 'bg-surface-muted',
-                        tab.value === 'PENDING' && summary.PENDING > 0 && !active && 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100',
-                      )}
-                    >
-                      {summary[tab.value]}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
           <div className="flex flex-col gap-2 sm:flex-row">
             <SearchInput
               value={searchInput}

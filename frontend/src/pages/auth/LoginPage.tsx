@@ -93,7 +93,7 @@ export default function LoginPage() {
           htmlFor="password"
           error={errors.password?.message}
           labelAction={
-            <Link to="/forgot-password" className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-300">
+            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
               Parolni unutdingizmi?
             </Link>
           }
@@ -116,7 +116,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-center text-sm text-fg-muted">
         Hisobingiz yo‘qmi?{' '}
-        <Link to="/register" className="font-medium text-brand-600 hover:underline dark:text-brand-300">
+        <Link to="/register" className="font-medium text-primary hover:underline">
           Ro‘yxatdan o‘ting
         </Link>
       </p>

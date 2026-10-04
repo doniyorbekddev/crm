@@ -101,7 +101,7 @@ interface TabProps {
   /** Yonidagi son (masalan, yozuvlar soni) */
   count?: number;
   /** Son e'tibor talab qilsa (masalan muddati o'tganlar) */
-  countTone?: 'default' | 'danger';
+  countTone?: 'default' | 'danger' | 'warning';
   disabled?: boolean;
 }
 
@@ -135,7 +135,11 @@ export function Tab({ value, children, icon, count, countTone = 'default', disab
         <span
           className={cn(
             'rounded-chip px-1.5 text-caption tabular-nums',
-            countTone === 'danger' && count > 0 ? 'bg-danger-subtle text-danger' : selected ? 'bg-primary-subtle text-primary' : 'bg-surface-muted text-fg-muted',
+            countTone === 'danger' && count > 0
+              ? 'bg-danger-subtle text-danger'
+              : countTone === 'warning' && count > 0
+                ? 'bg-warning-subtle text-warning'
+                : selected ? 'bg-primary-subtle text-primary' : 'bg-surface-muted text-fg-muted',
           )}
         >
           {count}

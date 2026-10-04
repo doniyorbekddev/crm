@@ -134,7 +134,7 @@ function TelegramPreview({ draft, media, imageUrl, preview }: { draft: Draft; me
           {draft.buttons.length > 0 && (
             <div className="mt-2 grid gap-1">
               {draft.buttons.map((button, index) => (
-                <a key={index} href={button.url} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-1 rounded-lg bg-surface px-3 py-1.5 text-sm text-brand-700 dark:text-brand-300">
+                <a key={index} href={button.url} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-1 rounded-lg bg-surface px-3 py-1.5 text-sm text-primary">
                   <Link2 className="size-3.5" aria-hidden /> {button.text}
                 </a>
               ))}

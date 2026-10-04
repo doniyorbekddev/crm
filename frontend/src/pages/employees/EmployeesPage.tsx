@@ -136,7 +136,7 @@ export default function EmployeesPage() {
             <p
               className={cn(
                 'text-xs',
-                employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-red-600 dark:text-red-400' : '',
+                employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-danger' : '',
               )}
             >
               {employee.contractDaysLeft !== null && employee.contractDaysLeft < 0

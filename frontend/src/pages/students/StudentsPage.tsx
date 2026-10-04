@@ -153,7 +153,7 @@ export default function StudentsPage() {
       required: true,
       cell: (student: StudentTableRow) => (
         <>
-          <Link to={`/students/${student.id}`} className="font-medium text-fg hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+          <Link to={`/students/${student.id}`} className="focus-ring rounded-sm font-medium text-fg hover:text-primary hover:underline">
             {student.firstName} {student.lastName}
           </Link>
           <p className="text-xs text-fg-muted">

@@ -11,7 +11,7 @@ export function PasswordRequirements({ value }: { value: string }) {
         return (
           <li
             key={rule.label}
-            className={cn('flex items-center gap-1.5 text-xs', passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-fg-muted')}
+            className={cn('flex items-center gap-1.5 text-xs', passed ? 'text-success' : 'text-fg-muted')}
           >
             {passed ? <CheckCircle2 className="size-3.5 shrink-0" aria-hidden /> : <Circle className="size-3.5 shrink-0" aria-hidden />}
             <span>{rule.label}</span>

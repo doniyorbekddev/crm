@@ -34,7 +34,7 @@ export function masteryBarClass(level: MasteryLevel | null): string {
     case 'WEAK':
       return 'bg-chart-negative';
     default:
-      return 'bg-slate-300 dark:bg-slate-700';
+      return 'bg-chart-neutral';
   }
 }
 
@@ -52,7 +52,7 @@ export function masteryCellClass(level: MasteryLevel | null): string {
     case 'MASTERED':
       return 'bg-success-subtle text-success';
     case 'GOOD':
-      return 'bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200';
+      return 'bg-primary-subtle text-primary';
     case 'DEVELOPING':
       return 'bg-warning-subtle text-warning';
     case 'WEAK':

@@ -104,7 +104,8 @@
 > Bajarildi: AI xulosalari bloklarda (Fakt — CRM ma'lumoti, Kuzatuv, Tavsiya), manba belgisi aniq (AI · model yoki Qoidalar rejimi), AI yordamchi javobi alohida blokda manba va havola bilan. Chat oynasi emas; mantiq va matnlar o'zgarmagan.
 - "Xulosa → Sabab → Tavsiya → Amal" bloklari; **AI Generated** belgisi; xavf tahlili, qoralama. Chat oynasi emas.
 
-## PHASE 13 — Sozlamalar va boshqaruv
+## PHASE 13 — Sozlamalar va boshqaruv ✅ (2026-10-05)
+> Bajarildi: sozlamalar, rollar, foydalanuvchilar, xodimlar, filiallar, audit, avtomatlashtirish, ommaviy xabar, bildirishnomalar va qolgan barcha papkalarda ranglar tokenlarda (butun frontendda xom rang faqat sertifikat chop etish sahifasida — qog'oz ranglari); foydalanuvchilar holati Tabs'da; kirish sahifasi paneli gradientsiz; kod bloki uchun token.
 - Markaz ma'lumotlari, rollar va ruxsatlar, foydalanuvchilar, xodimlar, filiallar, audit jurnali, avtomatlashtirish,
   ommaviy xabar, profil, tizim holati.
 

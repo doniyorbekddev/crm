@@ -64,7 +64,7 @@ export default function RegisterPage() {
   if (successMessage) {
     return (
       <div className="text-center">
-        <div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+        <div className="mx-auto grid size-14 place-items-center rounded-full bg-success-subtle text-success">
           <CheckCircle2 className="size-7" aria-hidden />
         </div>
         <h1 className="mt-6 text-2xl font-semibold tracking-tight">So‘rovingiz qabul qilindi</h1>
@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
       <p className="mt-8 text-center text-sm text-fg-muted">
         Hisobingiz bormi?{' '}
-        <Link to="/login" className="font-medium text-brand-600 hover:underline dark:text-brand-300">
+        <Link to="/login" className="font-medium text-primary hover:underline">
           Kirish
         </Link>
       </p>

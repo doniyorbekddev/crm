@@ -55,6 +55,9 @@
   --app-overlay: rgb(15 23 42 / 0.45);
   --app-skeleton: #e6eaf1;
   --app-focus: #4c64f6;
+  /* Kod bloki — ikkala mavzuda ham to'q (terminal ko'rinishi) */
+  --app-code: #0f172a;
+  --app-code-fg: #e2e8f0;
 
   /* Semantik holatlar: matn/ikonka · yumshoq fon · chegara · to'liq fon (oq matn bilan) */
   --app-success: #047857;
@@ -175,6 +178,8 @@
   --color-overlay: var(--app-overlay);
   --color-skeleton: var(--app-skeleton);
   --color-focus: var(--app-focus);
+  --color-code: var(--app-code);
+  --color-code-fg: var(--app-code-fg);
 
   --color-success: var(--app-success);
   --color-success-subtle: var(--app-success-subtle);

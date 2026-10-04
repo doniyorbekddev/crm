@@ -156,7 +156,7 @@ export default function RolesPage() {
                   {roles.map((role) => (
                     <TH
                       key={role.id}
-                      className={cn('min-w-36 text-center align-top', drafts[role.id] && 'bg-amber-50 dark:bg-amber-950/40')}
+                      className={cn('min-w-36 text-center align-top', drafts[role.id] && 'bg-warning-subtle')}
                     >
                       <div className="flex flex-col items-center gap-1">
                         <span className="flex items-center gap-1 font-semibold text-fg">
@@ -220,7 +220,7 @@ export default function RolesPage() {
                           <p className="font-mono text-[11px] text-fg-subtle">{permission.key}</p>
                         </td>
                         {roles.map((role) => (
-                          <td key={role.id} className={cn('px-4 py-2.5 text-center', drafts[role.id] && 'bg-amber-50/50 dark:bg-amber-950/20')}>
+                          <td key={role.id} className={cn('px-4 py-2.5 text-center', drafts[role.id] && 'bg-warning-subtle')}>
                             <Checkbox
                               checked={effective.get(role.id)?.has(permission.key) ?? false}
                               disabled={role.key === SUPER_ADMIN_ROLE_KEY || save.isPending}
@@ -245,8 +245,8 @@ export default function RolesPage() {
       </Card>
 
       {dirtyCount > 0 && (
-        <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg dark:border-amber-900 dark:bg-amber-950">
-          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{dirtyCount} ta rolda saqlanmagan o‘zgarish bor</p>
+        <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-subtle px-4 py-3 shadow-lg">
+          <p className="text-body font-medium text-warning">{dirtyCount} ta rolda saqlanmagan o‘zgarish bor</p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" disabled={save.isPending} onClick={() => setDrafts({})}>
               Bekor qilish

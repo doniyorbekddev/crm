@@ -97,7 +97,7 @@ export default function SystemStatusPage() {
       <Card>
         <CardHeader>
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
+            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-subtle text-primary">
               <Server className="size-4" aria-hidden />
             </div>
             <div className="min-w-0">
@@ -131,7 +131,7 @@ export default function SystemStatusPage() {
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <div className="grid size-12 place-items-center rounded-full bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
+              <div className="grid size-12 place-items-center rounded-full bg-danger-subtle text-danger">
                 <AlertTriangle className="size-6" aria-hidden />
               </div>
               <div>

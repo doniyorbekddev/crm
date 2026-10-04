@@ -85,10 +85,10 @@ function ChangesView({ before, after }: { before: Record<string, unknown>; after
           {keys.map((key) => {
             const changed = JSON.stringify(before[key]) !== JSON.stringify(after[key]);
             return (
-              <tr key={key} className={cn(changed && 'bg-amber-50/70 dark:bg-amber-950/30')}>
+              <tr key={key} className={cn(changed && 'bg-warning-subtle')}>
                 <td className="px-2 py-1.5 whitespace-nowrap text-fg-muted">{metaLabel(key)}</td>
-                <td className={cn('px-2 py-1.5 break-all', changed ? 'text-red-600 line-through dark:text-red-400' : 'text-fg')}>{metaValue(before[key])}</td>
-                <td className={cn('px-2 py-1.5 break-all', changed ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-fg')}>{metaValue(after[key])}</td>
+                <td className={cn('px-2 py-1.5 break-all', changed ? 'text-danger line-through' : 'text-fg')}>{metaValue(before[key])}</td>
+                <td className={cn('px-2 py-1.5 break-all', changed ? 'font-medium text-success' : 'text-fg')}>{metaValue(after[key])}</td>
               </tr>
             );
           })}
@@ -175,7 +175,7 @@ export default function AuditLogPage() {
   const renderRow = (log: AuditLogItem) => {
     const open = expanded === log.id;
     return (
-      <li key={log.id} className={cn(log.isCritical && 'bg-red-50/40 dark:bg-red-950/20')}>
+      <li key={log.id} className={cn(log.isCritical && 'bg-danger-subtle')}>
         <button
           type="button"
           onClick={() => setExpanded(open ? null : log.id)}

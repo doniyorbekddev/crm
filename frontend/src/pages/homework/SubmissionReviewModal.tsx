@@ -167,7 +167,7 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
               {submission.codeText && (
                 <section>
                   <p className="mb-1 text-xs font-medium text-fg-muted">Kod{submission.codeLanguage ? ` · ${submission.codeLanguage}` : ''}</p>
-                  <pre className="max-h-72 overflow-auto rounded-lg border border-border bg-slate-950 p-3 text-xs text-slate-100">
+                  <pre className="max-h-72 overflow-auto rounded-lg border border-border bg-code p-3 text-xs text-code-fg">
                     <code>{submission.codeText}</code>
                   </pre>
                 </section>

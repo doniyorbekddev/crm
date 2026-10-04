@@ -144,7 +144,7 @@ export default function NotificationsPage() {
     );
 
     return (
-      <li key={item.id} className={cn('flex items-start gap-2 px-4 py-3', !item.isRead && 'bg-brand-50/40 dark:bg-brand-950/30')}>
+      <li key={item.id} className={cn('flex items-start gap-2 px-4 py-3', !item.isRead && 'bg-primary-subtle')}>
         {link ? (
           <Link to={link} onClick={() => !item.isRead && markRead.mutate(item.id)} className="flex min-w-0 flex-1 hover:opacity-80">
             {body}
@@ -169,7 +169,7 @@ export default function NotificationsPage() {
             onClick={() => remove.mutate(item.id)}
             aria-label="O‘chirish"
             title="O‘chirish"
-            className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-surface-muted hover:text-red-600"
+            className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-surface-muted hover:text-danger"
           >
             <Trash2 className="size-4" aria-hidden />
           </button>
