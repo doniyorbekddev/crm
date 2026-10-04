@@ -118,7 +118,8 @@
 > Bajarildi: 45 sahifa light va dark rejimda avtomatik kontrast skaneridan o'tkazildi (har matn tuguni, haqiqiy fon bilan). Topilganlar tuzatildi: fg-subtle va fg-muted tokenlari (light 3.69 → 5.0:1; dark 4.0 → 5.2:1+), davomat tugmalari (oq matn -solid fonda), grafik legendasi matn rangida. Yakuniy skaner: past kontrast 0. Komponentlarda dark: klasslari yo'q — hammasi tokenlar orqali.
 - Neytral qorong'i sirtlar, har token juftligi uchun kontrast o'lchanadi; grafiklar va status ranglari dark'da.
 
-## PHASE 16 — Accessibility + Performance + hujjat (§35, §36, §40)
+## PHASE 16 — Accessibility + Performance + hujjat (§35, §36, §40) ✅ (2026-10-05)
+> Bajarildi: a11y skaneri (45 sahifa): nomsiz tugma/havola/maydon 0, har sahifada bitta h1, takror id yo'q; 39 ta jadvalga nom berildi. Hajm: asosiy JS 125.4 → 126.0 kB gzip, CSS 12.3 → 13.3 kB gzip. `docs/design-system.md` yakuniy holat jadvali bilan.
 - Klaviatura, fokus, ARIA, kontrast, dialog/forma; `title=` (241) → Tooltip qoldiqlari.
 - Bundle hajmi oldin/keyin, keraksiz qayta chizish, takror so'rovlar.
 - **`docs/design-system.md`** — §40 dagi 16 band; yakuniy tekshiruv ro'yxati (§45).

@@ -200,7 +200,7 @@ export default function AcademicAnalyticsPage() {
               <EmptyState icon={ChartIcon} title="Ma’lumot yo‘q" description="Tanlangan davr va doirada ko‘rsatkich topilmadi" />
             ) : (
               <TableContainer>
-                <Table>
+                <Table aria-label="Akademik ko‘rsatkichlar taqqoslovi">
                   <THead>
                     <tr>
                       <TH>Nomi</TH>

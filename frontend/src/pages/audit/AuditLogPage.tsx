@@ -73,7 +73,7 @@ function ChangesView({ before, after }: { before: Record<string, unknown>; after
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-xs">
+      <table aria-label="Audit jurnali" className="w-full text-xs">
         <thead className="bg-surface-muted text-fg-muted">
           <tr>
             <th className="px-2 py-1.5 text-left font-medium">Maydon</th>

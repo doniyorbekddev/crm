@@ -299,7 +299,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
         ) : (
           <>
             <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Yozuvlar">
                 <THead>
                   <tr>
                     <TH className="w-20">Raqam</TH>

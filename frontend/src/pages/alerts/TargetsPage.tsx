@@ -135,7 +135,7 @@ export default function TargetsPage() {
           <EmptyState icon={Crosshair} title="Reja yo‘q" description="Bu oy uchun reja yoki biriktirilgan lead yo‘q" />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Sotuv rejalari">
               <THead>
                 <tr>
                   <TH>Manager</TH>

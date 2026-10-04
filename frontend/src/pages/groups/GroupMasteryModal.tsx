@@ -49,7 +49,7 @@ export function GroupMasteryModal({ group, onClose }: { group: { id: string; nam
         <EmptyState icon={Target} title="Ma’lumot yo‘q" description="Kurs dasturida mavzular va guruhda faol o‘quvchilar bo‘lishi kerak" />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-0 text-sm">
+          <table aria-label="Mavzular bo‘yicha o‘zlashtirish" className="w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
                 <th scope="col" className="sticky left-0 z-10 bg-surface px-2 py-2 text-left font-medium text-fg-muted">

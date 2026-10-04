@@ -268,7 +268,7 @@ export default function SalariesPage() {
           />
         ) : (
           <TableContainer className={cn('transition-opacity', periodsQuery.isPlaceholderData && 'opacity-60')}>
-            <Table>
+            <Table aria-label="Maoshlar">
               <THead>
                 <tr>
                   <TH>O‘qituvchi</TH>

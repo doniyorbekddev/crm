@@ -133,7 +133,7 @@ export default function QuestionsPage() {
       ) : (
         <>
           <TableContainer>
-            <Table>
+            <Table aria-label="Savollar bazasi">
               <THead>
                 <TR>
                   <TH>Savol</TH>

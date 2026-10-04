@@ -145,7 +145,7 @@ export function AttendanceRanking() {
         />
       ) : (
         <TableContainer>
-          <Table>
+          <Table aria-label="Davomat reytingi">
             <THead>
               <tr>
                 <TH className="w-16">O‘rin</TH>

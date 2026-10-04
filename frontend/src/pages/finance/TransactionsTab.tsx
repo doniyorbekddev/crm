@@ -131,7 +131,7 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
       ) : (
         <>
           <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-            <Table>
+            <Table aria-label="Moliyaviy daftar">
               <THead>
                 <tr>
                   <TH className="w-16">№</TH>

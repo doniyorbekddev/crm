@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
               )}
 
               <TableContainer>
-                <Table>
+                <Table aria-label="Rentabellik">
                   <THead>
                     <tr>
                       <TH>{dimensionConfig.column}</TH>
@@ -287,7 +287,7 @@ export default function AnalyticsPage() {
             ) : (
               <>
                 <TableContainer>
-                  <table className="w-full border-separate border-spacing-0.5 text-xs">
+                  <table aria-label="O‘quvchilar kohortlari" className="w-full border-separate border-spacing-0.5 text-xs">
                     <thead>
                       <tr className="text-fg-muted">
                         <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Qo‘shilgan oy</th>
@@ -361,7 +361,7 @@ export default function AnalyticsPage() {
               </CardContent>
             ) : (
               <TableContainer>
-                <Table>
+                <Table aria-label="Lead manbalari">
                   <THead>
                     <tr>
                       <TH>Manba</TH>

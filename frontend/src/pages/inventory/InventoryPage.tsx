@@ -152,7 +152,7 @@ export default function InventoryPage() {
         ) : (
           <>
             <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Ombor mahsulotlari">
                 <THead>
                   <tr>
                     <TH>Mahsulot</TH>

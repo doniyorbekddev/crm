@@ -149,7 +149,7 @@ export default function RolesPage() {
           <EmptyState icon={ShieldCheck} title="Rollar topilmadi" description="Seed ishga tushirilganini tekshiring" />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Rollar va ruxsatlar">
               <THead>
                 <tr>
                   <TH className="sticky left-0 z-10 min-w-72 bg-surface-muted">Ruxsat</TH>

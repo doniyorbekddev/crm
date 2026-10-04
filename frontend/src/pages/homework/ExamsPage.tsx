@@ -154,7 +154,7 @@ export default function ExamsPage() {
         ) : (
           <>
             <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Imtihonlar">
                 <THead>
                   <tr>
                     <TH>Imtihon</TH>

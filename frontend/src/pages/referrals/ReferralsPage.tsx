@@ -154,7 +154,7 @@ export default function ReferralsPage() {
         ) : (
           <>
             <TableContainer>
-              <Table>
+              <Table aria-label="Takliflar">
                 <THead>
                   <tr>
                     <TH>Kim taklif qildi</TH>

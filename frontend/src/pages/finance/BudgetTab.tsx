@@ -222,7 +222,7 @@ export function BudgetTab() {
       <Card>
         {budgetQuery.isPending || budgetQuery.isError ? null : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Oylik budjet">
               <THead>
                 <tr>
                   <TH>Kategoriya</TH>

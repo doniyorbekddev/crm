@@ -164,7 +164,7 @@ export default function HomeworkPage() {
         ) : (
           <>
             <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Uy vazifalari">
                 <THead>
                   <tr>
                     <TH>Vazifa</TH>

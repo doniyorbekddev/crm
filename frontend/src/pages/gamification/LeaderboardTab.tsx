@@ -133,7 +133,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
           />
         ) : (
           <TableContainer className={cn('transition-opacity', leaderboardQuery.isPlaceholderData && 'opacity-60')}>
-            <Table>
+            <Table aria-label="O‘quvchilar reytingi">
               <THead>
                 <tr>
                   <TH className="w-16">O‘rin</TH>

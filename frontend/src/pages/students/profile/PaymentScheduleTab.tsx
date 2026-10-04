@@ -143,7 +143,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
           />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="To‘lov jadvali">
               <THead>
                 <tr>
                   <TH className="w-10">№</TH>

@@ -140,7 +140,7 @@ export function HomeworkTab({ studentId }: { studentId: string }) {
         <EmptyState icon={BookOpenCheck} title="Uy vazifasi yo‘q" description="Guruhga vazifa berilganda shu yerda ko‘rinadi" />
       ) : (
         <TableContainer>
-          <Table>
+          <Table aria-label="Uy vazifalari">
             <THead>
               <tr>
                 <TH>Vazifa</TH>
@@ -189,7 +189,7 @@ export function ExamsTab({ studentId }: { studentId: string }) {
         <EmptyState icon={FileCheck} title="Imtihon natijasi yo‘q" description="Natija kiritilganda shu yerda ko‘rinadi" />
       ) : (
         <TableContainer>
-          <Table>
+          <Table aria-label="Imtihonlar">
             <THead>
               <tr>
                 <TH>Imtihon</TH>
@@ -250,7 +250,7 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
         <EmptyState icon={Wallet} title="To‘lov yo‘q" description="Qabul qilingan to‘lovlar shu yerda ko‘rinadi" />
       ) : (
         <TableContainer>
-          <Table>
+          <Table aria-label="To‘lovlar">
             <THead>
               <tr>
                 <TH>Kvitansiya</TH>

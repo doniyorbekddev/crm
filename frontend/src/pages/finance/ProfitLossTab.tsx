@@ -122,7 +122,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
             </span>
           </CardHeader>
           <TableContainer>
-            <Table>
+            <Table aria-label="Oylar kesimida foyda va zarar">
               <THead>
                 <tr>
                   <TH>Modda</TH>

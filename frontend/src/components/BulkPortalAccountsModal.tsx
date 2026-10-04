@@ -143,7 +143,7 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
                 </Button>
               </div>
               <TableContainer className="max-h-80 rounded-lg border border-border">
-                <Table>
+                <Table aria-label="Ochilgan kabinetlar">
                   <THead>
                     <tr>
                       <TH>Ism</TH>

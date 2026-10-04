@@ -93,7 +93,7 @@ export function NotificationSettingsModal({ onClose }: { onClose: () => void }) 
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table aria-label="Bildirishnoma sozlamalari" className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-fg-muted">
                 <th className="py-2 pr-3 font-medium">Tur</th>

@@ -223,7 +223,7 @@ export default function DiscountsPage() {
             <EmptyState icon={BadgePercent} title="Qoida yo‘q" description="Masalan «Oila chegirmasi — 10%» qoidasini qo‘shing" />
           ) : (
             <TableContainer>
-              <Table>
+              <Table aria-label="Chegirma qoidalari">
                 <THead>
                   <tr>
                     <TH>Nomi</TH>
@@ -293,7 +293,7 @@ export default function DiscountsPage() {
             <EmptyState icon={Ticket} title="Promo kod yo‘q" description="Aksiya uchun kod yarating: masalan KUZ2026" />
           ) : (
             <TableContainer>
-              <Table>
+              <Table aria-label="Promo kodlar">
                 <THead>
                   <tr>
                     <TH>Kod</TH>

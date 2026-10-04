@@ -106,7 +106,7 @@ export function MasteryView({ mastery, history = [] }: { mastery: StudentMastery
             <CardDescription>Har oy oxiridagi holat</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table aria-label="Mavzular bo‘yicha o‘zlashtirish" className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-fg-muted">
                   <th className="py-1 pr-3 font-medium">Oy</th>

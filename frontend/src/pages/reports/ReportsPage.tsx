@@ -241,7 +241,7 @@ export default function ReportsPage() {
             </div>
 
             <TableContainer className={cn('transition-opacity', reportQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Hisobot">
                 <THead>
                   <tr>
                     {report.columns.map((column) => (

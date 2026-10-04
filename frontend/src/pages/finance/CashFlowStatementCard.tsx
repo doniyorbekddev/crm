@@ -124,7 +124,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
           )}
 
           <TableContainer className="rounded-xl border border-border">
-            <Table>
+            <Table aria-label="Kassalar bo‘yicha pul harakati">
               <THead>
                 <tr>
                   <TH>Kassa</TH>

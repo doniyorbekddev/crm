@@ -212,7 +212,7 @@ export default function UsersPage() {
         ) : (
           <>
             <TableContainer className={cn('transition-opacity', usersQuery.isPlaceholderData && 'opacity-60')}>
-              <Table>
+              <Table aria-label="Foydalanuvchilar">
                 <THead>
                   <tr>
                     <TH>Xodim</TH>

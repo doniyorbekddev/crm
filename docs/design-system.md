@@ -1,7 +1,7 @@
 # Dizayn tizimi
 
 > Academy CRM frontend. Manba: `frontend/src/index.css` (tokenlar), `frontend/src/components/ui/*` (primitivlar).
-> Holat: **PHASE 1** (poydevor) — sahifalar keyingi fazalarda shu tizimga ko'chiriladi ([ROADMAP-DESIGN.md](ROADMAP-DESIGN.md)).
+> Holat: **redesign yakunlangan** (PHASE 1–16, [ROADMAP-DESIGN.md](ROADMAP-DESIGN.md)). Yangi kod shu qoidalarga amal qiladi.
 > Stek: React 19, Tailwind CSS 4 (`@theme`), `lucide-react`. Tashqi UI kutubxonasi yo'q.
 
 ## Asosiy qoida
@@ -313,3 +313,35 @@ Kengliklar: telefon < 640 (`sm`) · planshet 768 (`md`) · noutbuk 1024 (`lg`) �
 - `Tabs` — sig'masa qator gorizontal aylanadi (sahifa emas).
 - `DataTable` — `mobileCard` berilsa karta, aks holda jadval konteyner ichida aylanadi; zichlik tugmasi telefonda yashirin.
 - Forma — telefonda bir ustun.
+
+## 13. Yakuniy holat va tekshiruvlar (PHASE 16)
+
+| O'lchov | Redesign'dan oldin | Hozir |
+|---|---|---|
+| Xom palitra klasslari (`text-red-600` …) | 746 | 4 (faqat sertifikat chop etish — qog'oz ranglari) |
+| `dark:` klasslari komponentlarda | yuzlab | 0 — hammasi tokenlar orqali |
+| Qo'lda yasalgan tablar | 18 fayl | 0 (yagona `Tabs`) |
+| Mahalliy KPI kartalari | 12 fayl | `StatCard` (mahalliy o'rovchilar unga uzatadi) |
+| Grafiklarda hex rang | 21 | 0 (`chartTheme`) |
+| Ixtiyoriy shrift o'lchami `text-[..]` | 19 | 8 |
+| Inter shrifti | yuklanmas edi | lokal, 3 to'plam |
+| Past kontrastli matn (45 sahifa, 2 mavzu) | 36 tur | 0 |
+| Gorizontal siljish (46 sahifa, 390 va 768px) | 2 sahifa | 0 |
+| Nomsiz interaktiv element / maydon / jadval (45 sahifa) | 18 jadval | 0 |
+
+**Avtomatik skanerlar** (Playwright, vaqtinchalik spec bilan — doimiy testga aylantirish mumkin):
+kontrast (har matn tuguni, haqiqiy fon bilan), gorizontal siljish (telefon/planshet), a11y (nomsiz tugma/havola/maydon/jadval,
+`h1` soni, takror `id`, `main`).
+
+**Hajm** (production build): asosiy JS 125.4 → 126.0 kB gzip, CSS 12.3 → 13.3 kB gzip, barcha JS bo'laklari yig'indisi
+748.9 → 766.3 kB gzip (+2.3%: 14 yangi primitiv, 3 yangi sahifa); shrift 152 kB (faqat kerakli to'plam yuklanadi).
+Yangi UI kutubxonasi qo'shilmagan.
+
+**Ataylab qoldirilgan**
+- Sertifikat chop etish sahifasi — qog'oz uchun qotirilgan ranglar (mavzuga bog'liq emas).
+- Ommaviy xabar oldindan ko'rishidagi "📢" — Telegram'ga ketadigan xabarning aynan o'zi.
+- Bazadagi daraja/nishon ikonkalari — admin kiritgan ma'lumot (emoji bo'lishi mumkin).
+- Sahifa sarlavhasi bo'yicha yopishqoq jadval sarlavhasi — sahifa butun oyna bo'yicha aylanadi.
+- Ustun bo'yicha saralash — API faqat tayyor saralash variantlarini qabul qiladi.
+
+**Skriptlar**: `frontend/scripts/tokenize-colors.py` (xom rang → token), `frontend/scripts/migrate-tabs.py` (tablist → `Tabs`).

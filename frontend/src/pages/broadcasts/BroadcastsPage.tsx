@@ -171,7 +171,7 @@ function History() {
           <EmptyState icon={Megaphone} title="Hali xabar yuborilmagan" description="Yuborilgan xabarlar va ularning yetkazilishi shu yerda ko‘rinadi." />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Yuborilgan xabarlar">
               <THead>
                 <TR>
                   <TH>Sana</TH>

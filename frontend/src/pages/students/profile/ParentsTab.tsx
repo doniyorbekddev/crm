@@ -84,7 +84,7 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
         <EmptyState icon={UsersRound} title="Ota-ona biriktirilmagan" description="To‘lov eslatmalari va aloqa uchun vakil qo‘shing" />
       ) : (
         <TableContainer>
-          <Table>
+          <Table aria-label="Ota-onalar">
             <THead>
               <tr>
                 <TH>Ota-ona</TH>

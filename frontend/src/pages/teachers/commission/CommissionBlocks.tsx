@@ -109,7 +109,7 @@ export function CommissionEntriesTable({ entries }: { entries: CommissionEntry[]
   }
   return (
     <TableContainer>
-      <Table>
+      <Table aria-label="Foiz yozuvlari">
         <THead>
           <tr>
             <TH>Sana</TH>
@@ -176,7 +176,7 @@ export function CommissionHistoryTable({
 }) {
   return (
     <TableContainer>
-      <Table>
+      <Table aria-label="Foiz tarixi">
         <THead>
           <tr>
             <TH>Oy</TH>

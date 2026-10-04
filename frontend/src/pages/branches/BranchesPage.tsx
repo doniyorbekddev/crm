@@ -108,7 +108,7 @@ export default function BranchesPage() {
           <EmptyState icon={Building2} title="Filial yo‘q" description="Birinchi filialni qo‘shing" />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Filiallar">
               <THead>
                 <tr>
                   <TH>Filial</TH>

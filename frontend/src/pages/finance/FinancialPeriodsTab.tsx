@@ -85,7 +85,7 @@ export function FinancialPeriodsTab() {
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : (
           <TableContainer>
-            <Table>
+            <Table aria-label="Moliyaviy oylar">
               <THead>
                 <tr>
                   <TH>Oy</TH>
