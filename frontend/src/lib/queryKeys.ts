@@ -129,6 +129,7 @@ export const queryKeys = {
   groups: {
     all: ['groups'] as const,
     list: (params: GroupListParams) => ['groups', 'list', params] as const,
+    detail: (id: string) => ['groups', 'detail', id] as const,
   },
   certificates: {
     all: ['certificates'] as const,

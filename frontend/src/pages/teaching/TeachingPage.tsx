@@ -26,7 +26,7 @@ function Metric({ label, value }: { label: string; value: number | null }) {
       <dd
         className={cn(
           'text-lg font-semibold tabular-nums',
-          value === null ? 'text-fg-subtle' : value >= 80 ? 'text-emerald-600 dark:text-emerald-400' : value >= 60 ? 'text-fg' : 'text-red-600 dark:text-red-400',
+          value === null ? 'text-fg-subtle' : value >= 80 ? 'text-success' : value >= 60 ? 'text-fg' : 'text-danger',
         )}
       >
         {value === null ? '—' : `${value}%`}
@@ -41,7 +41,7 @@ function Tile({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: str
       <p className="flex items-center gap-2 text-xs text-fg-muted">
         <Icon className="size-4" aria-hidden /> {label}
       </p>
-      <p className={cn('mt-1 text-2xl font-semibold tabular-nums', tone === 'warn' && value > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-fg')}>{value}</p>
+      <p className={cn('mt-1 text-2xl font-semibold tabular-nums', tone === 'warn' && value > 0 ? 'text-warning' : 'text-fg')}>{value}</p>
     </div>
   );
 }
@@ -72,7 +72,7 @@ function GroupCard({ group }: { group: TeachingGroupCard }) {
         <p className="text-sm text-fg-muted">
           {group.students} o‘quvchi
           {atRisk > 0 && (
-            <span className="ml-2 inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+            <span className="ml-2 inline-flex items-center gap-1 text-danger">
               <AlertTriangle className="size-3.5" aria-hidden /> {atRisk} xavf ostida
             </span>
           )}

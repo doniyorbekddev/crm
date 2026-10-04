@@ -6,14 +6,14 @@ import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { CurriculumModal } from './CurriculumModal';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
-import { SearchInput } from '@/components/ui/SearchInput';
+import { FilterBar, FilterField } from '@/components/ui/FilterBar';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -22,13 +22,7 @@ import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { coursesService } from '@/services/courses.service';
 import type { CourseItem, CourseListParams, CourseCategory, CourseStatus } from '@/types/course';
-import {
-  COURSE_CATEGORY_LABELS,
-  COURSE_CATEGORY_ORDER,
-  COURSE_STATUS_LABELS,
-  COURSE_STATUS_ORDER,
-  COURSE_STATUS_TONES,
-} from '@/utils/courseLabels';
+import { COURSE_CATEGORY_LABELS, COURSE_CATEGORY_ORDER, COURSE_STATUS_LABELS, COURSE_STATUS_ORDER } from '@/utils/courseLabels';
 import { formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { CourseFormModal } from './CourseFormModal';
@@ -100,30 +94,44 @@ export default function CoursesPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-        <SearchInput value={searchInput} onChange={(value) => changeFilter(() => setSearchInput(value))} placeholder="Kurs nomi" className="sm:max-w-xs" />
-        <Select value={category} onChange={(event) => changeFilter(() => setCategory(event.target.value as CourseCategory | ''))} aria-label="Yo‘nalish" wrapperClassName="sm:w-52">
-          <option value="">Barcha yo‘nalishlar</option>
-          {COURSE_CATEGORY_ORDER.map((item) => (
-            <option key={item} value={item}>
-              {COURSE_CATEGORY_LABELS[item]}
-            </option>
-          ))}
-        </Select>
-        <Select value={status} onChange={(event) => changeFilter(() => setStatus(event.target.value as CourseStatus | ''))} aria-label="Holat" wrapperClassName="sm:w-44">
-          <option value="">Barcha holatlar</option>
-          {COURSE_STATUS_ORDER.map((item) => (
-            <option key={item} value={item}>
-              {COURSE_STATUS_LABELS[item]}
-            </option>
-          ))}
-        </Select>
-      </div>
+      <Card className="mb-4 px-4 py-3">
+        <FilterBar
+          search={{ value: searchInput, onChange: (value) => changeFilter(() => setSearchInput(value)), placeholder: 'Kurs nomi' }}
+          activeCount={Number(Boolean(category)) + Number(Boolean(status))}
+          onClear={() =>
+            changeFilter(() => {
+              setCategory('');
+              setStatus('');
+            })
+          }
+        >
+          <FilterField className="sm:w-52">
+            <Select value={category} onChange={(event) => changeFilter(() => setCategory(event.target.value as CourseCategory | ''))} aria-label="Yo‘nalish">
+              <option value="">Barcha yo‘nalishlar</option>
+              {COURSE_CATEGORY_ORDER.map((item) => (
+                <option key={item} value={item}>
+                  {COURSE_CATEGORY_LABELS[item]}
+                </option>
+              ))}
+            </Select>
+          </FilterField>
+          <FilterField>
+            <Select value={status} onChange={(event) => changeFilter(() => setStatus(event.target.value as CourseStatus | ''))} aria-label="Holat">
+              <option value="">Barcha holatlar</option>
+              {COURSE_STATUS_ORDER.map((item) => (
+                <option key={item} value={item}>
+                  {COURSE_STATUS_LABELS[item]}
+                </option>
+              ))}
+            </Select>
+          </FilterField>
+        </FilterBar>
+      </Card>
 
       {coursesQuery.isPending ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-56 rounded-xl" />
+            <Skeleton key={index} className="h-56 rounded-card" />
           ))}
         </div>
       ) : coursesQuery.isError ? (
@@ -145,8 +153,8 @@ export default function CoursesPage() {
               <Card key={course.id} className="flex flex-col p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold text-fg">{course.name}</h2>
-                    <Link to={`/courses/${course.id}/lessons`} className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-300">
+                    <h2 className="truncate text-h3 text-fg">{course.name}</h2>
+                    <Link to={`/courses/${course.id}/lessons`} className="mt-0.5 inline-flex items-center gap-1 focus-ring rounded-sm text-caption font-medium text-primary hover:underline">
                       <BookOpen className="size-3" aria-hidden />
                       Darslar (LMS)
                     </Link>
@@ -155,7 +163,7 @@ export default function CoursesPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Badge tone={COURSE_STATUS_TONES[course.status]}>{COURSE_STATUS_LABELS[course.status]}</Badge>
+                    <StatusBadge kind="course" status={course.status} />
                     {canManage && (
                       <ActionMenu
                         label={`${course.name} amallari`}
@@ -170,11 +178,11 @@ export default function CoursesPage() {
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-lg font-semibold text-fg">{formatMoney(course.finalPrice)}</p>
+                  <p className="text-h2 text-fg tabular-nums">{formatMoney(course.finalPrice)}</p>
                   {course.discountAmount > 0 && (
                     <p className="text-xs text-fg-muted">
                       <span className="line-through">{formatMoney(course.price)}</span>
-                      <span className="ml-2 text-emerald-600 dark:text-emerald-400">−{formatMoney(course.discountAmount)}</span>
+                      <span className="ml-2 text-success">−{formatMoney(course.discountAmount)}</span>
                     </p>
                   )}
                 </div>

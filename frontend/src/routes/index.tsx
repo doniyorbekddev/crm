@@ -314,6 +314,12 @@ export const router = createBrowserRouter([
                         ),
                       },
                       {
+                        path: "groups/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/groups/GroupPage"),
+                        ),
+                      },
+                      {
                         path: "rooms",
                         lazy: lazyComponent(
                           () => import("@/pages/rooms/RoomsPage"),

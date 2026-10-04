@@ -17,8 +17,10 @@ export interface ProfileMetaItem {
 interface ProfileHeaderProps {
   /** Ro'yxatga qaytish havolasi */
   back: { to: string; label: string };
-  firstName: string;
+  /** Odam uchun: bosh harflar. Odam bo'lmagan obyekt (guruh, kurs) uchun `icon` bering. */
+  firstName?: string;
   lastName?: string | null;
+  icon?: LucideIcon;
   /** Sahifa sarlavhasi (`h1`) — odatda to'liq ism */
   title: string;
   /** Sarlavha yonidagi holat belgilari */
@@ -35,7 +37,7 @@ interface ProfileHeaderProps {
  * Tafsilot sahifasi sarlavhasi (o'quvchi, o'qituvchi …): kim, qanday holatda, eng kerakli amallar.
  * "Qayerdaman / bu kim / nima qila olaman" — bir qarashda.
  */
-export function ProfileHeader({ back, firstName, lastName, title, badges, meta, actions, stats, documentTitle }: ProfileHeaderProps) {
+export function ProfileHeader({ back, firstName, lastName, icon: Icon, title, badges, meta, actions, stats, documentTitle }: ProfileHeaderProps) {
   useDocumentTitle(documentTitle ?? title);
   return (
     <div className="mb-5">
@@ -46,7 +48,13 @@ export function ProfileHeader({ back, firstName, lastName, title, badges, meta, 
       <Card className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 gap-4">
-            <Avatar firstName={firstName} lastName={lastName} size="lg" className="size-14 text-h3 sm:size-16 sm:text-h2" />
+            {Icon ? (
+              <span className="grid size-14 shrink-0 place-items-center rounded-card bg-primary-subtle text-primary ring-1 ring-primary-border ring-inset sm:size-16">
+                <Icon className="size-6 sm:size-7" aria-hidden />
+              </span>
+            ) : (
+              <Avatar firstName={firstName ?? title} lastName={lastName} size="lg" className="size-14 text-h3 sm:size-16 sm:text-h2" />
+            )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <h1 className="text-h2 text-fg sm:text-h1">{title}</h1>

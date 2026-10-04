@@ -1,13 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/DataTable';
 import { FilterBar, FilterField } from '@/components/ui/FilterBar';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { PageHeader } from '@/components/PageHeader';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { Badge } from '@/components/ui/Badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Select } from '@/components/ui/Select';
@@ -18,7 +19,7 @@ import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { groupsService } from '@/services/groups.service';
 import type { GroupItem, GroupListParams, GroupStatus } from '@/types/group';
-import { GROUP_STATUS_LABELS, GROUP_STATUS_ORDER, GROUP_STATUS_TONES, formatSchedule } from '@/utils/courseLabels';
+import { GROUP_STATUS_LABELS, GROUP_STATUS_ORDER, formatSchedule } from '@/utils/courseLabels';
 import { formatDate } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupFormModal } from './GroupFormModal';
@@ -33,6 +34,7 @@ type Dialog = { type: 'create' } | { type: 'edit' | 'delete' | 'mastery'; group:
 
 export default function GroupsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const canManage = usePermission(PERMISSIONS.GROUP_MANAGE);
 
   const [searchInput, setSearchInput] = useState('');
@@ -92,7 +94,9 @@ export default function GroupsPage() {
       required: true,
       cell: (group: GroupTableRow) => (
         <>
-          <p className="font-medium text-fg">{group.name}</p>
+          <Link to={`/groups/${group.id}`} className="focus-ring rounded-sm font-medium text-fg hover:underline">
+            {group.name}
+          </Link>
           <p className="text-xs text-fg-muted">
             {group.course.name}
             {group.room && ` · ${group.room}-xona`}
@@ -129,7 +133,7 @@ export default function GroupsPage() {
           <span className="font-medium text-fg">
             {group.studentCount} / {group.capacity}
           </span>
-          <span className={cn('ml-2 text-xs', group.freeSeats === 0 ? 'text-red-600 dark:text-red-400' : 'text-fg-muted')}>
+          <span className={cn('ml-2 text-xs', group.freeSeats === 0 ? 'text-danger' : 'text-fg-muted')}>
             {group.freeSeats === 0 ? 'to‘lgan' : `${group.freeSeats} o‘rin bo‘sh`}
           </span>
         </>
@@ -150,7 +154,7 @@ export default function GroupsPage() {
       label: 'Holat',
       cell: (group: GroupTableRow) => (
         <>
-          <Badge tone={GROUP_STATUS_TONES[group.status]}>{GROUP_STATUS_LABELS[group.status]}</Badge>
+          <StatusBadge kind="group" status={group.status} />
         </>
       ),
     },
@@ -166,6 +170,7 @@ export default function GroupsPage() {
           <ActionMenu
             label={`${group.name} amallari`}
             items={[
+              { label: 'Guruh sahifasi', icon: Layers, onSelect: () => navigate(`/groups/${group.id}`) },
               { label: 'O‘zlashtirish', icon: Target, onSelect: () => setDialog({ type: 'mastery', group }) },
               ...(canManage
                 ? [

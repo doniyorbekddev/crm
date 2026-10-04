@@ -185,7 +185,7 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
                         type="button"
                         aria-label={`${material.title} — o‘chirish`}
                         onClick={() => removeMaterial.mutate(material.id)}
-                        className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                        className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
                       >
                         <Trash2 className="size-3.5" aria-hidden />
                       </button>

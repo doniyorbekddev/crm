@@ -42,7 +42,7 @@ function RemedialPlan({ plan, onDone }: { plan: AiAnalysis<RemedialResult>; onDo
   });
 
   return (
-    <section aria-label="Remedial reja" className="space-y-3 rounded-lg border border-brand-200 bg-brand-50/40 p-3 dark:border-brand-900 dark:bg-brand-950/30">
+    <section aria-label="Remedial reja" className="space-y-3 rounded-control border border-primary-border bg-primary-subtle/40 p-3">
       <h4 className="text-sm font-semibold text-fg">Remedial reja: {plan.result.topic.title}</h4>
       <ol className="space-y-1 text-sm">
         {plan.result.steps.map((step, index) => (
@@ -55,7 +55,7 @@ function RemedialPlan({ plan, onDone }: { plan: AiAnalysis<RemedialResult>; onDo
         ))}
       </ol>
       {decision ? (
-        <p className="text-sm text-emerald-700 dark:text-emerald-300">
+        <p className="text-sm text-success">
           Yaratildi: <Link to="/homework" className="underline">qoralama vazifa</Link>
           {decision.examId ? (
             <>

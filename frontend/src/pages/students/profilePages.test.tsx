@@ -59,7 +59,7 @@ const TEACHER = {
   salaryRule: null,
   salaryVisible: false,
   createdAt: '2024-02-01T00:00:00.000Z',
-  groupList: [{ id: 'g1', name: 'FE-01', course: { name: 'Frontend' }, scheduleDays: ['MON'], startTime: '10:00', endTime: '12:00', room: 'A1', status: 'ACTIVE', students: 16 }],
+  groupList: [{ id: 'g1', name: 'FE-01', course: { name: 'Frontend' }, scheduleDays: ['MONDAY'], startTime: '10:00', endTime: '12:00', room: 'A1', status: 'ACTIVE', students: 16 }],
   performance: {
     year: 2026,
     month: 10,

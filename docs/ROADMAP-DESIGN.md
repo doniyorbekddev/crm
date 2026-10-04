@@ -67,7 +67,10 @@
   mavjudlari o'zgarmaydi.
 - Ota-onalar ro'yxati va kabinetdagi farzand kartalari.
 
-## PHASE 6 — Guruhlar + Kurslar + Darslar (§17)
+## PHASE 6 — Guruhlar + Kurslar + Darslar (§17) ✅ (2026-10-05)
+> Bajarildi: guruh sahifasi (`/groups/:id`: sarlavha, amallar, o'quvchilar ko'rsatkichlari jadvali — O'qituvchi markazi bilan
+> umumiy `GroupStudentsTable`), kurslar filtri `FilterBar`da, guruh/kurs/xona/o'qitish papkalarida ranglar tokenlarda.
+> Dars dasturi (LMS) sahifalarining ichki tuzilishi o'zgarmadi.
 - **Guruh sahifasi** (hozir yo'q): sarlavha (o'qituvchi, kurs, xona, jadval, o'quvchilar soni) va tablar — faqat mavjud
   API beradigan bo'limlar. Kurslar, dars dasturi (LMS), xonalar.
 

@@ -13,6 +13,12 @@ export const groupsService = {
     };
   },
 
+  /** Bitta guruh (mavjud `GET /groups/:id`) — guruh sahifasi uchun */
+  async getById(id: string): Promise<GroupItem> {
+    const response = await api.get<ApiSuccessResponse<GroupItem>>(`/groups/${id}`);
+    return response.data.data;
+  },
+
   async create(payload: GroupPayload): Promise<MessageResult<GroupItem>> {
     const response = await api.post<ApiSuccessResponse<GroupItem>>('/groups', payload);
     return { data: response.data.data, message: response.data.message };
