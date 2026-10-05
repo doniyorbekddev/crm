@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import { prisma } from '../config/database.js';
 import { resolveWeekStart, weeklyReportService } from './weeklyReport.service.js';
 import type { WeeklyReportDto } from './weeklyReport.service.js';
@@ -73,6 +74,43 @@ export interface StudentProfileDto {
   progress: ProgressPointDto[];
   feedback: FeedbackDto[];
   activity: ActivityDto[];
+  /** O'quvchining filiali; filialga biriktirilmagan bo'lsa null */
+  branch: { id: string; name: string } | null;
+  /** Guruh jadvali bo'yicha eng yaqin dars; guruhsiz, guruh faol emas yoki 14 kun ichida dars yo'q bo'lsa null */
+  nextLesson: NextLessonDto | null;
+}
+
+export interface NextLessonDto {
+  /** "2026-10-07" — markaz vaqti bo'yicha */
+  date: string;
+  startTime: string;
+  endTime: string;
+  groupName: string;
+  room: string | null;
+}
+
+const WEEK_DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
+
+/**
+ * Jadval bo'yicha eng yaqin dars (bugungi dars hali boshlanmagan bo'lsa — bugun). Faqat jadvaldan hisoblanadi:
+ * bekor qilingan yoki ko'chirilgan darsni bilmaydi (bunday yozuv tizimda yo'q).
+ */
+export function nextLessonFor(
+  group: { name: string; status: string; scheduleDays: readonly string[]; startTime: string; endTime: string; startDate: Date; endDate: Date | null; room: string | null },
+  now: Date,
+): NextLessonDto | null {
+  if (group.status !== 'ACTIVE' && group.status !== 'PLANNED') return null;
+  const local = new Date(now.getTime() + env.APP_UTC_OFFSET_MINUTES * 60_000);
+  const clock = local.toISOString().slice(11, 16);
+  for (let offset = 0; offset < 14; offset += 1) {
+    const day = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + offset));
+    if (!group.scheduleDays.includes(WEEK_DAYS[day.getUTCDay()]!)) continue;
+    if (offset === 0 && group.startTime <= clock) continue;
+    if (day < group.startDate) continue;
+    if (group.endDate && day > group.endDate) return null;
+    return { date: day.toISOString().slice(0, 10), startTime: group.startTime, endTime: group.endTime, groupName: group.name, room: group.room };
+  }
+  return null;
 }
 
 export interface StudentHomeworkRowDto {
@@ -144,6 +182,16 @@ export async function buildStudentProfile(
 
     const now = new Date();
     const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1), 1));
+
+    const placement = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: {
+        branch: { select: { id: true, name: true } },
+        group: {
+          select: { name: true, status: true, scheduleDays: true, startTime: true, endTime: true, startDate: true, endDate: true, room: true, roomRef: { select: { name: true } } },
+        },
+      },
+    });
 
     const [gamification, attendanceRows, submissions, results, xpRows, badges] = await Promise.all([
       gamificationService.profile(studentId),
@@ -387,6 +435,8 @@ export async function buildStudentProfile(
 
     return {
       student,
+      branch: placement?.branch ?? null,
+      nextLesson: placement?.group ? nextLessonFor({ ...placement.group, room: placement.group.roomRef?.name ?? placement.group.room }, now) : null,
       gamification,
       attendance,
       homework,

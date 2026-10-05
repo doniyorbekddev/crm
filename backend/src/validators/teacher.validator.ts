@@ -96,6 +96,11 @@ export const createSalaryRuleSchema = z
     }
   });
 
+/** KPI tarixi: oxirgi necha oy (joriy oy bilan) */
+export const performanceHistoryQuerySchema = z.object({
+  months: z.coerce.number('Oylar soni noto‘g‘ri').int().min(2, 'Kamida 2 oy').max(12, 'Ko‘pi bilan 12 oy').default(6),
+});
+
 export type TeacherListQuery = z.infer<typeof teacherListQuerySchema>;
 export type CreateTeacherProfileInput = z.infer<typeof createTeacherProfileSchema>;
 export type UpdateTeacherProfileInput = z.infer<typeof updateTeacherProfileSchema>;

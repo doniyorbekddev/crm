@@ -95,6 +95,21 @@ export interface TeacherPerformanceDto {
   satisfaction: { average: number | null; responses: number };
 }
 
+/** KPI tarixidagi bitta oy — faqat o'sha oyga tegishli ko'rsatkichlar (o'quvchilar soni kabi "hozirgi holat"lar kirmaydi) */
+export interface TeacherPerformancePointDto {
+  year: number;
+  month: number;
+  label: string;
+  lessonsHeld: number;
+  /** Belgilangan davomat bo'lmasa null (0% emas) */
+  attendanceRate: number | null;
+  homework: number;
+  homeworkCompletionRate: number | null;
+  exams: number;
+  examAveragePercent: number | null;
+  revenue: number;
+}
+
 export interface TeacherDetailDto extends TeacherDto {
   groupList: TeacherGroupDto[];
   performance: TeacherPerformanceDto;
@@ -515,6 +530,30 @@ export const teacherService = {
       salaryPeriods: salaryVisible ? await salaryService.history(profile.id, { limit: 12 }) : [],
       salaryTotals: salaryVisible ? await loadSalaryTotals(profile.id, year) : null,
     };
+  },
+
+  /** Oxirgi `months` oy (eskisidan yangisiga), joriy oy bilan. Oylar ketma-ket hisoblanadi — bazaga parallel yuk tushmaydi. */
+  async performanceHistory(id: string, months: number): Promise<TeacherPerformancePointDto[]> {
+    const profile = await findProfileOrFail(id);
+    const now = new Date();
+    const points: TeacherPerformancePointDto[] = [];
+    for (let back = months - 1; back >= 0; back -= 1) {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1));
+      const month = await loadPerformance(profile.userId, date.getUTCFullYear(), date.getUTCMonth() + 1);
+      points.push({
+        year: month.year,
+        month: month.month,
+        label: month.label,
+        lessonsHeld: month.lessonsHeld,
+        attendanceRate: month.attendance.total > 0 ? month.attendanceRate : null,
+        homework: month.homework,
+        homeworkCompletionRate: month.homeworkCompletionRate,
+        exams: month.exams,
+        examAveragePercent: month.examAveragePercent,
+        revenue: month.revenue,
+      });
+    }
+    return points;
   },
 
   /** Profil ochish mumkin bo‘lgan xodimlar: dars belgilash ruxsati bor, profili hali yo‘q */

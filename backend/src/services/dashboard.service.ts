@@ -7,7 +7,7 @@ import type { AuthUser } from '../types/auth.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ChartPeriod, ChartQuery, ManagerStatsQuery } from '../validators/dashboard.validator.js';
 import { attendanceAnalyticsService } from './attendanceAnalytics.service.js';
-import { ALL_BRANCHES, type BranchScope, branchScopeOf, inBranch, viaUser } from './branchScope.js';
+import { ALL_BRANCHES, type BranchScope, branchScopeOf, inBranch, viaStudent, viaUser } from './branchScope.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { permissionService } from './permission.service.js';
@@ -22,6 +22,8 @@ const OPEN_LEAD_STATUSES: readonly LeadStatus[] = LEAD_STATUS_ORDER.filter(
 export interface DashboardLeadsBlock {
   todayNew: number;
   monthNew: number;
+  /** O‘tgan oyning shu kunigacha bo‘lgan yangi leadlarga nisbatan o‘sish (%) */
+  monthNewGrowth: number;
   open: number;
   monthWon: number;
   monthLost: number;
@@ -32,6 +34,8 @@ export interface DashboardLeadsBlock {
 export interface DashboardStudentsBlock {
   active: number;
   monthNew: number;
+  /** O‘tgan oyning shu kunigacha qo‘shilgan o‘quvchilarga nisbatan o‘sish (%) */
+  monthNewGrowth: number;
   frozen: number;
 }
 
@@ -98,6 +102,10 @@ export interface ChartPointDto {
   leads: number;
   won: number;
   revenue: number;
+  /** Shu bo‘lakda qo‘shilgan o‘quvchilar (o‘sish); `student.view` bo‘lmasa 0 */
+  students: number;
+  /** Davomat foizi (kelmaganlardan boshqa hammasi); belgilangan dars bo‘lmasa yoki ruxsat bo‘lmasa `null` */
+  attendanceRate: number | null;
 }
 
 export interface FunnelStageDto {
@@ -137,6 +145,7 @@ interface DashboardAccess {
   canViewPayments: boolean;
   canViewDebts: boolean;
   canViewFollowUps: boolean;
+  canViewAttendance: boolean;
   canViewReports: boolean;
   /** Dars beradigan xodim (guruhlarni boshqaruvchi admin emas) */
   canTeach: boolean;
@@ -155,6 +164,7 @@ async function getDashboardAccess(actor: AuthUser): Promise<DashboardAccess> {
     canViewPayments: permissions.has(PERMISSIONS.PAYMENT_VIEW),
     canViewDebts: permissions.has(PERMISSIONS.DEBT_VIEW),
     canViewFollowUps: permissions.has(PERMISSIONS.FOLLOWUP_VIEW),
+    canViewAttendance: permissions.has(PERMISSIONS.ATTENDANCE_VIEW),
     canViewReports: permissions.has(PERMISSIONS.REPORT_VIEW),
     canTeach: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
     canGradeHomework: permissions.has(PERMISSIONS.HOMEWORK_GRADE),
@@ -232,6 +242,12 @@ function growthPercent(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 100);
 }
 
+/** O'tgan oyning boshidan shu kungacha bo'lgan oraliq — taqqoslash adolatli bo'lishi uchun (to'liq oy emas) */
+function previousMonthToDate(now: Date): { gte: Date; lt: Date } {
+  const prevMonthStart = startOfBusinessMonth(now, 1);
+  return { gte: prevMonthStart, lt: new Date(prevMonthStart.getTime() + (now.getTime() - startOfBusinessMonth(now).getTime())) };
+}
+
 async function leadsBlock(access: DashboardAccess, now: Date, branch: BranchScope): Promise<DashboardLeadsBlock> {
   const scope: Prisma.LeadWhereInput = access.canViewAllLeads
     ? {}
@@ -242,6 +258,7 @@ async function leadsBlock(access: DashboardAccess, now: Date, branch: BranchScop
 
   const todayNew = await prisma.lead.count({ where: { ...base, createdAt: { gte: dayStart } } });
   const monthNew = await prisma.lead.count({ where: { ...base, createdAt: { gte: monthStart } } });
+  const prevMonthNew = await prisma.lead.count({ where: { ...base, createdAt: previousMonthToDate(now) } });
   const open = await prisma.lead.count({ where: { ...base, status: { in: [...OPEN_LEAD_STATUSES] } } });
   const monthWon = await prisma.lead.count({ where: { ...base, status: 'WON', convertedAt: { gte: monthStart } } });
   const monthLost = await prisma.lead.count({ where: { ...base, status: 'LOST', updatedAt: { gte: monthStart } } });
@@ -250,6 +267,7 @@ async function leadsBlock(access: DashboardAccess, now: Date, branch: BranchScop
   return {
     todayNew,
     monthNew,
+    monthNewGrowth: growthPercent(monthNew, prevMonthNew),
     open,
     monthWon,
     monthLost,
@@ -262,7 +280,8 @@ async function studentsBlock(now: Date, branch: BranchScope): Promise<DashboardS
   const active = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), status: 'ACTIVE' } });
   const frozen = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), status: 'FROZEN' } });
   const monthNew = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), createdAt: { gte: monthStart } } });
-  return { active, frozen, monthNew };
+  const prevMonthNew = await prisma.student.count({ where: { deletedAt: null, ...inBranch(branch), createdAt: previousMonthToDate(now) } });
+  return { active, frozen, monthNew, monthNewGrowth: growthPercent(monthNew, prevMonthNew) };
 }
 
 async function financeBlock(now: Date, branch: BranchScope): Promise<DashboardFinanceBlock> {
@@ -471,6 +490,8 @@ export const dashboardService = {
       leads: 0,
       won: 0,
       revenue: 0,
+      students: 0,
+      attendanceRate: null,
     }));
 
     // Har bir ustun uchun alohida COUNT o‘rniga — davr bo‘yicha bitta so‘rov va JS’da guruhlash
@@ -498,6 +519,38 @@ export const dashboardService = {
       });
       assignToBuckets(buckets, payments, (payment) => payment.paidAt, (index, payment) => {
         points[index]!.revenue += payment.amount.toNumber();
+      });
+    }
+
+    if (access.canViewStudents) {
+      const students = await prisma.student.findMany({
+        where: { deletedAt: null, ...inBranch(branch), createdAt: { gte: rangeStart, lt: rangeEnd } },
+        select: { createdAt: true },
+      });
+      assignToBuckets(buckets, students, (student) => student.createdAt, (index) => {
+        points[index]!.students += 1;
+      });
+    }
+
+    // Davomat trendi butun markaz bo'yicha — faqat o'z guruhlari bilan cheklangan o'qituvchiga berilmaydi
+    if (access.canViewAttendance && !access.canTeach) {
+      // `date` — vaqtsiz sana (UTC yarim tun): oraliq ham kalendar sanalarida olinadi
+      const firstDay = new Date(`${buckets[0]!.date}T00:00:00.000Z`);
+      const lastDay = new Date(`${businessDateString(now)}T00:00:00.000Z`);
+      const grouped = await prisma.attendance.groupBy({
+        by: ['date', 'status'],
+        where: { date: { gte: firstDay, lte: lastDay }, ...viaStudent(branch) },
+        _count: { _all: true },
+      });
+      const totals = points.map(() => ({ attended: 0, total: 0 }));
+      // Kalendar sanasi o'sha kunning ish kuni ichida yotadi (tush payti) — bo'lakni shu nuqta bo'yicha topamiz
+      assignToBuckets(buckets, grouped, (row) => new Date(row.date.getTime() + 12 * 3_600_000 - env.APP_UTC_OFFSET_MINUTES * 60_000), (index, row) => {
+        totals[index]!.total += row._count._all;
+        // Sababli ham "qatnashgan" hisoblanadi — davomat statistikasidagi formula bilan bir xil
+        if (row.status !== 'ABSENT') totals[index]!.attended += row._count._all;
+      });
+      totals.forEach((entry, index) => {
+        if (entry.total > 0) points[index]!.attendanceRate = Math.round((entry.attended / entry.total) * 100);
       });
     }
 

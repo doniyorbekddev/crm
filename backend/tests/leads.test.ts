@@ -123,6 +123,43 @@ describe.skipIf(!hasTestDatabase)('Leads API (integratsion)', () => {
       expect(await prisma.notification.count({ where: { userId: other.id, type: 'NEW_LEAD' } })).toBe(1);
     });
 
+    it('ommaviy biriktirish: har lead yakka qoidalar bilan; rad etilganlari sababi bilan qaytadi', async () => {
+      const source = await createSource();
+      const { user: sales, token: salesToken } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+      const { user: other } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+      const { token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+      const { token: callCenterToken } = await createUserWithToken(app, { role: 'CALL_CENTER' });
+      const first = await createLead({ sourceId: source.id });
+      const second = await createLead({ sourceId: source.id });
+      const foreign = await createLead({ sourceId: source.id, assignedToId: other.id });
+
+      // Admin: uchtasini bitta xodimga; mavjud bo'lmagan ID — xato ro'yxatida, qolganlari to'xtamaydi
+      const admin = await request(app)
+        .post('/api/leads/bulk-assign')
+        .set(bearer(adminToken))
+        .send({ ids: [first.id, second.id, 'yoq-lead', first.id], assignedToId: sales.id });
+      expect(admin.status).toBe(200);
+      expect(admin.body.data.assigned).toBe(2);
+      expect(admin.body.data.failed).toEqual([{ id: 'yoq-lead', message: expect.any(String) }]);
+      expect(await prisma.lead.count({ where: { assignedToId: sales.id } })).toBe(2);
+      // Yakka biriktirishdagi kabi: tarix, bildirishnoma va audit — har lead uchun
+      expect(await prisma.notification.count({ where: { userId: sales.id, type: 'LEAD_ASSIGNED' } })).toBe(2);
+      expect(await prisma.auditLog.count({ where: { action: 'lead.assigned' } })).toBe(2);
+      expect(await prisma.leadActivity.count({ where: { type: 'ASSIGNED', leadId: { in: [first.id, second.id] } } })).toBe(2);
+
+      // Sales: begona managerning leadi unga ko'rinmaydi — biriktirilmaydi
+      const bySales = await request(app).post('/api/leads/bulk-assign').set(bearer(salesToken)).send({ ids: [foreign.id], assignedToId: sales.id });
+      expect(bySales.status).toBe(200);
+      expect(bySales.body.data).toMatchObject({ assigned: 0, failed: [{ id: foreign.id }] });
+      expect((await prisma.lead.findUniqueOrThrow({ where: { id: foreign.id } })).assignedToId).toBe(other.id);
+
+      // Ruxsat va validatsiya
+      expect((await request(app).post('/api/leads/bulk-assign').set(bearer(callCenterToken)).send({ ids: [first.id], assignedToId: sales.id })).status).toBe(403);
+      expect((await request(app).post('/api/leads/bulk-assign').set(bearer(adminToken)).send({ ids: [], assignedToId: sales.id })).status).toBe(422);
+      const tooMany = Array.from({ length: 101 }, (_, index) => `id-${index}`);
+      expect((await request(app).post('/api/leads/bulk-assign').set(bearer(adminToken)).send({ ids: tooMany, assignedToId: sales.id })).status).toBe(422);
+    });
+
     it('noma’lum manba uchun 422', async () => {
       const { token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
       const response = await request(app).post('/api/leads').set(bearer(token)).send({ firstName: 'Ali', phone: '901234567', sourceId: 'yoq' });

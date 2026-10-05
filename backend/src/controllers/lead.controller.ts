@@ -17,6 +17,7 @@ import {
   leadNoteParamsSchema,
   updateLeadSchema,
   updateLeadStatusSchema,
+  bulkAssignLeadsSchema,
 } from '../validators/lead.validator.js';
 import { businessDateString } from '../utils/dates.js';
 import { sendTable } from '../utils/tableExport.js';
@@ -96,6 +97,17 @@ export const leadController = {
     const input = assignLeadSchema.parse(req.body);
     sendSuccess(res, await leadService.assign(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: input.assignedToId ? 'Mas’ul xodim belgilandi' : 'Lead biriktirilmagan holatga qaytarildi',
+    });
+  },
+
+  async bulkAssign(req: Request, res: Response): Promise<void> {
+    const input = bulkAssignLeadsSchema.parse(req.body);
+    const result = await leadService.bulkAssign(requireAuthUser(req), input, getClientInfo(req));
+    sendSuccess(res, result, {
+      message:
+        result.failed.length === 0
+          ? `${result.assigned} ta lead biriktirildi`
+          : `${result.assigned} ta lead biriktirildi, ${result.failed.length} tasi biriktirilmadi`,
     });
   },
 

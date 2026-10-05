@@ -277,3 +277,30 @@ export interface ExamResultRecord {
   score: number;
   comment?: string;
 }
+
+/** Ro'yxat ustidagi sanoq (`GET /homework/summary`) — `status` filtridan mustaqil */
+export interface HomeworkSummary {
+  total: number;
+  draft: number;
+  published: number;
+  closed: number;
+  overdue: number;
+  submissions: { pending: number; awaitingReview: number; late: number; graded: number; returned: number; missed: number };
+}
+
+export type HomeworkSummaryParams = Omit<HomeworkListParams, 'page' | 'limit' | 'status' | 'sortBy' | 'sortOrder'>;
+
+/** Imtihonda bitta savol bo'yicha natija (`GET /exams/:id/question-analysis`) — eng qiyin birinchi */
+export interface QuestionAnalysis {
+  questionId: string;
+  text: string;
+  type: string;
+  difficulty: string;
+  topicTitle: string | null;
+  points: number;
+  answers: number;
+  correct: number;
+  ungraded: number;
+  correctRate: number | null;
+  averageScore: number;
+}

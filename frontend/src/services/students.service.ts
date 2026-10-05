@@ -18,6 +18,7 @@ import type {
   TransferGroupPayload,
   StudentStatusSummary,
   StudentSummaryParams,
+  StudentMessagePayload,
 } from '@/types/student';
 
 export const studentsService = {
@@ -120,6 +121,12 @@ export const studentsService = {
 
   async transferGroup(id: string, payload: TransferGroupPayload): Promise<MessageResult<StudentItem>> {
     const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/transfer`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Bitta o‘quvchiga / ota-onasiga xabar (ilova ichida + Telegram) */
+  async sendMessage(id: string, payload: StudentMessagePayload): Promise<MessageResult<{ recipients: number }>> {
+    const response = await api.post<ApiSuccessResponse<{ recipients: number }>>(`/students/${id}/message`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 

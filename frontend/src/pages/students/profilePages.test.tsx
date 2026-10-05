@@ -85,7 +85,7 @@ const TEACHER = {
 
 vi.mock('@/hooks/useBranding', () => ({ useBranding: () => ({ name: 'IT-Academy', logoUrl: null }) }));
 vi.mock('@/services/students.service', () => ({ studentsService: { profile: vi.fn(async () => PROFILE) } }));
-vi.mock('@/services/teachers.service', () => ({ teachersService: { detail: vi.fn(async () => TEACHER) } }));
+vi.mock('@/services/teachers.service', () => ({ teachersService: { detail: vi.fn(async () => TEACHER), performanceHistory: vi.fn(async () => []) } }));
 // Bo'limlar mazmuni o'z testlarida — bu yerda sahifa qobig'i tekshiriladi
 vi.mock('./profile/ProfileTabs', () => ({
   OverviewTab: () => <p>Umumiy mazmuni</p>,
@@ -184,7 +184,7 @@ describe('O‘quvchi profili (Student 360)', () => {
     expect(screen.getByRole('dialog', { name: 'To‘lov oynasi' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Yana' }));
-    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Davomat kalendari', 'Holatni o‘zgartirish']);
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Davomat kalendari', 'Xabar yuborish', 'Holatni o‘zgartirish']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Holatni o‘zgartirish' }));
     expect(screen.getByRole('dialog', { name: 'Holat oynasi' })).toBeInTheDocument();
 

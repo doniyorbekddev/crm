@@ -22,7 +22,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ProfileHeader, ProfileStat } from '@/components/ProfileHeader';
 import type { ProfileMetaItem } from '@/components/ProfileHeader';
-import { AttendanceSection, ExamSection, HomeworkSection } from '@/components/academic/ScopedSections';
+import { AttendanceSection, ExamSection, HomeworkSection, TeacherStudentsSection } from '@/components/academic/ScopedSections';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -38,9 +38,10 @@ import type { TeacherDetail } from '@/types/teacher';
 import { WEEK_DAY_LABELS, WEEK_DAY_ORDER, formatSchedule } from '@/utils/courseLabels';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { TeacherTrendChart } from './TeacherTrendChart';
 import { SALARY_TYPE_LABELS, salaryRuleSummary } from '@/utils/teacherLabels';
 
-type TabKey = 'performance' | 'groups' | 'schedule' | 'attendance' | 'homework' | 'exams' | 'salary';
+type TabKey = 'performance' | 'groups' | 'students' | 'schedule' | 'attendance' | 'homework' | 'exams' | 'salary';
 
 const BACK = { to: '/teachers', label: 'O‘qituvchilar' };
 
@@ -102,6 +103,7 @@ function PerformanceTab({ teacher }: { teacher: TeacherDetail }) {
           </CardContent>
         </Card>
       )}
+      <TeacherTrendChart teacherId={teacher.id} />
     </section>
   );
 }
@@ -270,6 +272,7 @@ export default function TeacherProfilePage() {
   const { id = '' } = useParams();
   const canViewSalary = usePermission(PERMISSIONS.SALARY_VIEW);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
+  const canViewStudents = usePermission(PERMISSIONS.STUDENT_VIEW);
   const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
   const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const [tab, setTab] = useState<TabKey>('performance');
@@ -341,6 +344,11 @@ export default function TeacherProfilePage() {
           <Tab value="groups" icon={<Layers className="size-4" aria-hidden />} count={teacher.groupList.length}>
             Guruhlar
           </Tab>
+          {canViewStudents && (
+            <Tab value="students" icon={<GraduationCap className="size-4" aria-hidden />} count={teacher.students}>
+              O‘quvchilar
+            </Tab>
+          )}
           <Tab value="schedule" icon={<Clock className="size-4" aria-hidden />}>
             Jadval
           </Tab>
@@ -368,6 +376,9 @@ export default function TeacherProfilePage() {
         </TabPanel>
         <TabPanel value="groups">
           <GroupsTab teacher={teacher} />
+        </TabPanel>
+        <TabPanel value="students">
+          <TeacherStudentsSection teacherId={teacher.user.id} />
         </TabPanel>
         <TabPanel value="schedule">
           <ScheduleTab teacher={teacher} />

@@ -24,6 +24,8 @@ export const studentListQuerySchema = paginationQuerySchema.extend({
   riskLevel: z.enum(RISK_LEVELS, 'Xavf darajasi noto‘g‘ri').optional(),
   courseId: idSchema.optional(),
   groupId: idSchema.optional(),
+  /** O‘qituvchi (foydalanuvchi ID) — shu o‘qituvchi guruhlaridagi o‘quvchilar */
+  teacherId: idSchema.optional(),
   sortBy: z.enum(['createdAt', 'firstName', 'startDate', 'number']).default('createdAt'),
   /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
   branchId: optionalField(idSchema),
@@ -102,3 +104,12 @@ export const transferStudentGroupSchema = z.object({
 });
 
 export type TransferStudentGroupInput = z.infer<typeof transferStudentGroupSchema>;
+
+/** Xodimdan o'quvchiga yoki ota-onasiga bitta xabar (ilova ichida + bog'langan Telegram) */
+export const studentMessageSchema = z.object({
+  audience: z.enum(['STUDENT', 'PARENT', 'BOTH'], 'Qabul qiluvchi noto‘g‘ri').default('STUDENT'),
+  title: z.string('Sarlavhani kiriting').trim().min(3, 'Sarlavha kamida 3 belgi').max(120, 'Sarlavha 120 belgidan oshmasin'),
+  message: z.string('Xabar matnini kiriting').trim().min(5, 'Xabar kamida 5 belgi').max(1000, 'Xabar 1000 belgidan oshmasin'),
+});
+
+export type StudentMessageInput = z.infer<typeof studentMessageSchema>;

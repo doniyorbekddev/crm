@@ -71,6 +71,27 @@ export interface RubricDto {
   createdBy: { id: string; firstName: string; lastName: string } | null;
 }
 
+export interface HomeworkSummaryDto {
+  total: number;
+  draft: number;
+  published: number;
+  closed: number;
+  /** E'lon qilingan va muddati o'tgan (hali yopilmagan) vazifalar */
+  overdue: number;
+  /** O'quvchi topshiriqlari (qoralamadagi vazifalarsiz) */
+  submissions: {
+    /** Boshlanmagan yoki qoralamada */
+    pending: number;
+    /** Topshirilgan, baholanishi kutilmoqda (kechikib topshirilganlar ham) */
+    awaitingReview: number;
+    /** Shulardan kechikib topshirilgani */
+    late: number;
+    graded: number;
+    returned: number;
+    missed: number;
+  };
+}
+
 export interface HomeworkDto {
   id: string;
   title: string;
@@ -732,6 +753,45 @@ export const homeworkService = {
     });
     const total = await prisma.homework.count({ where });
     return { items: items.map(toDto), total };
+  },
+
+  /**
+   * Holatlar bo'yicha sanoq (TZ dizayn §21). Doira ro'yxatniki bilan bir xil (guruh, kurs, o'qituvchi, sana, qidiruv,
+   * o'qituvchining o'z guruhlari); faqat `status` filtri hisobga olinmaydi — tablar bir-birini nolga tushirmasin.
+   */
+  async summary(actor: AuthUser, query: HomeworkListQuery): Promise<HomeworkSummaryDto> {
+    const access = await getTeachingAccess(actor);
+    const where = buildWhere(access, { ...query, status: undefined });
+    const now = new Date();
+
+    const byStatus = await prisma.homework.groupBy({ by: ['status'], where, _count: { _all: true } });
+    const countOf = (status: HomeworkStatus) => byStatus.find((row) => row.status === status)?._count._all ?? 0;
+    // Muddati o'tgan: e'lon qilingan, hali yopilmagan
+    const overdue = await prisma.homework.count({ where: { AND: [where, { status: 'PUBLISHED', deadline: { lt: now } }] } });
+    // Qoralamadagi vazifalar o'quvchiga ko'rinmaydi — ularning topshiriqlari sanalmaydi
+    const submissions = await prisma.homeworkSubmission.groupBy({
+      by: ['status'],
+      where: { homework: { AND: [where, { status: { not: 'DRAFT' } }] } },
+      _count: { _all: true },
+    });
+    const submissionCount = (...statuses: SubmissionStatus[]) =>
+      submissions.filter((row) => statuses.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
+
+    return {
+      total: byStatus.reduce((sum, row) => sum + row._count._all, 0),
+      draft: countOf('DRAFT'),
+      published: countOf('PUBLISHED'),
+      closed: countOf('CLOSED'),
+      overdue,
+      submissions: {
+        pending: submissionCount('PENDING', 'IN_PROGRESS'),
+        awaitingReview: submissionCount('SUBMITTED', 'LATE'),
+        late: submissionCount('LATE'),
+        graded: submissionCount('GRADED'),
+        returned: submissionCount('RETURNED'),
+        missed: submissionCount('MISSED'),
+      },
+    };
   },
 
   async getById(actor: AuthUser, id: string): Promise<HomeworkDetailDto> {

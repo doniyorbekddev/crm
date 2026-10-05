@@ -4,6 +4,7 @@ import {
   Award,
   BookOpen,
   BookOpenCheck,
+  Building2,
   Bot,
   CalendarCheck,
   CalendarClock,
@@ -16,6 +17,7 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  MessageSquare,
   MoreHorizontal,
   Pencil,
   Phone,
@@ -46,6 +48,7 @@ import { studentsService } from '@/services/students.service';
 import { formatDate, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { StudentMessageModal } from './StudentMessageModal';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { AiAnalysisTab } from './profile/AiAnalysisTab';
@@ -58,7 +61,7 @@ import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
 type TabKey = 'overview' | 'attendance' | 'certificates' | 'mastery' | 'ai' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
-type Dialog = 'calendar' | 'weekly' | 'edit' | 'payment' | 'status' | null;
+type Dialog = 'calendar' | 'weekly' | 'edit' | 'payment' | 'status' | 'message' | null;
 
 const BACK = { to: '/students', label: 'O‘quvchilar' };
 
@@ -78,6 +81,8 @@ export default function StudentProfilePage() {
   const canViewPayments = usePermission(PERMISSIONS.PAYMENT_VIEW);
   const canManageStudents = usePermission(PERMISSIONS.STUDENT_MANAGE);
   const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
+  // Backend bilan bir xil: o'quvchini boshqaruvchi yoki unga vazifa beruvchi xodim
+  const canMessage = usePermission([PERMISSIONS.STUDENT_MANAGE, PERMISSIONS.HOMEWORK_MANAGE]);
   const [tab, setTab] = useState<TabKey>('overview');
   const [dialog, setDialog] = useState<Dialog>(null);
 
@@ -126,6 +131,7 @@ export default function StudentProfilePage() {
     ...(student.group ? [{ name: 'Guruh', icon: Layers, label: student.group.name }] : []),
     { name: 'Telefon', icon: Phone, label: formatPhone(student.phone) },
     { name: 'O‘qish boshlangan', icon: CalendarDays, label: `${formatDate(student.startDate)} dan` },
+    ...(profile.branch ? [{ name: 'Filial', icon: Building2, label: profile.branch.name }] : []),
     ...(student.referralCode ? [{ name: 'Taklif kodi', icon: Gift, label: <span className="font-mono">{student.referralCode}</span> }] : []),
   ];
 
@@ -147,6 +153,7 @@ export default function StudentProfilePage() {
 
   const moreActions = [
     ...(canViewAttendance ? [{ label: 'Davomat kalendari', icon: CalendarCheck, onSelect: () => setDialog('calendar') }] : []),
+    ...(canMessage ? [{ label: 'Xabar yuborish', icon: MessageSquare, onSelect: () => setDialog('message') }] : []),
     ...(canManageStudents ? [{ label: 'Holatni o‘zgartirish', icon: RefreshCw, onSelect: () => setDialog('status') }] : []),
   ];
 
@@ -277,6 +284,7 @@ export default function StudentProfilePage() {
       </Tabs>
 
       {dialog === 'calendar' && <StudentAttendanceModal student={student} onClose={() => setDialog(null)} />}
+      {dialog === 'message' && <StudentMessageModal student={{ id: student.id, name: fullName }} onClose={() => setDialog(null)} />}
       {dialog === 'weekly' && <WeeklyReportModal studentId={student.id} onClose={() => setDialog(null)} />}
       {dialog === 'edit' && <StudentFormModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog === 'status' && <StudentStatusModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}

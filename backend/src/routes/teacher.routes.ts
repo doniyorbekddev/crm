@@ -22,6 +22,7 @@ teacherRouter.get('/me', teacherController.myTeaching);
 teacherRouter.get('/', view, teacherController.list);
 teacherRouter.get('/candidates', manage, teacherController.candidates);
 teacherRouter.get('/:id', view, teacherController.getById);
+teacherRouter.get('/:id/performance-history', view, teacherController.performanceHistory);
 teacherRouter.post('/', manage, teacherController.create);
 teacherRouter.put('/:id', manage, teacherController.update);
 const teacherDocuments = attachmentController('teacher');

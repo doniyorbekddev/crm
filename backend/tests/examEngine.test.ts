@@ -169,6 +169,46 @@ describe.skipIf(!hasTestDatabase)('Imtihon dvigateli: savollar bazasi va urinish
     expect(result).toMatchObject({ score: 50, percentage: 50, grade: '2' });
   });
 
+  it('savol bo‘yicha tahlil: to‘g‘ri javob foizi, eng qiyin birinchi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const students = [await createStudent(course.id, group.id, 'Ali'), await createStudent(course.id, group.id, 'Vali'), await createStudent(course.id, group.id, 'Sami')];
+    const examId = await createExam(token, group.id);
+    const easy = await createQuestion(token, course.id, { text: 'Oson savol', points: 10 });
+    const hard = await createQuestion(token, course.id, { text: 'Qiyin savol', points: 10 });
+    await request(app).post(`/api/exams/${examId}/questions`).set(bearer(token)).send({ questionIds: [easy.id, hard.id] });
+    const questions = (await request(app).get(`/api/exams/${examId}/questions`).set(bearer(token))).body.data as Array<{ examQuestionId: string }>;
+    const option = (question: { options: Array<{ id: string; isCorrect: boolean }> }, correct: boolean) => question.options.find((item) => item.isCorrect === correct)!.id;
+    const submit = (studentId: string, easyCorrect: boolean, hardCorrect: boolean) =>
+      request(app)
+        .post(`/api/exams/${examId}/attempts/${studentId}`)
+        .set(bearer(token))
+        .send({
+          answers: [
+            { examQuestionId: questions[0]!.examQuestionId, optionIds: [option(easy, easyCorrect)] },
+            { examQuestionId: questions[1]!.examQuestionId, optionIds: [option(hard, hardCorrect)] },
+          ],
+        });
+
+    // Hali urinish yo'q — bo'sh ro'yxat (xato emas)
+    expect((await request(app).get(`/api/exams/${examId}/question-analysis`).set(bearer(token))).body.data).toEqual([]);
+
+    // Oson: 3 tadan 3 to'g'ri; qiyin: 3 tadan 1 to'g'ri
+    expect((await submit(students[0]!.id, true, true)).status).toBe(201);
+    expect((await submit(students[1]!.id, true, false)).status).toBe(201);
+    expect((await submit(students[2]!.id, true, false)).status).toBe(201);
+
+    const analysis = await request(app).get(`/api/exams/${examId}/question-analysis`).set(bearer(token));
+    expect(analysis.status).toBe(200);
+    expect(analysis.body.data).toHaveLength(2);
+    expect(analysis.body.data[0]).toMatchObject({ questionId: hard.id, text: 'Qiyin savol', points: 10, answers: 3, correct: 1, ungraded: 0, correctRate: 33, averageScore: 3.3 });
+    expect(analysis.body.data[1]).toMatchObject({ questionId: easy.id, answers: 3, correct: 3, correctRate: 100, averageScore: 10 });
+
+    expect((await request(app).get(`/api/exams/${examId}/question-analysis`)).status).toBe(401);
+    expect((await request(app).get('/api/exams/yoq/question-analysis').set(bearer(token))).status).toBe(404);
+  });
+
   it('bir nechta javobli savolda to‘plam aynan mos kelishi kerak', async () => {
     const { token } = await createUserWithToken(app, { role: 'ADMIN' });
     const course = await createCourse();

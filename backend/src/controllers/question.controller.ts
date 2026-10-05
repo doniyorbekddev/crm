@@ -70,6 +70,12 @@ export const questionController = {
     );
   },
 
+  /** Savol bo'yicha tahlil: qaysi savolga necha foiz to'g'ri javob berilgan */
+  async questionAnalysis(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await examAttemptService.questionAnalysis(requireAuthUser(req), id));
+  },
+
   async attempts(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await examAttemptService.listForExam(requireAuthUser(req), id));

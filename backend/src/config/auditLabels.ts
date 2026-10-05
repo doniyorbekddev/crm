@@ -90,6 +90,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 
   'student.created': 'O‘quvchi qo‘shildi',
   'student.updated': 'O‘quvchi tahrirlandi',
+  'student.message_sent': 'O‘quvchiga xabar yuborildi',
   'student.status_changed': 'O‘quvchi holati o‘zgardi',
   'student.deleted': 'O‘quvchi o‘chirildi',
   'student.converted_from_lead': 'Lead o‘quvchiga aylantirildi',

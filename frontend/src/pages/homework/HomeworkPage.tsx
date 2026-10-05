@@ -1,6 +1,6 @@
 import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Eye, Pencil, Plus, Repeat, Scale, Trash2 } from 'lucide-react';
+import { AlarmClock, CheckCircle2, CircleDashed, ClipboardList, Eye, Hourglass, Pencil, Plus, Repeat, Scale, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -22,7 +22,8 @@ import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { groupsService } from '@/services/groups.service';
 import { homeworkService } from '@/services/homework.service';
-import type { Homework, HomeworkListParams, HomeworkStatus } from '@/types/homework';
+import { StatCard } from '@/components/ui/StatCard';
+import type { Homework, HomeworkListParams, HomeworkStatus, HomeworkSummaryParams } from '@/types/homework';
 import { formatDateTime, formatNumber } from '@/utils/format';
 import { HOMEWORK_STATUS_LABELS, HOMEWORK_STATUS_ORDER, HOMEWORK_STATUS_TONES } from '@/utils/homeworkLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
@@ -62,6 +63,11 @@ export default function HomeworkPage() {
     ...(groupId ? { groupId } : {}),
     ...(status ? { status } : {}),
   };
+
+  // Sanoq holat filtridan mustaqil — kartalar tanlangan holatga qarab nolga tushmaydi
+  const summaryParams: HomeworkSummaryParams = { ...(search ? { search } : {}), ...(groupId ? { groupId } : {}) };
+  const summaryQuery = useQuery({ queryKey: queryKeys.homework.summary(summaryParams), queryFn: () => homeworkService.summary(summaryParams) });
+  const summary = summaryQuery.data;
 
   const listQuery = useQuery({
     queryKey: queryKeys.homework.list(params),
@@ -115,6 +121,37 @@ export default function HomeworkPage() {
           ) : undefined
         }
       />
+
+      <section aria-label="Vazifalar holati" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatCard size="sm" icon={ClipboardList} title="Jami vazifalar" value={summary ? formatNumber(summary.total) : '—'} loading={summaryQuery.isPending} {...(summary ? { description: `${formatNumber(summary.published)} e’lon qilingan · ${formatNumber(summary.draft)} qoralama` } : {})} />
+        <StatCard
+          size="sm"
+          icon={Hourglass}
+          title="Tekshiruv kutmoqda"
+          value={summary ? formatNumber(summary.submissions.awaitingReview) : '—'}
+          loading={summaryQuery.isPending}
+          tone={summary && summary.submissions.awaitingReview > 0 ? 'warning' : 'neutral'}
+          {...(summary && summary.submissions.late > 0 ? { description: `${formatNumber(summary.submissions.late)} tasi kechikib topshirilgan` } : {})}
+        />
+        <StatCard
+          size="sm"
+          icon={AlarmClock}
+          title="Muddati o‘tgan"
+          value={summary ? formatNumber(summary.overdue) : '—'}
+          loading={summaryQuery.isPending}
+          tone={summary && summary.overdue > 0 ? 'danger' : 'neutral'}
+          description="e’lon qilingan, yopilmagan"
+        />
+        <StatCard size="sm" icon={CheckCircle2} title="Baholangan" value={summary ? formatNumber(summary.submissions.graded) : '—'} loading={summaryQuery.isPending} tone="success" description="topshiriq" />
+        <StatCard
+          size="sm"
+          icon={CircleDashed}
+          title="Topshirilmagan"
+          value={summary ? formatNumber(summary.submissions.pending + summary.submissions.missed) : '—'}
+          loading={summaryQuery.isPending}
+          {...(summary ? { description: `${formatNumber(summary.submissions.missed)} tasi o‘tkazib yuborilgan` } : {})}
+        />
+      </section>
 
       <Card>
         <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">

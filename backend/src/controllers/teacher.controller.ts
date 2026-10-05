@@ -8,6 +8,7 @@ import { salaryHistoryQuerySchema } from '../validators/salary.validator.js';
 import {
   createSalaryRuleSchema,
   createTeacherProfileSchema,
+  performanceHistoryQuerySchema,
   teacherListQuerySchema,
   updateTeacherProfileSchema,
 } from '../validators/teacher.validator.js';
@@ -31,6 +32,13 @@ export const teacherController = {
   async getById(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await teacherService.getById(requireAuthUser(req), id));
+  },
+
+  /** Oxirgi oylar bo'yicha KPI — profil sahifasidagi dinamika uchun */
+  async performanceHistory(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { months } = performanceHistoryQuerySchema.parse(req.query);
+    sendSuccess(res, await teacherService.performanceHistory(id, months));
   },
 
   async create(req: Request, res: Response): Promise<void> {

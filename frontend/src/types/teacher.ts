@@ -305,3 +305,17 @@ export interface SalaryAdjustPayload {
 export interface SalaryFormLookups {
   accounts: Array<{ id: string; key: string; name: string; type: string; balance: number }>;
 }
+
+/** KPI tarixidagi bitta oy */
+export interface TeacherPerformancePoint {
+  year: number;
+  month: number;
+  label: string;
+  lessonsHeld: number;
+  attendanceRate: number | null;
+  homework: number;
+  homeworkCompletionRate: number | null;
+  exams: number;
+  examAveragePercent: number | null;
+  revenue: number;
+}

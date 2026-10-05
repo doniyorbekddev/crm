@@ -17,6 +17,7 @@ leadRouter.get('/kanban', requirePermission(PERMISSIONS.LEAD_VIEW), leadControll
 leadRouter.post('/', requirePermission(PERMISSIONS.LEAD_CREATE), leadController.create);
 leadRouter.get('/assignment-rules', requirePermission(PERMISSIONS.LEAD_ASSIGN), leadController.assignmentRules);
 leadRouter.put('/assignment-rules', requirePermission(PERMISSIONS.LEAD_ASSIGN), leadController.saveAssignmentRules);
+leadRouter.post('/bulk-assign', requirePermission(PERMISSIONS.LEAD_ASSIGN), leadController.bulkAssign);
 leadRouter.get('/:id', requirePermission(PERMISSIONS.LEAD_VIEW), leadController.getById);
 leadRouter.put('/:id', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.update);
 leadRouter.patch('/:id/status', requirePermission(PERMISSIONS.LEAD_UPDATE), leadController.setStatus);

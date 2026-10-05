@@ -11,10 +11,13 @@ import type {
   ExamResultRecord,
   GradeRecord,
   Homework,
-  HomeworkDetail,
   HomeworkAttachment,
+  HomeworkDetail,
   HomeworkListParams,
   HomeworkPayload,
+  HomeworkSummary,
+  HomeworkSummaryParams,
+  QuestionAnalysis,
   Rubric,
   RubricPayload,
   SubmissionDetail,
@@ -59,6 +62,12 @@ export const homeworkService = {
       items,
       meta: response.data.meta ?? { page: params.page, limit: params.limit, total: items.length, totalPages: 1 },
     };
+  },
+
+  /** Holatlar bo‘yicha sanoq — ro‘yxat filtrlari bilan (holat filtridan tashqari) */
+  async summary(params: HomeworkSummaryParams): Promise<HomeworkSummary> {
+    const response = await api.get<ApiSuccessResponse<HomeworkSummary>>('/homework/summary', { params });
+    return response.data.data;
   },
 
   async detail(id: string): Promise<HomeworkDetail> {
@@ -155,6 +164,12 @@ export const examsService = {
       items,
       meta: response.data.meta ?? { page: params.page, limit: params.limit, total: items.length, totalPages: 1 },
     };
+  },
+
+  /** Savol bo‘yicha tahlil: to‘g‘ri javob foizi (eng qiyin birinchi) */
+  async questionAnalysis(id: string): Promise<QuestionAnalysis[]> {
+    const response = await api.get<ApiSuccessResponse<QuestionAnalysis[]>>(`/exams/${id}/question-analysis`);
+    return response.data.data;
   },
 
   async detail(id: string): Promise<ExamDetail> {

@@ -57,6 +57,8 @@ export interface StudentListParams {
   riskLevel?: RiskLevel;
   courseId?: string;
   groupId?: string;
+  /** O‘qituvchi (foydalanuvchi ID) — shu o‘qituvchi guruhlaridagi o‘quvchilar */
+  teacherId?: string;
   /** Filial filtri (Topbar'dagi tanlovdan keladi) */
   branchId?: string;
   sortBy?: 'createdAt' | 'firstName' | 'startDate' | 'number';
@@ -145,4 +147,12 @@ export interface StudentStatusChange {
   reason: string | null;
   changedAt: string;
   changedBy: { id: string; firstName: string; lastName: string } | null;
+}
+
+export type StudentMessageAudience = 'STUDENT' | 'PARENT' | 'BOTH';
+
+export interface StudentMessagePayload {
+  audience: StudentMessageAudience;
+  title: string;
+  message: string;
 }

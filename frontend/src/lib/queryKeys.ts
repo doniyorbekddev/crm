@@ -25,7 +25,7 @@ import type { ReportParams, ReportType } from '@/types/report';
 import type { StudentListParams, StudentSummaryParams } from '@/types/student';
 import type { SalaryPeriodParams, TeacherListParams } from '@/types/teacher';
 import type { CashFlowParams, FinanceRangeParams, MoneyListParams, TransactionListParams } from '@/types/finance';
-import type { ExamListParams, HomeworkListParams } from '@/types/homework';
+import type { ExamListParams, HomeworkListParams, HomeworkSummaryParams } from '@/types/homework';
 import type { UserListParams, UserSummaryParams } from '@/types/user';
 
 /** React Query kalitlari bir joyda — invalidatsiya aniq va xatosiz bo‘lishi uchun. */
@@ -266,6 +266,7 @@ export const queryKeys = {
     all: ['teachers'] as const,
     list: (params: TeacherListParams) => ['teachers', 'list', params] as const,
     detail: (id: string) => ['teachers', 'detail', id] as const,
+    performanceHistory: (id: string, months: number) => ['teachers', 'performance-history', id, months] as const,
     candidates: ['teachers', 'candidates'] as const,
     me: ['teachers', 'me'] as const,
     salaryRules: (id: string) => ['teachers', 'salary-rules', id] as const,
@@ -302,6 +303,7 @@ export const queryKeys = {
   homework: {
     all: ['homework'] as const,
     list: (params: HomeworkListParams) => ['homework', 'list', params] as const,
+    summary: (params: HomeworkSummaryParams) => ['homework', 'summary', params] as const,
     detail: (id: string) => ['homework', 'detail', id] as const,
     submission: (id: string, studentId: string) => ['homework', 'submission', id, studentId] as const,
     rubrics: (includeInactive: boolean) => ['homework', 'rubrics', includeInactive] as const,
@@ -331,6 +333,7 @@ export const queryKeys = {
     all: ['exams'] as const,
     list: (params: ExamListParams) => ['exams', 'list', params] as const,
     detail: (id: string) => ['exams', 'detail', id] as const,
+    questionAnalysis: (id: string) => ['exams', 'question-analysis', id] as const,
   },
   analytics: {
     all: ['analytics'] as const,

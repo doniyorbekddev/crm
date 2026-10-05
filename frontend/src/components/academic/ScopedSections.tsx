@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BookOpenCheck, CalendarCheck, FileCheck } from 'lucide-react';
+import { BookOpenCheck, CalendarCheck, FileCheck, GraduationCap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CardHeader, CardTitle } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
@@ -8,8 +8,10 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService, attendanceSessionsService } from '@/services/attendance.service';
 import { examsService, homeworkService } from '@/services/homework.service';
+import { studentsService } from '@/services/students.service';
 import type { SessionListParams } from '@/types/attendanceAnalytics';
 import type { ExamListParams, HomeworkListParams } from '@/types/homework';
+import type { StudentListParams } from '@/types/student';
 import { formatDate, formatDateTime, formatNumber } from '@/utils/format';
 
 /**
@@ -230,5 +232,54 @@ export function AttendanceSection({ scope }: { scope: AcademicScope }) {
         ]}
       />
     </div>
+  );
+}
+
+/** O'qituvchi guruhlaridagi o'quvchilar (`students?teacherId=`); qator bosilganda — o'quvchi profili */
+export function TeacherStudentsSection({ teacherId }: { teacherId: string }) {
+  const navigate = useNavigate();
+  const params: StudentListParams = { page: 1, limit: 50, sortBy: 'firstName', sortOrder: 'asc', teacherId };
+  const query = useQuery({ queryKey: queryKeys.students.list(params), queryFn: () => studentsService.list(params) });
+  return (
+    <DataTable
+      label="O‘qituvchining o‘quvchilari"
+      header={
+        <CardHeader className="items-center">
+          <CardTitle>O‘quvchilar</CardTitle>
+          {query.data && (
+            <span className="text-caption text-fg-muted tabular-nums">
+              {formatNumber(query.data.meta.total)} ta{query.data.meta.total > params.limit ? ` (dastlabki ${params.limit} tasi)` : ''}
+            </span>
+          )}
+        </CardHeader>
+      }
+      rows={query.data?.items}
+      rowKey={(row) => row.id}
+      loading={query.isPending}
+      error={query.error}
+      retrying={query.isFetching}
+      onRetry={() => void query.refetch()}
+      onRowClick={(row) => navigate(`/students/${row.id}`)}
+      empty={{ icon: GraduationCap, title: 'O‘quvchi yo‘q', description: 'O‘qituvchi guruhlarida hali o‘quvchi yo‘q' }}
+      mobileLayout="cards"
+      columns={[
+        {
+          key: 'student',
+          label: 'O‘quvchi',
+          cell: (row) => (
+            <>
+              <p className="font-medium text-fg">
+                {row.firstName} {row.lastName}
+              </p>
+              <p className="font-mono text-caption text-fg-subtle">{row.code}</p>
+            </>
+          ),
+        },
+        { key: 'group', label: 'Guruh', tdClassName: 'text-fg-muted', cell: (row) => row.group?.name ?? '—' },
+        { key: 'course', label: 'Kurs', tdClassName: 'text-fg-muted', cell: (row) => row.course.name },
+        { key: 'status', label: 'Holat', cell: (row) => <StatusBadge kind="student" status={row.status} /> },
+        { key: 'risk', label: 'Xavf', cell: (row) => (row.riskLevel ? <StatusBadge kind="risk" status={row.riskLevel} /> : <span className="text-fg-subtle">—</span>) },
+      ]}
+    />
   );
 }

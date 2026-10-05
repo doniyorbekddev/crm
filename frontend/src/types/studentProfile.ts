@@ -48,6 +48,10 @@ export interface StudentProfile {
   progress: ProgressPoint[];
   feedback: StudentFeedback[];
   activity: StudentActivity[];
+  /** O‘quvchining filiali; biriktirilmagan bo‘lsa null */
+  branch: { id: string; name: string } | null;
+  /** Jadval bo‘yicha eng yaqin dars; guruhsiz yoki guruh faol emas — null */
+  nextLesson: { date: string; startTime: string; endTime: string; groupName: string; room: string | null } | null;
 }
 
 export interface StudentHomeworkRow {

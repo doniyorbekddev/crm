@@ -17,6 +17,7 @@ import type {
   LeadListQuery,
   UpdateLeadInput,
   UpdateLeadStatusInput,
+  BulkAssignLeadsInput,
 } from '../validators/lead.validator.js';
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
@@ -747,6 +748,27 @@ export const leadService = {
     });
 
     return loadDetail(id);
+  },
+
+  /**
+   * Ommaviy biriktirish. Har lead **yakka biriktirish qoidalari** bilan (ko'rinish, kimga biriktirish mumkinligi,
+   * tarix, bildirishnoma, audit) — qoidalar ikki joyda takrorlanmaydi. Bittasi rad etilsa qolganlari to'xtamaydi:
+   * natijada qaysi lead nima sababdan biriktirilmagani qaytadi.
+   */
+  async bulkAssign(actor: AuthUser, input: BulkAssignLeadsInput, client: ClientInfo): Promise<{ assigned: number; failed: Array<{ id: string; message: string }> }> {
+    const failed: Array<{ id: string; message: string }> = [];
+    let assigned = 0;
+    for (const id of [...new Set(input.ids)]) {
+      try {
+        await leadService.assign(actor, id, { assignedToId: input.assignedToId }, client);
+        assigned += 1;
+      } catch (error) {
+        // Kutilgan rad etish (ko'rinmaydi, ruxsat yo'q, xodim topilmadi) — ro'yxatga; boshqa xato — yuqoriga
+        if (!(error instanceof AppError)) throw error;
+        failed.push({ id, message: error.message });
+      }
+    }
+    return { assigned, failed };
   },
 
   /** Soft delete — lead sotuv tarixi va hisobotlarda saqlanib qoladi. */

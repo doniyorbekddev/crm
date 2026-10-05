@@ -4,7 +4,7 @@ import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
-import { createCourse, createLead, createSource } from './helpers/fixtures.js';
+import { createCourse, createGroup, createLead, createSource } from './helpers/fixtures.js';
 
 const app = createApp();
 
@@ -131,6 +131,61 @@ describe.skipIf(!hasTestDatabase)('Dashboard API (integratsion)', () => {
     expect(daily.body.data[0]).toMatchObject({ leads: 0, revenue: 0 });
     expect(monthly.body.data.at(-1)).toMatchObject({ leads: 1, revenue: 300_000, label: 'Sen' });
     expect(invalid.status).toBe(422);
+  });
+
+  it('yangi lead va o‘quvchilar o‘sishi o‘tgan oyning shu kunigacha bo‘lgan davr bilan solishtiriladi', async () => {
+    const source = await createSource();
+    const course = await createCourse();
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    // Shu oy (15-sentabrgacha): 3 lead, 1 o'quvchi
+    for (let index = 0; index < 3; index += 1) await createLead({ sourceId: source.id });
+    await enroll(course.id, 1_000_000);
+    // O'tgan oy: 10-avgustda 2 lead va 2 o'quvchi (hisobga kiradi), 25-avgustda 1 lead (15-kundan keyin — kirmaydi)
+    const early = new Date('2026-08-10T09:00:00.000Z');
+    for (let index = 0; index < 2; index += 1) {
+      const lead = await createLead({ sourceId: source.id });
+      await prisma.lead.update({ where: { id: lead.id }, data: { createdAt: early } });
+      const student = await enroll(course.id, 1_000_000);
+      await prisma.student.update({ where: { id: student.id }, data: { createdAt: early } });
+    }
+    const late = await createLead({ sourceId: source.id });
+    await prisma.lead.update({ where: { id: late.id }, data: { createdAt: new Date('2026-08-25T09:00:00.000Z') } });
+
+    const response = await request(app).get('/api/dashboard/summary').set(bearer(token));
+    // 3 ga qarshi 2 → +50%; 1 ga qarshi 2 → −50%
+    expect(response.body.data.leads).toMatchObject({ monthNew: 3, monthNewGrowth: 50 });
+    expect(response.body.data.students).toMatchObject({ monthNew: 1, monthNewGrowth: -50 });
+  });
+
+  it('grafikda o‘quvchilar o‘sishi va davomat trendi; davomat ruxsatisiz — null', async () => {
+    const course = await createCourse();
+    const group = await createGroup({ courseId: course.id });
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token: salesToken } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const students = [];
+    for (let index = 0; index < 4; index += 1) students.push(await enroll(course.id, 1_000_000));
+    // Bugun (2026-09-15): 3 qatnashgan (keldi, kechikdi, sababli) + 1 kelmagan = 75%; kecha: 1 kelmagan = 0%
+    const statuses = ['PRESENT', 'LATE', 'EXCUSED', 'ABSENT'] as const;
+    await prisma.attendance.createMany({
+      data: [
+        ...students.map((student, index) => ({ studentId: student.id, groupId: group.id, date: new Date('2026-09-15'), status: statuses[index]! })),
+        { studentId: students[0]!.id, groupId: group.id, date: new Date('2026-09-14'), status: 'ABSENT' as const },
+      ],
+    });
+
+    const daily = await request(app).get('/api/dashboard/charts?period=day').set(bearer(token));
+    expect(daily.body.data.at(-1)).toMatchObject({ date: '2026-09-15', students: 4, attendanceRate: 75 });
+    expect(daily.body.data.at(-2)).toMatchObject({ date: '2026-09-14', students: 0, attendanceRate: 0 });
+    // Dars belgilanmagan kun — 0% emas, "ma'lumot yo'q"
+    expect(daily.body.data.at(-3)).toMatchObject({ students: 0, attendanceRate: null });
+
+    const monthly = await request(app).get('/api/dashboard/charts?period=month').set(bearer(token));
+    // Oy bo'yicha: 5 belgidan 3 tasi qatnashgan = 60%
+    expect(monthly.body.data.at(-1)).toMatchObject({ label: 'Sen', students: 4, attendanceRate: 60 });
+
+    const sales = await request(app).get('/api/dashboard/charts?period=day').set(bearer(salesToken));
+    expect(sales.status).toBe(200);
+    expect(sales.body.data.every((point: { attendanceRate: number | null }) => point.attendanceRate === null)).toBe(true);
   });
 
   it('voronkani va managerlar reytingini hisoblaydi', async () => {

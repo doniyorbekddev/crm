@@ -6,6 +6,8 @@ export type ManagerPeriod = 'month' | 'quarter' | 'year';
 export interface DashboardLeadsBlock {
   todayNew: number;
   monthNew: number;
+  /** O‘tgan oyning shu kunigacha bo‘lgan davrga nisbatan (%) */
+  monthNewGrowth: number;
   open: number;
   monthWon: number;
   monthLost: number;
@@ -15,6 +17,7 @@ export interface DashboardLeadsBlock {
 export interface DashboardStudentsBlock {
   active: number;
   monthNew: number;
+  monthNewGrowth: number;
   frozen: number;
 }
 
@@ -75,6 +78,10 @@ export interface ChartPoint {
   leads: number;
   won: number;
   revenue: number;
+  /** Shu bo‘lakda qo‘shilgan o‘quvchilar */
+  students: number;
+  /** Davomat foizi; ma'lumot yoki ruxsat bo‘lmasa null */
+  attendanceRate: number | null;
 }
 
 export interface FunnelStage {

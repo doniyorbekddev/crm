@@ -28,6 +28,12 @@ export const homeworkController = {
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 
+  /** Ro'yxat ustidagi sanoq — sahifalash va holat filtridan mustaqil (qolgan filtrlar qo'llanadi) */
+  async summary(req: Request, res: Response): Promise<void> {
+    const query = homeworkListQuerySchema.parse(req.query);
+    sendSuccess(res, await homeworkService.summary(requireAuthUser(req), query));
+  },
+
   async getById(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await homeworkService.getById(requireAuthUser(req), id));

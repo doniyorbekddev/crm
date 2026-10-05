@@ -19,6 +19,12 @@ import { StatCard } from '@/components/ui/StatCard';
 import type { DashboardSummary } from '@/types/dashboard';
 import { formatMoney, formatNumber } from '@/utils/format';
 
+/** "(o‘tgan oyga nisbatan +12%)" — solishtiradigan narsa bo'lmasa (ikkala oy ham bo'sh) hech narsa */
+function growthNote(current: number, growth: number): string {
+  if (current === 0 && growth === 0) return '';
+  return ` (o‘tgan oyga nisbatan ${growth > 0 ? '+' : growth < 0 ? '−' : ''}${Math.abs(growth)}%)`;
+}
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title}>
@@ -89,7 +95,7 @@ export function DashboardKpis({ summary }: { summary: DashboardSummary }) {
                 icon={Target}
                 title="Bugungi yangi leadlar"
                 value={formatNumber(leads.todayNew)}
-                description={`Shu oyda: ${formatNumber(leads.monthNew)}`}
+                description={`Shu oyda: ${formatNumber(leads.monthNew)}${growthNote(leads.monthNew, leads.monthNewGrowth)}`}
                 tone="primary"
                 to="/leads"
               />
@@ -187,7 +193,7 @@ export function DashboardKpis({ summary }: { summary: DashboardSummary }) {
             icon={GraduationCap}
             title="Faol o‘quvchilar"
             value={formatNumber(students.active)}
-            description={`Shu oyda qo‘shilgan: ${formatNumber(students.monthNew)} · Muzlatilgan: ${formatNumber(students.frozen)}`}
+            description={`Shu oyda qo‘shilgan: ${formatNumber(students.monthNew)}${growthNote(students.monthNew, students.monthNewGrowth)} · Muzlatilgan: ${formatNumber(students.frozen)}`}
             tone="primary"
             to="/students"
           />

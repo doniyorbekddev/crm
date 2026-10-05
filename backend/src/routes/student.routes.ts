@@ -42,6 +42,8 @@ studentRouter.post('/portal-accounts/bulk', requirePermission(PERMISSIONS.PORTAL
 studentRouter.post('/:id/portal-account', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.createStudentAccount);
 studentRouter.post('/:id/portal-account/reset-password', requirePermission(PERMISSIONS.PORTAL_MANAGE), portalController.resetStudentPassword);
 studentRouter.get('/:id/telegram-link', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.linkForStudent);
+// Bitta o'quvchiga/ota-onaga xabar: o'quvchini boshqaruvchi yoki unga vazifa beruvchi xodim (o'qituvchi — faqat o'z guruhi)
+studentRouter.post('/:id/message', heavyLimiter, requireAnyPermission(PERMISSIONS.STUDENT_MANAGE, PERMISSIONS.HOMEWORK_MANAGE), studentController.sendMessage);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);

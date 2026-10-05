@@ -195,6 +195,35 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       expect(response.body.data.performance.revenue).toBe(2_000_000);
     });
 
+    it('KPI tarixi: oylar eskisidan yangisiga, har oy o‘z ma’lumoti bilan; bo‘sh oyda davomat null', async () => {
+      const fixture = await setupTeacher();
+      const now = new Date();
+      const monthStart = (back: number) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1));
+      // Fixture to'lovlari (2 000 000) — joriy oyga; o'tgan oyga alohida davomat
+      await prisma.payment.updateMany({ where: { studentId: { in: fixture.studentIds } }, data: { paidAt: new Date(monthStart(0).getTime() + 9 * 3_600_000) } });
+      await prisma.attendance.createMany({
+        data: [
+          { studentId: fixture.studentIds[0]!, groupId: fixture.groupId, date: monthStart(0), status: 'PRESENT' },
+          { studentId: fixture.studentIds[1]!, groupId: fixture.groupId, date: monthStart(0), status: 'ABSENT' },
+          { studentId: fixture.studentIds[0]!, groupId: fixture.groupId, date: monthStart(1), status: 'PRESENT' },
+        ],
+      });
+
+      const response = await request(app).get(`/api/teachers/${fixture.profileId}/performance-history`).query({ months: 3 }).set(bearer(fixture.adminToken));
+      expect(response.status).toBe(200);
+      const points = response.body.data as Array<{ year: number; month: number; attendanceRate: number | null; revenue: number }>;
+      expect(points.map((point) => [point.year, point.month])).toEqual([2, 1, 0].map((back) => [monthStart(back).getUTCFullYear(), monthStart(back).getUTCMonth() + 1]));
+      expect(points[0]).toMatchObject({ attendanceRate: null, revenue: 0 });
+      expect(points[1]).toMatchObject({ attendanceRate: 100, revenue: 0 });
+      expect(points[2]).toMatchObject({ attendanceRate: 50, revenue: 2_000_000 });
+
+      const byDefault = await request(app).get(`/api/teachers/${fixture.profileId}/performance-history`).set(bearer(fixture.adminToken));
+      expect(byDefault.body.data).toHaveLength(6);
+      expect((await request(app).get(`/api/teachers/${fixture.profileId}/performance-history`).query({ months: 13 }).set(bearer(fixture.adminToken))).status).toBe(422);
+      expect((await request(app).get('/api/teachers/yoq/performance-history').set(bearer(fixture.adminToken))).status).toBe(404);
+      expect((await request(app).get(`/api/teachers/${fixture.profileId}/performance-history`)).status).toBe(401);
+    });
+
     it('profilni tahrirlaydi va faolsizlantiradi', async () => {
       const fixture = await setupTeacher();
 

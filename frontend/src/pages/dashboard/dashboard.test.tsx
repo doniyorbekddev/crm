@@ -15,12 +15,12 @@ import { changeTrend } from './executive/kpis';
 const SUMMARY: DashboardSummary = {
   date: '05.10.2026',
   teaching: null,
-  leads: { todayNew: 4, monthNew: 31, open: 12, monthWon: 9, monthLost: 3, conversionRate: 75 },
+  leads: { todayNew: 4, monthNew: 31, monthNewGrowth: 12, open: 12, monthWon: 9, monthLost: 3, conversionRate: 75 },
   tasks: { todayFollowUps: 5, overdueFollowUps: 2, todayCalls: 7 },
   finance: { todayRevenue: 1_500_000, monthRevenue: 24_000_000, prevMonthRevenue: 30_000_000, monthGrowth: -20 },
   debts: { totalRemaining: 8_400_000, debtors: 6 },
   money: null,
-  students: { active: 120, monthNew: 8, frozen: 2 },
+  students: { active: 120, monthNew: 8, monthNewGrowth: -20, frozen: 2 },
 };
 
 // jsdom'da o'lcham yo'q — grafik konteyneri chizilmaydi (grafik mazmuni bu testning mavzusi emas)

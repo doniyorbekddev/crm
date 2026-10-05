@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { notifyStudentAudience } from './studentNotify.service.js';
 import { prisma } from '../config/database.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
@@ -27,7 +29,7 @@ import { createDefaultSchedule } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
-import type { TransferStudentGroupInput } from '../validators/student.validator.js';
+import type { StudentMessageInput, TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
 import { isRosterLimited } from './teachingAccess.js';
 import { gamificationHooks } from './gamification.service.js';
@@ -189,6 +191,7 @@ function buildWhere(access: StudentAccess, query: Partial<StudentListQuery>): Pr
   if (query.riskLevel) conditions.push({ riskLevel: query.riskLevel });
   if (query.courseId) conditions.push({ courseId: query.courseId });
   if (query.groupId) conditions.push({ groupId: query.groupId });
+  if (query.teacherId) conditions.push({ group: { teacherId: query.teacherId } });
 
   for (const term of splitSearchTerms(query.search)) {
     const or: Prisma.StudentWhereInput[] = [
@@ -542,6 +545,46 @@ export const studentService = {
       select: groupChangeSelect,
     });
     return toGroupChangeDtos(rows);
+  },
+
+  /**
+   * Xodimdan bitta o'quvchiga yoki ota-onasiga xabar: kabinet hisobi bo'lsa ilova ichida, bog'langan Telegram bo'lsa botda.
+   * Hech bir kanal bo'lmasa — 409 (xabar "yuborildi" deb ko'rinib, hech kimga yetmay qolmasin). Amal auditga yoziladi.
+   */
+  async sendMessage(actor: AuthUser, id: string, input: StudentMessageInput, client: ClientInfo): Promise<{ recipients: number }> {
+    const access = await getStudentAccess(actor);
+    const student = await findVisibleStudent(access, id);
+    const key = `staff-message:${randomUUID()}`;
+    const audiences = input.audience === 'BOTH' ? (['STUDENT', 'PARENT'] as const) : ([input.audience] as const);
+
+    const recipients = await prisma.$transaction(async (tx) => {
+      let count = 0;
+      for (const audience of audiences) {
+        count += await notifyStudentAudience(tx, {
+          studentId: student.id,
+          audience,
+          type: 'SYSTEM',
+          title: input.title,
+          message: input.message,
+          entityType: 'student',
+          entityId: student.id,
+          dedupeKey: `${key}:${audience}`,
+        });
+      }
+      if (count === 0) {
+        throw AppError.conflict('Xabar yuborilmadi: qabul qiluvchida kabinet hisobi ham, bog‘langan Telegram ham yo‘q');
+      }
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'student.message_sent',
+        entityType: 'student',
+        entityId: student.id,
+        metadata: { audience: input.audience, title: input.title, recipients: count },
+        ...client,
+      });
+      return count;
+    });
+    return { recipients };
   },
 
   /**

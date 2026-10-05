@@ -190,6 +190,25 @@ describe.skipIf(!hasTestDatabase)('Students API (integratsion)', () => {
     expect(byContract.body.data).toHaveLength(1);
   });
 
+  it('o‘qituvchi bo‘yicha filtr: faqat shu o‘qituvchi guruhlaridagi o‘quvchilar', async () => {
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { user: teacher } = await createUserWithToken(app, { role: 'TEACHER' });
+    const course = await createCourse();
+    const own = await createGroup({ courseId: course.id, teacherId: teacher.id });
+    const foreign = await createGroup({ courseId: course.id });
+    const base = { courseId: course.id, contractPrice: 1_000_000, startDate: new Date('2026-09-01') };
+    await prisma.student.create({ data: { ...base, firstName: 'Ali', lastName: 'Karimov', phone: '+998907770001', groupId: own.id } });
+    await prisma.student.create({ data: { ...base, firstName: 'Vali', lastName: 'Karimov', phone: '+998907770002', groupId: foreign.id } });
+    await prisma.student.create({ data: { ...base, firstName: 'Sami', lastName: 'Karimov', phone: '+998907770003' } });
+
+    const mine = await request(app).get('/api/students').query({ teacherId: teacher.id }).set(bearer(token));
+    expect(mine.status).toBe(200);
+    expect((mine.body.data as Array<{ firstName: string }>).map((row) => row.firstName)).toEqual(['Ali']);
+    expect(mine.body.meta.total).toBe(1);
+    expect((await request(app).get('/api/students').set(bearer(token))).body.meta.total).toBe(3);
+    expect((await request(app).get('/api/students').query({ teacherId: 'yoq' }).set(bearer(token))).body.meta.total).toBe(0);
+  });
+
   it('leadni o‘quvchiga aylantiradi: lead WON bo‘ladi, tarixga yozuv tushadi, takror aylantirib bo‘lmaydi', async () => {
     const source = await createSource();
     const course = await prisma.course.create({

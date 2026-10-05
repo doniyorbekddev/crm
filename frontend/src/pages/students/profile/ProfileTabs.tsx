@@ -1,7 +1,7 @@
 import { Timeline } from '@/components/ui/Timeline';
 import { DataTable } from '@/components/ui/DataTable';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CalendarClock, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -35,6 +35,19 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
 
   return (
     <div className="space-y-4">
+      {profile.nextLesson && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-border bg-surface px-4 py-3 text-body text-fg">
+          <CalendarClock className="size-4 shrink-0 text-fg-muted" aria-hidden />
+          <span className="text-fg-muted">Keyingi dars:</span>
+          <span className="font-medium">
+            {formatDate(profile.nextLesson.date)}, {profile.nextLesson.startTime}–{profile.nextLesson.endTime}
+          </span>
+          <span className="text-fg-muted">
+            · {profile.nextLesson.groupName}
+            {profile.nextLesson.room ? ` · ${profile.nextLesson.room}-xona` : ''}
+          </span>
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <button type="button" onClick={onOpenCalendar} className="focus-ring rounded-card text-left" aria-label="Davomat — kalendarni ochish">
           <StatCard

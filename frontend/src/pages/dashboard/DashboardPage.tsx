@@ -66,7 +66,7 @@ export default function DashboardPage() {
   // Ruxsat bo'lmagan vidjet `resolveWidgets` da tushib qoladi — uning komponenti (va so'rovi) umuman chizilmaydi
   const content: Record<WidgetKey, () => ReactNode> = {
     kpis: () => kpis,
-    charts: () => <DashboardCharts showRevenue={Boolean(summary?.finance)} />,
+    charts: () => <DashboardCharts showRevenue={Boolean(summary?.finance)} showAcademy={Boolean(summary?.students)} />,
     tasks: () => <TodayTasksCard />,
     funnel: () => <SalesFunnelCard />,
     atRisk: () => <AtRiskStudents />,

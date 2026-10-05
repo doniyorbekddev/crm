@@ -26,6 +26,8 @@ homeworkRouter.get('/recurring', homeworkView, recurringHomeworkController.list)
 homeworkRouter.post('/recurring', homeworkManage, recurringHomeworkController.create);
 homeworkRouter.patch('/recurring/:id', homeworkManage, recurringHomeworkController.update);
 homeworkRouter.delete('/recurring/:id', homeworkManage, recurringHomeworkController.remove);
+// Holatlar bo'yicha sanoq (ro'yxat filtrlari bilan) — `/:id` dan oldin
+homeworkRouter.get('/summary', homeworkView, homeworkController.summary);
 homeworkRouter.get('/:id', homeworkView, homeworkController.getById);
 homeworkRouter.post('/', homeworkManage, homeworkController.create);
 homeworkRouter.put('/:id', homeworkManage, homeworkController.update);
@@ -69,6 +71,7 @@ examRouter.get('/:id/questions', requirePermission(PERMISSIONS.EXAM_VIEW), quest
 examRouter.post('/:id/attempts/:studentId/start', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.startAttempt);
 examRouter.post('/:id/attempts/:studentId', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.submitAttempt);
 examRouter.get('/:id/attempts', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempts);
+examRouter.get('/:id/question-analysis', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.questionAnalysis);
 examRouter.get('/attempts/:id', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.attempt);
 examRouter.get('/attempts/:id/answers/:answerId/file', requirePermission(PERMISSIONS.EXAM_VIEW), questionController.answerFile);
 examRouter.post('/attempts/:id/grade', requirePermission(PERMISSIONS.EXAM_GRADE), questionController.gradeAttempt);

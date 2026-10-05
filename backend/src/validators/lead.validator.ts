@@ -114,6 +114,12 @@ export const updateLeadStatusSchema = z
     message: 'Yo‘qotilish sababini kiriting',
   });
 
+/** Bir nechta leadni birdaniga biriktirish (ro'yxatdagi ommaviy amal) */
+export const bulkAssignLeadsSchema = z.object({
+  ids: z.array(idSchema).min(1, 'Kamida bitta lead tanlang').max(100, 'Bir martada 100 tadan ko‘p lead biriktirib bo‘lmaydi'),
+  assignedToId: idSchema.nullable(),
+});
+
 export const assignLeadSchema = z.object({
   assignedToId: idSchema.nullable(),
 });
@@ -138,3 +144,4 @@ export type UpdateLeadStatusInput = z.infer<typeof updateLeadStatusSchema>;
 export type AssignLeadInput = z.infer<typeof assignLeadSchema>;
 export type LeadActivityQuery = z.infer<typeof leadActivityQuerySchema>;
 export type CreateLeadNoteInput = z.infer<typeof createLeadNoteSchema>;
+export type BulkAssignLeadsInput = z.infer<typeof bulkAssignLeadsSchema>;

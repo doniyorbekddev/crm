@@ -82,6 +82,64 @@ function AnalyticsTab({ exam }: { exam: ExamDetail }) {
   );
 }
 
+/** Savol bo'yicha tahlil (onlayn/savolli imtihonlar): qaysi savol qiyin bo'lgani. Urinish bo'lmasa — bo'sh holat. */
+function QuestionAnalysisCard({ examId }: { examId: string }) {
+  const query = useQuery({ queryKey: queryKeys.exams.questionAnalysis(examId), queryFn: () => examsService.questionAnalysis(examId) });
+  return (
+    <DataTable
+      label="Savollar bo‘yicha tahlil"
+      header={
+        <CardHeader>
+          <CardTitle>Savollar bo‘yicha tahlil</CardTitle>
+          <span className="text-caption text-fg-muted">eng qiyin savol birinchi</span>
+        </CardHeader>
+      }
+      rows={query.data}
+      rowKey={(row) => row.questionId}
+      loading={query.isPending}
+      error={query.error}
+      retrying={query.isFetching}
+      onRetry={() => void query.refetch()}
+      empty={{ icon: ListChecks, title: 'Savollar bo‘yicha ma’lumot yo‘q', description: 'O‘quvchilar savolli imtihonni topshirgach, har savol natijasi shu yerda ko‘rinadi' }}
+      mobileLayout="cards"
+      columns={[
+        {
+          key: 'question',
+          label: 'Savol',
+          cell: (row) => (
+            <>
+              <p className="max-w-xl text-fg">{row.text}</p>
+              {row.topicTitle && <p className="text-caption text-fg-muted">{row.topicTitle}</p>}
+            </>
+          ),
+        },
+        { key: 'answers', label: 'Javoblar', align: 'right', tdClassName: 'text-fg-muted', cell: (row) => formatNumber(row.answers) },
+        {
+          key: 'correct',
+          label: 'To‘g‘ri',
+          align: 'right',
+          tdClassName: (row) => (row.correctRate === null ? 'text-fg-muted' : row.correctRate >= 70 ? 'font-medium text-success' : row.correctRate >= 40 ? 'font-medium text-warning' : 'font-medium text-danger'),
+          cell: (row) => (row.correctRate === null ? '—' : `${row.correctRate}%`),
+        },
+        {
+          key: 'average',
+          label: 'O‘rtacha ball',
+          align: 'right',
+          tdClassName: 'text-fg-muted',
+          cell: (row) => `${formatNumber(row.averageScore)} / ${row.points}`,
+        },
+        {
+          key: 'ungraded',
+          label: 'Baholanmagan',
+          align: 'right',
+          tdClassName: 'text-fg-muted',
+          cell: (row) => (row.ungraded > 0 ? formatNumber(row.ungraded) : '—'),
+        },
+      ]}
+    />
+  );
+}
+
 /**
  * Imtihon sahifasi: kim, qachon, qanday natija. Ma'lumot `exams/:id` dan;
  * natija kiritish, savollar va tahrirlash — ro'yxatdagi oynalarning o'zi.
@@ -214,7 +272,10 @@ export default function ExamPage() {
           />
         </TabPanel>
         <TabPanel value="analytics">
-          <AnalyticsTab exam={exam} />
+          <div className="space-y-4">
+            <AnalyticsTab exam={exam} />
+            <QuestionAnalysisCard examId={exam.id} />
+          </div>
         </TabPanel>
       </Tabs>
 

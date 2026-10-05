@@ -83,6 +83,11 @@ export const leadsService = {
     return withMessage(await api.patch<ApiSuccessResponse<LeadDetail>>(`/leads/${id}/status`, payload));
   },
 
+  /** Bir nechta leadni birdaniga biriktirish; rad etilganlari sababi bilan qaytadi */
+  async bulkAssign(ids: string[], assignedToId: string | null): Promise<MessageResult<{ assigned: number; failed: Array<{ id: string; message: string }> }>> {
+    return withMessage(await api.post<ApiSuccessResponse<{ assigned: number; failed: Array<{ id: string; message: string }> }>>('/leads/bulk-assign', { ids, assignedToId }));
+  },
+
   async assign(id: string, assignedToId: string | null): Promise<MessageResult<LeadDetail>> {
     return withMessage(await api.patch<ApiSuccessResponse<LeadDetail>>(`/leads/${id}/assign`, { assignedToId }));
   },

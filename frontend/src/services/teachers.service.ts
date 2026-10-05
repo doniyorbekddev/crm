@@ -11,6 +11,7 @@ import type {
   TeacherDetail,
   TeacherItem,
   TeacherListParams,
+  TeacherPerformancePoint,
   TeacherProfilePayload,
 } from '@/types/teacher';
 
@@ -26,6 +27,12 @@ export const teachersService = {
 
   async detail(id: string): Promise<TeacherDetail> {
     const response = await api.get<ApiSuccessResponse<TeacherDetail>>(`/teachers/${id}`);
+    return response.data.data;
+  },
+
+  /** Oxirgi oylar bo‘yicha KPI (eskisidan yangisiga) */
+  async performanceHistory(id: string, months: number): Promise<TeacherPerformancePoint[]> {
+    const response = await api.get<ApiSuccessResponse<TeacherPerformancePoint[]>>(`/teachers/${id}/performance-history`, { params: { months } });
     return response.data.data;
   },
 

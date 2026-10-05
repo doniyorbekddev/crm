@@ -93,6 +93,42 @@ describe.skipIf(!hasTestDatabase)('Uy vazifasi va imtihonlar (integratsion)', ()
       expect(published.body.data.submissions).toHaveLength(3);
     });
 
+    it('holatlar bo‘yicha sanoq: vazifalar va topshiriqlar; status filtri sanoqni o‘zgartirmaydi; o‘qituvchi doirasi', async () => {
+      const { teacherToken, group, students } = await setupClass();
+      const { token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+      const create = (body: Record<string, unknown>) => request(app).post('/api/homework').set(bearer(teacherToken)).send({ groupId: group.id, maxPoints: 50, ...body });
+      const open = await create({ title: 'Ochiq vazifa', deadline: FUTURE });
+      await create({ title: 'Muddati o‘tgan', deadline: PAST });
+      await create({ title: 'Qoralama', deadline: FUTURE, status: 'DRAFT' });
+      // Ochiq vazifada: biri baholandi, biri topshirildi (tekshiruv kutmoqda), biri boshlanmagan
+      await request(app).patch(`/api/homework/${open.body.data.id}/submissions/${students[0]!.id}`).set(bearer(teacherToken)).send({ score: 40 });
+      await prisma.homeworkSubmission.update({
+        where: { homeworkId_studentId: { homeworkId: open.body.data.id, studentId: students[1]!.id } },
+        data: { status: 'SUBMITTED', submittedAt: new Date() },
+      });
+
+      const summary = await request(app).get('/api/homework/summary').set(bearer(teacherToken));
+      expect(summary.status).toBe(200);
+      expect(summary.body.data).toMatchObject({ total: 3, draft: 1, published: 2, closed: 0, overdue: 1 });
+      // 2 e'lon qilingan vazifa × 3 o'quvchi = 6 topshiriq (qoralamaniki yo'q)
+      const { submissions } = summary.body.data;
+      expect(submissions.graded).toBe(1);
+      expect(submissions.awaitingReview).toBe(1);
+      expect(submissions.pending + submissions.missed + submissions.graded + submissions.awaitingReview + submissions.returned).toBe(6);
+
+      // `status` filtri sanoqqa ta'sir qilmaydi (tablar bir-birini nolga tushirmasin), boshqa filtrlar — ha
+      const withStatus = await request(app).get('/api/homework/summary').query({ status: 'DRAFT' }).set(bearer(teacherToken));
+      expect(withStatus.body.data).toMatchObject({ total: 3, draft: 1, published: 2 });
+      const searched = await request(app).get('/api/homework/summary').query({ search: 'Qoralama' }).set(bearer(teacherToken));
+      expect(searched.body.data).toMatchObject({ total: 1, draft: 1, published: 0, overdue: 0 });
+
+      // Boshqa o'qituvchi begona guruh vazifalarini sanoqda ham ko'rmaydi; admin — hammasini
+      const { token: otherTeacher } = await createUserWithToken(app, { role: 'TEACHER' });
+      expect((await request(app).get('/api/homework/summary').set(bearer(otherTeacher))).body.data).toMatchObject({ total: 0, overdue: 0 });
+      expect((await request(app).get('/api/homework/summary').set(bearer(adminToken))).body.data).toMatchObject({ total: 3 });
+      expect((await request(app).get('/api/homework/summary')).status).toBe(401);
+    });
+
     it('baholash XP beradi, qayta baholash XP ni takrorlamaydi', async () => {
       const { teacherToken, group, students } = await setupClass();
       const student = students[0]!;

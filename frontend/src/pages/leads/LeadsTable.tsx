@@ -1,3 +1,4 @@
+import { LeadBulkAssign } from './LeadBulkAssign';
 import { LeadQuickView } from './LeadQuickView';
 import { headerSort } from '@/utils/tableSort';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
@@ -47,6 +48,8 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
   const [sort, setSort] = useState<string>('createdAt:desc');
   const [preview, setPreview] = useState<LeadListItem | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const canAssign = usePermission(PERMISSIONS.LEAD_ASSIGN);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
 
@@ -201,6 +204,12 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
         rows={listQuery.data?.items}
         rowKey={(lead) => lead.id}
         onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
+        {...(canAssign
+          ? {
+              selection: { selected, onChange: setSelected, rowLabel: (lead: LeadListItem) => leadFullName(lead) },
+              bulkActions: (ids: string[]) => <LeadBulkAssign ids={ids} onDone={() => setSelected(new Set())} />,
+            }
+          : {})}
         rowActions={(lead) => [
           { label: 'Tezkor ko‘rish', icon: Eye, onSelect: () => setPreview(lead) },
           { label: 'To‘liq sahifa', icon: ExternalLink, onSelect: () => navigate(`/leads/${lead.id}`) },

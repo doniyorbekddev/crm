@@ -12,6 +12,7 @@ import {
   convertLeadSchema,
   createStudentSchema,
   studentListQuerySchema,
+  studentMessageSchema,
   transferStudentGroupSchema,
   updateStudentSchema,
   updateStudentStatusSchema,
@@ -89,6 +90,13 @@ export const studentController = {
     sendSuccess(res, await studentService.transferGroup(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: input.groupId ? 'O‘quvchi guruhga o‘tkazildi' : 'O‘quvchi guruhdan chiqarildi',
     });
+  },
+
+  async sendMessage(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = studentMessageSchema.parse(req.body);
+    const result = await studentService.sendMessage(requireAuthUser(req), id, input, getClientInfo(req));
+    sendSuccess(res, result, { message: `Xabar ${result.recipients} ta qabul qiluvchiga yuborildi` });
   },
 
   async statusHistory(req: Request, res: Response): Promise<void> {

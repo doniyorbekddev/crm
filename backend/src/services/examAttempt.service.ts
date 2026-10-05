@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import type { AttemptStatus, Prisma, QuestionType } from '../generated/prisma/client.js';
+import type { AttemptStatus, Prisma, QuestionDifficulty, QuestionType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { mimeForStoredPath, resolveStoredPath } from '../utils/fileStorage.js';
@@ -247,6 +247,24 @@ async function requireVisibleExam(actor: AuthUser, examId: string): Promise<Teac
   const exam = await prisma.exam.findFirst({ where: { id: examId, ...teachingGroupFilter(access) }, select: { id: true } });
   if (!exam) throw AppError.notFound('Imtihon topilmadi');
   return access;
+}
+
+export interface QuestionAnalysisDto {
+  questionId: string;
+  text: string;
+  type: QuestionType;
+  difficulty: QuestionDifficulty;
+  topicTitle: string | null;
+  /** Savolning shu imtihondagi bali */
+  points: number;
+  /** Javob bergan o'quvchilar (oxirgi urinish bo'yicha) */
+  answers: number;
+  correct: number;
+  /** Hali baholanmagan (matnli) javoblar */
+  ungraded: number;
+  /** To'g'ri javoblar foizi — baholanganlar ichida; hammasi baholanmagan bo'lsa null */
+  correctRate: number | null;
+  averageScore: number;
 }
 
 export const examAttemptService = {
@@ -705,6 +723,70 @@ export const examAttemptService = {
       select: attemptSelect,
     });
     return rows.map(toAttemptDto);
+  },
+
+  /**
+   * Savol bo'yicha tahlil. Har o'quvchining **oxirgi yakunlangan** urinishi olinadi (qayta topshirganlar ikki marta
+   * sanalmasin). Hali baholanmagan matnli javoblar `ungraded` da — to'g'ri javob foiziga kirmaydi.
+   * Eng qiyin savol birinchi.
+   */
+  async questionAnalysis(actor: AuthUser, examId: string): Promise<QuestionAnalysisDto[]> {
+    await requireVisibleExam(actor, examId);
+    const attempts = await prisma.examAttempt.findMany({
+      where: { examId, status: { in: ['SUBMITTED', 'NEEDS_REVIEW', 'GRADED'] } },
+      orderBy: [{ studentId: 'asc' }, { attemptNo: 'desc' }],
+      select: { id: true, studentId: true },
+    });
+    const latest = new Map<string, string>();
+    for (const attempt of attempts) if (!latest.has(attempt.studentId)) latest.set(attempt.studentId, attempt.id);
+    if (latest.size === 0) return [];
+
+    const answers = await prisma.examAnswer.findMany({
+      where: { attemptId: { in: [...latest.values()] } },
+      select: {
+        questionId: true,
+        score: true,
+        isCorrect: true,
+        examQuestion: { select: { points: true, sortOrder: true } },
+        question: { select: { text: true, type: true, difficulty: true, topic: { select: { title: true } } } },
+      },
+    });
+
+    const byQuestion = new Map<string, QuestionAnalysisDto & { scoreSum: number; order: number }>();
+    for (const answer of answers) {
+      const entry = byQuestion.get(answer.questionId) ?? {
+        questionId: answer.questionId,
+        text: answer.question.text,
+        type: answer.question.type,
+        difficulty: answer.question.difficulty,
+        topicTitle: answer.question.topic?.title ?? null,
+        points: answer.examQuestion.points,
+        answers: 0,
+        correct: 0,
+        ungraded: 0,
+        correctRate: null,
+        averageScore: 0,
+        scoreSum: 0,
+        order: answer.examQuestion.sortOrder,
+      };
+      entry.answers += 1;
+      entry.scoreSum += answer.score;
+      if (answer.isCorrect === null) entry.ungraded += 1;
+      else if (answer.isCorrect) entry.correct += 1;
+      byQuestion.set(answer.questionId, entry);
+    }
+
+    return [...byQuestion.values()]
+      .map(({ scoreSum, order, ...entry }) => {
+        const graded = entry.answers - entry.ungraded;
+        return {
+          entry: { ...entry, correctRate: graded === 0 ? null : Math.round((entry.correct / graded) * 100), averageScore: Math.round((scoreSum / entry.answers) * 10) / 10 },
+          order,
+        };
+      })
+      // Eng qiyin birinchi; foizi yo'q (baholanmagan) savollar oxirida; tenglikda — imtihondagi tartib
+      .sort((a, b) => (a.entry.correctRate ?? 101) - (b.entry.correctRate ?? 101) || a.order - b.order)
+      .map((item) => item.entry);
   },
 };
 
