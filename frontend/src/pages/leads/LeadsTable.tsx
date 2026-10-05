@@ -1,9 +1,10 @@
+import { LeadQuickView } from './LeadQuickView';
 import { headerSort } from '@/utils/tableSort';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Target } from 'lucide-react';
+import { ExternalLink, Eye, Target } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LeadPriorityBadge, LeadStatusBadge, LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
@@ -13,7 +14,7 @@ import { useNow } from '@/hooks/useNow';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { leadsService } from '@/services/leads.service';
-import type { LeadFilters, LeadListParams, LeadSortBy, LeadStatus } from '@/types/lead';
+import type { LeadFilters, LeadListItem, LeadListParams, LeadSortBy, LeadStatus } from '@/types/lead';
 import { formatDate, formatDateTime, formatPhone } from '@/utils/format';
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, leadFullName } from '@/utils/leadLabels';
 import { ExportMenu } from '@/components/ExportMenu';
@@ -45,6 +46,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
   const [sort, setSort] = useState<string>('createdAt:desc');
+  const [preview, setPreview] = useState<LeadListItem | null>(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
 
@@ -188,81 +190,88 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const density = useTableDensity();
 
   return (
-    <DataTable
-      {...headerSort(sort, SORT_COLUMNS, 'createdAt:desc', (value) => {
-          setSort(value);
-          setPage(1);
-        })}
-      label="Leadlar"
-      columns={leadTable.visibleColumns}
-      rows={listQuery.data?.items}
-      rowKey={(lead) => lead.id}
-      onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
-      loading={listQuery.isPending}
-      error={listQuery.error}
-      onRetry={() => void listQuery.refetch()}
-      retrying={listQuery.isFetching}
-      stale={listQuery.isPlaceholderData}
-      empty={{ icon: Target, title: 'Lead topilmadi', description: 'Qidiruv yoki filtrlarni o‘zgartirib ko‘ring yoki yangi lead qo‘shing' }}
-      header={
-        <Tabs
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value as typeof status);
+    <>
+      <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'createdAt:desc', (value) => {
+            setSort(value);
             setPage(1);
-          }}
-          panels={false}
-        >
-          <TabList label="Status bo‘yicha filtr" className="px-4">
-            {tabs.map((tab) => (
-              <Tab key={tab} value={tab} {...(summary ? { count: summary[tab] } : {})}>
-                {tab === 'ALL' ? 'Barchasi' : LEAD_STATUS_LABELS[tab]}
-              </Tab>
-            ))}
-          </TabList>
-        </Tabs>
-      }
-      toolbarActions={
-        <>
-          <Select
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value);
+          })}
+        label="Leadlar"
+        columns={leadTable.visibleColumns}
+        rows={listQuery.data?.items}
+        rowKey={(lead) => lead.id}
+        onRowClick={(lead) => navigate(`/leads/${lead.id}`)}
+        rowActions={(lead) => [
+          { label: 'Tezkor ko‘rish', icon: Eye, onSelect: () => setPreview(lead) },
+          { label: 'To‘liq sahifa', icon: ExternalLink, onSelect: () => navigate(`/leads/${lead.id}`) },
+        ]}
+        loading={listQuery.isPending}
+        error={listQuery.error}
+        onRetry={() => void listQuery.refetch()}
+        retrying={listQuery.isFetching}
+        stale={listQuery.isPlaceholderData}
+        empty={{ icon: Target, title: 'Lead topilmadi', description: 'Qidiruv yoki filtrlarni o‘zgartirib ko‘ring yoki yangi lead qo‘shing' }}
+        header={
+          <Tabs
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as typeof status);
               setPage(1);
             }}
-            aria-label="Saralash"
-            wrapperClassName="w-44 sm:w-56"
+            panels={false}
           >
-            {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          {canExport && (
-            <ExportMenu
-              loading={exporting}
-              onExport={(format) => void runExport('/leads/export', { ...filters, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) }, 'leadlar', format)}
-            />
-          )}
-          <ColumnSettings control={leadTable} />
-        </>
-      }
-      {...density}
-      mobileLayout="cards"
-      {...(listQuery.data
-        ? {
-            pagination: {
-              page: listQuery.data.meta.page,
-              totalPages: listQuery.data.meta.totalPages,
-              total: listQuery.data.meta.total,
-              limit: listQuery.data.meta.limit,
-              onPageChange: setPage,
-              disabled: listQuery.isFetching,
-            },
-          }
-        : {})}
-    />
+            <TabList label="Status bo‘yicha filtr" className="px-4">
+              {tabs.map((tab) => (
+                <Tab key={tab} value={tab} {...(summary ? { count: summary[tab] } : {})}>
+                  {tab === 'ALL' ? 'Barchasi' : LEAD_STATUS_LABELS[tab]}
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
+        }
+        toolbarActions={
+          <>
+            <Select
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value);
+                setPage(1);
+              }}
+              aria-label="Saralash"
+              wrapperClassName="w-44 sm:w-56"
+            >
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            {canExport && (
+              <ExportMenu
+                loading={exporting}
+                onExport={(format) => void runExport('/leads/export', { ...filters, sortBy, sortOrder, ...(status === 'ALL' ? {} : { status }) }, 'leadlar', format)}
+              />
+            )}
+            <ColumnSettings control={leadTable} />
+          </>
+        }
+        {...density}
+        mobileLayout="cards"
+        {...(listQuery.data
+          ? {
+              pagination: {
+                page: listQuery.data.meta.page,
+                totalPages: listQuery.data.meta.totalPages,
+                total: listQuery.data.meta.total,
+                limit: listQuery.data.meta.limit,
+                onPageChange: setPage,
+                disabled: listQuery.isFetching,
+              },
+            }
+          : {})}
+      />
+      {preview && <LeadQuickView lead={preview} onClose={() => setPreview(null)} />}
+    </>
   );
 }

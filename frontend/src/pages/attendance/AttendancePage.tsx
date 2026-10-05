@@ -2,6 +2,7 @@ import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, CalendarCheck, CheckCheck, LayoutDashboard, Layers, NotebookPen, Trophy } from 'lucide-react';
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/ui/Alert';
@@ -129,6 +130,40 @@ export default function AttendancePage() {
 
   const pendingCount = Object.keys(draft).length;
 
+  /**
+   * Klaviatura: 1–4 — holat (tartib tugmalardagidek), ←/→ — holatlar orasida, ↑/↓ — oldingi/keyingi o'quvchi.
+   * Sichqonchasiz 20 kishilik guruhni bir necha soniyada belgilash uchun.
+   */
+  const handleRowKey = (event: KeyboardEvent<HTMLDivElement>, studentId: string) => {
+    const index = Number(event.key) - 1;
+    const picked = ATTENDANCE_STATUS_ORDER[index];
+    const group = event.currentTarget;
+    const focusIn = (target: Element | null | undefined, status?: string) => {
+      const buttons = target ? [...target.querySelectorAll<HTMLButtonElement>('button[data-status]')] : [];
+      (buttons.find((button) => button.dataset.status === status) ?? buttons[0])?.focus();
+    };
+    const currentStatus = (document.activeElement as HTMLElement | null)?.dataset.status;
+    const rows = [...document.querySelectorAll('[data-attendance-row]')];
+    const position = rows.indexOf(group);
+
+    if (picked && canMark && !save.isPending) {
+      event.preventDefault();
+      setDraft((prev) => ({ ...prev, [studentId]: picked }));
+      // Belgilagach darhol keyingi o'quvchiga — ketma-ket terish uchun
+      focusIn(rows[position + 1] ?? group, picked);
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusIn(rows[position + (event.key === 'ArrowDown' ? 1 : -1)], currentStatus);
+    } else if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      const buttons = [...group.querySelectorAll<HTMLButtonElement>('button[data-status]')];
+      const next = buttons[buttons.indexOf(document.activeElement as HTMLButtonElement) + (event.key === 'ArrowRight' ? 1 : -1)];
+      if (next) {
+        event.preventDefault();
+        next.focus();
+      }
+    }
+  };
+
   return (
     <>
       <PageHeader title="Davomat" description="Jurnal, statistika va o‘quvchilar reytingi" />
@@ -246,10 +281,19 @@ export default function AttendancePage() {
               <Badge>Belgilanmagan: {sheet.summary.unmarked}</Badge>
             </div>
 
+            {canMark && sheet.students.length > 0 && (
+              <p id="attendance-keys" className="mb-2 hidden text-caption text-fg-subtle sm:block">
+                Klaviatura: <kbd className="font-mono">1</kbd>–<kbd className="font-mono">4</kbd> — holat va keyingi o‘quvchi, <kbd className="font-mono">↑</kbd>{' '}
+                <kbd className="font-mono">↓</kbd> — o‘quvchilar orasida
+              </p>
+            )}
             {sheet.students.length === 0 ? (
               <EmptyState icon={CalendarCheck} title="Guruhda faol o‘quvchi yo‘q" description="O‘quvchi qo‘shilgach jurnal to‘ladi" />
             ) : (
-              <ul className="divide-y divide-border rounded-card border border-border">
+              <ul
+                className="divide-y divide-border rounded-card border border-border"
+                {...(canMark ? { 'aria-describedby': 'attendance-keys' } : {})}
+              >
                 {sheet.students.map((row) => {
                   const current = draft[row.studentId] ?? row.status;
                   const changed = Boolean(draft[row.studentId]) && draft[row.studentId] !== row.status;
@@ -265,7 +309,13 @@ export default function AttendancePage() {
                           {row.markedBy && ` · ${row.markedBy.firstName} belgilagan`}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div
+                        role="group"
+                        aria-label={`${row.firstName} ${row.lastName} davomati`}
+                        data-attendance-row
+                        className="flex flex-wrap gap-1.5"
+                        onKeyDown={(event) => handleRowKey(event, row.studentId)}
+                      >
                         {ATTENDANCE_STATUS_ORDER.map((status) => {
                           const active = current === status;
                           return (
@@ -274,6 +324,7 @@ export default function AttendancePage() {
                               type="button"
                               disabled={!canMark || save.isPending}
                               aria-pressed={active}
+                              data-status={status}
                               onClick={() => setDraft((prev) => ({ ...prev, [row.studentId]: status }))}
                               className={cn(
                                 'h-8 rounded-control border px-3 text-caption font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',

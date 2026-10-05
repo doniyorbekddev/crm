@@ -2,6 +2,7 @@ import { MoreHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { DESKTOP_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/cn';
 
 export interface ActionMenuItem {
@@ -27,12 +28,14 @@ const ITEM_HEIGHT = 40;
 /**
  * Jadval qatorlari uchun "…" menyusi. Menyu `document.body` ga chiziladi —
  * jadvalning `overflow` konteyneri uni kesib qo‘ymasligi uchun.
+ * Telefonda — pastdan chiqadigan varaq (bosh barmoq yetadigan joyda, bandlar kattaroq); rollar bir xil.
  */
 export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false }: ActionMenuProps) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const open = position !== null;
+  const sheet = !useMediaQuery(DESKTOP_QUERY);
 
   /** Tugma joylashuviga qarab menyu o‘rni (pastga sig‘masa — tepaga ochiladi) */
   const positionFor = (rect: DOMRect) => {
@@ -145,13 +148,24 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
         )}
       </button>
       {position &&
+        sheet &&
+        // Fon bosilganda faqat menyu yopiladi — ostidagi tugma tasodifan bosilib ketmaydi
+        createPortal(<div aria-hidden className="fixed inset-0 z-dropdown animate-fade-in bg-overlay" />, document.body)}
+      {position &&
         createPortal(
           <div
             ref={menuRef}
             role="menu"
-            style={{ top: position.top, left: position.left, width: MENU_WIDTH }}
-            className="fixed z-dropdown animate-fade-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md"
+            aria-label={trigger?.label ?? label}
+            style={sheet ? undefined : { top: position.top, left: position.left, width: MENU_WIDTH }}
+            className={cn(
+              'fixed z-dropdown overflow-hidden border-border bg-surface-elevated',
+              sheet
+                ? 'inset-x-0 bottom-0 animate-slide-in-up rounded-t-dialog border-t pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-md'
+                : 'animate-fade-in rounded-control border py-1 shadow-md',
+            )}
           >
+            {sheet && <p className="truncate px-4 pt-1 pb-2 text-caption font-medium text-fg-subtle">{trigger?.label ?? label}</p>}
             {items.map(({ label: itemLabel, icon: Icon, onSelect, tone = 'default', disabled = false }) => (
               <button
                 key={itemLabel}
@@ -163,7 +177,8 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
                   onSelect();
                 }}
                 className={cn(
-                  'flex h-10 w-full items-center gap-2.5 px-3 text-left text-body outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
+                  'flex w-full items-center gap-2.5 text-left outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
+                  sheet ? 'h-12 px-4 text-body-lg' : 'h-10 px-3 text-body',
                   tone === 'danger'
                     ? 'text-danger hover:bg-danger-subtle focus-visible:bg-danger-subtle'
                     : 'text-fg hover:bg-surface-muted focus-visible:bg-surface-muted',

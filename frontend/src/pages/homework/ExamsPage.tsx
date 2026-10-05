@@ -1,6 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ListChecks, ClipboardCheck, FileCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, ExternalLink, FileCheck, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -42,6 +43,7 @@ type Dialog =
 
 export default function ExamsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const canManage = usePermission(PERMISSIONS.EXAM_MANAGE);
 
   const [searchInput, setSearchInput] = useState('');
@@ -249,6 +251,7 @@ export default function ExamsPage() {
                             icon: ListChecks,
                             onSelect: () => setDialog({ type: 'questions', exam }),
                           },
+                          { label: 'Imtihon sahifasi', icon: ExternalLink, onSelect: () => navigate(`/exams/${exam.id}`) },
                           ...(canManage
                             ? [
                                 { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', exam }) },

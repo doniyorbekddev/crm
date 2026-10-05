@@ -531,6 +531,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/homework/ExamsPage"),
                         ),
                       },
+                      {
+                        path: "exams/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/homework/ExamPage"),
+                        ),
+                      },
                     
                       {
                         path: "questions",

@@ -1,7 +1,7 @@
 import { headerSort } from '@/utils/tableSort';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
+import { ArrowLeftRight, CalendarCheck, Eye, GraduationCap, KeyRound, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import {
 import { StudentXpModal } from '../gamification/StudentXpModal';
 import { PaymentFormModal } from '../payments/PaymentFormModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { StudentQuickView } from './StudentQuickView';
 import { StudentFormModal } from './StudentFormModal';
 import { BulkPortalAccountsModal } from '@/components/BulkPortalAccountsModal';
 import { PortalAccountModal } from '@/components/PortalAccountModal';
@@ -62,7 +63,7 @@ const SORT_OPTIONS = [
 type Dialog =
   | { type: 'create' }
   | { type: 'portalBulk' }
-  | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal' | 'portalReset'; student: StudentItem }
+  | { type: 'quickView' | 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal' | 'portalReset'; student: StudentItem }
   | null;
 
 /** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
@@ -261,6 +262,7 @@ export default function StudentsPage() {
           <ActionMenu
             label={`${student.firstName} ${student.lastName} amallari`}
             items={[
+              { label: 'Tezkor ko‘rish', icon: Eye, onSelect: () => setDialog({ type: 'quickView', student }) },
               { label: 'Profil', icon: UserRound, onSelect: () => navigate(`/students/${student.id}`) },
               ...(canCreatePayment && (student.debt?.remaining ?? 0) > 0
                 ? [{ label: 'To‘lov qabul qilish', icon: Wallet, onSelect: () => setDialog({ type: 'payment', student }) }]
@@ -512,6 +514,7 @@ export default function StudentsPage() {
           }}
         />
       )}
+      {dialog?.type === 'quickView' && <StudentQuickView student={dialog.student} showAttendance={canViewAttendance} onClose={() => setDialog(null)} />}
       {dialog?.type === 'attendance' && <StudentAttendanceModal student={dialog.student} onClose={() => setDialog(null)} />}
       {dialog?.type === 'xp' && <StudentXpModal studentId={dialog.student.id} onClose={() => setDialog(null)} />}
       {dialog?.type === 'payment' && (

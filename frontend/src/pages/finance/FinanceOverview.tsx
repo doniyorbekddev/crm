@@ -85,6 +85,10 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
   }
 
   const summary = summaryQuery.data;
+  // Naqd / naqdsiz bo'linishi kassalar ro'yxatidan (turi CASH); ro'yxat hali kelmagan bo'lsa ko'rsatilmaydi
+  const cashBalance = accountsQuery.data
+    ? accountsQuery.data.items.filter((account) => account.isActive && account.type === 'CASH').reduce((sum, account) => sum + account.balance, 0)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -115,7 +119,15 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
               hint={`Marja: ${summary.margin}%`}
               tone={summary.netProfit >= 0 ? 'positive' : 'negative'}
             />
-            <KpiCard label="Kassalardagi qoldiq" value={formatMoney(summary.totalBalance)} hint={`Qarzdorlik: ${formatMoney(summary.totalDebt)}`} />
+            <KpiCard
+              label="Kassalardagi qoldiq"
+              value={formatMoney(summary.totalBalance)}
+              hint={
+                cashBalance === null
+                  ? `Qarzdorlik: ${formatMoney(summary.totalDebt)}`
+                  : `Naqd: ${formatMoney(cashBalance)} · naqdsiz: ${formatMoney(summary.totalBalance - cashBalance)} · qarzdorlik: ${formatMoney(summary.totalDebt)}`
+              }
+            />
           </div>
 
           <CashFlowChart range={range} period={period} onPeriodChange={setPeriod} />

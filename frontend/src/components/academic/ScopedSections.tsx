@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { BookOpenCheck, CalendarCheck, FileCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CardHeader, CardTitle } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
@@ -94,6 +94,7 @@ export function HomeworkSection({ scope }: { scope: AcademicScope }) {
 
 export function ExamSection({ scope }: { scope: AcademicScope }) {
   const params: ExamListParams = { page: 1, limit: LIMIT, sortBy: 'date', sortOrder: 'desc', ...scope };
+  const navigate = useNavigate();
   const query = useQuery({ queryKey: queryKeys.exams.list(params), queryFn: () => examsService.list(params) });
   return (
     <DataTable
@@ -113,6 +114,7 @@ export function ExamSection({ scope }: { scope: AcademicScope }) {
       error={query.error}
       retrying={query.isFetching}
       onRetry={() => void query.refetch()}
+      onRowClick={(row) => navigate(`/exams/${row.id}`)}
       empty={{ icon: FileCheck, title: 'Imtihon yo‘q', description: 'Imtihon rejalashtirilgach shu yerda ko‘rinadi' }}
       mobileLayout="cards"
       columns={[

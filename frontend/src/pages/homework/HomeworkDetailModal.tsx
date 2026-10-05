@@ -1,3 +1,4 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCheck, Code2, Eye, FileText, Link2, Paperclip, Save, Trash2, Type } from 'lucide-react';
 import { useState } from 'react';
@@ -294,20 +295,14 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
                 <Button variant="secondary" loading={addLink.isPending} disabled={link.title.trim().length < 2 || !link.url.trim()} onClick={() => addLink.mutate()}>
                   Havola
                 </Button>
-                <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-control border border-border px-3 py-2 text-label text-fg hover:bg-surface-muted">
-                  <Paperclip className="size-4" aria-hidden />
-                  Fayl
-                  <input
-                    type="file"
-                    accept="application/pdf,image/png,image/jpeg,image/webp"
-                    className="sr-only"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) upload.mutate(file);
-                      event.target.value = '';
-                    }}
-                  />
-                </label>
+                <FileUpload
+                  compact
+                  aria-label="Fayl biriktirish"
+                  title="Fayl"
+                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                  busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+                  onFiles={(files) => files[0] && upload.mutate(files[0])}
+                />
               </div>
             )}
           </section>

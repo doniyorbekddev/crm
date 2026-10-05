@@ -129,7 +129,17 @@
 - `Table`da ataylab qolganlar: faqat matritsa va hisobot jadvallari (rollar, sotuv rejalari, akademik taqqoslov, komissiya bloklari, foyda-zarar, byudjet, analitika, hisobotlar, o'zlashtirish matritsasi).
 - Keyingi qadamda qolgan 4 murakkab ro'yxat ham o'tdi (maoshlar, moliyaviy daftar, davomat reytingi, chegirma qoidalari); telefonda karta ko'rinishi katakning ma'noli klasslarini (rang, qalinlik) saqlaydi; 15 sahifa 390/768px da tekshirildi — bitta eski topilma (davomat «Mening darslarim» kartasi +88px) tuzatildi.
 - Backend bilan birga bajarildi (foydalanuvchi ruxsati bilan): **bildirishnoma toifasi filtri** (`GET /notifications?category=SALES|FINANCE|ATTENDANCE|HOMEWORK|EXAM|ACADEMIC|SYSTEM`, sahifada toifa tablari) va **ustun sarlavhasi orqali server saralashi** — 8 asosiy ro'yxatda (`utils/tableSort.ts` → `headerSort`; saralash ro'yxati bilan bitta holat). Backendda yangi: xodimlar ro'yxatida `sortBy` (`name|hireDate|createdAt`, ixtiyoriy), ota-onalarda familiya bo'yicha ikki yo'nalish. Qolgan ro'yxatlar `sortBy`ni avvaldan qo'llardi.
-- Hali backendga bog'liq: o'qituvchi/guruh sahifalaridagi qo'shimcha bo'limlar.
+- **`dizayn.md` bilan qayta solishtiruv (mustaqil tekshiruv, 30 band)** — frontendda bajarilganlari:
+  guruh sahifasi bo'limlari (O'quvchilar / Davomat / Uy vazifalari / Imtihonlar / O'zlashtirish); o'qituvchi profili (Jadval, Davomat, Uy vazifalari, Imtihonlar);
+  o'quvchi profili (Davomat, Sertifikatlar); imtihon sahifasi `/exams/:id` (natijalar, taqsimot); lead va o'quvchi uchun tezkor ko'rish paneli (Drawer);
+  dashboard vidjetlari (So'nggi leadlar, Eng katta qarzdorlar); davomat jurnalida klaviatura (1–4, strelkalar); amallar menyusi telefonda pastki varaq;
+  tipografiya va radius tokenlari (`scripts/tokenize-type.py`, 165+ fayl); Timeline primitivi; bildirishnoma panelida toifa; moliyada naqd/naqdsiz;
+  matnli yuklanish/bo'sh/xato holatlari → Skeleton/EmptyState/ErrorState; emoji medallar → `RankMark`; `window.confirm` → ConfirmDialog.
+- Ochiq qolgan (backend kerak): dashboard uchun sana oralig'i va qo'shimcha grafiklar (o'quvchilar o'sishi, davomat trendi), KPI taqqoslovi/sparkline,
+  o'quvchi sarlavhasida filial va keyingi dars, o'quvchiga xabar yuborish, ommaviy amallar (bulk), uy vazifasi holatlari bo'yicha sanoq, savol bo'yicha imtihon tahlili,
+  o'qituvchi KPI tarixi.
+- Ochiq qolgan (frontend, ataylab keyinga): DatePicker/TimePicker komponenti (hozir brauzerning o'z maydoni), qolgan uzun `<Select>`larni Combobox'ga o'tkazish,
+  4 ta maxsus fayl maydoni, eski Badge rang nomlari (ishlaydi, taxallus), 450+ qatorli sahifalarni bo'lish, jadval sarlavhasini yopishtirish (sticky).
 
 ## Ochiq savollar (javob bo'lmasa — tavsiya bilan davom etiladi)
 1. **Asosiy rang**: mavjud `brand` (ko'k/indigo) saqlanadi. *Tavsiya: ha.*

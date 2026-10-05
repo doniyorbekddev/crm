@@ -1,5 +1,6 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2, Paperclip, Trash2, Upload } from 'lucide-react';
+import { Link2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { MaterialList } from '@/components/lesson/LessonBody';
@@ -211,21 +212,14 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <Input aria-label="Fayl nomi (ixtiyoriy)" placeholder="Fayl nomi (ixtiyoriy)" value={fileTitle} onChange={(event) => setFileTitle(event.target.value)} />
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-control border border-border px-3 py-2 text-label text-fg hover:bg-surface-muted">
-                    {upload.isPending ? <Upload className="size-4 animate-pulse" aria-hidden /> : <Paperclip className="size-4" aria-hidden />}
-                    Fayl yuklash (PDF, rasm)
-                    <input
-                      type="file"
-                      accept="application/pdf,image/png,image/jpeg,image/webp"
-                      className="sr-only"
-                      disabled={upload.isPending}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) upload.mutate(file);
-                        event.target.value = '';
-                      }}
-                    />
-                  </label>
+                  <FileUpload
+                    compact
+                    aria-label="Dars materiali faylini tanlash"
+                    title="Fayl yuklash (PDF, rasm)"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+                    onFiles={(files) => files[0] && upload.mutate(files[0])}
+                  />
                 </div>
                 <p className="text-caption text-fg-subtle">Slayd, arxiv va boshqa formatlarni Google Drive havolasi sifatida qo‘shing.</p>
               </div>
