@@ -45,14 +45,14 @@
 
 
 <h2>000. dizayn.md — UI/UX redesign (16 faza + yakunlash)</h2>
-<p class="small">2026-10-05 holati. Spetsifikatsiya: <code>docs/dizayn.md</code>. Audit: <code>docs/DESIGN-AUDIT.md</code>. Reja va holat: <code>docs/ROADMAP-DESIGN.md</code>. Dizayn tizimi: <code>docs/design-system.md</code>. Funksionallik, marshrutlar va ruxsatlar o‘zgarmagan; backend faqat ikki joyda, ruxsat bilan o‘zgardi (pastda).</p>
+<p class="small">2026-10-05 holati. Spetsifikatsiya: <code>docs/dizayn.md</code>. Audit: <code>docs/DESIGN-AUDIT.md</code>. Reja va holat: <code>docs/ROADMAP-DESIGN.md</code>. Dizayn tizimi: <code>docs/design-system.md</code>. Mavjud funksionallik, marshrutlar va ruxsatlar o‘zgarmagan; backendga faqat qo‘shimcha (migratsiyasiz) endpoint va parametrlar qo‘shildi — ruxsat bilan (000.2).</p>
 <div class="kpi">
   <div><b>195 + 51</b><span>frontend testlari · E2E (hammasi o‘tadi)</span></div>
-  <div><b>23</b><span>redesign kommitlari</span></div>
+  <div><b>26</b><span>redesign kommitlari</span></div>
   <div><b>746 → 4</b><span>xom rang klasslari (faqat sertifikat chop etish sahifasi)</span></div>
-  <div><b>305</b><span>fayl o‘zgardi (+13 061 / −6 365 qator)</span></div>
+  <div><b>343</b><span>fayl o‘zgardi (+14 394 / −6 430 qator)</span></div>
 </div>
-<div class="box"><b>Holat:</b> 16 faza to‘liq bajarildi. Keyin spetsifikatsiya kod bilan qayta solishtirildi (30 ga yaqin band): frontendda qilsa bo‘ladiganlari bajarildi, qolganlari 000.4-jadvalda — ularning ko‘pi yangi backend endpoint talab qiladi. Demak <code>dizayn.md</code> <b>to‘liq 100% yopilmagan</b>.</div>
+<div class="box"><b>Holat:</b> 16 faza to‘liq bajarildi. Keyin spetsifikatsiya kod bilan qayta solishtirildi (30 ga yaqin band): frontend bandlari va backendga bog‘liq bandlarning hammasi bajarildi. Qolgan 6 band — qaror bilan qoldirilgan, sababi 000.4-jadvalda.</div>
 
 <h3>000.1. Fazalar</h3>
 <table>
@@ -93,6 +93,11 @@
 <tr><td><b>Mobil menyu</b></td><td>Amallar menyusi telefonda pastdan chiqadigan varaq</td><td><code>a079b6e</code></td></tr>
 <tr><td><b>Tokenlar</b></td><td>Tipografiya va radius 165+ faylda tokenlarga o‘tdi (<code>tokenize-type.py</code>)</td><td><code>7cc98aa</code></td></tr>
 <tr><td><b>Holatlar</b></td><td>Matnli «Yuklanmoqda…», bo‘sh va xato holatlari → Skeleton / EmptyState / ErrorState; emoji medallar va <code>window.confirm</code> olib tashlandi</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>Dashboard (backend)</b></td><td><b>Backend:</b> <code>dashboard/charts</code>da o‘quvchilar o‘sishi va davomat trendi; <code>summary</code>da yangi lead/o‘quvchilar o‘sishi. Grafikda «O‘quv jarayoni» ko‘rinishi</td><td><code>316be20</code></td></tr>
+<tr><td><b>O‘quvchi (backend)</b></td><td><b>Backend:</b> profilda filial va keyingi dars; <code>POST students/:id/message</code> — o‘quvchi/ota-onaga xabar (ilova + Telegram, audit)</td><td><code>316be20</code></td></tr>
+<tr><td><b>Ommaviy amal (backend)</b></td><td><b>Backend:</b> <code>POST leads/bulk-assign</code> — yakka biriktirish qoidalari bilan; jadvalda tanlash va biriktirish</td><td><code>316be20</code></td></tr>
+<tr><td><b>O‘qituvchi KPI (backend)</b></td><td><b>Backend:</b> <code>teachers/:id/performance-history</code>, <code>students?teacherId=</code>. Profilda 6 oylik dinamika va «O‘quvchilar» bo‘limi</td><td><code>316be20</code></td></tr>
+<tr><td><b>Vazifa va imtihon (backend)</b></td><td><b>Backend:</b> <code>homework/summary</code> (holatlar sanog‘i), <code>exams/:id/question-analysis</code> (savol bo‘yicha tahlil). Sahifalarda kartalar va jadval</td><td><code>316be20</code></td></tr>
 </table>
 
 <h3>000.3. Tekshiruv natijalari</h3>
@@ -107,21 +112,19 @@
 <tr><td>Frontend testlari</td><td>136</td><td>195</td></tr>
 <tr><td>E2E</td><td>48</td><td>51 (yangi: saralash, toifa filtri, davomat klaviaturasi)</td></tr>
 </table>
-<p class="small">Backend: toifa filtri va saralash uchun integratsion testlar qo‘shildi (bildirishnomalar 13/13, xodimlar va ota-onalar 9/9). Butun backend to‘plami shu o‘zgarishlardan keyin bir marta yurgizildi: 937 o‘tdi, 1 yiqildi — <code>teachers.test.ts</code> sanani 2026-sentabr deb qattiq yozgan edi (oktabrda yiqila boshlagan, o‘zgarishlarga bog‘liq emas). Test joriy oydan foydalanadigan qilindi va fayl 17/17 o‘tdi; butun to‘plam tuzatishdan keyin qayta yurgizilmagan.</p>
+<p class="small">Backend: har yangi endpoint va parametrga integratsion test yozildi. Butun backend to‘plami oxirgi o‘zgarishlardan keyin yurgizildi: 952 o‘tdi, 1 yiqildi (<code>codeRun.test.ts</code> — yuk ostida vaqt tugashi; alohida yurgizilganda o‘tadi, o‘zgarishlarga bog‘liq emas). Yo‘l-yo‘lakay <code>teachers.test.ts</code> tuzatildi: sanani 2026-sentabr deb qattiq yozgan edi va oktabrda yiqila boshlagan.</p>
 
-<h3>000.4. dizayn.md bo'yicha ochiq qolganlar</h3>
+<h3>000.4. dizayn.md bo'yicha ataylab qilinmaganlar</h3>
+<p class="small">Backendga bog'liq bandlarning hammasi bajarildi (000.2). Quyidagilar — qaror bilan qoldirilgan, sababi bilan.</p>
 <table>
-<tr><th style="width:150px">Bo'lim</th><th>Nima qilinmagan</th><th style="width:170px">Sabab</th></tr>
-<tr><td>§13 Dashboard</td><td>Sahifa darajasida sana oralig‘i; o‘quvchilar o‘sishi, davomat trendi, kurs samaradorligi grafiklari; KPI taqqoslovi</td><td><span class="s warn">yangi backend endpoint</span></td></tr>
-<tr><td>§15 O‘quvchi</td><td>Sarlavhada filial va keyingi dars; o‘quvchiga xabar yuborish</td><td><span class="s warn">backend</span></td></tr>
-<tr><td>§14 Jadvallar</td><td>Qatorlarni tanlab ommaviy amal (komponent tayyor, ommaviy endpointlar yo‘q)</td><td><span class="s warn">backend</span></td></tr>
-<tr><td>§16 O‘qituvchi</td><td>KPI tarixi va taqqoslov (API faqat joriy oyni beradi); o‘qituvchining o‘quvchilari ro‘yxati</td><td><span class="s warn">backend</span></td></tr>
-<tr><td>§21–22 Vazifa/imtihon</td><td>Topshiriq holatlari bo‘yicha sanoq; savol bo‘yicha imtihon tahlili</td><td><span class="s warn">backend</span></td></tr>
-<tr><td>§27 Formalar</td><td>Alohida DatePicker/TimePicker (hozir brauzerning o‘z maydoni); qolgan uzun ro‘yxatlarni qidiruvli tanlovga o‘tkazish; 4 maxsus fayl maydoni</td><td><span class="s warn">frontend, keyinga</span></td></tr>
-<tr><td>§14, §43</td><td>Jadval sarlavhasini yopishtirish; 450+ qatorli sahifalarni bo‘lish; eski Badge rang nomlari</td><td><span class="s warn">frontend, keyinga</span></td></tr>
-<tr><td>§13 Tezkor amallar</td><td>Dashboardda tezkor amallar qo‘shilmadi — yaratish oynalari faqat o‘z sahifalarida ochiladi</td><td><span class="s warn">qaror</span></td></tr>
+<tr><th style="width:190px">Band</th><th>Nega qilinmadi</th></tr>
+<tr><td>§27 Alohida DatePicker / TimePicker</td><td>Sana maydonlari yagona <code>Input</code> orqali brauzerning o‘z tanlagichidan foydalanadi: klaviatura, mobil va avtotestlar bilan ishlaydi</td></tr>
+<tr><td>§27 Guruh/kurs tanlovlarini qidiruvli qilish</td><td>Ro‘yxatlar qisqa (100 tagacha); E2E testlar ularni to‘g‘ridan-to‘g‘ri tanlaydi — almashtirish ko‘p testni qayta yozishni talab qiladi</td></tr>
+<tr><td>§14 Yopishqoq jadval sarlavhasi</td><td>20 qatorli sahifalashda jadval ichida alohida aylanish maydoni kerak bo‘lardi (ikki qavatli skroll)</td></tr>
+<tr><td>§13 Ixtiyoriy sana oralig‘i</td><td>Grafik davri (14 kun / 8 hafta / 6 oy) saqlangan; KPI kartalari «bugun / shu oy» ma’nosida</td></tr>
+<tr><td>§13 Tezkor amallar</td><td>Yaratish oynalari faqat o‘z sahifalarida ochiladi; oddiy havolalar yon menyuni takrorlardi</td></tr>
+<tr><td>§43 Katta sahifalarni bo‘lish</td><td>Faqat refaktoring, foydalanuvchi uchun o‘zgarish yo‘q — alohida ish</td></tr>
 </table>
-
 
 <h2>00. promt3.1.md — "Academy CRM 3.1" (19 GAP, 21 faza)</h2>
 <p class="small">2026-09-28 holati. PHASE 0 audit source code bo'yicha (<code>docs/ACADEMY-3.1-AUDIT.md</code>), keyin 21 faza — har biri test, commit va §53 hisobot bilan (<code>docs/PHASE-REPORTS-3.1.md</code>). Qabul hujjati: <code>docs/ACCEPTANCE-3.1.md</code>.</p>

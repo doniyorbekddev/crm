@@ -1,7 +1,8 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, FileText, ImageIcon, Link2, Megaphone, Paperclip, Plus, Send, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Eye, FileText, ImageIcon, Link2, Megaphone, Plus, Send, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/ui/Alert';
@@ -253,7 +254,6 @@ function History() {
 
 export default function BroadcastsPage() {
   const queryClient = useQueryClient();
-  const fileInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [media, setMedia] = useState<BroadcastMedia | null>(null);
@@ -349,18 +349,6 @@ export default function BroadcastsPage() {
 
             <div className="space-y-2">
               <p className="text-label">Rasm yoki hujjat (ixtiyoriy)</p>
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,application/pdf"
-                className="sr-only"
-                aria-label="Rasm yoki hujjat fayli"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (file) upload.mutate(file);
-                }}
-              />
               {media ? (
                 <div className="flex items-center gap-2 text-body">
                   {media.kind === 'photo' ? <ImageIcon className="size-4" aria-hidden /> : <FileText className="size-4" aria-hidden />}
@@ -378,9 +366,14 @@ export default function BroadcastsPage() {
                   </Button>
                 </div>
               ) : (
-                <Button variant="secondary" size="sm" loading={upload.isPending} leftIcon={<Paperclip className="size-4" />} onClick={() => fileInput.current?.click()}>
-                  Fayl biriktirish
-                </Button>
+                <FileUpload
+                  compact
+                  aria-label="Rasm yoki hujjat fayli"
+                  title="Fayl biriktirish"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+                  onFiles={(files) => files[0] && upload.mutate(files[0])}
+                />
               )}
               <p className="text-caption text-fg-subtle">PNG, JPG, WEBP yoki PDF.</p>
             </div>

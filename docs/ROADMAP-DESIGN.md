@@ -135,11 +135,19 @@
   dashboard vidjetlari (So'nggi leadlar, Eng katta qarzdorlar); davomat jurnalida klaviatura (1–4, strelkalar); amallar menyusi telefonda pastki varaq;
   tipografiya va radius tokenlari (`scripts/tokenize-type.py`, 165+ fayl); Timeline primitivi; bildirishnoma panelida toifa; moliyada naqd/naqdsiz;
   matnli yuklanish/bo'sh/xato holatlari → Skeleton/EmptyState/ErrorState; emoji medallar → `RankMark`; `window.confirm` → ConfirmDialog.
-- Ochiq qolgan (backend kerak): dashboard uchun sana oralig'i va qo'shimcha grafiklar (o'quvchilar o'sishi, davomat trendi), KPI taqqoslovi/sparkline,
-  o'quvchi sarlavhasida filial va keyingi dars, o'quvchiga xabar yuborish, ommaviy amallar (bulk), uy vazifasi holatlari bo'yicha sanoq, savol bo'yicha imtihon tahlili,
-  o'qituvchi KPI tarixi.
-- Ochiq qolgan (frontend, ataylab keyinga): DatePicker/TimePicker komponenti (hozir brauzerning o'z maydoni), qolgan uzun `<Select>`larni Combobox'ga o'tkazish,
-  4 ta maxsus fayl maydoni, eski Badge rang nomlari (ishlaydi, taxallus), 450+ qatorli sahifalarni bo'lish, jadval sarlavhasini yopishtirish (sticky).
+- **Backendga bog'liq bandlar ham bajarildi** (ruxsat bilan, hammasi qo'shimcha — migratsiyasiz; har endpointga integratsion test):
+  `dashboard/charts` — o'quvchilar o'sishi va davomat trendi; `dashboard/summary` — yangi lead/o'quvchilar o'sishi;
+  `students/:id/profile` — filial va keyingi dars; `POST students/:id/message` — o'quvchi/ota-onaga xabar (audit bilan);
+  `POST leads/bulk-assign` — ommaviy biriktirish; `teachers/:id/performance-history` — KPI tarixi; `students?teacherId=`;
+  `homework/summary` — holatlar sanog'i; `exams/:id/question-analysis` — savol bo'yicha tahlil. Frontendda mos ekranlar ulangan.
+- Yana 3 ta fayl maydoni `FileUpload`ga o'tdi (kabinetdagi imtihon javobi, xodim hujjatlari, ommaviy xabar mediasi).
+- **Ataylab qilinmagan (qaror):**
+  - Alohida DatePicker/TimePicker — sana maydonlari yagona `Input` orqali brauzerning o'z tanlagichidan foydalanadi (klaviatura, mobil va E2E `fill` bilan ishlaydi).
+  - Guruh/kurs `<Select>`larini Combobox'ga o'tkazish — ro'yxatlar qisqa (≤100) va E2E ularni `selectOption` bilan boshqaradi.
+  - Jadval sarlavhasini yopishtirish — 20 qatorli sahifalashda ichki aylanish maydoni kerak bo'lardi (ikki qavatli skroll).
+  - Logo yuklash — oldindan ko'rish va «Almashtirish» tugmasi bilan o'z qolipida.
+  - Dashboardda sahifa darajasidagi ixtiyoriy sana oralig'i — grafik davri (14 kun / 8 hafta / 6 oy) saqlangan; KPI'lar «bugun / shu oy» ma'nosida.
+  - 450+ qatorli sahifalarni bo'lish — faqat refaktoring, xatti-harakat o'zgarmaydi; alohida ish.
 
 ## Ochiq savollar (javob bo'lmasa — tavsiya bilan davom etiladi)
 1. **Asosiy rang**: mavjud `brand` (ko'k/indigo) saqlanadi. *Tavsiya: ha.*

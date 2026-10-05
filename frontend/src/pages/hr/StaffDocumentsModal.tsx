@@ -1,8 +1,8 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText, ImageIcon, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import { Download, FileText, ImageIcon, Pencil, ShieldCheck, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -65,7 +65,6 @@ function MetaFields({ idPrefix, draft, errors, onChange }: { idPrefix: string; d
 /** O‘qituvchi / xodim hujjatlari: shartnoma, pasport nusxasi, sertifikat. Ochiq havola yo‘q — yuklab olish ruxsat bilan */
 export function StaffDocumentsModal({ owner, entityId, personName, canManage, onClose, onChanged }: StaffDocumentsModalProps) {
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<MetaDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -124,19 +123,6 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setUploadError(null);
-    setErrors({});
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setUploadError('Fayl hajmi 5 MB dan oshmasligi kerak');
-      return;
-    }
-    upload.mutate(file);
-  };
-
   const download = async (document: DocumentItem) => {
     setDownloading(document.id);
     try {
@@ -162,10 +148,20 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
             <MetaFields idPrefix="new-document" draft={draft} errors={errors} onChange={setDraft} />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-caption text-fg-muted">JPG, PNG, WEBP yoki PDF · 5 MB gacha</p>
-              <input ref={inputRef} type="file" accept={ACCEPTED_UPLOAD_TYPES} className="hidden" onChange={onFile} aria-label="Hujjat faylini tanlash" />
-              <Button leftIcon={<Upload className="size-4" aria-hidden />} loading={upload.isPending} onClick={() => inputRef.current?.click()}>
-                Fayl tanlab yuklash
-              </Button>
+              <FileUpload
+                compact
+                aria-label="Hujjat faylini tanlash"
+                title="Fayl tanlab yuklash"
+                accept={ACCEPTED_UPLOAD_TYPES}
+                maxSizeBytes={MAX_UPLOAD_BYTES}
+                busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+                onReject={setUploadError}
+                onFiles={(files) => {
+                  setUploadError(null);
+                  setErrors({});
+                  if (files[0]) upload.mutate(files[0]);
+                }}
+              />
             </div>
           </section>
         )}

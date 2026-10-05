@@ -1,5 +1,6 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, Clock, Upload, XCircle, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, XCircle, Check } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -273,22 +274,15 @@ function TakeExam({ view }: { view: AttemptView }) {
                     </fieldset>
                   ) : question.type === 'FILE_UPLOAD' ? (
                     <div className="flex flex-wrap items-center gap-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-control border border-border px-3 py-2 text-body text-fg hover:bg-surface-muted">
-                        <Upload className="size-4" aria-hidden />
-                        {question.answer.hasFile ? 'Faylni almashtirish' : 'Fayl tanlash'}
-                        <input
-                          type="file"
-                          accept="application/pdf,image/png,image/jpeg,image/webp"
-                          className="sr-only"
-                          aria-label={`${question.order}-savolga fayl`}
-                          disabled={expired || upload.isPending}
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            event.target.value = '';
-                            if (file) upload.mutate({ question, file });
-                          }}
-                        />
-                      </label>
+                      <FileUpload
+                        compact
+                        aria-label={`${question.order}-savolga fayl`}
+                        title={question.answer.hasFile ? 'Faylni almashtirish' : 'Fayl tanlash'}
+                        accept="application/pdf,image/png,image/jpeg,image/webp"
+                        disabled={expired}
+                        busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+                        onFiles={(files) => files[0] && upload.mutate({ question, file: files[0] })}
+                      />
                       <span className="text-caption text-fg-subtle">{question.answer.hasFile ? 'Fayl yuklangan' : 'PDF yoki rasm (JPG, PNG, WEBP)'}</span>
                     </div>
                   ) : question.type === 'SHORT_TEXT' ? (
