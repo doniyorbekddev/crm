@@ -35,9 +35,9 @@ function rateTone(rate: number): string {
 function CountsCard({ label, counts }: { label: string; counts: AttendanceCounts }) {
   return (
     <Card className="p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p className={cn('mt-1 text-xl font-semibold', rateTone(counts.rate))}>{counts.rate}%</p>
-      <p className="mt-1 text-xs text-fg-muted">
+      <p className="text-caption text-fg-muted">{label}</p>
+      <p className={cn('mt-1 text-h2', rateTone(counts.rate))}>{counts.rate}%</p>
+      <p className="mt-1 text-caption text-fg-muted">
         {formatNumber(counts.total)} ta belgi · keldi {formatNumber(counts.PRESENT)} · kelmadi {formatNumber(counts.ABSENT)}
       </p>
     </Card>
@@ -107,7 +107,7 @@ export function AttendanceStats() {
       {statsQuery.isPending ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-card" />
           ))}
         </div>
       ) : statsQuery.isError ? (
@@ -125,7 +125,7 @@ export function AttendanceStats() {
             <Card>
               <CardHeader>
                 <CardTitle>Davomat foizi bo‘yicha o‘quvchilar</CardTitle>
-                <span className="text-xs text-fg-muted">{formatNumber(stats.students)} ta o‘quvchi</span>
+                <span className="text-caption text-fg-muted">{formatNumber(stats.students)} ta o‘quvchi</span>
               </CardHeader>
               <CardContent>
                 {stats.students === 0 ? (
@@ -134,7 +134,7 @@ export function AttendanceStats() {
                   <ul className="space-y-2.5">
                     {stats.buckets.map((bucket) => (
                       <li key={bucket.key}>
-                        <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center justify-between text-caption">
                           <span className="text-fg">{bucket.label}</span>
                           <span className="text-fg-muted tabular-nums">{formatNumber(bucket.students)} ta</span>
                         </div>
@@ -157,7 +157,7 @@ export function AttendanceStats() {
             <Card>
               <CardHeader>
                 <CardTitle>Guruhlar kesimi</CardTitle>
-                <span className="text-xs text-fg-muted">{formatNumber(stats.sessions)} ta dars</span>
+                <span className="text-caption text-fg-muted">{formatNumber(stats.sessions)} ta dars</span>
               </CardHeader>
               <CardContent className="p-0">
                 {stats.byGroup.length === 0 ? (
@@ -167,12 +167,12 @@ export function AttendanceStats() {
                     {stats.byGroup.map((group) => (
                       <li key={group.groupId} className="flex items-center justify-between gap-3 px-4 py-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-sm text-fg">{group.groupName}</p>
-                          <p className="truncate text-xs text-fg-muted">{group.courseName}</p>
+                          <p className="truncate text-body text-fg">{group.groupName}</p>
+                          <p className="truncate text-caption text-fg-muted">{group.courseName}</p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className={cn('text-sm font-semibold', rateTone(group.rate))}>{group.rate}%</p>
-                          <p className="text-xs text-fg-muted">{formatNumber(group.total)} belgi</p>
+                          <p className={cn('text-h4', rateTone(group.rate))}>{group.rate}%</p>
+                          <p className="text-caption text-fg-muted">{formatNumber(group.total)} belgi</p>
                         </div>
                       </li>
                     ))}

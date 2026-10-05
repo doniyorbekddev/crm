@@ -162,7 +162,7 @@ export default function StudentsPage() {
           <Link to={`/students/${student.id}`} className="focus-ring rounded-sm font-medium text-fg hover:text-primary hover:underline">
             {student.firstName} {student.lastName}
           </Link>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {student.code} · {formatPhone(student.phone)}
           </p>
         </>
@@ -174,7 +174,7 @@ export default function StudentsPage() {
       cell: (student: StudentTableRow) => (
         <>
           <p className="text-fg">{student.course.name}</p>
-          <p className="text-xs text-fg-muted">{student.group ? student.group.name : 'Guruhsiz'}</p>
+          <p className="text-caption text-fg-muted">{student.group ? student.group.name : 'Guruhsiz'}</p>
         </>
       ),
     },
@@ -185,7 +185,7 @@ export default function StudentsPage() {
       cell: (student: StudentTableRow) => (
         <>
           <p className="text-fg">{formatMoney(student.contractPrice)}</p>
-          {student.contractNumber && <p className="text-xs text-fg-muted">{student.contractNumber}</p>}
+          {student.contractNumber && <p className="text-caption text-fg-muted">{student.contractNumber}</p>}
         </>
       ),
     },

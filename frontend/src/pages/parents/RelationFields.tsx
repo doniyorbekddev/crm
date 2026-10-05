@@ -25,7 +25,7 @@ export function RelationFields({ idPrefix, relation, isPrimary, onRelationChange
           ))}
         </Select>
       </FormField>
-      <label className="flex h-10 items-center gap-2 text-sm text-fg">
+      <label className="flex h-10 items-center gap-2 text-body text-fg">
         <Checkbox checked={isPrimary} onChange={(event) => onPrimaryChange(event.target.checked)} />
         Asosiy vakil (eslatmalar shu raqamga)
       </label>

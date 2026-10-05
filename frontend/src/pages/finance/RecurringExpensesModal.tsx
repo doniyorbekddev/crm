@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
@@ -122,11 +123,11 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
   return (
     <Modal open size="lg" title="Takroriy xarajatlar" description="Har oy kutilayotgan xarajat yaratiladi — pul avtomatik yechilmaydi" onClose={onClose}>
       <div className="space-y-5">
-        <section className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
+        <section className="rounded-card border border-border bg-surface-muted p-3 text-body">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="font-medium text-fg">Tasdiq chegarasi</p>
-              <p className="text-xs text-fg-muted">
+              <p className="text-caption text-fg-muted">
                 {currentThreshold > 0
                   ? `${formatMoney(currentThreshold)} va undan katta xarajat rahbar tasdig‘ini talab qiladi`
                   : 'O‘chirilgan — barcha xarajatlar darhol to‘lanadi'}
@@ -160,7 +161,7 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
 
         <section>
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-fg">Ro‘yxat</h3>
+            <h3 className="text-h4 text-fg">Ro‘yxat</h3>
             {canManage && (
               <Button size="sm" variant="secondary" leftIcon={<RefreshCw className="size-4" aria-hidden />} loading={generate.isPending} onClick={() => generate.mutate()}>
                 Shu oy uchun yaratish
@@ -168,15 +169,19 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
             )}
           </div>
           {listQuery.isPending ? (
-            <p className="py-4 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
+            <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-2/3" />
+            </div>
           ) : listQuery.isError ? (
             <Alert tone="error">{getErrorMessage(listQuery.error)}</Alert>
           ) : listQuery.data.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-fg-muted">Takroriy xarajat yo‘q</p>
+            <p className="rounded-card border border-dashed border-border p-4 text-center text-body text-fg-muted">Takroriy xarajat yo‘q</p>
           ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <ul className="divide-y divide-border rounded-card border border-border">
               {listQuery.data.map((item) => (
-                <li key={item.id} className={cn('flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm', !item.isActive && 'opacity-60')}>
+                <li key={item.id} className={cn('flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-body', !item.isActive && 'opacity-60')}>
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                       {item.name}
@@ -187,7 +192,7 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
                       )}
                       {!item.isActive && <Badge tone="gray">To‘xtatilgan</Badge>}
                     </p>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {item.category.name} · har oy {item.dayOfMonth}-kuni{item.vendor && ` · ${item.vendor}`}
                     </p>
                   </div>
@@ -206,8 +211,8 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
         </section>
 
         {canManage && (
-          <section className="space-y-3 rounded-xl border border-border p-3">
-            <h3 className="text-sm font-semibold text-fg">Yangi takroriy xarajat</h3>
+          <section className="space-y-3 rounded-card border border-border p-3">
+            <h3 className="text-h4 text-fg">Yangi takroriy xarajat</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Nomi" htmlFor="recurring-name" error={errors.name} required>
                 <Input id="recurring-name" value={name} placeholder="Ofis ijarasi" onChange={(event) => setName(event.target.value)} />

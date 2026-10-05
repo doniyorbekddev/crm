@@ -75,10 +75,10 @@ function LinkModalShell(props: LinkModalShellProps) {
 
       {selected ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-muted p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-muted p-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-fg">{selected.title}</p>
-              <p className="text-xs text-fg-muted">{selected.subtitle}</p>
+              <p className="text-label text-fg">{selected.title}</p>
+              <p className="text-caption text-fg-muted">{selected.subtitle}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setSelected(null)} disabled={props.saving}>
               O‘zgartirish

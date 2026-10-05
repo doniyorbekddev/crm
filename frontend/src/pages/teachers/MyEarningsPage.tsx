@@ -36,7 +36,7 @@ export default function MyEarningsPage() {
       {query.isPending ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {Array.from({ length: 8 }, (_, index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-card" />
           ))}
         </div>
       ) : query.isError ? (

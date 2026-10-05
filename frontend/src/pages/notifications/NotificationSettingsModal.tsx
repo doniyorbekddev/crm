@@ -93,9 +93,9 @@ export function NotificationSettingsModal({ onClose }: { onClose: () => void }) 
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (
         <div className="overflow-x-auto">
-          <table aria-label="Bildirishnoma sozlamalari" className="w-full text-sm">
+          <table aria-label="Bildirishnoma sozlamalari" className="w-full text-body">
             <thead>
-              <tr className="border-b border-border text-left text-xs text-fg-muted">
+              <tr className="border-b border-border text-left text-caption text-fg-muted">
                 <th className="py-2 pr-3 font-medium">Tur</th>
                 <th className="w-24 py-2 text-center font-medium">Ilovada</th>
                 <th className="w-24 py-2 text-center font-medium">Telegram</th>
@@ -111,7 +111,7 @@ export function NotificationSettingsModal({ onClose }: { onClose: () => void }) 
                         <Badge tone={NOTIFICATION_PRIORITY_TONES[item.priority]}>{NOTIFICATION_PRIORITY_LABELS[item.priority]}</Badge>
                       )}
                       {!item.canMute && (
-                        <span className="inline-flex items-center gap-1 text-xs text-fg-subtle">
+                        <span className="inline-flex items-center gap-1 text-caption text-fg-subtle">
                           <Lock className="size-3" aria-hidden />
                           har doim yoqiq
                         </span>
@@ -138,7 +138,7 @@ export function NotificationSettingsModal({ onClose }: { onClose: () => void }) 
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-xs text-fg-subtle">
+          <p className="mt-3 text-caption text-fg-subtle">
             O‘chirilgan tur bo‘yicha xabar umuman yaratilmaydi — keyin ham ro‘yxatda ko‘rinmaydi. Amalning o‘zi (to‘lov,
             biriktirish va h.k.) baribir bajariladi.
           </p>

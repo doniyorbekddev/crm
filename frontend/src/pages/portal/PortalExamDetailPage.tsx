@@ -27,7 +27,7 @@ function TopicBars({ topics }: { topics: TopicBreakdown[] }) {
     <ul className="space-y-2">
       {topics.map((topic) => (
         <li key={topic.topicId ?? topic.topicTitle}>
-          <div className="flex items-baseline justify-between gap-2 text-sm">
+          <div className="flex items-baseline justify-between gap-2 text-body">
             <span className="truncate text-fg">{topic.topicTitle}</span>
             <span className="shrink-0 tabular-nums text-fg-muted">
               {topic.score}/{topic.maxScore} · {topic.percent}%
@@ -63,7 +63,7 @@ export default function PortalExamDetailPage() {
 
   return (
     <div>
-      <Link to="/portal/exams" className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link to="/portal/exams" className="mb-3 inline-flex items-center gap-1 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden />
         Barcha imtihonlar
       </Link>
@@ -73,7 +73,7 @@ export default function PortalExamDetailPage() {
         actions={<Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>}
       />
 
-      {exam.description && <p className="mb-4 text-sm text-fg-muted">{exam.description}</p>}
+      {exam.description && <p className="mb-4 text-body text-fg-muted">{exam.description}</p>}
 
       {!result && !latest ? (
         <Card>
@@ -91,7 +91,7 @@ export default function PortalExamDetailPage() {
                 <span className="flex items-center gap-2">
                   {result.grade && <Badge tone={GRADE_TONES[result.grade] ?? 'gray'}>{result.grade}</Badge>}
                   {result.passed !== null && (
-                    <span className={cn('text-xs font-medium', result.passed ? 'text-success' : 'text-danger')}>
+                    <span className={cn('text-caption font-medium', result.passed ? 'text-success' : 'text-danger')}>
                       {result.passed ? 'O‘tdi' : 'O‘tmadi'}
                     </span>
                   )}
@@ -102,20 +102,20 @@ export default function PortalExamDetailPage() {
               {result ? (
                 <p className="text-3xl font-semibold tabular-nums text-fg">
                   {result.percentage}%
-                  <span className="ml-2 text-base font-normal text-fg-muted">
+                  <span className="ml-2 text-body-lg font-normal text-fg-muted">
                     {result.score}/{result.maxScore}
                     {result.xpAwarded > 0 && ` · +${result.xpAwarded} XP`}
                   </span>
                 </p>
               ) : (
-                <p className="text-sm text-fg-muted">Urinish tekshirilmoqda.</p>
+                <p className="text-body text-fg-muted">Urinish tekshirilmoqda.</p>
               )}
               {latest && latest.topics.length > 0 && (
                 <div className="mt-4">
-                  <p className="mb-2 text-sm font-medium text-fg">Mavzular bo‘yicha</p>
+                  <p className="mb-2 text-label text-fg">Mavzular bo‘yicha</p>
                   <TopicBars topics={latest.topics} />
                   {latest.weakTopics.length > 0 && (
-                    <p className="mt-2 text-xs text-fg-muted">Takrorlash tavsiya etiladi: {latest.weakTopics.join(', ')}</p>
+                    <p className="mt-2 text-caption text-fg-muted">Takrorlash tavsiya etiladi: {latest.weakTopics.join(', ')}</p>
                   )}
                 </div>
               )}
@@ -137,21 +137,21 @@ export default function PortalExamDetailPage() {
                   {latest.answers.map((answer, index) => (
                     <li key={answer.id} className="px-5 py-3">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm text-fg">
+                        <p className="text-body text-fg">
                           <span className="mr-1 text-fg-muted">{index + 1}.</span>
                           {answer.questionText}
                         </p>
                         <span
                           className={cn(
-                            'shrink-0 text-sm tabular-nums',
+                            'shrink-0 text-body tabular-nums',
                             answer.isCorrect === null ? 'text-fg-muted' : answer.isCorrect ? 'text-success' : 'text-danger',
                           )}
                         >
                           {answer.needsReview ? 'tekshirilmoqda' : `${answer.score}/${answer.points}`}
                         </span>
                       </div>
-                      {answer.text && <p className="mt-1 text-xs whitespace-pre-wrap text-fg-muted">Javob: {answer.text}</p>}
-                      {answer.feedback && <p className="mt-1 text-xs text-fg-muted">Izoh: {answer.feedback}</p>}
+                      {answer.text && <p className="mt-1 text-caption whitespace-pre-wrap text-fg-muted">Javob: {answer.text}</p>}
+                      {answer.feedback && <p className="mt-1 text-caption text-fg-muted">Izoh: {answer.feedback}</p>}
                     </li>
                   ))}
                 </ol>

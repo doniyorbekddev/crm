@@ -66,12 +66,12 @@ export function OnlineExamsCard() {
                       <MonitorCheck className="size-4 shrink-0 text-brand-600" aria-hidden />
                       <span className="truncate">{exam.title}</span>
                     </p>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {EXAM_TYPE_LABELS[exam.type]} · {exam.questionCount} savol
                       {exam.durationMinutes ? ` · ${exam.durationMinutes} daqiqa` : ''}
                       {exam.maxAttempts > 0 ? ` · urinish ${exam.attemptsUsed}/${exam.maxAttempts}` : ''}
                     </p>
-                    {period && <p className="text-xs text-fg-subtle">{period}</p>}
+                    {period && <p className="text-caption text-fg-subtle">{period}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     {exam.lastResult && (
@@ -80,7 +80,7 @@ export function OnlineExamsCard() {
                       </Badge>
                     )}
                     {!exam.canStart ? (
-                      <span className="text-xs text-fg-muted">{exam.reason}</span>
+                      <span className="text-caption text-fg-muted">{exam.reason}</span>
                     ) : !isStudent ? (
                       exam.openAttemptId ? <Badge tone="blue">Topshirilmoqda</Badge> : <Badge tone="green">Ochiq</Badge>
                     ) : exam.openAttemptId ? (

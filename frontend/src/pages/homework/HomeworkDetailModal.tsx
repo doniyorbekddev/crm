@@ -55,7 +55,7 @@ function GradingTable({
     setDraft((current) => ({ ...current, [studentId]: { ...current[studentId], ...values } }));
 
   return (
-    <ul className="divide-y divide-border rounded-xl border border-border">
+    <ul className="divide-y divide-border rounded-card border border-border">
       {detail.submissions.map((submission) => {
         const edit = draft[submission.studentId] ?? {};
         const status = edit.status ?? submission.status;
@@ -63,10 +63,10 @@ function GradingTable({
         return (
           <li key={submission.studentId} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-fg">
+              <p className="truncate text-label text-fg">
                 {submission.firstName} {submission.lastName}
               </p>
-              <p className="text-xs text-fg-muted">
+              <p className="text-caption text-fg-muted">
                 <span className="font-mono">{submission.code}</span>
                 {submission.submittedAt && ` · ${formatDateTime(submission.submittedAt)}`}
                 {submission.xpAwarded > 0 && ` · +${submission.xpAwarded} XP`}
@@ -76,7 +76,7 @@ function GradingTable({
                 {submission.hasLink && <Link2 className="size-3.5" aria-label="Havola" />}
                 {submission.hasCode && <Code2 className="size-3.5" aria-label="Kod" />}
                 {submission.fileCount > 0 && (
-                  <span className="inline-flex items-center gap-0.5 text-xs">
+                  <span className="inline-flex items-center gap-0.5 text-caption">
                     <Paperclip className="size-3.5" aria-hidden />
                     {submission.fileCount}
                   </span>
@@ -115,7 +115,7 @@ function GradingTable({
             ) : (
               <div className="flex items-center gap-3">
                 <Badge tone={SUBMISSION_STATUS_TONES[submission.status]}>{SUBMISSION_STATUS_LABELS[submission.status]}</Badge>
-                <span className="w-16 text-right text-sm text-fg">
+                <span className="w-16 text-right text-body text-fg">
                   {submission.score === null ? '—' : `${submission.score}/${detail.maxPoints}`}
                 </span>
               </div>
@@ -251,17 +251,17 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
             <Badge>{HOMEWORK_TARGET_LABELS[detail.targetType]}</Badge>
             {detail.difficulty && <Badge tone={DIFFICULTY_TONES[detail.difficulty]}>{DIFFICULTY_LABELS[detail.difficulty]}</Badge>}
             {detail.rubric && <Badge tone="purple">Rubrika: {detail.rubric.name}</Badge>}
-            <span className="text-xs text-fg-muted">
+            <span className="text-caption text-fg-muted">
               Maksimal ball: {detail.maxPoints} · XP: {detail.xpReward}
               {detail.topic && ` · mavzu: ${detail.topic.title}`}
               {detail.lesson && ` · dars: ${detail.lesson.title}`}
             </span>
           </div>
 
-          {detail.description && <p className="text-sm text-fg-muted">{detail.description}</p>}
+          {detail.description && <p className="text-body text-fg-muted">{detail.description}</p>}
 
           <section className="space-y-2">
-            <p className="flex items-center gap-2 text-sm font-medium text-fg">
+            <p className="flex items-center gap-2 text-label text-fg">
               <FileText className="size-4 text-fg-muted" aria-hidden />
               Biriktirilgan fayl va havolalar
             </p>
@@ -278,7 +278,7 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
                           type="button"
                           aria-label={`${item.title} — o‘chirish`}
                           onClick={() => removeAttachment.mutate(item.id)}
-                          className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
+                          className="grid size-7 place-items-center rounded-chip text-fg-muted hover:bg-danger-subtle hover:text-danger"
                         >
                           <Trash2 className="size-3.5" aria-hidden />
                         </button>
@@ -294,7 +294,7 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
                 <Button variant="secondary" loading={addLink.isPending} disabled={link.title.trim().length < 2 || !link.url.trim()} onClick={() => addLink.mutate()}>
                   Havola
                 </Button>
-                <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-muted">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-control border border-border px-3 py-2 text-label text-fg hover:bg-surface-muted">
                   <Paperclip className="size-4" aria-hidden />
                   Fayl
                   <input
@@ -319,9 +319,9 @@ export function HomeworkDetailModal({ homeworkId, onClose, onChanged }: Homework
               { label: 'Baholandi', value: formatNumber(detail.stats.graded) },
               { label: 'O‘rtacha ball', value: formatNumber(detail.stats.averageScore) },
             ].map((tile) => (
-              <div key={tile.label} className="rounded-xl border border-border bg-surface-muted p-3">
-                <p className="text-xs text-fg-muted">{tile.label}</p>
-                <p className="mt-1 text-base font-semibold text-fg">{tile.value}</p>
+              <div key={tile.label} className="rounded-card border border-border bg-surface-muted p-3">
+                <p className="text-caption text-fg-muted">{tile.label}</p>
+                <p className="mt-1 text-h3 text-fg">{tile.value}</p>
               </div>
             ))}
           </div>

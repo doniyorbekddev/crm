@@ -252,21 +252,21 @@ export function RecurringHomeworkModal({ canManage, onClose }: { canManage: bool
           ) : listQuery.data.length === 0 ? (
             <EmptyState icon={Repeat} title="Jadval yo‘q" description="Masalan: “Frontend A — ish kunlari — JavaScript Practice — muddat 23:59”." />
           ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border">
+            <ul className="divide-y divide-border rounded-control border border-border">
               {listQuery.data.map((item) => (
                 <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
                   <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    <p className="flex flex-wrap items-center gap-2 text-label">
                       {item.title}
                       <Badge tone="gray">{item.group.name}</Badge>
                       {!item.isActive && <Badge tone="yellow">to‘xtatilgan</Badge>}
                     </p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       {scheduleLabel(item)} · e’lon {item.publishTime} · muddat {item.deadlineOffsetDays > 0 ? `+${item.deadlineOffsetDays} kun ` : ''}
                       {item.deadlineTime} · {formatDate(item.startDate)}
                       {item.endDate ? ` — ${formatDate(item.endDate)}` : ' dan'}
                     </p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       Berildi: {item.generated} ta{item.nextOccurrence ? ` · keyingisi: ${formatDate(item.nextOccurrence)}` : ''}
                     </p>
                   </div>

@@ -97,7 +97,7 @@ export default function InventoryPage() {
       />
 
       {statsQuery.isPending ? (
-        <Skeleton className="mb-6 h-24 w-full rounded-xl" />
+        <Skeleton className="mb-6 h-24 w-full rounded-card" />
       ) : statsQuery.isError ? (
         <ErrorState error={statsQuery.error} onRetry={() => void statsQuery.refetch()} />
       ) : stats ? (
@@ -166,7 +166,7 @@ export default function InventoryPage() {
                   cell: (product) => (
                     <>
                       <p className="font-medium text-fg">{product.name}</p>
-                      <p className="font-mono text-xs text-fg-subtle">{product.sku}</p>
+                      <p className="font-mono text-caption text-fg-subtle">{product.sku}</p>
                     </>
                   ),
                 },

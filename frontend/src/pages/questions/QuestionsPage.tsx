@@ -149,7 +149,7 @@ export default function QuestionsPage() {
                     <div className="mt-1 flex items-center gap-2">
                       <Badge tone={DIFFICULTY_TONES[question.difficulty]}>{DIFFICULTY_LABELS[question.difficulty]}</Badge>
                       {question.usedInExams > 0 && (
-                        <span className="text-xs text-fg-subtle">{question.usedInExams} ta imtihonda</span>
+                        <span className="text-caption text-fg-subtle">{question.usedInExams} ta imtihonda</span>
                       )}
                     </div>
                   </>

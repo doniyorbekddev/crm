@@ -96,7 +96,7 @@ export default function FeedbackPage() {
       <PageHeader title="Fikr-mulohaza" description="O‘quvchilar bahosi, NPS va salbiy fikrlar bilan ishlash" />
 
       {statsQuery.isPending ? (
-        <Skeleton className="mb-6 h-24 w-full rounded-xl" />
+        <Skeleton className="mb-6 h-24 w-full rounded-card" />
       ) : statsQuery.isError ? (
         <ErrorState error={statsQuery.error} onRetry={() => void statsQuery.refetch()} />
       ) : stats ? (
@@ -125,12 +125,12 @@ export default function FeedbackPage() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle>Baholar taqsimoti</CardTitle>
-                <span className="text-xs text-fg-muted">{formatNumber(stats.total)} ta fikr</span>
+                <span className="text-caption text-fg-muted">{formatNumber(stats.total)} ta fikr</span>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1.5">
                   {[...stats.ratingDistribution].reverse().map((row) => (
-                    <li key={row.rating} className="flex items-center gap-3 text-xs">
+                    <li key={row.rating} className="flex items-center gap-3 text-caption">
                       <span className="w-14 shrink-0 text-fg-muted">{row.rating} yulduz</span>
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-muted">
                         <div
@@ -196,15 +196,15 @@ export default function FeedbackPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="gray">{TYPE_LABELS[item.type]}</Badge>
                     {item.rating !== null && <Stars value={item.rating} />}
-                    {item.npsScore !== null && <span className="text-sm tabular-nums text-fg">{item.npsScore} / 10</span>}
+                    {item.npsScore !== null && <span className="text-body tabular-nums text-fg">{item.npsScore} / 10</span>}
                     {item.isNegative && !item.handledAt && <Badge tone="red">Ishlanmagan</Badge>}
                     {item.handledAt && <Badge tone="green">Ishlangan</Badge>}
-                    <span className="ml-auto text-xs text-fg-subtle">{formatDateTime(item.createdAt)}</span>
+                    <span className="ml-auto text-caption text-fg-subtle">{formatDateTime(item.createdAt)}</span>
                   </div>
 
-                  {item.comment && <p className="mt-1.5 text-sm text-fg">{item.comment}</p>}
+                  {item.comment && <p className="mt-1.5 text-body text-fg">{item.comment}</p>}
 
-                  <p className="mt-1 text-xs text-fg-subtle">
+                  <p className="mt-1 text-caption text-fg-subtle">
                     {item.student ? (
                       <Link to={`/students/${item.student.id}`} className="hover:text-brand-600 hover:underline">
                         {item.student.name}
@@ -217,7 +217,7 @@ export default function FeedbackPage() {
                   </p>
 
                   {item.handledAt ? (
-                    <p className="mt-1 text-xs text-fg-subtle">
+                    <p className="mt-1 text-caption text-fg-subtle">
                       {item.handledBy} — {item.handleNote}
                     </p>
                   ) : (
@@ -262,7 +262,7 @@ export default function FeedbackPage() {
           }
         >
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Izoh</span>
+            <span className="mb-1 block text-body text-fg-muted">Izoh</span>
             <Input value={note} placeholder="Masalan: o‘quvchi bilan gaplashildi, guruh almashtirildi" onChange={(event) => setNote(event.target.value)} />
           </label>
         </Modal>

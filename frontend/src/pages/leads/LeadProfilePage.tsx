@@ -46,7 +46,7 @@ function InfoList({ children }: { children: ReactNode }) {
 
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3 text-sm">
+    <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3 text-body">
       <dt className="text-fg-muted">{label}</dt>
       <dd className="min-w-0 break-words text-fg">{children}</dd>
     </div>
@@ -57,10 +57,10 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-6">
       <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-28 rounded-xl" />
+      <Skeleton className="h-28 rounded-card" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <Skeleton className="h-80 rounded-xl" />
-        <Skeleton className="h-80 rounded-xl lg:col-span-2" />
+        <Skeleton className="h-80 rounded-card" />
+        <Skeleton className="h-80 rounded-card lg:col-span-2" />
       </div>
     </div>
   );
@@ -139,7 +139,7 @@ export default function LeadProfilePage() {
         title="Lead topilmadi"
         description="Lead o‘chirilgan yoki sizga ko‘rinmaydi"
         action={
-          <Link to="/leads" className="text-sm font-medium text-primary hover:underline">
+          <Link to="/leads" className="text-label text-primary hover:underline">
             Leadlar ro‘yxatiga qaytish
           </Link>
         }
@@ -312,7 +312,7 @@ export default function LeadProfilePage() {
                 <CardTitle>Umumiy izoh</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap text-fg">{lead.notes}</p>
+                <p className="text-body whitespace-pre-wrap text-fg">{lead.notes}</p>
               </CardContent>
             </Card>
           )}
@@ -350,7 +350,7 @@ export default function LeadProfilePage() {
         </Card>
       </div>
 
-      <p className="mt-6 text-xs text-fg-subtle">Oxirgi o‘zgarish: {formatDate(lead.updatedAt)}</p>
+      <p className="mt-6 text-caption text-fg-subtle">Oxirgi o‘zgarish: {formatDate(lead.updatedAt)}</p>
 
       {dialog === 'edit' && lookupsQuery.data && (
         <LeadFormModal mode="edit" lead={lead} lookups={lookupsQuery.data} onClose={() => setDialog(null)} onSaved={applyUpdate} />

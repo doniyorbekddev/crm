@@ -106,7 +106,7 @@ export default function EmployeesPage() {
           <p className="font-medium text-fg">
             {employee.firstName} {employee.lastName}
           </p>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {employee.phone ? formatPhone(employee.phone) : 'Telefon kiritilmagan'}
             {employee.user && ` · ${employee.user.email}`}
           </p>
@@ -143,7 +143,7 @@ export default function EmployeesPage() {
           {employee.contractEndDate && (
             <p
               className={cn(
-                'text-xs',
+                'text-caption',
                 employee.contractDaysLeft !== null && employee.contractDaysLeft <= 30 ? 'font-medium text-danger' : '',
               )}
             >
@@ -174,7 +174,7 @@ export default function EmployeesPage() {
       cell: (employee: EmployeeTableRow) => (
         <>
           {formatDate(employee.hireDate)}
-          {employee.terminationDate && <p className="text-xs">ketgan: {formatDate(employee.terminationDate)}</p>}
+          {employee.terminationDate && <p className="text-caption">ketgan: {formatDate(employee.terminationDate)}</p>}
         </>
       ),
     },
@@ -197,13 +197,13 @@ export default function EmployeesPage() {
           {employee.currentSalary ? (
             <>
               <Badge tone={SALARY_STATUS_TONES[employee.currentSalary.status]}>{SALARY_STATUS_LABELS[employee.currentSalary.status]}</Badge>
-              <p className="mt-1 text-xs text-fg-muted">
+              <p className="mt-1 text-caption text-fg-muted">
                 {formatMoney(employee.currentSalary.totalAmount)}
                 {employee.currentSalary.remainingAmount > 0 && ` · qolgan ${formatMoney(employee.currentSalary.remainingAmount)}`}
               </p>
             </>
           ) : (
-            <span className="text-xs text-fg-subtle">Hisoblanmagan</span>
+            <span className="text-caption text-fg-subtle">Hisoblanmagan</span>
           )}
         </>
       ),

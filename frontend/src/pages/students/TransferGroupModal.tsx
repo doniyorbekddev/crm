@@ -99,7 +99,7 @@ export function TransferGroupModal({ student, onClose, onSaved }: TransferGroupM
           </Select>
         </FormField>
         {lookupsQuery.isSuccess && groups.length === 0 && (
-          <p className="text-sm text-fg-muted">Bu kursda boshqa ochiq guruh yo‘q — avval yangi guruh oching.</p>
+          <p className="text-body text-fg-muted">Bu kursda boshqa ochiq guruh yo‘q — avval yangi guruh oching.</p>
         )}
 
         <FormField label="Sabab" htmlFor="transfer-reason" hint="Guruh tarixida saqlanadi" required>

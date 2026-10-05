@@ -39,7 +39,7 @@ export default function CertificatePrintPage() {
     <div className="min-h-screen bg-surface-muted p-4 print:bg-white print:p-0">
       {/* Chop etishda ko'rinmaydigan boshqaruv paneli */}
       <div className="mx-auto mb-4 flex max-w-[297mm] items-center justify-between gap-3 print:hidden">
-        <Link to={`/students/${certificate.studentId}`} className="inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg">
+        <Link to={`/students/${certificate.studentId}`} className="inline-flex items-center gap-1.5 text-body text-fg-muted hover:text-fg">
           <ArrowLeft className="size-4" aria-hidden />
           O‘quvchi profiliga
         </Link>
@@ -50,20 +50,20 @@ export default function CertificatePrintPage() {
 
       <article className="mx-auto flex aspect-[297/210] w-full max-w-[297mm] flex-col justify-between border-[6px] border-brand-600 bg-white p-[8mm] text-slate-900 shadow-lg print:aspect-auto print:h-[200mm] print:w-full print:max-w-none print:border-[4px] print:shadow-none">
         <header className="text-center">
-          <p className="text-xs tracking-[0.3em] text-fg-muted uppercase">{certificate.branchName ?? 'O‘quv markaz'}</p>
+          <p className="text-caption tracking-[0.3em] text-fg-muted uppercase">{certificate.branchName ?? 'O‘quv markaz'}</p>
           <h1 className="mt-2 text-4xl font-semibold tracking-wide">SERTIFIKAT</h1>
-          <p className="mt-1 text-sm text-fg-muted">Kursni muvaffaqiyatli tamomlagani uchun</p>
+          <p className="mt-1 text-body text-fg-muted">Kursni muvaffaqiyatli tamomlagani uchun</p>
         </header>
 
         <section className="text-center">
-          <p className="text-sm text-fg-muted">Ushbu sertifikat</p>
+          <p className="text-body text-fg-muted">Ushbu sertifikat</p>
           <p className="mt-2 border-b border-slate-300 pb-2 text-3xl font-semibold">{certificate.studentName}</p>
-          <p className="mt-3 text-sm text-fg-muted">
+          <p className="mt-3 text-body text-fg-muted">
             «{certificate.courseName}» kursini {formatDate(certificate.startDate)} — {formatDate(certificate.completionDate)} oralig‘ida
             tamomlaganini tasdiqlaydi
           </p>
           {(certificate.grade || certificate.percentage !== null) && (
-            <p className="mt-3 text-base">
+            <p className="mt-3 text-body-lg">
               Natija:{' '}
               <span className="font-semibold">
                 {certificate.grade ?? '—'}
@@ -74,8 +74,8 @@ export default function CertificatePrintPage() {
         </section>
 
         <footer className="flex items-end justify-between gap-6">
-          <div className="text-left text-xs text-fg-muted">
-            <p className="font-mono text-sm text-fg-muted">{certificate.code}</p>
+          <div className="text-left text-caption text-fg-muted">
+            <p className="font-mono text-body text-fg-muted">{certificate.code}</p>
             <p className="mt-1">Berilgan sana: {formatDate(certificate.issuedAt)}</p>
             <p className="mt-3 w-48 border-t border-slate-400 pt-1">O‘qituvchi: {certificate.teacherName ?? '—'}</p>
           </div>
@@ -85,13 +85,13 @@ export default function CertificatePrintPage() {
             <p className="mt-1 text-[10px] text-fg-muted">Haqiqiyligini tekshirish</p>
           </div>
 
-          <div className="text-right text-xs text-fg-muted">
+          <div className="text-right text-caption text-fg-muted">
             <p className="mt-3 w-48 border-t border-slate-400 pt-1">Direktor imzosi</p>
           </div>
         </footer>
       </article>
 
-      <p className="mx-auto mt-3 max-w-[297mm] text-center text-xs text-fg-subtle print:hidden">
+      <p className="mx-auto mt-3 max-w-[297mm] text-center text-caption text-fg-subtle print:hidden">
         Chop etish oynasida «Landscape (albom)» va «Background graphics» yoqilgan bo‘lsin.
       </p>
     </div>

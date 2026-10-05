@@ -104,8 +104,8 @@ export function AssignmentRulesModal({ lookups, onClose }: { lookups: LeadFormLo
                 <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
                   <Checkbox checked={row.isActive} onChange={(event) => set(row.userId, { isActive: event.target.checked })} />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm text-fg">{row.fullName}</span>
-                    <span className="block text-xs text-fg-subtle">
+                    <span className="block truncate text-body text-fg">{row.fullName}</span>
+                    <span className="block text-caption text-fg-subtle">
                       Bugun: {row.assignedToday} ta
                       {row.lastAssignedAt ? ` · oxirgi: ${formatDateTime(row.lastAssignedAt)}` : ' · hali lead olmagan'}
                     </span>
@@ -113,7 +113,7 @@ export function AssignmentRulesModal({ lookups, onClose }: { lookups: LeadFormLo
                 </label>
                 <div className="flex shrink-0 items-end gap-2">
                   <label className="w-20">
-                    <span className="mb-1 block text-xs text-fg-muted">Vazn</span>
+                    <span className="mb-1 block text-caption text-fg-muted">Vazn</span>
                     <Input
                       type="number"
                       min={1}
@@ -124,7 +124,7 @@ export function AssignmentRulesModal({ lookups, onClose }: { lookups: LeadFormLo
                     />
                   </label>
                   <label className="w-24">
-                    <span className="mb-1 block text-xs text-fg-muted">Kunlik limit</span>
+                    <span className="mb-1 block text-caption text-fg-muted">Kunlik limit</span>
                     <Input
                       type="number"
                       min={0}
@@ -138,7 +138,7 @@ export function AssignmentRulesModal({ lookups, onClose }: { lookups: LeadFormLo
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-fg-subtle">
+          <p className="mt-3 text-caption text-fg-subtle">
             {activeCount === 0
               ? 'Hech kim belgilanmagan — yangi leadlar biriktirilmagan holda keladi va ularni qo‘lda olish kerak.'
               : `Navbatda ${activeCount} xodim. Kunlik limit 0 bo‘lsa cheklanmagan.`}

@@ -146,7 +146,7 @@ export function BadgeFormModal({ onClose }: { onClose: () => void }) {
               <Input id="badge-threshold" inputMode="numeric" value={draft.threshold} invalid={Boolean(errors.threshold)} onChange={(event) => patch({ threshold: event.target.value.replace(/\D/g, '') })} />
             </FormField>
           ) : (
-            <p className="self-end pb-2 text-xs text-fg-muted">{draft.rule === 'MANUAL' ? 'Xodim o‘quvchi profilidan beradi' : 'O‘quvchi kursni tugatganda (holat “Tugatdi”) beriladi'}</p>
+            <p className="self-end pb-2 text-caption text-fg-muted">{draft.rule === 'MANUAL' ? 'Xodim o‘quvchi profilidan beradi' : 'O‘quvchi kursni tugatganda (holat “Tugatdi”) beriladi'}</p>
           )}
           <FormField label="Toifa" htmlFor="badge-category" required>
             <Select id="badge-category" value={draft.category} onChange={(event) => patch({ category: event.target.value as BadgeCategory })}>

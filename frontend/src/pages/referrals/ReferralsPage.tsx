@@ -82,7 +82,7 @@ export default function ReferralsPage() {
       <PageHeader title="Takliflar" description="O‘quvchilar o‘z kodi bilan olib kelgan mijozlar va berilgan bonuslar" />
 
       {statsQuery.isPending ? (
-        <Skeleton className="mb-6 h-24 w-full rounded-xl" />
+        <Skeleton className="mb-6 h-24 w-full rounded-card" />
       ) : statsQuery.isError ? (
         <ErrorState error={statsQuery.error} onRetry={() => void statsQuery.refetch()} />
       ) : stats ? (
@@ -107,10 +107,10 @@ export default function ReferralsPage() {
           <CardContent className="p-0">
             <ul className="divide-y divide-border">
               {stats.top.map((item) => (
-                <li key={item.studentId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                <li key={item.studentId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-body">
                   <Link to={`/students/${item.studentId}`} className="min-w-0 truncate text-fg hover:text-brand-600 hover:underline">
                     {item.name}
-                    {item.code && <span className="ml-2 font-mono text-xs text-fg-subtle">{item.code}</span>}
+                    {item.code && <span className="ml-2 font-mono text-caption text-fg-subtle">{item.code}</span>}
                   </Link>
                   <span className="shrink-0 text-fg-muted">
                     {item.converted}/{item.total} · {formatMoney(item.bonus)}
@@ -169,7 +169,7 @@ export default function ReferralsPage() {
                       <Link to={`/students/${item.referrer.id}`} className="text-fg hover:text-brand-600 hover:underline">
                         {item.referrer.name}
                       </Link>
-                      {item.referrer.code && <span className="ml-2 font-mono text-xs text-fg-subtle">{item.referrer.code}</span>}
+                      {item.referrer.code && <span className="ml-2 font-mono text-caption text-fg-subtle">{item.referrer.code}</span>}
                     </>
                   ),
                 },
@@ -185,7 +185,7 @@ export default function ReferralsPage() {
                         </Link>
                       ) : item.lead ? (
                         <Link to={`/leads/${item.lead.id}`} className="hover:text-brand-600 hover:underline">
-                          {item.lead.name} <span className="text-xs text-fg-subtle">(lead)</span>
+                          {item.lead.name} <span className="text-caption text-fg-subtle">(lead)</span>
                         </Link>
                       ) : (
                         '—'
@@ -209,7 +209,7 @@ export default function ReferralsPage() {
                   cell: (item) => (
                     <>
                       {item.bonusAmount > 0 ? formatMoney(item.bonusAmount) : '—'}
-                      {item.rewardedBy && <span className="block text-xs text-fg-subtle">{item.rewardedBy}</span>}
+                      {item.rewardedBy && <span className="block text-caption text-fg-subtle">{item.rewardedBy}</span>}
                     </>
                   ),
                 },

@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, ImageIcon, Trash2 } from 'lucide-react';
@@ -91,21 +92,25 @@ export function AttachmentsModal({ owner, entityId, title, canManage, onClose, o
         )}
 
         {query.isPending ? (
-          <p className="py-4 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
+          <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-2/3" />
+          </div>
         ) : query.isError ? (
           <Alert tone="error">{getErrorMessage(query.error)}</Alert>
         ) : query.data.length === 0 ? (
-          <p className="py-4 text-center text-sm text-fg-muted">Hali chek biriktirilmagan</p>
+          <p className="py-4 text-center text-body text-fg-muted">Hali chek biriktirilmagan</p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border rounded-card border border-border">
             {query.data.map((document) => {
               const Icon = document.mimeType === 'application/pdf' ? FileText : ImageIcon;
               return (
-                <li key={document.id} className="flex items-center gap-3 px-3 py-2.5 text-sm">
+                <li key={document.id} className="flex items-center gap-3 px-3 py-2.5 text-body">
                   <Icon className="size-5 shrink-0 text-fg-muted" aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-fg">{document.originalName}</p>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {formatSize(document.size)} · {formatDateTime(document.createdAt)}
                       {document.uploadedBy && ` · ${document.uploadedBy.firstName} ${document.uploadedBy.lastName}`}
                     </p>

@@ -121,7 +121,7 @@ export default function BranchesPage() {
                 cell: (branch) => (
                   <>
                     <p className="font-medium text-fg">{branch.name}</p>
-                    <p className="font-mono text-xs text-fg-subtle">{branch.key}</p>
+                    <p className="font-mono text-caption text-fg-subtle">{branch.key}</p>
                   </>
                 ),
               },
@@ -132,7 +132,7 @@ export default function BranchesPage() {
                 cell: (branch) => (
                   <>
                     {branch.address ?? '—'}
-                    {branch.phone && <p className="text-xs text-fg-subtle">{branch.phone}</p>}
+                    {branch.phone && <p className="text-caption text-fg-subtle">{branch.phone}</p>}
                   </>
                 ),
               },
@@ -219,7 +219,7 @@ export default function BranchesPage() {
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Kalit</span>
+              <span className="mb-1 block text-body text-fg-muted">Kalit</span>
               <Input
                 value={draft.key}
                 placeholder="CHILONZOR"
@@ -228,22 +228,22 @@ export default function BranchesPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Nomi</span>
+              <span className="mb-1 block text-body text-fg-muted">Nomi</span>
               <Input value={draft.name} placeholder="Chilonzor filiali" onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Manzil</span>
+              <span className="mb-1 block text-body text-fg-muted">Manzil</span>
               <Input value={draft.address} onChange={(event) => setDraft({ ...draft, address: event.target.value })} />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Telefon</span>
+              <span className="mb-1 block text-body text-fg-muted">Telefon</span>
               <Input value={draft.phone} type="tel" onChange={(event) => setDraft({ ...draft, phone: event.target.value })} />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Tartib</span>
+              <span className="mb-1 block text-body text-fg-muted">Tartib</span>
               <Input type="number" min={0} value={draft.sortOrder} onChange={(event) => setDraft({ ...draft, sortOrder: event.target.value })} />
             </label>
-            <label className="flex items-end gap-2 pb-2 text-sm text-fg">
+            <label className="flex items-end gap-2 pb-2 text-body text-fg">
               <Checkbox checked={draft.isActive} onChange={(event) => setDraft({ ...draft, isActive: event.target.checked })} />
               Faol
             </label>

@@ -61,7 +61,7 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
 
       {analysis && result && (
         <>
-          <p className="text-sm text-fg">{analysis.summary}</p>
+          <p className="text-body text-fg">{analysis.summary}</p>
           {result.criteria && (
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {Object.entries(result.criteria).map(([criterion, value]) => (
@@ -78,13 +78,13 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
             </Alert>
           )}
           <InsightList items={result.items.filter((item) => !item.text.startsWith('Yuqori o‘xshashlik') && !item.text.startsWith('Bir xil havola'))} />
-          {result.filesNote && <p className="text-xs text-fg-subtle">{result.filesNote}</p>}
+          {result.filesNote && <p className="text-caption text-fg-subtle">{result.filesNote}</p>}
 
           {analysis.status === 'ACCEPTED' ? (
-            <p className="text-sm text-success">Qabul qilingan: {String(analysis.decision?.score ?? '')} ball</p>
+            <p className="text-body text-success">Qabul qilingan: {String(analysis.decision?.score ?? '')} ball</p>
           ) : result.suggestedScore !== null ? (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-              <span className="text-sm text-fg">
+              <span className="text-body text-fg">
                 AI taklif balli: <b className="tabular-nums">{result.suggestedScore}/{maxPoints}</b>
               </span>
               <Button leftIcon={<Check className="size-4" aria-hidden />} loading={accept.isPending} onClick={() => accept.mutate(analysis.id)}>
@@ -95,7 +95,7 @@ export function AiReviewPanel({ homeworkId, studentId, maxPoints, feedback, onUs
               </Button>
             </div>
           ) : (
-            <p className="text-xs text-fg-subtle">Ball taklif qilinmadi — ballni o‘zingiz qo‘ying.</p>
+            <p className="text-caption text-fg-subtle">Ball taklif qilinmadi — ballni o‘zingiz qo‘ying.</p>
           )}
         </>
       )}

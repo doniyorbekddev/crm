@@ -122,20 +122,20 @@ function TelegramPreview({ draft, media, imageUrl, preview }: { draft: Draft; me
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="max-w-sm rounded-2xl border border-border bg-surface-muted p-3 shadow-sm" aria-label="Xabar ko‘rinishi">
+        <div className="max-w-sm rounded-dialog border border-border bg-surface-muted p-3 shadow-sm" aria-label="Xabar ko‘rinishi">
           {media && (media.kind === 'photo' && imageUrl ? (
-            <img src={imageUrl} alt="Biriktirilgan rasm" className="mb-2 max-h-56 w-full rounded-xl object-cover" />
+            <img src={imageUrl} alt="Biriktirilgan rasm" className="mb-2 max-h-56 w-full rounded-card object-cover" />
           ) : (
-            <div className="mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm">
+            <div className="mb-2 flex items-center gap-2 rounded-card bg-surface px-3 py-2 text-body">
               <FileText className="size-4" aria-hidden /> {media.fileName}
             </div>
           ))}
-          <p className="text-sm font-semibold">📢 Xabar</p>
-          <p className="whitespace-pre-wrap break-words text-sm">{draft.message.trim()}</p>
+          <p className="text-h4">📢 Xabar</p>
+          <p className="whitespace-pre-wrap break-words text-body">{draft.message.trim()}</p>
           {draft.buttons.length > 0 && (
             <div className="mt-2 grid gap-1">
               {draft.buttons.map((button, index) => (
-                <a key={index} href={button.url} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-1 rounded-lg bg-surface px-3 py-1.5 text-sm text-primary">
+                <a key={index} href={button.url} target="_blank" rel="noreferrer noopener" className="flex items-center justify-center gap-1 rounded-control bg-surface px-3 py-1.5 text-body text-primary">
                   <Link2 className="size-3.5" aria-hidden /> {button.text}
                 </a>
               ))}
@@ -185,7 +185,7 @@ function History() {
                 cell: (item) => (
                   <>
                     {formatDateTime(item.createdAt)}
-                    {item.createdBy && <div className="text-xs text-fg-subtle">{item.createdBy}</div>}
+                    {item.createdBy && <div className="text-caption text-fg-subtle">{item.createdBy}</div>}
                   </>
                 ),
               },
@@ -348,7 +348,7 @@ export default function BroadcastsPage() {
             </FormField>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Rasm yoki hujjat (ixtiyoriy)</p>
+              <p className="text-label">Rasm yoki hujjat (ixtiyoriy)</p>
               <input
                 ref={fileInput}
                 type="file"
@@ -362,7 +362,7 @@ export default function BroadcastsPage() {
                 }}
               />
               {media ? (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-body">
                   {media.kind === 'photo' ? <ImageIcon className="size-4" aria-hidden /> : <FileText className="size-4" aria-hidden />}
                   <span className="truncate">{media.fileName}</span>
                   <Button
@@ -382,11 +382,11 @@ export default function BroadcastsPage() {
                   Fayl biriktirish
                 </Button>
               )}
-              <p className="text-xs text-fg-subtle">PNG, JPG, WEBP yoki PDF.</p>
+              <p className="text-caption text-fg-subtle">PNG, JPG, WEBP yoki PDF.</p>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Havola tugmalari (ixtiyoriy, {MAX_BUTTONS} tagacha)</p>
+              <p className="text-label">Havola tugmalari (ixtiyoriy, {MAX_BUTTONS} tagacha)</p>
               {draft.buttons.map((button, index) => (
                 <div key={index} className="grid gap-2 sm:grid-cols-[1fr_2fr_auto]">
                   <FormField label={`Tugma ${index + 1} matni`} htmlFor={`button-text-${index}`} error={errors[`buttons.${index}.text`]}>
@@ -432,7 +432,7 @@ export default function BroadcastsPage() {
                 Yuborish{currentPreview ? ` (${formatNumber(currentPreview.recipients)})` : ''}
               </Button>
             </div>
-            {!currentPreview && <p className="text-xs text-fg-subtle">Yuborishdan oldin oldindan ko‘ring — nechta chatga ketishi aniqlanadi.</p>}
+            {!currentPreview && <p className="text-caption text-fg-subtle">Yuborishdan oldin oldindan ko‘ring — nechta chatga ketishi aniqlanadi.</p>}
             {currentPreview?.recipients === 0 && <Alert tone="warning">Bu auditoriyada Telegram ulagan hech kim yo‘q.</Alert>}
           </CardContent>
         </Card>

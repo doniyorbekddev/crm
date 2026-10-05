@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, ImageIcon, Pencil, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -150,17 +151,17 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
   return (
     <Modal open size="lg" title="Hujjatlar" description={personName} onClose={onClose} closeDisabled={upload.isPending}>
       <div className="space-y-4">
-        <p className="flex items-start gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs text-fg-muted">
+        <p className="flex items-start gap-2 rounded-control bg-surface-muted px-3 py-2 text-caption text-fg-muted">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           Fayllarga ochiq havola berilmaydi — faqat hujjatlarni ko‘rish ruxsati bor xodimlar yuklab oladi. Har bir amal auditga yoziladi.
         </p>
 
         {canManage && (
-          <section className="space-y-3 rounded-xl border border-dashed border-border p-3">
+          <section className="space-y-3 rounded-card border border-dashed border-border p-3">
             {uploadError && <Alert tone="error">{uploadError}</Alert>}
             <MetaFields idPrefix="new-document" draft={draft} errors={errors} onChange={setDraft} />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-fg-muted">JPG, PNG, WEBP yoki PDF · 5 MB gacha</p>
+              <p className="text-caption text-fg-muted">JPG, PNG, WEBP yoki PDF · 5 MB gacha</p>
               <input ref={inputRef} type="file" accept={ACCEPTED_UPLOAD_TYPES} className="hidden" onChange={onFile} aria-label="Hujjat faylini tanlash" />
               <Button leftIcon={<Upload className="size-4" aria-hidden />} loading={upload.isPending} onClick={() => inputRef.current?.click()}>
                 Fayl tanlab yuklash
@@ -170,19 +171,23 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
         )}
 
         {query.isPending ? (
-          <p className="py-4 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
+          <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-2/3" />
+          </div>
         ) : query.isError ? (
           <Alert tone="error">{getErrorMessage(query.error)}</Alert>
         ) : query.data.length === 0 ? (
-          <p className="rounded-xl border border-border py-6 text-center text-sm text-fg-muted">Hali hujjat biriktirilmagan</p>
+          <p className="rounded-card border border-border py-6 text-center text-body text-fg-muted">Hali hujjat biriktirilmagan</p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border rounded-card border border-border">
             {query.data.map((document) => {
               const Icon = document.mimeType === 'application/pdf' ? FileText : ImageIcon;
               const expiry = documentExpiryState(document.expiresAt);
               const isEditing = editing?.id === document.id;
               return (
-                <li key={document.id} className="px-3 py-2.5 text-sm">
+                <li key={document.id} className="px-3 py-2.5 text-body">
                   <div className="flex items-center gap-3">
                     <Icon className="size-5 shrink-0 text-fg-muted" aria-hidden />
                     <div className="min-w-0 flex-1">
@@ -191,7 +196,7 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
                         {expiry && <Badge tone={expiry.tone}>{expiry.label}</Badge>}
                       </p>
                       <p className="mt-1 truncate font-medium text-fg">{document.title ?? document.originalName}</p>
-                      <p className="text-xs text-fg-muted">
+                      <p className="text-caption text-fg-muted">
                         {document.title && `${document.originalName} · `}
                         {formatSize(document.size)} · {formatDateTime(document.createdAt)}
                         {document.uploadedBy && ` · ${document.uploadedBy.firstName} ${document.uploadedBy.lastName}`}
@@ -240,7 +245,7 @@ export function StaffDocumentsModal({ owner, entityId, personName, canManage, on
                     </div>
                   </div>
                   {isEditing && editing && (
-                    <div className="mt-3 space-y-3 rounded-lg bg-surface-muted p-3">
+                    <div className="mt-3 space-y-3 rounded-control bg-surface-muted p-3">
                       <MetaFields idPrefix={`edit-${document.id}`} draft={editing.draft} errors={editErrors} onChange={(next) => setEditing({ id: document.id, draft: next })} />
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="secondary" onClick={() => setEditing(null)} disabled={update.isPending}>

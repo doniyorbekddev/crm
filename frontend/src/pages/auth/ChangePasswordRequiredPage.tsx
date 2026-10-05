@@ -35,8 +35,8 @@ export default function ChangePasswordRequiredPage() {
       </header>
       <main className="mx-auto max-w-xl space-y-4 px-4 py-8">
         <div>
-          <h1 className="text-2xl font-semibold text-fg">Xush kelibsiz{user ? `, ${user.firstName}` : ''}!</h1>
-          <p className="mt-1 text-sm text-fg-muted">
+          <h1 className="text-h1 text-fg">Xush kelibsiz{user ? `, ${user.firstName}` : ''}!</h1>
+          <p className="mt-1 text-body text-fg-muted">
             Sizga vaqtinchalik parol berilgan. Davom etish uchun faqat o‘zingiz biladigan yangi parol o‘rnating.
           </p>
         </div>

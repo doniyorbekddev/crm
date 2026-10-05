@@ -8,12 +8,12 @@ export function ForbiddenState() {
         <ShieldAlert className="size-7" aria-hidden />
       </div>
       <div>
-        <h1 className="text-xl font-semibold">Bu sahifaga ruxsatingiz yo‘q</h1>
-        <p className="mt-2 max-w-md text-sm text-fg-muted">
+        <h1 className="text-h2">Bu sahifaga ruxsatingiz yo‘q</h1>
+        <p className="mt-2 max-w-md text-body text-fg-muted">
           Sizning rolingizga bu bo‘lim uchun ruxsat berilmagan. Kerak bo‘lsa, administrator bilan bog‘laning.
         </p>
       </div>
-      <Link to="/profile" className="text-sm font-medium text-primary hover:underline">
+      <Link to="/profile" className="text-label text-primary hover:underline">
         Profilga qaytish
       </Link>
     </div>

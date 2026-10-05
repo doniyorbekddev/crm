@@ -36,7 +36,7 @@ export function LessonsCard({ studentId }: { studentId?: string }) {
           Kelgusi darslar
         </CardTitle>
         {query.data?.teacher && (
-          <span className="text-xs text-fg-muted">
+          <span className="text-caption text-fg-muted">
             O‘qituvchi: {query.data.teacher.name}
             {query.data.teacher.specialization ? ` · ${query.data.teacher.specialization}` : ''}
           </span>
@@ -56,10 +56,10 @@ export function LessonsCard({ studentId }: { studentId?: string }) {
             {query.data.lessons.map((lesson) => (
               <li key={`${lesson.date}-${lesson.startTime}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-sm text-fg">
+                  <p className="text-body text-fg">
                     {formatDate(lesson.date)} · {lesson.startTime}–{lesson.endTime}
                   </p>
-                  <p className="text-xs text-fg-subtle">
+                  <p className="text-caption text-fg-subtle">
                     {query.data?.group?.name}
                     {lesson.room ? ` · ${lesson.room}` : ''}
                     {lesson.topic ? ` · ${lesson.topic}` : ''}

@@ -87,25 +87,25 @@ function SettingsForm({ settings, onClose }: { settings: AlertSettings; onClose:
   return (
     <div className="space-y-5">
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-fg">Qoidalar</h3>
-        <ul className="divide-y divide-border rounded-xl border border-border">
+        <h3 className="mb-2 text-h4 text-fg">Qoidalar</h3>
+        <ul className="divide-y divide-border rounded-card border border-border">
           {ALERT_TYPE_ORDER.map((type) => (
             <li key={type}>
               <label className="flex cursor-pointer items-start gap-3 px-3 py-2.5">
                 <Checkbox className="mt-0.5" checked={rules[type]} onChange={(event) => setRules((current) => ({ ...current, [type]: event.target.checked }))} />
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-fg">{ALERT_TYPE_LABELS[type]}</span>
-                  <span className="block text-xs text-fg-muted">{ALERT_TYPE_DESCRIPTIONS[type]}</span>
+                  <span className="block text-label text-fg">{ALERT_TYPE_LABELS[type]}</span>
+                  <span className="block text-caption text-fg-muted">{ALERT_TYPE_DESCRIPTIONS[type]}</span>
                 </span>
               </label>
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-fg-muted">O‘chirilgan qoidaning ochiq ogohlantirishlari keyingi tekshiruvda avtomatik yopiladi.</p>
+        <p className="mt-2 text-caption text-fg-muted">O‘chirilgan qoidaning ochiq ogohlantirishlari keyingi tekshiruvda avtomatik yopiladi.</p>
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-fg">Chegaralar</h3>
+        <h3 className="mb-2 text-h4 text-fg">Chegaralar</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {THRESHOLD_FIELDS.map((field) => (
             <FormField key={field.key} label={`${field.label} (${field.suffix})`} htmlFor={`alert-${field.key}`} hint={field.hint} error={errors[field.key]}>
@@ -115,12 +115,12 @@ function SettingsForm({ settings, onClose }: { settings: AlertSettings; onClose:
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border p-3">
+      <section className="space-y-3 rounded-card border border-border p-3">
         <label className="flex cursor-pointer items-start gap-3">
           <Checkbox className="mt-0.5" checked={digestEnabled} onChange={(event) => setDigestEnabled(event.target.checked)} />
           <span>
-            <span className="block text-sm font-medium text-fg">Kunlik xulosa</span>
-            <span className="block text-xs text-fg-muted">
+            <span className="block text-label text-fg">Kunlik xulosa</span>
+            <span className="block text-caption text-fg-muted">
               Direktor paneliga ruxsati bor xodimlarga har kuni kechagi tushum, xarajat, o‘quvchilar, davomat, qarz va muhim ogohlantirishlar
               bildirishnoma sifatida yuboriladi
             </span>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, History, Phone, TrendingUp } from 'lucide-react';
+import { CalendarClock, History, Phone, TrendingUp, UserPlus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
@@ -7,11 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Select } from '@/components/ui/Select';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { activityService } from '@/services/activity.service';
 import { dashboardService } from '@/services/dashboard.service';
+import { leadsService } from '@/services/leads.service';
+import { debtsService } from '@/services/payments.service';
 import type { ManagerPeriod } from '@/types/dashboard';
+import type { LeadListParams } from '@/types/lead';
+import type { DebtListParams } from '@/types/payment';
 import { formatDateTime, formatMoney, formatNumber, formatPhone, formatRelativeTime } from '@/utils/format';
 import { LEAD_STATUS_LABELS, leadFullName } from '@/utils/leadLabels';
 import { CardLink, ListSkeleton, ProgressBar } from './parts';
@@ -21,6 +26,92 @@ const MANAGER_PERIODS: ReadonlyArray<{ value: ManagerPeriod; label: string }> = 
   { value: 'quarter', label: 'So‘nggi 3 oy' },
   { value: 'year', label: 'So‘nggi 12 oy' },
 ];
+
+const RECENT_LEADS: LeadListParams = { page: 1, limit: 6, sortBy: 'createdAt', sortOrder: 'desc' };
+const TOP_DEBTS: DebtListParams = { page: 1, limit: 6, sortBy: 'remaining', sortOrder: 'desc' };
+
+/** Eng so'nggi qo'shilgan leadlar — leadlar ro'yxati API'sidan (xodim ko'ra oladiganlari) */
+export function RecentLeadsCard() {
+  const query = useQuery({ queryKey: queryKeys.leads.list(RECENT_LEADS), queryFn: () => leadsService.list(RECENT_LEADS) });
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>So‘nggi leadlar</CardTitle>
+        <CardLink to="/leads" />
+      </CardHeader>
+      <CardContent className="p-0">
+        {query.isPending ? (
+          <ListSkeleton height="h-12" />
+        ) : query.isError ? (
+          <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+        ) : query.data.items.length === 0 ? (
+          <EmptyState size="sm" icon={UserPlus} title="Lead yo‘q" description="Yangi murojaatlar shu yerda ko‘rinadi" />
+        ) : (
+          <ul className="divide-y divide-border">
+            {query.data.items.map((lead) => (
+              <li key={lead.id}>
+                <Link to={`/leads/${lead.id}`} className="block px-5 py-3 outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-body font-medium text-fg">{leadFullName(lead)}</p>
+                    <StatusBadge kind="lead" status={lead.status} />
+                  </div>
+                  <p className="mt-0.5 truncate text-caption text-fg-muted">
+                    {lead.course?.name ?? 'Kurs tanlanmagan'} · {lead.source.name}
+                  </p>
+                  <p className="mt-0.5 text-caption text-fg-subtle">{formatRelativeTime(lead.createdAt)}</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Eng katta qarzdorlar — qarzdorlik ro'yxati API'sidan */
+export function OutstandingDebtsCard() {
+  const query = useQuery({ queryKey: queryKeys.debts.list(TOP_DEBTS), queryFn: () => debtsService.list(TOP_DEBTS) });
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>Eng katta qarzdorlar</CardTitle>
+        <CardLink to="/debts" />
+      </CardHeader>
+      <CardContent className="p-0">
+        {query.isPending ? (
+          <ListSkeleton height="h-12" />
+        ) : query.isError ? (
+          <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+        ) : query.data.items.length === 0 ? (
+          <EmptyState size="sm" icon={Wallet} title="Qarzdor yo‘q" description="Barcha to‘lovlar o‘z vaqtida" />
+        ) : (
+          <ul className="divide-y divide-border">
+            {query.data.items.map((debt) => (
+              <li key={debt.studentId}>
+                <Link to={`/students/${debt.studentId}`} className="block px-5 py-3 outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-body font-medium text-fg">
+                      {debt.firstName} {debt.lastName}
+                    </p>
+                    <p className="shrink-0 text-body font-medium text-danger tabular-nums">{formatMoney(debt.remaining)}</p>
+                  </div>
+                  <p className="mt-0.5 truncate text-caption text-fg-muted">
+                    {debt.course.name}
+                    {debt.group ? ` · ${debt.group.name}` : ''}
+                  </p>
+                  {debt.schedule && debt.schedule.overdueDays > 0 && (
+                    <p className="mt-0.5 text-caption text-warning">{formatNumber(debt.schedule.overdueDays)} kun kechikkan</p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 /** Bugungi va kechikkan follow-uplar */
 export function TodayTasksCard() {

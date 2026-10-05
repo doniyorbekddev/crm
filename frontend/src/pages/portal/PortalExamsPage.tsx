@@ -47,19 +47,19 @@ export default function PortalExamsPage() {
                   <Link to={`/portal/exams/${row.examId}`} className="block truncate font-medium text-fg hover:underline">
                     {row.title}
                   </Link>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     {row.groupName} · {formatDate(row.date)}
                     {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
                   </p>
-                  {row.comment && <p className="mt-1 text-sm text-fg-muted">Izoh: {row.comment}</p>}
+                  {row.comment && <p className="mt-1 text-body text-fg-muted">Izoh: {row.comment}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm tabular-nums text-fg">
+                  <span className="text-body tabular-nums text-fg">
                     {row.score}/{row.maxScore} · <b>{row.percentage}%</b>
                   </span>
                   {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
                   {row.passed !== null && (
-                    <span className={cn('text-xs font-medium', row.passed ? 'text-success' : 'text-danger')}>
+                    <span className={cn('text-caption font-medium', row.passed ? 'text-success' : 'text-danger')}>
                       {row.passed ? 'O‘tdi' : 'O‘tmadi'}
                     </span>
                   )}

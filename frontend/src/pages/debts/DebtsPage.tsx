@@ -114,7 +114,7 @@ export default function DebtsPage() {
           <Link to={`/students/${debt.studentId}`} className="focus-ring rounded-sm font-medium text-fg hover:text-primary hover:underline">
             {debt.firstName} {debt.lastName}
           </Link>
-          <p className="flex items-center gap-1 text-xs text-fg-muted">
+          <p className="flex items-center gap-1 text-caption text-fg-muted">
             <Phone className="size-3" aria-hidden />
             {formatPhone(debt.phone)}
             {debt.parentPhone && ` · ota-ona: ${formatPhone(debt.parentPhone)}`}
@@ -128,7 +128,7 @@ export default function DebtsPage() {
       cell: (debt: DebtTableRow) => (
         <>
           <p className="text-fg">{debt.course.name}</p>
-          <p className="text-xs text-fg-muted">{debt.group ? debt.group.name : 'Guruhsiz'}</p>
+          <p className="text-caption text-fg-muted">{debt.group ? debt.group.name : 'Guruhsiz'}</p>
         </>
       ),
     },
@@ -173,19 +173,19 @@ export default function DebtsPage() {
       cell: (debt: DebtTableRow) => (
         <>
           {!debt.schedule ? (
-            <span className="text-xs text-fg-subtle">Jadval yo‘q</span>
+            <span className="text-caption text-fg-subtle">Jadval yo‘q</span>
           ) : debt.schedule.overdueAmount > 0 ? (
             <>
               <Badge tone="red">{debt.schedule.overdueDays} kun kechikdi</Badge>
-              <p className="mt-0.5 text-xs text-danger">{formatMoney(debt.schedule.overdueAmount)}</p>
+              <p className="mt-0.5 text-caption text-danger">{formatMoney(debt.schedule.overdueAmount)}</p>
             </>
           ) : debt.schedule.nextDueDate ? (
             <>
               <p className="text-fg">{formatDate(debt.schedule.nextDueDate)}</p>
-              <p className="text-xs text-fg-muted">keyingi to‘lov</p>
+              <p className="text-caption text-fg-muted">keyingi to‘lov</p>
             </>
           ) : (
-            <span className="text-xs text-fg-muted">To‘liq to‘langan</span>
+            <span className="text-caption text-fg-muted">To‘liq to‘langan</span>
           )}
         </>
       ),
@@ -199,7 +199,7 @@ export default function DebtsPage() {
           {debt.lastPayment ? (
             <>
               <p className="text-fg">{formatMoney(debt.lastPayment.amount)}</p>
-              <p className="text-xs">{formatDate(debt.lastPayment.paidAt)}</p>
+              <p className="text-caption">{formatDate(debt.lastPayment.paidAt)}</p>
             </>
           ) : (
             'To‘lov yo‘q'

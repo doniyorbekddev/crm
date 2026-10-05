@@ -13,7 +13,7 @@ import { formatDate } from '@/utils/format';
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-border py-3 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-sm text-fg-muted">{label}</span>
+      <span className="text-body text-fg-muted">{label}</span>
       <span className="font-medium text-fg">{value}</span>
     </div>
   );
@@ -43,22 +43,22 @@ export default function VerifyCertificatePage() {
         {query.isPending ? (
           <PageLoader />
         ) : query.isError ? (
-          <div className="rounded-xl border border-border bg-surface p-6 text-center">
+          <div className="rounded-card border border-border bg-surface p-6 text-center">
             <ShieldX className="mx-auto size-10 text-danger" aria-hidden />
             <h1 className="mt-3 text-lg font-semibold text-fg">Sertifikat topilmadi</h1>
-            <p className="mt-1 text-sm text-fg-muted">
+            <p className="mt-1 text-body text-fg-muted">
               Kod noto‘g‘ri yoki bunday sertifikat berilmagan. Havolani qaytadan tekshiring.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-surface p-6">
+          <div className="rounded-card border border-border bg-surface p-6">
             <div className="flex flex-col items-center text-center">
               {query.data.valid ? (
                 <BadgeCheck className="size-12 text-success" aria-hidden />
               ) : (
                 <ShieldX className="size-12 text-danger" aria-hidden />
               )}
-              <h1 className="mt-3 text-xl font-semibold text-fg">
+              <h1 className="mt-3 text-h2 text-fg">
                 {query.data.valid ? 'Sertifikat haqiqiy' : 'Sertifikat bekor qilingan'}
               </h1>
               <Badge tone={query.data.valid ? 'green' : 'red'} className="mt-2">
@@ -78,7 +78,7 @@ export default function VerifyCertificatePage() {
 
             <div className="mt-6 flex flex-col items-center gap-2">
               <QrCode value={window.location.href} size={120} />
-              <p className="text-xs text-fg-subtle">Shu sahifaning QR kodi</p>
+              <p className="text-caption text-fg-subtle">Shu sahifaning QR kodi</p>
             </div>
           </div>
         )}

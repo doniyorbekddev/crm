@@ -1,5 +1,6 @@
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save } from 'lucide-react';
+import { Save, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
@@ -90,7 +91,7 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
-            {exam.passScore !== null && <span className="text-xs text-fg-muted">O‘tish bali: {exam.passScore}</span>}
+            {exam.passScore !== null && <span className="text-caption text-fg-muted">O‘tish bali: {exam.passScore}</span>}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-4">
@@ -100,9 +101,9 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
               { label: 'O‘tdi', value: exam.passScore === null ? '—' : `${exam.stats.passRate}%` },
               { label: 'Eng yuqori / past', value: exam.stats.graded ? `${exam.stats.highest} / ${exam.stats.lowest}` : '—' },
             ].map((tile) => (
-              <div key={tile.label} className="rounded-xl border border-border bg-surface-muted p-3">
-                <p className="text-xs text-fg-muted">{tile.label}</p>
-                <p className="mt-1 text-base font-semibold text-fg">{tile.value}</p>
+              <div key={tile.label} className="rounded-card border border-border bg-surface-muted p-3">
+                <p className="text-caption text-fg-muted">{tile.label}</p>
+                <p className="mt-1 text-h3 text-fg">{tile.value}</p>
               </div>
             ))}
           </div>
@@ -111,9 +112,9 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
           {tooHigh && <Alert tone="warning">Ba’zi ballar maksimal balldan ({exam.maxScore}) katta.</Alert>}
 
           {exam.results.length === 0 ? (
-            <p className="py-6 text-center text-sm text-fg-muted">Guruhda faol o‘quvchi yo‘q</p>
+            <EmptyState size="sm" icon={Users} title="Guruhda faol o‘quvchi yo‘q" description="O‘quvchi qo‘shilgach natija kiritish mumkin bo‘ladi" />
           ) : (
-            <ul className={cn('divide-y divide-border rounded-xl border border-border', save.isPending && 'opacity-60')}>
+            <ul className={cn('divide-y divide-border rounded-card border border-border', save.isPending && 'opacity-60')}>
               {exam.results.map((result) => {
                 const value = draft[result.studentId] ?? (result.score === null ? '' : String(result.score));
                 const score = value === '' ? null : Number(value);
@@ -123,10 +124,10 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
                 return (
                   <li key={result.studentId} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-fg">
+                      <p className="truncate text-label text-fg">
                         {result.firstName} {result.lastName}
                       </p>
-                      <p className="text-xs text-fg-muted">
+                      <p className="text-caption text-fg-muted">
                         <span className="font-mono">{result.code}</span>
                         {result.xpAwarded > 0 && ` · +${result.xpAwarded} XP`}
                         {result.comment && ` · ${result.comment}`}
@@ -145,15 +146,15 @@ export function ExamResultsModal({ examId, onClose, onChanged }: ExamResultsModa
                         className="h-9 w-24"
                       />
                     ) : (
-                      <span className="w-16 text-right text-sm text-fg">{score === null ? '—' : score}</span>
+                      <span className="w-16 text-right text-body text-fg">{score === null ? '—' : score}</span>
                     )}
-                    <span className="w-12 text-right text-sm tabular-nums text-fg-muted">
+                    <span className="w-12 text-right text-body tabular-nums text-fg-muted">
                       {percentage === null ? '—' : `${percentage}%`}
                     </span>
                     <span className="w-8 text-center">
                       {grade ? <Badge tone={GRADE_TONES[grade] ?? 'gray'}>{grade}</Badge> : <span className="text-fg-subtle">—</span>}
                     </span>
-                    <span className="w-16 text-right text-xs">
+                    <span className="w-16 text-right text-caption">
                       {passed === null ? (
                         <span className="text-fg-subtle">—</span>
                       ) : passed ? (

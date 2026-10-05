@@ -200,8 +200,8 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
           <MoneyController control={control} name="discountAmount" id="course-discount" invalid={Boolean(errors.discountAmount)} />
         </FormField>
 
-        <div className="rounded-lg bg-surface-muted px-4 py-3 sm:col-span-2">
-          <p className="text-xs text-fg-muted">Yakuniy narx (shartnomaga shu narx yoziladi)</p>
+        <div className="rounded-control bg-surface-muted px-4 py-3 sm:col-span-2">
+          <p className="text-caption text-fg-muted">Yakuniy narx (shartnomaga shu narx yoziladi)</p>
           <p className="mt-1 text-lg font-semibold text-fg">{formatMoney(finalPrice)}</p>
         </div>
 

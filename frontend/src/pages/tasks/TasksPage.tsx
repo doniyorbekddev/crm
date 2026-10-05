@@ -76,8 +76,8 @@ export default function TasksPage() {
                     )}
                     <Badge tone={task.status === 'OPEN' ? (task.overdue ? 'red' : 'blue') : task.status === 'DONE' ? 'green' : 'gray'}>{task.overdue ? 'Muddati o‘tgan' : STATUS_LABELS[task.status]}</Badge>
                   </p>
-                  {task.description && <p className="mt-1 text-sm text-fg-muted">{task.description}</p>}
-                  <p className="mt-1 text-xs text-fg-subtle">
+                  {task.description && <p className="mt-1 text-body text-fg-muted">{task.description}</p>}
+                  <p className="mt-1 text-caption text-fg-subtle">
                     {task.dueAt ? `Muddat: ${formatDateTime(task.dueAt)}` : 'Muddatsiz'}
                     {task.rule ? ` · qoida: ${task.rule.name}` : ''}
                     {scope === 'all' ? ` · ${task.assignee.firstName} ${task.assignee.lastName}` : ''}

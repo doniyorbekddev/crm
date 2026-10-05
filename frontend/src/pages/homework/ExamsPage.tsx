@@ -170,7 +170,7 @@ export default function ExamsPage() {
                   cell: (exam) => (
                     <>
                       <p className="font-medium text-fg">{exam.title}</p>
-                      <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                      <p className="mt-1 flex items-center gap-2 text-caption text-fg-muted">
                         <Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
                         {exam.isOnline && <Badge tone="purple">Onlayn</Badge>}
                         {EXAM_TYPE_LABELS[exam.type]} · {exam.maxScore} ball
@@ -184,7 +184,7 @@ export default function ExamsPage() {
                   cell: (exam) => (
                     <>
                       <p className="text-fg">{exam.group.name}</p>
-                      <p className="text-xs text-fg-muted">{exam.course?.name ?? '—'}</p>
+                      <p className="text-caption text-fg-muted">{exam.course?.name ?? '—'}</p>
                     </>
                   ),
                 },

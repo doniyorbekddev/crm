@@ -1,3 +1,4 @@
+import { Timeline } from '@/components/ui/Timeline';
 import { DataTable } from '@/components/ui/DataTable';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
@@ -18,7 +19,6 @@ import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/utils/f
 import { GRADE_TONES, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_TONES } from '@/utils/homeworkLabels';
 import { PAYMENT_METHOD_LABELS } from '@/utils/paymentLabels';
 import { ProgressChart } from './ProgressChart';
-import { CertificatesCard } from './CertificatesCard';
 import { DiscountsCard } from './DiscountsCard';
 import { CurriculumProgressCard } from './CurriculumProgressCard';
 import { RiskCard } from './RiskCard';
@@ -79,12 +79,10 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
 
       <CurriculumProgressCard studentId={student.id} />
 
-      <CertificatesCard studentId={student.id} />
-
       <Card>
         <CardHeader>
           <CardTitle>Progress dinamikasi</CardTitle>
-          <span className="text-xs text-fg-muted">oxirgi 6 oy</span>
+          <span className="text-caption text-fg-muted">oxirgi 6 oy</span>
         </CardHeader>
         <CardContent>
           <ProgressChart data={profile.progress} />
@@ -103,18 +101,18 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
               {profile.feedback.map((item, index) => (
                 <li key={`${item.type}-${item.date}-${index}`} className="px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="flex items-center gap-2 text-sm font-medium text-fg">
+                    <p className="flex items-center gap-2 text-label text-fg">
                       <Badge tone={item.type === 'exam' ? 'purple' : 'blue'}>{item.type === 'exam' ? 'Imtihon' : 'Uy vazifasi'}</Badge>
                       {item.title}
                     </p>
-                    <span className="text-xs text-fg-muted">
+                    <span className="text-caption text-fg-muted">
                       {item.percentage !== null && `${item.percentage}% · `}
                       {formatDate(item.date)}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-fg">“{item.text}”</p>
+                  <p className="mt-1 text-body text-fg">“{item.text}”</p>
                   {item.author && (
-                    <p className="mt-0.5 text-xs text-fg-muted">
+                    <p className="mt-0.5 text-caption text-fg-muted">
                       — {item.author.firstName} {item.author.lastName}
                     </p>
                   )}
@@ -153,7 +151,7 @@ export function HomeworkTab({ studentId }: { studentId: string }) {
               cell: (row) => (
                 <>
                   <p className="font-medium text-fg">{row.title}</p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     {row.groupName}
                     {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
                   </p>
@@ -220,7 +218,7 @@ export function ExamsTab({ studentId }: { studentId: string }) {
               cell: (row) => (
                 <>
                   <p className="font-medium text-fg">{row.title}</p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     {row.groupName}
                     {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
                   </p>
@@ -259,7 +257,7 @@ export function ExamsTab({ studentId }: { studentId: string }) {
                   <span className="flex items-center gap-2">
                     {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
                     {row.passed !== null && (
-                      <span className={cn('text-xs', row.passed ? 'text-success' : 'text-danger')}>
+                      <span className={cn('text-caption', row.passed ? 'text-success' : 'text-danger')}>
                         {row.passed ? 'O‘tdi' : 'O‘tmadi'}
                       </span>
                     )}
@@ -304,7 +302,7 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
             {
               key: 'c0',
               label: 'Kvitansiya',
-              tdClassName: 'font-mono text-xs text-fg-muted',
+              tdClassName: 'font-mono text-caption text-fg-muted',
               cell: (payment) => (
                 <>
                   {payment.code}
@@ -353,7 +351,7 @@ export function AchievementsTab({ profile }: { profile: StudentProfile }) {
       <Card>
         <CardHeader>
           <CardTitle>Nishonlar</CardTitle>
-          <span className="text-xs text-fg-muted">{formatNumber(gamification.badges.length)} ta</span>
+          <span className="text-caption text-fg-muted">{formatNumber(gamification.badges.length)} ta</span>
         </CardHeader>
         <CardContent className="p-0">
           {gamification.badges.length === 0 ? (
@@ -361,11 +359,11 @@ export function AchievementsTab({ profile }: { profile: StudentProfile }) {
           ) : (
             <ul className="grid gap-2 p-4 sm:grid-cols-2">
               {gamification.badges.map((badge) => (
-                <li key={badge.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                <li key={badge.id} className="flex items-center gap-3 rounded-card border border-border p-3">
                   <span className="text-2xl">{badge.icon}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-fg">{badge.name}</p>
-                    <p className="text-xs text-fg-muted">{formatDate(badge.awardedAt)}</p>
+                    <p className="truncate text-label text-fg">{badge.name}</p>
+                    <p className="text-caption text-fg-muted">{formatDate(badge.awardedAt)}</p>
                   </div>
                 </li>
               ))}
@@ -386,10 +384,10 @@ export function AchievementsTab({ profile }: { profile: StudentProfile }) {
               {gamification.recentXp.map((row) => (
                 <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-fg">{row.description}</p>
-                    <p className="text-xs text-fg-muted">{formatDateTime(row.createdAt)}</p>
+                    <p className="truncate text-body text-fg">{row.description}</p>
+                    <p className="text-caption text-fg-muted">{formatDateTime(row.createdAt)}</p>
                   </div>
-                  <span className={cn('shrink-0 text-sm font-semibold', row.points >= 0 ? 'text-success' : 'text-danger')}>
+                  <span className={cn('shrink-0 text-h4', row.points >= 0 ? 'text-success' : 'text-danger')}>
                     {row.points > 0 ? '+' : ''}
                     {row.points} XP
                   </span>
@@ -424,32 +422,18 @@ export function ActivityTab({ profile }: { profile: StudentProfile }) {
 
   return (
     <Card>
-      <ol className="relative space-y-4 p-4 before:absolute before:top-6 before:bottom-6 before:left-[29px] before:w-px before:bg-border">
-        {profile.activity.map((item, index) => {
-          const Icon = ACTIVITY_ICONS[item.type];
-          return (
-            <li key={`${item.type}-${item.date}-${index}`} className="relative flex gap-3">
-              <span
-                className={cn(
-                  'z-10 grid size-7 shrink-0 place-items-center rounded-full border',
-                  item.tone === 'positive' && 'border-success-border bg-success-subtle text-success',
-                  item.tone === 'negative' && 'border-danger-border bg-danger-subtle text-danger',
-                  item.tone === 'neutral' && 'border-border bg-surface-muted text-fg-muted',
-                )}
-              >
-                <Icon className="size-3.5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <p className="text-sm font-medium text-fg">{item.title}</p>
-                  <span className="text-xs text-fg-subtle">{formatDate(item.date)}</span>
-                </div>
-                <p className="truncate text-xs text-fg-muted">{item.description}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <Timeline
+        label="Faollik tarixi"
+        className="p-5"
+        items={profile.activity.map((item, index) => ({
+          id: `${item.type}-${item.date}-${index}`,
+          title: item.title,
+          time: formatDate(item.date),
+          meta: item.description,
+          icon: ACTIVITY_ICONS[item.type],
+          tone: item.tone === 'positive' ? ('success' as const) : item.tone === 'negative' ? ('danger' as const) : ('neutral' as const),
+        }))}
+      />
     </Card>
   );
 }

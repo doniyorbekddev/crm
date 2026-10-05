@@ -63,15 +63,15 @@ export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="green">Ulangan</Badge>
-              {linkQuery.data.chatTitle && <span className="text-sm text-fg">{linkQuery.data.chatTitle}</span>}
-              <span className="text-xs text-fg-muted">{formatDateTime(linkQuery.data.verifiedAt)}</span>
+              {linkQuery.data.chatTitle && <span className="text-body text-fg">{linkQuery.data.chatTitle}</span>}
+              <span className="text-caption text-fg-muted">{formatDateTime(linkQuery.data.verifiedAt)}</span>
             </div>
-            <p className="text-sm text-fg-muted">Eslatmalar Telegramga ham yuboriladi.</p>
-            <div className="rounded-lg border border-border bg-surface-muted p-3">
-              <p className="mb-2 text-xs font-medium text-fg-muted">Botga yuborish mumkin bo‘lgan buyruqlar</p>
+            <p className="text-body text-fg-muted">Eslatmalar Telegramga ham yuboriladi.</p>
+            <div className="rounded-control border border-border bg-surface-muted p-3">
+              <p className="mb-2 text-caption font-medium text-fg-muted">Botga yuborish mumkin bo‘lgan buyruqlar</p>
               <ul className="space-y-1">
                 {(audience === 'portal' ? PORTAL_COMMANDS : STAFF_COMMANDS).map(([command, description]) => (
-                  <li key={command} className="text-sm text-fg-muted">
+                  <li key={command} className="text-body text-fg-muted">
                     <code className="font-mono text-fg">{command}</code> — {description}
                   </li>
                 ))}
@@ -89,15 +89,15 @@ export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 
                 ulangandan keyin kela boshlaydi.
               </Alert>
             )}
-            <p className="text-sm text-fg-muted">
+            <p className="text-body text-fg-muted">
               Botga quyidagi buyruqni yuboring — shundan keyin eslatmalar Telegramga ham keladi:
             </p>
-            <code className="block rounded-lg border border-border bg-surface-muted p-3 font-mono text-sm text-fg">
+            <code className="block rounded-control border border-border bg-surface-muted p-3 font-mono text-body text-fg">
               /start {linkQuery.data.linkCode}
             </code>
             {linkQuery.data.codeExpiresAt && (
               // Kod muddatli: u ekran suratidan tarqalib ketsa ham abadiy ishlamasin
-              <p className="text-xs text-fg-subtle">
+              <p className="text-caption text-fg-subtle">
                 Kod {formatDateTime(linkQuery.data.codeExpiresAt)} gacha amal qiladi. Muddati o‘tsa, shu sahifani
                 yangilang — yangi kod beriladi.
               </p>
@@ -107,7 +107,7 @@ export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 
                 href={linkQuery.data.deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+                className="inline-flex h-10 items-center rounded-control bg-brand-600 px-4 text-label text-white hover:bg-brand-700"
               >
                 Telegramda ochish
               </a>

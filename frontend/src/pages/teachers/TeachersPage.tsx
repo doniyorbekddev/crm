@@ -146,7 +146,7 @@ export default function TeachersPage() {
               </Badge>
             )}
           </p>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {teacher.user.email} · {teacher.user.roleName}
           </p>
         </>
@@ -158,7 +158,7 @@ export default function TeachersPage() {
       cell: (teacher: TeacherTableRow) => (
         <>
           <p className="text-fg">{teacher.specialization ?? '—'}</p>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {teacher.experienceYears === null ? 'Tajriba ko‘rsatilmagan' : `${teacher.experienceYears} yil tajriba`}
             {teacher.hireDate && ` · ${formatDate(teacher.hireDate)}`}
             {teacher.terminationDate && ` · ketgan ${formatDate(teacher.terminationDate)}`}
@@ -205,12 +205,12 @@ export default function TeachersPage() {
       cell: (teacher: TeacherTableRow) => (
         <>
           {!teacher.salaryVisible ? (
-            <span className="text-xs text-fg-subtle">—</span>
+            <span className="text-caption text-fg-subtle">—</span>
           ) : teacher.salaryRule ? (
             <>
               <Badge tone="blue">{SALARY_TYPE_LABELS[teacher.salaryRule.type]}</Badge>
               {canViewSalary && (
-                <p className="mt-1 text-xs text-fg-muted">{salaryRuleSummary(teacher.salaryRule)}</p>
+                <p className="mt-1 text-caption text-fg-muted">{salaryRuleSummary(teacher.salaryRule)}</p>
               )}
             </>
           ) : (

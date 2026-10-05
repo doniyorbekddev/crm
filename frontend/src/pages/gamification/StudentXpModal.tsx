@@ -96,23 +96,23 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
         <Alert tone="error">{getErrorMessage(profileQuery.error)}</Alert>
       ) : !profile ? null : (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-surface-muted p-4">
+          <div className="rounded-card border border-border bg-surface-muted p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="flex items-center gap-2 text-sm text-fg-muted">
+                <p className="flex items-center gap-2 text-body text-fg-muted">
                   {profile.level.icon ? <span className="text-xl" aria-hidden>{profile.level.icon}</span> : <Star className="size-5 text-warning" aria-hidden />}
                   {profile.level.number}-daraja · {profile.level.name}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-fg">{formatXp(profile.totalXp)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-fg-muted">Reytingdagi o‘rni</p>
-                <p className="text-xl font-semibold text-fg">{profile.rank ? `#${profile.rank}` : '—'}</p>
+                <p className="text-caption text-fg-muted">Reytingdagi o‘rni</p>
+                <p className="text-h2 text-fg">{profile.rank ? `#${profile.rank}` : '—'}</p>
               </div>
             </div>
 
             <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-fg-muted">
+              <div className="flex items-center justify-between text-caption text-fg-muted">
                 <span>{profile.level.name}</span>
                 <span>
                   {profile.nextLevel
@@ -136,18 +136,18 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">Nishonlar</p>
+            <p className="mb-2 text-label text-fg">Nishonlar</p>
             {profile.badges.length === 0 ? (
-              <p className="text-xs text-fg-muted">Hali nishon yo‘q — davomat va uy vazifalari orqali yig‘iladi.</p>
+              <p className="text-caption text-fg-muted">Hali nishon yo‘q — davomat va uy vazifalari orqali yig‘iladi.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {profile.badges.map((badge) => (
                   <span
                     key={badge.id}
                     title={`${badge.description} · ${formatDateTime(badge.awardedAt)}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-fg"
+                    className="inline-flex items-center gap-1.5 rounded-control border border-border bg-surface px-2.5 py-1.5 text-caption text-fg"
                   >
-                    <span className="text-base">{badge.icon}</span>
+                    <span className="text-body-lg">{badge.icon}</span>
                     {badge.name}
                   </span>
                 ))}
@@ -156,20 +156,20 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">So‘nggi XP harakatlari</p>
+            <p className="mb-2 text-label text-fg">So‘nggi XP harakatlari</p>
             {profile.recentXp.length === 0 ? (
-              <p className="text-xs text-fg-muted">XP yozuvlari yo‘q.</p>
+              <p className="text-caption text-fg-muted">XP yozuvlari yo‘q.</p>
             ) : (
-              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border">
+              <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-card border border-border">
                 {profile.recentXp.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-fg">{item.description}</p>
-                      <p className="text-xs text-fg-subtle">{formatDateTime(item.createdAt)}</p>
+                      <p className="truncate text-body text-fg">{item.description}</p>
+                      <p className="text-caption text-fg-subtle">{formatDateTime(item.createdAt)}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge tone={XP_SOURCE_TONES[item.source]}>{XP_SOURCE_LABELS[item.source]}</Badge>
-                      <span className={cn('text-sm font-semibold', item.points >= 0 ? 'text-success' : 'text-danger')}>
+                      <span className={cn('text-h4', item.points >= 0 ? 'text-success' : 'text-danger')}>
                         {item.points >= 0 ? '+' : ''}
                         {item.points}
                       </span>
@@ -181,7 +181,7 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
           </div>
 
           {canManage && (
-            <div className="space-y-3 rounded-xl border border-border p-3">
+            <div className="space-y-3 rounded-card border border-border p-3">
               {!showAward ? (
                 <Button variant="secondary" leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setShowAward(true)}>
                   Qo‘lda XP berish

@@ -129,7 +129,7 @@ export default function ParentsPage() {
           <p className="font-medium text-fg">
             {parent.firstName} {parent.lastName}
           </p>
-          {parent.notes && <p className="max-w-[16rem] truncate text-xs text-fg-muted">{parent.notes}</p>}
+          {parent.notes && <p className="max-w-[16rem] truncate text-caption text-fg-muted">{parent.notes}</p>}
         </>
       ),
     },
@@ -142,7 +142,7 @@ export default function ParentsPage() {
           <a href={`tel:${parent.phone}`} className="text-fg hover:text-brand-600">
             {formatPhone(parent.phone)}
           </a>
-          <p className="text-xs text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
+          <p className="text-caption text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
         </>
       ),
     },
@@ -152,17 +152,17 @@ export default function ParentsPage() {
       cell: (parent: ParentTableRow) => (
         <>
           {parent.students.length === 0 ? (
-            <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
+            <span className="text-caption text-fg-subtle">Biriktirilmagan</span>
           ) : (
             <ul className="space-y-1">
               {parent.students.map((link) => (
-                <li key={link.linkId} className="flex flex-wrap items-center gap-1.5 text-sm">
+                <li key={link.linkId} className="flex flex-wrap items-center gap-1.5 text-body">
                   <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-brand-600">
                     {link.firstName} {link.lastName}
                   </Link>
                   <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{PARENT_RELATION_LABELS[link.relation]}</Badge>
                   {link.isPrimary && <Badge tone="blue">Asosiy</Badge>}
-                  {link.group && <span className="text-xs text-fg-muted">{link.group.name}</span>}
+                  {link.group && <span className="text-caption text-fg-muted">{link.group.name}</span>}
                 </li>
               ))}
             </ul>

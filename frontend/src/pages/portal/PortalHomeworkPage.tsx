@@ -74,18 +74,18 @@ export default function PortalHomeworkPage() {
                     <Link to={`/portal/homework/${row.homeworkId}`} className="block truncate font-medium text-fg hover:underline">
                       {row.title}
                     </Link>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {row.groupName} · muddat:{' '}
                       <span className={cn(overdue && 'text-danger')}>
                         {formatDateTime(row.deadline)} ({formatRelativeTime(row.deadline)})
                       </span>
                     </p>
-                    {row.feedback && <p className="mt-1 text-sm text-fg-muted">Izoh: {row.feedback}</p>}
+                    {row.feedback && <p className="mt-1 text-body text-fg-muted">Izoh: {row.feedback}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm tabular-nums text-fg">
+                    <span className="text-body tabular-nums text-fg">
                       {row.score === null ? '—' : `${row.score}/${row.maxPoints}`}
-                      {row.xpAwarded > 0 && <span className="ml-1 text-xs text-fg-muted">+{row.xpAwarded} XP</span>}
+                      {row.xpAwarded > 0 && <span className="ml-1 text-caption text-fg-muted">+{row.xpAwarded} XP</span>}
                     </span>
                     <Badge tone={SUBMISSION_STATUS_TONES[row.status]}>{SUBMISSION_STATUS_LABELS[row.status]}</Badge>
                   </div>

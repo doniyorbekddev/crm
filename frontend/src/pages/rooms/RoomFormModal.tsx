@@ -103,7 +103,7 @@ export function RoomFormModal({ room, onClose, onSaved }: RoomFormModalProps) {
           <Input id="room-note" value={note} onChange={(event) => setNote(event.target.value)} />
         </FormField>
         {room && (
-          <label className="flex items-center gap-2 text-sm text-fg">
+          <label className="flex items-center gap-2 text-body text-fg">
             <Checkbox checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
             Faol
           </label>

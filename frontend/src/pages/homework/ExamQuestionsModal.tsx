@@ -61,7 +61,7 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
         </Alert>
       )}
 
-      <div className="mb-4 flex flex-col gap-2 rounded-lg border border-border bg-surface-muted p-3 sm:flex-row sm:items-end">
+      <div className="mb-4 flex flex-col gap-2 rounded-control border border-border bg-surface-muted p-3 sm:flex-row sm:items-end">
         <FormField label="Tasodifiy savollar" htmlFor="exam-random-count" hint="Savollar bazasidan shu kurs bo‘yicha tanlanadi">
           <Input
             id="exam-random-count"
@@ -92,11 +92,11 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
       ) : (
         <ul className="space-y-3">
           {attemptsQuery.data?.map((attempt) => (
-            <li key={attempt.id} className="rounded-lg border border-border p-3">
+            <li key={attempt.id} className="rounded-control border border-border p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-medium text-fg">{attempt.studentName}</p>
-                  <p className="text-xs text-fg-subtle">
+                  <p className="text-caption text-fg-subtle">
                     {attempt.attemptNo}-urinish · {attempt.score}/{attempt.maxScore} ball
                   </p>
                 </div>
@@ -118,7 +118,7 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
               {attempt.topics.length > 0 && (
                 <ul className="mt-3 space-y-1">
                   {attempt.topics.map((topic) => (
-                    <li key={topic.topicId ?? topic.topicTitle} className="flex items-center gap-2 text-sm">
+                    <li key={topic.topicId ?? topic.topicTitle} className="flex items-center gap-2 text-body">
                       <span className="w-40 shrink-0 truncate text-fg-muted">{topic.topicTitle}</span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
                         <div
@@ -136,7 +136,7 @@ export function ExamQuestionsModal({ exam, onClose }: { exam: Exam; onClose: () 
               )}
 
               {attempt.weakTopics.length > 0 && (
-                <p className="mt-2 text-sm text-fg-muted">
+                <p className="mt-2 text-body text-fg-muted">
                   Takrorlash kerak: <span className="text-fg">{attempt.weakTopics.join(', ')}</span>
                 </p>
               )}

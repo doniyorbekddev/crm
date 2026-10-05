@@ -169,24 +169,24 @@ export default function SalariesPage() {
       {summary && (
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="p-4">
-            <p className="text-xs text-fg-muted">{summary.label} jami</p>
-            <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(summary.accrued)}</p>
-            <p className="mt-1 text-xs text-fg-muted">{formatNumber(summary.periods)} ta o‘qituvchi</p>
+            <p className="text-caption text-fg-muted">{summary.label} jami</p>
+            <p className="mt-1 text-h2 text-fg">{formatMoney(summary.accrued)}</p>
+            <p className="mt-1 text-caption text-fg-muted">{formatNumber(summary.periods)} ta o‘qituvchi</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-fg-muted">To‘langan</p>
-            <p className="mt-1 text-xl font-semibold text-success">{formatMoney(summary.paid)}</p>
+            <p className="text-caption text-fg-muted">To‘langan</p>
+            <p className="mt-1 text-h2 text-success">{formatMoney(summary.paid)}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-fg-muted">Qolgan</p>
-            <p className={cn('mt-1 text-xl font-semibold', summary.remaining > 0 ? 'text-warning' : 'text-fg')}>
+            <p className="text-caption text-fg-muted">Qolgan</p>
+            <p className={cn('mt-1 text-h2', summary.remaining > 0 ? 'text-warning' : 'text-fg')}>
               {formatMoney(summary.remaining)}
             </p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs text-fg-muted">Tasdiq kutmoqda</p>
-            <p className="mt-1 text-xl font-semibold text-fg">{formatNumber(summary.awaitingApproval)}</p>
-            <p className="mt-1 text-xs text-fg-muted">hisoblangan, tasdiqlanmagan</p>
+            <p className="text-caption text-fg-muted">Tasdiq kutmoqda</p>
+            <p className="mt-1 text-h2 text-fg">{formatNumber(summary.awaitingApproval)}</p>
+            <p className="mt-1 text-caption text-fg-muted">hisoblangan, tasdiqlanmagan</p>
           </Card>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function SalariesPage() {
               </option>
             ))}
           </Select>
-          <div role="group" aria-label="To‘lov oluvchi" className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-lg border border-border bg-surface-muted p-0.5">
+          <div role="group" aria-label="To‘lov oluvchi" className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-control border border-border bg-surface-muted p-0.5">
             {([
               ['', 'Hammasi'],
               ['TEACHER', 'O‘qituvchilar'],
@@ -229,7 +229,7 @@ export default function SalariesPage() {
                 aria-pressed={payeeType === value}
                 onClick={() => setPayeeType(value)}
                 className={cn(
-                  'h-9 rounded-md px-3 text-sm font-medium whitespace-nowrap text-fg-muted transition-colors hover:text-fg',
+                  'h-9 rounded-chip px-3 text-label whitespace-nowrap text-fg-muted transition-colors hover:text-fg',
                   payeeType === value && 'bg-surface text-fg shadow-sm',
                 )}
               >
@@ -287,7 +287,7 @@ export default function SalariesPage() {
                     <p className="font-medium whitespace-nowrap text-fg">
                       {period.payee.firstName} {period.payee.lastName}
                     </p>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {period.payee.type === 'EMPLOYEE'
                         ? `Xodim · ${period.payee.subtitle ?? ''}`
                         : `${SALARY_TYPE_LABELS[period.salaryType]} · ${formatNumber(period.studentsCount)} o‘quvchi${
@@ -318,7 +318,7 @@ export default function SalariesPage() {
                     <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-danger' : 'text-fg')}>
                       {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
                     </span>
-                    {period.commissionRate > 0 && <p className="text-xs text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
+                    {period.commissionRate > 0 && <p className="text-caption text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
                   </>
                 ),
               },
@@ -356,9 +356,9 @@ export default function SalariesPage() {
                   <>
                     <p className="text-fg-muted">
                       {formatMoney(period.paidAmount)}
-                      {advanceOf(period) > 0 && <span className="text-xs text-fg-subtle"> (avans {formatMoney(advanceOf(period))})</span>}
+                      {advanceOf(period) > 0 && <span className="text-caption text-fg-subtle"> (avans {formatMoney(advanceOf(period))})</span>}
                     </p>
-                    <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-warning' : 'text-fg-subtle')}>
+                    <p className={cn('text-caption', period.remainingAmount > 0 ? 'text-warning' : 'text-fg-subtle')}>
                       qolgan {formatMoney(period.remainingAmount)}
                     </p>
                   </>
@@ -374,7 +374,7 @@ export default function SalariesPage() {
                       {period.lockedAt && <Lock className="size-3.5 text-fg-subtle" aria-label="Qotirilgan" />}
                     </span>
                     {!period.lockedAt && period.unlockedAt && (
-                      <p className="mt-1 text-xs whitespace-nowrap text-warning">qayta ochilgan</p>
+                      <p className="mt-1 text-caption whitespace-nowrap text-warning">qayta ochilgan</p>
                     )}
                   </>
                 ),

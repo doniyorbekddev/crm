@@ -91,7 +91,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
               </Link>
               {lead.priority === 'URGENT' || lead.priority === 'HIGH' ? <LeadPriorityBadge priority={lead.priority} /> : null}
             </div>
-            <p className="text-xs text-fg-muted">
+            <p className="text-caption text-fg-muted">
               {lead.code} · {formatPhone(lead.phone)}
             </p>
           </div>
@@ -149,7 +149,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
               </span>
             </div>
           ) : (
-            <span className="text-xs text-fg-subtle">Biriktirilmagan</span>
+            <span className="text-caption text-fg-subtle">Biriktirilmagan</span>
           )}
         </>
       ),

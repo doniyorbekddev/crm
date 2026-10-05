@@ -27,17 +27,17 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Link to="/login" className="mb-8 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg">
+      <Link to="/login" className="mb-8 inline-flex items-center gap-1.5 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden />
         Kirish sahifasi
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Parolni tiklash</h1>
-        <p className="mt-2 text-sm text-fg-muted">
+        <h1 className="text-h1 tracking-tight">Parolni tiklash</h1>
+        <p className="mt-2 text-body text-fg-muted">
           Hisobingizga bog‘langan emailni kiriting — parolni tiklash havolasini yuboramiz.
         </p>
-        <p className="mt-2 text-sm text-fg-muted">
+        <p className="mt-2 text-body text-fg-muted">
           ID raqami yoki telefon bilan kirsangiz — yangi parol uchun o‘quv markaz administratoriga murojaat qiling.
         </p>
       </div>

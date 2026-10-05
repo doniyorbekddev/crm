@@ -1,3 +1,5 @@
+import { LineChart as LineChartIcon } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ProgressPoint } from '@/types/studentProfile';
@@ -8,7 +10,7 @@ const COLORS = { attendance: 'var(--color-chart-positive)', homework: 'var(--col
 export function ProgressChart({ data }: { data: ProgressPoint[] }) {
   const hasData = data.some((point) => point.attendanceRate !== null || point.homeworkRate !== null || point.examAverage !== null);
   if (!hasData) {
-    return <p className="py-16 text-center text-sm text-fg-muted">Oxirgi 6 oyda baholangan faoliyat yo‘q</p>;
+    return <EmptyState size="sm" icon={LineChartIcon} title="Oxirgi 6 oyda baholangan faoliyat yo‘q" description="Davomat, vazifa yoki imtihon natijasi paydo bo‘lgach grafik chiziladi" />;
   }
 
   return (

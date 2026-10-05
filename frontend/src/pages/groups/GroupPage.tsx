@@ -1,16 +1,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Bot, CalendarCheck, Clock, DoorOpen, Layers, Lock, Pencil, Target, UserRound } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, Pencil, Target, UserRound, UsersRound } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ProfileHeader, ProfileStat } from '@/components/ProfileHeader';
 import type { ProfileMetaItem } from '@/components/ProfileHeader';
 import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { AttendanceSection, ExamSection, HomeworkSection } from '@/components/academic/ScopedSections';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { TableSkeleton } from '@/components/ui/Table';
+import { Tab, TabList, TabPanel, Tabs } from '@/components/ui/Tabs';
 import { usePermission } from '@/hooks/usePermission';
 import { queryKeys } from '@/lib/queryKeys';
 import { GroupAiModal } from '@/pages/teaching/GroupAiModal';
@@ -20,10 +23,12 @@ import { formatSchedule } from '@/utils/courseLabels';
 import { formatDate } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupFormModal } from './GroupFormModal';
+import { GroupMasteryMatrix } from './GroupMasteryMatrix';
 import { GroupMasteryModal } from './GroupMasteryModal';
 import { GroupStudentsTable } from './GroupStudentsTable';
 
 type Dialog = 'edit' | 'mastery' | 'ai' | null;
+type TabKey = 'students' | 'attendance' | 'homework' | 'exams' | 'progress';
 
 const BACK = { to: '/groups', label: 'Guruhlar' };
 /** O'quvchilar ko'rsatkichlari (`/teaching/groups/:id`) shu ruxsatlardan biri bilan ochiladi — backend bilan bir xil */
@@ -60,7 +65,10 @@ export default function GroupPage() {
   const canUseAi = usePermission(PERMISSIONS.AI_ACADEMIC);
   const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
   const canViewStudents = usePermission(TEACHING_ACCESS);
+  const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
+  const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [tab, setTab] = useState<TabKey>('students');
 
   const groupQuery = useQuery({ queryKey: queryKeys.groups.detail(id), queryFn: () => groupsService.getById(id), enabled: Boolean(id) });
 
@@ -79,6 +87,15 @@ export default function GroupPage() {
 
   const group = groupQuery.data;
   const room = group.roomRef?.name ?? group.room;
+
+  // Bo'limlar ruxsatga qarab — ruxsati yo'q bo'lim umuman ko'rinmaydi (so'rov ham yuborilmaydi)
+  const tabs: ReadonlyArray<{ value: TabKey; label: string; icon: LucideIcon }> = [
+    { value: 'students', label: 'O‘quvchilar', icon: UsersRound },
+    ...(canViewAttendance ? [{ value: 'attendance' as const, label: 'Davomat', icon: CalendarCheck }] : []),
+    ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifalari', icon: BookOpenCheck }] : []),
+    ...(canViewExams ? [{ value: 'exams' as const, label: 'Imtihonlar', icon: FileCheck }] : []),
+    { value: 'progress', label: 'O‘zlashtirish', icon: Target },
+  ];
 
   const meta: ProfileMetaItem[] = [
     { name: 'Kurs', icon: BookOpen, label: group.course.name },
@@ -136,17 +153,47 @@ export default function GroupPage() {
         }
       />
 
-      {canViewStudents ? (
-        <StudentsCard groupId={group.id} groupName={group.name} />
-      ) : (
-        <Card>
-          <EmptyState
-            icon={Lock}
-            title="O‘quvchilar ko‘rsatkichlari yopiq"
-            description="Davomat, vazifa va xavf ko‘rsatkichlarini dars beradigan yoki guruhlarni boshqaradigan xodim ko‘radi"
-          />
-        </Card>
-      )}
+      <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
+        <TabList label="Guruh bo‘limlari" className="mb-4">
+          {tabs.map(({ value, label, icon: Icon }) => (
+            <Tab key={value} value={value} icon={<Icon className="size-4" aria-hidden />}>
+              {label}
+            </Tab>
+          ))}
+        </TabList>
+        <TabPanel value="students">
+          {canViewStudents ? (
+            <StudentsCard groupId={group.id} groupName={group.name} />
+          ) : (
+            <Card>
+              <EmptyState
+                icon={Lock}
+                title="O‘quvchilar ko‘rsatkichlari yopiq"
+                description="Davomat, vazifa va xavf ko‘rsatkichlarini dars beradigan yoki guruhlarni boshqaradigan xodim ko‘radi"
+              />
+            </Card>
+          )}
+        </TabPanel>
+        <TabPanel value="attendance">
+          <AttendanceSection scope={{ groupId: group.id }} />
+        </TabPanel>
+        <TabPanel value="homework">
+          <HomeworkSection scope={{ groupId: group.id }} />
+        </TabPanel>
+        <TabPanel value="exams">
+          <ExamSection scope={{ groupId: group.id }} />
+        </TabPanel>
+        <TabPanel value="progress">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mavzular bo‘yicha o‘zlashtirish</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <GroupMasteryMatrix groupId={group.id} />
+            </CardContent>
+          </Card>
+        </TabPanel>
+      </Tabs>
 
       {dialog === 'mastery' && <GroupMasteryModal group={{ id: group.id, name: group.name }} onClose={() => setDialog(null)} />}
       {dialog === 'ai' && <GroupAiModal group={{ id: group.id, name: group.name }} onClose={() => setDialog(null)} />}

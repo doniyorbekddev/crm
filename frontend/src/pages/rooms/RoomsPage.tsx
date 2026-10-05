@@ -21,12 +21,12 @@ import { RoomFormModal } from './RoomFormModal';
 
 function GroupSchedule({ room }: { room: Room }) {
   if (room.groups.length === 0) {
-    return <p className="text-sm text-fg-subtle">Band qilinmagan</p>;
+    return <p className="text-body text-fg-subtle">Band qilinmagan</p>;
   }
   return (
     <ul className="space-y-1">
       {room.groups.map((group) => (
-        <li key={group.id} className="text-sm text-fg-muted">
+        <li key={group.id} className="text-body text-fg-muted">
           <span className="text-fg">{group.name}</span> ·{' '}
           {group.scheduleDays.map((day) => WEEK_DAY_LABELS[day].slice(0, 3)).join(', ')} · {group.startTime}–{group.endTime}
         </li>
@@ -70,7 +70,7 @@ export default function RoomsPage() {
         }
       />
 
-      <label className="mb-4 flex w-fit items-center gap-2 text-sm text-fg-muted">
+      <label className="mb-4 flex w-fit items-center gap-2 text-body text-fg-muted">
         <Checkbox checked={includeInactive} onChange={(event) => setIncludeInactive(event.target.checked)} />
         Faol bo‘lmaganlarni ham ko‘rsatish
       </label>
@@ -78,7 +78,7 @@ export default function RoomsPage() {
       {roomsQuery.isPending ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-40 rounded-xl" />
+            <Skeleton key={index} className="h-40 rounded-card" />
           ))}
         </div>
       ) : roomsQuery.isError ? (
@@ -98,7 +98,7 @@ export default function RoomsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-fg">{room.name}</p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       {room.key} · {room.capacity} o‘rin
                     </p>
                   </div>

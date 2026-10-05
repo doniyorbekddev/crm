@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   BarChart3,
+  BookOpenCheck,
   Briefcase,
   CalendarCheck,
   CalendarDays,
   ClipboardList,
+  Clock,
+  FileCheck,
   GraduationCap,
   Layers,
   Mail,
@@ -16,9 +19,10 @@ import {
   Wallet2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ProfileHeader, ProfileStat } from '@/components/ProfileHeader';
 import type { ProfileMetaItem } from '@/components/ProfileHeader';
+import { AttendanceSection, ExamSection, HomeworkSection } from '@/components/academic/ScopedSections';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -31,12 +35,12 @@ import { usePermission } from '@/hooks/usePermission';
 import { queryKeys } from '@/lib/queryKeys';
 import { teachersService } from '@/services/teachers.service';
 import type { TeacherDetail } from '@/types/teacher';
-import { formatSchedule } from '@/utils/courseLabels';
+import { WEEK_DAY_LABELS, WEEK_DAY_ORDER, formatSchedule } from '@/utils/courseLabels';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { SALARY_TYPE_LABELS, salaryRuleSummary } from '@/utils/teacherLabels';
 
-type TabKey = 'performance' | 'groups' | 'salary';
+type TabKey = 'performance' | 'groups' | 'schedule' | 'attendance' | 'homework' | 'exams' | 'salary';
 
 const BACK = { to: '/teachers', label: 'O‘qituvchilar' };
 
@@ -211,6 +215,53 @@ function SalaryTab({ teacher, canViewSalary }: { teacher: TeacherDetail; canView
   );
 }
 
+/** Haftalik jadval: faol guruhlar kunlar bo'yicha, vaqt tartibida (ma'lumot guruhlar ro'yxatidan) */
+function ScheduleTab({ teacher }: { teacher: TeacherDetail }) {
+  const active = teacher.groupList.filter((group) => group.status === 'ACTIVE' || group.status === 'PLANNED');
+  const days = WEEK_DAY_ORDER.map((day) => ({
+    day,
+    lessons: active.filter((group) => group.scheduleDays.includes(day)).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+  })).filter((item) => item.lessons.length > 0);
+
+  if (days.length === 0) {
+    return (
+      <Card>
+        <EmptyState icon={CalendarDays} title="Jadval bo‘sh" description="Faol yoki rejalashtirilgan guruh biriktirilmagan" />
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Haftalik jadval</CardTitle>
+      </CardHeader>
+      <ul className="divide-y divide-border">
+        {days.map(({ day, lessons }) => (
+          <li key={day} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-start sm:gap-6">
+            <p className="w-28 shrink-0 text-label text-fg">{WEEK_DAY_LABELS[day]}</p>
+            <ul className="min-w-0 flex-1 space-y-1.5">
+              {lessons.map((group) => (
+                <li key={group.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
+                  <span className="font-medium whitespace-nowrap text-fg tabular-nums">
+                    {group.startTime}–{group.endTime}
+                  </span>
+                  <Link to={`/groups/${group.id}`} className="focus-ring rounded-chip text-fg hover:text-primary hover:underline">
+                    {group.name}
+                  </Link>
+                  <span className="text-caption text-fg-muted">
+                    {group.course.name}
+                    {group.room ? ` · ${group.room}-xona` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 /**
  * O'qituvchi profili — to'liq sahifa (oldin modal edi). Ma'lumot bitta `teachers/:id` so'rovidan;
  * maosh bo'limi `salary.view` ruxsatiga bog'liq (backend ham shuni tekshiradi).
@@ -218,6 +269,9 @@ function SalaryTab({ teacher, canViewSalary }: { teacher: TeacherDetail; canView
 export default function TeacherProfilePage() {
   const { id = '' } = useParams();
   const canViewSalary = usePermission(PERMISSIONS.SALARY_VIEW);
+  const canViewAttendance = usePermission(PERMISSIONS.ATTENDANCE_VIEW);
+  const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
+  const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
   const [tab, setTab] = useState<TabKey>('performance');
 
   const detailQuery = useQuery({
@@ -287,6 +341,24 @@ export default function TeacherProfilePage() {
           <Tab value="groups" icon={<Layers className="size-4" aria-hidden />} count={teacher.groupList.length}>
             Guruhlar
           </Tab>
+          <Tab value="schedule" icon={<Clock className="size-4" aria-hidden />}>
+            Jadval
+          </Tab>
+          {canViewAttendance && (
+            <Tab value="attendance" icon={<CalendarCheck className="size-4" aria-hidden />}>
+              Davomat
+            </Tab>
+          )}
+          {canViewHomework && (
+            <Tab value="homework" icon={<BookOpenCheck className="size-4" aria-hidden />}>
+              Uy vazifalari
+            </Tab>
+          )}
+          {canViewExams && (
+            <Tab value="exams" icon={<FileCheck className="size-4" aria-hidden />}>
+              Imtihonlar
+            </Tab>
+          )}
           <Tab value="salary" icon={<Wallet2 className="size-4" aria-hidden />}>
             Maosh
           </Tab>
@@ -296,6 +368,18 @@ export default function TeacherProfilePage() {
         </TabPanel>
         <TabPanel value="groups">
           <GroupsTab teacher={teacher} />
+        </TabPanel>
+        <TabPanel value="schedule">
+          <ScheduleTab teacher={teacher} />
+        </TabPanel>
+        <TabPanel value="attendance">
+          <AttendanceSection scope={{ teacherId: teacher.user.id }} />
+        </TabPanel>
+        <TabPanel value="homework">
+          <HomeworkSection scope={{ teacherId: teacher.user.id }} />
+        </TabPanel>
+        <TabPanel value="exams">
+          <ExamSection scope={{ teacherId: teacher.user.id }} />
         </TabPanel>
         <TabPanel value="salary">
           <SalaryTab teacher={teacher} canViewSalary={canViewSalary} />

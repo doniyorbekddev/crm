@@ -86,9 +86,9 @@ export function LeavesModal({ employee, onClose }: { employee: Employee; onClose
       footer={<Button onClick={onClose}>Yopish</Button>}
     >
       {canManage && (
-        <div className="mb-4 grid gap-2 rounded-lg border border-border bg-surface-muted p-3 sm:grid-cols-5">
+        <div className="mb-4 grid gap-2 rounded-control border border-border bg-surface-muted p-3 sm:grid-cols-5">
           <label className="sm:col-span-1">
-            <span className="mb-1 block text-xs text-fg-muted">Turi</span>
+            <span className="mb-1 block text-caption text-fg-muted">Turi</span>
             <Select value={type} onChange={(event) => setType(event.target.value as LeaveType)} aria-label="Ta’til turi">
               {LEAVE_TYPE_ORDER.map((value) => (
                 <option key={value} value={value}>
@@ -98,15 +98,15 @@ export function LeavesModal({ employee, onClose }: { employee: Employee; onClose
             </Select>
           </label>
           <label>
-            <span className="mb-1 block text-xs text-fg-muted">Boshlanish</span>
+            <span className="mb-1 block text-caption text-fg-muted">Boshlanish</span>
             <Input type="date" value={startDate} aria-label="Boshlanish sanasi" onChange={(event) => setStartDate(event.target.value)} />
           </label>
           <label>
-            <span className="mb-1 block text-xs text-fg-muted">Tugash</span>
+            <span className="mb-1 block text-caption text-fg-muted">Tugash</span>
             <Input type="date" value={endDate} aria-label="Tugash sanasi" onChange={(event) => setEndDate(event.target.value)} />
           </label>
           <label className="sm:col-span-1">
-            <span className="mb-1 block text-xs text-fg-muted">Sabab</span>
+            <span className="mb-1 block text-caption text-fg-muted">Sabab</span>
             <Input value={reason} placeholder="Ixtiyoriy" aria-label="Sabab" onChange={(event) => setReason(event.target.value)} />
           </label>
           <div className="flex items-end">
@@ -128,17 +128,17 @@ export function LeavesModal({ employee, onClose }: { employee: Employee; onClose
           {history?.items.map((leave) => (
             <li key={leave.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
               <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+                <p className="flex flex-wrap items-center gap-2 text-body text-fg">
                   {LEAVE_TYPE_LABELS[leave.type]}
                   <Badge tone={LEAVE_STATUS_TONES[leave.status]}>{LEAVE_STATUS_LABELS[leave.status]}</Badge>
                   {leave.isActiveToday && <Badge tone="yellow">Bugun ta’tilda</Badge>}
                 </p>
-                <p className="text-xs text-fg-subtle">
+                <p className="text-caption text-fg-subtle">
                   {formatDate(leave.startDate)} — {formatDate(leave.endDate)} · {leave.days} kun
                   {leave.reason ? ` · ${leave.reason}` : ''}
                 </p>
                 {leave.decidedBy && (
-                  <p className="text-xs text-fg-subtle">
+                  <p className="text-caption text-fg-subtle">
                     {leave.decidedBy}
                     {leave.decisionNote ? ` — ${leave.decisionNote}` : ''}
                   </p>
@@ -202,7 +202,7 @@ export function LeavesModal({ employee, onClose }: { employee: Employee; onClose
           }
         >
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Sabab</span>
+            <span className="mb-1 block text-body text-fg-muted">Sabab</span>
             <Input value={rejectNote} placeholder="Nega rad etilmoqda?" onChange={(event) => setRejectNote(event.target.value)} />
           </label>
         </Modal>

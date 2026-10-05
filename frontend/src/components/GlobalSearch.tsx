@@ -4,9 +4,10 @@ import type { LucideIcon } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { searchService } from '@/services/search.service';
@@ -148,9 +149,19 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
           {query.length < 2 ? (
             <p className="px-4 py-10 text-center text-body text-fg-muted">Qidirish uchun kamida 2 ta belgi kiriting</p>
           ) : searchQuery.isPending ? (
-            <p className="px-4 py-10 text-center text-body text-fg-muted">Qidirilmoqda…</p>
+            <div className="space-y-3 px-4 py-4" aria-busy="true" aria-label="Qidirilmoqda">
+              {[0, 1, 2, 3].map((index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Skeleton className="size-8 shrink-0 rounded-control" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : searchQuery.isError ? (
-            <p role="alert" className="px-4 py-10 text-center text-body text-danger">{getErrorMessage(searchQuery.error)}</p>
+            <ErrorState error={searchQuery.error} title="Qidiruv bajarilmadi" retrying={searchQuery.isFetching} onRetry={() => void searchQuery.refetch()} />
           ) : searchQuery.data.total === 0 ? (
             <p className="px-4 py-10 text-center text-body text-fg-muted">
               «{searchQuery.data.query}» bo‘yicha hech narsa topilmadi

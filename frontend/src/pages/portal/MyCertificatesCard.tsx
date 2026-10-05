@@ -38,18 +38,18 @@ export function MyCertificatesCard({ studentId }: { studentId?: string }) {
         ) : (
           <ul className="space-y-3">
             {(query.data ?? []).map((certificate) => (
-              <li key={certificate.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+              <li key={certificate.id} className="flex items-center gap-3 rounded-control border border-border p-3">
                 <QrCode value={`${window.location.origin}/verify/${certificate.verifyToken}`} size={72} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-fg">{certificate.courseName}</p>
-                  <p className="font-mono text-xs text-fg-subtle">{certificate.code}</p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="truncate text-label text-fg">{certificate.courseName}</p>
+                  <p className="font-mono text-caption text-fg-subtle">{certificate.code}</p>
+                  <p className="text-caption text-fg-muted">
                     Berilgan: {formatDate(certificate.issuedAt)}
                     {certificate.grade ? ` · baho: ${certificate.grade}` : ''}
                   </p>
                   <Link
                     to={`/certificates/${certificate.id}/print`}
-                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    className="mt-1 inline-flex items-center gap-1 text-body text-primary hover:underline"
                   >
                     Chop etish / PDF
                     <Printer className="size-3" aria-hidden />

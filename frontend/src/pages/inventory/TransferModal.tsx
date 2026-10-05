@@ -75,11 +75,11 @@ export function TransferModal({ product, onClose, onSaved }: { product: Product;
       )}
 
       {!branchesQuery.isPending && targets.length === 0 ? (
-        <p className="text-sm text-fg-muted">Ko‘chirish uchun boshqa filial yo‘q.</p>
+        <p className="text-body text-fg-muted">Ko‘chirish uchun boshqa filial yo‘q.</p>
       ) : (
         <div className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Qabul qiluvchi filial</span>
+            <span className="mb-1 block text-body text-fg-muted">Qabul qiluvchi filial</span>
             <Select
               value={toBranchId}
               onChange={(event) => {
@@ -95,21 +95,21 @@ export function TransferModal({ product, onClose, onSaved }: { product: Product;
                 </option>
               ))}
             </Select>
-            <span className="mt-1 block text-xs text-fg-subtle">Bu kodli mahsulot u yerda bo‘lmasa, o‘zi ochiladi</span>
+            <span className="mt-1 block text-caption text-fg-subtle">Bu kodli mahsulot u yerda bo‘lmasa, o‘zi ochiladi</span>
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Miqdor ({product.unit})</span>
+            <span className="mb-1 block text-body text-fg-muted">Miqdor ({product.unit})</span>
             <Input type="number" min={1} max={product.quantity} value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-            {amount > product.quantity && <span className="mt-1 block text-xs text-danger">Omborda bunchasi yo‘q</span>}
+            {amount > product.quantity && <span className="mt-1 block text-caption text-danger">Omborda bunchasi yo‘q</span>}
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Sabab / izoh</span>
+            <span className="mb-1 block text-body text-fg-muted">Sabab / izoh</span>
             <Input value={reason} placeholder="Masalan: u filialda tugab qolgan" onChange={(event) => setReason(event.target.value)} />
           </label>
 
-          <p className="text-xs text-fg-subtle">
+          <p className="text-caption text-fg-subtle">
             Bu markaz ichidagi harakat — tushum ham, xarajat ham yozilmaydi. Ikkala filial tarixida yozuv qoladi.
           </p>
         </div>

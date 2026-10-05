@@ -22,7 +22,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] text-fg-muted">{label}</p>
-      <p className="text-base font-semibold tabular-nums text-fg">{value}</p>
+      <p className="text-h3 tabular-nums text-fg">{value}</p>
     </div>
   );
 }
@@ -40,7 +40,7 @@ export function ChildrenCards() {
 
   return (
     <section aria-labelledby="children-title">
-      <h2 id="children-title" className="mb-3 text-base font-semibold text-fg">
+      <h2 id="children-title" className="mb-3 text-h3 text-fg">
         Farzandlarim
       </h2>
       <div className="grid gap-3 md:grid-cols-2">
@@ -52,13 +52,13 @@ export function ChildrenCards() {
               <CardHeader>
                 <div className="min-w-0">
                   <CardTitle className="truncate">{child.fullName}</CardTitle>
-                  <p className="truncate text-xs text-fg-muted">
+                  <p className="truncate text-caption text-fg-muted">
                     {child.code} · {child.courseName}
                     {child.groupName ? ` · ${child.groupName}` : ''}
                   </p>
                 </div>
                 {active ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                  <span className="inline-flex items-center gap-1 text-caption font-medium text-primary">
                     <Check className="size-3.5" aria-hidden />
                     Tanlangan
                   </span>
@@ -66,7 +66,7 @@ export function ChildrenCards() {
                   <button
                     type="button"
                     onClick={() => setActiveChild(child.studentId)}
-                    className="rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+                    className="rounded-chip px-2 py-1 text-caption font-medium text-primary hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
                   >
                     Tanlash
                   </button>
@@ -79,14 +79,14 @@ export function ChildrenCards() {
                   <Metric label="Imtihon" value={child.examAverage === null ? '—' : `${child.examAverage}%`} />
                   <Metric label="Daraja" value={`${child.level}`} />
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-caption">
                   <span className="flex items-center gap-1 text-fg-muted">
                     <CalendarDays className="size-3.5" aria-hidden />
                     {child.nextLesson ? `Keyingi dars: ${formatDate(child.nextLesson.date)}, ${child.nextLesson.startTime}` : 'Yaqin darslar yo‘q'}
                   </span>
                   {risk && <span className={cn('font-medium', risk.className)}>{risk.label}</span>}
                 </div>
-                <p className={cn('text-xs', child.debt.overdue > 0 ? 'text-danger' : 'text-fg-muted')}>
+                <p className={cn('text-caption', child.debt.overdue > 0 ? 'text-danger' : 'text-fg-muted')}>
                   {child.debt.remaining > 0
                     ? `Qolgan to‘lov: ${formatMoney(child.debt.remaining)}${child.debt.overdue > 0 ? ` · muddati o‘tgan: ${formatMoney(child.debt.overdue)}` : ''}`
                     : 'Qarz yo‘q'}

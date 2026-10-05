@@ -24,7 +24,7 @@ export function CurriculumCard({ studentId }: { studentId?: string }) {
           Kurs dasturi
         </CardTitle>
         {query.data && (
-          <span className="text-xs text-fg-muted">
+          <span className="text-caption text-fg-muted">
             {query.data.completed}/{query.data.total} mavzu · {query.data.percent}%
           </span>
         )}
@@ -40,9 +40,9 @@ export function CurriculumCard({ studentId }: { studentId?: string }) {
           <ul className="space-y-2.5">
             {query.data.modules.map((module) => (
               <li key={module.id}>
-                <div className="flex items-center justify-between gap-2 text-sm">
+                <div className="flex items-center justify-between gap-2 text-body">
                   <span className="min-w-0 truncate text-fg">{module.title}</span>
-                  <span className="shrink-0 text-xs text-fg-muted">
+                  <span className="shrink-0 text-caption text-fg-muted">
                     {module.completed}/{module.total} · {module.percent}%
                   </span>
                 </div>

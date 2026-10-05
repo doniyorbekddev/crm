@@ -61,7 +61,7 @@ export function RetentionModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-3">
           <Alert tone="info">Audit yozuvini qo‘lda o‘chirib bo‘lmaydi — faqat shu muddat bo‘yicha eskirgani olib tashlanadi.</Alert>
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Oddiy yozuvlar (kun)</span>
+            <span className="mb-1 block text-body text-fg-muted">Oddiy yozuvlar (kun)</span>
             <Input
               type="number"
               min={0}
@@ -69,10 +69,10 @@ export function RetentionModal({ onClose }: { onClose: () => void }) {
               value={retentionDays ?? String(query.data?.retentionDays ?? 365)}
               onChange={(event) => setRetentionDays(event.target.value)}
             />
-            <span className="mt-1 block text-xs text-fg-subtle">0 — hech qachon o‘chirilmaydi</span>
+            <span className="mt-1 block text-caption text-fg-subtle">0 — hech qachon o‘chirilmaydi</span>
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Muhim amallar (kun)</span>
+            <span className="mb-1 block text-body text-fg-muted">Muhim amallar (kun)</span>
             <Input
               type="number"
               min={0}
@@ -80,7 +80,7 @@ export function RetentionModal({ onClose }: { onClose: () => void }) {
               value={criticalDays ?? String(query.data?.criticalRetentionDays ?? 1825)}
               onChange={(event) => setCriticalDays(event.target.value)}
             />
-            <span className="mt-1 block text-xs text-fg-subtle">To‘lov, maosh, rol o‘zgarishi va boshqa muhim amallar</span>
+            <span className="mt-1 block text-caption text-fg-subtle">To‘lov, maosh, rol o‘zgarishi va boshqa muhim amallar</span>
           </label>
         </div>
       )}

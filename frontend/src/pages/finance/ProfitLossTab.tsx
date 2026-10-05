@@ -23,11 +23,11 @@ type StatementRow =
   | { kind: 'subtotal' | 'total'; label: string; amount: number; margin?: number; previous?: number };
 
 function ChangeBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-xs text-fg-subtle">oldingi davr yo‘q</span>;
+  if (value === null) return <span className="text-caption text-fg-subtle">oldingi davr yo‘q</span>;
   const up = value >= 0;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={cn('inline-flex items-center gap-0.5 text-xs font-medium', up ? 'text-success' : 'text-danger')}>
+    <span className={cn('inline-flex items-center gap-0.5 text-caption font-medium', up ? 'text-success' : 'text-danger')}>
       <Icon className="size-3.5" aria-hidden />
       {up ? '+' : ''}
       {value}%
@@ -38,7 +38,7 @@ function ChangeBadge({ value }: { value: number | null }) {
 function Kpi({ label, value, hint, change, tone = 'default' }: { label: string; value: number; hint?: string; change?: number | null; tone?: 'default' | 'signed' }) {
   return (
     <Card className="p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
+      <p className="text-caption text-fg-muted">{label}</p>
       <p
         className={cn(
           'mt-1 text-lg font-semibold tabular-nums sm:text-xl',
@@ -49,8 +49,8 @@ function Kpi({ label, value, hint, change, tone = 'default' }: { label: string; 
       </p>
       <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         {change !== undefined && <ChangeBadge value={change} />}
-        {change !== undefined && hint && <span className="text-xs text-fg-subtle" aria-hidden>·</span>}
-        {hint && <span className="text-xs text-fg-muted">{hint}</span>}
+        {change !== undefined && hint && <span className="text-caption text-fg-subtle" aria-hidden>·</span>}
+        {hint && <span className="text-caption text-fg-muted">{hint}</span>}
       </div>
     </Card>
   );
@@ -68,10 +68,10 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-card" />
           ))}
         </div>
-        <Skeleton className="h-96 w-full rounded-xl" />
+        <Skeleton className="h-96 w-full rounded-card" />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
         <Card className="min-w-0 xl:col-span-3">
           <CardHeader className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>Foyda va zarar hisoboti</CardTitle>
-            <span className="text-xs text-fg-muted">
+            <span className="text-caption text-fg-muted">
               {formatDate(data.from)} — {formatDate(data.to)}
             </span>
           </CardHeader>
@@ -136,7 +136,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                   if (row.kind === 'section') {
                     return (
                       <tr key={`section-${index}`} className="bg-surface-muted">
-                        <td colSpan={4} className="px-4 py-2 text-xs font-semibold tracking-wide text-fg-muted uppercase">
+                        <td colSpan={4} className="px-4 py-2 text-caption font-semibold tracking-wide text-fg-muted uppercase">
                           {row.label}
                         </td>
                       </tr>
@@ -149,7 +149,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                         <TD className={cn('text-right whitespace-nowrap tabular-nums', row.negative ? 'text-danger' : 'text-fg')}>
                           {row.amount === 0 ? '—' : `${row.negative ? '−' : ''}${formatMoney(row.amount)}`}
                         </TD>
-                        <TD className="text-right text-xs whitespace-nowrap tabular-nums text-fg-muted">{row.share !== undefined ? `${row.share}%` : ''}</TD>
+                        <TD className="text-right text-caption whitespace-nowrap tabular-nums text-fg-muted">{row.share !== undefined ? `${row.share}%` : ''}</TD>
                         <TD />
                       </TR>
                     );
@@ -157,17 +157,17 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
                   const isTotal = row.kind === 'total';
                   return (
                     <TR key={`total-${index}`} className={cn(isTotal && 'bg-primary-subtle')}>
-                      <TD className={cn('font-semibold text-fg', isTotal && 'text-base')}>{row.label}</TD>
+                      <TD className={cn('font-semibold text-fg', isTotal && 'text-body-lg')}>{row.label}</TD>
                       <TD
                         className={cn(
                           'text-right font-semibold whitespace-nowrap tabular-nums',
-                          isTotal && 'text-base',
+                          isTotal && 'text-body-lg',
                           row.amount < 0 ? 'text-danger' : 'text-fg',
                         )}
                       >
                         {signedMoney(row.amount)}
                       </TD>
-                      <TD className="text-right text-xs whitespace-nowrap tabular-nums text-fg-muted">{row.margin !== undefined ? `marja ${String(row.margin).replace('-', '−')}%` : ''}</TD>
+                      <TD className="text-right text-caption whitespace-nowrap tabular-nums text-fg-muted">{row.margin !== undefined ? `marja ${String(row.margin).replace('-', '−')}%` : ''}</TD>
                       <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">
                         {row.previous === undefined ? '' : signedMoney(row.previous)}
                       </TD>
@@ -177,7 +177,7 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
               </TBody>
             </Table>
           </TableContainer>
-          <p className="border-t border-border px-4 py-2.5 text-xs text-fg-muted">
+          <p className="border-t border-border px-4 py-2.5 text-caption text-fg-muted">
             Kassa usuli: tushum va xarajat pul harakati sanasi bo‘yicha. Qaytarilgan to‘lov tushumdan ayriladi. Oldingi davr:{' '}
             {formatDate(data.previous.from)} — {formatDate(data.previous.to)}.
           </p>

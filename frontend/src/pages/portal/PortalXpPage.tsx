@@ -57,21 +57,21 @@ export default function PortalXpPage() {
               <div className="h-full rounded-full bg-brand-600" style={{ width: `${profile.progress}%` }} />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border p-3">
-                <p className="flex items-center gap-1.5 text-xs text-fg-muted">
+              <div className="rounded-card border border-border p-3">
+                <p className="flex items-center gap-1.5 text-caption text-fg-muted">
                   <Flame className="size-3.5" aria-hidden />
                   Ketma-ketlik
                 </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums text-fg">{profile.streak.current} kun</p>
-                <p className="text-xs text-fg-subtle">eng uzun: {profile.streak.longest} kun</p>
+                <p className="mt-1 text-h2 tabular-nums text-fg">{profile.streak.current} kun</p>
+                <p className="text-caption text-fg-subtle">eng uzun: {profile.streak.longest} kun</p>
               </div>
-              <div className="rounded-xl border border-border p-3">
-                <p className="flex items-center gap-1.5 text-xs text-fg-muted">
+              <div className="rounded-card border border-border p-3">
+                <p className="flex items-center gap-1.5 text-caption text-fg-muted">
                   <Trophy className="size-3.5" aria-hidden />
                   Reyting
                 </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums text-fg">{profile.rank === null ? '—' : `${profile.rank}-o‘rin`}</p>
-                <p className="text-xs text-fg-subtle">{formatNumber(profile.totalXp)} XP</p>
+                <p className="mt-1 text-h2 tabular-nums text-fg">{profile.rank === null ? '—' : `${profile.rank}-o‘rin`}</p>
+                <p className="text-caption text-fg-subtle">{formatNumber(profile.totalXp)} XP</p>
               </div>
             </div>
           </CardContent>
@@ -83,7 +83,7 @@ export default function PortalXpPage() {
               <Award className="size-4 text-fg-muted" aria-hidden />
               Nishonlar
             </CardTitle>
-            <span className="text-xs text-fg-muted">{profile.badges.length} ta</span>
+            <span className="text-caption text-fg-muted">{profile.badges.length} ta</span>
           </CardHeader>
           <CardContent>
             {profile.badges.length === 0 ? (
@@ -91,14 +91,14 @@ export default function PortalXpPage() {
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {profile.badges.map((badge) => (
-                  <li key={badge.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
+                  <li key={badge.id} className="flex items-center gap-3 rounded-control border border-border px-3 py-2">
                     <span className="text-2xl" aria-hidden>
                       {badge.icon}
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-fg">{badge.name}</span>
-                      <span className="block truncate text-xs text-fg-subtle">{badge.description}</span>
-                      <span className="block text-xs text-fg-subtle">{formatDate(badge.awardedAt)}</span>
+                      <span className="block truncate text-label text-fg">{badge.name}</span>
+                      <span className="block truncate text-caption text-fg-subtle">{badge.description}</span>
+                      <span className="block text-caption text-fg-subtle">{formatDate(badge.awardedAt)}</span>
                     </span>
                   </li>
                 ))}
@@ -117,10 +117,10 @@ export default function PortalXpPage() {
             ) : (
               <ul className="divide-y divide-border">
                 {profile.recentXp.map((item) => (
-                  <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                  <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-body">
                     <div className="min-w-0">
                       <p className="truncate text-fg">{item.description}</p>
-                      <p className="text-xs text-fg-subtle">{formatDateTime(item.createdAt)}</p>
+                      <p className="text-caption text-fg-subtle">{formatDateTime(item.createdAt)}</p>
                     </div>
                     <span className="flex shrink-0 items-center gap-2">
                       <Badge tone={XP_SOURCE_TONES[item.source]}>{XP_SOURCE_LABELS[item.source]}</Badge>

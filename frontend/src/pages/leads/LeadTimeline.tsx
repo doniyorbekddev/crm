@@ -17,23 +17,24 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { cn } from '@/lib/cn';
+import { Timeline } from '@/components/ui/Timeline';
+import type { TimelineItem } from '@/components/ui/Timeline';
 import { queryKeys } from '@/lib/queryKeys';
 import { leadsService } from '@/services/leads.service';
 import type { LeadActivityType } from '@/types/lead';
 import { formatDateTime } from '@/utils/format';
 
-const ACTIVITY_ICONS: Record<LeadActivityType, { icon: LucideIcon; className: string }> = {
-  CREATED: { icon: Plus, className: 'bg-primary-subtle text-primary' },
-  UPDATED: { icon: Pencil, className: 'bg-surface-muted text-fg-muted' },
-  STATUS_CHANGED: { icon: ArrowRightLeft, className: 'bg-accent-subtle text-accent' },
-  ASSIGNED: { icon: UserCheck, className: 'bg-info-subtle text-info' },
-  NOTE_ADDED: { icon: StickyNote, className: 'bg-warning-subtle text-warning' },
-  CALL_LOGGED: { icon: PhoneCall, className: 'bg-success-subtle text-success' },
-  FOLLOW_UP_CREATED: { icon: CalendarPlus, className: 'bg-warning-subtle text-warning' },
-  FOLLOW_UP_COMPLETED: { icon: CalendarCheck, className: 'bg-success-subtle text-success' },
-  DOCUMENT_UPLOADED: { icon: Paperclip, className: 'bg-surface-muted text-fg-muted' },
-  CONVERTED_TO_STUDENT: { icon: GraduationCap, className: 'bg-success-subtle text-success' },
+const ACTIVITY_ICONS: Record<LeadActivityType, { icon: LucideIcon; tone: NonNullable<TimelineItem['tone']> }> = {
+  CREATED: { icon: Plus, tone: 'primary' },
+  UPDATED: { icon: Pencil, tone: 'neutral' },
+  STATUS_CHANGED: { icon: ArrowRightLeft, tone: 'accent' },
+  ASSIGNED: { icon: UserCheck, tone: 'info' },
+  NOTE_ADDED: { icon: StickyNote, tone: 'warning' },
+  CALL_LOGGED: { icon: PhoneCall, tone: 'success' },
+  FOLLOW_UP_CREATED: { icon: CalendarPlus, tone: 'warning' },
+  FOLLOW_UP_COMPLETED: { icon: CalendarCheck, tone: 'success' },
+  DOCUMENT_UPLOADED: { icon: Paperclip, tone: 'neutral' },
+  CONVERTED_TO_STUDENT: { icon: GraduationCap, tone: 'success' },
 };
 
 export function LeadTimeline({ leadId }: { leadId: string }) {
@@ -71,25 +72,15 @@ export function LeadTimeline({ leadId }: { leadId: string }) {
 
   return (
     <div className="p-5">
-      <ol className="relative space-y-5">
-        {items.map((activity, index) => {
-          const { icon: Icon, className } = ACTIVITY_ICONS[activity.type];
-          return (
-            <li key={activity.id} className="relative flex gap-3">
-              {index < items.length - 1 && <span className="absolute top-8 bottom-[-20px] left-4 w-px bg-border" aria-hidden />}
-              <span className={cn('relative grid size-8 shrink-0 place-items-center rounded-full', className)}>
-                <Icon className="size-4" aria-hidden />
-              </span>
-              <div className="min-w-0 pt-1">
-                <p className="text-sm break-words text-fg">{activity.description}</p>
-                <p className="mt-0.5 text-xs text-fg-muted">
-                  {activity.user ? `${activity.user.firstName} ${activity.user.lastName}` : 'Tizim'} · {formatDateTime(activity.createdAt)}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <Timeline
+        label="Lead tarixi"
+        items={items.map((activity) => ({
+          id: activity.id,
+          title: <span className="font-normal break-words">{activity.description}</span>,
+          meta: `${activity.user ? `${activity.user.firstName} ${activity.user.lastName}` : 'Tizim'} · ${formatDateTime(activity.createdAt)}`,
+          ...ACTIVITY_ICONS[activity.type],
+        }))}
+      />
       {query.hasNextPage && (
         <div className="mt-5 flex justify-center">
           <Button variant="secondary" size="sm" loading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>

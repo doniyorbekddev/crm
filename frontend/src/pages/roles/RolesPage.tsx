@@ -163,7 +163,7 @@ export default function RolesPage() {
                           {role.key === SUPER_ADMIN_ROLE_KEY && <Lock className="size-3.5 text-fg-subtle" aria-label="O‘zgartirib bo‘lmaydi" />}
                           {role.name}
                         </span>
-                        <span className="text-xs font-normal text-fg-muted">
+                        <span className="text-caption font-normal text-fg-muted">
                           {role.userCount} xodim · {effective.get(role.id)?.size ?? 0} ruxsat
                         </span>
                         {role.key !== SUPER_ADMIN_ROLE_KEY && (
@@ -186,7 +186,7 @@ export default function RolesPage() {
                 {groups.map((group) => (
                   <Fragment key={group.module}>
                     <tr className="border-t border-border bg-surface-muted/60">
-                      <td className="sticky left-0 z-10 bg-surface-muted px-4 py-2 text-xs font-semibold tracking-wide text-fg uppercase">
+                      <td className="sticky left-0 z-10 bg-surface-muted px-4 py-2 text-caption font-semibold tracking-wide text-fg uppercase">
                         {group.label}
                       </td>
                       {roles.map((role) => {
@@ -216,7 +216,7 @@ export default function RolesPage() {
                     {group.permissions.map((permission) => (
                       <tr key={permission.key} className="border-t border-border hover:bg-surface-muted/40">
                         <td className="sticky left-0 z-10 bg-surface px-4 py-2.5">
-                          <p className="text-sm text-fg">{permission.description}</p>
+                          <p className="text-body text-fg">{permission.description}</p>
                           <p className="font-mono text-[11px] text-fg-subtle">{permission.key}</p>
                         </td>
                         {roles.map((role) => (
@@ -245,7 +245,7 @@ export default function RolesPage() {
       </Card>
 
       {dirtyCount > 0 && (
-        <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-subtle px-4 py-3 shadow-lg">
+        <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-warning-border bg-warning-subtle px-4 py-3 shadow-lg">
           <p className="text-body font-medium text-warning">{dirtyCount} ta rolda saqlanmagan o‘zgarish bor</p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" disabled={save.isPending} onClick={() => setDrafts({})}>

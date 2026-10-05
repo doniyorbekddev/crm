@@ -100,11 +100,11 @@ export function PortalAccountModal({ fullName, subtitle, loginHint, mode, create
       {account ? (
         <div className="space-y-3">
           <Alert tone="warning">Parol faqat hozir ko‘rinadi va vaqtinchalik — birinchi kirishda egasi o‘z parolini o‘rnatadi.</Alert>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-lg border border-border bg-surface-muted p-3 text-sm">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-control border border-border bg-surface-muted p-3 text-body">
             <dt className="text-fg-muted">Sayt</dt>
             <dd className="truncate text-fg">{siteUrl}</dd>
             <dt className="text-fg-muted">Login</dt>
-            <dd className="font-mono text-base font-semibold text-fg">{account.login}</dd>
+            <dd className="font-mono text-h3 text-fg">{account.login}</dd>
             <dt className="text-fg-muted">Parol</dt>
             <dd className="font-mono text-lg font-semibold text-fg">{account.temporaryPassword}</dd>
           </dl>
@@ -122,10 +122,10 @@ export function PortalAccountModal({ fullName, subtitle, loginHint, mode, create
           </div>
         </div>
       ) : mode === 'reset' ? (
-        <p className="text-sm text-fg-muted">Yangi vaqtinchalik parol yaratiladi. Eski parol va barcha ochiq sessiyalar bekor bo‘ladi.</p>
+        <p className="text-body text-fg-muted">Yangi vaqtinchalik parol yaratiladi. Eski parol va barcha ochiq sessiyalar bekor bo‘ladi.</p>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-fg-muted">{loginHint}</p>
+          <p className="text-body text-fg-muted">{loginHint}</p>
           <FormField label="Email (ixtiyoriy)" htmlFor="portal-email" hint="Kiritilsa, parolni email orqali o‘zi tiklay oladi">
             <Input
               id="portal-email"

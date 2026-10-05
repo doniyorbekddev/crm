@@ -159,7 +159,7 @@ export default function FollowUpsPage() {
                           </Badge>
                         )}
                       </p>
-                      {followUp.notes && <p className="mt-0.5 max-w-md truncate text-xs text-fg-muted">{followUp.notes}</p>}
+                      {followUp.notes && <p className="mt-0.5 max-w-md truncate text-caption text-fg-muted">{followUp.notes}</p>}
                     </>
                   ),
                 },
@@ -171,7 +171,7 @@ export default function FollowUpsPage() {
                       <Link to={`/leads/${followUp.leadId}`} className="font-medium text-primary hover:underline">
                         {leadFullName(followUp.lead)}
                       </Link>
-                      <p className="text-xs text-fg-muted">
+                      <p className="text-caption text-fg-muted">
                         {followUp.lead.code} · {formatPhone(followUp.lead.phone)}
                       </p>
                     </>

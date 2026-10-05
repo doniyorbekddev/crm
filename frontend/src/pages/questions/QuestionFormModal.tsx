@@ -190,7 +190,7 @@ export function QuestionFormModal({ question, courses, onClose, onSaved }: Quest
 
         {choice && (
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">{type === 'TRUE_FALSE' ? 'To‘g‘ri javobni belgilang' : 'Variantlar'}</p>
+            <p className="mb-2 text-label text-fg">{type === 'TRUE_FALSE' ? 'To‘g‘ri javobni belgilang' : 'Variantlar'}</p>
             <ul className="space-y-2">
               {options.map((option, index) => (
                 <li key={index} className="flex items-center gap-2">

@@ -141,7 +141,7 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
         <Alert tone="error">{getErrorMessage(query.error)}</Alert>
       ) : submission ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-body">
             <Badge tone={SUBMISSION_STATUS_TONES[submission.status]}>{SUBMISSION_STATUS_LABELS[submission.status]}</Badge>
             {submission.late && <Badge tone="yellow">Kechikib topshirilgan</Badge>}
             {submission.submittedAt && <span className="text-fg-muted">Topshirilgan: {formatDateTime(submission.submittedAt)}</span>}
@@ -154,20 +154,20 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
             <div className="space-y-3">
               {submission.answerText && (
                 <section>
-                  <p className="mb-1 text-xs font-medium text-fg-muted">Javob</p>
-                  <p className="rounded-lg border border-border bg-surface-muted p-3 text-sm whitespace-pre-wrap text-fg">{submission.answerText}</p>
+                  <p className="mb-1 text-caption font-medium text-fg-muted">Javob</p>
+                  <p className="rounded-control border border-border bg-surface-muted p-3 text-body whitespace-pre-wrap text-fg">{submission.answerText}</p>
                 </section>
               )}
               {submission.linkUrl && (
-                <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-body text-primary hover:underline">
                   <ExternalLink className="size-4" aria-hidden />
                   {submission.linkUrl}
                 </a>
               )}
               {submission.codeText && (
                 <section>
-                  <p className="mb-1 text-xs font-medium text-fg-muted">Kod{submission.codeLanguage ? ` · ${submission.codeLanguage}` : ''}</p>
-                  <pre className="max-h-72 overflow-auto rounded-lg border border-border bg-code p-3 text-xs text-code-fg">
+                  <p className="mb-1 text-caption font-medium text-fg-muted">Kod{submission.codeLanguage ? ` · ${submission.codeLanguage}` : ''}</p>
+                  <pre className="max-h-72 overflow-auto rounded-control border border-border bg-code p-3 text-caption text-code-fg">
                     <code>{submission.codeText}</code>
                   </pre>
                 </section>
@@ -182,14 +182,14 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
                 />
               )}
               {submission.files.length > 0 && (
-                <ul className="divide-y divide-border rounded-lg border border-border">
+                <ul className="divide-y divide-border rounded-control border border-border">
                   {submission.files.map((file) => (
-                    <li key={file.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <li key={file.id} className="flex items-center justify-between gap-2 px-3 py-2 text-body">
                       <span className="min-w-0 truncate text-fg">{file.originalName}</span>
                       <button
                         type="button"
                         onClick={() => void homeworkService.downloadSubmissionFile(homework.id, studentId, file).catch((error: unknown) => toast.error(getErrorMessage(error)))}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        className="inline-flex shrink-0 items-center gap-1 text-caption font-medium text-primary hover:underline"
                       >
                         <Download className="size-3.5" aria-hidden />
                         {file.size > 0 ? formatFileSize(file.size) : 'Yuklab olish'}
@@ -218,13 +218,13 @@ export function SubmissionReviewModal({ homework, studentId, canGrade, onClose, 
             <div className="space-y-3 border-t border-border pt-4">
               {criteria ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-fg">
+                  <p className="text-label text-fg">
                     Rubrika{computed !== null && <span className="ml-2 text-fg-muted">→ {computed}/{homework.maxPoints} ball</span>}
                   </p>
                   {criteria.map((criterion) => (
                     <div key={criterion.key} className="grid grid-cols-[1fr_auto] items-center gap-3">
-                      <label htmlFor={`rubric-${criterion.key}`} className="text-sm text-fg">
-                        {criterion.title} <span className="text-xs text-fg-muted">({criterion.weight}%)</span>
+                      <label htmlFor={`rubric-${criterion.key}`} className="text-body text-fg">
+                        {criterion.title} <span className="text-caption text-fg-muted">({criterion.weight}%)</span>
                       </label>
                       <Input
                         id={`rubric-${criterion.key}`}

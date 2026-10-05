@@ -46,12 +46,12 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
   return (
     <article
       className={cn(
-        'rounded-lg border border-border bg-surface p-3 shadow-xs transition-shadow hover:shadow-sm',
+        'rounded-control border border-border bg-surface p-3 shadow-xs transition-shadow hover:shadow-sm',
         overlay && 'rotate-2 cursor-grabbing shadow-lg ring-2 ring-brand-500/40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <Link to={`/leads/${lead.id}`} className="min-w-0 text-sm font-medium text-fg hover:text-brand-600 hover:underline">
+        <Link to={`/leads/${lead.id}`} className="min-w-0 text-label text-fg hover:text-brand-600 hover:underline">
           <span className="block truncate">{leadFullName(lead)}</span>
         </Link>
         <span
@@ -59,7 +59,7 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
           title={`Muhimlik: ${LEAD_PRIORITY_LABELS[lead.priority]}`}
         />
       </div>
-      <p className="mt-0.5 truncate text-xs text-fg-muted">
+      <p className="mt-0.5 truncate text-caption text-fg-muted">
         {lead.code} · {formatPhone(lead.phone)}
       </p>
       {lead.temperature !== null && lead.temperature !== 'COLD' && (
@@ -68,19 +68,19 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
         </p>
       )}
       {lead.course && (
-        <p className="mt-2 flex items-center gap-1.5 truncate text-xs text-fg-muted">
+        <p className="mt-2 flex items-center gap-1.5 truncate text-caption text-fg-muted">
           <BookOpen className="size-3.5 shrink-0" aria-hidden />
           {lead.course.name}
         </p>
       )}
       <div className="mt-3 flex items-center justify-between gap-2">
         {lead.nextFollowUpAt ? (
-          <span className={cn('inline-flex items-center gap-1 text-xs', overdue ? 'font-medium text-danger' : 'text-fg-muted')}>
+          <span className={cn('inline-flex items-center gap-1 text-caption', overdue ? 'font-medium text-danger' : 'text-fg-muted')}>
             <Clock className="size-3.5" aria-hidden />
             {formatDateTime(lead.nextFollowUpAt)}
           </span>
         ) : (
-          <span className="truncate text-xs text-fg-subtle">{lead.source.name}</span>
+          <span className="truncate text-caption text-fg-subtle">{lead.source.name}</span>
         )}
         {lead.assignedTo ? (
           <Tooltip content={`${lead.assignedTo.firstName} ${lead.assignedTo.lastName}`} describe={false}>
@@ -122,22 +122,22 @@ function KanbanColumnView({ column, canDrop, children }: { column: LeadKanbanCol
     <section
       aria-label={LEAD_STATUS_LABELS[column.status]}
       className={cn(
-        'flex w-72 shrink-0 flex-col rounded-xl border border-border bg-surface-muted/60 transition-colors',
+        'flex w-72 shrink-0 flex-col rounded-card border border-border bg-surface-muted/60 transition-colors',
         isOver && 'border-brand-400 bg-primary-subtle',
       )}
     >
       <header className="flex items-center justify-between gap-2 px-3 py-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
+        <h2 className="flex items-center gap-2 text-h4 text-fg">
           <span className={cn('size-2 rounded-full', LEAD_STATUS_DOTS[column.status])} aria-hidden />
           {LEAD_STATUS_LABELS[column.status]}
         </h2>
-        <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-fg-muted tabular-nums">{column.total}</span>
+        <span className="rounded-full bg-surface px-2 py-0.5 text-caption font-medium text-fg-muted tabular-nums">{column.total}</span>
       </header>
       <div ref={setNodeRef} className="flex max-h-[calc(100vh-19rem)] min-h-32 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {children}
-        {column.total === 0 && <p className="py-6 text-center text-xs text-fg-subtle">Lead yo‘q</p>}
+        {column.total === 0 && <p className="py-6 text-center text-caption text-fg-subtle">Lead yo‘q</p>}
         {hidden > 0 && (
-          <p className="py-2 text-center text-xs text-fg-muted">va yana {hidden} ta — to‘liq ro‘yxat jadval ko‘rinishida</p>
+          <p className="py-2 text-center text-caption text-fg-muted">va yana {hidden} ta — to‘liq ro‘yxat jadval ko‘rinishida</p>
         )}
       </div>
     </section>
@@ -218,10 +218,10 @@ export function LeadsKanban({ filters }: { filters: LeadFilters }) {
     return (
       <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="w-72 shrink-0 space-y-2 rounded-xl border border-border bg-surface-muted/60 p-3">
+          <div key={index} className="w-72 shrink-0 space-y-2 rounded-card border border-border bg-surface-muted/60 p-3">
             <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-24 rounded-lg" />
-            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-control" />
+            <Skeleton className="h-24 rounded-control" />
           </div>
         ))}
       </div>
@@ -230,7 +230,7 @@ export function LeadsKanban({ filters }: { filters: LeadFilters }) {
 
   if (kanbanQuery.isError) {
     return (
-      <div className="rounded-xl border border-border bg-surface">
+      <div className="rounded-card border border-border bg-surface">
         <ErrorState error={kanbanQuery.error} onRetry={() => void kanbanQuery.refetch()} />
       </div>
     );
@@ -239,7 +239,7 @@ export function LeadsKanban({ filters }: { filters: LeadFilters }) {
   return (
     <>
       {!canUpdate && (
-        <p className="mb-3 text-xs text-fg-muted">Statusni o‘zgartirish uchun ruxsatingiz yo‘q — kartalar faqat ko‘rish uchun.</p>
+        <p className="mb-3 text-caption text-fg-muted">Statusni o‘zgartirish uchun ruxsatingiz yo‘q — kartalar faqat ko‘rish uchun.</p>
       )}
       <DndContext
         sensors={sensors}

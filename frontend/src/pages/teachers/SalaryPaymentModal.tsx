@@ -119,7 +119,7 @@ export function SalaryPaymentModal({ period, kind = 'SALARY', onClose, onSaved }
       )}
 
       <form id="salary-payment-form" onSubmit={onSubmit} noValidate className="space-y-4">
-        <div className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
+        <div className="rounded-card border border-border bg-surface-muted p-3 text-body">
           <div className="flex justify-between">
             <span className="text-fg-muted">{isAdvance ? 'Hisoblangan maosh (tasdiqlanmagan)' : 'Tasdiqlangan maosh'}</span>
             <span className="font-medium text-fg">{formatMoney(period.totalAmount)}</span>
@@ -191,8 +191,8 @@ export function SalaryPaymentModal({ period, kind = 'SALARY', onClose, onSaved }
 
         {period.payments.length > 0 && (
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">Oldingi to‘lovlar</p>
-            <ul className="divide-y divide-border rounded-xl border border-border text-sm">
+            <p className="mb-2 text-label text-fg">Oldingi to‘lovlar</p>
+            <ul className="divide-y divide-border rounded-card border border-border text-body">
               {period.payments.map((payment) => (
                 <li key={payment.id} className="flex items-center justify-between gap-2 px-3 py-2">
                   <span className="text-fg-muted">

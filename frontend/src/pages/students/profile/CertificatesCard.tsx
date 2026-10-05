@@ -63,33 +63,33 @@ export function CertificatesCard({ studentId }: { studentId: string }) {
         ) : query.isError ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : query.data.items.length === 0 ? (
-          <p className="text-sm text-fg-muted">Hali sertifikat berilmagan.</p>
+          <p className="text-body text-fg-muted">Hali sertifikat berilmagan.</p>
         ) : (
           <ul className="space-y-3">
             {query.data.items.map((certificate) => (
-              <li key={certificate.id} className="flex items-start justify-between gap-3 rounded-lg border border-border p-3">
+              <li key={certificate.id} className="flex items-start justify-between gap-3 rounded-control border border-border p-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-fg">{certificate.code}</span>
                     {certificate.revokedAt ? <Badge tone="red">Bekor qilingan</Badge> : <Badge tone="green">Haqiqiy</Badge>}
                     {certificate.grade && <Badge tone="blue">Baho: {certificate.grade}</Badge>}
                   </div>
-                  <p className="mt-1 truncate text-sm text-fg-muted">{certificate.courseName}</p>
-                  <p className="text-xs text-fg-subtle">
+                  <p className="mt-1 truncate text-body text-fg-muted">{certificate.courseName}</p>
+                  <p className="text-caption text-fg-subtle">
                     Tugatgan: {formatDate(certificate.completionDate)} · Berilgan: {formatDate(certificate.issuedAt)}
                   </p>
                   <a
                     href={verifyUrl(certificate.verifyToken)}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    className="mt-1 inline-flex items-center gap-1 text-body text-primary hover:underline"
                   >
                     Tekshirish sahifasi
                     <ExternalLink className="size-3" aria-hidden />
                   </a>
                   <Link
                     to={`/certificates/${certificate.id}/print`}
-                    className="mt-1 ml-3 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    className="mt-1 ml-3 inline-flex items-center gap-1 text-body text-primary hover:underline"
                   >
                     Chop etish / PDF
                     <Printer className="size-3" aria-hidden />

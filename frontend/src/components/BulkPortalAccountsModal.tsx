@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { getErrorMessage } from '@/lib/api';
@@ -40,6 +41,7 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
   const [result, setResult] = useState<BulkAccountsOutcome | null>(null);
   const [saved, setSaved] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   const create = useMutation({
     mutationFn: () => run(groupId || undefined),
@@ -56,7 +58,8 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
 
   const close = () => {
     // Parollar yo‘qolmasin — saqlanmagan bo‘lsa ogohlantiramiz
-    if (rows.length > 0 && !saved && !window.confirm('Parollar chop etilmadi va yuklab olinmadi. Oynani yopsangiz, ularni qayta ko‘rib bo‘lmaydi. Yopilsinmi?')) {
+    if (rows.length > 0 && !saved) {
+      setConfirmClose(true);
       return;
     }
     onClose();
@@ -147,7 +150,7 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
                 label="Ochilgan kabinetlar"
                 rows={rows}
                 rowKey={(row) => row.id}
-                className="max-h-80 rounded-lg border border-border"
+                className="max-h-80 rounded-control border border-border"
                 mobileLayout="cards"
                 columns={[
                   {
@@ -180,6 +183,14 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmClose}
+        title="Parollar saqlanmadi"
+        description="Parollar chop etilmadi va yuklab olinmadi. Oynani yopsangiz, ularni qayta ko‘rib bo‘lmaydi."
+        confirmLabel="Baribir yopish"
+        onConfirm={onClose}
+        onCancel={() => setConfirmClose(false)}
+      />
     </Modal>
   );
 }

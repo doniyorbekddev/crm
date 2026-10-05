@@ -216,9 +216,9 @@ export default function AcademicAnalyticsPage() {
                       <TR key={row.key}>
                         <TD>
                           <p className="font-medium text-fg">{row.label}</p>
-                          {row.sublabel && <p className="text-xs text-fg-subtle">{row.sublabel}</p>}
+                          {row.sublabel && <p className="text-caption text-fg-subtle">{row.sublabel}</p>}
                           {row.weakTopics && row.weakTopics.length > 0 && (
-                            <p className="text-xs text-warning">Zaif mavzular: {row.weakTopics.map((topic) => `${topic.title} (${topic.mastery}%)`).join(', ')}</p>
+                            <p className="text-caption text-warning">Zaif mavzular: {row.weakTopics.map((topic) => `${topic.title} (${topic.mastery}%)`).join(', ')}</p>
                           )}
                         </TD>
                         {columns.map((key) => (
@@ -234,7 +234,7 @@ export default function AcademicAnalyticsPage() {
             )}
           </Card>
           {query.data && (
-            <p className="text-xs text-fg-subtle">
+            <p className="text-caption text-fg-subtle">
               Davr: {query.data.from} — {query.data.to}. Foizlar yig‘ma (jami qatnashish / jami belgilar). Tartib faqat tavsif uchun — xulosa emas.
             </p>
           )}

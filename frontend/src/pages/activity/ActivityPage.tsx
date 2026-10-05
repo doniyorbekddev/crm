@@ -62,11 +62,11 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <p className="text-sm font-medium text-fg">{item.title}</p>
+          <p className="text-label text-fg">{item.title}</p>
           {item.amount !== null && (
             <span
               className={cn(
-                'text-sm font-semibold whitespace-nowrap tabular-nums',
+                'text-h4 whitespace-nowrap tabular-nums',
                 item.amount < 0 ? 'text-danger' : 'text-success',
               )}
             >
@@ -75,8 +75,8 @@ function ActivityRow({ item }: { item: ActivityItem }) {
             </span>
           )}
         </div>
-        <p className="text-sm text-fg-muted">{item.description}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-fg-subtle">
+        <p className="text-body text-fg-muted">{item.description}</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-fg-subtle">
           <span className="tabular-nums">{time}</span>
           {item.actor && (
             <span>
@@ -141,7 +141,7 @@ export default function ActivityPage() {
                 aria-pressed={active}
                 onClick={() => toggleType(type)}
                 className={cn(
-                  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
+                  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-caption font-medium transition-colors',
                   active
                     ? 'border-brand-500 bg-primary-subtle text-primary'
                     : 'border-border bg-surface text-fg-muted hover:bg-surface-muted hover:text-fg',
@@ -153,7 +153,7 @@ export default function ActivityPage() {
             );
           })}
           {selected.length > 0 && (
-            <button type="button" onClick={() => setSelected([])} className="h-8 px-2 text-xs text-fg-muted hover:text-fg">
+            <button type="button" onClick={() => setSelected([])} className="h-8 px-2 text-caption text-fg-muted hover:text-fg">
               Tozalash
             </button>
           )}
@@ -162,7 +162,7 @@ export default function ActivityPage() {
 
       <Card>
         {rangeParams === null ? (
-          <p className="p-6 text-center text-sm text-fg-muted">Oraliqning boshlanish va tugash sanalarini tanlang</p>
+          <p className="p-6 text-center text-body text-fg-muted">Oraliqning boshlanish va tugash sanalarini tanlang</p>
         ) : feedQuery.isPending ? (
           <div className="space-y-3 p-4">
             {[0, 1, 2, 3, 4].map((index) => (
@@ -177,7 +177,7 @@ export default function ActivityPage() {
           <>
             {groupByDay(items).map((group) => (
               <section key={group.key}>
-                <h2 className="sticky top-0 z-10 border-b border-border bg-surface-muted/95 px-4 py-1.5 text-xs font-semibold text-fg-muted backdrop-blur">
+                <h2 className="sticky top-0 z-10 border-b border-border bg-surface-muted/95 px-4 py-1.5 text-caption font-semibold text-fg-muted backdrop-blur">
                   {dayLabel(group.key)}
                 </h2>
                 <ul className="divide-y divide-border">

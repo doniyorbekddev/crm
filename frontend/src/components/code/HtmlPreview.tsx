@@ -13,8 +13,8 @@ export function buildPreviewDocument(code: string): string {
 export function HtmlPreview({ code, title = 'HTML ko‘rinishi' }: { code: string; title?: string }) {
   return (
     <section className="space-y-1">
-      <p className="text-xs font-medium text-fg-muted">{title} (izolyatsiyada, internetsiz)</p>
-      <iframe title={title} sandbox="allow-scripts" srcDoc={buildPreviewDocument(code)} className="h-72 w-full rounded-lg border border-border bg-white" referrerPolicy="no-referrer" />
+      <p className="text-caption font-medium text-fg-muted">{title} (izolyatsiyada, internetsiz)</p>
+      <iframe title={title} sandbox="allow-scripts" srcDoc={buildPreviewDocument(code)} className="h-72 w-full rounded-control border border-border bg-white" referrerPolicy="no-referrer" />
     </section>
   );
 }

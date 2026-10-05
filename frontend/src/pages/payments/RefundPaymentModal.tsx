@@ -73,7 +73,7 @@ export function RefundPaymentModal({ payment, onClose, onRefunded }: RefundPayme
     >
       <div className="space-y-4">
         {formError && <Alert tone="error">{formError}</Alert>}
-        <div className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
+        <div className="rounded-card border border-border bg-surface-muted p-3 text-body">
           <div className="flex justify-between">
             <span className="text-fg-muted">To‘lov ({formatDate(payment.paidAt)})</span>
             <span className="font-medium text-fg">{formatMoney(payment.amount)}</span>

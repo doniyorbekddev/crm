@@ -47,7 +47,7 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
         ) : cashFlowQuery.isError ? (
           <ErrorState error={cashFlowQuery.error} retrying={cashFlowQuery.isFetching} onRetry={() => void cashFlowQuery.refetch()} />
         ) : cashFlowQuery.data.length === 0 ? (
-          <p className="py-16 text-center text-sm text-fg-muted">Tanlangan davrda moliyaviy harakat bo‘lmagan</p>
+          <p className="py-16 text-center text-body text-fg-muted">Tanlangan davrda moliyaviy harakat bo‘lmagan</p>
         ) : (
           <div className="h-72 w-full text-fg-muted">
             <ResponsiveContainer width="100%" height="100%">

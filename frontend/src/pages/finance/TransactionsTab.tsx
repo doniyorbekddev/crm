@@ -147,7 +147,7 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
                 key: 'c0',
                 label: '№',
                 thClassName: 'w-16',
-                tdClassName: 'font-mono text-xs text-fg-muted',
+                tdClassName: 'font-mono text-caption text-fg-muted',
                 cell: (transaction) => <>{transaction.number}</>,
               },
               {
@@ -172,12 +172,12 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
                 cell: (transaction) => (
                   <>
                     <p className="truncate text-fg">{transaction.description ?? transaction.categoryName ?? '—'}</p>
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       {transaction.categoryName ?? '—'}
                       {transaction.entityType && ` · ${TRANSACTION_SOURCE_LABELS[transaction.entityType] ?? transaction.entityType}`}
                     </p>
                     {isVoided(transaction) && transaction.voidReason && (
-                      <p className="truncate text-xs text-danger">{transaction.voidReason}</p>
+                      <p className="truncate text-caption text-danger">{transaction.voidReason}</p>
                     )}
                   </>
                 ),
@@ -217,7 +217,7 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
                 cell: (transaction) => (
                   <>
                     {isVoided(transaction) ? (
-                      <span className="text-xs text-fg-subtle">—</span>
+                      <span className="text-caption text-fg-subtle">—</span>
                     ) : (
                       <ActionMenu
                         label={`${transaction.number} amallari`}

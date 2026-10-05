@@ -8,14 +8,14 @@ export function LessonVideo({ url, title }: { url: string; title: string }) {
   const embed = youtubeEmbedUrl(url);
   if (!embed) {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-label text-primary hover:underline">
         <PlayCircle className="size-4" aria-hidden />
         Videoni ochish
       </a>
     );
   }
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+    <div className="aspect-video w-full overflow-hidden rounded-card border border-border bg-black">
       <iframe
         src={embed}
         title={title}
@@ -33,7 +33,7 @@ export function LessonVideo({ url, title }: { url: string; title: string }) {
 /** Dars matni — oddiy matn, paragraf va qator bo‘linishi saqlanadi (HTML render qilinmaydi) */
 export function LessonContent({ content }: { content: string }) {
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-fg">
+    <div className="space-y-3 text-body leading-relaxed text-fg">
       {content.split(/\n{2,}/).map((paragraph, index) => (
         <p key={index} className="whitespace-pre-wrap">
           {paragraph}
@@ -56,7 +56,7 @@ export function MaterialList({
   renderAction?: (material: LessonMaterial) => ReactNode;
 }) {
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="divide-y divide-border rounded-control border border-border">
       {materials.map((material) => {
         const Icon = ICONS[material.kind];
         return (
@@ -64,8 +64,8 @@ export function MaterialList({
             <span className="flex min-w-0 items-center gap-2">
               <Icon className="size-4 shrink-0 text-fg-muted" aria-hidden />
               <span className="min-w-0">
-                <span className="block truncate text-sm text-fg">{material.title}</span>
-                {material.kind === 'FILE' && material.size !== null && <span className="text-xs text-fg-subtle">{formatFileSize(material.size)}</span>}
+                <span className="block truncate text-body text-fg">{material.title}</span>
+                {material.kind === 'FILE' && material.size !== null && <span className="text-caption text-fg-subtle">{formatFileSize(material.size)}</span>}
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1">
@@ -73,7 +73,7 @@ export function MaterialList({
                 <button
                   type="button"
                   onClick={() => onDownload(material)}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted"
+                  className="inline-flex items-center gap-1 rounded-chip px-2 py-1 text-caption font-medium text-primary hover:bg-surface-muted"
                 >
                   <Download className="size-3.5" aria-hidden />
                   Yuklab olish
@@ -83,7 +83,7 @@ export function MaterialList({
                   href={material.url ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-surface-muted"
+                  className="inline-flex items-center gap-1 rounded-chip px-2 py-1 text-caption font-medium text-primary hover:bg-surface-muted"
                 >
                   <ExternalLink className="size-3.5" aria-hidden />
                   Ochish

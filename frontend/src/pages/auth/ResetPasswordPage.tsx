@@ -50,9 +50,9 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <>
-        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Havola noto‘g‘ri</h1>
+        <h1 className="mb-6 text-h1 tracking-tight">Havola noto‘g‘ri</h1>
         <Alert tone="error">Parolni tiklash havolasi to‘liq emas. Emaildagi havolani qaytadan oching yoki yangisini so‘rang.</Alert>
-        <Link to="/forgot-password" className="mt-6 inline-block text-sm font-medium text-primary hover:underline">
+        <Link to="/forgot-password" className="mt-6 inline-block text-label text-primary hover:underline">
           Yangi havola so‘rash
         </Link>
       </>
@@ -64,8 +64,8 @@ export default function ResetPasswordPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Yangi parol o‘rnatish</h1>
-        <p className="mt-2 text-sm text-fg-muted">Parol yangilangach, barcha qurilmalardagi sessiyalar yopiladi.</p>
+        <h1 className="text-h1 tracking-tight">Yangi parol o‘rnatish</h1>
+        <p className="mt-2 text-body text-fg-muted">Parol yangilangach, barcha qurilmalardagi sessiyalar yopiladi.</p>
       </div>
 
       {reset.isError && (

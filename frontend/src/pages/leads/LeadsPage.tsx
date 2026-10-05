@@ -47,7 +47,7 @@ export default function LeadsPage() {
         description={canViewAll ? 'Barcha potensial mijozlar va sotuv jarayoni' : 'Sizga biriktirilgan va biriktirilmagan leadlar'}
         actions={
           <>
-            <div role="group" aria-label="Ko‘rinish" className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface-muted p-0.5">
+            <div role="group" aria-label="Ko‘rinish" className="inline-flex items-center gap-0.5 rounded-control border border-border bg-surface-muted p-0.5">
               {VIEW_OPTIONS.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
@@ -55,7 +55,7 @@ export default function LeadsPage() {
                   aria-pressed={view === value}
                   onClick={() => setView(value)}
                   className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-fg-muted transition-colors hover:text-fg',
+                    'inline-flex h-8 items-center gap-1.5 rounded-chip px-3 text-label text-fg-muted transition-colors hover:text-fg',
                     view === value && 'bg-surface text-fg shadow-sm',
                   )}
                 >

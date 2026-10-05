@@ -242,7 +242,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
           </FormField>
         </div>
         <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">Shartnoma va aloqa</legend>
+          <legend className="mb-3 text-caption font-semibold tracking-wide text-fg-muted uppercase">Shartnoma va aloqa</legend>
           <FormField label="Email" htmlFor="employee-email" error={errors.email?.message}>
             <Input id="employee-email" type="email" invalid={Boolean(errors.email)} {...register('email')} />
           </FormField>
@@ -272,7 +272,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
 
         {canSeeSensitive && (
           <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">
+            <legend className="mb-3 text-caption font-semibold tracking-wide text-fg-muted uppercase">
               Maxfiy ma’lumot (faqat ruxsati borlarga ko‘rinadi)
             </legend>
             <FormField label="Tug‘ilgan sana" htmlFor="employee-birthDate" error={errors.birthDate?.message}>

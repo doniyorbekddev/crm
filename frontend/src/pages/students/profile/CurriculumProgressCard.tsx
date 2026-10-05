@@ -33,7 +33,7 @@ export function CurriculumProgressCard({ studentId }: { studentId: string }) {
     <Card>
       <CardHeader>
         <CardTitle>Kurs dasturi</CardTitle>
-        <span className="text-sm text-fg-muted">
+        <span className="text-body text-fg-muted">
           {progress.completed}/{progress.total} mavzu · {progress.percent}%
         </span>
       </CardHeader>
@@ -46,8 +46,8 @@ export function CurriculumProgressCard({ studentId }: { studentId: string }) {
           {progress.modules.map((module) => (
             <li key={module.id}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-sm text-fg">{module.title}</span>
-                <span className="shrink-0 text-sm tabular-nums text-fg-muted">
+                <span className="truncate text-body text-fg">{module.title}</span>
+                <span className="shrink-0 text-body tabular-nums text-fg-muted">
                   {module.percent}% ({module.completed}/{module.total})
                 </span>
               </div>

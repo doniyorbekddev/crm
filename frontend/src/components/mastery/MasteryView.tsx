@@ -20,9 +20,9 @@ function TopicRow({ topic }: { topic: TopicMastery }) {
   return (
     <li className="py-2">
       <div className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate text-sm text-fg">{topic.title}</span>
+        <span className="min-w-0 flex-1 truncate text-body text-fg">{topic.title}</span>
         <Badge tone={MASTERY_STATUS_TONES[topic.status]}>{MASTERY_STATUS_LABELS[topic.status]}</Badge>
-        <span className="w-12 shrink-0 text-right text-sm font-medium tabular-nums text-fg">{topic.score === null ? '—' : `${topic.score}%`}</span>
+        <span className="w-12 shrink-0 text-right text-label tabular-nums text-fg">{topic.score === null ? '—' : `${topic.score}%`}</span>
       </div>
       <div
         className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted"
@@ -35,7 +35,7 @@ function TopicRow({ topic }: { topic: TopicMastery }) {
       >
         <div className={cn('h-full rounded-full', masteryBarClass(topic.level))} style={{ width: `${topic.score ?? 0}%` }} />
       </div>
-      <p className="mt-0.5 text-xs text-fg-subtle">{sourceLine(topic)}</p>
+      <p className="mt-0.5 text-caption text-fg-subtle">{sourceLine(topic)}</p>
     </li>
   );
 }
@@ -51,10 +51,10 @@ export function MasteryView({ mastery, history = [] }: { mastery: StudentMastery
       <Card>
         <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-4">
           <div>
-            <p className="text-xs text-fg-muted">O‘rtacha o‘zlashtirish</p>
+            <p className="text-caption text-fg-muted">O‘rtacha o‘zlashtirish</p>
             <p className="text-3xl font-semibold tabular-nums text-fg">{overall.score === null ? '—' : `${overall.score}%`}</p>
           </div>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-body sm:grid-cols-4">
             {(
               [
                 ['O‘zlashtirilgan', overall.mastered],
@@ -64,14 +64,14 @@ export function MasteryView({ mastery, history = [] }: { mastery: StudentMastery
               ] as const
             ).map(([label, value]) => (
               <div key={label}>
-                <dt className="text-xs text-fg-muted">{label}</dt>
+                <dt className="text-caption text-fg-muted">{label}</dt>
                 <dd className="font-medium tabular-nums text-fg">
                   {value}/{overall.topics}
                 </dd>
               </div>
             ))}
           </dl>
-          <p className="w-full text-xs text-fg-subtle">
+          <p className="w-full text-caption text-fg-subtle">
             Chegaralar: {settings.thresholds.developing}% — rivojlanmoqda, {settings.thresholds.good}% — yaxshi, {settings.thresholds.mastered}% — o‘zlashtirilgan. Baho imtihon va vazifa natijasi bo‘lganda chiqadi.
           </p>
         </CardContent>
@@ -79,7 +79,7 @@ export function MasteryView({ mastery, history = [] }: { mastery: StudentMastery
 
       {mastery.modules.length === 0 ? (
         <Card>
-          <CardContent className="pt-4 text-sm text-fg-muted">Kurs dasturida mavzular hali kiritilmagan.</CardContent>
+          <CardContent className="pt-4 text-body text-fg-muted">Kurs dasturida mavzular hali kiritilmagan.</CardContent>
         </Card>
       ) : (
         mastery.modules.map((module) => (
@@ -106,9 +106,9 @@ export function MasteryView({ mastery, history = [] }: { mastery: StudentMastery
             <CardDescription>Har oy oxiridagi holat</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <table aria-label="Mavzular bo‘yicha o‘zlashtirish" className="w-full text-sm">
+            <table aria-label="Mavzular bo‘yicha o‘zlashtirish" className="w-full text-body">
               <thead>
-                <tr className="text-left text-xs text-fg-muted">
+                <tr className="text-left text-caption text-fg-muted">
                   <th className="py-1 pr-3 font-medium">Oy</th>
                   <th className="py-1 pr-3 font-medium">O‘zlashtirish</th>
                   <th className="py-1 pr-3 font-medium">Davomat</th>

@@ -143,19 +143,19 @@ export default function NotificationsPage() {
 
     const body = (
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <span className={cn('mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg', NOTIFICATION_TYPE_CLASSES[item.type])}>
+        <span className={cn('mt-0.5 grid size-9 shrink-0 place-items-center rounded-control', NOTIFICATION_TYPE_CLASSES[item.type])}>
           <Icon className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={cn('truncate text-sm', item.isRead ? 'text-fg' : 'font-semibold text-fg')}>{item.title}</p>
+            <p className={cn('truncate text-body', item.isRead ? 'text-fg' : 'font-semibold text-fg')}>{item.title}</p>
             {item.priority === 'HIGH' && (
               <Badge tone={NOTIFICATION_PRIORITY_TONES.HIGH}>{NOTIFICATION_PRIORITY_LABELS.HIGH}</Badge>
             )}
             {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
           </div>
-          <p className="mt-0.5 text-sm text-fg-muted">{item.message}</p>
-          <p className="mt-1 text-xs text-fg-subtle">
+          <p className="mt-0.5 text-body text-fg-muted">{item.message}</p>
+          <p className="mt-1 text-caption text-fg-subtle">
             {NOTIFICATION_TYPE_LABELS[item.type]} · {formatRelativeTime(item.createdAt)} · {formatDateTime(item.createdAt)}
           </p>
         </div>
@@ -178,7 +178,7 @@ export default function NotificationsPage() {
               onClick={() => markRead.mutate(item.id)}
               aria-label="O‘qilgan deb belgilash"
               title="O‘qilgan deb belgilash"
-              className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-surface-muted hover:text-fg"
+              className="grid size-8 place-items-center rounded-control text-fg-muted hover:bg-surface-muted hover:text-fg"
             >
               <CheckCheck className="size-4" aria-hidden />
             </button>
@@ -188,7 +188,7 @@ export default function NotificationsPage() {
             onClick={() => remove.mutate(item.id)}
             aria-label="O‘chirish"
             title="O‘chirish"
-            className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-surface-muted hover:text-danger"
+            className="grid size-8 place-items-center rounded-control text-fg-muted hover:bg-surface-muted hover:text-danger"
           >
             <Trash2 className="size-4" aria-hidden />
           </button>
@@ -283,7 +283,7 @@ export default function NotificationsPage() {
             <option value="unread">Faqat o‘qilmaganlar</option>
             <option value="read">Faqat o‘qilganlar</option>
           </Select>
-          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
+          <label className="flex items-center gap-1.5 text-body text-fg-muted">
             <span className="sr-only sm:not-sr-only">Sana</span>
             <Input
               type="date"

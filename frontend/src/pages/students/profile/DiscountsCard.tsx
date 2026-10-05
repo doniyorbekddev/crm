@@ -115,49 +115,49 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
             <ErrorState error={summaryQuery.error} onRetry={() => void summaryQuery.refetch()} />
           ) : summary ? (
             <>
-              <dl className="grid grid-cols-3 gap-3 text-sm">
+              <dl className="grid grid-cols-3 gap-3 text-body">
                 <div>
-                  <dt className="text-xs text-fg-muted">Chegirmasiz</dt>
+                  <dt className="text-caption text-fg-muted">Chegirmasiz</dt>
                   <dd className="tabular-nums text-fg">{formatMoney(summary.basePrice)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-fg-muted">Chegirma</dt>
+                  <dt className="text-caption text-fg-muted">Chegirma</dt>
                   <dd className="tabular-nums text-success">
                     {summary.discountTotal > 0 ? `−${formatMoney(summary.discountTotal)}` : '—'}
-                    {summary.discountTotal > 0 && <span className="ml-1 text-xs text-fg-subtle">({summary.percent}%)</span>}
+                    {summary.discountTotal > 0 && <span className="ml-1 text-caption text-fg-subtle">({summary.percent}%)</span>}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-fg-muted">Shartnoma</dt>
+                  <dt className="text-caption text-fg-muted">Shartnoma</dt>
                   <dd className="font-medium tabular-nums text-fg">{formatMoney(summary.contractPrice)}</dd>
                 </div>
               </dl>
 
               {summary.items.length === 0 ? (
-                <p className="mt-3 text-sm text-fg-subtle">Chegirma berilmagan.</p>
+                <p className="mt-3 text-body text-fg-subtle">Chegirma berilmagan.</p>
               ) : (
                 <ul className="mt-3 divide-y divide-border">
                   {summary.items.map((item) => (
                     <li key={item.id} className="flex items-start justify-between gap-3 py-2">
                       <div className="min-w-0">
-                        <p className="flex items-center gap-2 text-sm text-fg">
+                        <p className="flex items-center gap-2 text-body text-fg">
                           <span className="truncate">{item.label}</span>
                           {item.revokedAt && <Badge tone="gray">Bekor qilingan</Badge>}
                         </p>
-                        <p className="text-xs text-fg-subtle">
+                        <p className="text-caption text-fg-subtle">
                           {item.valueType === 'PERCENT' ? `${item.value}%` : formatMoney(item.value)} · {formatDate(item.createdAt)}
                           {item.grantedBy ? ` · ${item.grantedBy}` : ''}
                           {item.note ? ` · ${item.note}` : ''}
                         </p>
                         {item.revokedAt && (
-                          <p className="text-xs text-fg-subtle">
+                          <p className="text-caption text-fg-subtle">
                             Bekor: {formatDate(item.revokedAt)}
                             {item.revokeReason ? ` — ${item.revokeReason}` : ''}
                           </p>
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className={item.revokedAt ? 'text-sm text-fg-subtle line-through' : 'text-sm tabular-nums text-fg'}>
+                        <span className={item.revokedAt ? 'text-body text-fg-subtle line-through' : 'text-body tabular-nums text-fg'}>
                           −{formatMoney(item.amount)}
                         </span>
                         {canGrant && !item.revokedAt && (
@@ -172,7 +172,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
               )}
 
               {canGrant && summary.remainingAllowance > 0 && (
-                <p className="mt-3 text-xs text-fg-subtle">
+                <p className="mt-3 text-caption text-fg-subtle">
                   Chegara {summary.maxPercent}%: yana {formatMoney(summary.remainingAllowance)} berish mumkin.
                 </p>
               )}
@@ -219,7 +219,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
 
             {mode === 'promo' && (
               <label className="block">
-                <span className="mb-1 block text-sm text-fg-muted">Promo kod</span>
+                <span className="mb-1 block text-body text-fg-muted">Promo kod</span>
                 <Input value={promoCode} placeholder="KUZ2026" onChange={(event) => setPromoCode(event.target.value)} />
               </label>
             )}
@@ -227,11 +227,11 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
             {mode === 'custom' && (
               <>
                 <label className="block">
-                  <span className="mb-1 block text-sm text-fg-muted">Summa (so‘m)</span>
+                  <span className="mb-1 block text-body text-fg-muted">Summa (so‘m)</span>
                   <Input type="number" min={0} value={amount} onChange={(event) => setAmount(event.target.value)} />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-sm text-fg-muted">Sabab</span>
+                  <span className="mb-1 block text-body text-fg-muted">Sabab</span>
                   <Input value={note} placeholder="Masalan: direktor ruxsati bilan" onChange={(event) => setNote(event.target.value)} />
                 </label>
               </>
@@ -259,7 +259,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
           }
         >
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Sabab</span>
+            <span className="mb-1 block text-body text-fg-muted">Sabab</span>
             <Input value={revokeReason} placeholder="Nega bekor qilinmoqda?" onChange={(event) => setRevokeReason(event.target.value)} />
           </label>
         </Modal>

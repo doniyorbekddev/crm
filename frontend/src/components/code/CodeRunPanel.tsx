@@ -39,13 +39,13 @@ export function CodeRunPanel({ run, enabled, hasTests, onRerun, rerunning = fals
     return <Alert tone="info">Kod avtomatik tekshirilmaydi — sandbox (kod bajarish serveri) hali ulanmagan. O‘qituvchi kodni o‘zi ko‘rib chiqadi.</Alert>;
   }
   return (
-    <section aria-label="Kod tekshiruvi" className="space-y-2 rounded-lg border border-border p-3">
+    <section aria-label="Kod tekshiruvi" className="space-y-2 rounded-control border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-2 text-sm font-medium">
+        <p className="flex items-center gap-2 text-label">
           Avtomatik tekshiruv
           {run ? <Badge tone={STATUS[run.status].tone}>{STATUS[run.status].label}</Badge> : <Badge tone="gray">Hali tekshirilmagan</Badge>}
           {run?.total ? (
-            <span className="text-xs text-fg-muted">
+            <span className="text-caption text-fg-muted">
               {run.passed ?? 0}/{run.total} test
             </span>
           ) : null}
@@ -56,11 +56,11 @@ export function CodeRunPanel({ run, enabled, hasTests, onRerun, rerunning = fals
           </Button>
         )}
       </div>
-      {run?.status === 'ERROR' && run.error && <p className="text-xs text-danger">{run.error}</p>}
+      {run?.status === 'ERROR' && run.error && <p className="text-caption text-danger">{run.error}</p>}
       {run && run.tests.length > 0 && (
         <ul className="space-y-1.5">
           {run.tests.map((test) => (
-            <li key={test.index} className="rounded-md bg-surface-muted p-2 text-xs">
+            <li key={test.index} className="rounded-chip bg-surface-muted p-2 text-caption">
               <p className="flex items-center gap-1.5 font-medium">
                 {test.passed ? <CheckCircle2 className="size-3.5 text-success" aria-hidden /> : test.status === 'timeout' ? <Clock className="size-3.5 text-warning" aria-hidden /> : <XCircle className="size-3.5 text-danger" aria-hidden />}
                 Test {test.index}: {test.passed ? 'o‘tdi' : `o‘tmadi${REASONS[test.status] ? ` (${REASONS[test.status]})` : ''}`}

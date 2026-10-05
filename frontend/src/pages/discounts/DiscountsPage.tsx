@@ -178,7 +178,7 @@ export default function DiscountsPage() {
           ) : settings ? (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <label className="w-48">
-                <span className="mb-1 block text-sm text-fg-muted">Maksimal chegirma (%)</span>
+                <span className="mb-1 block text-body text-fg-muted">Maksimal chegirma (%)</span>
                 <Input
                   type="number"
                   min={0}
@@ -193,7 +193,7 @@ export default function DiscountsPage() {
                   Saqlash
                 </Button>
               )}
-              <label className="flex items-center gap-2 text-sm text-fg">
+              <label className="flex items-center gap-2 text-body text-fg">
                 <Checkbox
                   checked={settings.allowStacking}
                   disabled={!canManage || toggleStacking.isPending}
@@ -201,7 +201,7 @@ export default function DiscountsPage() {
                 />
                 Bir nechta chegirmani birga qo‘llashga ruxsat
               </label>
-              {settings.updatedAt && <span className="text-xs text-fg-subtle sm:ml-auto">Oxirgi o‘zgarish: {formatDate(settings.updatedAt)}</span>}
+              {settings.updatedAt && <span className="text-caption text-fg-subtle sm:ml-auto">Oxirgi o‘zgarish: {formatDate(settings.updatedAt)}</span>}
             </div>
           ) : null}
         </CardContent>
@@ -250,7 +250,7 @@ export default function DiscountsPage() {
                   cell: (rule) => (
                     <>
                       <span className="text-fg">{rule.name}</span>
-                      <span className="ml-2 font-mono text-xs text-fg-subtle">{rule.key}</span>
+                      <span className="ml-2 font-mono text-caption text-fg-subtle">{rule.key}</span>
                     </>
                   ),
                 },
@@ -403,16 +403,16 @@ export default function DiscountsPage() {
         >
           <div className="space-y-3">
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Kalit (lotin, kichik harf)</span>
+              <span className="mb-1 block text-body text-fg-muted">Kalit (lotin, kichik harf)</span>
               <Input value={ruleDraft.key} placeholder="family" onChange={(event) => setRuleDraft({ ...ruleDraft, key: event.target.value })} />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Nomi</span>
+              <span className="mb-1 block text-body text-fg-muted">Nomi</span>
               <Input value={ruleDraft.name} placeholder="Oila chegirmasi" onChange={(event) => setRuleDraft({ ...ruleDraft, name: event.target.value })} />
             </label>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-sm text-fg-muted">Turi</span>
+                <span className="mb-1 block text-body text-fg-muted">Turi</span>
                 <Select value={ruleDraft.type} onChange={(event) => setRuleDraft({ ...ruleDraft, type: event.target.value as DiscountType })}>
                   {(Object.keys(TYPE_LABELS) as DiscountType[]).map((type) => (
                     <option key={type} value={type}>
@@ -422,7 +422,7 @@ export default function DiscountsPage() {
                 </Select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-fg-muted">O‘lchov</span>
+                <span className="mb-1 block text-body text-fg-muted">O‘lchov</span>
                 <Select
                   value={ruleDraft.valueType}
                   onChange={(event) => setRuleDraft({ ...ruleDraft, valueType: event.target.value as DiscountValueType })}
@@ -432,15 +432,15 @@ export default function DiscountsPage() {
                 </Select>
               </label>
               <label className="block">
-                <span className="mb-1 block text-sm text-fg-muted">Qiymati</span>
+                <span className="mb-1 block text-body text-fg-muted">Qiymati</span>
                 <Input type="number" min={0} value={ruleDraft.value} onChange={(event) => setRuleDraft({ ...ruleDraft, value: event.target.value })} />
               </label>
             </div>
-            <label className="flex items-center gap-2 text-sm text-fg">
+            <label className="flex items-center gap-2 text-body text-fg">
               <Checkbox checked={ruleDraft.stackable} onChange={(event) => setRuleDraft({ ...ruleDraft, stackable: event.target.checked })} />
               Boshqa chegirmalar bilan birga qo‘llansin
             </label>
-            <label className="flex items-center gap-2 text-sm text-fg">
+            <label className="flex items-center gap-2 text-body text-fg">
               <Checkbox checked={ruleDraft.isActive} onChange={(event) => setRuleDraft({ ...ruleDraft, isActive: event.target.checked })} />
               Faol
             </label>
@@ -472,11 +472,11 @@ export default function DiscountsPage() {
         >
           <div className="space-y-3">
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Kod</span>
+              <span className="mb-1 block text-body text-fg-muted">Kod</span>
               <Input value={promoDraft.code} placeholder="KUZ2026" onChange={(event) => setPromoDraft({ ...promoDraft, code: event.target.value })} />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Qoida</span>
+              <span className="mb-1 block text-body text-fg-muted">Qoida</span>
               <Select value={promoDraft.ruleKey} onChange={(event) => setPromoDraft({ ...promoDraft, ruleKey: event.target.value })}>
                 <option value="">Tanlang</option>
                 {(rulesQuery.data ?? [])
@@ -489,7 +489,7 @@ export default function DiscountsPage() {
               </Select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-fg-muted">Ishlatilish limiti</span>
+              <span className="mb-1 block text-body text-fg-muted">Ishlatilish limiti</span>
               <Input
                 type="number"
                 min={0}

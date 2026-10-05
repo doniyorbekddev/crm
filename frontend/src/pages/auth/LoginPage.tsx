@@ -61,8 +61,8 @@ export default function LoginPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Tizimga kirish</h1>
-        <p className="mt-2 text-sm text-fg-muted">Xodimlar — email, o‘quvchilar — ID raqami (ST-000045), ota-onalar — telefon raqami bilan kiradi</p>
+        <h1 className="text-h1 tracking-tight">Tizimga kirish</h1>
+        <p className="mt-2 text-body text-fg-muted">Xodimlar — email, o‘quvchilar — ID raqami (ST-000045), ota-onalar — telefon raqami bilan kiradi</p>
       </div>
 
       {formError && (
@@ -93,7 +93,7 @@ export default function LoginPage() {
           htmlFor="password"
           error={errors.password?.message}
           labelAction={
-            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+            <Link to="/forgot-password" className="text-caption font-medium text-primary hover:underline">
               Parolni unutdingizmi?
             </Link>
           }
@@ -114,7 +114,7 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-fg-muted">
+      <p className="mt-8 text-center text-body text-fg-muted">
         Hisobingiz yo‘qmi?{' '}
         <Link to="/register" className="font-medium text-primary hover:underline">
           Ro‘yxatdan o‘ting

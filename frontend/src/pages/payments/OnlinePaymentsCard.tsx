@@ -107,7 +107,7 @@ export function OnlinePaymentsCard() {
       </CardHeader>
       <CardContent className="p-0">
         {configured.length > 0 && (
-          <p className="flex flex-wrap gap-2 px-4 pt-3 text-xs text-fg-subtle">
+          <p className="flex flex-wrap gap-2 px-4 pt-3 text-caption text-fg-subtle">
             {configured.map((provider) => (
               <Badge key={provider.key} tone={provider.mode === 'production' ? 'green' : 'yellow'}>
                 {provider.key} — {MODE_LABELS[provider.mode]}
@@ -116,7 +116,7 @@ export function OnlinePaymentsCard() {
           </p>
         )}
         {configured.length === 0 && !providersQuery.isPending && (
-          <p className="px-4 pt-3 text-xs text-fg-subtle">
+          <p className="px-4 pt-3 text-caption text-fg-subtle">
             Hech bir provayder sozlanmagan — webhook yo‘li yopiq. Kalit qo‘shilgach onlayn to‘lovlar shu yerda ko‘rinadi.
           </p>
         )}
@@ -133,7 +133,7 @@ export function OnlinePaymentsCard() {
               {listQuery.data.items.map((intent) => (
                 <li key={intent.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                   <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+                    <p className="flex flex-wrap items-center gap-2 text-body text-fg">
                       <Link to={`/students/${intent.student.id}`} className="hover:text-brand-600 hover:underline">
                         {intent.student.name}
                       </Link>
@@ -141,14 +141,14 @@ export function OnlinePaymentsCard() {
                       <Badge tone="gray">{intent.provider}</Badge>
                       {modeOf(intent.provider) && modeOf(intent.provider) !== 'production' && <Badge tone="yellow">sinov</Badge>}
                     </p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       {formatDateTime(intent.createdAt)} · {intent.externalId}
                       {intent.failureText ? ` · ${intent.failureText}` : ''}
                     </p>
                   </div>
-                  <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-fg">
+                  <span className="flex shrink-0 items-center gap-2 text-body tabular-nums text-fg">
                     {intent.checkoutUrl && (
-                      <a href={intent.checkoutUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <a href={intent.checkoutUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-caption text-primary hover:underline">
                         <ExternalLink className="size-3.5" aria-hidden /> To‘lov havolasi
                       </a>
                     )}

@@ -136,7 +136,7 @@ export default function PortalHomeworkDetailPage() {
 
   return (
     <div>
-      <Link to="/portal/homework" className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link to="/portal/homework" className="mb-3 inline-flex items-center gap-1 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden />
         Barcha vazifalar
       </Link>
@@ -165,9 +165,9 @@ export default function PortalHomeworkDetailPage() {
               {homework.difficulty && <Badge tone={DIFFICULTY_TONES[homework.difficulty]}>{DIFFICULTY_LABELS[homework.difficulty]}</Badge>}
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm whitespace-pre-wrap text-fg">{homework.description ?? 'Tavsif berilmagan.'}</p>
+              <p className="text-body whitespace-pre-wrap text-fg">{homework.description ?? 'Tavsif berilmagan.'}</p>
               {(homework.topic || homework.lesson) && (
-                <p className="text-xs text-fg-muted">
+                <p className="text-caption text-fg-muted">
                   {homework.topic && `Mavzu: ${homework.topic.title}`}
                   {homework.lesson && (
                     <>
@@ -198,35 +198,35 @@ export default function PortalHomeworkDetailPage() {
                 {submission.score !== null && (
                   <span className="text-lg font-semibold tabular-nums text-fg">
                     {submission.score}/{homework.maxPoints}
-                    {submission.xpAwarded > 0 && <span className="ml-1 text-xs font-normal text-fg-muted">+{submission.xpAwarded} XP</span>}
+                    {submission.xpAwarded > 0 && <span className="ml-1 text-caption font-normal text-fg-muted">+{submission.xpAwarded} XP</span>}
                   </span>
                 )}
               </CardHeader>
               <CardContent className="space-y-3">
-                {!canSubmit && submission.answerText && <p className="text-sm whitespace-pre-wrap text-fg">{submission.answerText}</p>}
+                {!canSubmit && submission.answerText && <p className="text-body whitespace-pre-wrap text-fg">{submission.answerText}</p>}
                 {!canSubmit && submission.linkUrl && (
-                  <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                  <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-body text-primary hover:underline">
                     <ExternalLink className="size-4" aria-hidden />
                     {submission.linkUrl}
                   </a>
                 )}
                 {!canSubmit && submission.codeText && (
-                  <pre className="max-h-60 overflow-auto rounded-lg bg-code p-3 text-xs text-code-fg">
+                  <pre className="max-h-60 overflow-auto rounded-control bg-code p-3 text-caption text-code-fg">
                     <code>{submission.codeText}</code>
                   </pre>
                 )}
                 {submission.codeText && homework.codeLanguage === 'html' && <HtmlPreview code={submission.codeText} title="Mening sahifam" />}
                 {submission.codeText && <CodeRunPanel run={query.data.codeRun} enabled={query.data.codeRunnerEnabled} hasTests={homework.codeTests.length > 0} />}
                 {submission.files.length > 0 && (
-                  <ul className="divide-y divide-border rounded-lg border border-border">
+                  <ul className="divide-y divide-border rounded-control border border-border">
                     {submission.files.map((file) => (
-                      <li key={file.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <li key={file.id} className="flex items-center justify-between gap-2 px-3 py-2 text-body">
                         <span className="min-w-0 truncate text-fg">{file.originalName}</span>
                         <span className="flex shrink-0 items-center gap-1">
                           <button
                             type="button"
                             onClick={() => void portalService.downloadHomeworkFile(id, file, activeChild).catch(onError)}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-surface-muted"
+                            className="inline-flex items-center gap-1 rounded-chip px-2 py-1 text-caption text-primary hover:bg-surface-muted"
                           >
                             <Download className="size-3.5" aria-hidden />
                             {file.size > 0 ? formatFileSize(file.size) : 'Ochish'}
@@ -236,7 +236,7 @@ export default function PortalHomeworkDetailPage() {
                               type="button"
                               aria-label={`${file.originalName} — o‘chirish`}
                               onClick={() => removeFile.mutate(file.id)}
-                              className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
+                              className="grid size-7 place-items-center rounded-chip text-fg-muted hover:bg-danger-subtle hover:text-danger"
                             >
                               <Trash2 className="size-3.5" aria-hidden />
                             </button>
@@ -247,7 +247,7 @@ export default function PortalHomeworkDetailPage() {
                   </ul>
                 )}
                 {rubric?.scores && (
-                  <ul className="space-y-1 text-sm">
+                  <ul className="space-y-1 text-body">
                     {rubric.criteria.map((criterion) => (
                       <li key={criterion.key} className="flex justify-between gap-2">
                         <span className="text-fg-muted">
@@ -305,7 +305,7 @@ export default function PortalHomeworkDetailPage() {
                 </FormField>
                 <div className="grid gap-2 sm:grid-cols-[1fr_10rem]">
                   {homework.codeTests.length > 0 && (
-                    <p className="text-xs text-fg-muted sm:col-span-2">
+                    <p className="text-caption text-fg-muted sm:col-span-2">
                       Kod avtomatik tekshiriladi: {homework.codeTests.length} ta test
                       {homework.codeTests.some((test) => test.hidden) ? ` (${homework.codeTests.filter((test) => test.hidden).length} tasi yashirin)` : ''}. Dastur kirishni standart kirishdan o‘qib, javobni chiqarsin.
                       {homework.codeTests
@@ -319,7 +319,7 @@ export default function PortalHomeworkDetailPage() {
                     </p>
                   )}
                   <FormField label="Kod" htmlFor="codeText">
-                    <Textarea id="codeText" rows={5} className="font-mono text-xs" spellCheck={false} value={draft.codeText} onChange={(event) => set({ codeText: event.target.value })} />
+                    <Textarea id="codeText" rows={5} className="font-mono text-caption" spellCheck={false} value={draft.codeText} onChange={(event) => set({ codeText: event.target.value })} />
                   </FormField>
                   <FormField label="Til" htmlFor="codeLanguage">
                     <Select id="codeLanguage" value={draft.codeLanguage} onChange={(event) => set({ codeLanguage: event.target.value })}>

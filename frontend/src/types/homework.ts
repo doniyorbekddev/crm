@@ -201,6 +201,8 @@ export interface HomeworkListParams {
   limit: number;
   search?: string;
   groupId?: string;
+  /** O'qituvchi (foydalanuvchi ID) — vazifani bergan yoki guruhni o'qitadigan */
+  teacherId?: string;
   courseId?: string;
   status?: HomeworkStatus;
   from?: string;
@@ -214,6 +216,8 @@ export interface ExamListParams {
   limit: number;
   search?: string;
   groupId?: string;
+  /** O'qituvchi (foydalanuvchi ID) — vazifani bergan yoki guruhni o'qitadigan */
+  teacherId?: string;
   courseId?: string;
   status?: ExamStatus;
   from?: string;

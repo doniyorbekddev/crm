@@ -36,7 +36,7 @@ export function LeadTemperatureBadge({
   temperature: LeadTemperature | null;
   score?: number | null;
 }) {
-  if (temperature === null) return <span className="text-xs text-fg-subtle">—</span>;
+  if (temperature === null) return <span className="text-caption text-fg-subtle">—</span>;
   return (
     <Tooltip content={LEAD_TEMPERATURE_HINTS[temperature]} describe={false}>
       <Badge tone={LEAD_TEMPERATURE_TONES[temperature]}>

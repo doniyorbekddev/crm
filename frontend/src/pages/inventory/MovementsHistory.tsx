@@ -55,12 +55,12 @@ export function MovementsHistory({ product, onClose }: { product?: Product; onCl
               return (
                 <li key={movement.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+                    <p className="flex flex-wrap items-center gap-2 text-body text-fg">
                       <Badge tone={STOCK_MOVEMENT_TONES[movement.type]}>{STOCK_MOVEMENT_LABELS[movement.type]}</Badge>
                       {!product && <span className="truncate">{movement.product.name}</span>}
                       {movement.hasMoneyRecord && <Badge tone="gray">pul yozilgan</Badge>}
                     </p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       {formatDateTime(movement.createdAt)}
                       {movement.createdBy ? ` · ${movement.createdBy}` : ''}
                       {movement.student ? ` · ${movement.student.name}` : ''}
@@ -69,11 +69,11 @@ export function MovementsHistory({ product, onClose }: { product?: Product; onCl
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={incoming ? 'text-sm tabular-nums text-success' : 'text-sm tabular-nums text-fg'}>
+                    <p className={incoming ? 'text-body tabular-nums text-success' : 'text-body tabular-nums text-fg'}>
                       {incoming ? '+' : '−'}
                       {formatNumber(movement.quantity)} {movement.product.unit}
                     </p>
-                    <p className="text-xs text-fg-subtle">
+                    <p className="text-caption text-fg-subtle">
                       qoldiq: {formatNumber(movement.balanceAfter)}
                       {movement.totalAmount > 0 ? ` · ${formatMoney(movement.totalAmount)}` : ''}
                     </p>

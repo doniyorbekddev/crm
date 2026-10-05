@@ -17,12 +17,12 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { WIDGET_SPAN_CLASSES, parseWidgetLayout, resolveWidgets } from '@/utils/widgetLayout';
 import type { WidgetDefinition } from '@/utils/widgetLayout';
 import { AtRiskStudents } from './AtRiskStudents';
-import { ManagersCard, RecentActivityCard, SalesFunnelCard, TodayTasksCard } from './DashboardCards';
+import { ManagersCard, OutstandingDebtsCard, RecentActivityCard, RecentLeadsCard, SalesFunnelCard, TodayTasksCard } from './DashboardCards';
 import { DashboardCharts } from './DashboardCharts';
 import { DashboardKpis } from './DashboardKpis';
 
 /** Vidjet kalitlari xodim profilida saqlanadi (`dashboard.layout`) — o'zgartirilmaydi */
-type WidgetKey = 'kpis' | 'charts' | 'tasks' | 'funnel' | 'atRisk' | 'managers' | 'activity';
+type WidgetKey = 'kpis' | 'charts' | 'tasks' | 'funnel' | 'atRisk' | 'managers' | 'recentLeads' | 'debts' | 'activity';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const canViewFollowUps = usePermission(PERMISSIONS.FOLLOWUP_VIEW);
   const canViewActivity = usePermission(PERMISSIONS.ANALYTICS_VIEW);
   const canViewStudents = usePermission(PERMISSIONS.STUDENT_VIEW);
+  const canViewDebts = usePermission(PERMISSIONS.DEBT_VIEW);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const layout = usePreference('dashboard.layout', parseWidgetLayout);
 
@@ -44,6 +45,8 @@ export default function DashboardPage() {
     { key: 'funnel', label: 'Sotuv voronkasi', span: 'third', available: canViewLeads },
     { key: 'atRisk', label: 'Xavf ostidagi o‘quvchilar', span: 'third', available: canViewStudents },
     { key: 'managers', label: 'Managerlar reytingi', span: 'twoThirds', available: canViewReports },
+    { key: 'recentLeads', label: 'So‘nggi leadlar', span: 'half', available: canViewLeads },
+    { key: 'debts', label: 'Eng katta qarzdorlar', span: 'half', available: canViewDebts },
     { key: 'activity', label: 'So‘nggi faoliyat', span: 'full', available: canViewActivity },
   ];
   const widgets = resolveWidgets(definitions, layout.value);
@@ -68,6 +71,8 @@ export default function DashboardPage() {
     funnel: () => <SalesFunnelCard />,
     atRisk: () => <AtRiskStudents />,
     managers: () => <ManagersCard />,
+    recentLeads: () => <RecentLeadsCard />,
+    debts: () => <OutstandingDebtsCard />,
     activity: () => <RecentActivityCard />,
   };
 

@@ -7,15 +7,18 @@ import { Button } from '@/components/ui/Button';
 import { Drawer } from '@/components/ui/Drawer';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { notificationsService } from '@/services/notifications.service';
-import type { NotificationItem, NotificationListParams } from '@/types/notification';
+import type { NotificationCategory, NotificationItem, NotificationListParams } from '@/types/notification';
 import { formatRelativeTime } from '@/utils/format';
 import {
+  NOTIFICATION_CATEGORY_LABELS,
+  NOTIFICATION_CATEGORY_ORDER,
   NOTIFICATION_TYPE_CLASSES,
   NOTIFICATION_TYPE_ICONS,
   NOTIFICATION_TYPE_LABELS,
@@ -47,7 +50,8 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
-  const params = FILTER_PARAMS[filter];
+  const [category, setCategory] = useState<NotificationCategory | ''>('');
+  const params: NotificationListParams = { ...FILTER_PARAMS[filter], ...(category ? { category } : {}) };
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.notifications.summary,
@@ -148,6 +152,19 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
                 </Tab>
               </TabList>
             </Tabs>
+            <Select
+              value={category}
+              onChange={(event) => setCategory(event.target.value as NotificationCategory | '')}
+              aria-label="Toifa"
+              wrapperClassName="w-40"
+            >
+              <option value="">Barcha toifalar</option>
+              {NOTIFICATION_CATEGORY_ORDER.map((item) => (
+                <option key={item} value={item}>
+                  {NOTIFICATION_CATEGORY_LABELS[item]}
+                </option>
+              ))}
+            </Select>
             {unread > 0 && (
               <Button
                 variant="ghost"

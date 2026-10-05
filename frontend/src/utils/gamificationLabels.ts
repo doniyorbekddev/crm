@@ -74,8 +74,6 @@ export const LEADERBOARD_PERIODS: ReadonlyArray<{ value: LeaderboardPeriod; labe
   { value: 'all', label: 'Butun davr' },
 ];
 
-export const RANK_MEDALS = ['🥇', '🥈', '🥉'] as const;
-
 /** XP ni qisqa ko‘rinishda: 2450 → "2 450 XP" */
 export function formatXp(value: number): string {
   return `${formatNumber(value)} XP`;

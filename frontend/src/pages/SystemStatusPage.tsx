@@ -17,9 +17,9 @@ const HEALTH_REFETCH_INTERVAL_MS = 15_000;
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-lg bg-surface-muted px-4 py-3">
-      <dt className="text-xs text-fg-muted">{label}</dt>
-      <dd className="mt-1 text-sm font-medium text-fg">{value}</dd>
+    <div className="rounded-control bg-surface-muted px-4 py-3">
+      <dt className="text-caption text-fg-muted">{label}</dt>
+      <dd className="mt-1 text-label text-fg">{value}</dd>
     </div>
   );
 }
@@ -40,19 +40,19 @@ function JobsCard() {
       </CardHeader>
       <CardContent>
         {jobs.isPending ? (
-          <Skeleton className="h-24 rounded-lg" />
+          <Skeleton className="h-24 rounded-control" />
         ) : jobs.isError ? (
-          <p className="text-sm text-fg-muted">{getErrorMessage(jobs.error)}</p>
+          <p className="text-body text-fg-muted">{getErrorMessage(jobs.error)}</p>
         ) : jobs.data.length === 0 ? (
-          <p className="text-sm text-fg-muted">Server yaqinda ishga tushgan — vazifalar hali yurmagan.</p>
+          <p className="text-body text-fg-muted">Server yaqinda ishga tushgan — vazifalar hali yurmagan.</p>
         ) : (
           <ul className="divide-y divide-border">
             {jobs.data.map((job) => {
               const failing = job.lastFailureAt !== null && (job.lastSuccessAt === null || job.lastFailureAt > job.lastSuccessAt);
               return (
-                <li key={job.job} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                  <span className="font-mono text-xs">{job.job}</span>
-                  <span className="flex items-center gap-2 text-xs text-fg-muted">
+                <li key={job.job} className="flex flex-wrap items-center justify-between gap-2 py-2 text-body">
+                  <span className="font-mono text-caption">{job.job}</span>
+                  <span className="flex items-center gap-2 text-caption text-fg-muted">
                     {job.lastSuccessAt ? `oxirgi: ${formatDateTime(job.lastSuccessAt)}` : 'hali muvaffaqiyatli emas'}
                     {failing ? <Badge tone="red">xato: {formatDateTime(job.lastFailureAt)}</Badge> : <Badge tone="green">ishlayapti</Badge>}
                   </span>
@@ -97,7 +97,7 @@ export default function SystemStatusPage() {
       <Card>
         <CardHeader>
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-subtle text-primary">
+            <div className="grid size-9 shrink-0 place-items-center rounded-control bg-primary-subtle text-primary">
               <Server className="size-4" aria-hidden />
             </div>
             <div className="min-w-0">
@@ -126,7 +126,7 @@ export default function SystemStatusPage() {
           {isPending ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className="h-16 rounded-lg" />
+                <Skeleton key={index} className="h-16 rounded-control" />
               ))}
             </div>
           ) : isError ? (
@@ -136,7 +136,7 @@ export default function SystemStatusPage() {
               </div>
               <div>
                 <p className="font-medium">API bilan aloqa yo‘q</p>
-                <p className="mt-1 text-sm text-fg-muted">{getErrorMessage(error)}</p>
+                <p className="mt-1 text-body text-fg-muted">{getErrorMessage(error)}</p>
               </div>
               <Button
                 variant="secondary"
@@ -171,7 +171,7 @@ export default function SystemStatusPage() {
 
       {canSeeJobs && <JobsCard />}
 
-      <p className="mt-3 text-xs text-fg-muted">
+      <p className="mt-3 text-caption text-fg-muted">
         {dataUpdatedAt > 0 ? `Oxirgi tekshiruv: ${formatTime(new Date(dataUpdatedAt))}` : 'Tekshirilmoqda...'} · har{' '}
         {HEALTH_REFETCH_INTERVAL_MS / 1000} soniyada yangilanadi
       </p>

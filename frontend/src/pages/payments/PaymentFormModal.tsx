@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
@@ -179,13 +180,17 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
           </FormField>
 
           {studentsQuery.isPending ? (
-            <p className="py-4 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
+            <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-2/3" />
+            </div>
           ) : studentsQuery.isError ? (
             <Alert tone="error">{getErrorMessage(studentsQuery.error)}</Alert>
           ) : studentsQuery.data.items.length === 0 ? (
-            <p className="py-4 text-center text-sm text-fg-muted">O‘quvchi topilmadi</p>
+            <p className="py-4 text-center text-body text-fg-muted">O‘quvchi topilmadi</p>
           ) : (
-            <ul className={cn('divide-y divide-border rounded-xl border border-border', studentsQuery.isPlaceholderData && 'opacity-60')}>
+            <ul className={cn('divide-y divide-border rounded-card border border-border', studentsQuery.isPlaceholderData && 'opacity-60')}>
               {studentsQuery.data.items.map((item) => (
                 <li key={item.id}>
                   <button
@@ -194,14 +199,14 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
                     className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-surface-muted"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-fg">
+                      <span className="block truncate text-label text-fg">
                         {item.firstName} {item.lastName}
                       </span>
-                      <span className="block text-xs text-fg-muted">
+                      <span className="block text-caption text-fg-muted">
                         {item.code} · {formatPhone(item.phone)} · {item.course.name}
                       </span>
                     </span>
-                    <span className={cn('shrink-0 text-sm font-medium', (item.debt?.remaining ?? 0) > 0 ? 'text-danger' : 'text-fg-muted')}>
+                    <span className={cn('shrink-0 text-label', (item.debt?.remaining ?? 0) > 0 ? 'text-danger' : 'text-fg-muted')}>
                       {formatMoney(item.debt?.remaining ?? 0)}
                     </span>
                   </button>
@@ -212,18 +217,18 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
         </div>
       ) : (
         <form id="payment-form" onSubmit={onSubmit} noValidate className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-muted p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface-muted p-3">
             <div>
-              <p className="text-sm font-medium text-fg">
+              <p className="text-label text-fg">
                 {selected.firstName} {selected.lastName}
               </p>
-              <p className="text-xs text-fg-muted">
+              <p className="text-caption text-fg-muted">
                 {selected.code} · {selected.course.name}
                 {selected.group && ` · ${selected.group.name}`}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-fg-muted">Qolgan qarz</p>
+              <p className="text-caption text-fg-muted">Qolgan qarz</p>
               <p className="font-semibold text-fg">{formatMoney(remaining)}</p>
             </div>
             {!student && (

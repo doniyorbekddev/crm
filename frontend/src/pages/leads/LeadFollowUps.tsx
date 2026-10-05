@@ -65,8 +65,8 @@ export function LeadFollowUps({ leadId, canCreate, canUpdate, canDelete }: LeadF
 
       {followUpsQuery.isPending ? (
         <div className="space-y-3">
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-control" />
+          <Skeleton className="h-16 rounded-control" />
         </div>
       ) : followUpsQuery.isError ? (
         <ErrorState error={followUpsQuery.error} onRetry={() => void followUpsQuery.refetch()} />
@@ -82,7 +82,7 @@ export function LeadFollowUps({ leadId, canCreate, canUpdate, canDelete }: LeadF
             <li
               key={followUp.id}
               className={cn(
-                'rounded-lg border p-3',
+                'rounded-control border p-3',
                 followUp.state === 'OVERDUE' ? 'border-danger-border bg-danger-subtle' : 'border-border bg-surface-muted/40',
               )}
             >
@@ -94,11 +94,11 @@ export function LeadFollowUps({ leadId, canCreate, canUpdate, canDelete }: LeadF
                     </p>
                     <Badge tone={FOLLOW_UP_STATE_TONES[followUp.state]}>{FOLLOW_UP_STATE_LABELS[followUp.state]}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-fg-muted">
+                  <p className="mt-1 text-caption text-fg-muted">
                     {formatDateTime(followUp.dueAt)}
                     {followUp.assignedTo && ` · ${followUp.assignedTo.firstName} ${followUp.assignedTo.lastName}`}
                   </p>
-                  {followUp.notes && <p className="mt-2 text-sm whitespace-pre-wrap text-fg">{followUp.notes}</p>}
+                  {followUp.notes && <p className="mt-2 text-body whitespace-pre-wrap text-fg">{followUp.notes}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {canUpdate && followUp.status === 'PENDING' && (

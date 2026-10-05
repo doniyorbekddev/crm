@@ -29,7 +29,7 @@ function formatValue(type: TargetType, value: number): string {
 function ProgressCell({ type, cell }: { type: TargetType; cell: TargetCell }) {
   return (
     <div className="min-w-[9rem]">
-      <div className="flex items-baseline justify-between gap-2 text-xs">
+      <div className="flex items-baseline justify-between gap-2 text-caption">
         <span className="font-medium text-fg">{formatValue(type, cell.actual)}</span>
         <span className="text-fg-muted">{cell.target > 0 ? `${cell.progress}%` : 'reja yo‘q'}</span>
       </div>
@@ -113,7 +113,7 @@ export default function TargetsPage() {
           ))}
         </Select>
         {data && (
-          <div className="ml-auto flex flex-wrap gap-4 text-sm">
+          <div className="ml-auto flex flex-wrap gap-4 text-body">
             {TARGET_TYPE_ORDER.map((type) => (
               <span key={type} className="text-fg-muted">
                 {TARGET_TYPE_LABELS[type]}:{' '}
@@ -151,7 +151,7 @@ export default function TargetsPage() {
                       <p className="font-medium text-fg">
                         {row.firstName} {row.lastName}
                       </p>
-                      <p className="text-xs text-fg-muted">{row.roleName}</p>
+                      <p className="text-caption text-fg-muted">{row.roleName}</p>
                     </TD>
                     {TARGET_TYPE_ORDER.map((type) => {
                       const cell = row.targets[type];
@@ -166,7 +166,7 @@ export default function TargetsPage() {
                               inputMode="numeric"
                               placeholder="Reja"
                               aria-label={`${row.firstName} ${TARGET_TYPE_LABELS[type]} rejasi`}
-                              className="mt-2 h-8 w-36 text-xs"
+                              className="mt-2 h-8 w-36 text-caption"
                             />
                           )}
                         </TD>

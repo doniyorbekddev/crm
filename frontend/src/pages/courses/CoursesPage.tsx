@@ -158,7 +158,7 @@ export default function CoursesPage() {
                       <BookOpen className="size-3" aria-hidden />
                       Darslar (LMS)
                     </Link>
-                    <p className="mt-1 text-xs text-fg-muted">
+                    <p className="mt-1 text-caption text-fg-muted">
                       {COURSE_CATEGORY_LABELS[course.category]} · {course.durationMonths} oy
                     </p>
                   </div>
@@ -180,16 +180,16 @@ export default function CoursesPage() {
                 <div className="mt-4">
                   <p className="text-h2 text-fg tabular-nums">{formatMoney(course.finalPrice)}</p>
                   {course.discountAmount > 0 && (
-                    <p className="text-xs text-fg-muted">
+                    <p className="text-caption text-fg-muted">
                       <span className="line-through">{formatMoney(course.price)}</span>
                       <span className="ml-2 text-success">−{formatMoney(course.discountAmount)}</span>
                     </p>
                   )}
                 </div>
 
-                {course.description && <p className="mt-3 line-clamp-2 text-sm text-fg-muted">{course.description}</p>}
+                {course.description && <p className="mt-3 line-clamp-2 text-body text-fg-muted">{course.description}</p>}
 
-                <div className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-4 text-xs text-fg-muted">
+                <div className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-4 text-caption text-fg-muted">
                   <span className="flex items-center gap-1.5">
                     <Layers className="size-3.5" aria-hidden />
                     {course.counts.groups} guruh
@@ -205,7 +205,7 @@ export default function CoursesPage() {
                 </div>
 
                 {course.teacher && (
-                  <p className="mt-3 flex items-center gap-1.5 text-xs text-fg-muted">
+                  <p className="mt-3 flex items-center gap-1.5 text-caption text-fg-muted">
                     <UserRound className="size-3.5" aria-hidden />
                     {course.teacher.firstName} {course.teacher.lastName}
                   </p>

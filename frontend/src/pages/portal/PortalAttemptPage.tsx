@@ -55,7 +55,7 @@ export default function PortalAttemptPage() {
 
   return (
     <div>
-      <Link to="/portal/exams" className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link to="/portal/exams" className="mb-3 inline-flex items-center gap-1 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden /> Imtihonlar
       </Link>
       {query.isPending ? (
@@ -168,7 +168,7 @@ function TakeExam({ view }: { view: AttemptView }) {
       <div className="sticky top-14 z-sticky -mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur sm:top-24">
         <div className="min-w-0">
           <h1 className="truncate text-h3 text-fg">{view.examTitle}</h1>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {EXAM_TYPE_LABELS[view.examType]} · {view.questions.length - unanswered}/{view.questions.length} javob berildi
           </p>
         </div>
@@ -178,7 +178,7 @@ function TakeExam({ view }: { view: AttemptView }) {
               role="timer"
               aria-label="Qolgan vaqt"
               className={cn(
-                'inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-sm tabular-nums',
+                'inline-flex items-center gap-1 rounded-chip px-2 py-1 font-mono text-body tabular-nums',
                 remaining < 60_000 ? 'bg-danger-subtle text-danger' : 'bg-surface-muted text-fg',
               )}
             >
@@ -237,7 +237,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                     <p id={`q-${question.id}`} className="font-medium text-fg">
                       {question.order}. {question.text}
                     </p>
-                    <span className="flex shrink-0 items-center gap-2 text-xs text-fg-subtle">
+                    <span className="flex shrink-0 items-center gap-2 text-caption text-fg-subtle">
                       <Badge tone="gray">{QUESTION_TYPE_SHORT[question.type]}</Badge>
                       {question.points} ball
                     </span>
@@ -252,7 +252,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                           <label
                             key={option.id}
                             className={cn(
-                              'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
+                              'flex cursor-pointer items-center gap-3 rounded-control border px-3 py-2 text-body',
                               checked ? 'border-brand-500 bg-primary-subtle' : 'border-border hover:bg-surface-muted',
                             )}
                           >
@@ -273,7 +273,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                     </fieldset>
                   ) : question.type === 'FILE_UPLOAD' ? (
                     <div className="flex flex-wrap items-center gap-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-fg hover:bg-surface-muted">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-control border border-border px-3 py-2 text-body text-fg hover:bg-surface-muted">
                         <Upload className="size-4" aria-hidden />
                         {question.answer.hasFile ? 'Faylni almashtirish' : 'Fayl tanlash'}
                         <input
@@ -289,7 +289,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                           }}
                         />
                       </label>
-                      <span className="text-xs text-fg-subtle">{question.answer.hasFile ? 'Fayl yuklangan' : 'PDF yoki rasm (JPG, PNG, WEBP)'}</span>
+                      <span className="text-caption text-fg-subtle">{question.answer.hasFile ? 'Fayl yuklangan' : 'PDF yoki rasm (JPG, PNG, WEBP)'}</span>
                     </div>
                   ) : question.type === 'SHORT_TEXT' ? (
                     <Input
@@ -303,7 +303,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                     <Textarea
                       aria-labelledby={`q-${question.id}`}
                       rows={question.type === 'CODE' ? 8 : 5}
-                      className={question.type === 'CODE' ? 'font-mono text-sm' : undefined}
+                      className={question.type === 'CODE' ? 'font-mono text-body' : undefined}
                       spellCheck={question.type !== 'CODE'}
                       value={answer.text}
                       disabled={expired}
@@ -311,7 +311,7 @@ function TakeExam({ view }: { view: AttemptView }) {
                     />
                   )}
 
-                  <p className="h-4 text-xs text-fg-subtle" aria-live="polite">
+                  <p className="h-4 text-caption text-fg-subtle" aria-live="polite">
                     {state === 'saving' ? 'Saqlanmoqda…' : state === 'saved' ? 'Saqlandi' : state === 'error' ? 'Saqlanmadi' : ''}
                   </p>
                 </CardContent>
@@ -357,7 +357,7 @@ function AttemptResult({ view }: { view: AttemptView }) {
           <Card className="mb-4">
             <CardContent className="flex flex-wrap items-center gap-4 pt-4">
               <span className="text-3xl font-semibold tabular-nums text-fg">{view.summary.percentage}%</span>
-              <span className="text-sm text-fg-muted">
+              <span className="text-body text-fg-muted">
                 {view.summary.score}/{view.summary.maxScore} ball
               </span>
               {reviewing ? (
@@ -387,7 +387,7 @@ function AttemptResult({ view }: { view: AttemptView }) {
                   {question.result && <ResultMark question={question} />}
                 </div>
                 {question.options.length > 0 && (
-                  <ul className="space-y-1 text-sm">
+                  <ul className="space-y-1 text-body">
                     {question.options.map((option) => {
                       const chosen = question.answer.optionIds.includes(option.id);
                       const correct = question.result?.correctOptionIds.includes(option.id) ?? false;
@@ -396,7 +396,7 @@ function AttemptResult({ view }: { view: AttemptView }) {
                         <li
                           key={option.id}
                           className={cn(
-                            'rounded-md px-2 py-1',
+                            'rounded-chip px-2 py-1',
                             correct
                               ? 'bg-success-subtle text-success'
                               : chosen && graded
@@ -420,10 +420,10 @@ function AttemptResult({ view }: { view: AttemptView }) {
                     })}
                   </ul>
                 )}
-                {question.answer.text && <pre className="whitespace-pre-wrap rounded-md bg-surface-muted p-2 text-sm text-fg">{question.answer.text}</pre>}
-                {question.answer.hasFile && <p className="text-sm text-fg-muted">Fayl yuklangan</p>}
-                {question.result?.feedback && <p className="text-sm text-fg">O‘qituvchi izohi: {question.result.feedback}</p>}
-                {question.result?.explanation && <p className="text-sm text-fg-muted">Tushuntirish: {question.result.explanation}</p>}
+                {question.answer.text && <pre className="whitespace-pre-wrap rounded-chip bg-surface-muted p-2 text-body text-fg">{question.answer.text}</pre>}
+                {question.answer.hasFile && <p className="text-body text-fg-muted">Fayl yuklangan</p>}
+                {question.result?.feedback && <p className="text-body text-fg">O‘qituvchi izohi: {question.result.feedback}</p>}
+                {question.result?.explanation && <p className="text-body text-fg-muted">Tushuntirish: {question.result.explanation}</p>}
               </CardContent>
             </Card>
           </li>
@@ -437,7 +437,7 @@ function ResultMark({ question }: { question: AttemptQuestionView }) {
   const result = question.result!;
   if (result.isCorrect === null) return <Badge tone="yellow">Tekshirilmoqda</Badge>;
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1 text-sm tabular-nums', result.isCorrect || result.score > 0 ? 'text-success' : 'text-danger')}>
+    <span className={cn('inline-flex shrink-0 items-center gap-1 text-body tabular-nums', result.isCorrect || result.score > 0 ? 'text-success' : 'text-danger')}>
       {result.isCorrect || result.score > 0 ? <CheckCircle2 className="size-4" aria-hidden /> : <XCircle className="size-4" aria-hidden />}
       {result.score}/{question.points}
     </span>

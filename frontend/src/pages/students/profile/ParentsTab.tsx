@@ -137,7 +137,7 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
                   <a href={`tel:${row.phone}`} className="text-fg hover:text-brand-600">
                     {formatPhone(row.phone)}
                   </a>
-                  <p className="text-xs text-fg-muted">{[row.telegram, row.email].filter(Boolean).join(' · ') || '—'}</p>
+                  <p className="text-caption text-fg-muted">{[row.telegram, row.email].filter(Boolean).join(' · ') || '—'}</p>
                 </>
               ),
             },

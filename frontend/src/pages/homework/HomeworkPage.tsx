@@ -180,7 +180,7 @@ export default function HomeworkPage() {
                   cell: (homework) => (
                     <>
                       <p className="font-medium text-fg">{homework.title}</p>
-                      <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                      <p className="mt-1 flex items-center gap-2 text-caption text-fg-muted">
                         <Badge tone={HOMEWORK_STATUS_TONES[homework.status]}>{HOMEWORK_STATUS_LABELS[homework.status]}</Badge>
                         {homework.isOverdue && <Badge tone="red">Muddati o‘tgan</Badge>}
                         {homework.maxPoints} ball
@@ -194,7 +194,7 @@ export default function HomeworkPage() {
                   cell: (homework) => (
                     <>
                       <p className="text-fg">{homework.group.name}</p>
-                      <p className="text-xs text-fg-muted">{homework.course?.name ?? '—'}</p>
+                      <p className="text-caption text-fg-muted">{homework.course?.name ?? '—'}</p>
                     </>
                   ),
                 },

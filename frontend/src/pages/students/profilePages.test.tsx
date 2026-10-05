@@ -96,6 +96,8 @@ vi.mock('./profile/ProfileTabs', () => ({
   ActivityTab: () => null,
 }));
 vi.mock('./profile/MasteryTab', () => ({ MasteryTab: () => null }));
+vi.mock('./profile/AttendancePanel', () => ({ AttendancePanel: () => <p>Davomat mazmuni</p> }));
+vi.mock('./profile/CertificatesCard', () => ({ CertificatesCard: () => <p>Sertifikatlar mazmuni</p> }));
 vi.mock('./profile/AiAnalysisTab', () => ({ AiAnalysisTab: () => <p>AI mazmuni</p> }));
 vi.mock('./profile/GroupHistoryTab', () => ({ GroupHistoryTab: () => <p>Guruh tarixi mazmuni</p> }));
 vi.mock('./profile/ParentsTab', () => ({ ParentsTab: () => null }));
@@ -160,7 +162,8 @@ describe('O‘quvchi profili (Student 360)', () => {
     expect(screen.getByRole('button', { name: 'Haftalik hisobot' })).toBeInTheDocument();
     for (const name of ['To‘lov qabul qilish', 'Tahrirlash', 'Yana']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist', { name: 'Profil bo‘limlari' })).getAllByRole('tab').map((tab) => tab.textContent);
-    expect(tabs).toEqual(['Umumiy', 'O‘zlashtirish', 'Guruh tarixi', 'To‘lovlar', 'Yutuqlar', 'Faollik']);
+    // «Sertifikatlar» endi alohida bo‘lim (avval «Umumiy» ichida edi); «Davomat» — faqat davomat ruxsati bilan
+    expect(tabs).toEqual(['Umumiy', 'O‘zlashtirish', 'Guruh tarixi', 'To‘lovlar', 'Yutuqlar', 'Sertifikatlar', 'Faollik']);
   });
 
   it('to‘liq ruxsat: to‘lov, tahrirlash, "Yana" menyusi va barcha bo‘limlar; tab almashadi', async () => {
@@ -192,6 +195,10 @@ describe('O‘quvchi profili (Student 360)', () => {
     expect(screen.getByRole('tabpanel')).toHaveTextContent('AI mazmuni');
     await userEvent.click(screen.getByRole('tab', { name: 'Guruh tarixi' }));
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Guruh tarixi mazmuni');
+    await userEvent.click(screen.getByRole('tab', { name: 'Davomat' }));
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Davomat mazmuni');
+    await userEvent.click(screen.getByRole('tab', { name: 'Sertifikatlar' }));
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Sertifikatlar mazmuni');
   });
 });
 

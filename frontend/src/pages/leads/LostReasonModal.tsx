@@ -43,7 +43,7 @@ export function LostReasonModal({ leadName, loading = false, onClose, onConfirm 
             type="button"
             onClick={() => setReason(item)}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs transition-colors',
+              'rounded-full border px-3 py-1 text-caption transition-colors',
               reason === item
                 ? 'border-danger-border bg-danger-subtle text-danger'
                 : 'border-border text-fg-muted hover:bg-surface-muted hover:text-fg',

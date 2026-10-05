@@ -67,11 +67,11 @@ export default function RegisterPage() {
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-success-subtle text-success">
           <CheckCircle2 className="size-7" aria-hidden />
         </div>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">So‘rovingiz qabul qilindi</h1>
-        <p className="mt-3 text-sm text-fg-muted">{successMessage}</p>
+        <h1 className="mt-6 text-h1 tracking-tight">So‘rovingiz qabul qilindi</h1>
+        <p className="mt-3 text-body text-fg-muted">{successMessage}</p>
         <Link
           to="/login"
-          className="mt-8 inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-brand-700"
+          className="mt-8 inline-flex h-10 w-full items-center justify-center rounded-control bg-brand-600 px-4 text-label text-white shadow-sm hover:bg-brand-700"
         >
           Kirish sahifasiga qaytish
         </Link>
@@ -82,8 +82,8 @@ export default function RegisterPage() {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Ro‘yxatdan o‘tish</h1>
-        <p className="mt-2 text-sm text-fg-muted">Hisob administrator tasdiqlagandan so‘ng faollashadi</p>
+        <h1 className="text-h1 tracking-tight">Ro‘yxatdan o‘tish</h1>
+        <p className="mt-2 text-body text-fg-muted">Hisob administrator tasdiqlagandan so‘ng faollashadi</p>
       </div>
 
       {formError && (
@@ -124,7 +124,7 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-fg-muted">
+      <p className="mt-8 text-center text-body text-fg-muted">
         Hisobingiz bormi?{' '}
         <Link to="/login" className="font-medium text-primary hover:underline">
           Kirish

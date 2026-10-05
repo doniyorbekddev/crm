@@ -81,15 +81,15 @@ export function ProductFormModal({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Kod</span>
+          <span className="mb-1 block text-body text-fg-muted">Kod</span>
           <Input value={sku} placeholder="KITOB-01" onChange={(event) => setSku(event.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Nomi</span>
+          <span className="mb-1 block text-body text-fg-muted">Nomi</span>
           <Input value={name} placeholder="Ingliz tili darsligi" onChange={(event) => setName(event.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Turkum</span>
+          <span className="mb-1 block text-body text-fg-muted">Turkum</span>
           <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="Turkum">
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -99,23 +99,23 @@ export function ProductFormModal({
           </Select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">O‘lchov birligi</span>
+          <span className="mb-1 block text-body text-fg-muted">O‘lchov birligi</span>
           <Input value={unit} placeholder="dona" onChange={(event) => setUnit(event.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Sotish narxi</span>
+          <span className="mb-1 block text-body text-fg-muted">Sotish narxi</span>
           <Input type="number" min={0} value={price} onChange={(event) => setPrice(event.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Tannarx</span>
+          <span className="mb-1 block text-body text-fg-muted">Tannarx</span>
           <Input type="number" min={0} value={cost} onChange={(event) => setCost(event.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Kam qoldi chegarasi</span>
+          <span className="mb-1 block text-body text-fg-muted">Kam qoldi chegarasi</span>
           <Input type="number" min={0} value={minQuantity} onChange={(event) => setMinQuantity(event.target.value)} />
-          <span className="mt-1 block text-xs text-fg-subtle">0 — kuzatilmaydi</span>
+          <span className="mt-1 block text-caption text-fg-subtle">0 — kuzatilmaydi</span>
         </label>
-        <label className="flex items-end gap-2 pb-2 text-sm text-fg">
+        <label className="flex items-end gap-2 pb-2 text-body text-fg">
           <Checkbox checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
           Faol
         </label>

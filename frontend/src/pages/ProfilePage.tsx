@@ -24,8 +24,8 @@ function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value
     <div className="flex items-start gap-3">
       <span className="mt-0.5 text-fg-subtle">{icon}</span>
       <div className="min-w-0">
-        <dt className="text-xs text-fg-muted">{label}</dt>
-        <dd className="truncate text-sm font-medium text-fg">{value}</dd>
+        <dt className="text-caption text-fg-muted">{label}</dt>
+        <dd className="truncate text-label text-fg">{value}</dd>
       </div>
     </div>
   );
@@ -64,7 +64,7 @@ function SessionsCard() {
         </div>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center justify-between gap-4">
-        <p className="max-w-md text-sm text-fg-muted">
+        <p className="max-w-md text-body text-fg-muted">
           Barcha qurilmalardan, jumladan shu qurilmadan ham chiqasiz. Qaytadan kirish uchun parol kerak bo‘ladi.
         </p>
         <Button variant="danger" onClick={() => setConfirmOpen(true)}>
@@ -134,12 +134,12 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               {permissionGroups.length === 0 ? (
-                <p className="text-sm text-fg-muted">Bu rolga hali hech qanday ruxsat berilmagan.</p>
+                <p className="text-body text-fg-muted">Bu rolga hali hech qanday ruxsat berilmagan.</p>
               ) : (
                 <dl className="divide-y divide-border">
                   {permissionGroups.map((group) => (
                     <div key={group.module} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center">
-                      <dt className="w-40 shrink-0 text-sm font-medium text-fg">{group.label}</dt>
+                      <dt className="w-40 shrink-0 text-label text-fg">{group.label}</dt>
                       <dd className="flex flex-wrap gap-1.5">
                         {group.actions.map((action) => (
                           <Badge key={action}>{action}</Badge>

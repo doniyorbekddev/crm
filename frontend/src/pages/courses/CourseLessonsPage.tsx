@@ -66,7 +66,7 @@ export default function CourseLessonsPage() {
 
   return (
     <>
-      <Link to="/courses" className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link to="/courses" className="mb-3 inline-flex items-center gap-1 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden />
         Kurslar
       </Link>
@@ -75,7 +75,7 @@ export default function CourseLessonsPage() {
         description={tree ? `${tree.totals.lessons} ta dars · ${tree.totals.published} tasi nashr qilingan` : 'Modul → mavzu → dars → material'}
         documentTitle="Kurs darslari"
         actions={
-          <label className="flex items-center gap-2 text-sm text-fg-muted">
+          <label className="flex items-center gap-2 text-body text-fg-muted">
             <Checkbox checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
             Arxivni ko‘rsatish
           </label>
@@ -105,7 +105,7 @@ export default function CourseLessonsPage() {
                 {module.topics.map((topic) => (
                   <div key={topic.id}>
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-fg">{topic.title}</p>
+                      <p className="text-label text-fg">{topic.title}</p>
                       {canEdit && (
                         <Button
                           size="sm"
@@ -118,9 +118,9 @@ export default function CourseLessonsPage() {
                       )}
                     </div>
                     {topic.lessons.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-fg-subtle">Dars yo‘q</p>
+                      <p className="rounded-control border border-dashed border-border px-3 py-2 text-caption text-fg-subtle">Dars yo‘q</p>
                     ) : (
-                      <ul className="divide-y divide-border rounded-lg border border-border">
+                      <ul className="divide-y divide-border rounded-control border border-border">
                         {topic.lessons.map((lesson) => (
                           <li key={lesson.id} className="flex items-center justify-between gap-3 px-3 py-2">
                             <button
@@ -129,8 +129,8 @@ export default function CourseLessonsPage() {
                               onClick={() => setEditor({ mode: 'edit', lessonId: lesson.id })}
                               disabled={!canEdit}
                             >
-                              <span className="block truncate text-sm font-medium text-fg">{lesson.title}</span>
-                              <span className="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+                              <span className="block truncate text-label text-fg">{lesson.title}</span>
+                              <span className="flex flex-wrap items-center gap-3 text-caption text-fg-muted">
                                 {lesson.durationMinutes && (
                                   <span className="inline-flex items-center gap-1">
                                     <Clock className="size-3" aria-hidden />

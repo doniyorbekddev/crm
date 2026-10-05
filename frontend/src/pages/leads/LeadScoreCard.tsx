@@ -37,7 +37,7 @@ export function LeadScoreCard({ leadId }: { leadId: string }) {
           <>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold tabular-nums text-fg">{scoreQuery.data.score}</span>
-              <span className="text-sm text-fg-subtle">/ 100</span>
+              <span className="text-body text-fg-subtle">/ 100</span>
               <span className="ml-auto">
                 <LeadTemperatureBadge temperature={scoreQuery.data.temperature} />
               </span>
@@ -51,14 +51,14 @@ export function LeadScoreCard({ leadId }: { leadId: string }) {
                 style={{ width: `${scoreQuery.data.score}%` }}
               />
             </div>
-            <p className="mt-1 text-xs text-fg-subtle">{LEAD_TEMPERATURE_HINTS[scoreQuery.data.temperature]}</p>
+            <p className="mt-1 text-caption text-fg-subtle">{LEAD_TEMPERATURE_HINTS[scoreQuery.data.temperature]}</p>
 
             <ul className="mt-4 divide-y divide-border">
               {scoreQuery.data.factors.map((factor) => (
-                <li key={factor.key} className="flex items-start justify-between gap-3 py-2 text-sm">
+                <li key={factor.key} className="flex items-start justify-between gap-3 py-2 text-body">
                   <div className="min-w-0">
                     <p className="text-fg">{factor.label}</p>
-                    <p className="text-xs text-fg-subtle">{factor.detail}</p>
+                    <p className="text-caption text-fg-subtle">{factor.detail}</p>
                   </div>
                   <span
                     className={cn(

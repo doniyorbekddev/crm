@@ -126,7 +126,7 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
       closeDisabled={add.isPending || voidMutation.isPending}
     >
       <div className="space-y-5">
-        <div className="grid gap-x-6 gap-y-1 rounded-xl border border-border bg-surface-muted p-3 text-sm sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-1 rounded-card border border-border bg-surface-muted p-3 text-body sm:grid-cols-2">
           <div className="flex justify-between">
             <span className="text-fg-muted">Hisoblangan</span>
             <span className="font-medium text-fg tabular-nums">{formatMoney(accrued)}</span>
@@ -154,9 +154,9 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
         )}
 
         {editable && (
-          <section className="space-y-3 rounded-xl border border-border p-3">
+          <section className="space-y-3 rounded-card border border-border p-3">
             {formError && <Alert tone="error">{formError}</Alert>}
-            <div role="group" aria-label="Turi" className="inline-flex rounded-lg border border-border bg-surface-muted p-0.5">
+            <div role="group" aria-label="Turi" className="inline-flex rounded-control border border-border bg-surface-muted p-0.5">
               {(['BONUS', 'PENALTY'] as const).map((value) => (
                 <button
                   key={value}
@@ -164,7 +164,7 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
                   aria-pressed={type === value}
                   onClick={() => changeType(value)}
                   className={cn(
-                    'h-8 rounded-md px-4 text-sm font-medium text-fg-muted transition-colors',
+                    'h-8 rounded-chip px-4 text-label text-fg-muted transition-colors',
                     type === value && 'bg-surface text-fg shadow-sm',
                   )}
                 >
@@ -217,28 +217,28 @@ export function PayrollAdjustmentsModal({ period, canEdit, onClose, onChanged }:
         )}
 
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-fg">Yozuvlar</h3>
+          <h3 className="mb-2 text-h4 text-fg">Yozuvlar</h3>
           {current.adjustments.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-fg-muted">Bu oyda bonus yoki jarima yo‘q</p>
+            <p className="rounded-card border border-dashed border-border p-4 text-center text-body text-fg-muted">Bu oyda bonus yoki jarima yo‘q</p>
           ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border">
+            <ul className="divide-y divide-border rounded-card border border-border">
               {current.adjustments.map((row: PayrollAdjustment) => (
-                <li key={row.id} className={cn('space-y-2 px-3 py-2.5 text-sm', row.voidedAt && 'opacity-60')}>
+                <li key={row.id} className={cn('space-y-2 px-3 py-2.5 text-body', row.voidedAt && 'opacity-60')}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-2">
                         <Badge tone={row.type === 'BONUS' ? 'green' : 'red'}>{ADJUSTMENT_TYPE_LABELS[row.type]}</Badge>
                         <span className="font-medium text-fg">{ADJUSTMENT_CATEGORY_LABELS[row.category]}</span>
-                        <span className="text-xs text-fg-muted">{formatDate(row.date)}</span>
+                        <span className="text-caption text-fg-muted">{formatDate(row.date)}</span>
                         {row.voidedAt && <Badge tone="gray">Bekor qilingan</Badge>}
                       </p>
                       <p className={cn('mt-1 text-fg', row.voidedAt && 'line-through')}>{row.reason}</p>
-                      <p className="mt-0.5 text-xs text-fg-muted">
+                      <p className="mt-0.5 text-caption text-fg-muted">
                         Kiritdi: {personName(row.createdBy) ?? '—'} ·{' '}
                         {row.approvedBy ? `tasdiqladi: ${personName(row.approvedBy)}` : 'maosh bilan tasdiqlanadi'}
                       </p>
                       {row.voidedAt && (
-                        <p className="mt-0.5 text-xs text-fg-muted">
+                        <p className="mt-0.5 text-caption text-fg-muted">
                           Bekor qildi: {personName(row.voidedBy) ?? '—'} — {row.voidReason}
                         </p>
                       )}

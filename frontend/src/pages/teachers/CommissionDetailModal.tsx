@@ -29,21 +29,21 @@ export function CommissionDetailModal({ teacherProfileId, teacherName, year, mon
   return (
     <Modal open size="lg" title="Foiz tafsiloti" description={`${teacherName} · ${query.data?.month.label ?? ''}`} onClose={onClose}>
       {query.isPending ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-card" />
       ) : query.isError ? (
         <Alert tone="error">{getErrorMessage(query.error)}</Alert>
       ) : (
         <div className={cn('space-y-5 transition-opacity', query.isPlaceholderData && 'opacity-60')}>
           <CommissionKpis month={query.data.month} compact />
           <section>
-            <h3 className="mb-2 text-sm font-semibold text-fg">To‘lovlar bo‘yicha yozuvlar</h3>
-            <div className="rounded-xl border border-border">
+            <h3 className="mb-2 text-h4 text-fg">To‘lovlar bo‘yicha yozuvlar</h3>
+            <div className="rounded-card border border-border">
               <CommissionEntriesTable entries={query.data.entries} />
             </div>
           </section>
           <section>
-            <h3 className="mb-2 text-sm font-semibold text-fg">Oxirgi 6 oy</h3>
-            <div className="rounded-xl border border-border">
+            <h3 className="mb-2 text-h4 text-fg">Oxirgi 6 oy</h3>
+            <div className="rounded-card border border-border">
               <CommissionHistoryTable history={query.data.history} selected={selected} onSelect={setSelected} />
             </div>
           </section>

@@ -22,7 +22,7 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 function Metric({ label, value }: { label: string; value: number | null }) {
   return (
     <div>
-      <dt className="text-xs text-fg-muted">{label}</dt>
+      <dt className="text-caption text-fg-muted">{label}</dt>
       <dd
         className={cn(
           'text-lg font-semibold tabular-nums',
@@ -37,11 +37,11 @@ function Metric({ label, value }: { label: string; value: number | null }) {
 
 function Tile({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: number; tone?: 'warn' }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="flex items-center gap-2 text-xs text-fg-muted">
+    <div className="rounded-card border border-border bg-surface p-4">
+      <p className="flex items-center gap-2 text-caption text-fg-muted">
         <Icon className="size-4" aria-hidden /> {label}
       </p>
-      <p className={cn('mt-1 text-2xl font-semibold tabular-nums', tone === 'warn' && value > 0 ? 'text-warning' : 'text-fg')}>{value}</p>
+      <p className={cn('mt-1 text-h1 tabular-nums', tone === 'warn' && value > 0 ? 'text-warning' : 'text-fg')}>{value}</p>
     </div>
   );
 }
@@ -53,10 +53,10 @@ function GroupCard({ group }: { group: TeachingGroupCard }) {
       <CardContent className="space-y-3 pt-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <Link to={`/teaching/groups/${group.id}`} className="block truncate text-base font-semibold text-fg hover:underline">
+            <Link to={`/teaching/groups/${group.id}`} className="block truncate text-h3 text-fg hover:underline">
               {group.name}
             </Link>
-            <p className="text-xs text-fg-muted">
+            <p className="text-caption text-fg-muted">
               {group.course.name} · {formatSchedule(group.schedule.days, group.schedule.startTime, group.schedule.endTime)}
             </p>
           </div>
@@ -69,7 +69,7 @@ function GroupCard({ group }: { group: TeachingGroupCard }) {
           <Metric label="Imtihon" value={group.examAverage} />
           <Metric label="Progress" value={group.progress} />
         </dl>
-        <p className="text-sm text-fg-muted">
+        <p className="text-body text-fg-muted">
           {group.students} o‘quvchi
           {atRisk > 0 && (
             <span className="ml-2 inline-flex items-center gap-1 text-danger">
@@ -77,14 +77,14 @@ function GroupCard({ group }: { group: TeachingGroupCard }) {
             </span>
           )}
         </p>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link to={`/attendance?groupId=${group.id}`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-fg hover:bg-surface-muted">
+        <div className="flex flex-wrap gap-2 text-body">
+          <Link to={`/attendance?groupId=${group.id}`} className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">
             <CalendarCheck className="size-4" aria-hidden /> Davomat
           </Link>
-          <Link to="/homework" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-fg hover:bg-surface-muted">
+          <Link to="/homework" className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">
             <ClipboardCheck className="size-4" aria-hidden /> Vazifalar{group.pending.homeworkToGrade > 0 && ` · ${group.pending.homeworkToGrade} baholash`}
           </Link>
-          <Link to="/exams" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-fg hover:bg-surface-muted">
+          <Link to="/exams" className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">
             <FileCheck className="size-4" aria-hidden /> Imtihonlar{group.pending.attemptsToReview > 0 && ` · ${group.pending.attemptsToReview} tekshirish`}
           </Link>
         </div>

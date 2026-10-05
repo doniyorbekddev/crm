@@ -106,7 +106,7 @@ export default function GroupsPage() {
           <Link to={`/groups/${group.id}`} className="focus-ring rounded-sm font-medium text-fg hover:underline">
             {group.name}
           </Link>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {group.course.name}
             {group.room && ` · ${group.room}-xona`}
           </p>
@@ -142,7 +142,7 @@ export default function GroupsPage() {
           <span className="font-medium text-fg">
             {group.studentCount} / {group.capacity}
           </span>
-          <span className={cn('ml-2 text-xs', group.freeSeats === 0 ? 'text-danger' : 'text-fg-muted')}>
+          <span className={cn('ml-2 text-caption', group.freeSeats === 0 ? 'text-danger' : 'text-fg-muted')}>
             {group.freeSeats === 0 ? 'to‘lgan' : `${group.freeSeats} o‘rin bo‘sh`}
           </span>
         </>

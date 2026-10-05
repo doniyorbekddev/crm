@@ -37,15 +37,15 @@ function InfoCard({
 }) {
   const body = (
     <>
-      <p className="flex items-center gap-1.5 text-xs text-fg-muted">
+      <p className="flex items-center gap-1.5 text-caption text-fg-muted">
         <Icon className="size-3.5" aria-hidden />
         {label}
       </p>
-      <p className={cn('mt-1 truncate text-base font-semibold text-fg', valueClassName)}>{value}</p>
-      {hint && <p className="mt-0.5 truncate text-xs text-fg-subtle">{hint}</p>}
+      <p className={cn('mt-1 truncate text-h3 text-fg', valueClassName)}>{value}</p>
+      {hint && <p className="mt-0.5 truncate text-caption text-fg-subtle">{hint}</p>}
     </>
   );
-  const className = 'block min-w-0 rounded-xl border border-border bg-surface p-4';
+  const className = 'block min-w-0 rounded-card border border-border bg-surface p-4';
   return to ? (
     <Link to={to} className={cn(className, 'transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none')}>
       {body}

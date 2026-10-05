@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Plus, Trash2 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -250,19 +251,23 @@ export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormMo
         )}
 
         {!isEdit && targetType !== 'GROUP' && groupId && (
-          <fieldset className="rounded-lg border border-border p-3">
-            <legend className="px-1 text-sm font-medium text-fg">
+          <fieldset className="rounded-control border border-border p-3">
+            <legend className="px-1 text-label text-fg">
               {targetType === 'INDIVIDUAL' ? 'O‘quvchini tanlang' : `O‘quvchilarni tanlang (${studentIds.length})`}
             </legend>
             {studentsQuery.isPending ? (
-              <p className="text-sm text-fg-muted">Yuklanmoqda…</p>
+              <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-2/3" />
+              </div>
             ) : (studentsQuery.data?.items.length ?? 0) === 0 ? (
-              <p className="text-sm text-fg-muted">Guruhda faol o‘quvchi yo‘q</p>
+              <p className="text-body text-fg-muted">Guruhda faol o‘quvchi yo‘q</p>
             ) : (
               <ul className="grid max-h-48 gap-1 overflow-y-auto sm:grid-cols-2">
                 {studentsQuery.data!.items.map((student) => (
                   <li key={student.id}>
-                    <label className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-fg hover:bg-surface-muted">
+                    <label className="flex items-center gap-2 rounded-chip px-2 py-1 text-body text-fg hover:bg-surface-muted">
                       <Checkbox checked={studentIds.includes(student.id)} onChange={() => toggleStudent(student.id)} />
                       {student.firstName} {student.lastName}
                     </label>
@@ -339,7 +344,7 @@ export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormMo
           </FormField>
         </div>
 
-        <section className="space-y-2 rounded-lg border border-border p-3" aria-label="Dasturlash vazifasi">
+        <section className="space-y-2 rounded-control border border-border p-3" aria-label="Dasturlash vazifasi">
           <FormField label="Dasturlash tili (ixtiyoriy)" htmlFor="hw-code-language" hint={codeLanguage === 'html' ? 'HTML/CSS — o‘quvchi sahifasi brauzerda izolyatsiyada ko‘rsatiladi, serverda bajarilmaydi' : 'Testlar sandboxda (alohida serverda) tekshiriladi'}>
             <Select id="hw-code-language" value={codeLanguage} onChange={(event) => setCodeLanguage(event.target.value as CodeLanguage | '')}>
               <option value="">Dasturlash vazifasi emas</option>
@@ -351,14 +356,14 @@ export function HomeworkFormModal({ homework, onClose, onSaved }: HomeworkFormMo
           </FormField>
           {runnable && (
             <div className="space-y-2">
-              <p className="text-xs text-fg-muted">Testlar: dastur standart kirishni o‘qiydi va natijani chiqaradi (qator oxiridagi bo‘shliqlar hisobga olinmaydi). Ko‘pi bilan 10 ta.</p>
+              <p className="text-caption text-fg-muted">Testlar: dastur standart kirishni o‘qiydi va natijani chiqaradi (qator oxiridagi bo‘shliqlar hisobga olinmaydi). Ko‘pi bilan 10 ta.</p>
               {codeTests.map((test, index) => (
                 <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">
                   <FormField label={`Test ${index + 1}: kirish`} htmlFor={`hw-test-input-${index}`}>
-                    <Textarea id={`hw-test-input-${index}`} rows={2} className="font-mono text-xs" value={test.input} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, input: event.target.value } : row)))} />
+                    <Textarea id={`hw-test-input-${index}`} rows={2} className="font-mono text-caption" value={test.input} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, input: event.target.value } : row)))} />
                   </FormField>
                   <FormField label="Kutilgan chiqish" htmlFor={`hw-test-expected-${index}`}>
-                    <Textarea id={`hw-test-expected-${index}`} rows={2} className="font-mono text-xs" value={test.expected} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, expected: event.target.value } : row)))} />
+                    <Textarea id={`hw-test-expected-${index}`} rows={2} className="font-mono text-caption" value={test.expected} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, expected: event.target.value } : row)))} />
                   </FormField>
                   <Checkbox label="Yashirin" checked={Boolean(test.hidden)} onChange={(event) => setCodeTests(codeTests.map((row, position) => (position === index ? { ...row, hidden: event.target.checked } : row)))} />
                   <Button type="button" variant="ghost" size="icon" aria-label={`Test ${index + 1} ni o‘chirish`} onClick={() => setCodeTests(codeTests.filter((_, position) => position !== index))}>

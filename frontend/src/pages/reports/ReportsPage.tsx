@@ -213,8 +213,8 @@ export default function ReportsPage() {
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {report.kpis.map((kpi) => (
             <Card key={kpi.label} className="p-4">
-              <p className="text-xs text-fg-muted">{kpi.label}</p>
-              <p className="mt-1 text-xl font-semibold text-fg">{formatCell(kpi.value, kpi.type)}</p>
+              <p className="text-caption text-fg-muted">{kpi.label}</p>
+              <p className="mt-1 text-h2 text-fg">{formatCell(kpi.value, kpi.type)}</p>
             </Card>
           ))}
         </div>
@@ -230,14 +230,14 @@ export default function ReportsPage() {
         ) : report ? (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-body">
                 <FileSpreadsheet className="size-4 text-fg-muted" aria-hidden />
                 <span className="font-medium text-fg">{report.title}</span>
                 <span className="text-fg-muted">
                   {formatDate(report.from)} — {formatDate(report.to)}
                 </span>
               </div>
-              <span className="text-xs text-fg-muted">{formatNumber(report.rows.length)} ta qator</span>
+              <span className="text-caption text-fg-muted">{formatNumber(report.rows.length)} ta qator</span>
             </div>
 
             <TableContainer className={cn('transition-opacity', reportQuery.isPlaceholderData && 'opacity-60')}>
@@ -272,7 +272,7 @@ export default function ReportsPage() {
             </TableContainer>
 
             {report.truncatedFrom && (
-              <p className="border-t border-border px-4 py-3 text-xs text-fg-muted">
+              <p className="border-t border-border px-4 py-3 text-caption text-fg-muted">
                 Jami {formatNumber(report.truncatedFrom)} ta yozuvdan birinchi {formatNumber(report.rows.length)} tasi ko‘rsatildi.
                 To‘liq ma’lumot uchun sana oralig‘ini toraytiring.
               </p>

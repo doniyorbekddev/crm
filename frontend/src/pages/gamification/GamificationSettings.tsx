@@ -43,7 +43,7 @@ function NumberField({
         aria-label={ariaLabel}
         className="w-28"
       />
-      {suffix && <span className="text-xs text-fg-muted">{suffix}</span>}
+      {suffix && <span className="text-caption text-fg-muted">{suffix}</span>}
       <Button
         size="sm"
         variant="secondary"
@@ -139,13 +139,13 @@ export function GamificationSettings() {
               {rulesQuery.data.map((rule) => (
                 <li key={rule.id} className={cn('flex flex-wrap items-center gap-3 px-4 py-3', !rule.isActive && 'opacity-60')}>
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 text-sm font-medium text-fg">
+                    <p className="flex items-center gap-2 text-label text-fg">
                       {rule.name}
                       <Badge tone={XP_SOURCE_TONES[rule.source]}>{XP_SOURCE_LABELS[rule.source]}</Badge>
                     </p>
-                    {rule.description && <p className="text-xs text-fg-muted">{rule.description}</p>}
+                    {rule.description && <p className="text-caption text-fg-muted">{rule.description}</p>}
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-fg-muted">
+                  <label className="flex items-center gap-2 text-caption text-fg-muted">
                     <input
                       type="checkbox"
                       checked={rule.isActive}
@@ -173,7 +173,7 @@ export function GamificationSettings() {
         <Card>
           <CardHeader>
             <CardTitle>Darajalar</CardTitle>
-            <span className="text-xs text-fg-muted">XP chegarasi o‘zgarsa, profillar qayta hisoblanadi</span>
+            <span className="text-caption text-fg-muted">XP chegarasi o‘zgarsa, profillar qayta hisoblanadi</span>
           </CardHeader>
           <CardContent className="p-0">
             {levelsQuery.isPending ? (
@@ -190,10 +190,10 @@ export function GamificationSettings() {
                   <li key={level.id} className="flex items-center gap-3 px-4 py-2.5">
                     {level.icon ? <span className="text-lg" aria-hidden>{level.icon}</span> : <Star className="size-4 text-warning" aria-hidden />}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-fg">
+                      <p className="truncate text-body text-fg">
                         {level.number}-daraja · {level.name}
                       </p>
-                      <p className="text-xs text-fg-muted">{formatNumber(level.students)} ta o‘quvchi</p>
+                      <p className="text-caption text-fg-muted">{formatNumber(level.students)} ta o‘quvchi</p>
                     </div>
                     <NumberField
                       key={`${level.id}-${level.minXp}`}
@@ -232,13 +232,13 @@ export function GamificationSettings() {
                   <li key={badge.id} className={cn('flex flex-wrap items-center gap-3 px-4 py-3', !badge.isActive && 'opacity-60')}>
                     <span className="text-xl">{badge.icon}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-fg">{badge.name}</p>
-                      <p className="truncate text-xs text-fg-muted">
+                      <p className="truncate text-label text-fg">{badge.name}</p>
+                      <p className="truncate text-caption text-fg-muted">
                         {BADGE_CATEGORY_LABELS[badge.category]} · {BADGE_RULE_LABELS[badge.rule]} · {formatNumber(badge.awarded)} ta berilgan
                         {badge.xpReward > 0 && ` · +${badge.xpReward} XP`}
                       </p>
                     </div>
-                    <label className="flex items-center gap-2 text-xs text-fg-muted">
+                    <label className="flex items-center gap-2 text-caption text-fg-muted">
                       <input
                         type="checkbox"
                         checked={badge.isActive}

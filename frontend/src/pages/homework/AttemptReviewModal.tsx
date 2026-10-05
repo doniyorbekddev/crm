@@ -81,21 +81,21 @@ export function AttemptReviewModal({ attempt, onClose, onGraded }: { attempt: Ex
           {formError}
         </Alert>
       )}
-      <p className="mb-4 text-sm text-fg-muted">
+      <p className="mb-4 text-body text-fg-muted">
         Avtomatik baholangan: {attempt.score}/{attempt.maxScore} ball. Tekshirilishi kerak: {pending.length} ta javob.
       </p>
       <ol className="space-y-4">
         {pending.map((answer, index) => (
-          <li key={answer.id} className="rounded-lg border border-border p-3">
+          <li key={answer.id} className="rounded-control border border-border p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="font-medium text-fg">
                 {index + 1}. {answer.questionText}
               </span>
               <Badge tone="gray">{QUESTION_TYPE_SHORT[answer.questionType]}</Badge>
-              <span className="text-xs text-fg-subtle">{answer.points} ball</span>
+              <span className="text-caption text-fg-subtle">{answer.points} ball</span>
             </div>
             {answer.text && (
-              <pre className="mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-surface-muted p-2 text-sm text-fg">{answer.text}</pre>
+              <pre className="mb-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-chip bg-surface-muted p-2 text-body text-fg">{answer.text}</pre>
             )}
             {answer.hasFile && (
               <Button

@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getErrorMessage } from '@/lib/api';
@@ -112,7 +113,7 @@ export default function AssistantPage() {
                 {answer.link && (
                   <Link
                     to={answer.link}
-                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-body text-primary hover:underline"
                   >
                     To‘liq ko‘rish
                     <ArrowRight className="size-3.5" aria-hidden />
@@ -138,13 +139,15 @@ export default function AssistantPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Nimalarni so‘rash mumkin</CardTitle>
-            <span className="text-xs text-fg-muted">ruxsatingizga mos savollar</span>
+            <span className="text-caption text-fg-muted">ruxsatingizga mos savollar</span>
           </CardHeader>
           <CardContent>
             {toolsQuery.isPending ? (
               <Skeleton className="h-32 w-full" />
+            ) : toolsQuery.isError ? (
+              <ErrorState error={toolsQuery.error} retrying={toolsQuery.isFetching} onRetry={() => void toolsQuery.refetch()} />
             ) : allowedTools.length === 0 ? (
-              <p className="text-sm text-fg-muted">Sizning ruxsatlaringiz bilan javob beriladigan savol turi yo‘q.</p>
+              <p className="text-body text-fg-muted">Sizning ruxsatlaringiz bilan javob beriladigan savol turi yo‘q.</p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {allowedTools.map((tool) => (
@@ -154,8 +157,8 @@ export default function AssistantPage() {
                       onClick={() => submit(tool.samples[0] ?? tool.title, tool.key)}
                       className="focus-ring w-full rounded-control border border-border px-3 py-2 text-left transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted"
                     >
-                      <span className="block text-sm text-fg">{tool.samples[0] ?? tool.title}</span>
-                      <span className="block text-xs text-fg-subtle">{tool.title}</span>
+                      <span className="block text-body text-fg">{tool.samples[0] ?? tool.title}</span>
+                      <span className="block text-caption text-fg-subtle">{tool.title}</span>
                     </button>
                   </li>
                 ))}
@@ -171,15 +174,17 @@ export default function AssistantPage() {
           <CardContent>
             {historyQuery.isPending ? (
               <Skeleton className="h-24 w-full" />
+            ) : historyQuery.isError ? (
+              <ErrorState error={historyQuery.error} retrying={historyQuery.isFetching} onRetry={() => void historyQuery.refetch()} />
             ) : (historyQuery.data ?? []).length === 0 ? (
-              <p className="text-sm text-fg-muted">Hali savol bermagansiz.</p>
+              <p className="text-body text-fg-muted">Hali savol bermagansiz.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {(historyQuery.data ?? []).slice(0, 8).map((item) => (
                   <li key={item.id} className="py-2">
                     <button type="button" className="w-full text-left" onClick={() => submit(item.question)}>
-                      <span className="block truncate text-sm text-fg">{item.question}</span>
-                      <span className="block text-xs text-fg-subtle">{formatDateTime(item.createdAt)}</span>
+                      <span className="block truncate text-body text-fg">{item.question}</span>
+                      <span className="block text-caption text-fg-subtle">{formatDateTime(item.createdAt)}</span>
                     </button>
                   </li>
                 ))}

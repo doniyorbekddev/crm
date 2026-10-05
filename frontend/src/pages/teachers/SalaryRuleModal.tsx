@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/Skeleton';
 import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -186,28 +187,32 @@ export function SalaryRuleModal({ teacher, onClose, onSaved }: SalaryRuleModalPr
       </form>
 
       <div className="mt-6">
-        <p className="mb-2 text-sm font-medium text-fg">Model tarixi</p>
+        <p className="mb-2 text-label text-fg">Model tarixi</p>
         {rulesQuery.isPending ? (
-          <p className="text-sm text-fg-muted">Yuklanmoqda…</p>
+          <div className="space-y-2 py-1" aria-busy="true" aria-label="Yuklanmoqda">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-2/3" />
+          </div>
         ) : rulesQuery.isError ? (
           <Alert tone="error">{getErrorMessage(rulesQuery.error)}</Alert>
         ) : rulesQuery.data.length === 0 ? (
-          <p className="text-sm text-fg-muted">Hozircha maosh modeli belgilanmagan</p>
+          <p className="text-body text-fg-muted">Hozircha maosh modeli belgilanmagan</p>
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border rounded-card border border-border">
             {rulesQuery.data.map((rule) => (
               <li key={rule.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-sm text-fg">
+                  <p className="flex items-center gap-2 text-body text-fg">
                     {SALARY_TYPE_LABELS[rule.type]}
                     {rule.isActive && <Badge tone="green">Amalda</Badge>}
                   </p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     {formatDate(rule.effectiveFrom)} – {rule.effectiveTo ? formatDate(rule.effectiveTo) : 'hozirgacha'}
                     {rule.note && ` · ${rule.note}`}
                   </p>
                 </div>
-                <p className="text-xs text-fg-muted">{salaryRuleSummary(rule)}</p>
+                <p className="text-caption text-fg-muted">{salaryRuleSummary(rule)}</p>
               </li>
             ))}
           </ul>

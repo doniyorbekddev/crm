@@ -48,8 +48,8 @@ export function PortalPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-fg">Salom, {me.fullName.split(' ')[0]}!</h1>
-        <p className="text-sm text-fg-muted">
+        <h1 className="text-h1 text-fg">Salom, {me.fullName.split(' ')[0]}!</h1>
+        <p className="text-body text-fg-muted">
           {me.kind === 'PARENT' ? 'Farzandingiz ko‘rsatkichlari' : 'Sizning ko‘rsatkichlaringiz'}
         </p>
       </div>
@@ -101,7 +101,7 @@ export function PortalPage() {
                 {scheduleQuery.isPending ? (
                   <Skeleton className="h-24 w-full" />
                 ) : scheduleQuery.isError || !scheduleQuery.data ? (
-                  <p className="text-sm text-fg-muted">To‘lov jadvali mavjud emas.</p>
+                  <p className="text-body text-fg-muted">To‘lov jadvali mavjud emas.</p>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-3">
@@ -119,7 +119,7 @@ export function PortalPage() {
                     {scheduleQuery.data.installments.length > 0 && (
                       <ul className="mt-3 divide-y divide-border">
                         {scheduleQuery.data.installments.slice(0, 5).map((item) => (
-                          <li key={item.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                          <li key={item.id} className="flex items-center justify-between gap-2 py-2 text-body">
                             <span className="text-fg-muted">{formatDate(item.dueDate)}</span>
                             <span className="tabular-nums text-fg">{formatMoney(item.amount)}</span>
                             <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>
@@ -141,11 +141,11 @@ export function PortalPage() {
               </CardHeader>
               <CardContent>
                 {profile.activity.length === 0 ? (
-                  <p className="text-sm text-fg-muted">Hozircha hodisa yo‘q.</p>
+                  <p className="text-body text-fg-muted">Hozircha hodisa yo‘q.</p>
                 ) : (
                   <ul className="divide-y divide-border">
                     {profile.activity.slice(0, 7).map((item, index) => (
-                      <li key={`${item.date}-${index}`} className="flex items-start justify-between gap-3 py-2 text-sm">
+                      <li key={`${item.date}-${index}`} className="flex items-start justify-between gap-3 py-2 text-body">
                         <div className="min-w-0">
                           <p
                             className={cn(
@@ -155,9 +155,9 @@ export function PortalPage() {
                           >
                             {item.title}
                           </p>
-                          <p className="truncate text-xs text-fg-subtle">{item.description}</p>
+                          <p className="truncate text-caption text-fg-subtle">{item.description}</p>
                         </div>
-                        <span className="shrink-0 text-xs text-fg-muted">{formatDate(item.date)}</span>
+                        <span className="shrink-0 text-caption text-fg-muted">{formatDate(item.date)}</span>
                       </li>
                     ))}
                   </ul>
@@ -169,7 +169,7 @@ export function PortalPage() {
           <Card>
             <CardHeader>
               <CardTitle>Progress (6 oy)</CardTitle>
-              <Link to="/portal/weekly-report" className="text-xs font-medium text-primary hover:underline">
+              <Link to="/portal/weekly-report" className="text-caption font-medium text-primary hover:underline">
                 Haftalik hisobot
               </Link>
             </CardHeader>
@@ -198,7 +198,7 @@ export function PortalPage() {
                   {profile.gamification.badges.map((badge) => (
                     <span
                       key={badge.key}
-                      className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm text-fg"
+                      className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-body text-fg"
                       title={badge.description ?? undefined}
                     >
                       <span aria-hidden>{badge.icon}</span>

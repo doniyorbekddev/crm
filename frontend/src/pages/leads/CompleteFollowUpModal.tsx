@@ -88,13 +88,13 @@ export function CompleteFollowUpModal({ followUp, onClose, onDone }: CompleteFol
           />
         </FormField>
 
-        <label className="flex items-center gap-2 text-sm text-fg">
+        <label className="flex items-center gap-2 text-body text-fg">
           <Checkbox checked={createNext} onChange={(event) => setCreateNext(event.target.checked)} />
           Keyingi follow-up yaratilsin
         </label>
 
         {createNext && (
-          <div className="space-y-3 rounded-lg border border-border bg-surface-muted/40 p-3">
+          <div className="space-y-3 rounded-control border border-border bg-surface-muted/40 p-3">
             <FormField label="Keyingi vazifa" htmlFor="complete-next-title">
               <Input id="complete-next-title" value={nextTitle} onChange={(event) => setNextTitle(event.target.value)} />
             </FormField>

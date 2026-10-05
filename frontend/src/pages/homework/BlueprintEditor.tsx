@@ -88,14 +88,14 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
   };
 
   return (
-    <fieldset className="space-y-3 rounded-lg border border-border p-3" disabled={locked}>
-      <legend className="px-1 text-sm font-medium text-fg">Variantlar (blueprint)</legend>
+    <fieldset className="space-y-3 rounded-control border border-border p-3" disabled={locked}>
+      <legend className="px-1 text-label text-fg">Variantlar (blueprint)</legend>
       <Checkbox
         label="Har o‘quvchiga savollar bankidan alohida tasodifiy variant"
         checked={draft.enabled}
         onChange={(event) => patch({ enabled: event.target.checked })}
       />
-      {locked && <p className="text-xs text-fg-subtle">Urinishlar boshlangan — blueprintni o‘zgartirib bo‘lmaydi.</p>}
+      {locked && <p className="text-caption text-fg-subtle">Urinishlar boshlangan — blueprintni o‘zgartirib bo‘lmaydi.</p>}
 
       {draft.enabled && (
         <>
@@ -104,8 +104,8 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
           </FormField>
 
           <div>
-            <p className="mb-1 text-sm font-medium text-fg">Mavzular ulushi</p>
-            <p className="mb-2 text-xs text-fg-subtle">Bo‘sh — kursning barcha savollaridan. Ulushlar yig‘indisi 100%.</p>
+            <p className="mb-1 text-label text-fg">Mavzular ulushi</p>
+            <p className="mb-2 text-caption text-fg-subtle">Bo‘sh — kursning barcha savollaridan. Ulushlar yig‘indisi 100%.</p>
             <ul className="space-y-2">
               {draft.topics.map((topic, index) => (
                 <li key={index} className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
                     value={topic.percent}
                     onChange={(event) => patch({ topics: draft.topics.map((row, position) => (position === index ? { ...row, percent: event.target.value } : row)) })}
                   />
-                  <span className="text-sm text-fg-muted">%</span>
+                  <span className="text-body text-fg-muted">%</span>
                   <Button
                     variant="ghost"
                     aria-label={`${index + 1}-mavzuni olib tashlash`}
@@ -169,7 +169,7 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
           </div>
 
           {parsed.error ? (
-            <p className="text-sm text-danger">{parsed.error}</p>
+            <p className="text-body text-danger">{parsed.error}</p>
           ) : (
             <Button
               variant="secondary"
@@ -190,7 +190,7 @@ export function BlueprintEditor({ draft, onChange, courseId, groupId, locked = f
                   ? `Bankda ${preview.data.poolSize} ta mos savol bor — variant tuziladi.`
                   : `${preview.data.message ?? 'Savollar yetarli emas'}. Savol qo‘shing yoki ulushlarni o‘zgartiring.`}
               </Alert>
-              <ul className="space-y-1 text-sm" aria-label="Blueprint kataklari">
+              <ul className="space-y-1 text-body" aria-label="Blueprint kataklari">
                 {preview.data.cells.map((cell) => (
                   <li key={`${cell.topicId}-${cell.difficulty}`} className="flex items-center justify-between gap-2">
                     <span className="text-fg-muted">

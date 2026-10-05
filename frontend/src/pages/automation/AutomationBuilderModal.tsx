@@ -177,7 +177,7 @@ export function AutomationBuilderModal({ rule, onClose, onSaved }: { rule?: Auto
         </FormField>
 
         <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-fg">1. Trigger va shart</legend>
+          <legend className="text-h4 text-fg">1. Trigger va shart</legend>
           <FormField label="Qachon (trigger)" htmlFor="ab-trigger">
             <Select
               id="ab-trigger"
@@ -234,8 +234,8 @@ export function AutomationBuilderModal({ rule, onClose, onSaved }: { rule?: Auto
         </fieldset>
 
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-fg">2. Amallar</legend>
-          <p className="text-xs text-fg-muted">{ACTION_LABELS.NOTIFY}:</p>
+          <legend className="text-h4 text-fg">2. Amallar</legend>
+          <p className="text-caption text-fg-muted">{ACTION_LABELS.NOTIFY}:</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {AUDIENCES.map(([audience, label]) => (
               <Checkbox key={audience} label={label} checked={draft.notify[audience]} onChange={(event) => patch({ notify: { ...draft.notify, [audience]: event.target.checked } })} />
@@ -267,7 +267,7 @@ export function AutomationBuilderModal({ rule, onClose, onSaved }: { rule?: Auto
         </fieldset>
 
         <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-fg">3. Jadval</legend>
+          <legend className="text-h4 text-fg">3. Jadval</legend>
           <div className="grid gap-3 sm:grid-cols-3">
             <FormField label="Qanchalik tez-tez" htmlFor="ab-schedule">
               <Select id="ab-schedule" value={draft.schedule} onChange={(event) => patch({ schedule: event.target.value as AutomationSchedule })}>

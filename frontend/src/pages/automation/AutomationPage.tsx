@@ -131,19 +131,19 @@ export default function AutomationPage() {
                 return (
                   <li key={rule.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
                     <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-fg">
+                      <p className="flex flex-wrap items-center gap-2 text-label text-fg">
                         {rule.name}
                         <Badge tone={rule.isActive ? 'green' : 'gray'}>{rule.isActive ? 'Yoqilgan' : 'O‘chirilgan'}</Badge>
                         {rule.isCustom ? <Badge tone="purple">Maxsus</Badge> : <Badge tone="gray">{AUDIENCE_LABELS[rule.audience]}</Badge>}
                       </p>
-                      {rule.description && <p className="text-xs text-fg-subtle">{rule.description}</p>}
+                      {rule.description && <p className="text-caption text-fg-subtle">{rule.description}</p>}
                       {rule.isCustom && (
-                        <p className="text-xs text-fg-muted">
+                        <p className="text-caption text-fg-muted">
                           {BUILDER_TRIGGER_LABELS[rule.trigger as BuilderTrigger]?.label ?? rule.trigger} → {(rule.actions ?? []).map((action) => ACTION_LABELS[action.type]).join(', ')}
                           {rule.nextRunAt ? ` · keyingi: ${formatDateTime(rule.nextRunAt)}` : ''}
                         </p>
                       )}
-                      <p className="text-xs text-fg-subtle">
+                      <p className="text-caption text-fg-subtle">
                         {rule.lastRunAt
                           ? `Oxirgi yurish: ${formatDateTime(rule.lastRunAt)} · ${formatNumber(rule.lastMatched)} ta holat`
                           : 'Hali ishga tushmagan'}
@@ -153,7 +153,7 @@ export default function AutomationPage() {
                     <div className="flex flex-wrap items-end gap-2">
                       {paramKeys.map((key) => (
                         <label key={key} className="w-40">
-                          <span className="mb-1 block text-xs text-fg-muted">{PARAM_LABELS[key] ?? key}</span>
+                          <span className="mb-1 block text-caption text-fg-muted">{PARAM_LABELS[key] ?? key}</span>
                           <Input
                             type="number"
                             min={0}
@@ -198,7 +198,7 @@ export default function AutomationPage() {
                           </Button>
                         </>
                       )}
-                      <label className="flex items-center gap-2 pb-2 text-sm text-fg">
+                      <label className="flex items-center gap-2 pb-2 text-body text-fg">
                         <Checkbox
                           checked={rule.isActive}
                           disabled={!canManage || update.isPending}
@@ -218,7 +218,7 @@ export default function AutomationPage() {
       <Card>
         <CardHeader>
           <CardTitle>So‘nggi yurishlar</CardTitle>
-          <span className="text-xs text-fg-muted">nechta holat topildi va nechta xabar ketdi</span>
+          <span className="text-caption text-fg-muted">nechta holat topildi va nechta xabar ketdi</span>
         </CardHeader>
         <CardContent className="p-0">
           {runsQuery.isPending ? (
@@ -230,10 +230,10 @@ export default function AutomationPage() {
           ) : (
             <ul className="divide-y divide-border">
               {runsQuery.data.items.map((run) => (
-                <li key={run.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+                <li key={run.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-body">
                   <div className="min-w-0">
                     <p className="truncate text-fg">{run.ruleName}</p>
-                    <p className="text-xs text-fg-subtle">{formatDateTime(run.startedAt)}</p>
+                    <p className="text-caption text-fg-subtle">{formatDateTime(run.startedAt)}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     {run.error ? (
@@ -243,7 +243,7 @@ export default function AutomationPage() {
                         {run.matched} holat · {run.notified} xabar
                       </span>
                     )}
-                    {run.error && <p className="mt-0.5 max-w-xs truncate text-xs text-danger">{run.error}</p>}
+                    {run.error && <p className="mt-0.5 max-w-xs truncate text-caption text-danger">{run.error}</p>}
                   </div>
                 </li>
               ))}

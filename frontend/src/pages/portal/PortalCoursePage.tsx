@@ -46,8 +46,8 @@ export default function PortalCoursePage() {
               <CardContent className="space-y-3">
                 {module.topics.map((topic) => (
                   <div key={topic.id}>
-                    <p className="mb-1.5 text-xs font-medium tracking-wide text-fg-muted uppercase">{topic.title}</p>
-                    <ul className="divide-y divide-border rounded-lg border border-border">
+                    <p className="mb-1.5 text-caption font-medium tracking-wide text-fg-muted uppercase">{topic.title}</p>
+                    <ul className="divide-y divide-border rounded-control border border-border">
                       {topic.lessons.map((lesson) => (
                         <li key={lesson.id}>
                           <Link
@@ -60,10 +60,10 @@ export default function PortalCoursePage() {
                               <Circle className="size-5 shrink-0 text-fg-subtle" aria-hidden />
                             )}
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-medium text-fg">{lesson.title}</span>
-                              {lesson.description && <span className="block truncate text-xs text-fg-muted">{lesson.description}</span>}
+                              <span className="block truncate text-label text-fg">{lesson.title}</span>
+                              {lesson.description && <span className="block truncate text-caption text-fg-muted">{lesson.description}</span>}
                             </span>
-                            <span className="flex shrink-0 items-center gap-2 text-xs text-fg-subtle">
+                            <span className="flex shrink-0 items-center gap-2 text-caption text-fg-subtle">
                               {lesson.hasVideo && <PlayCircle className="size-4" aria-label="Video bor" />}
                               {lesson.materialCount > 0 && (
                                 <span className="inline-flex items-center gap-0.5">

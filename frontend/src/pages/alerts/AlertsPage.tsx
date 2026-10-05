@@ -73,16 +73,16 @@ function DigestCard({ digest }: { digest: DailyDigest }) {
           <Newspaper className="size-4 text-fg-subtle" aria-hidden />
           Kechagi xulosa
         </CardTitle>
-        <span className="text-xs text-fg-muted">{formatDate(digest.date)}</span>
+        <span className="text-caption text-fg-muted">{formatDate(digest.date)}</span>
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
           {items.map((item) => (
             <div key={item.label} className="min-w-0">
-              <dt className="text-xs text-fg-muted">{item.label}</dt>
+              <dt className="text-caption text-fg-muted">{item.label}</dt>
               <dd
                 className={cn(
-                  'text-sm font-semibold tabular-nums',
+                  'text-h4 tabular-nums',
                   item.tone === 'good' && 'text-success',
                   item.tone === 'bad' && 'text-danger',
                   !item.tone && 'text-fg',
@@ -209,18 +209,18 @@ export default function AlertsPage() {
               aria-pressed={active}
               onClick={() => changeFilter(() => setSeverity(active ? '' : item))}
               className={cn(
-                'rounded-xl border border-l-4 bg-surface p-3 text-left transition-colors hover:bg-surface-muted sm:p-4',
+                'rounded-card border border-l-4 bg-surface p-3 text-left transition-colors hover:bg-surface-muted sm:p-4',
                 SEVERITY_BORDER[item],
                 active ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-border',
               )}
             >
-              <p className="text-xs text-fg-muted">{SEVERITY_CARD_TITLES[item]}</p>
+              <p className="text-caption text-fg-muted">{SEVERITY_CARD_TITLES[item]}</p>
               {summaryQuery.isPending ? (
                 <Skeleton className="mt-2 h-6 w-10" />
               ) : (
-                <p className="mt-1 text-xl font-semibold text-fg">{formatNumber(summary?.bySeverity[item] ?? 0)}</p>
+                <p className="mt-1 text-h2 text-fg">{formatNumber(summary?.bySeverity[item] ?? 0)}</p>
               )}
-              <p className="mt-1 text-xs text-fg-subtle">ochiq</p>
+              <p className="mt-1 text-caption text-fg-subtle">ochiq</p>
             </button>
           );
         })}
@@ -285,24 +285,24 @@ export default function AlertsPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         {isUnread && <span className="size-2 rounded-full bg-brand-500" aria-label="O‘qilmagan" />}
                         <Badge tone={ALERT_SEVERITY_TONES[alert.severity]}>{ALERT_SEVERITY_LABELS[alert.severity]}</Badge>
-                        <span className="text-xs text-fg-muted">{ALERT_TYPE_LABELS[alert.type]}</span>
+                        <span className="text-caption text-fg-muted">{ALERT_TYPE_LABELS[alert.type]}</span>
                         <Tooltip content={formatDateTime(alert.createdAt)} describe={false}>
-                          <time dateTime={alert.createdAt} className="text-xs text-fg-subtle">
+                          <time dateTime={alert.createdAt} className="text-caption text-fg-subtle">
                             {formatRelativeTime(alert.createdAt)}
                           </time>
                         </Tooltip>
                       </div>
-                      <p className={cn('mt-1 text-sm text-fg', isUnread ? 'font-semibold' : 'font-medium')}>{alert.title}</p>
-                      <p className="text-sm text-fg-muted">{alert.message}</p>
+                      <p className={cn('mt-1 text-body text-fg', isUnread ? 'font-semibold' : 'font-medium')}>{alert.title}</p>
+                      <p className="text-body text-fg-muted">{alert.message}</p>
                       {alert.resolvedAt ? (
-                        <p className="mt-1 text-xs text-fg-subtle">
+                        <p className="mt-1 text-caption text-fg-subtle">
                           Yopildi: {formatDateTime(alert.resolvedAt)}
                           {alert.resolvedBy ? ` · ${alert.resolvedBy.firstName} ${alert.resolvedBy.lastName}` : ' · avtomatik (holat to‘g‘rilandi)'}
                         </p>
                       ) : (
                         alert.readBy &&
                         alert.readAt && (
-                          <p className="mt-1 text-xs text-fg-subtle">
+                          <p className="mt-1 text-caption text-fg-subtle">
                             O‘qidi: {alert.readBy.firstName} {alert.readBy.lastName} · {formatRelativeTime(alert.readAt)}
                           </p>
                         )
@@ -315,7 +315,7 @@ export default function AlertsPage() {
                           onClick={() => {
                             if (isUnread) markRead.mutate(alert.id);
                           }}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-fg hover:bg-surface-muted"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-control border border-border px-3 text-caption font-medium text-fg hover:bg-surface-muted"
                         >
                           Ochish
                           <ArrowRight className="size-3.5" aria-hidden />

@@ -45,11 +45,11 @@ function shortMoney(value: number): string {
 
 function Summary({ label, value, tone = 'default', hint }: { label: string; value: string; tone?: 'default' | 'danger' | 'success'; hint?: string }) {
   return (
-    <div className="rounded-xl border border-border p-3">
-      <p className="text-xs text-fg-muted">{label}</p>
+    <div className="rounded-card border border-border p-3">
+      <p className="text-caption text-fg-muted">{label}</p>
       <p
         className={cn(
-          'mt-1 text-base font-semibold tabular-nums sm:text-lg',
+          'mt-1 text-h3 tabular-nums sm:text-lg',
           tone === 'danger' && 'text-danger',
           tone === 'success' && 'text-success',
           tone === 'default' && 'text-fg',
@@ -57,7 +57,7 @@ function Summary({ label, value, tone = 'default', hint }: { label: string; valu
       >
         {value}
       </p>
-      {hint && <p className="mt-0.5 text-xs text-fg-muted">{hint}</p>}
+      {hint && <p className="mt-0.5 text-caption text-fg-muted">{hint}</p>}
     </div>
   );
 }
@@ -168,7 +168,7 @@ export function BudgetTab() {
           {budgetQuery.isPending ? (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[0, 1, 2, 3].map((index) => (
-                <Skeleton key={index} className="h-20 rounded-xl" />
+                <Skeleton key={index} className="h-20 rounded-card" />
               ))}
             </div>
           ) : budgetQuery.isError ? (
@@ -276,7 +276,7 @@ export function BudgetTab() {
                           <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted">
                             <div className={cn('h-full rounded-full', usageTone(line))} style={{ width: `${Math.min(Math.max(usage, planned === 0 ? 0 : 2), 100)}%` }} />
                           </div>
-                          <span className="text-xs whitespace-nowrap tabular-nums text-fg-muted">{planned > 0 ? `${usage}%` : '—'}</span>
+                          <span className="text-caption whitespace-nowrap tabular-nums text-fg-muted">{planned > 0 ? `${usage}%` : '—'}</span>
                         </div>
                       </TD>
                       <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{line.committed > 0 ? formatMoney(line.committed) : '—'}</TD>

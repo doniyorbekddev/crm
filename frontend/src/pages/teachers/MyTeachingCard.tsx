@@ -28,7 +28,7 @@ export function MyTeachingCard() {
   if (query.isError) return null;
 
   if (query.isPending) {
-    return <Skeleton className="h-40 w-full rounded-xl" />;
+    return <Skeleton className="h-40 w-full rounded-card" />;
   }
 
   const { salaryRule, salaryPeriods, salaryTotals } = query.data;
@@ -37,20 +37,20 @@ export function MyTeachingCard() {
     <Card>
       <CardHeader>
         <CardTitle>Mening maoshim</CardTitle>
-        <span className="text-xs text-fg-muted">
+        <span className="text-caption text-fg-muted">
           {salaryTotals.year}-yil: {formatMoney(salaryTotals.paid)} to‘langan
           {salaryTotals.remaining > 0 && ` · ${formatMoney(salaryTotals.remaining)} qolgan`}
         </span>
       </CardHeader>
       <CardContent className="space-y-3 p-4">
         {salaryRule ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-muted p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-surface-muted p-3">
             <Badge tone="blue">{SALARY_TYPE_LABELS[salaryRule.type]}</Badge>
-            <span className="text-sm text-fg">{salaryRuleSummary(salaryRule)}</span>
-            <span className="text-xs text-fg-muted">{formatDate(salaryRule.effectiveFrom)} dan amalda</span>
+            <span className="text-body text-fg">{salaryRuleSummary(salaryRule)}</span>
+            <span className="text-caption text-fg-muted">{formatDate(salaryRule.effectiveFrom)} dan amalda</span>
           </div>
         ) : (
-          <p className="text-sm text-fg-muted">Maosh modeli hali belgilanmagan — buxgalteriyaga murojaat qiling.</p>
+          <p className="text-body text-fg-muted">Maosh modeli hali belgilanmagan — buxgalteriyaga murojaat qiling.</p>
         )}
 
         {salaryPeriods.length === 0 ? (
@@ -60,12 +60,12 @@ export function MyTeachingCard() {
             description="Oy yakunlanib, maosh tasdiqlangandan keyin shu yerda ko‘rinadi"
           />
         ) : (
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul className="divide-y divide-border rounded-card border border-border">
             {salaryPeriods.map((period) => (
               <li key={period.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm text-fg">{period.label}</p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-body text-fg">{period.label}</p>
+                  <p className="text-caption text-fg-muted">
                     {period.lessonsCount} dars · {period.studentsCount} o‘quvchi
                     {period.bonus > 0 && ` · bonus ${formatMoney(period.bonus)}`}
                     {period.penalty > 0 && ` · jarima ${formatMoney(period.penalty)}`}
@@ -74,9 +74,9 @@ export function MyTeachingCard() {
                 <div className="flex items-center gap-3">
                   <Badge tone={SALARY_STATUS_TONES[period.status]}>{SALARY_STATUS_LABELS[period.status]}</Badge>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-fg">{formatMoney(period.totalAmount)}</p>
+                    <p className="text-label text-fg">{formatMoney(period.totalAmount)}</p>
                     {period.remainingAmount > 0 && (
-                      <p className="text-xs text-warning">
+                      <p className="text-caption text-warning">
                         qolgan {formatMoney(period.remainingAmount)}
                       </p>
                     )}

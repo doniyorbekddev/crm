@@ -20,6 +20,7 @@ import {
   Pencil,
   Phone,
   RefreshCw,
+  ScrollText,
   Star,
   Target,
   UsersRound,
@@ -35,6 +36,7 @@ import { Button } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Tab, TabList, TabPanel, Tabs } from '@/components/ui/Tabs';
 import { WeeklyReportModal } from '@/components/weekly/WeeklyReportModal';
 import { usePermission } from '@/hooks/usePermission';
@@ -47,13 +49,15 @@ import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentStatusModal } from './StudentStatusModal';
 import { AiAnalysisTab } from './profile/AiAnalysisTab';
+import { AttendancePanel } from './profile/AttendancePanel';
+import { CertificatesCard } from './profile/CertificatesCard';
 import { GroupHistoryTab } from './profile/GroupHistoryTab';
 import { MasteryTab } from './profile/MasteryTab';
 import { ParentsTab } from './profile/ParentsTab';
 import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
 
-type TabKey = 'overview' | 'mastery' | 'ai' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
+type TabKey = 'overview' | 'attendance' | 'certificates' | 'mastery' | 'ai' | 'groups' | 'parents' | 'homework' | 'exams' | 'payments' | 'schedule' | 'achievements' | 'activity';
 type Dialog = 'calendar' | 'weekly' | 'edit' | 'payment' | 'status' | null;
 
 const BACK = { to: '/students', label: 'O‘quvchilar' };
@@ -128,6 +132,7 @@ export default function StudentProfilePage() {
   const tabs: ReadonlyArray<{ value: TabKey; label: string; icon: LucideIcon }> = [
     { value: 'overview', label: 'Umumiy', icon: LayoutDashboard },
     { value: 'mastery', label: 'O‘zlashtirish', icon: Target },
+    ...(canViewAttendance ? [{ value: 'attendance' as const, label: 'Davomat', icon: CalendarCheck }] : []),
     ...(canUseAi ? [{ value: 'ai' as const, label: 'AI tahlil', icon: Bot }] : []),
     { value: 'groups', label: 'Guruh tarixi', icon: ArrowLeftRight },
     ...(canViewParents ? [{ value: 'parents' as const, label: 'Ota-ona', icon: UsersRound }] : []),
@@ -136,6 +141,7 @@ export default function StudentProfilePage() {
     ...(profile.payments ? [{ value: 'payments' as const, label: 'To‘lovlar', icon: Wallet }] : []),
     ...(canViewDebts || canViewPayments ? [{ value: 'schedule' as const, label: 'To‘lov jadvali', icon: CalendarClock }] : []),
     { value: 'achievements', label: 'Yutuqlar', icon: Award },
+    { value: 'certificates', label: 'Sertifikatlar', icon: ScrollText },
     { value: 'activity', label: 'Faollik', icon: History },
   ];
 
@@ -230,6 +236,16 @@ export default function StudentProfilePage() {
         </TabPanel>
         <TabPanel value="mastery">
           <MasteryTab studentId={student.id} />
+        </TabPanel>
+        <TabPanel value="attendance">
+          <Card>
+            <CardContent>
+              <AttendancePanel studentId={student.id} />
+            </CardContent>
+          </Card>
+        </TabPanel>
+        <TabPanel value="certificates">
+          <CertificatesCard studentId={student.id} />
         </TabPanel>
         <TabPanel value="ai">
           <AiAnalysisTab studentId={student.id} />

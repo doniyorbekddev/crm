@@ -22,12 +22,12 @@ interface Row {
 function FlowList({ title, icon, rows, total, tone }: { title: string; icon: React.ReactNode; rows: Row[]; total: number; tone: 'in' | 'out' }) {
   const visible = rows.filter((row) => row.value !== 0);
   return (
-    <div className="rounded-xl border border-border">
-      <p className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm font-medium text-fg">
+    <div className="rounded-card border border-border">
+      <p className="flex items-center gap-2 border-b border-border px-3 py-2 text-label text-fg">
         {icon}
         {title}
       </p>
-      <ul className="divide-y divide-border text-sm">
+      <ul className="divide-y divide-border text-body">
         {visible.length === 0 ? (
           <li className="px-3 py-2.5 text-fg-muted">Harakat yo‘q</li>
         ) : (
@@ -63,7 +63,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
   });
 
   if (statementQuery.isPending) {
-    return <Skeleton className="h-96 w-full rounded-xl" />;
+    return <Skeleton className="h-96 w-full rounded-card" />;
   }
   if (statementQuery.isError) {
     return <ErrorState error={statementQuery.error} retrying={statementQuery.isFetching} onRetry={() => void statementQuery.refetch()} />;
@@ -77,7 +77,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
       <Card className="min-w-0 xl:col-span-2">
         <CardHeader className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle>Pul harakati hisoboti</CardTitle>
-          <span className="text-xs text-fg-muted">
+          <span className="text-caption text-fg-muted">
             {formatDate(data.from)} — {formatDate(data.to)}
           </span>
         </CardHeader>
@@ -128,7 +128,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
             label="Kassalar bo‘yicha pul harakati"
             rows={data.accounts}
             rowKey={(account) => account.id}
-            className="rounded-xl border border-border"
+            className="rounded-card border border-border"
             mobileLayout="cards"
             columns={[
               {
@@ -192,7 +192,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2.5 text-sm">
+          <ul className="space-y-2.5 text-body">
             <li className="flex items-center justify-between gap-3">
               <span className="text-fg-muted">Hozirgi qoldiq</span>
               <span className="font-medium whitespace-nowrap tabular-nums text-fg">{formatMoney(forecast.currentBalance)}</span>
@@ -225,7 +225,7 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
               Majburiyatlar uchun mablag‘ yetmaydi — to‘lovlarni rejalashtiring yoki qarzlarni undiring.
             </Alert>
           )}
-          <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-xs text-fg-muted">
+          <p className="mt-3 rounded-control bg-surface-muted px-3 py-2 text-caption text-fg-muted">
             O‘quvchilar qarzi: <span className="font-medium text-fg">{formatMoney(forecast.receivables)}</span> — tushishi mumkin, lekin prognozga
             qo‘shilmagan.
           </p>

@@ -25,15 +25,15 @@ function FactorRow({ factor }: { factor: RiskFactor }) {
     <li className="flex items-center gap-3 py-2">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm text-fg">{factor.label}</span>
-          <span className={cn('shrink-0 text-sm tabular-nums', hasScore ? 'text-fg' : 'text-fg-subtle')}>{factor.value}</span>
+          <span className="truncate text-body text-fg">{factor.label}</span>
+          <span className={cn('shrink-0 text-body tabular-nums', hasScore ? 'text-fg' : 'text-fg-subtle')}>{factor.value}</span>
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
           {hasScore && <div className={cn('h-full rounded-full', barTone(factor.score!))} style={{ width: `${factor.score}%` }} />}
         </div>
-        <p className="mt-1 text-xs text-fg-subtle">{hasScore ? factor.hint : `${factor.hint} — ma’lumot yo‘q`}</p>
+        <p className="mt-1 text-caption text-fg-subtle">{hasScore ? factor.hint : `${factor.hint} — ma’lumot yo‘q`}</p>
       </div>
-      <span className="w-10 shrink-0 text-right text-xs tabular-nums text-fg-muted">{hasScore ? factor.score : '—'}</span>
+      <span className="w-10 shrink-0 text-right text-caption tabular-nums text-fg-muted">{hasScore ? factor.score : '—'}</span>
     </li>
   );
 }
@@ -53,7 +53,7 @@ export function RiskCard({ studentId }: { studentId: string }) {
       <CardHeader>
         <CardTitle>Ketib qolish xavfi</CardTitle>
         {riskQuery.data?.updatedAt && (
-          <span className="text-xs text-fg-muted">{formatDateTime(riskQuery.data.updatedAt)} holatiga</span>
+          <span className="text-caption text-fg-muted">{formatDateTime(riskQuery.data.updatedAt)} holatiga</span>
         )}
       </CardHeader>
       <CardContent>
@@ -82,16 +82,16 @@ export function RiskCard({ studentId }: { studentId: string }) {
                   <div>
                     <div className="flex items-center gap-2">
                       <Badge tone={RISK_LEVEL_TONES[riskQuery.data.riskLevel]}>{RISK_LEVEL_LABELS[riskQuery.data.riskLevel]}</Badge>
-                      <span className="text-2xl font-semibold tabular-nums text-fg">{riskQuery.data.healthScore}</span>
-                      <span className="text-sm text-fg-muted">/ 100</span>
+                      <span className="text-h1 tabular-nums text-fg">{riskQuery.data.healthScore}</span>
+                      <span className="text-body text-fg-muted">/ 100</span>
                     </div>
                     {riskQuery.data.reasons.length > 0 && (
-                      <p className="mt-1 text-sm text-fg-muted">{riskQuery.data.reasons.join(' · ')}</p>
+                      <p className="mt-1 text-body text-fg-muted">{riskQuery.data.reasons.join(' · ')}</p>
                     )}
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-fg-muted">
+                <p className="text-body text-fg-muted">
                   Baho uchun yetarli ma’lumot yo‘q — davomat, uy vazifasi yoki to‘lov tarixi to‘planishi kerak.
                 </p>
               )}

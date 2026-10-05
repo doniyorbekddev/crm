@@ -244,8 +244,8 @@ export function ExamFormModal({ exam, onClose, onSaved }: ExamFormModalProps) {
           </FormField>
         </div>
 
-        <fieldset className="space-y-3 rounded-lg border border-border p-3">
-          <legend className="px-1 text-sm font-medium text-fg">Onlayn topshirish</legend>
+        <fieldset className="space-y-3 rounded-control border border-border p-3">
+          <legend className="px-1 text-label text-fg">Onlayn topshirish</legend>
           <Checkbox label="O‘quvchilar kabinetdan o‘zi topshiradi" {...register('isOnline')} />
           {isOnline && (
             <>

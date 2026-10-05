@@ -221,7 +221,7 @@ export default function AttendancePage() {
           <ErrorState error={sheetQuery.error} retrying={sheetQuery.isFetching} onRetry={() => void sheetQuery.refetch()} />
         ) : !sheet ? null : (
           <div className="space-y-3 p-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-fg-muted">
+            <div className="flex flex-wrap items-center gap-2 text-body text-fg-muted">
               <span className="font-medium text-fg">{formatDate(sheet.date)}</span>
               <span>·</span>
               <span>{formatSchedule(sheet.group.scheduleDays, sheet.group.startTime, sheet.group.endTime)}</span>
@@ -249,7 +249,7 @@ export default function AttendancePage() {
             {sheet.students.length === 0 ? (
               <EmptyState icon={CalendarCheck} title="Guruhda faol o‘quvchi yo‘q" description="O‘quvchi qo‘shilgach jurnal to‘ladi" />
             ) : (
-              <ul className="divide-y divide-border rounded-xl border border-border">
+              <ul className="divide-y divide-border rounded-card border border-border">
                 {sheet.students.map((row) => {
                   const current = draft[row.studentId] ?? row.status;
                   const changed = Boolean(draft[row.studentId]) && draft[row.studentId] !== row.status;
@@ -258,9 +258,9 @@ export default function AttendancePage() {
                       <div className="min-w-0">
                         <p className="truncate font-medium text-fg">
                           {row.firstName} {row.lastName}
-                          {changed && <span className="ml-2 text-xs font-normal text-warning">saqlanmagan</span>}
+                          {changed && <span className="ml-2 text-caption font-normal text-warning">saqlanmagan</span>}
                         </p>
-                        <p className="text-xs text-fg-muted">
+                        <p className="text-caption text-fg-muted">
                           {row.code} · {formatPhone(row.phone)}
                           {row.markedBy && ` · ${row.markedBy.firstName} belgilagan`}
                         </p>
@@ -276,7 +276,7 @@ export default function AttendancePage() {
                               aria-pressed={active}
                               onClick={() => setDraft((prev) => ({ ...prev, [row.studentId]: status }))}
                               className={cn(
-                                'h-8 rounded-lg border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                                'h-8 rounded-control border px-3 text-caption font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                                 active
                                   ? ATTENDANCE_BUTTON_CLASSES[status]
                                   : 'border-border text-fg-muted hover:bg-surface-muted hover:text-fg',

@@ -9,6 +9,7 @@ const TONES = {
   warning: 'border-warning-border bg-warning-subtle text-warning',
   danger: 'border-danger-border bg-danger-subtle text-danger',
   info: 'border-info-border bg-info-subtle text-info',
+  accent: 'border-accent-border bg-accent-subtle text-accent',
 } as const;
 
 export interface TimelineItem {

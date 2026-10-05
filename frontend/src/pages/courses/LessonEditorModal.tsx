@@ -171,9 +171,9 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
           </div>
 
           <div className="border-t border-border pt-4">
-            <p className="mb-2 text-sm font-medium text-fg">Materiallar</p>
+            <p className="mb-2 text-label text-fg">Materiallar</p>
             {!lessonId ? (
-              <p className="text-sm text-fg-muted">Materiallar darsni saqlagandan keyin qo‘shiladi.</p>
+              <p className="text-body text-fg-muted">Materiallar darsni saqlagandan keyin qo‘shiladi.</p>
             ) : (
               <div className="space-y-3">
                 {(lessonQuery.data?.materials.length ?? 0) > 0 && (
@@ -185,7 +185,7 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
                         type="button"
                         aria-label={`${material.title} — o‘chirish`}
                         onClick={() => removeMaterial.mutate(material.id)}
-                        className="grid size-7 place-items-center rounded-md text-fg-muted hover:bg-danger-subtle hover:text-danger"
+                        className="grid size-7 place-items-center rounded-chip text-fg-muted hover:bg-danger-subtle hover:text-danger"
                       >
                         <Trash2 className="size-3.5" aria-hidden />
                       </button>
@@ -211,7 +211,7 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <Input aria-label="Fayl nomi (ixtiyoriy)" placeholder="Fayl nomi (ixtiyoriy)" value={fileTitle} onChange={(event) => setFileTitle(event.target.value)} />
-                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-muted">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-control border border-border px-3 py-2 text-label text-fg hover:bg-surface-muted">
                     {upload.isPending ? <Upload className="size-4 animate-pulse" aria-hidden /> : <Paperclip className="size-4" aria-hidden />}
                     Fayl yuklash (PDF, rasm)
                     <input
@@ -227,7 +227,7 @@ export function LessonEditorModal({ target, onClose }: LessonEditorModalProps) {
                     />
                   </label>
                 </div>
-                <p className="text-xs text-fg-subtle">Slayd, arxiv va boshqa formatlarni Google Drive havolasi sifatida qo‘shing.</p>
+                <p className="text-caption text-fg-subtle">Slayd, arxiv va boshqa formatlarni Google Drive havolasi sifatida qo‘shing.</p>
               </div>
             )}
           </div>

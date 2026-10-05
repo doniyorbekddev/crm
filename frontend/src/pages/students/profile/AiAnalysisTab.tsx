@@ -64,13 +64,13 @@ export function AiAnalysisTab({ studentId }: { studentId: string }) {
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-fg">{analysis.summary}</p>
+            <p className="text-body text-fg">{analysis.summary}</p>
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {(Object.keys(SCORE_LABELS) as Array<keyof typeof SCORE_LABELS>).map((scoreKey) => {
                 const value = analysis.result.scores[scoreKey];
                 return (
-                  <div key={scoreKey} className="rounded-lg border border-border p-2">
-                    <dt className="text-xs text-fg-muted">{SCORE_LABELS[scoreKey]}</dt>
+                  <div key={scoreKey} className="rounded-control border border-border p-2">
+                    <dt className="text-caption text-fg-muted">{SCORE_LABELS[scoreKey]}</dt>
                     <dd className={cn('text-lg font-semibold tabular-nums', value === null ? 'text-fg-subtle' : value >= 80 ? 'text-success' : value >= 60 ? 'text-fg' : 'text-danger')}>
                       {value === null ? '—' : value}
                     </dd>

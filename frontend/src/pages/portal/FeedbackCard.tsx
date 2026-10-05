@@ -65,7 +65,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
     <Card>
       <CardHeader>
         <CardTitle>Fikringiz</CardTitle>
-        <span className="text-xs text-fg-muted">javobingiz markazga yordam beradi</span>
+        <span className="text-caption text-fg-muted">javobingiz markazga yordam beradi</span>
       </CardHeader>
       <CardContent className="space-y-3">
         <Select value={type} onChange={(event) => setType(event.target.value as FeedbackType)} aria-label="Nima haqida">
@@ -78,10 +78,10 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
         </Select>
 
         {alreadyAnswered ? (
-          <p className="text-sm text-fg-muted">Bugun bu bo‘yicha fikringizni qoldirdingiz. Rahmat!</p>
+          <p className="text-body text-fg-muted">Bugun bu bo‘yicha fikringizni qoldirdingiz. Rahmat!</p>
         ) : type === 'NPS' ? (
           <div>
-            <p className="mb-1.5 text-sm text-fg-muted">0 — tavsiya qilmayman, 10 — albatta tavsiya qilaman</p>
+            <p className="mb-1.5 text-body text-fg-muted">0 — tavsiya qilmayman, 10 — albatta tavsiya qilaman</p>
             <div className="flex flex-wrap gap-1">
               {Array.from({ length: 11 }, (_, index) => index).map((score) => (
                 <button
@@ -90,7 +90,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
                   aria-pressed={nps === score}
                   onClick={() => setNps(score)}
                   className={cn(
-                    'size-9 rounded-lg border text-sm tabular-nums transition-colors',
+                    'size-9 rounded-control border text-body tabular-nums transition-colors',
                     nps === score ? 'border-brand-500 bg-primary-subtle text-primary' : 'border-border text-fg-muted hover:bg-surface-muted',
                   )}
                 >
@@ -118,7 +118,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
               aria-label="Izoh"
               onChange={(event) => setComment(event.target.value)}
             />
-            <label className="flex items-center gap-2 text-sm text-fg-muted">
+            <label className="flex items-center gap-2 text-body text-fg-muted">
               <Checkbox checked={anonymous} onChange={(event) => setAnonymous(event.target.checked)} />
               Anonim yuborilsin (ismim ko‘rinmasin)
             </label>

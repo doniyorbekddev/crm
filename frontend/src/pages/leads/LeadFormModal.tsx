@@ -194,7 +194,7 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
 
       <form id="lead-form" onSubmit={onSubmit} noValidate className="space-y-6">
         <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">Mijoz</legend>
+          <legend className="mb-3 text-caption font-semibold tracking-wide text-fg-muted uppercase">Mijoz</legend>
           <FormField label="Ism" htmlFor="lead-firstName" error={errors.firstName?.message} required>
             <Input id="lead-firstName" autoFocus invalid={Boolean(errors.firstName)} aria-describedby={describedBy('firstName')} {...register('firstName')} />
           </FormField>
@@ -230,7 +230,7 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
         </fieldset>
 
         <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-semibold tracking-wide text-fg-muted uppercase">Sotuv</legend>
+          <legend className="mb-3 text-caption font-semibold tracking-wide text-fg-muted uppercase">Sotuv</legend>
           <FormField label="Manba" htmlFor="lead-sourceId" error={errors.sourceId?.message} required>
             <Select id="lead-sourceId" invalid={Boolean(errors.sourceId)} aria-describedby={describedBy('sourceId')} {...register('sourceId')}>
               <option value="">Manbani tanlang</option>

@@ -81,23 +81,23 @@ export function MasterySettingsModal({ onClose }: { onClose: () => void }) {
       ) : (
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">Chegaralar (%)</p>
+            <p className="mb-2 text-label text-fg">Chegaralar (%)</p>
             <div className="grid grid-cols-3 gap-3">
               {field('developing', 'Rivojlanmoqda')}
               {field('good', 'Yaxshi')}
               {field('mastered', 'O‘zlashtirilgan')}
             </div>
-            <p className="mt-1 text-xs text-fg-subtle">Chegaradan past — zaif. O‘zgartirish barcha o‘quvchilar holatiga darhol qo‘llanadi.</p>
+            <p className="mt-1 text-caption text-fg-subtle">Chegaradan past — zaif. O‘zgartirish barcha o‘quvchilar holatiga darhol qo‘llanadi.</p>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium text-fg">Manbalar og‘irligi</p>
+            <p className="mb-2 text-label text-fg">Manbalar og‘irligi</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {field('exam', 'Imtihon')}
               {field('homework', 'Vazifa')}
               {field('attendance', 'Davomat')}
               {field('lessons', 'Darslar')}
             </div>
-            <p className="mt-1 text-xs text-fg-subtle">Nisbiy og‘irlik: ma’lumoti yo‘q manba hisobga olinmaydi. O‘zgarsa baholar fon rejimida qayta hisoblanadi.</p>
+            <p className="mt-1 text-caption text-fg-subtle">Nisbiy og‘irlik: ma’lumoti yo‘q manba hisobga olinmaydi. O‘zgarsa baholar fon rejimida qayta hisoblanadi.</p>
           </div>
         </div>
       )}

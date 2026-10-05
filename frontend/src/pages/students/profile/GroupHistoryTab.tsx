@@ -37,7 +37,7 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-3">
-        <p className="text-sm text-fg-muted">
+        <p className="text-body text-fg-muted">
           Hozirgi guruh: <span className="font-medium text-fg">{student.group?.name ?? 'guruhsiz'}</span>
         </p>
         {canManage && (
@@ -77,11 +77,11 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <p className="text-sm font-medium break-words text-fg">{changeTitle(change)}</p>
-                    <span className="text-xs text-fg-subtle">{formatDateTime(change.changedAt)}</span>
+                    <p className="text-label break-words text-fg">{changeTitle(change)}</p>
+                    <span className="text-caption text-fg-subtle">{formatDateTime(change.changedAt)}</span>
                   </div>
-                  {change.reason && <p className="text-sm break-words text-fg-muted">{change.reason}</p>}
-                  <p className="text-xs text-fg-subtle">
+                  {change.reason && <p className="text-body break-words text-fg-muted">{change.reason}</p>}
+                  <p className="text-caption text-fg-subtle">
                     {change.changedBy ? `${change.changedBy.firstName} ${change.changedBy.lastName}` : 'Tizim'}
                     {change.daysInPreviousGroup !== null && ` · oldingi guruhda ${change.daysInPreviousGroup} kun`}
                   </p>

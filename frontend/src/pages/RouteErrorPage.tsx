@@ -29,8 +29,8 @@ export default function RouteErrorPage() {
         <AlertTriangle className="size-7" aria-hidden />
       </div>
       <div>
-        <h1 className="text-xl font-semibold">Nimadir noto‘g‘ri ketdi</h1>
-        <p className="mt-2 max-w-sm text-sm text-fg-muted">{describeError(error)}</p>
+        <h1 className="text-h2">Nimadir noto‘g‘ri ketdi</h1>
+        <p className="mt-2 max-w-sm text-body text-fg-muted">{describeError(error)}</p>
       </div>
       <Button leftIcon={<RotateCcw className="size-4" aria-hidden />} onClick={() => window.location.reload()}>
         Sahifani yangilash

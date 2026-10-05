@@ -58,11 +58,11 @@ function Kpi({
 }) {
   return (
     <Card className={compact ? 'p-3' : 'p-4'}>
-      <p className="text-xs text-fg-muted">{label}</p>
+      <p className="text-caption text-fg-muted">{label}</p>
       <p
         className={cn(
           'mt-1 font-semibold whitespace-nowrap tabular-nums',
-          compact ? 'text-base' : 'text-xl',
+          compact ? 'text-body-lg' : 'text-xl',
           tone === 'positive' && 'text-success',
           tone === 'negative' && 'text-danger',
           tone === 'default' && 'text-fg',
@@ -70,7 +70,7 @@ function Kpi({
       >
         {value}
       </p>
-      {hint && !compact && <p className="mt-1 text-xs text-fg-muted">{hint}</p>}
+      {hint && !compact && <p className="mt-1 text-caption text-fg-muted">{hint}</p>}
     </Card>
   );
 }
@@ -144,14 +144,14 @@ export function CommissionEntriesTable({ entries }: { entries: CommissionEntry[]
                   <p className="font-medium text-fg">
                     {entry.payment.student.firstName} {entry.payment.student.lastName}
                   </p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     <span className="font-mono">{entry.payment.code}</span>
                     {entry.payment.group && ` · ${entry.payment.group.name}`}
                     {entry.kind === 'REVERSAL' && entry.reason && ` · ${entry.reason}`}
                   </p>
                 </>
               ) : (
-                <p className="text-xs text-fg-muted">{entry.reason ?? '—'}</p>
+                <p className="text-caption text-fg-muted">{entry.reason ?? '—'}</p>
               )}
             </>
           ),
@@ -231,7 +231,7 @@ export function CommissionHistoryTable({
                   {row.salary ? (
                     <Badge tone={SALARY_STATUS_TONES[row.salary.status]}>{SALARY_STATUS_LABELS[row.salary.status]}</Badge>
                   ) : (
-                    <span className="text-xs text-fg-subtle">Hisoblanmagan</span>
+                    <span className="text-caption text-fg-subtle">Hisoblanmagan</span>
                   )}
                 </TD>
               </TR>

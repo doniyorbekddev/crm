@@ -85,8 +85,8 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
       <div className="space-y-5">
         <section className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-fg">Mavjud rubrikalar</p>
-            <label className="flex items-center gap-2 text-xs text-fg-muted">
+            <p className="text-label text-fg">Mavjud rubrikalar</p>
+            <label className="flex items-center gap-2 text-caption text-fg-muted">
               <Checkbox checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
               Faolsizlarini ham
             </label>
@@ -94,17 +94,17 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
           {query.isPending ? (
             <Skeleton className="h-20 w-full" />
           ) : (query.data ?? []).length === 0 ? (
-            <p className="text-sm text-fg-muted">Hali rubrika yo‘q.</p>
+            <p className="text-body text-fg-muted">Hali rubrika yo‘q.</p>
           ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border">
+            <ul className="divide-y divide-border rounded-control border border-border">
               {query.data!.map((rubric) => (
                 <li key={rubric.id} className="flex items-start justify-between gap-3 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="flex items-center gap-2 text-sm font-medium text-fg">
+                    <p className="flex items-center gap-2 text-label text-fg">
                       {rubric.name}
                       {!rubric.isActive && <Badge>Faolsiz</Badge>}
                     </p>
-                    <p className="text-xs text-fg-muted">{rubric.criteria.map((item) => `${item.title} ${item.weight}%`).join(' · ')}</p>
+                    <p className="text-caption text-fg-muted">{rubric.criteria.map((item) => `${item.title} ${item.weight}%`).join(' · ')}</p>
                   </div>
                   <Button size="sm" variant="ghost" loading={toggle.isPending} onClick={() => toggle.mutate({ id: rubric.id, isActive: !rubric.isActive })}>
                     {rubric.isActive ? 'Faolsizlantirish' : 'Faollashtirish'}
@@ -116,7 +116,7 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
         </section>
 
         <section className="space-y-3 border-t border-border pt-4">
-          <p className="text-sm font-medium text-fg">Yangi rubrika</p>
+          <p className="text-label text-fg">Yangi rubrika</p>
           {formError && <Alert tone="error">{formError}</Alert>}
           <FormField label="Nomi" htmlFor="rubric-name" required>
             <Input id="rubric-name" value={name} maxLength={150} placeholder="Frontend loyiha rubrikasi" onChange={(event) => setName(event.target.value)} />
@@ -131,7 +131,7 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
                   aria-label={`${index + 1}-mezonni o‘chirish`}
                   disabled={criteria.length === 1}
                   onClick={() => setCriteria((current) => current.filter((_, i) => i !== index))}
-                  className="grid size-9 place-items-center rounded-md text-fg-muted hover:bg-surface-muted disabled:opacity-40"
+                  className="grid size-9 place-items-center rounded-chip text-fg-muted hover:bg-surface-muted disabled:opacity-40"
                 >
                   <Trash2 className="size-4" aria-hidden />
                 </button>
@@ -148,7 +148,7 @@ export function RubricsModal({ onClose }: { onClose: () => void }) {
             >
               Mezon qo‘shish
             </Button>
-            <span className={total === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>Jami: {total}%</span>
+            <span className={total === 100 ? 'text-body text-success' : 'text-body text-danger'}>Jami: {total}%</span>
           </div>
           <div className="flex justify-end">
             <Button

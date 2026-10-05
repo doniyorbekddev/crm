@@ -16,7 +16,7 @@ function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: str
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-sm">{children}</CardContent>
+      <CardContent className="text-body">{children}</CardContent>
     </Card>
   );
 }
@@ -24,7 +24,7 @@ function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: str
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-fg-muted">{label}</p>
+      <p className="text-caption text-fg-muted">{label}</p>
       <p className="text-lg font-semibold tabular-nums text-fg">{value}</p>
     </div>
   );
@@ -41,19 +41,19 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
     <div className="space-y-4">
       <Card className="break-inside-avoid">
         <CardContent>
-          <p className="text-xs text-fg-muted">{report.week.label}</p>
+          <p className="text-caption text-fg-muted">{report.week.label}</p>
           <p className="text-lg font-semibold text-fg">{report.student.fullName}</p>
-          <p className="text-sm text-fg-muted">
+          <p className="text-body text-fg-muted">
             {report.student.code} · {report.student.courseName}
             {report.student.groupName ? ` · ${report.student.groupName}` : ''}
           </p>
           {report.aiSummary && (
-            <p className="mt-3 rounded-md bg-primary-subtle p-3 text-sm text-fg" aria-label="AI xulosa">
+            <p className="mt-3 rounded-chip bg-primary-subtle p-3 text-body text-fg" aria-label="AI xulosa">
               {report.aiSummary}
             </p>
           )}
           {report.summary.length > 0 && (
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-fg">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-body text-fg">
               {report.summary.map((line) => (
                 <li key={line}>{line}</li>
               ))}
@@ -61,8 +61,8 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
           )}
           {(report.recommendations ?? []).length > 0 && (
             <div className="mt-3">
-              <p className="text-sm font-medium text-fg">Tavsiyalar</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-fg-muted">
+              <p className="text-label text-fg">Tavsiyalar</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-body text-fg-muted">
                 {report.recommendations.map((line) => (
                   <li key={line}>{line}</li>
                 ))}
@@ -85,7 +85,7 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
                 <Stat label="Kelmadi" value={String(attendance.absent)} />
               </div>
               {attendance.absentDates.length > 0 && (
-                <p className="mt-2 text-xs text-fg-muted">Kelmagan kunlar: {attendance.absentDates.map((date) => formatDate(date)).join(', ')}</p>
+                <p className="mt-2 text-caption text-fg-muted">Kelmagan kunlar: {attendance.absentDates.map((date) => formatDate(date)).join(', ')}</p>
               )}
             </>
           )}
@@ -124,7 +124,7 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
               {exams.map((exam) => (
                 <li key={`${exam.title}-${exam.date}`} className="flex items-center justify-between gap-2 py-1.5">
                   <span className="min-w-0 truncate text-fg">
-                    {exam.title} <span className="text-xs text-fg-muted">· {formatDate(exam.date)}</span>
+                    {exam.title} <span className="text-caption text-fg-muted">· {formatDate(exam.date)}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <b className="tabular-nums text-fg">{exam.percentage}%</b>
@@ -143,7 +143,7 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
             <Stat label="Kurs" value={progress.coursePercent === null ? '—' : `${progress.coursePercent}%`} />
           </div>
           {progress.topicsCompleted.length > 0 && (
-            <p className="mt-2 text-xs text-fg-muted">Bu hafta o‘tilgan mavzular: {progress.topicsCompleted.join(', ')}</p>
+            <p className="mt-2 text-caption text-fg-muted">Bu hafta o‘tilgan mavzular: {progress.topicsCompleted.join(', ')}</p>
           )}
         </Section>
 
@@ -174,7 +174,7 @@ export function WeeklyReportView({ report }: { report: WeeklyReport }) {
               {feedback.map((item) => (
                 <li key={`${item.source}-${item.title}-${item.date}`}>
                   <p className="text-fg">{item.text}</p>
-                  <p className="text-xs text-fg-muted">
+                  <p className="text-caption text-fg-muted">
                     {item.title}
                     {item.author ? ` · ${item.author}` : ''} · {formatDateTime(item.date)}
                   </p>

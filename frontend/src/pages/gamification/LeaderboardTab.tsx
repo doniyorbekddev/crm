@@ -15,7 +15,8 @@ import { gamificationService } from '@/services/gamification.service';
 import { paymentsService } from '@/services/payments.service';
 import type { LeaderboardParams, LeaderboardPeriod } from '@/types/gamification';
 import { formatNumber } from '@/utils/format';
-import { LEADERBOARD_PERIODS, RANK_MEDALS, formatXp } from '@/utils/gamificationLabels';
+import { RankMark } from '@/components/RankMark';
+import { LEADERBOARD_PERIODS, formatXp } from '@/utils/gamificationLabels';
 
 interface LeaderboardTabProps {
   onSelectStudent: (studentId: string) => void;
@@ -97,22 +98,22 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                 type="button"
                 onClick={() => onSelectStudent(row.studentId)}
                 className={cn(
-                  'rounded-xl border p-4 text-left transition-colors',
+                  'rounded-card border p-4 text-left transition-colors',
                   index === 1
                     ? 'border-warning-border bg-warning-subtle sm:-mt-3'
                     : 'border-border bg-surface hover:bg-surface-muted',
                 )}
               >
-                <p className="text-2xl">{RANK_MEDALS[row.rank - 1] ?? row.rank}</p>
-                <p className="mt-1 truncate text-sm font-semibold text-fg">
+                <RankMark place={row.rank} size="lg" />
+                <p className="mt-1 truncate text-h4 text-fg">
                   {row.firstName} {row.lastName}
                 </p>
-                <p className="truncate text-xs text-fg-muted">
+                <p className="truncate text-caption text-fg-muted">
                   {row.courseName}
                   {row.groupName && ` · ${row.groupName}`}
                 </p>
                 <p className="mt-2 text-lg font-bold text-primary">{formatXp(row.xp)}</p>
-                <p className="text-xs text-fg-muted">
+                <p className="text-caption text-fg-muted">
                   {row.levelName} · {row.badges} nishon
                 </p>
               </button>
@@ -148,7 +149,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                 label: 'O‘rin',
                 thClassName: 'w-16',
                 tdClassName: 'font-medium whitespace-nowrap text-fg',
-                cell: (row) => <>{RANK_MEDALS[row.rank - 1] ?? row.rank}</>,
+                cell: (row) => <RankMark place={row.rank} />,
               },
               {
                 key: 'c1',
@@ -158,7 +159,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                     <p className="font-medium text-fg">
                       {row.firstName} {row.lastName}
                     </p>
-                    <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
+                    <p className="font-mono text-caption text-fg-subtle">{row.code}</p>
                   </>
                 ),
               },
@@ -168,7 +169,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                 cell: (row) => (
                   <>
                     <p className="text-fg">{row.courseName}</p>
-                    <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
+                    <p className="text-caption text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
                   </>
                 ),
               },
@@ -191,7 +192,7 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
                 cell: (row) => (
                   <>
                     {row.streak > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-sm text-warning">
+                      <span className="inline-flex items-center gap-1 text-body text-warning">
                         <Flame className="size-3.5" aria-hidden />
                         {row.streak}
                       </span>

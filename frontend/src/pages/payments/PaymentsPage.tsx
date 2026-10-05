@@ -122,7 +122,7 @@ export default function PaymentsPage() {
       sortable: true,
       label: 'Kvitansiya',
       required: true,
-      tdClassName: 'font-mono text-xs whitespace-nowrap text-fg-muted',
+      tdClassName: 'font-mono text-caption whitespace-nowrap text-fg-muted',
       cell: (payment: PaymentTableRow) => (
         <>
           {payment.code}
@@ -142,7 +142,7 @@ export default function PaymentsPage() {
           <p className="font-medium text-fg">
             {payment.student.firstName} {payment.student.lastName}
           </p>
-          <p className="text-xs text-fg-muted">
+          <p className="text-caption text-fg-muted">
             {payment.student.code} · {formatPhone(payment.student.phone)} · {payment.course.name}
           </p>
         </>
@@ -157,7 +157,7 @@ export default function PaymentsPage() {
         <>
           {formatMoney(payment.amount)}
           {payment.refundedAmount > 0 && (
-            <p className="text-xs font-normal text-warning">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
+            <p className="text-caption font-normal text-warning">qaytarilgan {formatMoney(payment.refundedAmount)}</p>
           )}
         </>
       ),
@@ -190,7 +190,7 @@ export default function PaymentsPage() {
         <>
           {payment.accountant ? `${payment.accountant.firstName} ${payment.accountant.lastName}` : '—'}
           {payment.isDeleted && payment.deleteReason && (
-            <p className="max-w-[16rem] truncate text-xs text-danger">{payment.deleteReason}</p>
+            <p className="max-w-[16rem] truncate text-caption text-danger">{payment.deleteReason}</p>
           )}
         </>
       ),
@@ -205,7 +205,7 @@ export default function PaymentsPage() {
       cell: (payment: PaymentTableRow) => (
         <>
           {payment.isDeleted ? (
-            <span className="text-xs text-fg-subtle">—</span>
+            <span className="text-caption text-fg-subtle">—</span>
           ) : (
             <ActionMenu
               label={`${payment.code} amallari`}

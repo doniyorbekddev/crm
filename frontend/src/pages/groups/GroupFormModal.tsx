@@ -191,7 +191,7 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
               <li key={`${conflict.kind}-${conflict.groupId}`}>{conflict.message}</li>
             ))}
           </ul>
-          <p className="mt-1 text-xs">Saqlash uchun vaqtni yoki xonani o‘zgartiring.</p>
+          <p className="mt-1 text-caption">Saqlash uchun vaqtni yoki xonani o‘zgartiring.</p>
         </Alert>
       )}
       {formError && (
@@ -244,7 +244,7 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
                     key={preset.label}
                     type="button"
                     onClick={() => setValue('scheduleDays', preset.days, { shouldValidate: true })}
-                    className="rounded-full border border-border px-3 py-1 text-xs text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg"
+                    className="rounded-full border border-border px-3 py-1 text-caption text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg"
                   >
                     {preset.label}
                   </button>
@@ -252,7 +252,7 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
               </div>
               <div id="group-days" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {WEEK_DAY_ORDER.map((day) => (
-                  <label key={day} className="flex items-center gap-2 text-sm text-fg">
+                  <label key={day} className="flex items-center gap-2 text-body text-fg">
                     <Checkbox value={day} {...register('scheduleDays')} />
                     {WEEK_DAY_LABELS[day]}
                   </label>

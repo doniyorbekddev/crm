@@ -20,7 +20,7 @@ export function AchievementsCard({ profile }: { profile: PortalProfile }) {
           <Trophy className="size-4 text-fg-subtle" aria-hidden />
           Yutuqlar
         </CardTitle>
-        <span className="text-xs text-fg-muted">
+        <span className="text-caption text-fg-muted">
           {rank === null ? `${formatNumber(totalXp)} XP` : `Reytingda ${rank}-o‘rin · ${formatNumber(totalXp)} XP`}
         </span>
       </CardHeader>
@@ -32,15 +32,15 @@ export function AchievementsCard({ profile }: { profile: PortalProfile }) {
             {badges.map((badge) => (
               <li
                 key={badge.id}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
+                className="flex items-center gap-2 rounded-control border border-border px-3 py-2"
                 title={`${badge.description} · ${formatDate(badge.awardedAt)}`}
               >
                 <span className="text-lg" aria-hidden>
                   {badge.icon}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm text-fg">{badge.name}</span>
-                  <span className="block text-xs text-fg-subtle">{formatDate(badge.awardedAt)}</span>
+                  <span className="block text-body text-fg">{badge.name}</span>
+                  <span className="block text-caption text-fg-subtle">{formatDate(badge.awardedAt)}</span>
                 </span>
               </li>
             ))}

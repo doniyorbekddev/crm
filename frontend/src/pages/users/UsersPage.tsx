@@ -233,7 +233,7 @@ export default function UsersPage() {
                             </span>
                             {user.id === currentUser?.id && <Badge tone="blue">Siz</Badge>}
                           </p>
-                          <p className="truncate text-xs text-fg-muted">{user.email}</p>
+                          <p className="truncate text-caption text-fg-muted">{user.email}</p>
                         </div>
                       </div>
                     </>

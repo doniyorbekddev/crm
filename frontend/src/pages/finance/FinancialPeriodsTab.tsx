@@ -71,7 +71,7 @@ export function FinancialPeriodsTab() {
 
       <Card>
         <div className="flex items-center justify-between gap-2 border-b border-border p-3">
-          <p className="text-sm font-medium text-fg">Moliyaviy oylar</p>
+          <p className="text-label text-fg">Moliyaviy oylar</p>
           <Select value={year} onChange={(event) => setYear(Number(event.target.value))} aria-label="Yil" wrapperClassName="w-28">
             {YEAR_OPTIONS.map((value) => (
               <option key={value} value={value}>
@@ -101,7 +101,7 @@ export function FinancialPeriodsTab() {
                 cell: (period) => (
                   <>
                     {period.label}
-                    {period.isCurrent && <span className="ml-2 text-xs text-fg-muted">joriy</span>}
+                    {period.isCurrent && <span className="ml-2 text-caption text-fg-muted">joriy</span>}
                   </>
                 ),
               },
@@ -115,7 +115,7 @@ export function FinancialPeriodsTab() {
                     </Badge>
                     {period.status === 'OPEN' && period.reopenedAt && (
                       <Tooltip content={period.reopenReason ?? ''} describe={false} disabled={!period.reopenReason} wrapperClassName="mt-1 block">
-                        <span className="block text-xs text-warning">
+                        <span className="block text-caption text-warning">
                           qayta ochilgan
                           {period.reopenReason && <span className="sr-only">: {period.reopenReason}</span>}
                         </span>
@@ -159,7 +159,7 @@ export function FinancialPeriodsTab() {
               {
                 key: 'c6',
                 label: 'Yopilgan',
-                tdClassName: 'text-xs whitespace-nowrap text-fg-muted',
+                tdClassName: 'text-caption whitespace-nowrap text-fg-muted',
                 cell: (period) => (
                   <>
                     {period.closedAt && period.status === 'CLOSED'

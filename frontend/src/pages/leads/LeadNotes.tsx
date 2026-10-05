@@ -82,7 +82,7 @@ export function LeadNotes({ leadId, canAdd, canDeleteAny, currentUserId }: LeadN
             className="min-h-20"
           />
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-fg-subtle">{content.length} / 2000</span>
+            <span className="text-caption text-fg-subtle">{content.length} / 2000</span>
             <Button type="submit" size="sm" disabled={!trimmed} loading={addNote.isPending}>
               Izoh qo‘shish
             </Button>
@@ -92,8 +92,8 @@ export function LeadNotes({ leadId, canAdd, canDeleteAny, currentUserId }: LeadN
 
       {notesQuery.isPending ? (
         <div className="space-y-3">
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-control" />
+          <Skeleton className="h-16 rounded-control" />
         </div>
       ) : notesQuery.isError ? (
         <ErrorState error={notesQuery.error} onRetry={() => void notesQuery.refetch()} />
@@ -104,11 +104,11 @@ export function LeadNotes({ leadId, canAdd, canDeleteAny, currentUserId }: LeadN
           {notesQuery.data.map((note) => {
             const canDelete = canDeleteAny || note.author?.id === currentUserId;
             return (
-              <li key={note.id} className="rounded-lg border border-border bg-surface-muted/40 p-3">
+              <li key={note.id} className="rounded-control border border-border bg-surface-muted/40 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     {note.author && <Avatar firstName={note.author.firstName} lastName={note.author.lastName} size="xs" />}
-                    <p className="truncate text-xs text-fg-muted">
+                    <p className="truncate text-caption text-fg-muted">
                       <span className="font-medium text-fg">{note.author ? `${note.author.firstName} ${note.author.lastName}` : 'Noma’lum'}</span>
                       {' · '}
                       {formatDateTime(note.createdAt)}
@@ -119,13 +119,13 @@ export function LeadNotes({ leadId, canAdd, canDeleteAny, currentUserId }: LeadN
                       type="button"
                       onClick={() => setDeletingId(note.id)}
                       aria-label="Izohni o‘chirish"
-                      className="grid size-7 shrink-0 place-items-center rounded-md text-fg-subtle hover:bg-danger-subtle hover:text-danger"
+                      className="grid size-7 shrink-0 place-items-center rounded-chip text-fg-subtle hover:bg-danger-subtle hover:text-danger"
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>
                   )}
                 </div>
-                <p className="mt-2 text-sm whitespace-pre-wrap text-fg">{note.content}</p>
+                <p className="mt-2 text-body whitespace-pre-wrap text-fg">{note.content}</p>
               </li>
             );
           })}

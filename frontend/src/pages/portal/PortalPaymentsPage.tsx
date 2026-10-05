@@ -61,12 +61,12 @@ export default function PortalPaymentsPage() {
               ) : (
                 <ul className="divide-y divide-border">
                   {query.data.schedule.installments.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-body">
                       <div>
                         <p className="text-fg">
                           {item.sequence}-qism · {formatDate(item.dueDate)}
                         </p>
-                        {item.note && <p className="text-xs text-fg-muted">{item.note}</p>}
+                        {item.note && <p className="text-caption text-fg-muted">{item.note}</p>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="tabular-nums text-fg">
@@ -91,7 +91,7 @@ export default function PortalPaymentsPage() {
               ) : (
                 <ul className="divide-y divide-border">
                   {query.data.history.map((item) => (
-                    <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3 text-body">
                       <span className="text-fg-muted">{formatDateTime(item.paidAt)}</span>
                       <span className="flex items-center gap-3">
                         <Badge>{PAYMENT_METHOD_LABELS[item.method]}</Badge>

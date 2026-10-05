@@ -223,17 +223,17 @@ export function MoneyPage({ kind }: MoneyPageProps) {
       {stats && (
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="p-4">
-            <p className="text-xs text-fg-muted">Tanlangan davr</p>
-            <p className={cn('mt-1 text-xl font-semibold', isIncome ? 'text-success' : 'text-danger')}>
+            <p className="text-caption text-fg-muted">Tanlangan davr</p>
+            <p className={cn('mt-1 text-h2', isIncome ? 'text-success' : 'text-danger')}>
               {formatMoney(stats.total)}
             </p>
-            <p className="mt-1 text-xs text-fg-muted">{formatNumber(stats.count)} ta yozuv</p>
+            <p className="mt-1 text-caption text-fg-muted">{formatNumber(stats.count)} ta yozuv</p>
           </Card>
           {stats.byCategory.slice(0, 3).map((row) => (
             <Card key={row.id} className="p-4">
-              <p className="truncate text-xs text-fg-muted">{row.name}</p>
-              <p className="mt-1 text-xl font-semibold text-fg">{formatMoney(row.total)}</p>
-              <p className="mt-1 text-xs text-fg-muted">{formatNumber(row.count)} ta yozuv</p>
+              <p className="truncate text-caption text-fg-muted">{row.name}</p>
+              <p className="mt-1 text-h2 text-fg">{formatMoney(row.total)}</p>
+              <p className="mt-1 text-caption text-fg-muted">{formatNumber(row.count)} ta yozuv</p>
             </Card>
           ))}
         </div>
@@ -312,7 +312,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                   key: 'c0',
                   label: 'Raqam',
                   thClassName: 'w-20',
-                  tdClassName: 'font-mono text-xs text-fg-muted',
+                  tdClassName: 'font-mono text-caption text-fg-muted',
                   cell: (entry) => <>#{entry.number}</>,
                 },
                 {
@@ -336,17 +336,17 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                           </Badge>
                         )}
                       </p>
-                      {entry.description && <p className="truncate text-xs text-fg-muted">{entry.description}</p>}
+                      {entry.description && <p className="truncate text-caption text-fg-muted">{entry.description}</p>}
                       {(entry.vendor || entry.recurring || entry.source) && (
-                        <p className="truncate text-xs text-fg-muted">
+                        <p className="truncate text-caption text-fg-muted">
                           {[entry.vendor, entry.source?.name ?? null, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
                         </p>
                       )}
                       {entry.status === 'REJECTED' && entry.rejectReason && (
-                        <p className="truncate text-xs text-danger">{entry.rejectReason}</p>
+                        <p className="truncate text-caption text-danger">{entry.rejectReason}</p>
                       )}
                       {entry.isVoided && entry.voidReason && (
-                        <p className="truncate text-xs text-danger">{entry.voidReason}</p>
+                        <p className="truncate text-caption text-danger">{entry.voidReason}</p>
                       )}
                     </>
                   ),
@@ -367,7 +367,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                   cell: (entry) => (
                     <>
                       <Badge tone={PAYMENT_METHOD_TONES[entry.method]}>{PAYMENT_METHOD_LABELS[entry.method]}</Badge>
-                      {entry.account && <p className="mt-1 text-xs text-fg-muted">{entry.account.name}</p>}
+                      {entry.account && <p className="mt-1 text-caption text-fg-muted">{entry.account.name}</p>}
                     </>
                   ),
                 },
@@ -378,7 +378,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                   cell: (entry) => (
                     <>
                       {formatDate(entry.dueDate && entry.status !== 'PAID' ? entry.dueDate : entry.date)}
-                      {entry.status !== 'PAID' && entry.status !== 'REJECTED' && <p className="text-xs">muddat</p>}
+                      {entry.status !== 'PAID' && entry.status !== 'REJECTED' && <p className="text-caption">muddat</p>}
                     </>
                   ),
                 },

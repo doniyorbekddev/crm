@@ -61,8 +61,8 @@ export function LeadCalls({ leadId, canCreate, canUpdate, canDelete }: LeadCalls
 
       {callsQuery.isPending ? (
         <div className="space-y-3">
-          <Skeleton className="h-20 rounded-lg" />
-          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-control" />
+          <Skeleton className="h-20 rounded-control" />
         </div>
       ) : callsQuery.isError ? (
         <ErrorState error={callsQuery.error} onRetry={() => void callsQuery.refetch()} />
@@ -77,7 +77,7 @@ export function LeadCalls({ leadId, canCreate, canUpdate, canDelete }: LeadCalls
           {callsQuery.data.items.map((call) => {
             const Icon = call.direction === 'INCOMING' ? PhoneIncoming : PhoneCall;
             return (
-              <li key={call.id} className="rounded-lg border border-border bg-surface-muted/40 p-3">
+              <li key={call.id} className="rounded-control border border-border bg-surface-muted/40 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 gap-3">
                     <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-surface text-fg-muted">
@@ -90,17 +90,17 @@ export function LeadCalls({ leadId, canCreate, canUpdate, canDelete }: LeadCalls
                         ) : (
                           <Badge>{CALL_STATUS_LABELS[call.status]}</Badge>
                         )}
-                        <span className="text-xs text-fg-muted">
+                        <span className="text-caption text-fg-muted">
                           {CALL_DIRECTION_LABELS[call.direction]} · {formatCallDuration(call.durationSec)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-fg-muted">
+                      <p className="mt-1 text-caption text-fg-muted">
                         {formatDateTime(call.calledAt)}
                         {call.manager && ` · ${call.manager.firstName} ${call.manager.lastName}`}
                       </p>
-                      {call.notes && <p className="mt-2 text-sm whitespace-pre-wrap text-fg">{call.notes}</p>}
+                      {call.notes && <p className="mt-2 text-body whitespace-pre-wrap text-fg">{call.notes}</p>}
                       {call.nextCallAt && (
-                        <p className="mt-2 text-xs text-fg-muted">Keyingi qo‘ng‘iroq: {formatDateTime(call.nextCallAt)}</p>
+                        <p className="mt-2 text-caption text-fg-muted">Keyingi qo‘ng‘iroq: {formatDateTime(call.nextCallAt)}</p>
                       )}
                     </div>
                   </div>

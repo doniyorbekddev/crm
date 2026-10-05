@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: 8 }, (_, index) => (
-              <Skeleton key={index} className="h-24 rounded-xl" />
+              <Skeleton key={index} className="h-24 rounded-card" />
             ))}
           </div>
         )}
@@ -165,21 +165,21 @@ export default function AnalyticsPage() {
             <>
               <div className="grid grid-cols-2 gap-3 border-b border-border p-4 lg:grid-cols-4">
                 <div>
-                  <p className="text-xs text-fg-muted">Sof tushum</p>
+                  <p className="text-caption text-fg-muted">Sof tushum</p>
                   <p className="mt-0.5 font-semibold tabular-nums text-fg">{formatMoney(profitability.totals.revenue)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-fg-muted">O‘qituvchi xarajati</p>
+                  <p className="text-caption text-fg-muted">O‘qituvchi xarajati</p>
                   <p className="mt-0.5 font-semibold tabular-nums text-fg">{formatMoney(profitability.totals.teacherCost + profitability.totals.unallocatedCost)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-fg-muted">Hissa (contribution)</p>
+                  <p className="text-caption text-fg-muted">Hissa (contribution)</p>
                   <p className={cn('mt-0.5 font-semibold tabular-nums', profitability.totals.contribution < 0 ? 'text-danger' : 'text-success')}>
                     {signedMoney(profitability.totals.contribution)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-fg-muted">Marja</p>
+                  <p className="text-caption text-fg-muted">Marja</p>
                   <p className="mt-0.5 font-semibold tabular-nums text-fg">{profitability.totals.margin === null ? '—' : `${profitability.totals.margin}%`}</p>
                 </div>
               </div>
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
                   <TBody>
                     {profitability.rows.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-fg-muted">
+                        <td colSpan={7} className="px-4 py-8 text-center text-body text-fg-muted">
                           Tanlangan davrda ma’lumot yo‘q
                         </td>
                       </tr>
@@ -230,7 +230,7 @@ export default function AnalyticsPage() {
                         <TR key={row.id}>
                           <TD>
                             <p className="font-medium whitespace-nowrap text-fg">{row.name}</p>
-                            {row.subtitle && <p className="text-xs whitespace-nowrap text-fg-muted">{row.subtitle}</p>}
+                            {row.subtitle && <p className="text-caption whitespace-nowrap text-fg-muted">{row.subtitle}</p>}
                           </TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(row.revenue)}</TD>
                           <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{row.teacherCost > 0 ? formatMoney(row.teacherCost) : '—'}</TD>
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
                   </TBody>
                 </Table>
               </TableContainer>
-              <p className="border-t border-border px-4 py-2.5 text-xs text-fg-muted">
+              <p className="border-t border-border px-4 py-2.5 text-caption text-fg-muted">
                 O‘qituvchi maoshi kurs va guruhlarga o‘qituvchining shu davrdagi tushum ulushiga qarab taqsimlanadi.
                 {profitability.totals.unallocatedCost > 0 &&
                   ` Davrda tushum keltirmagan o‘qituvchilar maoshi (${formatMoney(profitability.totals.unallocatedCost)}) taqsimlanmagan, lekin jami hissadan ayrilgan.`}
@@ -287,7 +287,7 @@ export default function AnalyticsPage() {
             ) : (
               <>
                 <TableContainer>
-                  <table aria-label="O‘quvchilar kohortlari" className="w-full border-separate border-spacing-0.5 text-xs">
+                  <table aria-label="O‘quvchilar kohortlari" className="w-full border-separate border-spacing-0.5 text-caption">
                     <thead>
                       <tr className="text-fg-muted">
                         <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Qo‘shilgan oy</th>
@@ -333,7 +333,7 @@ export default function AnalyticsPage() {
                     </tbody>
                   </table>
                 </TableContainer>
-                <p className="border-t border-border px-4 py-2.5 text-xs text-fg-muted">
+                <p className="border-t border-border px-4 py-2.5 text-caption text-fg-muted">
                   Har bir katak — kohortdagi o‘quvchilarning shu oy oxirida hali ketmaganlar ulushi. Yakunlaganlar ketgan hisoblanmaydi.
                 </p>
               </>
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
                   <TBody>
                     {sourcesQuery.data.rows.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center text-sm text-fg-muted">
+                        <td colSpan={10} className="px-4 py-8 text-center text-body text-fg-muted">
                           Tanlangan davrda lead yo‘q
                         </td>
                       </tr>
@@ -413,7 +413,7 @@ export default function AnalyticsPage() {
               </TableContainer>
             )}
             {sourcesQuery.data && sourcesQuery.data.totals.unattributedSpend > 0 && (
-              <p className="border-t border-border px-4 py-2.5 text-xs text-fg-muted">
+              <p className="border-t border-border px-4 py-2.5 text-caption text-fg-muted">
                 Kanalga bog‘lanmagan reklama xarajati: {formatMoney(sourcesQuery.data.totals.unattributedSpend)} — xarajatni kiritishda manbani tanlasangiz, ROI
                 aniqroq bo‘ladi.
               </p>

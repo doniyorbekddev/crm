@@ -144,7 +144,7 @@ export function FollowUpFormModal({ leadId, followUp, onClose, onSaved }: Follow
               key={suggestion}
               type="button"
               onClick={() => setValue('title', suggestion, { shouldValidate: true })}
-              className="rounded-full border border-border px-3 py-1 text-xs text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg"
+              className="rounded-full border border-border px-3 py-1 text-caption text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg"
             >
               {suggestion}
             </button>

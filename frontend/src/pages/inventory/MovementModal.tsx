@@ -85,7 +85,7 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
 
       <div className="space-y-3">
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Harakat turi</span>
+          <span className="mb-1 block text-body text-fg-muted">Harakat turi</span>
           <Select
             value={type}
             onChange={(event) => {
@@ -104,11 +104,11 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Miqdor ({product.unit})</span>
+            <span className="mb-1 block text-body text-fg-muted">Miqdor ({product.unit})</span>
             <Input type="number" min={1} value={quantity} onChange={(event) => setQuantity(event.target.value)} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm text-fg-muted">Bir dona narxi</span>
+            <span className="mb-1 block text-body text-fg-muted">Bir dona narxi</span>
             <Input
               type="number"
               min={0}
@@ -120,20 +120,20 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
         </div>
 
         <label className="block">
-          <span className="mb-1 block text-sm text-fg-muted">Sabab / izoh</span>
+          <span className="mb-1 block text-body text-fg-muted">Sabab / izoh</span>
           <Input value={reason} placeholder="Masalan: yangi partiya, singan" onChange={(event) => setReason(event.target.value)} />
         </label>
 
         {moneyPossible && (
-          <div className="rounded-lg border border-border bg-surface-muted p-3">
-            <label className="flex items-center gap-2 text-sm text-fg">
+          <div className="rounded-control border border-border bg-surface-muted p-3">
+            <label className="flex items-center gap-2 text-body text-fg">
               <Checkbox checked={withMoney} onChange={(event) => setWithMoney(event.target.checked)} />
               {type === 'SALE' ? 'Tushum ham yozilsin' : 'Xarajat ham yozilsin'} ({formatMoney(amount)})
             </label>
             {withMoney && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1 block text-xs text-fg-muted">Kategoriya</span>
+                  <span className="mb-1 block text-caption text-fg-muted">Kategoriya</span>
                   <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="Kategoriya">
                     <option value="">Tanlang</option>
                     {(categoriesQuery.data ?? []).map((category) => (
@@ -144,7 +144,7 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
                   </Select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-fg-muted">To‘lov usuli</span>
+                  <span className="mb-1 block text-caption text-fg-muted">To‘lov usuli</span>
                   <Select value={method} onChange={(event) => setMethod(event.target.value as typeof method)} aria-label="To‘lov usuli">
                     <option value="CASH">Naqd</option>
                     <option value="CARD">Karta</option>

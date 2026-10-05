@@ -41,7 +41,7 @@ export default function PortalLessonPage() {
 
   return (
     <div>
-      <Link to="/portal/course" className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+      <Link to="/portal/course" className="mb-3 inline-flex items-center gap-1 text-body text-fg-muted hover:text-fg">
         <ArrowLeft className="size-4" aria-hidden />
         Kurs darslari
       </Link>
@@ -59,7 +59,7 @@ export default function PortalLessonPage() {
               {lesson.completed ? 'O‘rganildi' : 'O‘rgandim'}
             </Button>
           ) : lesson.completed ? (
-            <span className="inline-flex items-center gap-1 text-sm text-success">
+            <span className="inline-flex items-center gap-1 text-body text-success">
               <CheckCircle2 className="size-4" aria-hidden />
               Farzandingiz o‘rgangan
             </span>
@@ -68,7 +68,7 @@ export default function PortalLessonPage() {
       />
 
       <div className="space-y-4">
-        {lesson.description && <p className="text-sm text-fg-muted">{lesson.description}</p>}
+        {lesson.description && <p className="text-body text-fg-muted">{lesson.description}</p>}
         {lesson.videoUrl && <LessonVideo url={lesson.videoUrl} title={lesson.title} />}
         {lesson.content && (
           <Card>

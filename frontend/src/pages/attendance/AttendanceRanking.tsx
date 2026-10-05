@@ -1,3 +1,4 @@
+import { RankMark } from '@/components/RankMark';
 import { DataTable } from '@/components/ui/DataTable';
 import { useQuery } from '@tanstack/react-query';
 import { Flame, Trophy } from 'lucide-react';
@@ -50,19 +51,6 @@ function rangeFor(period: Period): { from?: string; to?: string } {
 }
 
 /** Birinchi uch o'rin ajratib ko'rsatiladi (emoji o'rniga belgi) */
-function Rank({ place }: { place: number }) {
-  return (
-    <span
-      className={cn(
-        'inline-grid size-6 place-items-center rounded-chip text-caption font-semibold tabular-nums',
-        place === 1 ? 'bg-warning-subtle text-warning' : place <= 3 ? 'bg-primary-subtle text-primary' : 'text-fg-muted',
-      )}
-    >
-      {place}
-    </span>
-  );
-}
-
 export function AttendanceRanking() {
   const [period, setPeriod] = useState<Period>('month');
   const [courseId, setCourseId] = useState('');
@@ -160,7 +148,7 @@ export function AttendanceRanking() {
               tdClassName: 'whitespace-nowrap',
               cell: (row) => (
                 <>
-                  <Rank place={row.place} />
+                  <RankMark place={row.place} />
                 </>
               ),
             },
@@ -172,7 +160,7 @@ export function AttendanceRanking() {
                   <p className="font-medium text-fg">
                     {row.firstName} {row.lastName}
                   </p>
-                  <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
+                  <p className="font-mono text-caption text-fg-subtle">{row.code}</p>
                 </>
               ),
             },
@@ -182,7 +170,7 @@ export function AttendanceRanking() {
               cell: (row) => (
                 <>
                   <p className="text-fg">{row.courseName}</p>
-                  <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
+                  <p className="text-caption text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
                 </>
               ),
             },
@@ -212,7 +200,7 @@ export function AttendanceRanking() {
               cell: (row) => (
                 <>
                   {row.streak > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-sm text-warning">
+                    <span className="inline-flex items-center gap-1 text-body text-warning">
                       <Flame className="size-3.5" aria-hidden />
                       {row.streak}
                     </span>
@@ -231,7 +219,7 @@ export function AttendanceRanking() {
                 <>
                   <span
                     className={cn(
-                      'text-sm font-semibold',
+                      'text-h4',
                       row.rate >= 90
                         ? 'text-success'
                         : row.rate >= 75

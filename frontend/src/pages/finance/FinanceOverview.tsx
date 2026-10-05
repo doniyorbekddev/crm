@@ -1,6 +1,7 @@
+import { EmptyState } from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Inbox, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -38,7 +39,7 @@ function KpiCard({ label, value, hint, tone = 'default' }: { label: string; valu
 /** Kategoriya kesimi — eng kattasiga nisbatan progress chizig‘i bilan */
 function CategoryList({ rows, tone }: { rows: Array<{ name: string; total: number; count: number }>; tone: 'income' | 'expense' }) {
   if (rows.length === 0) {
-    return <p className="px-4 py-6 text-center text-sm text-fg-muted">Ma’lumot yo‘q</p>;
+    return <EmptyState size="sm" icon={Inbox} title="Ma’lumot yo‘q" description="Tanlangan davrda yozuv qayd etilmagan" />;
   }
   const max = Math.max(...rows.map((row) => row.total), 1);
 
@@ -46,7 +47,7 @@ function CategoryList({ rows, tone }: { rows: Array<{ name: string; total: numbe
     <ul className="divide-y divide-border">
       {rows.slice(0, 8).map((row) => (
         <li key={row.name} className="px-4 py-2.5">
-          <div className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center justify-between gap-3 text-body">
             <span className="min-w-0 truncate text-fg">{row.name}</span>
             <span className="shrink-0 font-medium text-fg">{formatMoney(row.total)}</span>
           </div>
@@ -57,7 +58,7 @@ function CategoryList({ rows, tone }: { rows: Array<{ name: string; total: numbe
                 style={{ width: `${Math.max((row.total / max) * 100, 2)}%` }}
               />
             </div>
-            <span className="w-12 shrink-0 text-right text-xs text-fg-muted">{formatNumber(row.count)} ta</span>
+            <span className="w-12 shrink-0 text-right text-caption text-fg-muted">{formatNumber(row.count)} ta</span>
           </div>
         </li>
       ))}
@@ -90,7 +91,7 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
       {summaryQuery.isPending || !summary ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-card" />
           ))}
         </div>
       ) : (
@@ -125,7 +126,7 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Tushum kesimi</CardTitle>
-                <span className="text-xs text-fg-muted">{formatMoney(summary.income)}</span>
+                <span className="text-caption text-fg-muted">{formatMoney(summary.income)}</span>
               </CardHeader>
               <CardContent className="p-0">
                 <CategoryList rows={summary.incomeByCategory} tone="income" />
@@ -134,7 +135,7 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Xarajat kesimi</CardTitle>
-                <span className="text-xs text-fg-muted">{formatMoney(summary.expense)}</span>
+                <span className="text-caption text-fg-muted">{formatMoney(summary.expense)}</span>
               </CardHeader>
               <CardContent className="p-0">
                 <CategoryList rows={summary.expenseByCategory} tone="expense" />
@@ -174,23 +175,23 @@ export function FinanceOverview({ range }: FinanceOverviewProps) {
                   <li key={account.id} className={cn('flex flex-wrap items-center gap-3 px-4 py-3', !account.isActive && 'opacity-60')}>
                     <Wallet className="size-4 shrink-0 text-fg-subtle" aria-hidden />
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-2 text-sm font-medium text-fg">
+                      <p className="flex items-center gap-2 text-label text-fg">
                         {account.name}
                         <Badge tone="gray">{ACCOUNT_TYPE_LABELS[account.type]}</Badge>
                         {!account.isActive && <Badge tone="red">Faolsiz</Badge>}
                       </p>
-                      <p className="text-xs text-fg-muted">
+                      <p className="text-caption text-fg-muted">
                         Davrda: +{formatMoney(account.income)} · −{formatMoney(account.expense)} ·{' '}
                         {formatNumber(account.transactions)} yozuv
                       </p>
                     </div>
-                    <p className="text-sm font-semibold whitespace-nowrap text-fg">{formatMoney(account.balance)}</p>
+                    <p className="text-h4 whitespace-nowrap text-fg">{formatMoney(account.balance)}</p>
                   </li>
                 ))}
               </ul>
               <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                <span className="text-sm font-medium text-fg">Jami qoldiq</span>
-                <span className="text-base font-semibold text-fg">{formatMoney(accountsQuery.data.totalBalance)}</span>
+                <span className="text-label text-fg">Jami qoldiq</span>
+                <span className="text-h3 text-fg">{formatMoney(accountsQuery.data.totalBalance)}</span>
               </div>
             </>
           )}

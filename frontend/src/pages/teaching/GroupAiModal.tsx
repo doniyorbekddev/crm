@@ -43,8 +43,8 @@ function RemedialPlan({ plan, onDone }: { plan: AiAnalysis<RemedialResult>; onDo
 
   return (
     <section aria-label="Remedial reja" className="space-y-3 rounded-control border border-primary-border bg-primary-subtle/40 p-3">
-      <h4 className="text-sm font-semibold text-fg">Remedial reja: {plan.result.topic.title}</h4>
-      <ol className="space-y-1 text-sm">
+      <h4 className="text-h4 text-fg">Remedial reja: {plan.result.topic.title}</h4>
+      <ol className="space-y-1 text-body">
         {plan.result.steps.map((step, index) => (
           <li key={step.kind} className="flex gap-2">
             <span className="w-5 shrink-0 text-fg-muted">{index + 1}.</span>
@@ -55,7 +55,7 @@ function RemedialPlan({ plan, onDone }: { plan: AiAnalysis<RemedialResult>; onDo
         ))}
       </ol>
       {decision ? (
-        <p className="text-sm text-success">
+        <p className="text-body text-success">
           Yaratildi: <Link to="/homework" className="underline">qoralama vazifa</Link>
           {decision.examId ? (
             <>
@@ -124,14 +124,14 @@ export function GroupAiModal({ group, onClose }: { group: { id: string; name: st
           <div className="flex items-center gap-2">
             <AiSourceBadge source={analysis.source} model={analysis.model} />
           </div>
-          <p className="text-sm text-fg">{analysis.summary}</p>
+          <p className="text-body text-fg">{analysis.summary}</p>
           <InsightList items={analysis.result.items} />
           {analysis.result.actions.length > 0 && (
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-fg">Tavsiya etilgan amallar</h4>
+              <h4 className="mb-2 text-h4 text-fg">Tavsiya etilgan amallar</h4>
               <ul className="space-y-2">
                 {analysis.result.actions.map((action) => (
-                  <li key={action.topicId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                  <li key={action.topicId} className="flex flex-wrap items-center justify-between gap-2 rounded-chip border border-border px-3 py-2 text-body">
                     <span className="text-fg">{action.text}</span>
                     <Button variant="secondary" leftIcon={<Wand2 className="size-4" aria-hidden />} loading={propose.isPending && propose.variables === action.topicId} onClick={() => propose.mutate(action.topicId)}>
                       Remedial reja

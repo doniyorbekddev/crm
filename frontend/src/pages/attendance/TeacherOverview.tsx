@@ -26,7 +26,7 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((index) => (
-          <Skeleton key={index} className="h-24 rounded-xl" />
+          <Skeleton key={index} className="h-24 rounded-card" />
         ))}
       </div>
     );
@@ -43,29 +43,29 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
-          <p className="text-xs text-fg-muted">Bugungi darslar</p>
-          <p className="mt-1 text-xl font-semibold text-fg">{formatNumber(data.todayLessons)}</p>
-          <p className="mt-1 text-xs text-fg-muted">{formatDate(data.date)}</p>
+          <p className="text-caption text-fg-muted">Bugungi darslar</p>
+          <p className="mt-1 text-h2 text-fg">{formatNumber(data.todayLessons)}</p>
+          <p className="mt-1 text-caption text-fg-muted">{formatDate(data.date)}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-fg-muted">Davomat belgilandi</p>
-          <p className={cn('mt-1 text-xl font-semibold', pending > 0 ? 'text-warning' : 'text-success')}>
+          <p className="text-caption text-fg-muted">Davomat belgilandi</p>
+          <p className={cn('mt-1 text-h2', pending > 0 ? 'text-warning' : 'text-success')}>
             {formatNumber(data.markedLessons)} / {formatNumber(data.todayLessons)}
           </p>
-          <p className="mt-1 text-xs text-fg-muted">{pending > 0 ? `${pending} ta dars kutilmoqda` : 'Hammasi belgilangan'}</p>
+          <p className="mt-1 text-caption text-fg-muted">{pending > 0 ? `${pending} ta dars kutilmoqda` : 'Hammasi belgilangan'}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-fg-muted">Bugun kelmaganlar</p>
-          <p className={cn('mt-1 text-xl font-semibold', data.todayAbsent.length > 0 ? 'text-danger' : 'text-fg')}>
+          <p className="text-caption text-fg-muted">Bugun kelmaganlar</p>
+          <p className={cn('mt-1 text-h2', data.todayAbsent.length > 0 ? 'text-danger' : 'text-fg')}>
             {formatNumber(data.todayAbsent.length)}
           </p>
-          <p className="mt-1 text-xs text-fg-muted">sababsiz qoldirganlar</p>
+          <p className="mt-1 text-caption text-fg-muted">sababsiz qoldirganlar</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-fg-muted">Oylik davomat</p>
+          <p className="text-caption text-fg-muted">Oylik davomat</p>
           <p
             className={cn(
-              'mt-1 text-xl font-semibold',
+              'mt-1 text-h2',
               data.monthRate >= 90
                 ? 'text-success'
                 : data.monthRate >= 75
@@ -75,7 +75,7 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
           >
             {data.monthRate}%
           </p>
-          <p className="mt-1 text-xs text-fg-muted">{formatNumber(data.monthCounts.total)} ta belgi</p>
+          <p className="mt-1 text-caption text-fg-muted">{formatNumber(data.monthCounts.total)} ta belgi</p>
         </Card>
       </div>
 
@@ -97,8 +97,8 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
                       className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-muted"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-fg">{group.name}</p>
-                        <p className="truncate text-xs text-fg-muted">
+                        <p className="truncate text-label text-fg">{group.name}</p>
+                        <p className="truncate text-caption text-fg-muted">
                           {group.courseName} · {group.startTime}–{group.endTime} · {formatNumber(group.students)} o‘quvchi
                         </p>
                       </div>
@@ -137,14 +137,14 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
                 {data.todayAbsent.map((student) => (
                   <li key={student.studentId} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-fg">
+                      <p className="truncate text-body text-fg">
                         {student.firstName} {student.lastName}
                       </p>
-                      <p className="truncate text-xs text-fg-muted">{student.groupName}</p>
+                      <p className="truncate text-caption text-fg-muted">{student.groupName}</p>
                     </div>
                     <a
                       href={`tel:${student.phone}`}
-                      className="inline-flex shrink-0 items-center gap-1.5 text-xs text-primary hover:underline"
+                      className="inline-flex shrink-0 items-center gap-1.5 text-caption text-primary hover:underline"
                     >
                       <Phone className="size-3.5" aria-hidden />
                       {formatPhone(student.phone)}

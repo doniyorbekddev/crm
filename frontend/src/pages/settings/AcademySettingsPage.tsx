@@ -104,8 +104,8 @@ function LogoCard({ settings }: { settings: AcademySettings }) {
         <CardDescription>PNG, JPG yoki WEBP, 2 MB gacha. Kirish sahifasi va menyuda ko‘rinadi.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-4">
-        <div className="grid size-20 place-items-center overflow-hidden rounded-xl border border-border bg-surface-muted">
-          {logo ? <img src={logo} alt="Joriy logo" className="size-full object-contain" /> : <span className="text-xs text-fg-subtle">Logo yo‘q</span>}
+        <div className="grid size-20 place-items-center overflow-hidden rounded-card border border-border bg-surface-muted">
+          {logo ? <img src={logo} alt="Joriy logo" className="size-full object-contain" /> : <span className="text-caption text-fg-subtle">Logo yo‘q</span>}
         </div>
         <input
           ref={input}
@@ -226,7 +226,7 @@ function SettingsForm({ settings }: { settings: AcademySettings }) {
                   const error = errors[`workingHours.${index}.to`] ?? errors[`workingHours.${index}.from`];
                   return (
                     <li key={row.day} className="flex flex-wrap items-center gap-3 py-2">
-                      <span className="w-28 text-sm font-medium text-fg">{DAY_LABELS[row.day]}</span>
+                      <span className="w-28 text-label text-fg">{DAY_LABELS[row.day]}</span>
                       <Checkbox label="Ochiq" checked={row.isOpen} onChange={(event) => patchDay(index, { isOpen: event.target.checked })} />
                       <Input type="time" aria-label={`${DAY_LABELS[row.day]} — ochilish`} className="h-9 w-28" disabled={!row.isOpen} value={row.from} onChange={(event) => patchDay(index, { from: event.target.value })} />
                       <span className="text-fg-muted">—</span>
@@ -240,7 +240,7 @@ function SettingsForm({ settings }: { settings: AcademySettings }) {
                         onChange={(event) => patchDay(index, { to: event.target.value })}
                       />
                       {error && (
-                        <p role="alert" className="w-full text-xs text-danger">
+                        <p role="alert" className="w-full text-caption text-danger">
                           {error}
                         </p>
                       )}
@@ -286,7 +286,7 @@ function SettingsForm({ settings }: { settings: AcademySettings }) {
 
           <div className="flex flex-wrap items-center justify-end gap-3">
             {settings.updatedAt && (
-              <span className="text-xs text-fg-muted">
+              <span className="text-caption text-fg-muted">
                 Oxirgi o‘zgarish: {formatDateTime(settings.updatedAt)}
                 {settings.updatedBy ? ` · ${settings.updatedBy.firstName} ${settings.updatedBy.lastName}` : ''}
               </span>

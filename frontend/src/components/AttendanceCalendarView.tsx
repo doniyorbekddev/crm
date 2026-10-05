@@ -43,7 +43,7 @@ export function MonthSwitcher({ year, month, onShift }: { year: number; month: n
       <Button variant="ghost" size="icon" aria-label="Oldingi oy" onClick={() => onShift(-1)}>
         <ChevronLeft className="size-4" aria-hidden />
       </Button>
-      <p className="text-sm font-medium text-fg">
+      <p className="text-label text-fg">
         {MONTH_NAMES[month - 1]} {year}
       </p>
       <Button variant="ghost" size="icon" aria-label="Keyingi oy" onClick={() => onShift(1)}>
@@ -78,7 +78,7 @@ export function AttendanceCalendarView({ calendar }: { calendar: AttendanceCalen
               key={day.date}
               title={day.status ? `${formatDate(day.date)} — ${day.statusLabel}${day.note ? ` (${day.note})` : ''}` : formatDate(day.date)}
               className={cn(
-                'grid aspect-square place-items-center rounded-lg text-xs',
+                'grid aspect-square place-items-center rounded-control text-caption',
                 day.status ? DAY_CLASSES[day.status] : 'bg-surface-muted text-fg-subtle',
               )}
             >
@@ -96,21 +96,21 @@ export function AttendanceCalendarView({ calendar }: { calendar: AttendanceCalen
         ))}
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-border bg-surface-muted p-3 sm:grid-cols-3">
+      <div className="grid gap-3 rounded-card border border-border bg-surface-muted p-3 sm:grid-cols-3">
         <div>
-          <p className="text-xs text-fg-muted">Shu oy davomati</p>
+          <p className="text-caption text-fg-muted">Shu oy davomati</p>
           <p className="text-lg font-semibold text-fg">{calendar.month_.rate}%</p>
-          <p className="text-xs text-fg-muted">{formatNumber(calendar.month_.total)} ta dars</p>
+          <p className="text-caption text-fg-muted">{formatNumber(calendar.month_.total)} ta dars</p>
         </div>
         <div>
-          <p className="text-xs text-fg-muted">Umumiy davomat</p>
+          <p className="text-caption text-fg-muted">Umumiy davomat</p>
           <p className="text-lg font-semibold text-fg">{calendar.overall.rate}%</p>
-          <p className="text-xs text-fg-muted">{formatNumber(calendar.overall.total)} ta dars</p>
+          <p className="text-caption text-fg-muted">{formatNumber(calendar.overall.total)} ta dars</p>
         </div>
         <div>
-          <p className="text-xs text-fg-muted">Sababsiz qoldirgan</p>
+          <p className="text-caption text-fg-muted">Sababsiz qoldirgan</p>
           <p className="text-lg font-semibold text-danger">{formatNumber(calendar.overall.ABSENT)}</p>
-          <p className="text-xs text-fg-muted">butun davr bo‘yicha</p>
+          <p className="text-caption text-fg-muted">butun davr bo‘yicha</p>
         </div>
       </div>
     </>

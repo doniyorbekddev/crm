@@ -38,16 +38,16 @@ function addMonthsClamped(date: string, months: number): string {
 function Tile({ label, value, hint, tone }: { label: string; value: string; hint: string; tone?: 'good' | 'bad' }) {
   return (
     <Card className="min-w-0 p-3 sm:p-4">
-      <p className="text-xs text-fg-muted">{label}</p>
+      <p className="text-caption text-fg-muted">{label}</p>
       <p
         className={cn(
-          'mt-1 text-base font-semibold break-words sm:text-lg',
+          'mt-1 text-h3 break-words sm:text-lg',
           tone === 'bad' ? 'text-danger' : tone === 'good' ? 'text-success' : 'text-fg',
         )}
       >
         {value}
       </p>
-      <p className="mt-0.5 text-xs text-fg-muted">{hint}</p>
+      <p className="mt-0.5 text-caption text-fg-muted">{hint}</p>
     </Card>
   );
 }
@@ -113,7 +113,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-3">
-          <p className="text-sm font-medium text-fg">
+          <p className="text-label text-fg">
             To‘lov jadvali
             {hasSchedule && <span className="ml-1 font-normal text-fg-muted">· {schedule.installments.length} ta qism</span>}
           </p>
@@ -165,7 +165,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
                 cell: (item) => (
                   <>
                     <p className="text-fg">{formatDate(item.dueDate)}</p>
-                    {item.note && <p className="max-w-56 truncate text-xs text-fg-muted">{item.note}</p>}
+                    {item.note && <p className="max-w-56 truncate text-caption text-fg-muted">{item.note}</p>}
                   </>
                 ),
               },
@@ -199,7 +199,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
                   <>
                     <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>{INSTALLMENT_STATUS_LABELS[item.status]}</Badge>
                     {item.status === 'OVERDUE' && (
-                      <p className="mt-0.5 text-xs text-danger">{item.overdueDays} kun kechikdi</p>
+                      <p className="mt-0.5 text-caption text-danger">{item.overdueDays} kun kechikdi</p>
                     )}
                   </>
                 ),
@@ -297,7 +297,7 @@ function GenerateScheduleModal({ studentId, contractTotal, defaultCount, default
         </FormField>
       </div>
       {valid && perInstallment > 0 && (
-        <p className="mt-3 text-sm text-fg-muted">
+        <p className="mt-3 text-body text-fg-muted">
           Har oy taxminan {formatMoney(perInstallment)} — yuvarlashdan qolgan farq oxirgi qismga qo‘shiladi.
         </p>
       )}
@@ -398,9 +398,9 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
 
       <ol className="space-y-3">
         {rows.map((row, index) => (
-          <li key={row.key} className="rounded-xl border border-border p-3">
+          <li key={row.key} className="rounded-card border border-border p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-fg">{index + 1}-qism</span>
+              <span className="text-label text-fg">{index + 1}-qism</span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -448,7 +448,7 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
         >
           Qism qo‘shish
         </Button>
-        <div className="text-right text-sm">
+        <div className="text-right text-body">
           <p className="text-fg">Jami: {formatMoney(total)}</p>
           {difference > 0 && <p className="text-warning">Yana {formatMoney(difference)} taqsimlash kerak</p>}
           {difference < 0 && <p className="text-danger">Shartnomadan {formatMoney(-difference)} ortiq</p>}

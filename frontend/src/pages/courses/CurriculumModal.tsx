@@ -95,8 +95,8 @@ export function CurriculumModal({ course, onClose }: CurriculumModalProps) {
       footer={<Button onClick={onClose}>Yopish</Button>}
     >
       {canMark && (groupsQuery.data?.items.length ?? 0) > 0 && (
-        <div className="mb-4 flex flex-col gap-2 rounded-lg border border-border bg-surface-muted p-3 sm:flex-row sm:items-center">
-          <span className="text-sm text-fg-muted">Mavzuni belgilash uchun guruh:</span>
+        <div className="mb-4 flex flex-col gap-2 rounded-control border border-border bg-surface-muted p-3 sm:flex-row sm:items-center">
+          <span className="text-body text-fg-muted">Mavzuni belgilash uchun guruh:</span>
           <Select value={groupId} onChange={(event) => setGroupId(event.target.value)} aria-label="Guruh" wrapperClassName="sm:w-56">
             <option value="">Tanlanmagan</option>
             {(groupsQuery.data?.items ?? []).map((group) => (
@@ -121,7 +121,7 @@ export function CurriculumModal({ course, onClose }: CurriculumModalProps) {
       ) : (
         <div className="space-y-4">
           {curriculum?.modules.map((module) => (
-            <div key={module.id} className="rounded-lg border border-border p-3">
+            <div key={module.id} className="rounded-control border border-border p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-medium text-fg">{module.title}</p>
                 <Badge tone="gray">{module.topics.length} ta mavzu</Badge>
@@ -131,8 +131,8 @@ export function CurriculumModal({ course, onClose }: CurriculumModalProps) {
                 {module.topics.map((topic) => (
                   <li key={topic.id} className="flex items-center justify-between gap-3 py-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-fg">{topic.title}</p>
-                      <p className="text-xs text-fg-subtle">
+                      <p className="truncate text-body text-fg">{topic.title}</p>
+                      <p className="text-caption text-fg-subtle">
                         {topic.lessonCount} dars
                         {typeof topic.completedCount === 'number' && topic.completedCount > 0
                           ? ` · ${topic.completedCount} o‘quvchi tugatgan`

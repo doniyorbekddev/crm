@@ -72,8 +72,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(v
 function ChangesView({ before, after }: { before: Record<string, unknown>; after: Record<string, unknown> }) {
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table aria-label="Audit jurnali" className="w-full text-xs">
+    <div className="overflow-x-auto rounded-control border border-border">
+      <table aria-label="Audit jurnali" className="w-full text-caption">
         <thead className="bg-surface-muted text-fg-muted">
           <tr>
             <th className="px-2 py-1.5 text-left font-medium">Maydon</th>
@@ -100,7 +100,7 @@ function ChangesView({ before, after }: { before: Record<string, unknown>; after
 
 function MetadataView({ metadata }: { metadata: unknown }) {
   if (!isRecord(metadata)) {
-    return <p className="text-xs text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
+    return <p className="text-caption text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
   }
   if (isRecord(metadata.before) && isRecord(metadata.after)) {
     const { before, after, ...rest } = metadata;
@@ -113,13 +113,13 @@ function MetadataView({ metadata }: { metadata: unknown }) {
   }
   const entries = Object.entries(metadata);
   if (entries.length === 0) {
-    return <p className="text-xs text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
+    return <p className="text-caption text-fg-muted">Qo‘shimcha ma’lumot yo‘q</p>;
   }
 
   return (
     <dl className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
       {entries.map(([key, value]) => (
-        <div key={key} className="flex gap-2 text-xs">
+        <div key={key} className="flex gap-2 text-caption">
           <dt className="shrink-0 text-fg-muted">{metaLabel(key)}:</dt>
           <dd className="min-w-0 break-all text-fg">{metaValue(value)}</dd>
         </div>
@@ -194,17 +194,17 @@ export default function AuditLogPage() {
           )}
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-fg">{log.actionLabel}</span>
+              <span className="text-label text-fg">{log.actionLabel}</span>
               <Badge tone={log.isCritical ? 'red' : 'gray'}>{log.entityLabel}</Badge>
               {log.isCritical && <Badge tone="red">Muhim</Badge>}
             </span>
-            <span className="mt-0.5 block text-xs text-fg-muted">
+            <span className="mt-0.5 block text-caption text-fg-muted">
               {log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Tizim / noma’lum'}
               {log.ip && ` · ${log.ip}`}
               {log.entityId && ` · ${log.entityId}`}
             </span>
           </span>
-          <span className="shrink-0 text-right text-xs text-fg-subtle">
+          <span className="shrink-0 text-right text-caption text-fg-subtle">
             <span className="block">{formatRelativeTime(log.createdAt)}</span>
             <span className="block">{formatDateTime(log.createdAt)}</span>
           </span>
@@ -322,7 +322,7 @@ export default function AuditLogPage() {
               aria-label="Tugash sanasi"
               className="sm:w-44"
             />
-            <label className="flex items-center gap-2 text-sm text-fg-muted">
+            <label className="flex items-center gap-2 text-body text-fg-muted">
               <input
                 type="checkbox"
                 checked={criticalOnly}
