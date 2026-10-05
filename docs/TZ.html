@@ -41,7 +41,86 @@
 <div class="page">
 
 <h1>IT-Academy CRM — texnik topshiriqlar bajarilishi hisoboti</h1>
-<p class="sub">Beshta TZ: <b><code>promt3.1.md</code> (Academy CRM 3.1) — 00-bo'lim, 2026-09-28</b>; <code>promt3.md</code> (Academy CRM 3.0) — 0-bo'lim, 2026-09-25; <code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code> — 1–8-bo'limlar, 2026-09-24 holati (<code>448916a</code>).</p>
+<p class="sub">Oltita TZ: <b><code>dizayn.md</code> (UI/UX redesign) — 000-bo'lim, 2026-10-05</b>; <code>promt3.1.md</code> (Academy CRM 3.1) — 00-bo'lim, 2026-09-28; <code>promt3.md</code> (Academy CRM 3.0) — 0-bo'lim, 2026-09-25; <code>promt.md</code>, <code>promt2.md</code>, <code>telegramBot.md</code> — 1–8-bo'limlar, 2026-09-24 holati (<code>448916a</code>).</p>
+
+
+<h2>000. dizayn.md — UI/UX redesign (16 faza + yakunlash)</h2>
+<p class="small">2026-10-05 holati. Spetsifikatsiya: <code>docs/dizayn.md</code>. Audit: <code>docs/DESIGN-AUDIT.md</code>. Reja va holat: <code>docs/ROADMAP-DESIGN.md</code>. Dizayn tizimi: <code>docs/design-system.md</code>. Funksionallik, marshrutlar va ruxsatlar o‘zgarmagan; backend faqat ikki joyda, ruxsat bilan o‘zgardi (pastda).</p>
+<div class="kpi">
+  <div><b>195 + 51</b><span>frontend testlari · E2E (hammasi o‘tadi)</span></div>
+  <div><b>23</b><span>redesign kommitlari</span></div>
+  <div><b>746 → 4</b><span>xom rang klasslari (faqat sertifikat chop etish sahifasi)</span></div>
+  <div><b>305</b><span>fayl o‘zgardi (+13 061 / −6 365 qator)</span></div>
+</div>
+<div class="box"><b>Holat:</b> 16 faza to‘liq bajarildi. Keyin spetsifikatsiya kod bilan qayta solishtirildi (30 ga yaqin band): frontendda qilsa bo‘ladiganlari bajarildi, qolganlari 000.4-jadvalda — ularning ko‘pi yangi backend endpoint talab qiladi. Demak <code>dizayn.md</code> <b>to‘liq 100% yopilmagan</b>.</div>
+
+<h3>000.1. Fazalar</h3>
+<table>
+<tr><th style="width:44px">Faza</th><th style="width:170px">Yo'nalish</th><th>Nima qilindi</th><th style="width:80px">Commit</th></tr>
+<tr><td>0</td><td><b>Audit</b></td><td>Frontend dizayn auditi (<code>docs/DESIGN-AUDIT.md</code>) va 16 fazali reja</td><td><code>7fa1397</code></td></tr>
+<tr><td>1</td><td><b>Tokenlar va primitivlar</b></td><td>Rang, tipografiya, radius, soya, z-index, harakat tokenlari; asosiy UI komponentlar; Inter shrifti</td><td><code>fc3cf52</code></td></tr>
+<tr><td>2</td><td><b>Ilova qobig‘i</b></td><td>Yon menyu (8 guruh, yig‘iladigan), yuqori panel, breadcrumb, global qidiruv (Ctrl/Cmd+K), bildirishnomalar paneli</td><td><code>d3dbfc9</code></td></tr>
+<tr><td>3</td><td><b>Dashboard</b></td><td>KPI kartalari, grafiklar yagona palitrada, direktor paneli</td><td><code>5b826a8</code></td></tr>
+<tr><td>4</td><td><b>Asosiy ro‘yxatlar</b></td><td><code>DataTable</code> + <code>FilterBar</code>: zichlik, ustunlar, sahifalash, telefonda karta ko‘rinishi</td><td><code>812886d</code></td></tr>
+<tr><td>5</td><td><b>O‘quvchi 360</b></td><td>Profil sarlavhasi, bo‘limlar; o‘qituvchi profili sahifasi (<code>/teachers/:id</code>)</td><td><code>04704f1</code></td></tr>
+<tr><td>6</td><td><b>Guruh va kurslar</b></td><td>Guruh sahifasi (<code>/groups/:id</code>), kurslar, o‘qitish markazi</td><td><code>da8d764</code></td></tr>
+<tr><td>7</td><td><b>Vazifa, imtihon, kabinet</b></td><td>Uy vazifasi, imtihonlar, reyting, o‘quvchi/ota-ona kabineti</td><td><code>a880f15</code></td></tr>
+<tr><td>8</td><td><b>Davomat</b></td><td>Jurnal, statistika, reyting; holat tugmalari kontrasti</td><td><code>3987c32</code></td></tr>
+<tr><td>9</td><td><b>Leadlar</b></td><td>Jadval va kanban, lead profili, follow-up</td><td><code>b955902</code></td></tr>
+<tr><td>10</td><td><b>Moliya</b></td><td>Umumiy ko‘rinish, daftar, davrlar, maoshlar</td><td><code>02b2030</code></td></tr>
+<tr><td>11</td><td><b>Analitika</b></td><td>Analitika, hisobotlar, ogohlantirishlar</td><td><code>3585378</code></td></tr>
+<tr><td>12</td><td><b>AI</b></td><td>Yordamchi va AI tahlil bloklari, manba belgisi</td><td><code>9df2747</code></td></tr>
+<tr><td>13</td><td><b>Sozlamalar</b></td><td>Sozlamalar, rollar, foydalanuvchilar, filiallar, audit; qolgan ranglar</td><td><code>fed9088</code></td></tr>
+<tr><td>14</td><td><b>Responsive</b></td><td>46 sahifa 390 va 768 px da — gorizontal siljish 0</td><td><code>d496fe9</code></td></tr>
+<tr><td>15</td><td><b>Dark mode</b></td><td>45 sahifa ikki mavzuda kontrast skaneridan o‘tdi — past kontrast 0</td><td><code>5957658</code></td></tr>
+<tr><td>16</td><td><b>Accessibility va hujjat</b></td><td>Nomsiz tugma/maydon 0, har sahifada bitta h1; <code>docs/design-system.md</code></td><td><code>f44e83f</code></td></tr>
+</table>
+
+<h3>000.2. 16 fazadan keyingi yakunlash</h3>
+<table>
+<tr><th style="width:170px">Yo'nalish</th><th>Nima qilindi</th><th style="width:130px">Commit</th></tr>
+<tr><td><b>Ikkilamchi jadvallar</b></td><td>24 faylda eski jadval <code>DataTable</code>ga o‘tdi (kodmod <code>migrate-tables.py</code>); matritsa va hisobot jadvallari ataylab eski ko‘rinishda</td><td><code>66a3355, 92ff75f</code></td></tr>
+<tr><td><b>Formalar</b></td><td>9 pul maydoni <code>CurrencyInput</code>da, 4 fayl maydoni <code>FileUpload</code>da, bog‘lash qidiruvi <code>Combobox</code>da; sxemalar o‘zgarmagan</td><td><code>66a3355, a079b6e</code></td></tr>
+<tr><td><b>Bildirishnoma toifasi</b></td><td><b>Backend:</b> <code>GET /notifications?category=…</code> (7 toifa). Sahifada toifa tablari, panelda toifa tanlovi</td><td><code>f254625</code></td></tr>
+<tr><td><b>Server saralashi</b></td><td>8 asosiy ro‘yxatda ustun sarlavhasi bosilganda saralanadi. <b>Backend:</b> xodimlar ro‘yxatida <code>sortBy</code>, ota-onalarda familiya bo‘yicha ikki yo‘nalish</td><td><code>f254625</code></td></tr>
+<tr><td><b>Guruh sahifasi</b></td><td>Bo‘limlar: O‘quvchilar, Davomat, Uy vazifalari, Imtihonlar, O‘zlashtirish</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>O‘qituvchi profili</b></td><td>Yangi bo‘limlar: Jadval, Davomat, Uy vazifalari, Imtihonlar</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>O‘quvchi profili</b></td><td>Davomat va Sertifikatlar — alohida bo‘lim</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>Imtihon sahifasi</b></td><td><code>/exams/:id</code>: ko‘rsatkichlar, natijalar jadvali, ball taqsimoti</td><td><code>a079b6e</code></td></tr>
+<tr><td><b>Tezkor ko‘rish</b></td><td>Lead va o‘quvchi uchun yon panel — ro‘yxatdan chiqmasdan</td><td><code>a079b6e</code></td></tr>
+<tr><td><b>Dashboard</b></td><td>Yangi vidjetlar: So‘nggi leadlar, Eng katta qarzdorlar</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>Davomat klaviaturada</b></td><td>1–4 — holat va keyingi o‘quvchi, strelkalar — yurish</td><td><code>a079b6e</code></td></tr>
+<tr><td><b>Mobil menyu</b></td><td>Amallar menyusi telefonda pastdan chiqadigan varaq</td><td><code>a079b6e</code></td></tr>
+<tr><td><b>Tokenlar</b></td><td>Tipografiya va radius 165+ faylda tokenlarga o‘tdi (<code>tokenize-type.py</code>)</td><td><code>7cc98aa</code></td></tr>
+<tr><td><b>Holatlar</b></td><td>Matnli «Yuklanmoqda…», bo‘sh va xato holatlari → Skeleton / EmptyState / ErrorState; emoji medallar va <code>window.confirm</code> olib tashlandi</td><td><code>7cc98aa</code></td></tr>
+</table>
+
+<h3>000.3. Tekshiruv natijalari</h3>
+<table>
+<tr><th>Ko'rsatkich</th><th style="width:150px">Oldin</th><th style="width:230px">Keyin</th></tr>
+<tr><td>Xom palitra klasslari (<code>bg-emerald-500</code> kabi)</td><td>746</td><td>4 (sertifikat chop etish — qog‘oz ranglari)</td></tr>
+<tr><td>Komponentlardagi <code>dark:</code> klasslari</td><td class="small">ko‘p</td><td>0 — hammasi tokenlar orqali</td></tr>
+<tr><td>Past kontrastli matn (45 sahifa, 2 mavzu)</td><td class="small">o‘lchanmagan</td><td>0</td></tr>
+<tr><td>Gorizontal siljish (46 sahifa, 390 va 768 px)</td><td class="small">o‘lchanmagan</td><td>0</td></tr>
+<tr><td>Nomsiz tugma, havola, maydon, jadval</td><td class="small">o‘lchanmagan</td><td>0</td></tr>
+<tr><td>Asosiy JS (gzip)</td><td>125,4 kB</td><td>126,0 kB (16-faza oxirida o‘lchangan)</td></tr>
+<tr><td>Frontend testlari</td><td>136</td><td>195</td></tr>
+<tr><td>E2E</td><td>48</td><td>51 (yangi: saralash, toifa filtri, davomat klaviaturasi)</td></tr>
+</table>
+<p class="small">Backend: toifa filtri va saralash uchun integratsion testlar qo‘shildi (bildirishnomalar 13/13, xodimlar va ota-onalar 9/9). Butun backend to‘plami shu o‘zgarishlardan keyin bir marta yurgizildi: 937 o‘tdi, 1 yiqildi — <code>teachers.test.ts</code> sanani 2026-sentabr deb qattiq yozgan edi (oktabrda yiqila boshlagan, o‘zgarishlarga bog‘liq emas). Test joriy oydan foydalanadigan qilindi va fayl 17/17 o‘tdi; butun to‘plam tuzatishdan keyin qayta yurgizilmagan.</p>
+
+<h3>000.4. dizayn.md bo'yicha ochiq qolganlar</h3>
+<table>
+<tr><th style="width:150px">Bo'lim</th><th>Nima qilinmagan</th><th style="width:170px">Sabab</th></tr>
+<tr><td>§13 Dashboard</td><td>Sahifa darajasida sana oralig‘i; o‘quvchilar o‘sishi, davomat trendi, kurs samaradorligi grafiklari; KPI taqqoslovi</td><td><span class="s warn">yangi backend endpoint</span></td></tr>
+<tr><td>§15 O‘quvchi</td><td>Sarlavhada filial va keyingi dars; o‘quvchiga xabar yuborish</td><td><span class="s warn">backend</span></td></tr>
+<tr><td>§14 Jadvallar</td><td>Qatorlarni tanlab ommaviy amal (komponent tayyor, ommaviy endpointlar yo‘q)</td><td><span class="s warn">backend</span></td></tr>
+<tr><td>§16 O‘qituvchi</td><td>KPI tarixi va taqqoslov (API faqat joriy oyni beradi); o‘qituvchining o‘quvchilari ro‘yxati</td><td><span class="s warn">backend</span></td></tr>
+<tr><td>§21–22 Vazifa/imtihon</td><td>Topshiriq holatlari bo‘yicha sanoq; savol bo‘yicha imtihon tahlili</td><td><span class="s warn">backend</span></td></tr>
+<tr><td>§27 Formalar</td><td>Alohida DatePicker/TimePicker (hozir brauzerning o‘z maydoni); qolgan uzun ro‘yxatlarni qidiruvli tanlovga o‘tkazish; 4 maxsus fayl maydoni</td><td><span class="s warn">frontend, keyinga</span></td></tr>
+<tr><td>§14, §43</td><td>Jadval sarlavhasini yopishtirish; 450+ qatorli sahifalarni bo‘lish; eski Badge rang nomlari</td><td><span class="s warn">frontend, keyinga</span></td></tr>
+<tr><td>§13 Tezkor amallar</td><td>Dashboardda tezkor amallar qo‘shilmadi — yaratish oynalari faqat o‘z sahifalarida ochiladi</td><td><span class="s warn">qaror</span></td></tr>
+</table>
 
 
 <h2>00. promt3.1.md — "Academy CRM 3.1" (19 GAP, 21 faza)</h2>
@@ -467,6 +546,7 @@
 <li>Bot tokeni chatda ochilib qolgan edi — <code>/revoke</code> qilinganiga ishonch hosil qiling.</li>
 </ul>
 
+<p class="small">000-bo'lim (redesign) 2026-10-05 da qo'shildi: frontend 195, E2E 51. Quyidagi sonlar — 3.1 yakuni holati.</p>
 <p class="small">Hisobot 2026-09-28 da yangilandi. Testlar: <code>npm test --workspace backend</code> (936), <code>npm test --workspace frontend</code> (136), <code>npm run test:e2e</code> (48), code-runner (22, Docker kerak). Yuklama: <code>npm run telegram:load --workspace backend</code>.</p>
 
 </div>
