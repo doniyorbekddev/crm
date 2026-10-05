@@ -79,8 +79,8 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Mening guruhlarim</CardTitle>
           </CardHeader>
@@ -125,7 +125,7 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Bugun kelmaganlar</CardTitle>
           </CardHeader>

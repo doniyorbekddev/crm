@@ -14,12 +14,11 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { TBody, TD, TH, THead, TR, Table, TableContainer } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { discountsService } from '@/services/discounts.service';
-import type { DiscountType, DiscountValueType } from '@/types/discount';
+import type { DiscountRule, DiscountType, DiscountValueType } from '@/types/discount';
 import { formatDate, formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -223,57 +222,77 @@ export default function DiscountsPage() {
           ) : rulesQuery.data.length === 0 ? (
             <EmptyState icon={BadgePercent} title="Qoida yo‘q" description="Masalan «Oila chegirmasi — 10%» qoidasini qo‘shing" />
           ) : (
-            <TableContainer>
-              <Table aria-label="Chegirma qoidalari">
-                <THead>
-                  <tr>
-                    <TH>Nomi</TH>
-                    <TH>Turi</TH>
-                    <TH>Qiymati</TH>
-                    <TH>Birga qo‘llash</TH>
-                    <TH>Berilgan</TH>
-                    <TH>Holat</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {rulesQuery.data.map((rule) => (
-                    <TR
-                      key={rule.id}
-                      className={canManage ? 'cursor-pointer' : undefined}
-                      onClick={
-                        canManage
-                          ? () =>
-                              setRuleDraft({
-                                key: rule.key,
-                                name: rule.name,
-                                type: rule.type,
-                                valueType: rule.valueType,
-                                value: String(rule.value),
-                                stackable: rule.stackable,
-                                isActive: rule.isActive,
-                                description: rule.description ?? '',
-                              })
-                          : undefined
-                      }
-                    >
-                      <TD>
-                        <span className="text-fg">{rule.name}</span>
-                        <span className="ml-2 font-mono text-xs text-fg-subtle">{rule.key}</span>
-                      </TD>
-                      <TD className="text-fg-muted">{TYPE_LABELS[rule.type]}</TD>
-                      <TD className="tabular-nums text-fg-muted">
-                        {rule.valueType === 'PERCENT' ? `${rule.value}%` : formatMoney(rule.value)}
-                      </TD>
-                      <TD className="text-fg-muted">{rule.stackable ? 'Ha' : 'Yo‘q'}</TD>
-                      <TD className="tabular-nums text-fg-muted">{rule.usedCount}</TD>
-                      <TD>
-                        <Badge tone={rule.isActive ? 'green' : 'gray'}>{rule.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              bare
+              label="Chegirma qoidalari"
+              rows={rulesQuery.data}
+              rowKey={(rule) => rule.id}
+              {...(canManage
+                ? {
+                    onRowClick: (rule: DiscountRule) =>
+                      setRuleDraft({
+                        key: rule.key,
+                        name: rule.name,
+                        type: rule.type,
+                        valueType: rule.valueType,
+                        value: String(rule.value),
+                        stackable: rule.stackable,
+                        isActive: rule.isActive,
+                        description: rule.description ?? '',
+                      }),
+                  }
+                : {})}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Nomi',
+                  cell: (rule) => (
+                    <>
+                      <span className="text-fg">{rule.name}</span>
+                      <span className="ml-2 font-mono text-xs text-fg-subtle">{rule.key}</span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Turi',
+                  tdClassName: 'text-fg-muted',
+                  cell: (rule) => <>{TYPE_LABELS[rule.type]}</>,
+                },
+                {
+                  key: 'c2',
+                  label: 'Qiymati',
+                  tdClassName: 'tabular-nums text-fg-muted',
+                  cell: (rule) => (
+                    <>
+                      {rule.valueType === 'PERCENT' ? `${rule.value}%` : formatMoney(rule.value)}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Birga qo‘llash',
+                  tdClassName: 'text-fg-muted',
+                  cell: (rule) => <>{rule.stackable ? 'Ha' : 'Yo‘q'}</>,
+                },
+                {
+                  key: 'c4',
+                  label: 'Berilgan',
+                  tdClassName: 'tabular-nums text-fg-muted',
+                  cell: (rule) => <>{rule.usedCount}</>,
+                },
+                {
+                  key: 'c5',
+                  label: 'Holat',
+                  cell: (rule) => (
+                    <>
+                      <Badge tone={rule.isActive ? 'green' : 'gray'}>{rule.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
+                    </>
+                  ),
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>

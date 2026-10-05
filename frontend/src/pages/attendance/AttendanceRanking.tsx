@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useQuery } from '@tanstack/react-query';
 import { Flame, Trophy } from 'lucide-react';
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService } from '@/services/attendance.service';
@@ -144,68 +145,107 @@ export function AttendanceRanking() {
           description="Tanlangan davrda yetarlicha dars belgilanmagan — davrni kengaytiring yoki eng kam darslar sonini kamaytiring"
         />
       ) : (
-        <TableContainer>
-          <Table aria-label="Davomat reytingi">
-            <THead>
-              <tr>
-                <TH className="w-16">O‘rin</TH>
-                <TH>O‘quvchi</TH>
-                <TH>Kurs / guruh</TH>
-                <TH className="text-right">Darslar</TH>
-                <TH className="text-right">Keldi / kelmadi</TH>
-                <TH className="text-right">Seriya</TH>
-                <TH className="text-right">Davomat</TH>
-              </tr>
-            </THead>
-            <TBody>
-              {rankingQuery.data.map((row, index) => (
-                <TR key={row.studentId} className={cn(index < 3 && 'bg-warning-subtle')}>
-                  <TD className="whitespace-nowrap">
-                    <Rank place={index + 1} />
-                  </TD>
-                  <TD>
-                    <p className="font-medium text-fg">
-                      {row.firstName} {row.lastName}
-                    </p>
-                    <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
-                  </TD>
-                  <TD>
-                    <p className="text-fg">{row.courseName}</p>
-                    <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
-                  </TD>
-                  <TD className="text-right tabular-nums text-fg-muted">{formatNumber(row.lessons)}</TD>
-                  <TD className="text-right tabular-nums text-fg-muted">
-                    {formatNumber(row.present)} / {formatNumber(row.absent)}
-                  </TD>
-                  <TD className="text-right">
-                    {row.streak > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-sm text-warning">
-                        <Flame className="size-3.5" aria-hidden />
-                        {row.streak}
-                      </span>
-                    ) : (
-                      <span className="text-fg-subtle">—</span>
-                    )}
-                  </TD>
-                  <TD className="text-right">
-                    <span
-                      className={cn(
-                        'text-sm font-semibold',
-                        row.rate >= 90
-                          ? 'text-success'
-                          : row.rate >= 75
-                            ? 'text-warning'
-                            : 'text-danger',
-                      )}
-                    >
-                      {row.rate}%
+        <DataTable
+          bare
+          label="Davomat reytingi"
+          rows={rankingQuery.data.map((row, index) => ({ ...row, place: index + 1 }))}
+          rowKey={(row) => row.studentId}
+          rowClassName={(row) => cn(row.place <= 3 && 'bg-warning-subtle')}
+          mobileLayout="cards"
+          columns={[
+            {
+              key: 'c0',
+              label: 'O‘rin',
+              thClassName: 'w-16',
+              tdClassName: 'whitespace-nowrap',
+              cell: (row) => (
+                <>
+                  <Rank place={row.place} />
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              label: 'O‘quvchi',
+              cell: (row) => (
+                <>
+                  <p className="font-medium text-fg">
+                    {row.firstName} {row.lastName}
+                  </p>
+                  <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
+                </>
+              ),
+            },
+            {
+              key: 'c2',
+              label: 'Kurs / guruh',
+              cell: (row) => (
+                <>
+                  <p className="text-fg">{row.courseName}</p>
+                  <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
+                </>
+              ),
+            },
+            {
+              key: 'c3',
+              label: 'Darslar',
+              thClassName: 'text-right',
+              tdClassName: 'text-right tabular-nums text-fg-muted',
+              cell: (row) => <>{formatNumber(row.lessons)}</>,
+            },
+            {
+              key: 'c4',
+              label: 'Keldi / kelmadi',
+              thClassName: 'text-right',
+              tdClassName: 'text-right tabular-nums text-fg-muted',
+              cell: (row) => (
+                <>
+                  {formatNumber(row.present)} / {formatNumber(row.absent)}
+                </>
+              ),
+            },
+            {
+              key: 'c5',
+              label: 'Seriya',
+              thClassName: 'text-right',
+              tdClassName: 'text-right',
+              cell: (row) => (
+                <>
+                  {row.streak > 0 ? (
+                    <span className="inline-flex items-center gap-1 text-sm text-warning">
+                      <Flame className="size-3.5" aria-hidden />
+                      {row.streak}
                     </span>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </TableContainer>
+                  ) : (
+                    <span className="text-fg-subtle">—</span>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: 'c6',
+              label: 'Davomat',
+              thClassName: 'text-right',
+              tdClassName: 'text-right',
+              cell: (row) => (
+                <>
+                  <span
+                    className={cn(
+                      'text-sm font-semibold',
+                      row.rate >= 90
+                        ? 'text-success'
+                        : row.rate >= 75
+                          ? 'text-warning'
+                          : 'text-danger',
+                    )}
+                  >
+                    {row.rate}%
+                  </span>
+                </>
+              ),
+            },
+          ]}
+        />
       )}
     </Card>
   );

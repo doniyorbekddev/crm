@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, ScrollText } from 'lucide-react';
 import { useState } from 'react';
@@ -10,7 +11,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -36,6 +37,9 @@ interface TransactionsTabProps {
 }
 
 /** Moliyaviy daftar: har bir pul harakati shu yerda ko‘rinadi */
+const isVoided = (transaction: Transaction) => transaction.status !== 'COMPLETED';
+const isOutgoing = (transaction: Transaction) => transaction.type === 'EXPENSE' || transaction.type === 'REFUND';
+
 export function TransactionsTab({ range }: TransactionsTabProps) {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.FINANCE_MANAGE);
@@ -130,89 +134,111 @@ export function TransactionsTab({ range }: TransactionsTabProps) {
         <EmptyState icon={ScrollText} title="Yozuv topilmadi" description="Sana oralig‘i yoki filtrlarni o‘zgartirib ko‘ring" />
       ) : (
         <>
-          <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-            <Table aria-label="Moliyaviy daftar">
-              <THead>
-                <tr>
-                  <TH className="w-16">№</TH>
-                  <TH>Tur</TH>
-                  <TH>Izoh</TH>
-                  <TH>Kassa</TH>
-                  <TH className="text-right">Summa</TH>
-                  <TH>Sana</TH>
-                  {canManage && (
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
-                  )}
-                </tr>
-              </THead>
-              <TBody>
-                {listQuery.data.items.map((transaction) => {
-                  const voided = transaction.status !== 'COMPLETED';
-                  const outgoing = transaction.type === 'EXPENSE' || transaction.type === 'REFUND';
-                  return (
-                    <TR key={transaction.id} className={cn(voided && 'opacity-60')}>
-                      <TD className="font-mono text-xs text-fg-muted">{transaction.number}</TD>
-                      <TD>
-                        <Badge tone={TRANSACTION_TYPE_TONES[transaction.type]}>
-                          {TRANSACTION_TYPE_LABELS[transaction.type]}
-                        </Badge>
-                        {voided && (
-                          <Badge tone="red" className="ml-1">
-                            {TRANSACTION_STATUS_LABELS[transaction.status]}
-                          </Badge>
-                        )}
-                      </TD>
-                      <TD>
-                        <p className="truncate text-fg">{transaction.description ?? transaction.categoryName ?? '—'}</p>
-                        <p className="text-xs text-fg-muted">
-                          {transaction.categoryName ?? '—'}
-                          {transaction.entityType && ` · ${TRANSACTION_SOURCE_LABELS[transaction.entityType] ?? transaction.entityType}`}
-                        </p>
-                        {voided && transaction.voidReason && (
-                          <p className="truncate text-xs text-danger">{transaction.voidReason}</p>
-                        )}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{transaction.account?.name ?? '—'}</TD>
-                      <TD
-                        className={cn(
-                          'text-right font-medium whitespace-nowrap',
-                          voided ? 'text-fg-muted line-through' : outgoing ? 'text-danger' : 'text-success',
-                        )}
-                      >
-                        {outgoing ? '−' : '+'}
-                        {formatMoney(transaction.amount)}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDateTime(transaction.occurredAt)}</TD>
-                      {canManage && (
-                        <TD className="text-right">
-                          {voided ? (
-                            <span className="text-xs text-fg-subtle">—</span>
-                          ) : (
-                            <ActionMenu
-                              label={`${transaction.number} amallari`}
-                              items={[
-                                {
-                                  label: 'Bekor qilish',
-                                  icon: Ban,
-                                  tone: 'danger',
-                                  onSelect: () => {
-                                    setVoidError(null);
-                                    setDialog(transaction);
-                                  },
-                                },
-                              ]}
-                            />
-                          )}
-                        </TD>
-                      )}
-                    </TR>
-                  );
-                })}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="Moliyaviy daftar"
+            rows={listQuery.data.items}
+            rowKey={(transaction) => transaction.id}
+            rowClassName={(transaction) => cn(isVoided(transaction) && 'opacity-60')}
+            stale={listQuery.isPlaceholderData}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: '№',
+                thClassName: 'w-16',
+                tdClassName: 'font-mono text-xs text-fg-muted',
+                cell: (transaction) => <>{transaction.number}</>,
+              },
+              {
+                key: 'c1',
+                label: 'Tur',
+                cell: (transaction) => (
+                  <>
+                    <Badge tone={TRANSACTION_TYPE_TONES[transaction.type]}>
+                      {TRANSACTION_TYPE_LABELS[transaction.type]}
+                    </Badge>
+                    {isVoided(transaction) && (
+                      <Badge tone="red" className="ml-1">
+                        {TRANSACTION_STATUS_LABELS[transaction.status]}
+                      </Badge>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Izoh',
+                cell: (transaction) => (
+                  <>
+                    <p className="truncate text-fg">{transaction.description ?? transaction.categoryName ?? '—'}</p>
+                    <p className="text-xs text-fg-muted">
+                      {transaction.categoryName ?? '—'}
+                      {transaction.entityType && ` · ${TRANSACTION_SOURCE_LABELS[transaction.entityType] ?? transaction.entityType}`}
+                    </p>
+                    {isVoided(transaction) && transaction.voidReason && (
+                      <p className="truncate text-xs text-danger">{transaction.voidReason}</p>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c3',
+                label: 'Kassa',
+                tdClassName: 'whitespace-nowrap text-fg-muted',
+                cell: (transaction) => <>{transaction.account?.name ?? '—'}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Summa',
+                thClassName: 'text-right',
+                tdClassName: (transaction) => cn( 'text-right font-medium whitespace-nowrap', isVoided(transaction) ? 'text-fg-muted line-through' : isOutgoing(transaction) ? 'text-danger' : 'text-success', ),
+                cell: (transaction) => (
+                  <>
+                    {isOutgoing(transaction) ? '−' : '+'}
+                    {formatMoney(transaction.amount)}
+                  </>
+                ),
+              },
+              {
+                key: 'c5',
+                label: 'Sana',
+                tdClassName: 'whitespace-nowrap text-fg-muted',
+                cell: (transaction) => <>{formatDateTime(transaction.occurredAt)}</>,
+              },
+              {
+                key: 'c6',
+                label: 'Amallar',
+                header: <span className="sr-only">Amallar</span>,
+                fixed: true,
+                thClassName: 'w-12',
+                tdClassName: 'text-right',
+                visible: canManage,
+                cell: (transaction) => (
+                  <>
+                    {isVoided(transaction) ? (
+                      <span className="text-xs text-fg-subtle">—</span>
+                    ) : (
+                      <ActionMenu
+                        label={`${transaction.number} amallari`}
+                        items={[
+                          {
+                            label: 'Bekor qilish',
+                            icon: Ban,
+                            tone: 'danger',
+                            onSelect: () => {
+                              setVoidError(null);
+                              setDialog(transaction);
+                            },
+                          },
+                        ]}
+                      />
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
           <Pagination
             page={page}
             totalPages={listQuery.data.meta.totalPages}

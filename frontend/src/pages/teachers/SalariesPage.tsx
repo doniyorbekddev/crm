@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BadgeCheck, Calculator, Coins, HandCoins, Lock, LockOpen, Pencil, Percent, Wallet2 } from 'lucide-react';
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -47,6 +48,9 @@ type Dialog =
   | { type: 'unlock'; period: SalaryPeriod }
   | { type: 'approve'; period: SalaryPeriod }
   | null;
+
+/** Davr ichida berilgan avanslar yig'indisi */
+const advanceOf = (period: SalaryPeriod) => period.payments.filter((payment) => payment.kind === 'ADVANCE').reduce((sum, payment) => sum + payment.amount, 0);
 
 export default function SalariesPage() {
   const queryClient = useQueryClient();
@@ -267,89 +271,129 @@ export default function SalariesPage() {
             }
           />
         ) : (
-          <TableContainer className={cn('transition-opacity', periodsQuery.isPlaceholderData && 'opacity-60')}>
-            <Table aria-label="Maoshlar">
-              <THead>
-                <tr>
-                  <TH>O‘qituvchi</TH>
-                  <TH className="text-right">Tushum</TH>
-                  <TH className="text-right">Foiz</TH>
-                  <TH className="text-right">Bonus / jarima</TH>
-                  <TH className="text-right">Jami</TH>
-                  <TH className="text-right">To‘langan / qolgan</TH>
-                  <TH>Holat</TH>
-                  <TH className="w-12">
-                    <span className="sr-only">Amallar</span>
-                  </TH>
-                </tr>
-              </THead>
-              <TBody>
-                {periods.map((period) => {
-                  const actions = rowActions(period);
-                  const advance = period.payments
-                    .filter((payment) => payment.kind === 'ADVANCE')
-                    .reduce((sum, payment) => sum + payment.amount, 0);
-                  return (
-                    <TR key={period.id}>
-                      <TD>
-                        <p className="font-medium whitespace-nowrap text-fg">
-                          {period.payee.firstName} {period.payee.lastName}
-                        </p>
-                        <p className="text-xs text-fg-muted">
-                          {period.payee.type === 'EMPLOYEE'
-                            ? `Xodim · ${period.payee.subtitle ?? ''}`
-                            : `${SALARY_TYPE_LABELS[period.salaryType]} · ${formatNumber(period.studentsCount)} o‘quvchi${
-                                period.lessonsCount > 0 ? ` · ${formatNumber(period.lessonsCount)} dars` : ''
-                              }`}
-                        </p>
-                      </TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">
-                        {period.payee.type === 'EMPLOYEE' ? <span className="text-fg-subtle">—</span> : formatMoney(period.groupRevenue)}
-                      </TD>
-                      <TD className="text-right whitespace-nowrap">
-                        <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-danger' : 'text-fg')}>
-                          {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
-                        </span>
-                        {period.commissionRate > 0 && <p className="text-xs text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
-                      </TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums">
-                        {period.bonus === 0 && period.penalty === 0 ? (
-                          <span className="text-fg-subtle">—</span>
-                        ) : (
-                          <>
-                            {period.bonus > 0 && <p className="text-success">+{formatMoney(period.bonus)}</p>}
-                            {period.penalty > 0 && <p className="text-danger">−{formatMoney(period.penalty)}</p>}
-                          </>
-                        )}
-                      </TD>
-                      <TD className="text-right font-semibold whitespace-nowrap tabular-nums text-fg">{formatMoney(period.totalAmount)}</TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums">
-                        <p className="text-fg-muted">
-                          {formatMoney(period.paidAmount)}
-                          {advance > 0 && <span className="text-xs text-fg-subtle"> (avans {formatMoney(advance)})</span>}
-                        </p>
-                        <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-warning' : 'text-fg-subtle')}>
-                          qolgan {formatMoney(period.remainingAmount)}
-                        </p>
-                      </TD>
-                      <TD>
-                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                          <Badge tone={SALARY_STATUS_TONES[period.status]}>{SALARY_STATUS_LABELS[period.status]}</Badge>
-                          {period.lockedAt && <Lock className="size-3.5 text-fg-subtle" aria-label="Qotirilgan" />}
-                        </span>
-                        {!period.lockedAt && period.unlockedAt && (
-                          <p className="mt-1 text-xs whitespace-nowrap text-warning">qayta ochilgan</p>
-                        )}
-                      </TD>
-                      <TD className="text-right">
-                        <ActionMenu label={`${period.payee.firstName} ${period.payee.lastName} maoshi amallari`} items={actions} />
-                      </TD>
-                    </TR>
-                  );
-                })}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="Maoshlar"
+            rows={periods}
+            rowKey={(period) => period.id}
+            stale={periodsQuery.isPlaceholderData}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'O‘qituvchi',
+                cell: (period) => (
+                  <>
+                    <p className="font-medium whitespace-nowrap text-fg">
+                      {period.payee.firstName} {period.payee.lastName}
+                    </p>
+                    <p className="text-xs text-fg-muted">
+                      {period.payee.type === 'EMPLOYEE'
+                        ? `Xodim · ${period.payee.subtitle ?? ''}`
+                        : `${SALARY_TYPE_LABELS[period.salaryType]} · ${formatNumber(period.studentsCount)} o‘quvchi${
+                            period.lessonsCount > 0 ? ` · ${formatNumber(period.lessonsCount)} dars` : ''
+                          }`}
+                    </p>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Tushum',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+                cell: (period) => (
+                  <>
+                    {period.payee.type === 'EMPLOYEE' ? <span className="text-fg-subtle">—</span> : formatMoney(period.groupRevenue)}
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Foiz',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap',
+                cell: (period) => (
+                  <>
+                    <span className={cn('tabular-nums', period.percentageAmount < 0 ? 'text-danger' : 'text-fg')}>
+                      {period.percentageAmount === 0 ? '—' : formatMoney(period.percentageAmount)}
+                    </span>
+                    {period.commissionRate > 0 && <p className="text-xs text-fg-subtle">{formatNumber(period.commissionRate)}%</p>}
+                  </>
+                ),
+              },
+              {
+                key: 'c3',
+                label: 'Bonus / jarima',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums',
+                cell: (period) => (
+                  <>
+                    {period.bonus === 0 && period.penalty === 0 ? (
+                      <span className="text-fg-subtle">—</span>
+                    ) : (
+                      <>
+                        {period.bonus > 0 && <p className="text-success">+{formatMoney(period.bonus)}</p>}
+                        {period.penalty > 0 && <p className="text-danger">−{formatMoney(period.penalty)}</p>}
+                      </>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c4',
+                label: 'Jami',
+                thClassName: 'text-right',
+                tdClassName: 'text-right font-semibold whitespace-nowrap tabular-nums text-fg',
+                cell: (period) => <>{formatMoney(period.totalAmount)}</>,
+              },
+              {
+                key: 'c5',
+                label: 'To‘langan / qolgan',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums',
+                cell: (period) => (
+                  <>
+                    <p className="text-fg-muted">
+                      {formatMoney(period.paidAmount)}
+                      {advanceOf(period) > 0 && <span className="text-xs text-fg-subtle"> (avans {formatMoney(advanceOf(period))})</span>}
+                    </p>
+                    <p className={cn('text-xs', period.remainingAmount > 0 ? 'text-warning' : 'text-fg-subtle')}>
+                      qolgan {formatMoney(period.remainingAmount)}
+                    </p>
+                  </>
+                ),
+              },
+              {
+                key: 'c6',
+                label: 'Holat',
+                cell: (period) => (
+                  <>
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <Badge tone={SALARY_STATUS_TONES[period.status]}>{SALARY_STATUS_LABELS[period.status]}</Badge>
+                      {period.lockedAt && <Lock className="size-3.5 text-fg-subtle" aria-label="Qotirilgan" />}
+                    </span>
+                    {!period.lockedAt && period.unlockedAt && (
+                      <p className="mt-1 text-xs whitespace-nowrap text-warning">qayta ochilgan</p>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c7',
+                label: 'Amallar',
+                header: <span className="sr-only">Amallar</span>,
+                fixed: true,
+                thClassName: 'w-12',
+                tdClassName: 'text-right',
+                cell: (period) => (
+                  <>
+                    <ActionMenu label={`${period.payee.firstName} ${period.payee.lastName} maoshi amallari`} items={rowActions(period)} />
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 

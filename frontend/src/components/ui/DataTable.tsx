@@ -103,6 +103,13 @@ interface DataTableProps<Row> {
 
 const ALIGN = { left: 'text-left', right: 'text-right', center: 'text-center' } as const;
 
+/** Karta ko'rinishida katak klasslaridan faqat ma'no tashuvchilari qoladi (rang, qalinlik) — kenglik va tekislash emas */
+const CARD_CLASS = /^(text-(danger|success|warning|info|primary|fg|fg-muted|fg-subtle)|font-(medium|semibold|bold|mono)|line-through|tabular-nums)$/;
+function cardClass<Row>(column: DataTableColumn<Row>, row: Row): string {
+  const value = typeof column.tdClassName === 'function' ? column.tdClassName(row) : column.tdClassName;
+  return (value ?? '').split(/\s+/).filter((token) => CARD_CLASS.test(token)).join(' ');
+}
+
 function widthStyle(width: number | null | undefined): CSSProperties | undefined {
   return width ? { width, minWidth: width, maxWidth: width } : undefined;
 }
@@ -197,7 +204,7 @@ export function DataTable<Row>({
         {rows.map((row) => (
           <li key={rowKey(row)} className={cn('px-4 py-3', onRowClick && 'cursor-pointer', rowClassName?.(row))} {...(onRowClick ? { onClick: () => onRowClick(row) } : {})}>
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 text-body">{primary?.cell(row)}</div>
+              <div className={cn('min-w-0 flex-1 text-body', primary && cardClass(primary, row))}>{primary?.cell(row)}</div>
               {fixed.length > 0 && (
                 <div className="flex shrink-0 items-center gap-1" onClick={(event) => event.stopPropagation()}>
                   {fixed.map((column) => (
@@ -211,7 +218,7 @@ export function DataTable<Row>({
                 {rest.map((column) => (
                   <div key={column.key} className="min-w-0" {...(column.stopRowClick ? { onClick: (event) => event.stopPropagation() } : {})}>
                     <dt className="text-caption text-fg-subtle">{column.label}</dt>
-                    <dd className="mt-0.5 min-w-0 text-body break-words text-fg">{column.cell(row)}</dd>
+                    <dd className={cn('mt-0.5 min-w-0 text-body break-words text-fg', cardClass(column, row))}>{column.cell(row)}</dd>
                   </div>
                 ))}
               </dl>
