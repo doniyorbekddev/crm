@@ -115,6 +115,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
               className="min-h-20"
               value={comment}
               placeholder="Xohlasangiz izoh qoldiring"
+              aria-label="Izoh"
               onChange={(event) => setComment(event.target.value)}
             />
             <label className="flex items-center gap-2 text-sm text-fg-muted">

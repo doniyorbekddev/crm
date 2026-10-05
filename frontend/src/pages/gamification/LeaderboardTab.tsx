@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Flame, Trophy } from 'lucide-react';
@@ -7,7 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { gamificationService } from '@/services/gamification.service';
@@ -132,59 +133,90 @@ export function LeaderboardTab({ onSelectStudent }: LeaderboardTabProps) {
             description="Tanlangan davrda XP to‘plangan emas — davomat belgilanganda XP avtomatik beriladi"
           />
         ) : (
-          <TableContainer className={cn('transition-opacity', leaderboardQuery.isPlaceholderData && 'opacity-60')}>
-            <Table aria-label="O‘quvchilar reytingi">
-              <THead>
-                <tr>
-                  <TH className="w-16">O‘rin</TH>
-                  <TH>O‘quvchi</TH>
-                  <TH>Kurs / guruh</TH>
-                  <TH>Daraja</TH>
-                  <TH className="text-right">Seriya</TH>
-                  <TH className="text-right">Nishon</TH>
-                  <TH className="text-right">XP</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {rows.map((row) => (
-                  <TR
-                    key={row.studentId}
-                    onClick={() => onSelectStudent(row.studentId)}
-                    className={cn('cursor-pointer', row.rank <= 3 && 'bg-warning-subtle')}
-                  >
-                    <TD className="font-medium whitespace-nowrap text-fg">{RANK_MEDALS[row.rank - 1] ?? row.rank}</TD>
-                    <TD>
-                      <p className="font-medium text-fg">
-                        {row.firstName} {row.lastName}
-                      </p>
-                      <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
-                    </TD>
-                    <TD>
-                      <p className="text-fg">{row.courseName}</p>
-                      <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
-                    </TD>
-                    <TD>
-                      <Badge tone="blue">
-                        {row.levelNumber}-daraja · {row.levelName}
-                      </Badge>
-                    </TD>
-                    <TD className="text-right">
-                      {row.streak > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-sm text-warning">
-                          <Flame className="size-3.5" aria-hidden />
-                          {row.streak}
-                        </span>
-                      ) : (
-                        <span className="text-fg-subtle">—</span>
-                      )}
-                    </TD>
-                    <TD className="text-right tabular-nums text-fg-muted">{formatNumber(row.badges)}</TD>
-                    <TD className="text-right font-semibold whitespace-nowrap text-fg">{formatXp(row.xp)}</TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="O‘quvchilar reytingi"
+            rows={rows}
+            rowKey={(row) => row.studentId}
+            rowClassName={(row) => cn('cursor-pointer', row.rank <= 3 && 'bg-warning-subtle')}
+            onRowClick={(row) => onSelectStudent(row.studentId)}
+            stale={leaderboardQuery.isPlaceholderData}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'O‘rin',
+                thClassName: 'w-16',
+                tdClassName: 'font-medium whitespace-nowrap text-fg',
+                cell: (row) => <>{RANK_MEDALS[row.rank - 1] ?? row.rank}</>,
+              },
+              {
+                key: 'c1',
+                label: 'O‘quvchi',
+                cell: (row) => (
+                  <>
+                    <p className="font-medium text-fg">
+                      {row.firstName} {row.lastName}
+                    </p>
+                    <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Kurs / guruh',
+                cell: (row) => (
+                  <>
+                    <p className="text-fg">{row.courseName}</p>
+                    <p className="text-xs text-fg-muted">{row.groupName ?? 'Guruhsiz'}</p>
+                  </>
+                ),
+              },
+              {
+                key: 'c3',
+                label: 'Daraja',
+                cell: (row) => (
+                  <>
+                    <Badge tone="blue">
+                      {row.levelNumber}-daraja · {row.levelName}
+                    </Badge>
+                  </>
+                ),
+              },
+              {
+                key: 'c4',
+                label: 'Seriya',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (row) => (
+                  <>
+                    {row.streak > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-sm text-warning">
+                        <Flame className="size-3.5" aria-hidden />
+                        {row.streak}
+                      </span>
+                    ) : (
+                      <span className="text-fg-subtle">—</span>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c5',
+                label: 'Nishon',
+                thClassName: 'text-right',
+                tdClassName: 'text-right tabular-nums text-fg-muted',
+                cell: (row) => <>{formatNumber(row.badges)}</>,
+              },
+              {
+                key: 'c6',
+                label: 'XP',
+                thClassName: 'text-right',
+                tdClassName: 'text-right font-semibold whitespace-nowrap text-fg',
+                cell: (row) => <>{formatXp(row.xp)}</>,
+              },
+            ]}
+          />
         )}
       </Card>
     </div>

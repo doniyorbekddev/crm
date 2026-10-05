@@ -190,15 +190,15 @@ export default function CoursesPage() {
                 {course.description && <p className="mt-3 line-clamp-2 text-sm text-fg-muted">{course.description}</p>}
 
                 <div className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-4 text-xs text-fg-muted">
-                  <span className="flex items-center gap-1.5" title="Guruhlar">
+                  <span className="flex items-center gap-1.5">
                     <Layers className="size-3.5" aria-hidden />
                     {course.counts.groups} guruh
                   </span>
-                  <span className="flex items-center gap-1.5" title="O‘quvchilar">
+                  <span className="flex items-center gap-1.5">
                     <GraduationCap className="size-3.5" aria-hidden />
                     {course.counts.students} o‘quvchi
                   </span>
-                  <span className="flex items-center gap-1.5" title="Qiziqqan leadlar">
+                  <span className="flex items-center gap-1.5">
                     <Target className="size-3.5" aria-hidden />
                     {course.counts.leads} lead
                   </span>

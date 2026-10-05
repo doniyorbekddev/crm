@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClock, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -142,47 +143,69 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
             description={canManage ? 'Shartnoma summasini oylik qismlarga bo‘lib, muddatlarni belgilang' : 'Jadvalni buxgalter tuzadi'}
           />
         ) : (
-          <TableContainer>
-            <Table aria-label="To‘lov jadvali">
-              <THead>
-                <tr>
-                  <TH className="w-10">№</TH>
-                  <TH>Muddat</TH>
-                  <TH>Summa</TH>
-                  <TH>To‘langan</TH>
-                  <TH>Qolgan</TH>
-                  <TH>Holat</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {schedule.installments.map((item) => (
-                  <TR key={item.id} className={cn(item.status === 'PAID' && 'opacity-70')}>
-                    <TD className="text-fg-muted tabular-nums">{item.sequence}</TD>
-                    <TD className="whitespace-nowrap">
-                      <p className="text-fg">{formatDate(item.dueDate)}</p>
-                      {item.note && <p className="max-w-56 truncate text-xs text-fg-muted">{item.note}</p>}
-                    </TD>
-                    <TD className="font-medium whitespace-nowrap text-fg">{formatMoney(item.amount)}</TD>
-                    <TD className="whitespace-nowrap text-fg-muted">{formatMoney(item.paid)}</TD>
-                    <TD
-                      className={cn(
-                        'whitespace-nowrap',
-                        item.status === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg',
-                      )}
-                    >
-                      {formatMoney(item.remaining)}
-                    </TD>
-                    <TD className="whitespace-nowrap">
-                      <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>{INSTALLMENT_STATUS_LABELS[item.status]}</Badge>
-                      {item.status === 'OVERDUE' && (
-                        <p className="mt-0.5 text-xs text-danger">{item.overdueDays} kun kechikdi</p>
-                      )}
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="To‘lov jadvali"
+            rows={schedule.installments}
+            rowKey={(item) => item.id}
+            rowClassName={(item) => cn(item.status === 'PAID' && 'opacity-70')}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: '№',
+                thClassName: 'w-10',
+                tdClassName: 'text-fg-muted tabular-nums',
+                cell: (item) => <>{item.sequence}</>,
+              },
+              {
+                key: 'c1',
+                label: 'Muddat',
+                tdClassName: 'whitespace-nowrap',
+                cell: (item) => (
+                  <>
+                    <p className="text-fg">{formatDate(item.dueDate)}</p>
+                    {item.note && <p className="max-w-56 truncate text-xs text-fg-muted">{item.note}</p>}
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Summa',
+                tdClassName: 'font-medium whitespace-nowrap text-fg',
+                cell: (item) => <>{formatMoney(item.amount)}</>,
+              },
+              {
+                key: 'c3',
+                label: 'To‘langan',
+                tdClassName: 'whitespace-nowrap text-fg-muted',
+                cell: (item) => <>{formatMoney(item.paid)}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Qolgan',
+                tdClassName: (item) => cn( 'whitespace-nowrap', item.status === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg', ),
+                cell: (item) => (
+                  <>
+                    {formatMoney(item.remaining)}
+                  </>
+                ),
+              },
+              {
+                key: 'c5',
+                label: 'Holat',
+                tdClassName: 'whitespace-nowrap',
+                cell: (item) => (
+                  <>
+                    <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>{INSTALLMENT_STATUS_LABELS[item.status]}</Badge>
+                    {item.status === 'OVERDUE' && (
+                      <p className="mt-0.5 text-xs text-danger">{item.overdueDays} kun kechikdi</p>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 

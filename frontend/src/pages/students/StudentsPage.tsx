@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
@@ -232,9 +233,12 @@ export default function StudentsPage() {
               {student.healthScore !== null && <span className="ml-1 tabular-nums opacity-70">{student.healthScore}</span>}
             </Badge>
           ) : (
-            <span className="text-fg-subtle" title="Baho uchun yetarli ma’lumot yo‘q">
-              —
-            </span>
+            <Tooltip content="Baho uchun yetarli ma’lumot yo‘q" describe={false}>
+              <span className="text-fg-subtle">
+                <span aria-hidden>—</span>
+                <span className="sr-only">Baho uchun yetarli ma’lumot yo‘q</span>
+              </span>
+            </Tooltip>
           )}
         </>
       ),

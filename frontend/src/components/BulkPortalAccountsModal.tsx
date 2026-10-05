@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation } from '@tanstack/react-query';
 import { Download, KeyRound, Printer } from 'lucide-react';
 import { useState } from 'react';
@@ -7,7 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer } from '@/components/ui/Table';
 import { getErrorMessage } from '@/lib/api';
 import { downloadCredentialsCsv, printCredentials } from '@/lib/portalCredentials';
 import type { CredentialRow } from '@/lib/portalCredentials';
@@ -142,28 +142,40 @@ export function BulkPortalAccountsModal({ title, description, allLabel, groups, 
                   CSV yuklab olish
                 </Button>
               </div>
-              <TableContainer className="max-h-80 rounded-lg border border-border">
-                <Table aria-label="Ochilgan kabinetlar">
-                  <THead>
-                    <tr>
-                      <TH>Ism</TH>
-                      <TH>Izoh</TH>
-                      <TH>Login</TH>
-                      <TH>Parol</TH>
-                    </tr>
-                  </THead>
-                  <TBody>
-                    {rows.map((row) => (
-                      <TR key={row.id}>
-                        <TD className="text-fg">{row.fullName}</TD>
-                        <TD className="text-fg-muted">{row.subtitle ?? '—'}</TD>
-                        <TD className="font-mono text-fg">{row.login}</TD>
-                        <TD className="font-mono font-semibold text-fg">{row.temporaryPassword}</TD>
-                      </TR>
-                    ))}
-                  </TBody>
-                </Table>
-              </TableContainer>
+              <DataTable
+                bare
+                label="Ochilgan kabinetlar"
+                rows={rows}
+                rowKey={(row) => row.id}
+                className="max-h-80 rounded-lg border border-border"
+                mobileLayout="cards"
+                columns={[
+                  {
+                    key: 'c0',
+                    label: 'Ism',
+                    tdClassName: 'text-fg',
+                    cell: (row) => <>{row.fullName}</>,
+                  },
+                  {
+                    key: 'c1',
+                    label: 'Izoh',
+                    tdClassName: 'text-fg-muted',
+                    cell: (row) => <>{row.subtitle ?? '—'}</>,
+                  },
+                  {
+                    key: 'c2',
+                    label: 'Login',
+                    tdClassName: 'font-mono text-fg',
+                    cell: (row) => <>{row.login}</>,
+                  },
+                  {
+                    key: 'c3',
+                    label: 'Parol',
+                    tdClassName: 'font-mono font-semibold text-fg',
+                    cell: (row) => <>{row.temporaryPassword}</>,
+                  },
+                ]}
+              />
             </>
           )}
         </div>

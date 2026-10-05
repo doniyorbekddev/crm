@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 import type { ExecutiveHealth, HealthStatus } from '@/types/dashboard';
@@ -52,9 +53,11 @@ export function HealthCard({ health }: { health: ExecutiveHealth }) {
         </div>
         <ul className="min-w-0 flex-1 space-y-2.5">
           {health.components.map((component) => (
-            <li key={component.key} title={component.hint}>
+            <li key={component.key}>
               <div className="mb-1 flex items-center justify-between gap-2 text-caption">
-                <span className="text-fg-muted">{component.label}</span>
+                <Tooltip content={component.hint} describe={false} disabled={!component.hint}>
+                  <span className="text-fg-muted">{component.label}</span>
+                </Tooltip>
                 <span className="text-fg tabular-nums">
                   {component.value}
                   <span className="ml-1.5 text-fg-subtle">{component.score === null ? 'ma’lumot yo‘q' : `${component.score} ball`}</span>

@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, CheckCheck, CheckCircle2, Newspaper, RefreshCw, Settings2, Siren } from 'lucide-react';
@@ -285,9 +286,11 @@ export default function AlertsPage() {
                         {isUnread && <span className="size-2 rounded-full bg-brand-500" aria-label="O‘qilmagan" />}
                         <Badge tone={ALERT_SEVERITY_TONES[alert.severity]}>{ALERT_SEVERITY_LABELS[alert.severity]}</Badge>
                         <span className="text-xs text-fg-muted">{ALERT_TYPE_LABELS[alert.type]}</span>
-                        <span className="text-xs text-fg-subtle" title={formatDateTime(alert.createdAt)}>
-                          {formatRelativeTime(alert.createdAt)}
-                        </span>
+                        <Tooltip content={formatDateTime(alert.createdAt)} describe={false}>
+                          <time dateTime={alert.createdAt} className="text-xs text-fg-subtle">
+                            {formatRelativeTime(alert.createdAt)}
+                          </time>
+                        </Tooltip>
                       </div>
                       <p className={cn('mt-1 text-sm text-fg', isUnread ? 'font-semibold' : 'font-medium')}>{alert.title}</p>
                       <p className="text-sm text-fg-muted">{alert.message}</p>

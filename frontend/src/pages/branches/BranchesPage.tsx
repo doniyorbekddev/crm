@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -107,51 +108,85 @@ export default function BranchesPage() {
         ) : query.data.length === 0 ? (
           <EmptyState icon={Building2} title="Filial yo‘q" description="Birinchi filialni qo‘shing" />
         ) : (
-          <TableContainer>
-            <Table aria-label="Filiallar">
-              <THead>
-                <tr>
-                  <TH>Filial</TH>
-                  <TH>Manzil</TH>
-                  <TH className="text-right">Xodimlar</TH>
-                  <TH className="text-right">O‘quvchilar</TH>
-                  <TH className="text-right">Guruhlar</TH>
-                  <TH>Holat</TH>
-                  {canManage && <TH className="w-24" />}
-                </tr>
-              </THead>
-              <TBody>
-                {query.data.map((branch) => (
-                  <TR key={branch.id}>
-                    <TD>
-                      <p className="font-medium text-fg">{branch.name}</p>
-                      <p className="font-mono text-xs text-fg-subtle">{branch.key}</p>
-                    </TD>
-                    <TD className="text-fg-muted">
-                      {branch.address ?? '—'}
-                      {branch.phone && <p className="text-xs text-fg-subtle">{branch.phone}</p>}
-                    </TD>
-                    <TD className="text-right tabular-nums text-fg-muted">{formatNumber(branch.counts.users)}</TD>
-                    <TD className="text-right tabular-nums text-fg-muted">{formatNumber(branch.counts.students)}</TD>
-                    <TD className="text-right tabular-nums text-fg-muted">{formatNumber(branch.counts.groups)}</TD>
-                    <TD>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge tone={branch.isActive ? 'green' : 'gray'}>{branch.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
-                        {branch.isMain && <Badge tone="blue">Asosiy</Badge>}
-                      </div>
-                    </TD>
-                    {canManage && (
-                      <TD className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => edit(branch)}>
-                          Tahrir
-                        </Button>
-                      </TD>
-                    )}
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="Filiallar"
+            rows={query.data}
+            rowKey={(branch) => branch.id}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'Filial',
+                cell: (branch) => (
+                  <>
+                    <p className="font-medium text-fg">{branch.name}</p>
+                    <p className="font-mono text-xs text-fg-subtle">{branch.key}</p>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Manzil',
+                tdClassName: 'text-fg-muted',
+                cell: (branch) => (
+                  <>
+                    {branch.address ?? '—'}
+                    {branch.phone && <p className="text-xs text-fg-subtle">{branch.phone}</p>}
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Xodimlar',
+                thClassName: 'text-right',
+                tdClassName: 'text-right tabular-nums text-fg-muted',
+                cell: (branch) => <>{formatNumber(branch.counts.users)}</>,
+              },
+              {
+                key: 'c3',
+                label: 'O‘quvchilar',
+                thClassName: 'text-right',
+                tdClassName: 'text-right tabular-nums text-fg-muted',
+                cell: (branch) => <>{formatNumber(branch.counts.students)}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Guruhlar',
+                thClassName: 'text-right',
+                tdClassName: 'text-right tabular-nums text-fg-muted',
+                cell: (branch) => <>{formatNumber(branch.counts.groups)}</>,
+              },
+              {
+                key: 'c5',
+                label: 'Holat',
+                cell: (branch) => (
+                  <>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={branch.isActive ? 'green' : 'gray'}>{branch.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
+                      {branch.isMain && <Badge tone="blue">Asosiy</Badge>}
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: 'c6',
+                label: 'Amallar',
+                header: <span className="sr-only">Amallar</span>,
+                fixed: true,
+                thClassName: 'w-24',
+                tdClassName: 'text-right',
+                visible: canManage,
+                cell: (branch) => (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => edit(branch)}>
+                      Tahrir
+                    </Button>
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 

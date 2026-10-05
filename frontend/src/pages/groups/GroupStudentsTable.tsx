@@ -1,8 +1,8 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { TBody, TD, TH, THead, TR, Table, TableContainer } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 import type { TeachingStudentRow } from '@/types/teaching';
 import { formatRelativeTime } from '@/utils/format';
@@ -25,54 +25,93 @@ export function GroupStudentsTable({ students, label }: { students: TeachingStud
     return <EmptyState icon={GraduationCap} title="Guruhda o‘quvchi yo‘q" description="Faol o‘quvchilar shu yerda ko‘rinadi" />;
   }
   return (
-    <TableContainer>
-      <Table aria-label={label}>
-        <THead>
-          <tr>
-            <TH>O‘quvchi</TH>
-            <TH className="text-right">Davomat</TH>
-            <TH className="text-right">Vazifa</TH>
-            <TH className="text-right">Imtihon</TH>
-            <TH className="text-right">Progress</TH>
-            <TH>Risk</TH>
-            <TH>Oxirgi faollik</TH>
-          </tr>
-        </THead>
-        <TBody>
-          {students.map((student) => (
-            <TR key={student.id}>
-              <TD>
-                <Link to={`/students/${student.id}`} className="focus-ring rounded-sm font-medium text-fg hover:underline">
-                  {student.lastName} {student.firstName}
-                </Link>
-                <p className="font-mono text-caption text-fg-subtle">{student.code}</p>
-              </TD>
-              <TD className="text-right">
-                <Percent value={student.attendanceRate} />
-              </TD>
-              <TD className="text-right">
-                <Percent value={student.homeworkRate} />
-              </TD>
-              <TD className="text-right">
-                <Percent value={student.examAverage} />
-              </TD>
-              <TD className="text-right">
-                <Percent value={student.progress} />
-              </TD>
-              <TD>
-                {student.riskLevel ? <StatusBadge kind="risk" status={student.riskLevel} /> : <span className="text-fg-subtle">—</span>}
-                {student.reasons.length > 0 && <p className="mt-1 max-w-64 text-caption text-fg-muted">{student.reasons.slice(0, 3).join('; ')}</p>}
-              </TD>
-              <TD className="whitespace-nowrap">
-                <span className="text-fg">{formatRelativeTime(student.lastActivityAt)}</span>
-                <p className="text-caption text-fg-subtle">
-                  {student.hasPortalAccount ? (student.lastLoginAt ? `Kabinet: ${formatRelativeTime(student.lastLoginAt)}` : 'Kabinetga kirmagan') : 'Kabinet ochilmagan'}
-                </p>
-              </TD>
-            </TR>
-          ))}
-        </TBody>
-      </Table>
-    </TableContainer>
+    <DataTable
+      bare
+      label={label}
+      rows={students}
+      rowKey={(student) => student.id}
+      mobileLayout="cards"
+      columns={[
+        {
+          key: 'c0',
+          label: 'O‘quvchi',
+          cell: (student) => (
+            <>
+              <Link to={`/students/${student.id}`} className="focus-ring rounded-sm font-medium text-fg hover:underline">
+                {student.lastName} {student.firstName}
+              </Link>
+              <p className="font-mono text-caption text-fg-subtle">{student.code}</p>
+            </>
+          ),
+        },
+        {
+          key: 'c1',
+          label: 'Davomat',
+          thClassName: 'text-right',
+          tdClassName: 'text-right',
+          cell: (student) => (
+            <>
+              <Percent value={student.attendanceRate} />
+            </>
+          ),
+        },
+        {
+          key: 'c2',
+          label: 'Vazifa',
+          thClassName: 'text-right',
+          tdClassName: 'text-right',
+          cell: (student) => (
+            <>
+              <Percent value={student.homeworkRate} />
+            </>
+          ),
+        },
+        {
+          key: 'c3',
+          label: 'Imtihon',
+          thClassName: 'text-right',
+          tdClassName: 'text-right',
+          cell: (student) => (
+            <>
+              <Percent value={student.examAverage} />
+            </>
+          ),
+        },
+        {
+          key: 'c4',
+          label: 'Progress',
+          thClassName: 'text-right',
+          tdClassName: 'text-right',
+          cell: (student) => (
+            <>
+              <Percent value={student.progress} />
+            </>
+          ),
+        },
+        {
+          key: 'c5',
+          label: 'Risk',
+          cell: (student) => (
+            <>
+              {student.riskLevel ? <StatusBadge kind="risk" status={student.riskLevel} /> : <span className="text-fg-subtle">—</span>}
+              {student.reasons.length > 0 && <p className="mt-1 max-w-64 text-caption text-fg-muted">{student.reasons.slice(0, 3).join('; ')}</p>}
+            </>
+          ),
+        },
+        {
+          key: 'c6',
+          label: 'Oxirgi faollik',
+          tdClassName: 'whitespace-nowrap',
+          cell: (student) => (
+            <>
+              <span className="text-fg">{formatRelativeTime(student.lastActivityAt)}</span>
+              <p className="text-caption text-fg-subtle">
+                {student.hasPortalAccount ? (student.lastLoginAt ? `Kabinet: ${formatRelativeTime(student.lastLoginAt)}` : 'Kabinetga kirmagan') : 'Kabinet ochilmagan'}
+              </p>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

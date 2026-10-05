@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
@@ -247,7 +248,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
               required
               hint={amount ? `To‘lovdan keyin: ${formatMoney(Math.max(afterPayment, 0))}` : `Eng ko‘pi: ${formatMoney(remaining)}`}
             >
-              <Input id="payment-amount" autoFocus inputMode="numeric" invalid={Boolean(errors.amount)} {...register('amount')} />
+              <MoneyController control={control} name="amount" id="payment-amount" autoFocus invalid={Boolean(errors.amount)} />
             </FormField>
             <FormField label="To‘lov usuli" htmlFor="payment-method" error={errors.method?.message} required>
               <Select

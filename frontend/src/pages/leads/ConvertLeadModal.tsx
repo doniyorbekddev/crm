@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -171,7 +172,7 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: ConvertLeadModa
                 : 'Bo‘sh qoldirilsa kurs narxi olinadi'
           }
         >
-          <Input id="convert-contractPrice" inputMode="numeric" invalid={Boolean(errors.contractPrice)} {...register('contractPrice')} />
+          <MoneyController control={control} name="contractPrice" id="convert-contractPrice" invalid={Boolean(errors.contractPrice)} />
         </FormField>
 
         <FormField label="O‘qish boshlanishi" htmlFor="convert-startDate" error={errors.startDate?.message} required>

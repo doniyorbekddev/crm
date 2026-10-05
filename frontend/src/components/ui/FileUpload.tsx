@@ -18,6 +18,12 @@ interface FileUploadProps {
   maxSizeBytes?: number;
   disabled?: boolean;
   invalid?: boolean;
+  /** Yuklanayotganda zona bloklanadi va sarlavha o'rnida shu matn chiqadi */
+  busyText?: string | null;
+  /** Maydonning aniq nomi (testlar va ekran o'quvchi uchun) — berilmasa sarlavha matni */
+  'aria-label'?: string;
+  /** Ixcham: bir qatorli (karta ichida, forma maydoni sifatida) */
+  compact?: boolean;
   className?: string;
 }
 
@@ -48,7 +54,10 @@ export function FileUpload({
   maxSizeBytes,
   disabled = false,
   invalid = false,
+  busyText = null,
+  compact = false,
   className,
+  'aria-label': ariaLabel,
 }: FileUploadProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -83,11 +92,12 @@ export function FileUpload({
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={cn(
-        'flex cursor-pointer flex-col items-center gap-2 rounded-card border border-dashed border-border bg-surface px-4 py-6 text-center transition-colors',
+        'flex cursor-pointer items-center rounded-card border border-dashed border-border bg-surface text-center transition-colors',
+        compact ? 'gap-3 px-3 py-2.5 text-left' : 'flex-col gap-2 px-4 py-6',
         'hover:border-fg-subtle hover:bg-surface-muted has-focus-visible:border-brand-500 has-focus-visible:ring-3 has-focus-visible:ring-brand-500/20',
         dragging && 'border-brand-500 bg-primary-subtle',
         invalid && 'border-danger-solid',
-        disabled && 'pointer-events-none cursor-not-allowed opacity-60',
+        (disabled || busyText) && 'pointer-events-none cursor-not-allowed opacity-60',
         className,
       )}
     >
@@ -98,7 +108,8 @@ export function FileUpload({
         className="sr-only"
         accept={accept}
         multiple={multiple}
-        disabled={disabled}
+        disabled={disabled || Boolean(busyText)}
+        aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         aria-describedby={hint ? hintId : undefined}
         onChange={(event) => {
@@ -110,7 +121,7 @@ export function FileUpload({
       <span className="grid size-9 place-items-center rounded-control bg-surface-muted text-fg-muted">
         <UploadCloud className="size-5" aria-hidden />
       </span>
-      <span className="text-body font-medium text-fg">{title}</span>
+      <span className={cn('text-body font-medium text-fg', compact && 'min-w-0 flex-1')}>{busyText ?? title}</span>
       {hint && (
         <span id={hintId} className="text-caption text-fg-muted">
           {hint}

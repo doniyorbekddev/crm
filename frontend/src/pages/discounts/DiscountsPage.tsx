@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BadgePercent, Plus, Ticket } from 'lucide-react';
 import { useState } from 'react';
@@ -292,49 +293,69 @@ export default function DiscountsPage() {
           ) : promoQuery.data.length === 0 ? (
             <EmptyState icon={Ticket} title="Promo kod yo‘q" description="Aksiya uchun kod yarating: masalan KUZ2026" />
           ) : (
-            <TableContainer>
-              <Table aria-label="Promo kodlar">
-                <THead>
-                  <tr>
-                    <TH>Kod</TH>
-                    <TH>Qoida</TH>
-                    <TH>Ishlatilgan</TH>
-                    <TH>Muddat</TH>
-                    <TH>Holat</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {promoQuery.data.map((promo) => (
-                    <TR key={promo.id}>
-                      <TD className="font-mono text-fg">{promo.code}</TD>
-                      <TD className="text-fg-muted">
-                        {promo.ruleName} · {promo.valueType === 'PERCENT' ? `${promo.value}%` : formatMoney(promo.value)}
-                      </TD>
-                      <TD className="tabular-nums text-fg-muted">
-                        {promo.usedCount}
-                        {promo.usageLimit > 0 ? ` / ${promo.usageLimit}` : ' / ∞'}
-                      </TD>
-                      <TD className="text-fg-muted">{promo.expiresAt ? formatDate(promo.expiresAt) : '—'}</TD>
-                      <TD>
-                        <div className="flex items-center gap-2">
-                          <Badge tone={promo.isActive ? 'green' : 'gray'}>{promo.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
-                          {canManage && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              loading={togglePromo.isPending && togglePromo.variables?.id === promo.id}
-                              onClick={() => togglePromo.mutate({ id: promo.id, isActive: !promo.isActive })}
-                            >
-                              {promo.isActive ? 'O‘chirish' : 'Yoqish'}
-                            </Button>
-                          )}
-                        </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              bare
+              label="Promo kodlar"
+              rows={promoQuery.data}
+              rowKey={(promo) => promo.id}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Kod',
+                  tdClassName: 'font-mono text-fg',
+                  cell: (promo) => <>{promo.code}</>,
+                },
+                {
+                  key: 'c1',
+                  label: 'Qoida',
+                  tdClassName: 'text-fg-muted',
+                  cell: (promo) => (
+                    <>
+                      {promo.ruleName} · {promo.valueType === 'PERCENT' ? `${promo.value}%` : formatMoney(promo.value)}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Ishlatilgan',
+                  tdClassName: 'tabular-nums text-fg-muted',
+                  cell: (promo) => (
+                    <>
+                      {promo.usedCount}
+                      {promo.usageLimit > 0 ? ` / ${promo.usageLimit}` : ' / ∞'}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Muddat',
+                  tdClassName: 'text-fg-muted',
+                  cell: (promo) => <>{promo.expiresAt ? formatDate(promo.expiresAt) : '—'}</>,
+                },
+                {
+                  key: 'c4',
+                  label: 'Holat',
+                  cell: (promo) => (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Badge tone={promo.isActive ? 'green' : 'gray'}>{promo.isActive ? 'Faol' : 'O‘chirilgan'}</Badge>
+                        {canManage && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            loading={togglePromo.isPending && togglePromo.variables?.id === promo.id}
+                            onClick={() => togglePromo.mutate({ id: promo.id, isActive: !promo.isActive })}
+                          >
+                            {promo.isActive ? 'O‘chirish' : 'Yoqish'}
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>

@@ -124,6 +124,11 @@
 - Bundle hajmi oldin/keyin, keraksiz qayta chizish, takror so'rovlar.
 - **`docs/design-system.md`** — §40 dagi 16 band; yakuniy tekshiruv ro'yxati (§45).
 
+## PHASE 16 dan keyingi yakunlash ✅ (2026-10-05)
+> Bajarildi: kabinet (11 sahifa × 3 kenglik × 2 mavzu) kirgan holda skanerdan o'tdi — bitta topilma (nomsiz izoh maydoni) tuzatildi; qolgan 12 ta `title` → Tooltip; lead profili `ProfileHeader`da; 9 ta pul maydoni `CurrencyInput`da (`MoneyController`, forma qiymati va zod sxemalari o'zgarmagan); 2 ta fayl zonasi `FileUpload`da; ota-ona/o'quvchi bog'lash qidiruvi `Combobox`da; 20 ta faylda ikkilamchi jadvallar `DataTable bare` ga o'tdi (yagona zichlik, telefonda karta ko'rinishi).
+- `Table`da ataylab qolganlar: matritsa va hisobot jadvallari (rollar, sotuv rejalari, akademik taqqoslov, foyda-zarar, byudjet, analitika, hisobotlar, o'zlashtirish matritsasi) va qatori murakkab 4 ro'yxat (maoshlar, moliyaviy daftar, davomat reytingi, chegirma qoidalari).
+- Backendga bog'liq, bajarilmagan: bildirishnoma toifasi filtri, ustun bo'yicha server saralashi, o'qituvchi/guruh sahifalaridagi qo'shimcha bo'limlar.
+
 ## Ochiq savollar (javob bo'lmasa — tavsiya bilan davom etiladi)
 1. **Asosiy rang**: mavjud `brand` (ko'k/indigo) saqlanadi. *Tavsiya: ha.*
 2. **Interfeys tili**: o'zbekcha qoladi (`dizayn.md` dagi inglizcha nomlar — misol). *Tavsiya: ha.*

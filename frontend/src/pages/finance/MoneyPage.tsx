@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BadgeCheck, Ban, HandCoins, Paperclip, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -298,82 +299,114 @@ export function MoneyPage({ kind }: MoneyPageProps) {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Yozuvlar">
-                <THead>
-                  <tr>
-                    <TH className="w-20">Raqam</TH>
-                    <TH>Kategoriya</TH>
-                    <TH>Summa</TH>
-                    <TH>Usul / kassa</TH>
-                    <TH>Sana</TH>
-                    <TH>Kim kiritdi</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((entry) => (
-                    <TR key={entry.id} className={cn(entry.isVoided && 'opacity-60')}>
-                      <TD className="font-mono text-xs text-fg-muted">#{entry.number}</TD>
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {entry.category.name}
-                          {entry.attachments > 0 && (
-                            <Paperclip className="ml-1.5 inline size-3.5 text-fg-subtle" aria-label={`${entry.attachments} ta chek`} />
-                          )}
-                          {entry.isVoided && (
-                            <Badge tone="red" className="ml-2">
-                              Bekor qilingan
-                            </Badge>
-                          )}
-                          {entry.status !== 'PAID' && (
-                            <Badge tone={EXPENSE_STATUS_TONES[entry.status]} className="ml-2">
-                              {EXPENSE_STATUS_LABELS[entry.status]}
-                            </Badge>
-                          )}
+            <DataTable
+              bare
+              label="Yozuvlar"
+              rows={listQuery.data.items}
+              rowKey={(entry) => entry.id}
+              rowClassName={(entry) => cn(entry.isVoided && 'opacity-60')}
+              stale={listQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Raqam',
+                  thClassName: 'w-20',
+                  tdClassName: 'font-mono text-xs text-fg-muted',
+                  cell: (entry) => <>#{entry.number}</>,
+                },
+                {
+                  key: 'c1',
+                  label: 'Kategoriya',
+                  cell: (entry) => (
+                    <>
+                      <p className="font-medium text-fg">
+                        {entry.category.name}
+                        {entry.attachments > 0 && (
+                          <Paperclip className="ml-1.5 inline size-3.5 text-fg-subtle" aria-label={`${entry.attachments} ta chek`} />
+                        )}
+                        {entry.isVoided && (
+                          <Badge tone="red" className="ml-2">
+                            Bekor qilingan
+                          </Badge>
+                        )}
+                        {entry.status !== 'PAID' && (
+                          <Badge tone={EXPENSE_STATUS_TONES[entry.status]} className="ml-2">
+                            {EXPENSE_STATUS_LABELS[entry.status]}
+                          </Badge>
+                        )}
+                      </p>
+                      {entry.description && <p className="truncate text-xs text-fg-muted">{entry.description}</p>}
+                      {(entry.vendor || entry.recurring || entry.source) && (
+                        <p className="truncate text-xs text-fg-muted">
+                          {[entry.vendor, entry.source?.name ?? null, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
                         </p>
-                        {entry.description && <p className="truncate text-xs text-fg-muted">{entry.description}</p>}
-                        {(entry.vendor || entry.recurring || entry.source) && (
-                          <p className="truncate text-xs text-fg-muted">
-                            {[entry.vendor, entry.source?.name ?? null, entry.recurring ? 'takroriy' : null].filter(Boolean).join(' · ')}
-                          </p>
-                        )}
-                        {entry.status === 'REJECTED' && entry.rejectReason && (
-                          <p className="truncate text-xs text-danger">{entry.rejectReason}</p>
-                        )}
-                        {entry.isVoided && entry.voidReason && (
-                          <p className="truncate text-xs text-danger">{entry.voidReason}</p>
-                        )}
-                      </TD>
-                      <TD
-                        className={cn(
-                          'font-medium whitespace-nowrap',
-                          entry.isVoided ? 'text-fg-muted line-through' : isIncome ? 'text-success' : 'text-fg',
-                        )}
-                      >
-                        {formatMoney(entry.amount)}
-                      </TD>
-                      <TD>
-                        <Badge tone={PAYMENT_METHOD_TONES[entry.method]}>{PAYMENT_METHOD_LABELS[entry.method]}</Badge>
-                        {entry.account && <p className="mt-1 text-xs text-fg-muted">{entry.account.name}</p>}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {formatDate(entry.dueDate && entry.status !== 'PAID' ? entry.dueDate : entry.date)}
-                        {entry.status !== 'PAID' && entry.status !== 'REJECTED' && <p className="text-xs">muddat</p>}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {entry.responsible ? `${entry.responsible.firstName} ${entry.responsible.lastName}` : '—'}
-                      </TD>
-                      <TD className="text-right">
-                        <ActionMenu label={`#${entry.number} amallari`} items={[attachmentsItem(entry), ...rowActions(entry)]} />
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+                      )}
+                      {entry.status === 'REJECTED' && entry.rejectReason && (
+                        <p className="truncate text-xs text-danger">{entry.rejectReason}</p>
+                      )}
+                      {entry.isVoided && entry.voidReason && (
+                        <p className="truncate text-xs text-danger">{entry.voidReason}</p>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Summa',
+                  tdClassName: (entry) => cn( 'font-medium whitespace-nowrap', entry.isVoided ? 'text-fg-muted line-through' : isIncome ? 'text-success' : 'text-fg', ),
+                  cell: (entry) => (
+                    <>
+                      {formatMoney(entry.amount)}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Usul / kassa',
+                  cell: (entry) => (
+                    <>
+                      <Badge tone={PAYMENT_METHOD_TONES[entry.method]}>{PAYMENT_METHOD_LABELS[entry.method]}</Badge>
+                      {entry.account && <p className="mt-1 text-xs text-fg-muted">{entry.account.name}</p>}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'Sana',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (entry) => (
+                    <>
+                      {formatDate(entry.dueDate && entry.status !== 'PAID' ? entry.dueDate : entry.date)}
+                      {entry.status !== 'PAID' && entry.status !== 'REJECTED' && <p className="text-xs">muddat</p>}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  label: 'Kim kiritdi',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (entry) => (
+                    <>
+                      {entry.responsible ? `${entry.responsible.firstName} ${entry.responsible.lastName}` : '—'}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c6',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-12',
+                  tdClassName: 'text-right',
+                  cell: (entry) => (
+                    <>
+                      <ActionMenu label={`#${entry.number} amallari`} items={[attachmentsItem(entry), ...rowActions(entry)]} />
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={page}
               totalPages={listQuery.data.meta.totalPages}

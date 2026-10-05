@@ -1,3 +1,4 @@
+import { cn } from '@/lib/cn';
 import { Input } from './Input';
 import type { InputProps } from './Input';
 
@@ -18,7 +19,7 @@ const group = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
  * react-hook-form bilan: `<Controller render={({ field }) => <CurrencyInput value={field.value} onValueChange={field.onChange} />} />`.
  * Validatsiya (majburiy, minimal summa) — formaning zod sxemasida qoladi.
  */
-export function CurrencyInput({ value, onValueChange, suffix = 'so‘m', max = 999_999_999_999, ...props }: CurrencyInputProps) {
+export function CurrencyInput({ value, onValueChange, suffix = 'so‘m', max = 999_999_999_999, className, ...props }: CurrencyInputProps) {
   return (
     <Input
       {...props}
@@ -31,7 +32,7 @@ export function CurrencyInput({ value, onValueChange, suffix = 'so‘m', max = 9
         onValueChange(digits === '' ? null : Math.min(Number(digits), max));
       }}
       rightSlot={<span className="pointer-events-none pr-1.5 text-caption text-fg-subtle">{suffix}</span>}
-      className={`pr-14 tabular-nums ${props.className ?? ''}`}
+      className={cn('pr-14 tabular-nums', className)}
     />
   );
 }

@@ -257,6 +257,15 @@ const density = useTableDensity();                    // zichlik (barcha jadvall
 - **Amallar** — `actions` ustunida bitta `ActionMenu`; ko'p ishlatiladigan bitta amal tugma bo'lishi mumkin.
 - Sahifa butun oyna bo'yicha aylanadi — yopishqoq sarlavha faqat `maxHeight` berilgan jadvalda (`stickyHeader`).
 
+### Ichki jadval (`DataTable bare`)
+Sahifa o'z kartasi, filtrlari, yuklanish/bo'sh/xato holatlarini saqlasa, jadvalning o'zi `<DataTable bare …>` bilan chiziladi:
+karta va asboblar qatorisiz, lekin yagona zichlik (foydalanuvchi tanlovi), `stale`, `visible` (ruxsatga bog'liq ustun) va
+telefonda `mobileLayout="cards"`. Qolipdagi eski `Table` bloklari `frontend/scripts/migrate-tables.py <fayl>` bilan o'tkaziladi;
+qolipga tushmaganini skript o'tkazib yuboradi va sababini aytadi. Matritsa va hisobot jadvallari `Table`da qoladi.
+
+Pul maydoni react-hook-form ichida: `<MoneyController control={control} name="amount" />` (`components/form`) — qiymat raqamlar
+satri bo'lib qoladi, sxema o'zgarmaydi.
+
 ## 8.4. Tafsilot sahifasi (PHASE 5)
 
 `components/ProfileHeader.tsx` — o'quvchi, o'qituvchi (keyin guruh, lead) sahifalari uchun yagona sarlavha:

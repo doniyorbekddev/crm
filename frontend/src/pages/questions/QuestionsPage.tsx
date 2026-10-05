@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HelpCircle, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -9,7 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
-import { Table, TBody, TD, TH, THead, TR, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { queryKeys } from '@/lib/queryKeys';
@@ -132,44 +133,65 @@ export default function QuestionsPage() {
         />
       ) : (
         <>
-          <TableContainer>
-            <Table aria-label="Savollar bazasi">
-              <THead>
-                <TR>
-                  <TH>Savol</TH>
-                  <TH>Mavzu</TH>
-                  <TH>Turi</TH>
-                  <TH>Ball</TH>
-                  <TH className="w-12" />
-                </TR>
-              </THead>
-              <TBody>
-                {questionsQuery.data.items.map((question) => (
-                  <TR key={question.id}>
-                    <TD>
-                      <p className="max-w-md truncate text-fg">{question.text}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge tone={DIFFICULTY_TONES[question.difficulty]}>{DIFFICULTY_LABELS[question.difficulty]}</Badge>
-                        {question.usedInExams > 0 && (
-                          <span className="text-xs text-fg-subtle">{question.usedInExams} ta imtihonda</span>
-                        )}
-                      </div>
-                    </TD>
-                    <TD className="text-fg-muted">{question.topicTitle ?? '—'}</TD>
-                    <TD className="text-fg-muted">{QUESTION_TYPE_SHORT[question.type]}</TD>
-                    <TD className="tabular-nums">{question.points}</TD>
-                    <TD className="text-right">
-                      {canManage && (
-                        <Button variant="ghost" aria-label="Tahrirlash" onClick={() => setDialog({ question })}>
-                          <Pencil className="size-4" aria-hidden />
-                        </Button>
+          <DataTable
+            bare
+            label="Savollar bazasi"
+            rows={questionsQuery.data.items}
+            rowKey={(question) => question.id}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'Savol',
+                cell: (question) => (
+                  <>
+                    <p className="max-w-md truncate text-fg">{question.text}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge tone={DIFFICULTY_TONES[question.difficulty]}>{DIFFICULTY_LABELS[question.difficulty]}</Badge>
+                      {question.usedInExams > 0 && (
+                        <span className="text-xs text-fg-subtle">{question.usedInExams} ta imtihonda</span>
                       )}
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Mavzu',
+                tdClassName: 'text-fg-muted',
+                cell: (question) => <>{question.topicTitle ?? '—'}</>,
+              },
+              {
+                key: 'c2',
+                label: 'Turi',
+                tdClassName: 'text-fg-muted',
+                cell: (question) => <>{QUESTION_TYPE_SHORT[question.type]}</>,
+              },
+              {
+                key: 'c3',
+                label: 'Ball',
+                tdClassName: 'tabular-nums',
+                cell: (question) => <>{question.points}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Amallar',
+                header: <span className="sr-only">Amallar</span>,
+                fixed: true,
+                thClassName: 'w-12',
+                tdClassName: 'text-right',
+                cell: (question) => (
+                  <>
+                    {canManage && (
+                      <Button variant="ghost" aria-label="Tahrirlash" onClick={() => setDialog({ question })}>
+                        <Pencil className="size-4" aria-hidden />
+                      </Button>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
           <Pagination
             page={questionsQuery.data.meta.page}
             totalPages={questionsQuery.data.meta.totalPages}

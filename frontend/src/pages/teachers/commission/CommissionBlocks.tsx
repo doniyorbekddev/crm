@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { Lock, Percent } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -108,60 +109,81 @@ export function CommissionEntriesTable({ entries }: { entries: CommissionEntry[]
     );
   }
   return (
-    <TableContainer>
-      <Table aria-label="Foiz yozuvlari">
-        <THead>
-          <tr>
-            <TH>Sana</TH>
-            <TH>Turi</TH>
-            <TH>To‘lov</TH>
-            <TH className="text-right">Summa</TH>
-            <TH className="text-right">Foiz</TH>
-            <TH className="text-right">Foiz summasi</TH>
-          </tr>
-        </THead>
-        <TBody>
-          {entries.map((entry) => (
-            <TR key={entry.id}>
-              <TD className="whitespace-nowrap text-fg-muted">{formatDate(entry.payment?.paidAt ?? entry.occurredAt)}</TD>
-              <TD>
-                <span className="inline-flex items-center gap-1.5">
-                  <Badge tone={COMMISSION_KIND_TONES[entry.kind]}>{COMMISSION_KIND_LABELS[entry.kind]}</Badge>
-                  {entry.locked && <Lock className="size-3.5 text-fg-subtle" aria-label="Maosh tasdiqlangan" />}
-                </span>
-              </TD>
-              <TD>
-                {entry.payment ? (
-                  <>
-                    <p className="font-medium text-fg">
-                      {entry.payment.student.firstName} {entry.payment.student.lastName}
-                    </p>
-                    <p className="text-xs text-fg-muted">
-                      <span className="font-mono">{entry.payment.code}</span>
-                      {entry.payment.group && ` · ${entry.payment.group.name}`}
-                      {entry.kind === 'REVERSAL' && entry.reason && ` · ${entry.reason}`}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-xs text-fg-muted">{entry.reason ?? '—'}</p>
-                )}
-              </TD>
-              <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{entry.baseAmount === 0 ? '—' : formatMoney(entry.baseAmount)}</TD>
-              <TD className="text-right tabular-nums text-fg-muted">{entry.percentage > 0 ? `${formatNumber(entry.percentage)}%` : '—'}</TD>
-              <TD
-                className={cn(
-                  'text-right font-medium whitespace-nowrap tabular-nums',
-                  entry.amount < 0 ? 'text-danger' : 'text-fg',
-                )}
-              >
-                {entry.amount > 0 ? '+' : ''}
-                {formatMoney(entry.amount)}
-              </TD>
-            </TR>
-          ))}
-        </TBody>
-      </Table>
-    </TableContainer>
+    <DataTable
+      bare
+      label="Foiz yozuvlari"
+      rows={entries}
+      rowKey={(entry) => entry.id}
+      mobileLayout="cards"
+      columns={[
+        {
+          key: 'c0',
+          label: 'Sana',
+          tdClassName: 'whitespace-nowrap text-fg-muted',
+          cell: (entry) => <>{formatDate(entry.payment?.paidAt ?? entry.occurredAt)}</>,
+        },
+        {
+          key: 'c1',
+          label: 'Turi',
+          cell: (entry) => (
+            <>
+              <span className="inline-flex items-center gap-1.5">
+                <Badge tone={COMMISSION_KIND_TONES[entry.kind]}>{COMMISSION_KIND_LABELS[entry.kind]}</Badge>
+                {entry.locked && <Lock className="size-3.5 text-fg-subtle" aria-label="Maosh tasdiqlangan" />}
+              </span>
+            </>
+          ),
+        },
+        {
+          key: 'c2',
+          label: 'To‘lov',
+          cell: (entry) => (
+            <>
+              {entry.payment ? (
+                <>
+                  <p className="font-medium text-fg">
+                    {entry.payment.student.firstName} {entry.payment.student.lastName}
+                  </p>
+                  <p className="text-xs text-fg-muted">
+                    <span className="font-mono">{entry.payment.code}</span>
+                    {entry.payment.group && ` · ${entry.payment.group.name}`}
+                    {entry.kind === 'REVERSAL' && entry.reason && ` · ${entry.reason}`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-fg-muted">{entry.reason ?? '—'}</p>
+              )}
+            </>
+          ),
+        },
+        {
+          key: 'c3',
+          label: 'Summa',
+          thClassName: 'text-right',
+          tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+          cell: (entry) => <>{entry.baseAmount === 0 ? '—' : formatMoney(entry.baseAmount)}</>,
+        },
+        {
+          key: 'c4',
+          label: 'Foiz',
+          thClassName: 'text-right',
+          tdClassName: 'text-right tabular-nums text-fg-muted',
+          cell: (entry) => <>{entry.percentage > 0 ? `${formatNumber(entry.percentage)}%` : '—'}</>,
+        },
+        {
+          key: 'c5',
+          label: 'Foiz summasi',
+          thClassName: 'text-right',
+          tdClassName: (entry) => cn( 'text-right font-medium whitespace-nowrap tabular-nums', entry.amount < 0 ? 'text-danger' : 'text-fg', ),
+          cell: (entry) => (
+            <>
+              {entry.amount > 0 ? '+' : ''}
+              {formatMoney(entry.amount)}
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }
 

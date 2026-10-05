@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight, CalendarClock } from 'lucide-react';
@@ -6,7 +7,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { TBody, TD, TH, THead, TR, Table, TableContainer } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { financeService } from '@/services/finance.service';
@@ -123,39 +123,64 @@ export function CashFlowStatementCard({ range }: { range: FinanceRangeParams }) 
             </Alert>
           )}
 
-          <TableContainer className="rounded-xl border border-border">
-            <Table aria-label="Kassalar bo‘yicha pul harakati">
-              <THead>
-                <tr>
-                  <TH>Kassa</TH>
-                  <TH className="text-right">Boshida</TH>
-                  <TH className="text-right">Kirim</TH>
-                  <TH className="text-right">Chiqim</TH>
-                  <TH className="text-right">Oxirida</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {data.accounts.map((account) => (
-                  <TR key={account.id}>
-                    <TD>
-                      <span className="flex items-center gap-2 font-medium whitespace-nowrap text-fg">
-                        {account.name}
-                        {!account.isActive && <Badge tone="gray">Faolsiz</Badge>}
-                      </span>
-                    </TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(account.opening)}</TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-success">
-                      {account.inflow > 0 ? `+${formatMoney(account.inflow)}` : '—'}
-                    </TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-danger">
-                      {account.outflow > 0 ? `−${formatMoney(account.outflow)}` : '—'}
-                    </TD>
-                    <TD className="text-right font-semibold whitespace-nowrap tabular-nums text-fg">{formatMoney(account.closing)}</TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="Kassalar bo‘yicha pul harakati"
+            rows={data.accounts}
+            rowKey={(account) => account.id}
+            className="rounded-xl border border-border"
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'Kassa',
+                cell: (account) => (
+                  <>
+                    <span className="flex items-center gap-2 font-medium whitespace-nowrap text-fg">
+                      {account.name}
+                      {!account.isActive && <Badge tone="gray">Faolsiz</Badge>}
+                    </span>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Boshida',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+                cell: (account) => <>{formatMoney(account.opening)}</>,
+              },
+              {
+                key: 'c2',
+                label: 'Kirim',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-success',
+                cell: (account) => (
+                  <>
+                    {account.inflow > 0 ? `+${formatMoney(account.inflow)}` : '—'}
+                  </>
+                ),
+              },
+              {
+                key: 'c3',
+                label: 'Chiqim',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-danger',
+                cell: (account) => (
+                  <>
+                    {account.outflow > 0 ? `−${formatMoney(account.outflow)}` : '—'}
+                  </>
+                ),
+              },
+              {
+                key: 'c4',
+                label: 'Oxirida',
+                thClassName: 'text-right',
+                tdClassName: 'text-right font-semibold whitespace-nowrap tabular-nums text-fg',
+                cell: (account) => <>{formatMoney(account.closing)}</>,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

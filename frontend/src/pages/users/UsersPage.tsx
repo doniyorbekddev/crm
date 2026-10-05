@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CheckCircle2, KeyRound, Pencil, Plus, Trash2, UserCheck, Users } from 'lucide-react';
@@ -17,11 +18,10 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { rolesService } from '@/services/roles.service';
 import { usersService } from '@/services/users.service';
@@ -211,61 +211,90 @@ export default function UsersPage() {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', usersQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Foydalanuvchilar">
-                <THead>
-                  <tr>
-                    <TH>Xodim</TH>
-                    <TH>Telefon</TH>
-                    <TH>Rol</TH>
-                    <TH>Holat</TH>
-                    <TH>Oxirgi kirish</TH>
-                    <TH>Qo‘shilgan</TH>
-                    {canManage && (
-                      <TH className="w-12">
-                        <span className="sr-only">Amallar</span>
-                      </TH>
-                    )}
-                  </tr>
-                </THead>
-                <TBody>
-                  {usersQuery.data.items.map((user) => (
-                    <TR key={user.id}>
-                      <TD>
-                        <div className="flex min-w-56 items-center gap-3">
-                          <Avatar firstName={user.firstName} lastName={user.lastName} size="sm" />
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-2 font-medium text-fg">
-                              <span className="truncate">
-                                {user.firstName} {user.lastName}
-                              </span>
-                              {user.id === currentUser?.id && <Badge tone="blue">Siz</Badge>}
-                            </p>
-                            <p className="truncate text-xs text-fg-muted">{user.email}</p>
-                          </div>
+            <DataTable
+              bare
+              label="Foydalanuvchilar"
+              rows={usersQuery.data.items}
+              rowKey={(user) => user.id}
+              stale={usersQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Xodim',
+                  cell: (user) => (
+                    <>
+                      <div className="flex min-w-56 items-center gap-3">
+                        <Avatar firstName={user.firstName} lastName={user.lastName} size="sm" />
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-2 font-medium text-fg">
+                            <span className="truncate">
+                              {user.firstName} {user.lastName}
+                            </span>
+                            {user.id === currentUser?.id && <Badge tone="blue">Siz</Badge>}
+                          </p>
+                          <p className="truncate text-xs text-fg-muted">{user.email}</p>
                         </div>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{user.phone ?? '—'}</TD>
-                      <TD>
-                        <Badge>{user.role.name}</Badge>
-                      </TD>
-                      <TD>
-                        <Badge tone={USER_STATUS_TONES[user.status]}>{USER_STATUS_LABELS[user.status]}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Hali kirmagan'}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(user.createdAt)}</TD>
-                      {canManage && (
-                        <TD className="text-right">
-                          <ActionMenu items={actionsFor(user)} label={`${user.firstName} ${user.lastName} — amallar`} />
-                        </TD>
-                      )}
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Telefon',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (user) => <>{user.phone ?? '—'}</>,
+                },
+                {
+                  key: 'c2',
+                  label: 'Rol',
+                  cell: (user) => (
+                    <>
+                      <Badge>{user.role.name}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Holat',
+                  cell: (user) => (
+                    <>
+                      <Badge tone={USER_STATUS_TONES[user.status]}>{USER_STATUS_LABELS[user.status]}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'Oxirgi kirish',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (user) => (
+                    <>
+                      {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Hali kirmagan'}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  label: 'Qo‘shilgan',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (user) => <>{formatDate(user.createdAt)}</>,
+                },
+                {
+                  key: 'c6',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-12',
+                  tdClassName: 'text-right',
+                  visible: canManage,
+                  cell: (user) => (
+                    <>
+                      <ActionMenu items={actionsFor(user)} label={`${user.firstName} ${user.lastName} — amallar`} />
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={usersQuery.data.meta.page}
               totalPages={usersQuery.data.meta.totalPages}

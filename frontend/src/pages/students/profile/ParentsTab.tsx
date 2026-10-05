@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link2, Pencil, Plus, Star, Unlink, UsersRound } from 'lucide-react';
 import { useState } from 'react';
@@ -10,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -83,73 +84,88 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
       ) : rows.length === 0 ? (
         <EmptyState icon={UsersRound} title="Ota-ona biriktirilmagan" description="To‘lov eslatmalari va aloqa uchun vakil qo‘shing" />
       ) : (
-        <TableContainer>
-          <Table aria-label="Ota-onalar">
-            <THead>
-              <tr>
-                <TH>Ota-ona</TH>
-                <TH>Qarindoshlik</TH>
-                <TH>Aloqa</TH>
-                {canManage && (
-                  <TH className="w-12">
-                    <span className="sr-only">Amallar</span>
-                  </TH>
-                )}
-              </tr>
-            </THead>
-            <TBody>
-              {rows.map((row) => (
-                <TR key={row.linkId}>
-                  <TD>
-                    <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
-                      {row.firstName} {row.lastName}
-                      {row.isPrimary && <Badge tone="blue">Asosiy vakil</Badge>}
-                    </p>
-                  </TD>
-                  <TD>
-                    {canManage ? (
-                      <Select
-                        aria-label={`${row.firstName} ${row.lastName} qarindoshligi`}
-                        value={row.relation}
-                        disabled={updateLink.isPending}
-                        onChange={(event) => updateLink.mutate({ linkId: row.linkId, relation: event.target.value as ParentRelation })}
-                        wrapperClassName="w-32"
-                      >
-                        {PARENT_RELATION_ORDER.map((value) => (
-                          <option key={value} value={value}>
-                            {PARENT_RELATION_LABELS[value]}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      PARENT_RELATION_LABELS[row.relation]
-                    )}
-                  </TD>
-                  <TD className="whitespace-nowrap">
-                    <a href={`tel:${row.phone}`} className="text-fg hover:text-brand-600">
-                      {formatPhone(row.phone)}
-                    </a>
-                    <p className="text-xs text-fg-muted">{[row.telegram, row.email].filter(Boolean).join(' · ') || '—'}</p>
-                  </TD>
-                  {canManage && (
-                    <TD className="text-right">
-                      <ActionMenu
-                        label={`${row.firstName} ${row.lastName} amallari`}
-                        items={[
-                          ...(row.isPrimary
-                            ? []
-                            : [{ label: 'Asosiy vakil qilish', icon: Star, onSelect: () => updateLink.mutate({ linkId: row.linkId, isPrimary: true }) }]),
-                          { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', row }) },
-                          { label: 'Ajratish', icon: Unlink, tone: 'danger' as const, onSelect: () => setDialog({ type: 'unlink', row }) },
-                        ]}
-                      />
-                    </TD>
+        <DataTable
+          bare
+          label="Ota-onalar"
+          rows={rows}
+          rowKey={(row) => row.linkId}
+          mobileLayout="cards"
+          columns={[
+            {
+              key: 'c0',
+              label: 'Ota-ona',
+              cell: (row) => (
+                <>
+                  <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
+                    {row.firstName} {row.lastName}
+                    {row.isPrimary && <Badge tone="blue">Asosiy vakil</Badge>}
+                  </p>
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              label: 'Qarindoshlik',
+              cell: (row) => (
+                <>
+                  {canManage ? (
+                    <Select
+                      aria-label={`${row.firstName} ${row.lastName} qarindoshligi`}
+                      value={row.relation}
+                      disabled={updateLink.isPending}
+                      onChange={(event) => updateLink.mutate({ linkId: row.linkId, relation: event.target.value as ParentRelation })}
+                      wrapperClassName="w-32"
+                    >
+                      {PARENT_RELATION_ORDER.map((value) => (
+                        <option key={value} value={value}>
+                          {PARENT_RELATION_LABELS[value]}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    PARENT_RELATION_LABELS[row.relation]
                   )}
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </TableContainer>
+                </>
+              ),
+            },
+            {
+              key: 'c2',
+              label: 'Aloqa',
+              tdClassName: 'whitespace-nowrap',
+              cell: (row) => (
+                <>
+                  <a href={`tel:${row.phone}`} className="text-fg hover:text-brand-600">
+                    {formatPhone(row.phone)}
+                  </a>
+                  <p className="text-xs text-fg-muted">{[row.telegram, row.email].filter(Boolean).join(' · ') || '—'}</p>
+                </>
+              ),
+            },
+            {
+              key: 'c3',
+              label: 'Amallar',
+              header: <span className="sr-only">Amallar</span>,
+              fixed: true,
+              thClassName: 'w-12',
+              tdClassName: 'text-right',
+              visible: canManage,
+              cell: (row) => (
+                <>
+                  <ActionMenu
+                    label={`${row.firstName} ${row.lastName} amallari`}
+                    items={[
+                      ...(row.isPrimary
+                        ? []
+                        : [{ label: 'Asosiy vakil qilish', icon: Star, onSelect: () => updateLink.mutate({ linkId: row.linkId, isPrimary: true }) }]),
+                      { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', row }) },
+                      { label: 'Ajratish', icon: Unlink, tone: 'danger' as const, onSelect: () => setDialog({ type: 'unlink', row }) },
+                    ]}
+                  />
+                </>
+              ),
+            },
+          ]}
+        />
       )}
 
       {dialog?.type === 'create' && <ParentFormModal student={student} onClose={close} onSaved={saved} />}

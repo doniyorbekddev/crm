@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Badge } from '@/components/ui/Badge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/cn';
@@ -37,9 +38,12 @@ export function LeadTemperatureBadge({
 }) {
   if (temperature === null) return <span className="text-xs text-fg-subtle">—</span>;
   return (
-    <Badge tone={LEAD_TEMPERATURE_TONES[temperature]} title={`${LEAD_TEMPERATURE_LABELS[temperature]} · ${LEAD_TEMPERATURE_HINTS[temperature]}`}>
-      {LEAD_TEMPERATURE_LABELS[temperature]}
-      {typeof score === 'number' && <span className="tabular-nums opacity-70">{score}</span>}
-    </Badge>
+    <Tooltip content={LEAD_TEMPERATURE_HINTS[temperature]} describe={false}>
+      <Badge tone={LEAD_TEMPERATURE_TONES[temperature]}>
+        {LEAD_TEMPERATURE_LABELS[temperature]}
+        {typeof score === 'number' && <span className="tabular-nums opacity-70">{score}</span>}
+        <span className="sr-only"> — {LEAD_TEMPERATURE_HINTS[temperature]}</span>
+      </Badge>
+    </Tooltip>
   );
 }

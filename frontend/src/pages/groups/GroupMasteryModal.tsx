@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2, Target } from 'lucide-react';
 import { useState } from 'react';
@@ -59,8 +60,10 @@ export function GroupMasteryModal({ group, onClose }: { group: { id: string; nam
                   O‘rtacha
                 </th>
                 {query.data.topics.map((topic) => (
-                  <th key={topic.id} scope="col" className="min-w-24 px-2 py-2 text-center font-medium text-fg-muted" title={`${topic.moduleTitle} · ${topic.title}`}>
-                    <span className="block max-w-28 truncate">{topic.title}</span>
+                  <th key={topic.id} scope="col" className="min-w-24 px-2 py-2 text-center font-medium text-fg-muted">
+                    <Tooltip content={`${topic.moduleTitle} · ${topic.title}`} describe={false} wrapperClassName="block">
+                      <span className="block max-w-28 truncate">{topic.title}</span>
+                    </Tooltip>
                   </th>
                 ))}
               </tr>

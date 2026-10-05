@@ -1,7 +1,7 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText, ImageIcon, Trash2, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import { Download, FileText, ImageIcon, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -29,7 +29,6 @@ function formatSize(bytes: number): string {
 /** Xarajat / tushum cheklari: yuklash, yuklab olish, o‘chirish */
 export function AttachmentsModal({ owner, entityId, title, canManage, onClose, onChanged }: AttachmentsModalProps) {
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const queryKey = ['documents', owner, entityId] as const;
@@ -59,18 +58,6 @@ export function AttachmentsModal({ owner, entityId, title, canManage, onClose, o
     onError: (mutationError) => toast.error(getErrorMessage(mutationError)),
   });
 
-  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setError(null);
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setError('Fayl hajmi 5 MB dan oshmasligi kerak');
-      return;
-    }
-    upload.mutate(file);
-  };
-
   const download = async (document: DocumentItem) => {
     setDownloading(document.id);
     try {
@@ -88,15 +75,19 @@ export function AttachmentsModal({ owner, entityId, title, canManage, onClose, o
         {error && <Alert tone="error">{error}</Alert>}
 
         {canManage && (
-          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-4 text-center">
-            <p className="text-sm text-fg-muted">JPG, PNG, WEBP yoki PDF · 5 MB gacha</p>
-            <input ref={inputRef} type="file" accept={ACCEPTED_UPLOAD_TYPES} className="hidden" onChange={onFile} aria-label="Chek faylini tanlash" />
-            <div>
-              <Button leftIcon={<Upload className="size-4" aria-hidden />} loading={upload.isPending} onClick={() => inputRef.current?.click()}>
-                Fayl yuklash
-              </Button>
-            </div>
-          </div>
+          <FileUpload
+            aria-label="Chek faylini tanlash"
+            title="Chek yoki hujjatni tanlang yoki shu yerga tashlang"
+            hint="JPG, PNG, WEBP yoki PDF · 5 MB gacha"
+            accept={ACCEPTED_UPLOAD_TYPES}
+            maxSizeBytes={MAX_UPLOAD_BYTES}
+            busyText={upload.isPending ? 'Yuklanmoqda…' : null}
+            onReject={(message) => setError(message)}
+            onFiles={([file]) => {
+              setError(null);
+              if (file) upload.mutate(file);
+            }}
+          />
         )}
 
         {query.isPending ? (

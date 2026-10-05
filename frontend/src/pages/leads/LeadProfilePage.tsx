@@ -1,12 +1,12 @@
+import { ProfileHeader } from '@/components/ProfileHeader';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, AtSign, GraduationCap, Mail, Pencil, Phone, SearchX, Send, Trash2, UserCheck } from 'lucide-react';
+import { AtSign, GraduationCap, Mail, Pencil, Phone, SearchX, Send, Trash2, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { LeadPriorityBadge, LeadStatusBadge, LeadTemperatureBadge } from '@/components/leads/LeadStatusBadge';
-import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -156,47 +156,46 @@ export default function LeadProfilePage() {
 
   return (
     <>
-      <Link to="/leads" className="mb-4 inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg">
-        <ArrowLeft className="size-4" aria-hidden />
-        Leadlar
-      </Link>
-
-      <Card className="mb-6">
-        <CardContent className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar firstName={lead.firstName} lastName={lead.lastName} size="lg" />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-xl font-semibold tracking-tight">{name}</h1>
-                <span className="font-mono text-xs text-fg-subtle">{lead.code}</span>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <LeadStatusBadge status={lead.status} />
-                <LeadPriorityBadge priority={lead.priority} />
-                {lead.temperature !== null && <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />}
-                {lead.student && <Badge tone="green">O‘quvchi</Badge>}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1.5 text-fg-muted hover:text-brand-600">
-                  <Phone className="size-4" aria-hidden />
-                  {formatPhone(lead.phone)}
-                </a>
-                {lead.telegram && (
-                  <a
-                    href={`https://t.me/${lead.telegram.replace(/^@/, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-fg-muted hover:text-brand-600"
-                  >
-                    <Send className="size-4" aria-hidden />
-                    {lead.telegram}
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+      <ProfileHeader
+        back={{ to: '/leads', label: 'Leadlar' }}
+        firstName={lead.firstName}
+        lastName={lead.lastName}
+        title={name}
+        badges={
+          <>
+            <span className="font-mono text-caption text-fg-subtle">{lead.code}</span>
+            <LeadStatusBadge status={lead.status} />
+            <LeadPriorityBadge priority={lead.priority} />
+            {lead.temperature !== null && <LeadTemperatureBadge temperature={lead.temperature} score={lead.score} />}
+            {lead.student && <Badge tone="success">O‘quvchi</Badge>}
+          </>
+        }
+        meta={[
+          {
+            name: 'Telefon',
+            icon: Phone,
+            label: (
+              <a href={`tel:${lead.phone}`} className="focus-ring rounded-sm transition-colors hover:text-primary">
+                {formatPhone(lead.phone)}
+              </a>
+            ),
+          },
+          ...(lead.telegram
+            ? [
+                {
+                  name: 'Telegram',
+                  icon: Send,
+                  label: (
+                    <a href={`https://t.me/${lead.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="focus-ring rounded-sm transition-colors hover:text-primary">
+                      {lead.telegram}
+                    </a>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        actions={
+          <>
             {canUpdate && (
               <Select
                 aria-label="Statusni o‘zgartirish"
@@ -236,9 +235,9 @@ export default function LeadProfilePage() {
                 <Trash2 className="size-4 text-danger" aria-hidden />
               </Button>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">

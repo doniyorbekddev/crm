@@ -6,11 +6,12 @@ test('qorong‘i mavzu tanlanadi, sahifa yangilanganda saqlanadi va yorug‘ga q
   await login(page, 'admin');
   const html = page.locator('html');
 
-  await page.getByTitle('Qorong‘i mavzu').click();
+  // Mavzu tugmalari endi Tooltip bilan (title atributi yo'q) — rol va nom bo'yicha topiladi
+  await page.getByRole('radio', { name: 'Qorong‘i mavzu' }).click();
   await expect(html).toHaveClass(DARK);
   await page.reload();
   await expect(html).toHaveClass(DARK);
 
-  await page.getByTitle('Yorug‘ mavzu').click();
+  await page.getByRole('radio', { name: 'Yorug‘ mavzu' }).click();
   await expect(html).not.toHaveClass(DARK);
 });

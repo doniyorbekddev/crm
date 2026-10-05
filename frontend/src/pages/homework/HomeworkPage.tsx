@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Eye, Pencil, Plus, Repeat, Scale, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -163,81 +164,113 @@ export default function HomeworkPage() {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Uy vazifalari">
-                <THead>
-                  <tr>
-                    <TH>Vazifa</TH>
-                    <TH>Guruh</TH>
-                    <TH>Muddat</TH>
-                    <TH>Topshirdi</TH>
-                    <TH className="text-right">O‘rtacha</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((homework) => (
-                    <TR key={homework.id} onClick={() => setDialog({ type: 'detail', id: homework.id })} className="cursor-pointer">
-                      <TD>
-                        <p className="font-medium text-fg">{homework.title}</p>
-                        <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
-                          <Badge tone={HOMEWORK_STATUS_TONES[homework.status]}>{HOMEWORK_STATUS_LABELS[homework.status]}</Badge>
-                          {homework.isOverdue && <Badge tone="red">Muddati o‘tgan</Badge>}
-                          {homework.maxPoints} ball
-                        </p>
-                      </TD>
-                      <TD>
-                        <p className="text-fg">{homework.group.name}</p>
-                        <p className="text-xs text-fg-muted">{homework.course?.name ?? '—'}</p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDateTime(homework.deadline)}</TD>
-                      <TD>
-                        <p className="text-fg">
-                          {formatNumber(homework.stats.submitted)} / {formatNumber(homework.stats.students)}
-                        </p>
-                        <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted">
-                          <div
-                            className={cn(
-                              'h-full rounded-full',
-                              homework.stats.submissionRate >= 80
-                                ? 'bg-chart-positive'
-                                : homework.stats.submissionRate >= 50
-                                  ? 'bg-chart-warning'
-                                  : 'bg-chart-negative',
-                            )}
-                            style={{ width: `${Math.max(homework.stats.submissionRate, 2)}%` }}
-                          />
-                        </div>
-                      </TD>
-                      <TD className="text-right tabular-nums text-fg-muted">
-                        {homework.stats.graded > 0 ? `${homework.stats.averageScore}/${homework.maxPoints}` : '—'}
-                      </TD>
-                      <TD className="text-right" onClick={(event) => event.stopPropagation()}>
-                        <ActionMenu
-                          label={`${homework.title} amallari`}
-                          items={[
-                            { label: 'Ochish', icon: Eye, onSelect: () => setDialog({ type: 'detail', id: homework.id }) },
-                            ...(canManage
-                              ? [
-                                  { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', homework }) },
-                                  {
-                                    label: 'O‘chirish',
-                                    icon: Trash2,
-                                    tone: 'danger' as const,
-                                    onSelect: () => setDialog({ type: 'delete', homework }),
-                                  },
-                                ]
-                              : []),
-                          ]}
+            <DataTable
+              bare
+              label="Uy vazifalari"
+              rows={listQuery.data.items}
+              rowKey={(homework) => homework.id}
+              rowClassName={() => 'cursor-pointer'}
+              onRowClick={(homework) => setDialog({ type: 'detail', id: homework.id })}
+              stale={listQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Vazifa',
+                  cell: (homework) => (
+                    <>
+                      <p className="font-medium text-fg">{homework.title}</p>
+                      <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                        <Badge tone={HOMEWORK_STATUS_TONES[homework.status]}>{HOMEWORK_STATUS_LABELS[homework.status]}</Badge>
+                        {homework.isOverdue && <Badge tone="red">Muddati o‘tgan</Badge>}
+                        {homework.maxPoints} ball
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Guruh',
+                  cell: (homework) => (
+                    <>
+                      <p className="text-fg">{homework.group.name}</p>
+                      <p className="text-xs text-fg-muted">{homework.course?.name ?? '—'}</p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Muddat',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (homework) => <>{formatDateTime(homework.deadline)}</>,
+                },
+                {
+                  key: 'c3',
+                  label: 'Topshirdi',
+                  cell: (homework) => (
+                    <>
+                      <p className="text-fg">
+                        {formatNumber(homework.stats.submitted)} / {formatNumber(homework.stats.students)}
+                      </p>
+                      <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted">
+                        <div
+                          className={cn(
+                            'h-full rounded-full',
+                            homework.stats.submissionRate >= 80
+                              ? 'bg-chart-positive'
+                              : homework.stats.submissionRate >= 50
+                                ? 'bg-chart-warning'
+                                : 'bg-chart-negative',
+                          )}
+                          style={{ width: `${Math.max(homework.stats.submissionRate, 2)}%` }}
                         />
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'O‘rtacha',
+                  thClassName: 'text-right',
+                  tdClassName: 'text-right tabular-nums text-fg-muted',
+                  cell: (homework) => (
+                    <>
+                      {homework.stats.graded > 0 ? `${homework.stats.averageScore}/${homework.maxPoints}` : '—'}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-12',
+                  tdClassName: 'text-right',
+                  stopRowClick: true,
+                  cell: (homework) => (
+                    <>
+                      <ActionMenu
+                        label={`${homework.title} amallari`}
+                        items={[
+                          { label: 'Ochish', icon: Eye, onSelect: () => setDialog({ type: 'detail', id: homework.id }) },
+                          ...(canManage
+                            ? [
+                                { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', homework }) },
+                                {
+                                  label: 'O‘chirish',
+                                  icon: Trash2,
+                                  tone: 'danger' as const,
+                                  onSelect: () => setDialog({ type: 'delete', homework }),
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={page}
               totalPages={listQuery.data.meta.totalPages}

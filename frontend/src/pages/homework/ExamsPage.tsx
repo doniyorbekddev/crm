@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ListChecks, ClipboardCheck, FileCheck, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -14,7 +15,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -153,90 +154,119 @@ export default function ExamsPage() {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Imtihonlar">
-                <THead>
-                  <tr>
-                    <TH>Imtihon</TH>
-                    <TH>Guruh</TH>
-                    <TH>Sana</TH>
-                    <TH>Baholandi</TH>
-                    <TH className="text-right">O‘rtacha</TH>
-                    <TH className="text-right">O‘tdi</TH>
-                    <TH className="w-12">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((exam) => (
-                    <TR key={exam.id} onClick={() => setDialog({ type: 'results', id: exam.id })} className="cursor-pointer">
-                      <TD>
-                        <p className="font-medium text-fg">{exam.title}</p>
-                        <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
-                          <Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
-                          {exam.isOnline && <Badge tone="purple">Onlayn</Badge>}
-                          {EXAM_TYPE_LABELS[exam.type]} · {exam.maxScore} ball
-                        </p>
-                      </TD>
-                      <TD>
-                        <p className="text-fg">{exam.group.name}</p>
-                        <p className="text-xs text-fg-muted">{exam.course?.name ?? '—'}</p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{formatDate(exam.date)}</TD>
-                      <TD className="text-fg">
-                        {formatNumber(exam.stats.graded)} / {formatNumber(exam.stats.students)}
-                      </TD>
-                      <TD
-                        className={cn(
-                          'text-right font-medium tabular-nums',
-                          exam.stats.graded === 0
-                            ? 'text-fg-subtle'
-                            : exam.stats.averagePercentage >= 80
-                              ? 'text-success'
-                              : exam.stats.averagePercentage >= 60
-                                ? 'text-warning'
-                                : 'text-danger',
-                        )}
-                      >
-                        {exam.stats.graded === 0 ? '—' : `${exam.stats.averagePercentage}%`}
-                      </TD>
-                      <TD className="text-right tabular-nums text-fg-muted">
-                        {exam.stats.graded === 0 || exam.passScore === null ? '—' : `${exam.stats.passRate}%`}
-                      </TD>
-                      <TD className="text-right" onClick={(event) => event.stopPropagation()}>
-                        <ActionMenu
-                          label={`${exam.title} amallari`}
-                          items={[
-                            {
-                              label: 'Natijalar',
-                              icon: ClipboardCheck,
-                              onSelect: () => setDialog({ type: 'results', id: exam.id }),
-                            },
-                            {
-                              label: 'Savollar va tahlil',
-                              icon: ListChecks,
-                              onSelect: () => setDialog({ type: 'questions', exam }),
-                            },
-                            ...(canManage
-                              ? [
-                                  { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', exam }) },
-                                  {
-                                    label: 'O‘chirish',
-                                    icon: Trash2,
-                                    tone: 'danger' as const,
-                                    onSelect: () => setDialog({ type: 'delete', exam }),
-                                  },
-                                ]
-                              : []),
-                          ]}
-                        />
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              bare
+              label="Imtihonlar"
+              rows={listQuery.data.items}
+              rowKey={(exam) => exam.id}
+              rowClassName={() => 'cursor-pointer'}
+              onRowClick={(exam) => setDialog({ type: 'results', id: exam.id })}
+              stale={listQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Imtihon',
+                  cell: (exam) => (
+                    <>
+                      <p className="font-medium text-fg">{exam.title}</p>
+                      <p className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
+                        <Badge tone={EXAM_STATUS_TONES[exam.status]}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
+                        {exam.isOnline && <Badge tone="purple">Onlayn</Badge>}
+                        {EXAM_TYPE_LABELS[exam.type]} · {exam.maxScore} ball
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Guruh',
+                  cell: (exam) => (
+                    <>
+                      <p className="text-fg">{exam.group.name}</p>
+                      <p className="text-xs text-fg-muted">{exam.course?.name ?? '—'}</p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Sana',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (exam) => <>{formatDate(exam.date)}</>,
+                },
+                {
+                  key: 'c3',
+                  label: 'Baholandi',
+                  tdClassName: 'text-fg',
+                  cell: (exam) => (
+                    <>
+                      {formatNumber(exam.stats.graded)} / {formatNumber(exam.stats.students)}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'O‘rtacha',
+                  thClassName: 'text-right',
+                  tdClassName: (exam) => cn( 'text-right font-medium tabular-nums', exam.stats.graded === 0 ? 'text-fg-subtle' : exam.stats.averagePercentage >= 80 ? 'text-success' : exam.stats.averagePercentage >= 60 ? 'text-warning' : 'text-danger', ),
+                  cell: (exam) => (
+                    <>
+                      {exam.stats.graded === 0 ? '—' : `${exam.stats.averagePercentage}%`}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  label: 'O‘tdi',
+                  thClassName: 'text-right',
+                  tdClassName: 'text-right tabular-nums text-fg-muted',
+                  cell: (exam) => (
+                    <>
+                      {exam.stats.graded === 0 || exam.passScore === null ? '—' : `${exam.stats.passRate}%`}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c6',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-12',
+                  tdClassName: 'text-right',
+                  stopRowClick: true,
+                  cell: (exam) => (
+                    <>
+                      <ActionMenu
+                        label={`${exam.title} amallari`}
+                        items={[
+                          {
+                            label: 'Natijalar',
+                            icon: ClipboardCheck,
+                            onSelect: () => setDialog({ type: 'results', id: exam.id }),
+                          },
+                          {
+                            label: 'Savollar va tahlil',
+                            icon: ListChecks,
+                            onSelect: () => setDialog({ type: 'questions', exam }),
+                          },
+                          ...(canManage
+                            ? [
+                                { label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', exam }) },
+                                {
+                                  label: 'O‘chirish',
+                                  icon: Trash2,
+                                  tone: 'danger' as const,
+                                  onSelect: () => setDialog({ type: 'delete', exam }),
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={page}
               totalPages={listQuery.data.meta.totalPages}

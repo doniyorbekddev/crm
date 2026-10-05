@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -193,10 +194,10 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
         </FormField>
 
         <FormField label="Kurs narxi (so‘m)" htmlFor="course-price" error={errors.price?.message} required>
-          <Input id="course-price" type="number" min={0} step={50000} invalid={Boolean(errors.price)} {...register('price')} />
+          <MoneyController control={control} name="price" id="course-price" invalid={Boolean(errors.price)} />
         </FormField>
         <FormField label="Chegirma (so‘m)" htmlFor="course-discount" error={errors.discountAmount?.message}>
-          <Input id="course-discount" type="number" min={0} step={50000} invalid={Boolean(errors.discountAmount)} {...register('discountAmount')} />
+          <MoneyController control={control} name="discountAmount" id="course-discount" invalid={Boolean(errors.discountAmount)} />
         </FormField>
 
         <div className="rounded-lg bg-surface-muted px-4 py-3 sm:col-span-2">

@@ -22,6 +22,7 @@ interface ComboboxProps {
   disabled?: boolean;
   clearable?: boolean;
   loading?: boolean;
+  autoFocus?: boolean;
   /** Server qidiruvi: berilsa ichki filtr ishlamaydi — `options` ni chaqiruvchi yangilaydi */
   onSearchChange?: (query: string) => void;
   className?: string;
@@ -42,6 +43,7 @@ export function Combobox({
   disabled = false,
   clearable = true,
   loading = false,
+  autoFocus = false,
   onSearchChange,
   className,
   ...aria
@@ -118,6 +120,7 @@ export function Combobox({
         type="text"
         role="combobox"
         autoComplete="off"
+        autoFocus={autoFocus}
         aria-autocomplete="list"
         aria-expanded={open}
         aria-controls={listId}

@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gift, HandCoins, TrendingUp, UserPlus } from 'lucide-react';
@@ -14,7 +15,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -153,59 +154,82 @@ export default function ReferralsPage() {
           />
         ) : (
           <>
-            <TableContainer>
-              <Table aria-label="Takliflar">
-                <THead>
-                  <tr>
-                    <TH>Kim taklif qildi</TH>
-                    <TH>Kimni</TH>
-                    <TH>Holat</TH>
-                    <TH>Bonus</TH>
-                    <TH>Sana</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((item) => (
-                    <TR key={item.id}>
-                      <TD>
-                        <Link to={`/students/${item.referrer.id}`} className="text-fg hover:text-brand-600 hover:underline">
-                          {item.referrer.name}
+            <DataTable
+              bare
+              label="Takliflar"
+              rows={listQuery.data.items}
+              rowKey={(item) => item.id}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Kim taklif qildi',
+                  cell: (item) => (
+                    <>
+                      <Link to={`/students/${item.referrer.id}`} className="text-fg hover:text-brand-600 hover:underline">
+                        {item.referrer.name}
+                      </Link>
+                      {item.referrer.code && <span className="ml-2 font-mono text-xs text-fg-subtle">{item.referrer.code}</span>}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Kimni',
+                  tdClassName: 'text-fg-muted',
+                  cell: (item) => (
+                    <>
+                      {item.referred ? (
+                        <Link to={`/students/${item.referred.id}`} className="hover:text-brand-600 hover:underline">
+                          {item.referred.name}
                         </Link>
-                        {item.referrer.code && <span className="ml-2 font-mono text-xs text-fg-subtle">{item.referrer.code}</span>}
-                      </TD>
-                      <TD className="text-fg-muted">
-                        {item.referred ? (
-                          <Link to={`/students/${item.referred.id}`} className="hover:text-brand-600 hover:underline">
-                            {item.referred.name}
-                          </Link>
-                        ) : item.lead ? (
-                          <Link to={`/leads/${item.lead.id}`} className="hover:text-brand-600 hover:underline">
-                            {item.lead.name} <span className="text-xs text-fg-subtle">(lead)</span>
-                          </Link>
-                        ) : (
-                          '—'
-                        )}
-                      </TD>
-                      <TD>
-                        <Badge tone={STATUS_TONES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap tabular-nums text-fg-muted">
-                        {item.bonusAmount > 0 ? formatMoney(item.bonusAmount) : '—'}
-                        {item.rewardedBy && <span className="block text-xs text-fg-subtle">{item.rewardedBy}</span>}
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {formatDate(item.createdAt)}
-                        {canReward && item.status === 'CONVERTED' && (
-                          <Button size="sm" variant="secondary" className="ml-3" onClick={() => setRewardId(item.id)}>
-                            Bonus berish
-                          </Button>
-                        )}
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+                      ) : item.lead ? (
+                        <Link to={`/leads/${item.lead.id}`} className="hover:text-brand-600 hover:underline">
+                          {item.lead.name} <span className="text-xs text-fg-subtle">(lead)</span>
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Holat',
+                  cell: (item) => (
+                    <>
+                      <Badge tone={STATUS_TONES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Bonus',
+                  tdClassName: 'whitespace-nowrap tabular-nums text-fg-muted',
+                  cell: (item) => (
+                    <>
+                      {item.bonusAmount > 0 ? formatMoney(item.bonusAmount) : '—'}
+                      {item.rewardedBy && <span className="block text-xs text-fg-subtle">{item.rewardedBy}</span>}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'Sana',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (item) => (
+                    <>
+                      {formatDate(item.createdAt)}
+                      {canReward && item.status === 'CONVERTED' && (
+                        <Button size="sm" variant="secondary" className="ml-3" onClick={() => setRewardId(item.id)}>
+                          Bonus berish
+                        </Button>
+                      )}
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={listQuery.data.meta.page}
               totalPages={listQuery.data.meta.totalPages}

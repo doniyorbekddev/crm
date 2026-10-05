@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -23,21 +24,21 @@ export function ThemeToggle({ className }: { className?: string }) {
       {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
         const active = theme === value;
         return (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            title={label}
-            onClick={() => setTheme(value)}
+          <Tooltip key={value} content={label} side="bottom" describe={false}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setTheme(value)}
             className={cn(
               'focus-ring inline-flex size-7 items-center justify-center rounded-chip text-fg-muted transition-colors hover:text-fg',
               active && 'bg-surface text-fg shadow-sm',
             )}
           >
-            <Icon className="size-4" aria-hidden />
-            <span className="sr-only">{label}</span>
-          </button>
+              <Icon className="size-4" aria-hidden />
+              <span className="sr-only">{label}</span>
+            </button>
+          </Tooltip>
         );
       })}
     </div>

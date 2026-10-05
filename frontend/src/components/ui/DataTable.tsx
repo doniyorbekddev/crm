@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { DESKTOP_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/cn';
+import { useUiStore } from '@/store/ui.store';
 import type { ColumnDef } from '@/utils/tableColumns';
 import { ActionMenu } from './ActionMenu';
 import type { ActionMenuItem } from './ActionMenu';
@@ -45,7 +46,13 @@ interface DataTableProps<Row> {
   error?: unknown;
   onRetry?: () => void;
   retrying?: boolean;
-  empty: { icon: LucideIcon; title: string; description?: string; action?: ReactNode };
+  /** Bo'sh holat. `bare` rejimda ixtiyoriy — bo'sh ro'yxatni sahifaning o'zi ko'rsatadi. */
+  empty?: { icon: LucideIcon; title: string; description?: string; action?: ReactNode };
+  /**
+   * Ichki rejim: karta va asboblar qatorisiz — sahifa o'z kartasi, filtrlari va holatlarini saqlaydi,
+   * jadvalning o'zi esa yagona ko'rinish, zichlik va telefonda karta ko'rinishini oladi.
+   */
+  bare?: boolean;
 
   /** Saralash chaqiruvchida (odatda server so'rovi parametri). Bosish tartibi: o'sish → kamayish → yo'q */
   sort?: SortState | null;
@@ -122,8 +129,9 @@ export function DataTable<Row>({
   bulkActions,
   rowActions,
   onRowClick,
-  density = 'comfortable',
+  density: densityProp,
   onDensityChange,
+  bare = false,
   header,
   toolbar,
   toolbarActions,
@@ -137,6 +145,9 @@ export function DataTable<Row>({
   className,
 }: DataTableProps<Row>) {
   const desktop = useMediaQuery(DESKTOP_QUERY);
+  // Zichlik berilmasa — foydalanuvchining umumiy tanlovi (barcha jadvallar bir xil)
+  const storedDensity = useUiStore((state) => state.tableDensity);
+  const density = densityProp ?? storedDensity;
   const visibleColumns = columns.filter((column) => column.visible !== false);
   const cellPadding = density === 'compact' ? 'py-1.5' : 'py-3';
 
@@ -177,7 +188,7 @@ export function DataTable<Row>({
   } else if (loading || !rows) {
     body = <TableSkeleton rows={6} columns={Math.min(columnCount, 6)} />;
   } else if (rows.length === 0) {
-    body = <EmptyState {...empty} />;
+    body = empty ? <EmptyState {...empty} /> : null;
   } else if (!mobileCard && mobileLayout === 'cards' && !desktop) {
     const [primary, ...rest] = visibleColumns.filter((column) => !column.fixed);
     const fixed = visibleColumns.filter((column) => column.fixed);
@@ -333,6 +344,8 @@ export function DataTable<Row>({
       </div>
     );
   }
+
+  if (bare) return <div className={className}>{body}</div>;
 
   return (
     <Card className={cn('overflow-hidden', className)} aria-busy={loading || undefined}>

@@ -1,3 +1,5 @@
+import { DataTable } from '@/components/ui/DataTable';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Lock, LockOpen } from 'lucide-react';
 import { useState } from 'react';
@@ -11,7 +13,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { FormField } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { Textarea } from '@/components/ui/Textarea';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
@@ -84,72 +86,112 @@ export function FinancialPeriodsTab() {
         ) : query.isError ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : (
-          <TableContainer>
-            <Table aria-label="Moliyaviy oylar">
-              <THead>
-                <tr>
-                  <TH>Oy</TH>
-                  <TH>Holat</TH>
-                  <TH className="text-right">Tushum</TH>
-                  <TH className="text-right">Xarajat</TH>
-                  <TH className="text-right">Qaytarishlar</TH>
-                  <TH className="text-right">Sof natija</TH>
-                  <TH>Yopilgan</TH>
-                  <TH className="w-32">
-                    <span className="sr-only">Amallar</span>
-                  </TH>
-                </tr>
-              </THead>
-              <TBody>
-                {query.data.map((period) => (
-                  <TR key={period.month} className={cn(period.isCurrent && 'bg-primary-subtle')}>
-                    <TD className="font-medium whitespace-nowrap text-fg">
-                      {period.label}
-                      {period.isCurrent && <span className="ml-2 text-xs text-fg-muted">joriy</span>}
-                    </TD>
-                    <TD>
-                      <Badge tone={period.status === 'CLOSED' ? 'gray' : 'green'}>
-                        {period.status === 'CLOSED' ? 'Yopilgan' : 'Ochiq'}
-                      </Badge>
-                      {period.status === 'OPEN' && period.reopenedAt && (
-                        <p className="mt-1 max-w-[12rem] truncate text-xs text-warning" title={period.reopenReason ?? ''}>
+          <DataTable
+            bare
+            label="Moliyaviy oylar"
+            rows={query.data}
+            rowKey={(period) => String(period.month)}
+            rowClassName={(period) => cn(period.isCurrent && 'bg-primary-subtle')}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'Oy',
+                tdClassName: 'font-medium whitespace-nowrap text-fg',
+                cell: (period) => (
+                  <>
+                    {period.label}
+                    {period.isCurrent && <span className="ml-2 text-xs text-fg-muted">joriy</span>}
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Holat',
+                cell: (period) => (
+                  <>
+                    <Badge tone={period.status === 'CLOSED' ? 'gray' : 'green'}>
+                      {period.status === 'CLOSED' ? 'Yopilgan' : 'Ochiq'}
+                    </Badge>
+                    {period.status === 'OPEN' && period.reopenedAt && (
+                      <Tooltip content={period.reopenReason ?? ''} describe={false} disabled={!period.reopenReason} wrapperClassName="mt-1 block">
+                        <span className="block text-xs text-warning">
                           qayta ochilgan
-                        </p>
-                      )}
-                    </TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(period.totals.income)}</TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-fg">{formatMoney(period.totals.expense)}</TD>
-                    <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(period.totals.refunds)}</TD>
-                    <TD
-                      className={cn(
-                        'text-right font-medium whitespace-nowrap tabular-nums',
-                        period.totals.net < 0 ? 'text-danger' : 'text-success',
-                      )}
-                    >
-                      {formatMoney(period.totals.net)}
-                    </TD>
-                    <TD className="text-xs whitespace-nowrap text-fg-muted">
-                      {period.closedAt && period.status === 'CLOSED'
-                        ? `${formatDateTime(period.closedAt)} · ${period.closedBy ? `${period.closedBy.firstName} ${period.closedBy.lastName}` : '—'}`
-                        : '—'}
-                    </TD>
-                    <TD className="text-right">
-                      {period.canClose && canClose && (
-                        <Button size="sm" variant="secondary" leftIcon={<Lock className="size-4" aria-hidden />} onClick={() => setClosing(period)}>
-                          Yopish
-                        </Button>
-                      )}
-                      {period.status === 'CLOSED' && canReopen && (
-                        <Button size="sm" variant="ghost" leftIcon={<LockOpen className="size-4" aria-hidden />} onClick={() => setReopening(period)}>
-                          Ochish
-                        </Button>
-                      )}
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+                          {period.reopenReason && <span className="sr-only">: {period.reopenReason}</span>}
+                        </span>
+                      </Tooltip>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                label: 'Tushum',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg',
+                cell: (period) => <>{formatMoney(period.totals.income)}</>,
+              },
+              {
+                key: 'c3',
+                label: 'Xarajat',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg',
+                cell: (period) => <>{formatMoney(period.totals.expense)}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Qaytarishlar',
+                thClassName: 'text-right',
+                tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+                cell: (period) => <>{formatMoney(period.totals.refunds)}</>,
+              },
+              {
+                key: 'c5',
+                label: 'Sof natija',
+                thClassName: 'text-right',
+                tdClassName: (period) => cn( 'text-right font-medium whitespace-nowrap tabular-nums', period.totals.net < 0 ? 'text-danger' : 'text-success', ),
+                cell: (period) => (
+                  <>
+                    {formatMoney(period.totals.net)}
+                  </>
+                ),
+              },
+              {
+                key: 'c6',
+                label: 'Yopilgan',
+                tdClassName: 'text-xs whitespace-nowrap text-fg-muted',
+                cell: (period) => (
+                  <>
+                    {period.closedAt && period.status === 'CLOSED'
+                      ? `${formatDateTime(period.closedAt)} · ${period.closedBy ? `${period.closedBy.firstName} ${period.closedBy.lastName}` : '—'}`
+                      : '—'}
+                  </>
+                ),
+              },
+              {
+                key: 'c7',
+                label: 'Amallar',
+                header: <span className="sr-only">Amallar</span>,
+                fixed: true,
+                thClassName: 'w-32',
+                tdClassName: 'text-right',
+                cell: (period) => (
+                  <>
+                    {period.canClose && canClose && (
+                      <Button size="sm" variant="secondary" leftIcon={<Lock className="size-4" aria-hidden />} onClick={() => setClosing(period)}>
+                        Yopish
+                      </Button>
+                    )}
+                    {period.status === 'CLOSED' && canReopen && (
+                      <Button size="sm" variant="ghost" leftIcon={<LockOpen className="size-4" aria-hidden />} onClick={() => setReopening(period)}>
+                        Ochish
+                      </Button>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 

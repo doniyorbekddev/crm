@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -136,7 +137,7 @@ export function TransferModal({ onClose }: TransferModalProps) {
           required
           hint={from ? `${from.name} qoldig‘i: ${formatMoney(from.balance)}` : undefined}
         >
-          <Input id="transfer-amount" inputMode="numeric" invalid={Boolean(errors.amount)} {...register('amount')} />
+          <MoneyController control={control} name="amount" id="transfer-amount" invalid={Boolean(errors.amount)} />
         </FormField>
 
         <FormField label="Izoh" htmlFor="transfer-description" error={errors.description?.message} hint="Ixtiyoriy">

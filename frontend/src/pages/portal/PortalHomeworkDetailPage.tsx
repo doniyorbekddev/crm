@@ -1,5 +1,6 @@
+import { FileUpload } from '@/components/ui/FileUpload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, ExternalLink, Paperclip, Save, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, ExternalLink, Save, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -331,25 +332,15 @@ export default function PortalHomeworkDetailPage() {
                   </FormField>
                 </div>
                 <FormField label={`Fayllar (${submission.files.length}/${maxFiles})`} htmlFor="attachment">
-                  <label
-                    htmlFor="attachment"
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-fg-muted hover:bg-surface-muted"
-                  >
-                    <Paperclip className="size-4" aria-hidden />
-                    {addFile.isPending ? 'Yuklanmoqda…' : 'Fayl qo‘shish'}
-                    <input
-                      id="attachment"
-                      type="file"
-                      accept={ACCEPTED_TYPES}
-                      className="sr-only"
-                      disabled={addFile.isPending || submission.files.length >= maxFiles}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) addFile.mutate(file);
-                        event.target.value = '';
-                      }}
-                    />
-                  </label>
+                  <FileUpload
+                    id="attachment"
+                    compact
+                    title="Fayl qo‘shish"
+                    accept={ACCEPTED_TYPES}
+                    disabled={submission.files.length >= maxFiles}
+                    busyText={addFile.isPending ? 'Yuklanmoqda…' : null}
+                    onFiles={([file]) => file && addFile.mutate(file)}
+                  />
                 </FormField>
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button type="button" variant="secondary" leftIcon={<Save className="size-4" aria-hidden />} loading={saveDraft.isPending} disabled={busy} onClick={() => saveDraft.mutate()}>

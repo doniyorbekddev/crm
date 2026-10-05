@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Clock } from 'lucide-react';
@@ -82,9 +83,14 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
           <span className="truncate text-xs text-fg-subtle">{lead.source.name}</span>
         )}
         {lead.assignedTo ? (
-          <span title={`${lead.assignedTo.firstName} ${lead.assignedTo.lastName}`}>
-            <Avatar firstName={lead.assignedTo.firstName} lastName={lead.assignedTo.lastName} size="xs" />
-          </span>
+          <Tooltip content={`${lead.assignedTo.firstName} ${lead.assignedTo.lastName}`} describe={false}>
+            <span>
+              <Avatar firstName={lead.assignedTo.firstName} lastName={lead.assignedTo.lastName} size="xs" />
+              <span className="sr-only">
+                Mas’ul: {lead.assignedTo.firstName} {lead.assignedTo.lastName}
+              </span>
+            </span>
+          </Tooltip>
         ) : (
           <span className="text-[11px] whitespace-nowrap text-fg-subtle">Biriktirilmagan</span>
         )}

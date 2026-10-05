@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -85,9 +86,9 @@ function TileBody({ tile }: { tile: Tile }) {
       >
         {tile.value}
       </p>
-      <p className="mt-0.5 truncate text-caption text-fg-muted" title={tile.hint}>
-        {tile.hint}
-      </p>
+      <Tooltip content={tile.hint} describe={false} wrapperClassName="block min-w-0">
+        <span className="mt-0.5 block truncate text-caption text-fg-muted">{tile.hint}</span>
+      </Tooltip>
     </>
   );
 }

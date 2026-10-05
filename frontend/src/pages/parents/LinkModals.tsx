@@ -1,16 +1,14 @@
+import { Combobox } from '@/components/ui/Combobox';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
-import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useDebounce } from '@/hooks/useDebounce';
 import { getErrorMessage } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { parentsService } from '@/services/parents.service';
 import { studentsService } from '@/services/students.service';
@@ -97,40 +95,19 @@ function LinkModalShell(props: LinkModalShellProps) {
       ) : (
         <div className="space-y-3">
           <FormField label={props.searchLabel} htmlFor="link-search" hint={props.searchHint}>
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
-              <Input
-                id="link-search"
-                autoFocus
-                value={props.searchInput}
-                onChange={(event) => props.onSearchChange(event.target.value)}
-                className="pl-9"
-              />
-            </div>
+            <Combobox
+              id="link-search"
+              autoFocus
+              placeholder="Qidirish…"
+              options={options.items.map((item) => ({ value: item.id, label: item.title, description: item.subtitle }))}
+              value={null}
+              onChange={(id) => setSelected(options.items.find((item) => item.id === id) ?? null)}
+              onSearchChange={props.onSearchChange}
+              loading={options.pending || options.placeholder}
+              clearable={false}
+            />
           </FormField>
-
-          {options.pending ? (
-            <p className="py-4 text-center text-sm text-fg-muted">Yuklanmoqda…</p>
-          ) : options.error ? (
-            <Alert tone="error">{getErrorMessage(options.error)}</Alert>
-          ) : options.items.length === 0 ? (
-            <p className="py-4 text-center text-sm text-fg-muted">Hech narsa topilmadi</p>
-          ) : (
-            <ul className={cn('divide-y divide-border rounded-xl border border-border', options.placeholder && 'opacity-60')}>
-              {options.items.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(item)}
-                    className="block w-full px-3 py-2 text-left transition-colors hover:bg-surface-muted"
-                  >
-                    <span className="block truncate text-sm font-medium text-fg">{item.title}</span>
-                    <span className="block text-xs text-fg-muted">{item.subtitle}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          {Boolean(options.error) && <Alert tone="error">{getErrorMessage(options.error)}</Alert>}
           {props.footerNote}
         </div>
       )}

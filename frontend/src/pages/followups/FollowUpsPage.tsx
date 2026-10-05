@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarCheck, Check, Pencil, Trash2 } from 'lucide-react';
@@ -14,7 +15,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -127,81 +128,110 @@ export default function FollowUpsPage() {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Follow-uplar">
-                <THead>
-                  <tr>
-                    <TH>Muddat</TH>
-                    <TH>Vazifa</TH>
-                    <TH>Lead</TH>
-                    <TH>Mas’ul</TH>
-                    <TH>Holat</TH>
-                    <TH className="w-32">
-                      <span className="sr-only">Amallar</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((followUp) => (
-                    <TR key={followUp.id}>
-                      <TD className={cn('whitespace-nowrap', followUp.state === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg-muted')}>
-                        {formatDateTime(followUp.dueAt)}
-                      </TD>
-                      <TD>
-                        <p className="font-medium text-fg">
-                          {followUp.title}
-                          {(followUp.priority === 'HIGH' || followUp.priority === 'URGENT') && (
-                            <Badge tone={LEAD_PRIORITY_TONES[followUp.priority]} className="ml-2 align-middle">
-                              {LEAD_PRIORITY_LABELS[followUp.priority]}
-                            </Badge>
-                          )}
-                        </p>
-                        {followUp.notes && <p className="mt-0.5 max-w-md truncate text-xs text-fg-muted">{followUp.notes}</p>}
-                      </TD>
-                      <TD>
-                        <Link to={`/leads/${followUp.leadId}`} className="font-medium text-primary hover:underline">
-                          {leadFullName(followUp.lead)}
-                        </Link>
-                        <p className="text-xs text-fg-muted">
-                          {followUp.lead.code} · {formatPhone(followUp.lead.phone)}
-                        </p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">
-                        {followUp.assignedTo ? `${followUp.assignedTo.firstName} ${followUp.assignedTo.lastName}` : '—'}
-                      </TD>
-                      <TD>
-                        <Badge tone={FOLLOW_UP_STATE_TONES[followUp.state]}>{FOLLOW_UP_STATE_LABELS[followUp.state]}</Badge>
-                      </TD>
-                      <TD>
-                        <div className="flex items-center justify-end gap-1">
-                          {canUpdate && followUp.status === 'PENDING' && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              leftIcon={<Check className="size-4" aria-hidden />}
-                              onClick={() => setDialog({ type: 'complete', followUp })}
-                            >
-                              Bajarildi
-                            </Button>
-                          )}
-                          <ActionMenu
-                            label="Amallar"
-                            items={[
-                              ...(canUpdate && followUp.status === 'PENDING'
-                                ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', followUp }) }]
-                                : []),
-                              ...(canDelete
-                                ? [{ label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', followUp }) }]
-                                : []),
-                            ]}
-                          />
-                        </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              bare
+              label="Follow-uplar"
+              rows={listQuery.data.items}
+              rowKey={(followUp) => followUp.id}
+              stale={listQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Muddat',
+                  tdClassName: (followUp) => cn('whitespace-nowrap', followUp.state === 'OVERDUE' ? 'font-medium text-danger' : 'text-fg-muted'),
+                  cell: (followUp) => (
+                    <>
+                      {formatDateTime(followUp.dueAt)}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Vazifa',
+                  cell: (followUp) => (
+                    <>
+                      <p className="font-medium text-fg">
+                        {followUp.title}
+                        {(followUp.priority === 'HIGH' || followUp.priority === 'URGENT') && (
+                          <Badge tone={LEAD_PRIORITY_TONES[followUp.priority]} className="ml-2 align-middle">
+                            {LEAD_PRIORITY_LABELS[followUp.priority]}
+                          </Badge>
+                        )}
+                      </p>
+                      {followUp.notes && <p className="mt-0.5 max-w-md truncate text-xs text-fg-muted">{followUp.notes}</p>}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  label: 'Lead',
+                  cell: (followUp) => (
+                    <>
+                      <Link to={`/leads/${followUp.leadId}`} className="font-medium text-primary hover:underline">
+                        {leadFullName(followUp.lead)}
+                      </Link>
+                      <p className="text-xs text-fg-muted">
+                        {followUp.lead.code} · {formatPhone(followUp.lead.phone)}
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Mas’ul',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (followUp) => (
+                    <>
+                      {followUp.assignedTo ? `${followUp.assignedTo.firstName} ${followUp.assignedTo.lastName}` : '—'}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  label: 'Holat',
+                  cell: (followUp) => (
+                    <>
+                      <Badge tone={FOLLOW_UP_STATE_TONES[followUp.state]}>{FOLLOW_UP_STATE_LABELS[followUp.state]}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-32',
+                  cell: (followUp) => (
+                    <>
+                      <div className="flex items-center justify-end gap-1">
+                        {canUpdate && followUp.status === 'PENDING' && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            leftIcon={<Check className="size-4" aria-hidden />}
+                            onClick={() => setDialog({ type: 'complete', followUp })}
+                          >
+                            Bajarildi
+                          </Button>
+                        )}
+                        <ActionMenu
+                          label="Amallar"
+                          items={[
+                            ...(canUpdate && followUp.status === 'PENDING'
+                              ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', followUp }) }]
+                              : []),
+                            ...(canDelete
+                              ? [{ label: 'O‘chirish', icon: Trash2, tone: 'danger' as const, onSelect: () => setDialog({ type: 'delete', followUp }) }]
+                              : []),
+                          ]}
+                        />
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={listQuery.data.meta.page}
               totalPages={listQuery.data.meta.totalPages}

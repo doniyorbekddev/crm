@@ -1,3 +1,4 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Bot, Lightbulb, ListChecks, Search, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -45,9 +46,11 @@ export function InsightList({ items }: { items: Insight[] }) {
 /** Tahlil manbasi: qoidalar yoki model (qaysi model) */
 export function AiSourceBadge({ source, model }: { source: 'RULES' | 'LLM'; model: string | null }) {
   return (
-    <Badge tone={source === 'LLM' ? 'accent' : 'neutral'} title={source === 'LLM' ? 'Til modeli yaratgan matn — o‘qituvchi tekshiradi' : 'CRM ma’lumotidan qoidalar bilan hisoblangan'}>
-      {source === 'LLM' ? <Sparkles className="size-3" aria-hidden /> : <Bot className="size-3" aria-hidden />}
-      {source === 'LLM' ? `AI${model ? ` · ${model}` : ''}` : 'Qoidalar rejimi'}
-    </Badge>
+    <Tooltip content={source === 'LLM' ? 'Til modeli yaratgan matn — o‘qituvchi tekshiradi' : 'CRM ma’lumotidan qoidalar bilan hisoblangan'} describe={false}>
+      <Badge tone={source === 'LLM' ? 'accent' : 'neutral'}>
+        {source === 'LLM' ? <Sparkles className="size-3" aria-hidden /> : <Bot className="size-3" aria-hidden />}
+        {source === 'LLM' ? `AI${model ? ` · ${model}` : ''}` : 'Qoidalar rejimi'}
+      </Badge>
+    </Tooltip>
   );
 }

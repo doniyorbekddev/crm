@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -166,7 +167,7 @@ export function SalaryRuleModal({ teacher, onClose, onSaved }: SalaryRuleModalPr
             </FormField>
           ))}
           <FormField label="Oylik bonus (so‘m)" htmlFor="rule-bonus" error={errors.bonus?.message} hint="Har oy avtomatik qo‘shiladi">
-            <Input id="rule-bonus" inputMode="numeric" {...register('bonus')} />
+            <MoneyController control={control} name="bonus" id="rule-bonus" />
           </FormField>
           <FormField
             label="Kuchga kirish sanasi"

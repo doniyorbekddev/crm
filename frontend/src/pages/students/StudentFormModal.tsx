@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -216,7 +217,7 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
                 : 'Bo‘sh qoldirilsa kurs narxi olinadi'
           }
         >
-          <Input id="student-contractPrice" inputMode="numeric" invalid={Boolean(errors.contractPrice)} {...register('contractPrice')} />
+          <MoneyController control={control} name="contractPrice" id="student-contractPrice" invalid={Boolean(errors.contractPrice)} />
         </FormField>
 
         <FormField label="O‘qish boshlanishi" htmlFor="student-startDate" error={errors.startDate?.message} required>

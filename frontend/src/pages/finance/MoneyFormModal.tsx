@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -171,7 +172,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
             </Select>
           </FormField>
           <FormField label="Summa (so‘m)" htmlFor="money-amount" error={errors.amount?.message} required>
-            <Input id="money-amount" autoFocus inputMode="numeric" invalid={Boolean(errors.amount)} {...register('amount')} />
+            <MoneyController control={control} name="amount" id="money-amount" autoFocus invalid={Boolean(errors.amount)} />
           </FormField>
           <FormField label="To‘lov usuli" htmlFor="money-method" error={errors.method?.message} required>
             <Select id="money-method" {...register('method')}>

@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, FileText, ImageIcon, Link2, Megaphone, Paperclip, Plus, Send, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -14,7 +15,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { Textarea } from '@/components/ui/Textarea';
 import { getErrorMessage, getFieldErrors } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -170,45 +171,80 @@ function History() {
         ) : (history.data ?? []).length === 0 ? (
           <EmptyState icon={Megaphone} title="Hali xabar yuborilmagan" description="Yuborilgan xabarlar va ularning yetkazilishi shu yerda ko‘rinadi." />
         ) : (
-          <TableContainer>
-            <Table aria-label="Yuborilgan xabarlar">
-              <THead>
-                <TR>
-                  <TH>Sana</TH>
-                  <TH>Kimga</TH>
-                  <TH>Xabar</TH>
-                  <TH className="text-right">Mo‘ljal</TH>
-                  <TH className="text-right">Yuborildi</TH>
-                  <TH className="text-right">Yetkazildi</TH>
-                  <TH className="text-right">Yetmadi</TH>
-                  <TH className="text-right">Navbatda</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {(history.data ?? []).map((item) => (
-                  <TR key={item.id}>
-                    <TD className="whitespace-nowrap">
-                      {formatDateTime(item.createdAt)}
-                      {item.createdBy && <div className="text-xs text-fg-subtle">{item.createdBy}</div>}
-                    </TD>
-                    <TD>{item.label}</TD>
-                    <TD className="max-w-xs">
-                      <span className="line-clamp-2">{item.message}</span>
-                      <span className="mt-1 flex gap-1">
-                        {item.mediaKind && <Badge tone="blue">{item.mediaKind === 'photo' ? 'Rasm' : 'Hujjat'}</Badge>}
-                        {item.buttons.length > 0 && <Badge tone="purple">{item.buttons.length} tugma</Badge>}
-                      </span>
-                    </TD>
-                    <TD className="text-right">{formatNumber(item.recipients)}</TD>
-                    <TD className="text-right">{formatNumber(item.sent)}</TD>
-                    <TD className="text-right">{formatNumber(item.delivered)}</TD>
-                    <TD className="text-right">{item.failed > 0 ? <Badge tone="red">{formatNumber(item.failed)}</Badge> : 0}</TD>
-                    <TD className="text-right">{item.pending > 0 ? <Badge tone="yellow">{formatNumber(item.pending)}</Badge> : 0}</TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            bare
+            label="Yuborilgan xabarlar"
+            rows={history.data ?? []}
+            rowKey={(item) => item.id}
+            mobileLayout="cards"
+            columns={[
+              {
+                key: 'c0',
+                label: 'Sana',
+                tdClassName: 'whitespace-nowrap',
+                cell: (item) => (
+                  <>
+                    {formatDateTime(item.createdAt)}
+                    {item.createdBy && <div className="text-xs text-fg-subtle">{item.createdBy}</div>}
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                label: 'Kimga',
+                cell: (item) => <>{item.label}</>,
+              },
+              {
+                key: 'c2',
+                label: 'Xabar',
+                tdClassName: 'max-w-xs',
+                cell: (item) => (
+                  <>
+                    <span className="line-clamp-2">{item.message}</span>
+                    <span className="mt-1 flex gap-1">
+                      {item.mediaKind && <Badge tone="blue">{item.mediaKind === 'photo' ? 'Rasm' : 'Hujjat'}</Badge>}
+                      {item.buttons.length > 0 && <Badge tone="purple">{item.buttons.length} tugma</Badge>}
+                    </span>
+                  </>
+                ),
+              },
+              {
+                key: 'c3',
+                label: 'Mo‘ljal',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (item) => <>{formatNumber(item.recipients)}</>,
+              },
+              {
+                key: 'c4',
+                label: 'Yuborildi',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (item) => <>{formatNumber(item.sent)}</>,
+              },
+              {
+                key: 'c5',
+                label: 'Yetkazildi',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (item) => <>{formatNumber(item.delivered)}</>,
+              },
+              {
+                key: 'c6',
+                label: 'Yetmadi',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (item) => <>{item.failed > 0 ? <Badge tone="red">{formatNumber(item.failed)}</Badge> : 0}</>,
+              },
+              {
+                key: 'c7',
+                label: 'Navbatda',
+                thClassName: 'text-right',
+                tdClassName: 'text-right',
+                cell: (item) => <>{item.pending > 0 ? <Badge tone="yellow">{formatNumber(item.pending)}</Badge> : 0}</>,
+              },
+            ]}
+          />
         )}
       </CardContent>
     </Card>

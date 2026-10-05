@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, Boxes, Package, Plus, TriangleAlert } from 'lucide-react';
@@ -12,7 +13,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
@@ -151,63 +152,94 @@ export default function InventoryPage() {
           />
         ) : (
           <>
-            <TableContainer className={cn('transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}>
-              <Table aria-label="Ombor mahsulotlari">
-                <THead>
-                  <tr>
-                    <TH>Mahsulot</TH>
-                    <TH>Turkum</TH>
-                    <TH className="text-right">Qoldiq</TH>
-                    <TH className="text-right">Narxi</TH>
-                    <TH className="text-right">Qoldiq qiymati</TH>
-                    <TH className="w-40" />
-                  </tr>
-                </THead>
-                <TBody>
-                  {listQuery.data.items.map((product) => (
-                    <TR key={product.id}>
-                      <TD>
-                        <p className="font-medium text-fg">{product.name}</p>
-                        <p className="font-mono text-xs text-fg-subtle">{product.sku}</p>
-                      </TD>
-                      <TD className="whitespace-nowrap text-fg-muted">{product.category.name}</TD>
-                      <TD className="text-right whitespace-nowrap">
-                        <span className={cn('tabular-nums', product.quantity === 0 ? 'text-danger' : 'text-fg')}>
-                          {formatNumber(product.quantity)} {product.unit}
-                        </span>
-                        {product.isLowStock && (
-                          <Badge tone="yellow" className="ml-2">
-                            Kam qoldi
-                          </Badge>
+            <DataTable
+              bare
+              label="Ombor mahsulotlari"
+              rows={listQuery.data.items}
+              rowKey={(product) => product.id}
+              stale={listQuery.isPlaceholderData}
+              mobileLayout="cards"
+              columns={[
+                {
+                  key: 'c0',
+                  label: 'Mahsulot',
+                  cell: (product) => (
+                    <>
+                      <p className="font-medium text-fg">{product.name}</p>
+                      <p className="font-mono text-xs text-fg-subtle">{product.sku}</p>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  label: 'Turkum',
+                  tdClassName: 'whitespace-nowrap text-fg-muted',
+                  cell: (product) => <>{product.category.name}</>,
+                },
+                {
+                  key: 'c2',
+                  label: 'Qoldiq',
+                  thClassName: 'text-right',
+                  tdClassName: 'text-right whitespace-nowrap',
+                  cell: (product) => (
+                    <>
+                      <span className={cn('tabular-nums', product.quantity === 0 ? 'text-danger' : 'text-fg')}>
+                        {formatNumber(product.quantity)} {product.unit}
+                      </span>
+                      {product.isLowStock && (
+                        <Badge tone="yellow" className="ml-2">
+                          Kam qoldi
+                        </Badge>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  label: 'Narxi',
+                  thClassName: 'text-right',
+                  tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+                  cell: (product) => <>{formatMoney(product.price)}</>,
+                },
+                {
+                  key: 'c4',
+                  label: 'Qoldiq qiymati',
+                  thClassName: 'text-right',
+                  tdClassName: 'text-right whitespace-nowrap tabular-nums text-fg-muted',
+                  cell: (product) => <>{formatMoney(product.stockValue)}</>,
+                },
+                {
+                  key: 'c5',
+                  label: 'Amallar',
+                  header: <span className="sr-only">Amallar</span>,
+                  fixed: true,
+                  thClassName: 'w-40',
+                  tdClassName: 'text-right',
+                  cell: (product) => (
+                    <>
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => setDialog({ type: 'history', product })}>
+                          Tarix
+                        </Button>
+                        {canManage && (
+                    <>
+                            <Button size="sm" variant="secondary" onClick={() => setDialog({ type: 'move', product })}>
+                              Harakat
+                            </Button>
+                            <Button size="sm" variant="ghost" disabled={product.quantity === 0} onClick={() => setDialog({ type: 'transfer', product })}>
+                              Ko‘chirish
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setDialog({ type: 'product', product })}>
+                              Tahrir
+                            </Button>
+                    </>
                         )}
-                      </TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(product.price)}</TD>
-                      <TD className="text-right whitespace-nowrap tabular-nums text-fg-muted">{formatMoney(product.stockValue)}</TD>
-                      <TD className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => setDialog({ type: 'history', product })}>
-                            Tarix
-                          </Button>
-                          {canManage && (
-                            <>
-                              <Button size="sm" variant="secondary" onClick={() => setDialog({ type: 'move', product })}>
-                                Harakat
-                              </Button>
-                              <Button size="sm" variant="ghost" disabled={product.quantity === 0} onClick={() => setDialog({ type: 'transfer', product })}>
-                                Ko‘chirish
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => setDialog({ type: 'product', product })}>
-                                Tahrir
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+            />
             <Pagination
               page={listQuery.data.meta.page}
               totalPages={listQuery.data.meta.totalPages}

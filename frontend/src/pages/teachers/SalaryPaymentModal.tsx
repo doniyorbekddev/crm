@@ -1,3 +1,4 @@
+import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -141,7 +142,7 @@ export function SalaryPaymentModal({ period, kind = 'SALARY', onClose, onSaved }
             required
             hint={amount > 0 ? `To‘lovdan keyin qoladi: ${formatMoney(Math.max(afterPayment, 0))}` : undefined}
           >
-            <Input id="salary-amount" autoFocus inputMode="numeric" invalid={Boolean(errors.amount)} {...register('amount')} />
+            <MoneyController control={control} name="amount" id="salary-amount" autoFocus invalid={Boolean(errors.amount)} />
           </FormField>
           <FormField label="To‘lov usuli" htmlFor="salary-method" error={errors.method?.message} required>
             <Select

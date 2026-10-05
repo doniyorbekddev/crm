@@ -1,3 +1,4 @@
+import { DataTable } from '@/components/ui/DataTable';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Award, BookOpenCheck, CalendarCheck, CreditCard, FileCheck, MessageSquareText, Sparkles, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -7,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/StatCard';
 import type { StatTone } from '@/components/ui/StatCard';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { TBody, TD, TH, THead, TR, Table, TableContainer, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { paymentsService } from '@/services/payments.service';
@@ -139,38 +140,56 @@ export function HomeworkTab({ studentId }: { studentId: string }) {
       ) : query.data.length === 0 ? (
         <EmptyState icon={BookOpenCheck} title="Uy vazifasi yo‘q" description="Guruhga vazifa berilganda shu yerda ko‘rinadi" />
       ) : (
-        <TableContainer>
-          <Table aria-label="Uy vazifalari">
-            <THead>
-              <tr>
-                <TH>Vazifa</TH>
-                <TH>Muddat</TH>
-                <TH>Holat</TH>
-                <TH className="text-right">Ball</TH>
-                <TH>Izoh</TH>
-              </tr>
-            </THead>
-            <TBody>
-              {query.data.map((row) => (
-                <TR key={row.homeworkId}>
-                  <TD>
-                    <p className="font-medium text-fg">{row.title}</p>
-                    <p className="text-xs text-fg-muted">
-                      {row.groupName}
-                      {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
-                    </p>
-                  </TD>
-                  <TD className="whitespace-nowrap text-fg-muted">{formatDateTime(row.deadline)}</TD>
-                  <TD>
-                    <Badge tone={SUBMISSION_STATUS_TONES[row.status]}>{SUBMISSION_STATUS_LABELS[row.status]}</Badge>
-                  </TD>
-                  <TD className="text-right whitespace-nowrap text-fg">{row.score === null ? '—' : `${row.score}/${row.maxPoints}`}</TD>
-                  <TD className="max-w-[16rem] truncate text-fg-muted">{row.feedback ?? '—'}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </TableContainer>
+        <DataTable
+          bare
+          label="Uy vazifalari"
+          rows={query.data}
+          rowKey={(row) => row.homeworkId}
+          mobileLayout="cards"
+          columns={[
+            {
+              key: 'c0',
+              label: 'Vazifa',
+              cell: (row) => (
+                <>
+                  <p className="font-medium text-fg">{row.title}</p>
+                  <p className="text-xs text-fg-muted">
+                    {row.groupName}
+                    {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
+                  </p>
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              label: 'Muddat',
+              tdClassName: 'whitespace-nowrap text-fg-muted',
+              cell: (row) => <>{formatDateTime(row.deadline)}</>,
+            },
+            {
+              key: 'c2',
+              label: 'Holat',
+              cell: (row) => (
+                <>
+                  <Badge tone={SUBMISSION_STATUS_TONES[row.status]}>{SUBMISSION_STATUS_LABELS[row.status]}</Badge>
+                </>
+              ),
+            },
+            {
+              key: 'c3',
+              label: 'Ball',
+              thClassName: 'text-right',
+              tdClassName: 'text-right whitespace-nowrap text-fg',
+              cell: (row) => <>{row.score === null ? '—' : `${row.score}/${row.maxPoints}`}</>,
+            },
+            {
+              key: 'c4',
+              label: 'Izoh',
+              tdClassName: 'max-w-[16rem] truncate text-fg-muted',
+              cell: (row) => <>{row.feedback ?? '—'}</>,
+            },
+          ]}
+        />
       )}
     </Card>
   );
@@ -188,49 +207,74 @@ export function ExamsTab({ studentId }: { studentId: string }) {
       ) : query.data.length === 0 ? (
         <EmptyState icon={FileCheck} title="Imtihon natijasi yo‘q" description="Natija kiritilganda shu yerda ko‘rinadi" />
       ) : (
-        <TableContainer>
-          <Table aria-label="Imtihonlar">
-            <THead>
-              <tr>
-                <TH>Imtihon</TH>
-                <TH>Sana</TH>
-                <TH className="text-right">Ball</TH>
-                <TH className="text-right">Foiz</TH>
-                <TH>Baho</TH>
-                <TH>Izoh</TH>
-              </tr>
-            </THead>
-            <TBody>
-              {query.data.map((row) => (
-                <TR key={row.examId}>
-                  <TD>
-                    <p className="font-medium text-fg">{row.title}</p>
-                    <p className="text-xs text-fg-muted">
-                      {row.groupName}
-                      {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
-                    </p>
-                  </TD>
-                  <TD className="whitespace-nowrap text-fg-muted">{formatDate(row.date)}</TD>
-                  <TD className="text-right text-fg">
-                    {row.score}/{row.maxScore}
-                  </TD>
-                  <TD className="text-right tabular-nums text-fg">{row.percentage}%</TD>
-                  <TD>
-                    <span className="flex items-center gap-2">
-                      {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
-                      {row.passed !== null && (
-                        <span className={cn('text-xs', row.passed ? 'text-success' : 'text-danger')}>
-                          {row.passed ? 'O‘tdi' : 'O‘tmadi'}
-                        </span>
-                      )}
-                    </span>
-                  </TD>
-                  <TD className="max-w-[16rem] truncate text-fg-muted">{row.comment ?? '—'}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </TableContainer>
+        <DataTable
+          bare
+          label="Imtihonlar"
+          rows={query.data}
+          rowKey={(row) => row.examId}
+          mobileLayout="cards"
+          columns={[
+            {
+              key: 'c0',
+              label: 'Imtihon',
+              cell: (row) => (
+                <>
+                  <p className="font-medium text-fg">{row.title}</p>
+                  <p className="text-xs text-fg-muted">
+                    {row.groupName}
+                    {row.xpAwarded > 0 && ` · +${row.xpAwarded} XP`}
+                  </p>
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              label: 'Sana',
+              tdClassName: 'whitespace-nowrap text-fg-muted',
+              cell: (row) => <>{formatDate(row.date)}</>,
+            },
+            {
+              key: 'c2',
+              label: 'Ball',
+              thClassName: 'text-right',
+              tdClassName: 'text-right text-fg',
+              cell: (row) => (
+                <>
+                  {row.score}/{row.maxScore}
+                </>
+              ),
+            },
+            {
+              key: 'c3',
+              label: 'Foiz',
+              thClassName: 'text-right',
+              tdClassName: 'text-right tabular-nums text-fg',
+              cell: (row) => <>{row.percentage}%</>,
+            },
+            {
+              key: 'c4',
+              label: 'Baho',
+              cell: (row) => (
+                <>
+                  <span className="flex items-center gap-2">
+                    {row.grade && <Badge tone={GRADE_TONES[row.grade] ?? 'gray'}>{row.grade}</Badge>}
+                    {row.passed !== null && (
+                      <span className={cn('text-xs', row.passed ? 'text-success' : 'text-danger')}>
+                        {row.passed ? 'O‘tdi' : 'O‘tmadi'}
+                      </span>
+                    )}
+                  </span>
+                </>
+              ),
+            },
+            {
+              key: 'c5',
+              label: 'Izoh',
+              tdClassName: 'max-w-[16rem] truncate text-fg-muted',
+              cell: (row) => <>{row.comment ?? '—'}</>,
+            },
+          ]}
+        />
       )}
     </Card>
   );
@@ -249,37 +293,53 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
       ) : query.data.items.length === 0 ? (
         <EmptyState icon={Wallet} title="To‘lov yo‘q" description="Qabul qilingan to‘lovlar shu yerda ko‘rinadi" />
       ) : (
-        <TableContainer>
-          <Table aria-label="To‘lovlar">
-            <THead>
-              <tr>
-                <TH>Kvitansiya</TH>
-                <TH>Summa</TH>
-                <TH>Usul</TH>
-                <TH>Sana</TH>
-              </tr>
-            </THead>
-            <TBody>
-              {query.data.items.map((payment) => (
-                <TR key={payment.id} className={cn(payment.isDeleted && 'opacity-60')}>
-                  <TD className="font-mono text-xs text-fg-muted">
-                    {payment.code}
-                    {payment.isDeleted && (
-                      <Badge tone="red" className="ml-2">
-                        Bekor qilingan
-                      </Badge>
-                    )}
-                  </TD>
-                  <TD className={cn('font-medium', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg')}>
-                    {formatMoney(payment.amount)}
-                  </TD>
-                  <TD className="text-fg-muted">{PAYMENT_METHOD_LABELS[payment.method]}</TD>
-                  <TD className="whitespace-nowrap text-fg-muted">{formatDate(payment.paidAt)}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </TableContainer>
+        <DataTable
+          bare
+          label="To‘lovlar"
+          rows={query.data.items}
+          rowKey={(payment) => payment.id}
+          rowClassName={(payment) => cn(payment.isDeleted && 'opacity-60')}
+          mobileLayout="cards"
+          columns={[
+            {
+              key: 'c0',
+              label: 'Kvitansiya',
+              tdClassName: 'font-mono text-xs text-fg-muted',
+              cell: (payment) => (
+                <>
+                  {payment.code}
+                  {payment.isDeleted && (
+                    <Badge tone="red" className="ml-2">
+                      Bekor qilingan
+                    </Badge>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              label: 'Summa',
+              tdClassName: (payment) => cn('font-medium', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg'),
+              cell: (payment) => (
+                <>
+                  {formatMoney(payment.amount)}
+                </>
+              ),
+            },
+            {
+              key: 'c2',
+              label: 'Usul',
+              tdClassName: 'text-fg-muted',
+              cell: (payment) => <>{PAYMENT_METHOD_LABELS[payment.method]}</>,
+            },
+            {
+              key: 'c3',
+              label: 'Sana',
+              tdClassName: 'whitespace-nowrap text-fg-muted',
+              cell: (payment) => <>{formatDate(payment.paidAt)}</>,
+            },
+          ]}
+        />
       )}
     </Card>
   );
