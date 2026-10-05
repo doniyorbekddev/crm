@@ -18,10 +18,14 @@ import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { notificationsService } from '@/services/notifications.service';
-import type { NotificationItem, NotificationListParams, NotificationPriority, NotificationType } from '@/types/notification';
+import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
+import type { NotificationCategory, NotificationItem, NotificationListParams, NotificationPriority, NotificationType } from '@/types/notification';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
 import { NotificationSettingsModal } from './NotificationSettingsModal';
 import {
+  NOTIFICATION_CATEGORY_LABELS,
+  NOTIFICATION_CATEGORY_ORDER,
+  NOTIFICATION_TYPE_CATEGORY,
   NOTIFICATION_PRIORITY_LABELS,
   NOTIFICATION_PRIORITY_TONES,
   NOTIFICATION_TYPE_CLASSES,
@@ -37,6 +41,7 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  const [category, setCategory] = useState<NotificationCategory | ''>('');
   const [type, setType] = useState<NotificationType | ''>('');
   /** '' — hammasi, 'unread' — o‘qilmagan, 'read' — o‘qilgan */
   const [readState, setReadState] = useState<'' | 'unread' | 'read'>('');
@@ -50,6 +55,7 @@ export default function NotificationsPage() {
   const params: NotificationListParams = {
     page,
     limit: PAGE_SIZE,
+    ...(category ? { category } : {}),
     ...(type ? { type } : {}),
     ...(priority ? { priority } : {}),
     ...(readState === 'unread' ? { unreadOnly: 'true' as const } : {}),
@@ -117,6 +123,19 @@ export default function NotificationsPage() {
 
   const summary = summaryQuery.data;
   const unreadByType = new Map(summary?.byType.map((row) => [row.type, row.unread]) ?? []);
+  const unreadByCategory = new Map<NotificationCategory, number>();
+  for (const row of summary?.byType ?? []) {
+    const key = NOTIFICATION_TYPE_CATEGORY[row.type];
+    unreadByCategory.set(key, (unreadByCategory.get(key) ?? 0) + row.unread);
+  }
+  /** Toifa tanlansa, tur ro'yxati shu toifa bilan cheklanadi */
+  const typeOptions = NOTIFICATION_TYPE_ORDER.filter((item) => !category || NOTIFICATION_TYPE_CATEGORY[item] === category);
+  const changeCategory = (next: NotificationCategory | '') =>
+    changeFilter(() => {
+      setCategory(next);
+      // Boshqa toifadagi tur qolib ketsa, ro'yxat sababsiz bo'sh chiqadi
+      if (type && next && NOTIFICATION_TYPE_CATEGORY[type] !== next) setType('');
+    });
 
   const renderRow = (item: NotificationItem) => {
     const Icon = NOTIFICATION_TYPE_ICONS[item.type];
@@ -214,6 +233,20 @@ export default function NotificationsPage() {
       />
 
       <Card>
+        <div className="border-b border-border px-3 pt-3">
+          <Tabs value={category || 'ALL'} onValueChange={(value) => changeCategory(value === 'ALL' ? '' : (value as NotificationCategory))} variant="pill" panels={false}>
+            <TabList label="Toifa bo‘yicha filtr">
+              <Tab value="ALL" {...(summary ? { count: summary.unread } : {})}>
+                Hammasi
+              </Tab>
+              {NOTIFICATION_CATEGORY_ORDER.map((item) => (
+                <Tab key={item} value={item} {...(unreadByCategory.get(item) ? { count: unreadByCategory.get(item)! } : {})}>
+                  {NOTIFICATION_CATEGORY_LABELS[item]}
+                </Tab>
+              ))}
+            </TabList>
+          </Tabs>
+        </div>
         <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row sm:items-center">
           <Select
             value={type}
@@ -222,7 +255,7 @@ export default function NotificationsPage() {
             wrapperClassName="sm:w-60"
           >
             <option value="">Barcha turlar</option>
-            {NOTIFICATION_TYPE_ORDER.map((item) => (
+            {typeOptions.map((item) => (
               <option key={item} value={item}>
                 {NOTIFICATION_TYPE_LABELS[item]}
                 {unreadByType.get(item) ? ` (${unreadByType.get(item)})` : ''}

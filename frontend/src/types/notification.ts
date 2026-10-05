@@ -28,6 +28,9 @@ export type NotificationType =
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';
 
+/** Turlarning yiriklashtirilgan guruhi — backenddagi `NOTIFICATION_TYPE_CATEGORY` bilan bir xil */
+export type NotificationCategory = 'SALES' | 'FINANCE' | 'ATTENDANCE' | 'HOMEWORK' | 'EXAM' | 'ACADEMIC' | 'SYSTEM';
+
 export interface NotificationItem {
   id: string;
   type: NotificationType;
@@ -45,6 +48,7 @@ export interface NotificationListParams {
   page: number;
   limit: number;
   type?: NotificationType;
+  category?: NotificationCategory;
   priority?: NotificationPriority;
   unreadOnly?: 'true' | 'false';
 }

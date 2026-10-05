@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarOff, FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -42,6 +43,9 @@ type Dialog =
   | { type: 'leaves'; employee: Employee }
   | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { employee: 'name', hiredAt: 'hireDate' } as const;
+
 /** Xodimlar (HR): o‘qituvchidan tashqari xodimlar, lavozim, maosh va holat */
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
@@ -54,6 +58,8 @@ export default function EmployeesPage() {
   const search = useDebounce(searchInput.trim(), 400);
   const [status, setStatus] = useState<EmployeeStatus | ''>('');
   const [position, setPosition] = useState<EmployeePosition | ''>('');
+  /** Bo'sh — standart tartib (holat, so'ng familiya) */
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
   const branchParam = useBranchParam();
@@ -65,6 +71,7 @@ export default function EmployeesPage() {
     ...(search ? { search } : {}),
     ...(status ? { status } : {}),
     ...(position ? { position } : {}),
+    ...(sort ? { sortBy: sort.split(':')[0] as NonNullable<EmployeeListParams['sortBy']>, sortOrder: sort.split(':')[1] as 'asc' | 'desc' } : {}),
   };
 
   const query = useQuery({
@@ -91,6 +98,7 @@ export default function EmployeesPage() {
   const employeeTableColumns: Array<ColumnDef<EmployeeTableRow>> = [
     {
       key: 'employee',
+      sortable: true,
       label: 'Xodim',
       required: true,
       cell: (employee: EmployeeTableRow) => (
@@ -160,6 +168,7 @@ export default function EmployeesPage() {
     },
     {
       key: 'hiredAt',
+      sortable: true,
       label: 'Ishga kirgan',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (employee: EmployeeTableRow) => (
@@ -241,6 +250,7 @@ export default function EmployeesPage() {
       />
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, '', (value) => changeFilter(() => setSort(value)))}
         label="Xodimlar"
         columns={employeeTable.visibleColumns}
         rows={query.data?.items}

@@ -108,6 +108,31 @@ describe.skipIf(!hasTestDatabase)('Ota-onalar (integratsion)', () => {
     expect(await prisma.studentParent.count()).toBe(0);
   });
 
+  it('familiya va sana bo‘yicha ikki yo‘nalishda saralaydi; standart tartib o‘zgarmagan', async () => {
+    const names = [
+      ['Botir', 'Yusupov', '90 111 11 01'],
+      ['Aziza', 'Aliyeva', '90 111 11 02'],
+      ['Sardor', 'Karimov', '90 111 11 03'],
+    ] as const;
+    for (const [firstName, lastName, phone] of names) {
+      const created = await request(app).post('/api/parents').set(bearer(token)).send({ firstName, lastName, phone });
+      expect(created.status).toBe(201);
+    }
+    const lastNames = async (query: Record<string, string>) => {
+      const response = await request(app).get('/api/parents').query(query).set(bearer(token));
+      expect(response.status).toBe(200);
+      return (response.body.data as Array<{ lastName: string }>).map((item) => item.lastName);
+    };
+
+    // Standart: familiya A→Z (yo'nalish berilmasa ham)
+    expect(await lastNames({})).toEqual(['Aliyeva', 'Karimov', 'Yusupov']);
+    expect(await lastNames({ sortBy: 'name', sortOrder: 'asc' })).toEqual(['Aliyeva', 'Karimov', 'Yusupov']);
+    expect(await lastNames({ sortBy: 'name', sortOrder: 'desc' })).toEqual(['Yusupov', 'Karimov', 'Aliyeva']);
+    // Sana bo'yicha standart — avval yangilari
+    expect(await lastNames({ sortBy: 'createdAt' })).toEqual(['Karimov', 'Aliyeva', 'Yusupov']);
+    expect(await lastNames({ sortBy: 'createdAt', sortOrder: 'asc' })).toEqual(['Yusupov', 'Aliyeva', 'Karimov']);
+  });
+
   it('takroriy biriktirish, noma’lum o‘quvchi va qidiruv', async () => {
     const course = await createCourse();
     const group = await createGroup({ courseId: course.id });

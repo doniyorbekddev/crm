@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { DataTable } from '@/components/ui/DataTable';
@@ -35,12 +36,15 @@ const SORT_OPTIONS: ReadonlyArray<{ value: `${LeadSortBy}:${'asc' | 'desc'}`; la
   { value: 'firstName:asc', label: 'Ism (A–Z)' },
 ];
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { lead: 'firstName', nextFollowUp: 'nextFollowUpAt', createdAt: 'createdAt' } as const;
+
 export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const navigate = useNavigate();
   const now = useNow();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<LeadStatus | 'ALL'>('ALL');
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('createdAt:desc');
+  const [sort, setSort] = useState<string>('createdAt:desc');
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
 
@@ -71,6 +75,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
   const leadTableColumns: Array<ColumnDef<LeadTableRow>> = [
     {
       key: 'lead',
+      sortable: true,
       label: 'Lead',
       required: true,
       cell: (lead: LeadTableRow) => (
@@ -151,6 +156,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
     },
     {
       key: 'nextFollowUp',
+      sortable: true,
       label: 'Keyingi aloqa',
       tdClassName: (lead: LeadTableRow) => {
         const overdue = lead.nextFollowUpAt !== null && new Date(lead.nextFollowUpAt).getTime() < now;
@@ -168,6 +174,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
     },
     {
       key: 'createdAt',
+      sortable: true,
       label: 'Qo‘shilgan',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (lead: LeadTableRow) => (
@@ -182,6 +189,10 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
 
   return (
     <DataTable
+      {...headerSort(sort, SORT_COLUMNS, 'createdAt:desc', (value) => {
+          setSort(value);
+          setPage(1);
+        })}
       label="Leadlar"
       columns={leadTable.visibleColumns}
       rows={listQuery.data?.items}
@@ -216,12 +227,13 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
           <Select
             value={sort}
             onChange={(event) => {
-              setSort(event.target.value as typeof sort);
+              setSort(event.target.value);
               setPage(1);
             }}
             aria-label="Saralash"
             wrapperClassName="w-44 sm:w-56"
           >
+            {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}

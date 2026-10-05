@@ -92,6 +92,27 @@ describe.skipIf(!hasTestDatabase)('Xodimlar va umumiy payroll (integratsion)', (
     expect((await createEmployee(adminToken, { firstName: 'Takroriy', userId: accountant.id })).status).toBe(409);
   });
 
+  it('ustun bo‘yicha saralaydi; saralashsiz so‘rov avvalgi tartibda qoladi', async () => {
+    await createEmployee(adminToken, { firstName: 'Bobur', lastName: 'Yusupov', hireDate: '2024-01-10' });
+    await createEmployee(adminToken, { firstName: 'Aziza', lastName: 'Aliyeva', hireDate: '2026-02-01' });
+    await createEmployee(adminToken, { firstName: 'Sardor', lastName: 'Karimov', hireDate: '2025-05-05' });
+    const lastNames = async (query: Record<string, string>) => {
+      const response = await request(app).get('/api/employees').query(query).set(bearer(adminToken));
+      expect(response.status).toBe(200);
+      return (response.body.data as Array<{ lastName: string }>).map((item) => item.lastName);
+    };
+
+    expect(await lastNames({ sortBy: 'name', sortOrder: 'asc' })).toEqual(['Aliyeva', 'Karimov', 'Yusupov']);
+    expect(await lastNames({ sortBy: 'name', sortOrder: 'desc' })).toEqual(['Yusupov', 'Karimov', 'Aliyeva']);
+    expect(await lastNames({ sortBy: 'hireDate', sortOrder: 'asc' })).toEqual(['Yusupov', 'Karimov', 'Aliyeva']);
+    expect(await lastNames({ sortBy: 'hireDate', sortOrder: 'desc' })).toEqual(['Aliyeva', 'Karimov', 'Yusupov']);
+    // Saralash berilmasa — avvalgidek: holat, so'ng familiya
+    expect(await lastNames({})).toEqual(['Aliyeva', 'Karimov', 'Yusupov']);
+
+    const bad = await request(app).get('/api/employees').query({ sortBy: 'salary' }).set(bearer(adminToken));
+    expect(bad.status).toBe(422);
+  });
+
   it('to‘liq oy, oy o‘rtasida ishga kirgan va ishdan ketgan xodim maoshi kunlarga proporsional', async () => {
     await createEmployee(adminToken, { firstName: 'Toliq', position: 'ADMINISTRATOR', baseSalary: 4_000_000, hireDate: '2025-01-10' });
     // 16-31 mart: 16 kun / 31 → 3 100 000 × 16/31 = 1 600 000

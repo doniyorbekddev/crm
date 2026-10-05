@@ -225,7 +225,10 @@ export const parentService = {
     const items = await prisma.parent.findMany({
       where,
       select: parentSelect(access),
-      orderBy: query.sortBy === 'createdAt' ? [{ createdAt: query.sortOrder }] : [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy:
+        query.sortBy === 'createdAt'
+          ? [{ createdAt: query.sortOrder ?? 'desc' }, { id: 'asc' }]
+          : [{ lastName: query.sortOrder ?? 'asc' }, { firstName: query.sortOrder ?? 'asc' }, { id: 'asc' }],
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.parent.count({ where });

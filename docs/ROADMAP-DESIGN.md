@@ -128,7 +128,8 @@
 > Bajarildi: kabinet (11 sahifa × 3 kenglik × 2 mavzu) kirgan holda skanerdan o'tdi — bitta topilma (nomsiz izoh maydoni) tuzatildi; qolgan 12 ta `title` → Tooltip; lead profili `ProfileHeader`da; 9 ta pul maydoni `CurrencyInput`da (`MoneyController`, forma qiymati va zod sxemalari o'zgarmagan); 2 ta fayl zonasi `FileUpload`da; ota-ona/o'quvchi bog'lash qidiruvi `Combobox`da; 20 ta faylda ikkilamchi jadvallar `DataTable bare` ga o'tdi (yagona zichlik, telefonda karta ko'rinishi).
 - `Table`da ataylab qolganlar: faqat matritsa va hisobot jadvallari (rollar, sotuv rejalari, akademik taqqoslov, komissiya bloklari, foyda-zarar, byudjet, analitika, hisobotlar, o'zlashtirish matritsasi).
 - Keyingi qadamda qolgan 4 murakkab ro'yxat ham o'tdi (maoshlar, moliyaviy daftar, davomat reytingi, chegirma qoidalari); telefonda karta ko'rinishi katakning ma'noli klasslarini (rang, qalinlik) saqlaydi; 15 sahifa 390/768px da tekshirildi — bitta eski topilma (davomat «Mening darslarim» kartasi +88px) tuzatildi.
-- Backendga bog'liq, bajarilmagan: bildirishnoma toifasi filtri, ustun bo'yicha server saralashi, o'qituvchi/guruh sahifalaridagi qo'shimcha bo'limlar.
+- Backend bilan birga bajarildi (foydalanuvchi ruxsati bilan): **bildirishnoma toifasi filtri** (`GET /notifications?category=SALES|FINANCE|ATTENDANCE|HOMEWORK|EXAM|ACADEMIC|SYSTEM`, sahifada toifa tablari) va **ustun sarlavhasi orqali server saralashi** — 8 asosiy ro'yxatda (`utils/tableSort.ts` → `headerSort`; saralash ro'yxati bilan bitta holat). Backendda yangi: xodimlar ro'yxatida `sortBy` (`name|hireDate|createdAt`, ixtiyoriy), ota-onalarda familiya bo'yicha ikki yo'nalish. Qolgan ro'yxatlar `sortBy`ni avvaldan qo'llardi.
+- Hali backendga bog'liq: o'qituvchi/guruh sahifalaridagi qo'shimcha bo'limlar.
 
 ## Ochiq savollar (javob bo'lmasa — tavsiya bilan davom etiladi)
 1. **Asosiy rang**: mavjud `brand` (ko'k/indigo) saqlanadi. *Tavsiya: ha.*

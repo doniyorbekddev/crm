@@ -14,6 +14,8 @@ const studentLinkSchema = z.object({
 export const parentListQuerySchema = paginationQuerySchema.extend({
   studentId: idSchema.optional(),
   sortBy: z.enum(['name', 'createdAt']).default('name'),
+  /** Berilmasa: familiya bo‘yicha — A→Z, sana bo‘yicha — avval yangilari (avvalgi standart) */
+  sortOrder: z.enum(['asc', 'desc']).optional(),
 });
 
 const parentFieldsSchema = z.object({

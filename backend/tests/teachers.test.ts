@@ -173,11 +173,16 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
 
     it('profil tafsilotida guruhlar va oylik ko‘rsatkichlar qaytadi', async () => {
       const fixture = await setupTeacher();
+      // Profil joriy oy ko'rsatkichlarini qaytaradi — sana qattiq yozilsa, test oy almashganda yiqiladi
+      const now = new Date();
+      const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      // Fixture to'lovlari 2026-sentabrda — ularni ham joriy oyga ko'chiramiz (summa va soni o'zgarmaydi)
+      await prisma.payment.updateMany({ where: { studentId: { in: fixture.studentIds } }, data: { paidAt: new Date(thisMonth.getTime() + 9 * 3_600_000) } });
       await prisma.attendance.createMany({
         data: [
-          { studentId: fixture.studentIds[0]!, groupId: fixture.groupId, date: new Date('2026-09-01'), status: 'PRESENT' },
-          { studentId: fixture.studentIds[1]!, groupId: fixture.groupId, date: new Date('2026-09-01'), status: 'LATE' },
-          { studentId: fixture.studentIds[2]!, groupId: fixture.groupId, date: new Date('2026-09-01'), status: 'ABSENT' },
+          { studentId: fixture.studentIds[0]!, groupId: fixture.groupId, date: thisMonth, status: 'PRESENT' },
+          { studentId: fixture.studentIds[1]!, groupId: fixture.groupId, date: thisMonth, status: 'LATE' },
+          { studentId: fixture.studentIds[2]!, groupId: fixture.groupId, date: thisMonth, status: 'ABSENT' },
         ],
       });
 

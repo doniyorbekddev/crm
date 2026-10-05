@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Plus, Undo2, Wallet } from 'lucide-react';
@@ -43,6 +44,9 @@ const SORT_OPTIONS = [
 
 type Dialog = { type: 'create' } | { type: 'cancel'; payment: PaymentItem } | { type: 'refund'; payment: PaymentItem } | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { receipt: 'number', amount: 'amount', paidAt: 'paidAt' } as const;
+
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
   const canCreate = usePermission(PERMISSIONS.PAYMENT_CREATE);
@@ -57,7 +61,7 @@ export default function PaymentsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [includeDeleted, setIncludeDeleted] = useState(false);
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('paidAt:desc');
+  const [sort, setSort] = useState<string>('paidAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
@@ -115,6 +119,7 @@ export default function PaymentsPage() {
   const paymentTableColumns: Array<ColumnDef<PaymentTableRow>> = [
     {
       key: 'receipt',
+      sortable: true,
       label: 'Kvitansiya',
       required: true,
       tdClassName: 'font-mono text-xs whitespace-nowrap text-fg-muted',
@@ -145,6 +150,7 @@ export default function PaymentsPage() {
     },
     {
       key: 'amount',
+      sortable: true,
       label: 'Summa',
       tdClassName: (payment: PaymentTableRow) => cn('font-medium whitespace-nowrap', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg'),
       cell: (payment: PaymentTableRow) => (
@@ -167,6 +173,7 @@ export default function PaymentsPage() {
     },
     {
       key: 'paidAt',
+      sortable: true,
       label: 'Sana',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (payment: PaymentTableRow) => (
@@ -258,6 +265,7 @@ export default function PaymentsPage() {
       )}
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'paidAt:desc', (value) => changeFilter(() => setSort(value)))}
         label="To‘lovlar"
         columns={paymentTable.visibleColumns}
         rows={paymentsQuery.data?.items}
@@ -331,7 +339,8 @@ export default function PaymentsPage() {
         }
         toolbarActions={
           <>
-            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value))} aria-label="Saralash" wrapperClassName="w-44">
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

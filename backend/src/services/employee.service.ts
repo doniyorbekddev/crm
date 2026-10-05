@@ -198,6 +198,20 @@ function assertDates(status: EmployeeStatus, hireDate: Date, terminationDate: Da
   }
 }
 
+/** Saralash berilmasa — avvalgi standart tartib (holat, familiya); berilsa — shu ustun bo'yicha */
+function buildOrderBy(query: EmployeeListQuery): Prisma.EmployeeOrderByWithRelationInput[] {
+  switch (query.sortBy) {
+    case 'name':
+      return [{ lastName: query.sortOrder }, { firstName: query.sortOrder }, { id: 'asc' }];
+    case 'hireDate':
+      return [{ hireDate: query.sortOrder }, { id: 'asc' }];
+    case 'createdAt':
+      return [{ createdAt: query.sortOrder }, { id: 'asc' }];
+    case undefined:
+      return [{ status: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }];
+  }
+}
+
 export const employeeService = {
   /** `salaryVisible: false` — maosh summalari (salary.view ruxsatisiz) qaytarilmaydi */
   async list(
@@ -225,7 +239,7 @@ export const employeeService = {
     const records = await prisma.employee.findMany({
       where,
       select: employeeSelect,
-      orderBy: [{ status: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: buildOrderBy(query),
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.employee.count({ where });

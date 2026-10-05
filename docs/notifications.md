@@ -51,3 +51,11 @@ Yangi saqlash yo'q: toifa tugmasi mavjud `NotificationSetting` (userId + tur) qa
 **Oilaviy Telegram** (`notifyExternalInTransaction`, `studentId`/`parentId` bo'yicha) endi **tur** oladi: o'quvchi yoki
 ota-onaning kabinet hisobi bo'lsa, shu hisobning tur sozlamasi (`telegram: false`) chatga ham amal qiladi. Hisobsiz
 chatda — faqat umumiy "ovozsiz" rejim (`TelegramLink.muted`). Tizim turi har doim yuboriladi.
+
+## Toifa bo'yicha filtr
+
+`GET /api/notifications?category=…` — turlarning yiriklashtirilgan guruhi: `SALES`, `FINANCE`, `ATTENDANCE`, `HOMEWORK`,
+`EXAM`, `ACADEMIC`, `SYSTEM`. Tur → toifa jadvali `backend/src/validators/notification.validator.ts` da
+(`NOTIFICATION_TYPE_CATEGORY`); u `satisfies Record<NotificationType, …>` bilan tekshiriladi, shuning uchun enumga yangi
+tur qo'shilsa, toifasi ko'rsatilmaguncha backend kompilyatsiya bo'lmaydi. Frontenddagi nusxa — `utils/notificationLabels.ts`.
+`type` bilan birga berilsa, ikkalasi AND bo'lib qo'llanadi. Parametr ixtiyoriy — berilmasa javob avvalgidek.

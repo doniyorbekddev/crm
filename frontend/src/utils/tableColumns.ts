@@ -24,6 +24,8 @@ export interface ColumnDef<Row> {
   fixed?: boolean;
   /** Standart holatda yashirin */
   defaultHidden?: boolean;
+  /** Sarlavhasi bosilganda saralanadi (DataTable `sort` / `onSortChange` bilan) */
+  sortable?: boolean;
 }
 
 export interface ColumnState {

@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, ArrowLeftRight, CalendarCheck, GraduationCap, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Wallet } from 'lucide-react';
@@ -64,6 +65,9 @@ type Dialog =
   | { type: 'edit' | 'status' | 'transfer' | 'delete' | 'attendance' | 'payment' | 'xp' | 'portal' | 'portalReset'; student: StudentItem }
   | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { student: 'firstName', startDate: 'startDate' } as const;
+
 export default function StudentsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -80,7 +84,7 @@ export default function StudentsPage() {
   const [status, setStatus] = useState<StudentStatus | 'ALL'>('ALL');
   const [courseId, setCourseId] = useState('');
   const [riskLevel, setRiskLevel] = useState<RiskLevel | 'ALL'>('ALL');
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('createdAt:desc');
+  const [sort, setSort] = useState<string>('createdAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
   const branchParam = useBranchParam();
@@ -150,6 +154,7 @@ export default function StudentsPage() {
   const studentTableColumns: Array<ColumnDef<StudentTableRow>> = [
     {
       key: 'student',
+      sortable: true,
       label: 'O‘quvchi',
       required: true,
       cell: (student: StudentTableRow) => (
@@ -205,6 +210,7 @@ export default function StudentsPage() {
     },
     {
       key: 'startDate',
+      sortable: true,
       label: 'Boshlangan',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (student: StudentTableRow) => (
@@ -338,6 +344,7 @@ export default function StudentsPage() {
       />
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'createdAt:desc', (value) => changeFilter(() => setSort(value)))}
         label="O‘quvchilar"
         columns={studentTable.visibleColumns}
         rows={studentsQuery.data?.items}
@@ -398,7 +405,8 @@ export default function StudentsPage() {
         }
         toolbarActions={
           <>
-            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value))} aria-label="Saralash" wrapperClassName="w-44">
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

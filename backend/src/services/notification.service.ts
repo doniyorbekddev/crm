@@ -6,7 +6,7 @@ import type { NotificationPriority, Prisma } from '../generated/prisma/client.js
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { toSkipTake } from '../utils/pagination.js';
-import type { NotificationListQuery } from '../validators/notification.validator.js';
+import { notificationTypesOf, type NotificationListQuery } from '../validators/notification.validator.js';
 
 export interface NotificationInput {
   userId: string;
@@ -89,6 +89,8 @@ function buildWhere(userId: string, query: Partial<NotificationListQuery>): Pris
     ...(query.unreadOnly ? { readAt: null } : {}),
     ...(query.readOnly ? { readAt: { not: null } } : {}),
     ...(query.type ? { type: query.type } : {}),
+    // Toifa — turlar to'plami. `type` bilan birga kelsa AND bo'ladi: tur toifaga kirmasa natija bo'sh
+    ...(query.category ? { AND: [{ type: { in: notificationTypesOf(query.category) } }] } : {}),
     ...(query.priority ? { priority: query.priority } : {}),
     ...(query.from || query.to
       ? {

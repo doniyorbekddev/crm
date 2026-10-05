@@ -26,6 +26,8 @@ export const employeeListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(EMPLOYEE_STATUSES, 'Holat noto‘g‘ri').optional(),
   position: z.enum(EMPLOYEE_POSITIONS, 'Lavozim noto‘g‘ri').optional(),
   department: optionalField(z.string().trim().max(100)),
+  /** Berilmasa — standart tartib: holat, so‘ng familiya (avvalgidek) */
+  sortBy: z.enum(['name', 'hireDate', 'createdAt'], 'Saralash maydoni noto‘g‘ri').optional(),
   /** Filial bo‘yicha filtr (faqat barcha filialni ko‘ra oladigan xodim uchun) */
   branchId: optionalField(idSchema),
 });

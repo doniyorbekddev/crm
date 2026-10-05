@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { BadgeTone } from '@/components/ui/Badge';
-import type { NotificationPriority, NotificationType } from '@/types/notification';
+import type { NotificationCategory, NotificationPriority, NotificationType } from '@/types/notification';
 
 export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'NEW_LEAD',
@@ -50,6 +50,48 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'RISK_INCREASED',
   'SYSTEM',
 ];
+
+export const NOTIFICATION_CATEGORY_ORDER: readonly NotificationCategory[] = ['SALES', 'FINANCE', 'ATTENDANCE', 'HOMEWORK', 'EXAM', 'ACADEMIC', 'SYSTEM'];
+
+export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
+  SALES: 'Sotuv',
+  FINANCE: 'Moliya',
+  ATTENDANCE: 'Davomat',
+  HOMEWORK: 'Uy vazifasi',
+  EXAM: 'Imtihon',
+  ACADEMIC: 'O‘quv jarayoni',
+  SYSTEM: 'Tizim',
+};
+
+/** Tur → toifa. Backend (`notification.validator.ts`) bilan bir xil bo‘lishi shart */
+export const NOTIFICATION_TYPE_CATEGORY: Record<NotificationType, NotificationCategory> = {
+  NEW_LEAD: 'SALES',
+  LEAD_ASSIGNED: 'SALES',
+  FOLLOW_UP_REMINDER: 'SALES',
+  FOLLOW_UP_OVERDUE: 'SALES',
+  TRIAL_LESSON_REMINDER: 'SALES',
+  NEW_STUDENT: 'SALES',
+  NEW_PAYMENT: 'FINANCE',
+  DEBT_REMINDER: 'FINANCE',
+  EXPENSE_APPROVAL: 'FINANCE',
+  PAYMENT_DUE_SOON: 'FINANCE',
+  CHILD_ABSENT: 'ATTENDANCE',
+  ATTENDANCE_LATE: 'ATTENDANCE',
+  HOMEWORK_CREATED: 'HOMEWORK',
+  HOMEWORK_GRADED: 'HOMEWORK',
+  HOMEWORK_DEADLINE: 'HOMEWORK',
+  HOMEWORK_RETURNED: 'HOMEWORK',
+  EXAM_RESULT: 'EXAM',
+  EXAM_SCHEDULED: 'EXAM',
+  LOW_SCORE: 'EXAM',
+  LEVEL_UP: 'ACADEMIC',
+  CERTIFICATE_ISSUED: 'ACADEMIC',
+  WEEKLY_REPORT: 'ACADEMIC',
+  RISK_INCREASED: 'ACADEMIC',
+  NEGATIVE_FEEDBACK: 'ACADEMIC',
+  SYSTEM: 'SYSTEM',
+  DAILY_DIGEST: 'SYSTEM',
+};
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   NEW_LEAD: 'Yangi lead',

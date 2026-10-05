@@ -56,6 +56,8 @@ export interface Employee {
 export interface EmployeeListParams {
   page: number;
   limit: number;
+  sortBy?: 'name' | 'hireDate' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
   search?: string;
   status?: EmployeeStatus;
   position?: EmployeePosition;

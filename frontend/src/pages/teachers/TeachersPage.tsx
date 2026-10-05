@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Coins, Eye, FolderLock, Pencil, Plus, Power, UserCog } from 'lucide-react';
 import { useState } from 'react';
@@ -46,6 +47,9 @@ type Dialog =
   | { type: 'documents'; teacher: TeacherItem }
   | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { teacher: 'name' } as const;
+
 export default function TeachersPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -58,7 +62,7 @@ export default function TeachersPage() {
   const search = useDebounce(searchInput.trim(), 400);
   const [isActive, setIsActive] = useState<'' | 'true' | 'false'>('true');
   const [salaryType, setSalaryType] = useState<SalaryType | ''>('');
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('name:asc');
+  const [sort, setSort] = useState<string>('name:asc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
 
@@ -129,6 +133,7 @@ export default function TeachersPage() {
   const teacherTableColumns: Array<ColumnDef<TeacherTableRow>> = [
     {
       key: 'teacher',
+      sortable: true,
       label: 'O‘qituvchi',
       required: true,
       cell: (teacher: TeacherTableRow) => (
@@ -251,6 +256,7 @@ export default function TeachersPage() {
       />
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'name:asc', (value) => changeFilter(() => setSort(value)))}
         label="O‘qituvchilar"
         columns={teacherTable.visibleColumns}
         rows={teachersQuery.data?.items}
@@ -299,7 +305,8 @@ export default function TeachersPage() {
         }
         toolbarActions={
           <>
-            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value))} aria-label="Saralash" wrapperClassName="w-44">
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

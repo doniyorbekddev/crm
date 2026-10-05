@@ -94,6 +94,32 @@ describe.skipIf(!hasTestDatabase)('Notifications API (integratsion)', () => {
     expect(badType.status).toBe(422);
   });
 
+  it('toifa bo‘yicha filtrlaydi: bir nechta tur bitta toifada, tur bilan birga AND', async () => {
+    const { user, token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const types = ['NEW_LEAD', 'FOLLOW_UP_OVERDUE', 'NEW_PAYMENT', 'HOMEWORK_GRADED', 'SYSTEM', 'DAILY_DIGEST'] as const;
+    for (const type of types) {
+      await prisma.notification.create({ data: { userId: user.id, type, title: type, message: 'Matn' } });
+    }
+    const titles = async (query: string) => {
+      const response = await request(app).get(`/api/notifications?${query}`).set(bearer(token));
+      expect(response.status).toBe(200);
+      return { titles: (response.body.data as Array<{ title: string }>).map((item) => item.title).sort(), total: response.body.meta.total as number };
+    };
+
+    expect(await titles('category=SALES')).toEqual({ titles: ['FOLLOW_UP_OVERDUE', 'NEW_LEAD'], total: 2 });
+    expect(await titles('category=FINANCE')).toEqual({ titles: ['NEW_PAYMENT'], total: 1 });
+    expect(await titles('category=SYSTEM')).toEqual({ titles: ['DAILY_DIGEST', 'SYSTEM'], total: 2 });
+    expect(await titles('category=EXAM')).toEqual({ titles: [], total: 0 });
+    // Tur toifaga kirsa — o'sha tur, kirmasa — bo'sh (ikkalasi birga qo'llanadi)
+    expect(await titles('category=SALES&type=NEW_LEAD')).toEqual({ titles: ['NEW_LEAD'], total: 1 });
+    expect(await titles('category=SALES&type=NEW_PAYMENT')).toEqual({ titles: [], total: 0 });
+    // Toifasiz so'rov avvalgidek hammasini qaytaradi
+    expect((await titles('limit=50')).total).toBe(types.length);
+
+    const bad = await request(app).get('/api/notifications?category=UNKNOWN').set(bearer(token));
+    expect(bad.status).toBe(422);
+  });
+
   it('begona bildirishnomaga tegib bo‘lmaydi, o‘chirish va tozalash ishlaydi', async () => {
     const { user: owner, token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
     const { user: other } = await createUserWithToken(app, { role: 'SALES_MANAGER' });

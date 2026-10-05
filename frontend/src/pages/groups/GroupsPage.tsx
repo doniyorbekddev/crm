@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -32,6 +33,9 @@ const PAGE_SIZE = 20;
 
 type Dialog = { type: 'create' } | { type: 'edit' | 'delete' | 'mastery'; group: GroupItem } | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { group: 'name', startDate: 'startDate' } as const;
+
 export default function GroupsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -41,12 +45,16 @@ export default function GroupsPage() {
   const search = useDebounce(searchInput.trim(), 400);
   const [courseId, setCourseId] = useState('');
   const [status, setStatus] = useState<GroupStatus | ''>('');
+  const [sort, setSort] = useState('startDate:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
 
+  const [sortBy, sortOrder] = sort.split(':') as [NonNullable<GroupListParams['sortBy']>, 'asc' | 'desc'];
   const params: GroupListParams = {
     page,
     limit: PAGE_SIZE,
+    sortBy,
+    sortOrder,
     ...(search ? { search } : {}),
     ...(courseId ? { courseId } : {}),
     ...(status ? { status } : {}),
@@ -90,6 +98,7 @@ export default function GroupsPage() {
   const groupTableColumns: Array<ColumnDef<GroupTableRow>> = [
     {
       key: 'group',
+      sortable: true,
       label: 'Guruh',
       required: true,
       cell: (group: GroupTableRow) => (
@@ -141,6 +150,7 @@ export default function GroupsPage() {
     },
     {
       key: 'startDate',
+      sortable: true,
       label: 'Boshlanish',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (group: GroupTableRow) => (
@@ -202,6 +212,7 @@ export default function GroupsPage() {
       />
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'startDate:desc', (value) => changeFilter(() => setSort(value)))}
         label="Guruhlar"
         columns={groupTable.visibleColumns}
         rows={groupsQuery.data?.items}

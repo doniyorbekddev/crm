@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HandCoins, Phone, Wallet } from 'lucide-react';
@@ -39,6 +40,9 @@ const SORT_OPTIONS = [
   { value: 'startDate:asc', label: 'Avval boshlaganlar' },
 ] as const;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { student: 'name', remaining: 'remaining' } as const;
+
 export default function DebtsPage() {
   const queryClient = useQueryClient();
   const canCreatePayment = usePermission(PERMISSIONS.PAYMENT_CREATE);
@@ -48,7 +52,7 @@ export default function DebtsPage() {
   const [range, setRange] = useState<DebtRange>('all');
   const [due, setDue] = useState<DebtDueFilter>('all');
   const [courseId, setCourseId] = useState('');
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('remaining:desc');
+  const [sort, setSort] = useState<string>('remaining:desc');
   const [page, setPage] = useState(1);
   const [payFor, setPayFor] = useState<StudentItem | null>(null);
   const [loadingStudentId, setLoadingStudentId] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export default function DebtsPage() {
   const debtTableColumns: Array<ColumnDef<DebtTableRow>> = [
     {
       key: 'student',
+      sortable: true,
       label: 'O‘quvchi',
       required: true,
       cell: (debt: DebtTableRow) => (
@@ -149,6 +154,7 @@ export default function DebtsPage() {
     },
     {
       key: 'remaining',
+      sortable: true,
       label: 'Qolgan',
       tdClassName: 'whitespace-nowrap',
       cell: (debt: DebtTableRow) => (
@@ -253,6 +259,7 @@ export default function DebtsPage() {
       )}
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'remaining:desc', (value) => changeFilter(() => setSort(value)))}
         label="Qarzdorlar"
         columns={debtTable.visibleColumns}
         rows={debtsQuery.data?.items}
@@ -310,7 +317,8 @@ export default function DebtsPage() {
         }
         toolbarActions={
           <>
-            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value as typeof sort))} aria-label="Saralash" wrapperClassName="w-44">
+            <Select value={sort} onChange={(event) => changeFilter(() => setSort(event.target.value))} aria-label="Saralash" wrapperClassName="w-44">
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

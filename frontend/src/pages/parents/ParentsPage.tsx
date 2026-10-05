@@ -1,3 +1,4 @@
+import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Link2, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useState } from 'react';
@@ -46,6 +47,9 @@ type Dialog =
   | { type: 'portalBulk' }
   | null;
 
+/** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
+const SORT_COLUMNS = { parent: 'name' } as const;
+
 export default function ParentsPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.PARENT_MANAGE);
@@ -54,7 +58,7 @@ export default function ParentsPage() {
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]['value']>('name:asc');
+  const [sort, setSort] = useState<string>('name:asc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
 
@@ -117,6 +121,7 @@ export default function ParentsPage() {
   const parentTableColumns: Array<ColumnDef<ParentTableRow>> = [
     {
       key: 'parent',
+      sortable: true,
       label: 'Ota-ona',
       required: true,
       cell: (parent: ParentTableRow) => (
@@ -207,6 +212,10 @@ export default function ParentsPage() {
       />
 
       <DataTable
+        {...headerSort(sort, SORT_COLUMNS, 'name:asc', (value) => {
+          setSort(value);
+          setPage(1);
+        })}
         label="Ota-onalar"
         columns={parentTable.visibleColumns}
         rows={parentsQuery.data?.items}
@@ -235,7 +244,8 @@ export default function ParentsPage() {
         }
         toolbarActions={
           <>
-            <Select value={sort} onChange={(event) => { setSort(event.target.value as typeof sort); setPage(1); }} aria-label="Saralash" wrapperClassName="w-44">
+            <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="Saralash" wrapperClassName="w-44">
+              {!SORT_OPTIONS.some((option) => option.value === sort) && <option value={sort}>Ustun bo‘yicha</option>}
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
