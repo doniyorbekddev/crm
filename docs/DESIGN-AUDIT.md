@@ -1,6 +1,6 @@
 # DESIGN AUDIT REPORT
 
-> Sana: 2026-10-04. Manba: `dizayn.md` §3, §46. Tekshiruv `frontend/src` source code bo'yicha — sonlar `grep` bilan
+> Sana: 2026-10-04. Manba: [dizayn.md](dizayn.md) §3, §46. Tekshiruv `frontend/src` source code bo'yicha — sonlar `grep` bilan
 > o'lchangan. **Hech qanday kod o'zgartirilmadi.** Reja: [ROADMAP-DESIGN.md](ROADMAP-DESIGN.md).
 
 ## 1. Current architecture

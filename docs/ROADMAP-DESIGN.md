@@ -1,6 +1,6 @@
 # ACADEMY CRM — UI/UX redesign roadmap
 
-> Asos: `dizayn.md` (§41 fazalar tartibi) va [DESIGN-AUDIT.md](DESIGN-AUDIT.md).
+> Asos: [dizayn.md](dizayn.md) (§41 fazalar tartibi) va [DESIGN-AUDIT.md](DESIGN-AUDIT.md).
 > Tartib `dizayn.md` dagi 16 faza bilan bir xil; faza ro'yxatida ko'rsatilmagan bo'limlar (§23 gamifikatsiya, §24
 > bildirishnomalar, §26 drawer, §27 formalar, §28 holatlar, §38 qidiruv, §40 hujjat, kabinet) tegishli fazaga biriktirildi.
 
