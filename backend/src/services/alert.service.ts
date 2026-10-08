@@ -142,6 +142,12 @@ export interface AlertDto {
   readBy: { id: string; firstName: string; lastName: string } | null;
   resolvedAt: string | null;
   resolvedBy: { id: string; firstName: string; lastName: string } | null;
+  /** Mas'ul xodim (biriktirilgan bo'lsa) */
+  assignee: { id: string; firstName: string; lastName: string } | null;
+  /** Shu vaqtgacha faol ro'yxatda ko'rinmaydi */
+  snoozedUntil: string | null;
+  /** Shu ogohlantirishdan yaratilgan ochiq vazifalar soni */
+  openTasks: number;
 }
 
 export interface AlertSummaryDto {
@@ -173,9 +179,18 @@ const alertSelect = {
   readBy: { select: { id: true, firstName: true, lastName: true } },
   resolvedAt: true,
   resolvedBy: { select: { id: true, firstName: true, lastName: true } },
+  assignee: { select: { id: true, firstName: true, lastName: true } },
+  snoozedUntil: true,
+  _count: { select: { tasks: { where: { status: 'OPEN' } } } },
 } satisfies Prisma.AlertSelect;
 
-type AlertRecord = Prisma.AlertGetPayload<{ select: typeof alertSelect }>;
+export type AlertRecord = Prisma.AlertGetPayload<{ select: typeof alertSelect }>;
+export { alertSelect, toDto as toAlertDto, linkFor as alertLinkFor };
+
+/** Kechiktirilmagan (yoki kechiktirish muddati o'tgan) ogohlantirishlar */
+export function notSnoozed(now: Date = new Date()): Prisma.AlertWhereInput {
+  return { OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }] };
+}
 
 const SEVERITY_RANK: Record<AlertSeverity, number> = { INFO: 0, SUCCESS: 0, WARNING: 1, CRITICAL: 2 };
 const PRIORITY: Record<AlertSeverity, AlertPriority> = { CRITICAL: 'HIGH', WARNING: 'MEDIUM', INFO: 'LOW', SUCCESS: 'LOW' };
@@ -227,6 +242,9 @@ function toDto(alert: AlertRecord): AlertDto {
     readBy: alert.readBy,
     resolvedAt: alert.resolvedAt?.toISOString() ?? null,
     resolvedBy: alert.resolvedBy,
+    assignee: alert.assignee,
+    snoozedUntil: alert.snoozedUntil?.toISOString() ?? null,
+    openTasks: alert._count.tasks,
   };
 }
 
@@ -323,21 +341,24 @@ const highDebtRule: Rule = async (now, settings) => {
 };
 
 const dropoutRule: Rule = async (now, settings) => {
-  // Har bir faol o'quvchining oxirgi N ta belgisi (window funksiya) — hammasi ABSENT bo'lsa xavf
+  // Har bir faol o'quvchining oxirgi N ta belgisi — hammasi ABSENT bo'lsa xavf.
+  // LATERAL: har o'quvchi uchun `(studentId, date)` indeksidan faqat oxirgi N qator o'qiladi. Avval 60 kunlik
+  // barcha belgilar (10 000 o'quvchida ~120 000 qator) o'quvchi bo'yicha saralanib, keyin N tasi olinardi.
   const since = addDays(now, -60);
   const absences = settings.dropoutAbsences;
   const risky = await prisma.$queryRaw<Array<{ studentId: string }>>`
-    SELECT "studentId"
-    FROM (
-      SELECT a."studentId", a."status",
-             ROW_NUMBER() OVER (PARTITION BY a."studentId" ORDER BY a."date" DESC) AS rn
+    SELECT s."id" AS "studentId"
+    FROM "students" s
+    CROSS JOIN LATERAL (
+      SELECT a."status"
       FROM "attendances" a
-      JOIN "students" s ON s."id" = a."studentId"
-      WHERE a."date" >= ${since} AND s."deletedAt" IS NULL AND s."status" = 'ACTIVE'
+      WHERE a."studentId" = s."id" AND a."date" >= ${since}
+      ORDER BY a."date" DESC
+      LIMIT ${absences}
     ) latest
-    WHERE rn <= ${absences}
-    GROUP BY "studentId"
-    HAVING COUNT(*) = ${absences} AND BOOL_AND("status" = 'ABSENT')
+    WHERE s."deletedAt" IS NULL AND s."status" = 'ACTIVE'
+    GROUP BY s."id"
+    HAVING COUNT(*) = ${absences} AND BOOL_AND(latest."status" = 'ABSENT')
   `;
   if (risky.length === 0) return [];
 
@@ -875,16 +896,22 @@ export const alertService = {
   },
 
   async list(query: AlertListQuery, scope: Prisma.AlertWhereInput = {}): Promise<{ items: AlertDto[]; total: number }> {
+    const now = new Date();
+    // Kechiktirilganlar faol ro'yxatlarda ko'rinmaydi — ular uchun alohida `snoozed` holati
     const statusWhere: Prisma.AlertWhereInput =
       query.status === 'open'
         ? { resolvedAt: null }
         : query.status === 'unread'
           ? { resolvedAt: null, readAt: null }
-          : query.status === 'resolved'
-            ? { resolvedAt: { not: null } }
-            : {};
+          : query.status === 'snoozed'
+            ? { resolvedAt: null, snoozedUntil: { gt: now } }
+            : query.status === 'mine'
+              ? { resolvedAt: null, assigneeId: query.assigneeId ?? '-' }
+              : query.status === 'resolved'
+                ? { resolvedAt: { not: null } }
+                : {};
     const where: Prisma.AlertWhereInput = {
-      AND: [scope],
+      AND: [scope, ...(query.status === 'open' || query.status === 'unread' || query.status === 'mine' ? [notSnoozed(now)] : [])],
       ...statusWhere,
       ...(query.type ? { type: query.type } : {}),
       ...(query.severity ? { severity: query.severity } : {}),
@@ -910,7 +937,7 @@ export const alertService = {
   async summary(scope: Prisma.AlertWhereInput = {}): Promise<AlertSummaryDto> {
     const grouped = await prisma.alert.groupBy({
       by: ['severity', 'type'],
-      where: { AND: [scope, { resolvedAt: null }] },
+      where: { AND: [scope, { resolvedAt: null }, notSnoozed()] },
       _count: { _all: true },
     });
     const bySeverity: Record<AlertSeverity, number> = { INFO: 0, SUCCESS: 0, WARNING: 0, CRITICAL: 0 };
@@ -921,7 +948,7 @@ export const alertService = {
     }
     return {
       open: grouped.reduce((sum, row) => sum + row._count._all, 0),
-      unread: await prisma.alert.count({ where: { AND: [scope, { resolvedAt: null, readAt: null }] } }),
+      unread: await prisma.alert.count({ where: { AND: [scope, { resolvedAt: null, readAt: null }, notSnoozed()] } }),
       bySeverity,
       byType: [...byType.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
     };

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, Settings2, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, Clock, ListTodo, Settings2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -22,6 +23,7 @@ import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import type { NotificationCategory, NotificationItem, NotificationListParams, NotificationPriority, NotificationType } from '@/types/notification';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
 import { NotificationSettingsModal } from './NotificationSettingsModal';
+import { SnoozeModal } from '@/components/work/SnoozeModal';
 import {
   NOTIFICATION_CATEGORY_LABELS,
   NOTIFICATION_CATEGORY_ORDER,
@@ -34,6 +36,7 @@ import {
   NOTIFICATION_TYPE_ORDER,
   notificationLink,
 } from '@/utils/notificationLabels';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 const PAGE_SIZE = 20;
 
@@ -78,6 +81,8 @@ export default function NotificationsPage() {
     void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
   };
 
+  const canCreateTask = usePermission(PERMISSIONS.TASK_CREATE);
+
   const markRead = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),
     onSuccess: refresh,
@@ -89,6 +94,28 @@ export default function NotificationsPage() {
     onSuccess: (result) => {
       toast.success(result.message);
       refresh();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  // "Xabar → amal": kechiktirish (vaqt oynada tanlanadi) yoki vazifaga aylantirish
+  const [snoozeFor, setSnoozeFor] = useState<NotificationItem | null>(null);
+  const snooze = useMutation({
+    mutationFn: ({ id, until }: { id: string; until: Date }) => notificationsService.snooze(id, until.toISOString()),
+    onSuccess: (message) => {
+      toast.success(message);
+      setSnoozeFor(null);
+      refresh();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+  const toTask = useMutation({
+    mutationFn: (id: string) => notificationsService.createTask(id),
+    onSuccess: (message) => {
+      toast.success(message);
+      refresh();
+      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-work'] });
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   });
@@ -139,7 +166,8 @@ export default function NotificationsPage() {
 
   const renderRow = (item: NotificationItem) => {
     const Icon = NOTIFICATION_TYPE_ICONS[item.type];
-    const link = notificationLink(item.entityType, item.entityId, location.pathname.startsWith('/portal') ? 'portal' : 'staff');
+    // Server bergan ilova ichidagi yo'l ustun; bo'lmasa obyekt turidan hisoblanadi
+    const link = (item.actionUrl?.startsWith('/') ? item.actionUrl : null) ?? notificationLink(item.entityType, item.entityId, location.pathname.startsWith('/portal') ? 'portal' : 'staff');
 
     const body = (
       <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -183,6 +211,26 @@ export default function NotificationsPage() {
               <CheckCheck className="size-4" aria-hidden />
             </button>
           )}
+          {canCreateTask && !item.taskId && (
+            <button
+              type="button"
+              onClick={() => toTask.mutate(item.id)}
+              aria-label="Vazifaga aylantirish"
+              title="Vazifaga aylantirish"
+              className="grid size-8 place-items-center rounded-control text-fg-muted hover:bg-surface-muted hover:text-fg"
+            >
+              <ListTodo className="size-4" aria-hidden />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setSnoozeFor(item)}
+            aria-label="Kechiktirish"
+            title="Kechiktirish"
+            className="grid size-8 place-items-center rounded-control text-fg-muted hover:bg-surface-muted hover:text-fg"
+          >
+            <Clock className="size-4" aria-hidden />
+          </button>
           <button
             type="button"
             onClick={() => remove.mutate(item.id)}
@@ -335,6 +383,9 @@ export default function NotificationsPage() {
       </Card>
 
       {settingsOpen && <NotificationSettingsModal onClose={() => setSettingsOpen(false)} />}
+      {snoozeFor && (
+        <SnoozeModal open subject={snoozeFor.title} pending={snooze.isPending} onClose={() => setSnoozeFor(null)} onConfirm={(until) => snooze.mutate({ id: snoozeFor.id, until })} />
+      )}
 
       <ConfirmDialog
         open={confirmClear}

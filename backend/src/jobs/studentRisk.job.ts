@@ -1,6 +1,7 @@
 import { studentRiskService } from '../services/studentRisk.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * O'quvchilarning ketib qolish xavfini qayta hisoblaydi.
@@ -17,10 +18,13 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const result = await studentRiskService.recalculateAll(new Date());
-    if (result.updated > 0) {
-      logger.info(result, 'O‘quvchilar xavf bahosi yangilandi');
-    }
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('studentRisk', async () => {
+      const result = await studentRiskService.recalculateAll(new Date());
+      if (result.updated > 0) {
+        logger.info(result, 'O‘quvchilar xavf bahosi yangilandi');
+      }
+    });
     reportJobSuccess('studentRisk');
   } catch (error) {
     reportJobFailure('studentRisk', error, 'Xavf bahosi jobida xatolik');

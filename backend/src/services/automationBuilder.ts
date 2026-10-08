@@ -286,6 +286,7 @@ export async function runActions(
                 entityId: subject.studentId,
                 link: `/students/${subject.studentId}`,
                 ruleId: rule.id,
+                source: 'AUTOMATION',
                 dedupeKey: `${base}:task:${assigneeId}`.slice(0, 200),
               },
             ],
@@ -353,6 +354,7 @@ export async function runActions(
             entityId: subject.groupId ?? subject.studentId,
             link,
             ruleId: rule.id,
+            source: 'AUTOMATION',
             dedupeKey,
           },
         });

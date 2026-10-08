@@ -6,6 +6,7 @@ import { businessDateString, startOfBusinessWeek } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
 import { aiAcademicService } from '../services/ai/academic.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Haftalik hisobot (TZ 3.0 §11): **yakshanba, 18:00 dan keyin** (o'quv markaz vaqti) har bir
@@ -27,6 +28,20 @@ export function isWeeklyReportTime(now: Date): boolean {
   return local.getUTCDay() === SEND_WEEKDAY && local.getUTCHours() >= SEND_HOUR;
 }
 
+/**
+ * Berilgan hafta uchun hisoboti yuborilgan o'quvchilar. Kalit shakli (`studentNotify.service`):
+ * `weekly-report:<o'quvchi>:<hafta>:u:<foydalanuvchi>` (ilova ichida) yoki `…:s:…` / `…:p:…` (Telegram).
+ */
+async function loadAlreadySent(week: string): Promise<Set<string>> {
+  const pattern = `weekly-report:%:${week}:%`;
+  const rows = await prisma.$queryRaw<Array<{ studentId: string }>>`
+    SELECT DISTINCT split_part("dedupeKey", ':', 2) AS "studentId" FROM "notifications" WHERE "dedupeKey" LIKE ${pattern}
+    UNION
+    SELECT DISTINCT split_part("dedupeKey", ':', 2) AS "studentId" FROM "notification_deliveries" WHERE "dedupeKey" LIKE ${pattern}
+  `;
+  return new Set(rows.map((row) => row.studentId));
+}
+
 /** Bir hafta uchun yuborish — test va qo'lda ishga tushirish uchun alohida */
 export async function sendWeeklyReports(now: Date = new Date()): Promise<{ students: number; notified: number }> {
   const weekStart = startOfBusinessWeek(now);
@@ -45,8 +60,14 @@ export async function sendWeeklyReports(now: Date = new Date()): Promise<{ stude
     select: { id: true },
   });
 
+  // Shu hafta uchun allaqachon yuborilganlar. Job yakshanba kechqurun har 30 daqiqada qayta yuradi —
+  // busiz har yurishda barcha o'quvchilarning hisoboti (AI xulosasi bilan) qaytadan qurilib, natijasi
+  // `dedupeKey` tufayli baribir tashlab yuborilardi.
+  const sent = await loadAlreadySent(week);
+
   let notified = 0;
   for (const { id } of students) {
+    if (sent.has(id)) continue;
     const report = await aiAcademicService.withAiSummary(await weeklyReportService.build(id, weekStart));
     notified += await prisma.$transaction((tx) =>
       notifyWeeklyReport(tx, { studentId: id, weekStart: week, weekLabel: report.week.label, summary: report.summary }),
@@ -59,8 +80,11 @@ async function runOnce(): Promise<void> {
   if (running || !isWeeklyReportTime(new Date())) return;
   running = true;
   try {
-    const result = await sendWeeklyReports();
-    if (result.students > 0) logger.info(result, 'Haftalik hisobotlar yuborildi');
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('weeklyReport', async () => {
+      const result = await sendWeeklyReports();
+      if (result.students > 0) logger.info(result, 'Haftalik hisobotlar yuborildi');
+    });
     reportJobSuccess('weeklyReport');
   } catch (error) {
     reportJobFailure('weeklyReport', error, 'Haftalik hisobot jobida xatolik');

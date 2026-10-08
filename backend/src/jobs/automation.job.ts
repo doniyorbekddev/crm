@@ -1,6 +1,7 @@
 import { automationService } from '../services/automation.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Avtomatlashtirish qoidalarini davriy ishga tushiradi.
@@ -17,8 +18,11 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const result = await automationService.runAll(new Date());
-    if (result.notified > 0) logger.info(result, 'Avtomatlashtirish qoidalari ishladi');
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('automation', async () => {
+      const result = await automationService.runAll(new Date());
+      if (result.notified > 0) logger.info(result, 'Avtomatlashtirish qoidalari ishladi');
+    });
     reportJobSuccess('automation');
   } catch (error) {
     reportJobFailure('automation', error, 'Avtomatlashtirish jobida xatolik');

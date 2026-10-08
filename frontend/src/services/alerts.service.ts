@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
+import type { TaskAssignee, TaskCreatePayload, TaskItem } from '@/types/task';
 import type {
   Alert,
   AlertListParams,
@@ -35,6 +36,35 @@ export const alertsService = {
 
   async resolve(id: string, note?: string): Promise<MessageResult<Alert>> {
     const response = await api.patch<ApiSuccessResponse<Alert>>(`/alerts/${id}/resolve`, note ? { note } : {});
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Kechiktirish: shu vaqtgacha faol ro'yxatda ko'rinmaydi */
+  async snooze(id: string, until: string): Promise<MessageResult<Alert>> {
+    const response = await api.post<ApiSuccessResponse<Alert>>(`/alerts/${id}/snooze`, { until });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Mas'ul belgilash; `null` — olib tashlash */
+  async assign(id: string, assigneeId: string | null): Promise<MessageResult<Alert>> {
+    const response = await api.post<ApiSuccessResponse<Alert>>(`/alerts/${id}/assign`, { assigneeId });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Mas'ul qilish mumkin bo'lgan xodimlar */
+  async assignees(): Promise<TaskAssignee[]> {
+    const response = await api.get<ApiSuccessResponse<TaskAssignee[]>>('/alerts/assignees');
+    return response.data.data;
+  },
+
+  async unsnooze(id: string): Promise<MessageResult<Alert>> {
+    const response = await api.delete<ApiSuccessResponse<Alert>>(`/alerts/${id}/snooze`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Ogohlantirishdan vazifa (berilmagan maydonlar ogohlantirishdan olinadi) */
+  async createTask(id: string, payload: TaskCreatePayload): Promise<MessageResult<TaskItem>> {
+    const response = await api.post<ApiSuccessResponse<TaskItem>>(`/alerts/${id}/task`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 

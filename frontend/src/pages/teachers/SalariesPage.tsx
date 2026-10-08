@@ -34,6 +34,7 @@ import { SalaryPaymentModal } from './SalaryPaymentModal';
 import { UnlockSalaryModal } from './UnlockSalaryModal';
 import { ExportMenu } from '@/components/ExportMenu';
 import { useExport } from '@/hooks/useExport';
+import { useInitialParam } from '@/hooks/useInitialParam';
 
 const now = new Date();
 
@@ -61,7 +62,7 @@ export default function SalariesPage() {
 
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [status, setStatus] = useState<SalaryPeriodStatus | ''>('');
+  const [status, setStatus] = useState<SalaryPeriodStatus | ''>(useInitialParam<SalaryPeriodStatus | ''>('status', ['PENDING', 'CALCULATED', 'APPROVED', 'PARTIALLY_PAID', 'PAID'], ''));
   const [payeeType, setPayeeType] = useState<PayeeType | ''>('');
   const [dialog, setDialog] = useState<Dialog>(null);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);

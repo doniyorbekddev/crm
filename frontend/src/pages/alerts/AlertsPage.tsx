@@ -30,12 +30,19 @@ import {
 } from '@/utils/alertLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { AlertSettingsModal } from './AlertSettingsModal';
+import { SnoozeModal } from '@/components/work/SnoozeModal';
+import { TaskFormModal } from '@/pages/tasks/TaskFormModal';
+import { AlertAssignModal } from './AlertAssignModal';
+import type { Alert } from '@/types/alert';
+import { useInitialParam } from '@/hooks/useInitialParam';
 
 const PAGE_SIZE = 20;
 
 const STATUS_OPTIONS: ReadonlyArray<{ value: AlertStatusFilter; label: string }> = [
   { value: 'open', label: 'Ochiq' },
   { value: 'unread', label: 'O‘qilmagan' },
+  { value: 'mine', label: 'Menga biriktirilgan' },
+  { value: 'snoozed', label: 'Kechiktirilgan' },
   { value: 'resolved', label: 'Yopilgan' },
   { value: 'all', label: 'Barchasi' },
 ];
@@ -101,9 +108,15 @@ function DigestCard({ digest }: { digest: DailyDigest }) {
 export default function AlertsPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.ALERT_MANAGE);
+  const canCreateTask = usePermission(PERMISSIONS.TASK_CREATE);
+  const canAssignTask = usePermission(PERMISSIONS.TASK_ASSIGN);
+  const [taskFor, setTaskFor] = useState<Alert | null>(null);
+  const [snoozeFor, setSnoozeFor] = useState<Alert | null>(null);
+  const [assignFor, setAssignFor] = useState<Alert | null>(null);
   const canViewDigest = usePermission(PERMISSIONS.ANALYTICS_VIEW);
-  const [status, setStatus] = useState<AlertStatusFilter>('open');
-  const [severity, setSeverity] = useState<AlertSeverity | ''>('');
+  // Rahbar panelidagi chip filtr bilan olib keladi: /alerts?severity=CRITICAL
+  const [status, setStatus] = useState<AlertStatusFilter>(useInitialParam<AlertStatusFilter>('status', ['open', 'unread', 'mine', 'snoozed', 'resolved', 'all'], 'open'));
+  const [severity, setSeverity] = useState<AlertSeverity | ''>(useInitialParam<AlertSeverity | ''>('severity', ['INFO', 'SUCCESS', 'WARNING', 'CRITICAL'], ''));
   const [type, setType] = useState<AlertType | ''>('');
   const [page, setPage] = useState(1);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -150,6 +163,16 @@ export default function AlertsPage() {
   });
 
   const markRead = useMutation({ mutationFn: (id: string) => alertsService.read(id), onSuccess: refresh, onError });
+  // Kechiktirish (vaqt oynada tanlanadi) yoki kechiktirilganni qaytarish
+  const snooze = useMutation({
+    mutationFn: ({ id, until }: { id: string; until: Date | null }) => (until ? alertsService.snooze(id, until.toISOString()) : alertsService.unsnooze(id)),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setSnoozeFor(null);
+      refresh();
+    },
+    onError,
+  });
 
   const readAll = useMutation({
     mutationFn: alertsService.readAll,
@@ -294,6 +317,17 @@ export default function AlertsPage() {
                       </div>
                       <p className={cn('mt-1 text-body text-fg', isUnread ? 'font-semibold' : 'font-medium')}>{alert.title}</p>
                       <p className="text-body text-fg-muted">{alert.message}</p>
+                      {(alert.assignee || (alert.openTasks ?? 0) > 0 || (alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date())) && (
+                        <p className="mt-1 text-caption text-fg-subtle">
+                          {[
+                            alert.assignee ? `Mas’ul: ${alert.assignee.firstName} ${alert.assignee.lastName}` : null,
+                            (alert.openTasks ?? 0) > 0 ? `${alert.openTasks} ta ochiq vazifa` : null,
+                            alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date() ? `Kechiktirilgan: ${formatDateTime(alert.snoozedUntil)} gacha` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
                       {alert.resolvedAt ? (
                         <p className="mt-1 text-caption text-fg-subtle">
                           Yopildi: {formatDateTime(alert.resolvedAt)}
@@ -326,6 +360,26 @@ export default function AlertsPage() {
                           O‘qildi
                         </Button>
                       )}
+                      {!alert.resolvedAt && canCreateTask && (
+                        <Button size="sm" variant="ghost" onClick={() => setTaskFor(alert)}>
+                          Vazifa
+                        </Button>
+                      )}
+                      {!alert.resolvedAt && canAssignTask && (
+                        <Button size="sm" variant="ghost" onClick={() => setAssignFor(alert)}>
+                          Mas’ul
+                        </Button>
+                      )}
+                      {!alert.resolvedAt &&
+                        (alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date() ? (
+                          <Button size="sm" variant="ghost" loading={snooze.isPending && snooze.variables.id === alert.id} onClick={() => snooze.mutate({ id: alert.id, until: null })}>
+                            Qaytarish
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setSnoozeFor(alert)}>
+                            Kechiktirish
+                          </Button>
+                        ))}
                       {!alert.resolvedAt && (
                         <Button size="sm" variant="secondary" loading={resolve.isPending && resolve.variables === alert.id} onClick={() => resolve.mutate(alert.id)}>
                           Yopish
@@ -349,6 +403,23 @@ export default function AlertsPage() {
       </Card>
 
       {settingsOpen && <AlertSettingsModal onClose={() => setSettingsOpen(false)} />}
+      {snoozeFor && (
+        <SnoozeModal open subject={snoozeFor.title} pending={snooze.isPending} onClose={() => setSnoozeFor(null)} onConfirm={(until) => snooze.mutate({ id: snoozeFor.id, until })} />
+      )}
+      {assignFor && <AlertAssignModal alert={assignFor} onClose={() => setAssignFor(null)} onDone={refresh} />}
+      {taskFor && (
+        <TaskFormModal
+          open
+          canAssign={canAssignTask}
+          initial={{ title: taskFor.title, description: taskFor.message }}
+          submit={async (payload) => {
+            const result = await alertsService.createTask(taskFor.id, payload);
+            refresh();
+            return result;
+          }}
+          onClose={() => setTaskFor(null)}
+        />
+      )}
     </>
   );
 }

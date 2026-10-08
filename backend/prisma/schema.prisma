@@ -225,6 +225,8 @@ enum NotificationType {
   ATTENDANCE_LATE
   /// O'qituvchiga: o'quvchining xavf darajasi oshdi (sabablar bilan)
   RISK_INCREASED
+  /// Vazifa: biriktirildi, izoh qoldirildi, muddati o'tib rahbarga ko'tarildi (CRM 4.0, 2-faza)
+  TASK_UPDATE
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.
@@ -351,10 +353,17 @@ model User {
   createdLessons            Lesson[]               @relation("LessonCreatedBy")
   createdRubrics            Rubric[]               @relation("RubricCreatedBy")
 
-  branch                 Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  tasksAssigned          Task[]           @relation("TaskAssignee")
-  tasksCreated           Task[]           @relation("TaskCreatedBy")
-  automationRulesCreated AutomationRule[] @relation("AutomationCreatedBy")
+  branch                 Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  tasksAssigned          Task[]            @relation("TaskAssignee")
+  tasksCreated           Task[]            @relation("TaskCreatedBy")
+  taskComments           TaskComment[]
+  taskAssignmentsFrom    TaskAssignment[]  @relation("TaskAssignmentFrom")
+  taskAssignmentsTo      TaskAssignment[]  @relation("TaskAssignmentTo")
+  taskAssignmentsChanged TaskAssignment[]  @relation("TaskAssignmentChangedBy")
+  alertsAssigned         Alert[]           @relation("AlertAssignee")
+  approvalsRequested     ApprovalRequest[] @relation("ApprovalRequestedBy")
+  approvalsDecided       ApprovalRequest[] @relation("ApprovalDecidedBy")
+  automationRulesCreated AutomationRule[]  @relation("AutomationCreatedBy")
 
   @@index([branchId])
   @@index([roleId])
@@ -1047,6 +1056,8 @@ model Student {
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
   telegramLinks TelegramLink[]
 
+  riskSnapshots RiskSnapshot[]
+
   @@index([branchId])
   @@index([courseId])
   @@index([groupId])
@@ -1225,6 +1236,8 @@ model Attendance {
   @@index([groupId, date])
   @@index([studentId, date])
   @@index([sessionId])
+  /// Sana bo'yicha (guruh/o'quvchisiz) so'rovlar: dashboard va davomat statistikasi
+  @@index([date])
   @@map("attendances")
 }
 
@@ -1366,24 +1379,33 @@ model NotificationDelivery {
 }
 
 model Notification {
-  id         String               @id @default(cuid())
-  userId     String
-  type       NotificationType
-  priority   NotificationPriority @default(NORMAL)
-  title      String               @db.VarChar(200)
-  message    String
-  entityType String?              @db.VarChar(50)
-  entityId   String?              @db.VarChar(50)
+  id           String               @id @default(cuid())
+  userId       String
+  type         NotificationType
+  priority     NotificationPriority @default(NORMAL)
+  title        String               @db.VarChar(200)
+  message      String
+  entityType   String?              @db.VarChar(50)
+  entityId     String?              @db.VarChar(50)
   /// Bir xil eslatma ikki marta yuborilmasligi uchun (masalan: followup-overdue:<id>)
-  dedupeKey  String?              @unique @db.VarChar(150)
-  readAt     DateTime?
-  createdAt  DateTime             @default(now())
+  dedupeKey    String?              @unique @db.VarChar(150)
+  readAt       DateTime?
+  /// Web'da ochiladigan sahifa (bo'lmasa `entityType`/`entityId` dan hisoblanadi)
+  actionUrl    String?              @db.VarChar(300)
+  /// Shu vaqtgacha ro'yxatda ko'rinmaydi (kechiktirilgan)
+  snoozedUntil DateTime?
+  /// Shu bildirishnomadan yaratilgan vazifa
+  taskId       String?
+  createdAt    DateTime             @default(now())
 
   user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries NotificationDelivery[]
+  task       Task?                  @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([userId, readAt, createdAt])
   @@index([userId, priority, readAt])
+  /// Saqlash muddati bo'yicha tozalash
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -2869,16 +2891,25 @@ model Alert {
   /// "O‘qildi" — kim birinchi ko‘rgan; daraja oshsa qayta o‘qilmagan bo‘ladi
   readAt       DateTime?
   readById     String?
+  /// Mas'ul xodim (biriktirilgan bo'lsa)
+  assigneeId   String?
+  /// Shu vaqtgacha faol ro'yxatda ko'rinmaydi (kechiktirilgan)
+  snoozedUntil DateTime?
+  /// Hal qilinmay turib rahbarga ko'tarilgan vaqt (bir marta)
+  escalatedAt  DateTime?
   createdAt    DateTime      @default(now())
 
-  resolvedBy User? @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
-  readBy     User? @relation("AlertReadBy", fields: [readById], references: [id], onDelete: SetNull)
+  resolvedBy User?  @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  readBy     User?  @relation("AlertReadBy", fields: [readById], references: [id], onDelete: SetNull)
+  assignee   User?  @relation("AlertAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  tasks      Task[]
 
   @@index([resolvedAt, createdAt])
   @@index([resolvedAt, readAt])
   @@index([branchId, resolvedAt])
   @@index([type, createdAt])
   @@index([severity])
+  @@index([assigneeId, resolvedAt])
   @@map("alerts")
 }
 
@@ -3613,30 +3644,44 @@ enum TaskStatus {
 /// Xodim uchun ish: kim, nima, qachongacha. Qoida yaratgan bo'lsa `ruleId` va `dedupeKey` bor —
 /// bir holat uchun ikki marta yaratilmaydi.
 model Task {
-  id          String     @id @default(cuid())
-  title       String     @db.VarChar(200)
-  description String?    @db.VarChar(2000)
-  status      TaskStatus @default(OPEN)
-  assigneeId  String
-  dueAt       DateTime?
+  id             String       @id @default(cuid())
+  title          String       @db.VarChar(200)
+  description    String?      @db.VarChar(2000)
+  status         TaskStatus   @default(OPEN)
+  assigneeId     String
+  dueAt          DateTime?
   /// Bog'liq ob'ekt: student / group / homework ...
-  entityType  String?    @db.VarChar(30)
-  entityId    String?    @db.VarChar(50)
+  entityType     String?      @db.VarChar(30)
+  entityId       String?      @db.VarChar(50)
   /// Web'da ochiladigan sahifa (masalan /students/<id>)
-  link        String?    @db.VarChar(200)
-  ruleId      String?
-  dedupeKey   String?    @unique @db.VarChar(200)
-  createdById String?
-  completedAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  link           String?      @db.VarChar(200)
+  ruleId         String?
+  dedupeKey      String?      @unique @db.VarChar(200)
+  createdById    String?
+  completedAt    DateTime?
+  priority       TaskPriority @default(NORMAL)
+  /// Vazifa qayerdan paydo bo'lgan (qo'lda, qoida, ogohlantirish, bildirishnoma, eskalatsiya)
+  source         TaskSource   @default(MANUAL)
+  /// Qaysi ogohlantirish / bildirishnomadan yaratilgan (bo'lsa)
+  alertId        String?
+  notificationId String?      @db.VarChar(50)
+  /// Muddati o'tib, rahbarga ko'tarilgan vaqt (bir marta)
+  escalatedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  assignee  User            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
-  createdBy User?           @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  rule      AutomationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  assignee      User             @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  createdBy     User?            @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  rule          AutomationRule?  @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  alert         Alert?           @relation(fields: [alertId], references: [id], onDelete: SetNull)
+  comments      TaskComment[]
+  assignments   TaskAssignment[]
+  notifications Notification[]
 
   @@index([assigneeId, status, dueAt])
   @@index([status, createdAt])
+  @@index([createdById, status])
+  @@index([alertId])
   @@map("tasks")
 }
 
@@ -3824,4 +3869,120 @@ model PendingUpload {
 
   @@index([createdAt])
   @@map("pending_uploads")
+}
+
+/// O'quvchi sog'liq bali va xavf darajasining kunlik tarixi (CRM 4.0, 1-faza).
+/// Fon hisobi (`studentRisk.job`) kuniga bitta qator yozadi; kun ichida qiymat o'zgarsa shu qator yangilanadi.
+model RiskSnapshot {
+  studentId   String
+  date        DateTime   @db.Date
+  healthScore Int?       @db.SmallInt
+  riskLevel   RiskLevel?
+  createdAt   DateTime   @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, date])
+  @@index([date])
+  @@map("risk_snapshots")
+}
+
+/// Fon vazifasi ijarasi: bir vaqtda faqat bitta jarayon bitta vazifani bajaradi (CRM 4.0, 1-faza).
+/// Egasi ishlayotganda muddatni uzaytirib turadi; jarayon qulasa — muddat tugagach boshqasi oladi.
+model JobLease {
+  name        String   @id @db.VarChar(60)
+  owner       String   @db.VarChar(80)
+  lockedUntil DateTime
+  startedAt   DateTime @default(now())
+
+  @@map("job_leases")
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskSource {
+  MANUAL
+  AUTOMATION
+  ALERT
+  NOTIFICATION
+  ESCALATION
+}
+
+/// Vazifa ostidagi izoh (CRM 4.0, 2-faza)
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String?
+  content   String   @db.VarChar(2000)
+  createdAt DateTime @default(now())
+
+  task   Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+/// Vazifani biriktirish tarixi: kimdan kimga, kim o'zgartirdi (CRM 4.0, 2-faza)
+model TaskAssignment {
+  id          String   @id @default(cuid())
+  taskId      String
+  fromUserId  String?
+  toUserId    String?
+  changedById String?
+  note        String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+
+  task      Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fromUser  User? @relation("TaskAssignmentFrom", fields: [fromUserId], references: [id], onDelete: SetNull)
+  toUser    User? @relation("TaskAssignmentTo", fields: [toUserId], references: [id], onDelete: SetNull)
+  changedBy User? @relation("TaskAssignmentChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@map("task_assignments")
+}
+
+enum ApprovalType {
+  EXPENSE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Umumiy tasdiq so'rovi (CRM 4.0, 2-faza). Birinchi tur — xarajat tasdig'i: holatning egasi avvalgidek
+/// `expenses.status`, bu qator esa "Ishlarim" markazi uchun yagona tasdiqlar ro'yxati.
+model ApprovalRequest {
+  id            String         @id @default(cuid())
+  type          ApprovalType
+  entityType    String         @db.VarChar(30)
+  entityId      String         @db.VarChar(50)
+  status        ApprovalStatus @default(PENDING)
+  title         String         @db.VarChar(200)
+  amount        Decimal?       @db.Decimal(14, 2)
+  /// Web'da ochiladigan sahifa
+  link          String?        @db.VarChar(200)
+  branchId      String?        @db.VarChar(50)
+  requestedById String?
+  decidedById   String?
+  decidedAt     DateTime?
+  reason        String?        @db.VarChar(255)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  requestedBy User? @relation("ApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  decidedBy   User? @relation("ApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@unique([entityType, entityId])
+  @@index([status, createdAt])
+  @@index([branchId, status])
+  @@map("approval_requests")
 }

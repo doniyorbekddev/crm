@@ -81,8 +81,8 @@ describe('navigatsiya tuzilmasi', () => {
   it('8 guruh; har marshrut bitta guruhda va takrorlanmaydi', () => {
     expect(NAV_SECTIONS.map((section) => section.title)).toEqual(['Umumiy', 'Sotuv', 'O‘quv jarayoni', 'Moliya', 'Odamlar', 'Analitika', 'Avtomatlashtirish', 'Tizim']);
     const routes = NAV_SECTIONS.flatMap((section) => section.items.map((item) => item.to));
-    expect(routes).toHaveLength(46);
-    expect(new Set(routes).size).toBe(46);
+    expect(routes).toHaveLength(47);
+    expect(new Set(routes).size).toBe(47);
     expect(new Set(NAV_SECTIONS.map((section) => section.id)).size).toBe(NAV_SECTIONS.length);
     for (const section of NAV_SECTIONS) expect(section.items.length, section.title).toBeLessThanOrEqual(10);
   });

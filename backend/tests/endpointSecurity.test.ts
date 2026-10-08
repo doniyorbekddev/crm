@@ -88,9 +88,15 @@ const AUTH_ONLY = new Set([
   'PATCH /api/notifications/:id/read',
   'DELETE /api/notifications/read',
   'DELETE /api/notifications/:id',
+  'POST /api/notifications/:id/snooze',
   // Xodim ishlari: requireStaff (kabinet 403), faqat o'ziga biriktirilgan/yaratgan ishlar
   'GET /api/tasks',
   'PATCH /api/tasks/:id',
+  'GET /api/tasks/assignees',
+  'GET /api/tasks/:id',
+  'POST /api/tasks/:id/comments',
+  // "Ishlarim": requireStaff; har bo'lim servisda o'z ruxsati bilan, faqat o'z ishlari
+  'GET /api/my-work',
   // Filial tanlash paneli: branch.view_all bo'lmasa — faqat o'z filiali
   'GET /api/branches',
   // Ruxsat hujjat bog'langan yozuvga qarab servisda (begona/yo'q hujjat — 404)

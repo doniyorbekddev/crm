@@ -27,7 +27,9 @@ const monthSchema = z.coerce.number('Oy raqam bo‘lishi kerak').int().min(1).ma
 
 export const alertListQuerySchema = paginationQuerySchema.extend({
   /** unread — ochiq va hali hech kim o‘qimagan */
-  status: z.enum(['open', 'unread', 'resolved', 'all'], 'Holat noto‘g‘ri').default('open'),
+  /** snoozed — kechiktirilgan; mine — menga biriktirilgan (`assigneeId` ni controller qo'yadi) */
+  status: z.enum(['open', 'unread', 'snoozed', 'mine', 'resolved', 'all'], 'Holat noto‘g‘ri').default('open'),
+  assigneeId: z.string().optional(),
   type: z.enum(ALERT_TYPES, 'Tur noto‘g‘ri').optional(),
   severity: z.enum(ALERT_SEVERITIES, 'Daraja noto‘g‘ri').optional(),
 });
@@ -94,3 +96,18 @@ export type AlertSettingsInput = z.infer<typeof alertSettingsSchema>;
 export type DigestQuery = z.infer<typeof digestQuerySchema>;
 export type TargetQuery = z.infer<typeof targetQuerySchema>;
 export type SaveTargetInput = z.infer<typeof saveTargetSchema>;
+
+/** Kechiktirish: kelajakdagi vaqt, ko'pi bilan 30 kun */
+export const snoozeSchema = z.object({
+  until: z.coerce
+    .date('Vaqt noto‘g‘ri')
+    .refine((value) => value.getTime() > Date.now(), 'Vaqt kelajakda bo‘lishi kerak')
+    .refine((value) => value.getTime() <= Date.now() + 30 * 86_400_000, 'Ko‘pi bilan 30 kunga kechiktiriladi'),
+});
+export type SnoozeInput = z.infer<typeof snoozeSchema>;
+
+export const assignAlertSchema = z.object({
+  /** null — mas'ulni olib tashlash */
+  assigneeId: z.string().trim().min(1).max(50).nullable(),
+});
+export type AssignAlertInput = z.infer<typeof assignAlertSchema>;

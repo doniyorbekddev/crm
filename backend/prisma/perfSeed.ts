@@ -38,24 +38,30 @@ if (!url || !url.includes('perf') || url === process.env.DATABASE_URL?.trim()) {
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
+/**
+ * Hajm ko'paytirgichi: `PERF_SCALE=4` — ~10 000 o'quvchi (CRM 4.0 Faza 1 o'lchovlari). O'quvchiga bog'liq hamma narsa
+ * (guruh, davomat, to'lov, vazifa, lead, bildirishnoma) mutanosib o'sadi; kurslar soni o'zgarmaydi.
+ */
+const FACTOR = Math.max(1, Math.min(25, Number(process.env.PERF_SCALE ?? 1) || 1));
+
 const SCALE = {
   courses: 8,
-  teachers: 20,
+  teachers: 20 * FACTOR,
   managers: 6,
-  groups: 60,
+  groups: 60 * FACTOR,
   studentsPerGroup: 20,
-  formerStudents: 1_200,
+  formerStudents: 1_200 * FACTOR,
   months: 8,
   paymentsPerStudent: 5,
-  expenses: 800,
-  incomes: 300,
-  leads: 6_000,
-  followUps: 8_000,
-  xp: 60_000,
+  expenses: 800 * FACTOR,
+  incomes: 300 * FACTOR,
+  leads: 6_000 * FACTOR,
+  followUps: 8_000 * FACTOR,
+  xp: 60_000 * FACTOR,
   homeworkPerGroup: 40,
   examsPerGroup: 8,
   /** Bildirishnomalar — qo'ng'iroqcha har sahifada chaqiriladi, shuning uchun yillik hajmda o'lchanadi */
-  notifications: 150_000,
+  notifications: 150_000 * FACTOR,
 };
 
 const DAY = 86_400_000;
@@ -95,10 +101,60 @@ const WEEK_PATTERNS: readonly WeekDay[][] = [
 ];
 const DAY_INDEX: Record<WeekDay, number> = { SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6 };
 
+/**
+ * Ish qatlami (CRM 4.0, 2-faza): vazifalar, izohlar va tasdiq so'rovlari — "Ishlarim" va vazifalar ro'yxatini
+ * o'lchash uchun. Vazifa allaqachon bo'lsa o'tkazib yuboriladi.
+ */
+async function seedWorkLayer(): Promise<void> {
+  if ((await prisma.task.count()) > 0) return;
+  const staff = await prisma.user.findMany({ where: { deletedAt: null, status: 'ACTIVE', role: { key: { notIn: ['STUDENT', 'PARENT'] } } }, select: { id: true }, orderBy: { createdAt: 'asc' } });
+  if (staff.length === 0) return;
+  const now = Date.now();
+  const total = 20_000 * FACTOR;
+  const priorities = ['LOW', 'NORMAL', 'NORMAL', 'NORMAL', 'HIGH', 'URGENT'] as const;
+  const tasks = Array.from({ length: total }, (_, index) => {
+    // 30% ochiq (uchdan biri muddati o'tgan), qolgani yopilgan — haqiqiy taqsimotga yaqin
+    const open = index % 10 < 3;
+    return {
+      id: `perf_task_${index}`,
+      title: `Sinov vazifasi ${index + 1}`,
+      description: index % 3 === 0 ? `Unumdorlik o'lchovi uchun vazifa ${index + 1}` : null,
+      assigneeId: staff[index % staff.length]!.id,
+      createdById: staff[(index * 7 + 1) % staff.length]!.id,
+      priority: priorities[index % priorities.length]!,
+      source: index % 4 === 0 ? ('AUTOMATION' as const) : ('MANUAL' as const),
+      status: open ? ('OPEN' as const) : index % 10 === 9 ? ('CANCELLED' as const) : ('DONE' as const),
+      dueAt: index % 5 === 4 ? null : new Date(now + ((index % 21) - 7) * DAY),
+      completedAt: open ? null : new Date(now - (index % 60) * DAY),
+      createdAt: new Date(now - (index % 180) * DAY),
+    };
+  });
+  await insert('vazifalar', tasks, (chunk) => prisma.task.createMany({ data: chunk }), 5_000);
+  const comments = Array.from({ length: Math.floor(total / 4) }, (_, index) => ({
+    taskId: `perf_task_${index * 4}`,
+    authorId: staff[index % staff.length]!.id,
+    content: `Izoh ${index + 1}`,
+  }));
+  await insert('vazifa izohlari', comments, (chunk) => prisma.taskComment.createMany({ data: chunk }), 5_000);
+  const approvals = Array.from({ length: 40 * FACTOR }, (_, index) => ({
+    type: 'EXPENSE' as const,
+    entityType: 'perf_expense',
+    entityId: `perf-${index}`,
+    title: `Sinov xarajati #${index + 1}`,
+    amount: 1_000_000 + index * 50_000,
+    link: '/expenses',
+    branchId: 'branch_main',
+    status: index % 4 === 0 ? ('PENDING' as const) : ('APPROVED' as const),
+  }));
+  await insert('tasdiq so‘rovlari', approvals, (chunk) => prisma.approvalRequest.createMany({ data: chunk }), 5_000);
+}
+
 async function main(): Promise<void> {
   const existing = await prisma.student.count();
   if (existing > 1_000) {
     console.log(`Bazada allaqachon ${existing} o‘quvchi bor — perf seed o‘tkazib yuborildi.`);
+    // Keyin qo'shilgan bo'limlar eski perf bazaga ham tushsin (har biri o'zi "bormi" deb tekshiradi)
+    await seedWorkLayer();
     return;
   }
 
@@ -406,6 +462,8 @@ async function main(): Promise<void> {
     };
   });
   await insert('bildirishnomalar', notifications, (chunk) => prisma.notification.createMany({ data: chunk }), 5_000);
+
+  await seedWorkLayer();
 
   console.log('\nPerf seed yakunlandi. Kirish: owner@example.com / Owner123! (oddiy seed hisoblari ham ishlaydi)');
 }

@@ -2,7 +2,7 @@ import { prisma } from '../config/database.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { RiskLevel, StudentStatus } from '../generated/prisma/client.js';
 import { ATTENDED_STATUSES } from '../utils/attendance.js';
-import { addDays, startOfBusinessDay } from '../utils/dates.js';
+import { addDays, businessDateString, startOfBusinessDay } from '../utils/dates.js';
 import { getAlertSettings } from './alert.service.js';
 import type { AlertSettings } from './alert.service.js';
 import { scheduleDueStats } from './paymentSchedule.service.js';
@@ -245,6 +245,9 @@ function extendedFactors(signals: RawSignals): RiskFactor[] {
  */
 const MIN_SCORED_WEIGHT = 35;
 
+/** Fon hisobida bitta bo'lakdagi o'quvchilar soni */
+const RECALCULATE_BATCH = 1000;
+
 function summarize(factors: RiskFactor[]): { healthScore: number | null; riskLevel: RiskLevel | null; reasons: string[] } {
   const scored = factors.filter((factor) => factor.score !== null);
   const weight = scored.reduce((sum, factor) => sum + factor.weight, 0);
@@ -259,22 +262,28 @@ function summarize(factors: RiskFactor[]): { healthScore: number | null; riskLev
   return { healthScore, riskLevel: weight >= MIN_SCORED_WEIGHT ? riskLevelFor(healthScore) : null, reasons };
 }
 
-/** Bitta SQL: har bir o'quvchining oxirgi belgilaridan ketma-ket nechtasi ABSENT ekanini sanaydi */
+/**
+ * Bitta SQL: har bir o'quvchining oxirgi belgilaridan ketma-ket nechtasi ABSENT ekanini sanaydi.
+ * LATERAL: har o'quvchi uchun `(studentId, date)` indeksidan faqat oxirgi `limit` qator o'qiladi —
+ * avval o'quvchining butun davomat tarixi raqamlanib, keyin oxirgilari olinardi.
+ */
 async function loadTrailingAbsences(studentIds: string[], limit: number): Promise<Map<string, number>> {
   if (studentIds.length === 0) return new Map();
   const rows = await prisma.$queryRaw<Array<{ studentId: string; trailing: number }>>`
-    WITH ranked AS (
-      SELECT a."studentId", a."status",
-        ROW_NUMBER() OVER (PARTITION BY a."studentId" ORDER BY a."date" DESC) AS rn
-      FROM "attendances" a
-      WHERE a."studentId" IN (${Prisma.join(studentIds)})
-    ), recent AS (
-      SELECT "studentId", "status", rn FROM ranked WHERE rn <= ${limit}
-    )
-    SELECT r."studentId",
+    SELECT ids."studentId",
       COALESCE(MIN(CASE WHEN r."status" <> 'ABSENT' THEN r.rn END) - 1, MAX(r.rn))::int AS "trailing"
-    FROM recent r
-    GROUP BY r."studentId"
+    FROM unnest(${studentIds}::text[]) AS ids("studentId")
+    CROSS JOIN LATERAL (
+      SELECT recent."status", ROW_NUMBER() OVER (ORDER BY recent."date" DESC) AS rn
+      FROM (
+        SELECT a."status", a."date"
+        FROM "attendances" a
+        WHERE a."studentId" = ids."studentId"
+        ORDER BY a."date" DESC
+        LIMIT ${limit}
+      ) recent
+    ) r
+    GROUP BY ids."studentId"
   `;
   return new Map(rows.map((row) => [row.studentId, Number(row.trailing ?? 0)]));
 }
@@ -371,13 +380,13 @@ async function loadSignals(now: Date, studentIds: string[]): Promise<Map<string,
     new Map(rows.filter((row) => row._avg.percentage !== null).map((row) => [row.studentId, Math.round(row._avg.percentage!)]));
   const recentBy = averageOf(examRecent);
   const earlierBy = averageOf(examEarlier);
+  // Har bir manba bo'yicha Map — `find` bilan har o'quvchiga to'liq massivni aylanish o'quvchilar soniga kvadratik edi
+  const attendedBy = new Map(lastAttended.map((row) => [row.studentId, row._max.date]));
+  const submittedBy = new Map(lastSubmitted.map((row) => [row.studentId, row._max.submittedAt]));
+  const viewedBy = new Map(lastViewed.map((row) => [row.studentId, row._max.lastViewedAt]));
+  const attemptBy = new Map(lastAttempt.map((row) => [row.studentId, row._max.startedAt]));
   const latestOf = (id: string) =>
-    [
-      lastAttended.find((row) => row.studentId === id)?._max.date,
-      lastSubmitted.find((row) => row.studentId === id)?._max.submittedAt,
-      lastViewed.find((row) => row.studentId === id)?._max.lastViewedAt,
-      lastAttempt.find((row) => row.studentId === id)?._max.startedAt,
-    ]
+    [attendedBy.get(id), submittedBy.get(id), viewedBy.get(id), attemptBy.get(id)]
       .filter((value): value is Date => value instanceof Date)
       .reduce<Date | null>((latest, value) => (latest === null || value > latest ? value : latest), null);
   const accountBy = new Map(accounts.map((row) => [row.id, row.user!]));
@@ -498,50 +507,73 @@ export const studentRiskService = {
     });
     if (students.length === 0) return { updated: 0, critical: 0, increased: 0 };
 
-    const signals = await loadSignals(now, students.map((student) => student.id));
     const stamp = new Date();
+    const day = businessDateString(now);
     let updated = 0;
     let critical = 0;
     let increased = 0;
 
-    for (const student of students) {
-      const raw = signals.get(student.id);
-      if (!raw) continue;
-      const factors = buildFactors(raw, settings);
-      const { healthScore, riskLevel, reasons } = summarize(factors);
-      if (riskLevel === 'CRITICAL') critical += 1;
+    // Bo'laklab: signal so'rovlaridagi `IN (...)` ro'yxati va bitta yozuv hajmi o'quvchilar soniga qarab o'smaydi
+    for (let offset = 0; offset < students.length; offset += RECALCULATE_BATCH) {
+      const batch = students.slice(offset, offset + RECALCULATE_BATCH);
+      const signals = await loadSignals(now, batch.map((student) => student.id));
+      const rows: Array<{ id: string; healthScore: number | null; riskLevel: RiskLevel | null; factors: RiskFactor[] }> = [];
+      const notifications: Parameters<typeof notificationService.createManyInTransaction>[1] = [];
 
-      // TZ 3.0 §42 "Risk increased": xavf/kritik darajaga ko'tarilsa — guruh o'qituvchisiga sabablar bilan.
-      // Birinchi hisobda (oldingi daraja yo'q) xabar ketmaydi — joriy qilishda ommaviy xabar bo'lmasin.
-      if (student.riskLevel && riskLevel && RISK_ORDER[riskLevel] >= RISK_ORDER.AT_RISK && RISK_ORDER[riskLevel] > RISK_ORDER[student.riskLevel] && student.group?.teacherId) {
-        const teacherId = student.group.teacherId;
-        await prisma.$transaction((tx) =>
-          notificationService.createManyInTransaction(tx, [
-            {
-              userId: teacherId,
-              type: 'RISK_INCREASED',
-              title: 'O‘quvchi xavfi oshdi',
-              message: `${student.firstName} ${student.lastName} (${student.group!.name}): ${RISK_TITLES[student.riskLevel!]} → ${RISK_TITLES[riskLevel]}.${reasons.length ? ` Sabablar: ${reasons.slice(0, 3).join('; ')}.` : ''}`,
-              entityType: 'student',
-              entityId: student.id,
-              dedupeKey: `risk:increased:${student.id}:${riskLevel}:${stamp.toISOString().slice(0, 10)}`,
-            },
-          ]),
-        );
-        increased += 1;
+      for (const student of batch) {
+        const raw = signals.get(student.id);
+        if (!raw) continue;
+        const factors = buildFactors(raw, settings);
+        const { healthScore, riskLevel, reasons } = summarize(factors);
+        if (riskLevel === 'CRITICAL') critical += 1;
+
+        // TZ 3.0 §42 "Risk increased": xavf/kritik darajaga ko'tarilsa — guruh o'qituvchisiga sabablar bilan.
+        // Birinchi hisobda (oldingi daraja yo'q) xabar ketmaydi — joriy qilishda ommaviy xabar bo'lmasin.
+        if (student.riskLevel && riskLevel && RISK_ORDER[riskLevel] >= RISK_ORDER.AT_RISK && RISK_ORDER[riskLevel] > RISK_ORDER[student.riskLevel] && student.group?.teacherId) {
+          notifications.push({
+            userId: student.group.teacherId,
+            type: 'RISK_INCREASED',
+            title: 'O‘quvchi xavfi oshdi',
+            message: `${student.firstName} ${student.lastName} (${student.group.name}): ${RISK_TITLES[student.riskLevel]} → ${RISK_TITLES[riskLevel]}.${reasons.length ? ` Sabablar: ${reasons.slice(0, 3).join('; ')}.` : ''}`,
+            entityType: 'student',
+            entityId: student.id,
+            dedupeKey: `risk:increased:${student.id}:${riskLevel}:${stamp.toISOString().slice(0, 10)}`,
+          });
+          increased += 1;
+        }
+
+        rows.push({ id: student.id, healthScore, riskLevel, factors });
       }
+      if (rows.length === 0) continue;
 
-      // O'zgarmagan bo'lsa ham `riskUpdatedAt` yangilanadi — hisob qachon yurganini ko'rsatadi
-      await prisma.student.update({
-        where: { id: student.id },
-        data: {
-          healthScore,
-          riskLevel,
-          riskFactors: factors as unknown as Prisma.InputJsonValue,
-          riskUpdatedAt: stamp,
-        },
+      // Bo'lak uchun bitta UPDATE (avval har o'quvchiga alohida so'rov edi) va xabarlar bilan bitta tranzaksiya.
+      // O'zgarmagan bo'lsa ham `riskUpdatedAt` yangilanadi — hisob qachon yurganini ko'rsatadi.
+      // `updatedAt` ga tegilmaydi: bu tizim hisobi, o'quvchi kartasining tahriri emas.
+      await prisma.$transaction(async (tx) => {
+        if (notifications.length > 0) await notificationService.createManyInTransaction(tx, notifications);
+        await tx.$executeRaw`
+          UPDATE "students" AS s
+          SET "healthScore" = v."healthScore",
+              "riskLevel" = v."riskLevel"::"RiskLevel",
+              "riskFactors" = v."factors",
+              "riskUpdatedAt" = ${stamp}
+          FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+            AS v("id" text, "healthScore" smallint, "riskLevel" text, "factors" jsonb)
+          WHERE s."id" = v."id"
+        `;
+        // Kunlik tarix: kuniga bitta qator; kun ichidagi keyingi yurishlar faqat qiymat o'zgarganda yozadi
+        await tx.$executeRaw`
+          INSERT INTO "risk_snapshots" ("studentId", "date", "healthScore", "riskLevel")
+          SELECT v."id", ${day}::date, v."healthScore", v."riskLevel"::"RiskLevel"
+          FROM jsonb_to_recordset(${JSON.stringify(rows.map(({ id, healthScore, riskLevel }) => ({ id, healthScore, riskLevel })))}::jsonb)
+            AS v("id" text, "healthScore" smallint, "riskLevel" text)
+          ON CONFLICT ("studentId", "date") DO UPDATE
+            SET "healthScore" = EXCLUDED."healthScore", "riskLevel" = EXCLUDED."riskLevel"
+            WHERE "risk_snapshots"."healthScore" IS DISTINCT FROM EXCLUDED."healthScore"
+               OR "risk_snapshots"."riskLevel" IS DISTINCT FROM EXCLUDED."riskLevel"
+        `;
       });
-      updated += 1;
+      updated += rows.length;
     }
 
     return { updated, critical, increased };

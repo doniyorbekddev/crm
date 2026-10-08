@@ -11,6 +11,7 @@ import {
   GraduationCap,
   HandCoins,
   Info,
+  ListTodo,
   MessageSquareWarning,
   Newspaper,
   Target,
@@ -48,35 +49,36 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'LOW_SCORE',
   'ATTENDANCE_LATE',
   'RISK_INCREASED',
+  'TASK_UPDATE',
   'SYSTEM',
 ];
 
-export const NOTIFICATION_CATEGORY_ORDER: readonly NotificationCategory[] = ['SALES', 'FINANCE', 'ATTENDANCE', 'HOMEWORK', 'EXAM', 'ACADEMIC', 'SYSTEM'];
+export const NOTIFICATION_CATEGORY_ORDER: readonly NotificationCategory[] = ['ATTENDANCE', 'PAYMENT', 'HOMEWORK', 'EXAM', 'ACHIEVEMENT', 'MARKETING', 'SYSTEM'];
 
 export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  SALES: 'Sotuv',
-  FINANCE: 'Moliya',
   ATTENDANCE: 'Davomat',
-  HOMEWORK: 'Uy vazifasi',
+  PAYMENT: 'To‘lov',
+  HOMEWORK: 'Vazifa',
   EXAM: 'Imtihon',
-  ACADEMIC: 'O‘quv jarayoni',
+  ACHIEVEMENT: 'Yutuqlar',
+  MARKETING: 'Marketing',
   SYSTEM: 'Tizim',
 };
 
-/** Tur → toifa. Backend (`notification.validator.ts`) bilan bir xil bo‘lishi shart */
+/**
+ * Tur → toifa. Yagona manba — backend (`backend/src/config/notificationTypes.ts`, `NOTIFICATION_CATEGORY`);
+ * bu yerda faqat nusxa (frontend backenddan import qila olmaydi). Farq paydo bo‘lsa
+ * `backend/tests/unit/notificationCategories.test.ts` yiqiladi.
+ */
 export const NOTIFICATION_TYPE_CATEGORY: Record<NotificationType, NotificationCategory> = {
-  NEW_LEAD: 'SALES',
-  LEAD_ASSIGNED: 'SALES',
-  FOLLOW_UP_REMINDER: 'SALES',
-  FOLLOW_UP_OVERDUE: 'SALES',
-  TRIAL_LESSON_REMINDER: 'SALES',
-  NEW_STUDENT: 'SALES',
-  NEW_PAYMENT: 'FINANCE',
-  DEBT_REMINDER: 'FINANCE',
-  EXPENSE_APPROVAL: 'FINANCE',
-  PAYMENT_DUE_SOON: 'FINANCE',
   CHILD_ABSENT: 'ATTENDANCE',
   ATTENDANCE_LATE: 'ATTENDANCE',
+  RISK_INCREASED: 'ATTENDANCE',
+  TASK_UPDATE: 'SYSTEM',
+  NEW_PAYMENT: 'PAYMENT',
+  DEBT_REMINDER: 'PAYMENT',
+  PAYMENT_DUE_SOON: 'PAYMENT',
+  EXPENSE_APPROVAL: 'PAYMENT',
   HOMEWORK_CREATED: 'HOMEWORK',
   HOMEWORK_GRADED: 'HOMEWORK',
   HOMEWORK_DEADLINE: 'HOMEWORK',
@@ -84,13 +86,18 @@ export const NOTIFICATION_TYPE_CATEGORY: Record<NotificationType, NotificationCa
   EXAM_RESULT: 'EXAM',
   EXAM_SCHEDULED: 'EXAM',
   LOW_SCORE: 'EXAM',
-  LEVEL_UP: 'ACADEMIC',
-  CERTIFICATE_ISSUED: 'ACADEMIC',
-  WEEKLY_REPORT: 'ACADEMIC',
-  RISK_INCREASED: 'ACADEMIC',
-  NEGATIVE_FEEDBACK: 'ACADEMIC',
+  LEVEL_UP: 'ACHIEVEMENT',
+  CERTIFICATE_ISSUED: 'ACHIEVEMENT',
+  NEW_LEAD: 'MARKETING',
+  LEAD_ASSIGNED: 'MARKETING',
+  FOLLOW_UP_REMINDER: 'MARKETING',
+  FOLLOW_UP_OVERDUE: 'MARKETING',
+  TRIAL_LESSON_REMINDER: 'MARKETING',
+  NEW_STUDENT: 'MARKETING',
   SYSTEM: 'SYSTEM',
   DAILY_DIGEST: 'SYSTEM',
+  WEEKLY_REPORT: 'SYSTEM',
+  NEGATIVE_FEEDBACK: 'SYSTEM',
 };
 
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
@@ -119,6 +126,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   LOW_SCORE: 'Past natija',
   ATTENDANCE_LATE: 'Darsga kechikdi',
   RISK_INCREASED: 'O‘quvchi xavfi oshdi',
+  TASK_UPDATE: 'Vazifa',
   SYSTEM: 'Tizim',
 };
 
@@ -148,6 +156,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   LOW_SCORE: AlertTriangle,
   ATTENDANCE_LATE: CalendarX,
   RISK_INCREASED: AlertTriangle,
+  TASK_UPDATE: ListTodo,
   SYSTEM: Info,
 };
 
@@ -174,6 +183,7 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   LOW_SCORE: 'bg-warning-subtle text-warning',
   ATTENDANCE_LATE: 'bg-warning-subtle text-warning',
   RISK_INCREASED: 'bg-danger-subtle text-danger',
+  TASK_UPDATE: 'bg-info-subtle text-info',
   DEBT_REMINDER: 'bg-danger-subtle text-danger',
   TRIAL_LESSON_REMINDER: 'bg-warning-subtle text-warning',
   EXPENSE_APPROVAL: 'bg-warning-subtle text-warning',
@@ -207,6 +217,8 @@ export function notificationLink(entityType: string | null, entityId: string | n
   switch (entityType) {
     case 'lead':
       return entityId ? `/leads/${entityId}` : '/leads';
+    case 'task':
+      return '/tasks';
     case 'followUp':
       return '/follow-ups';
     case 'student':

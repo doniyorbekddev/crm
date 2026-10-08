@@ -38,11 +38,11 @@ test('bildirishnomalar toifa bo‘yicha filtrlanadi', async ({ page }) => {
 
   const filtered = page.waitForResponse((response) => {
     const url = new URL(response.url());
-    return url.pathname.endsWith('/notifications') && url.searchParams.get('category') === 'FINANCE';
+    return url.pathname.endsWith('/notifications') && url.searchParams.get('category') === 'PAYMENT';
   });
-  await tabs.getByRole('tab', { name: /Moliya/ }).click();
+  await tabs.getByRole('tab', { name: /To‘lov/ }).click();
   expect((await filtered).status()).toBe(200);
-  await expect(tabs.getByRole('tab', { name: /Moliya/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs.getByRole('tab', { name: /To‘lov/ })).toHaveAttribute('aria-selected', 'true');
 
   // Tur ro'yxati tanlangan toifa bilan cheklanadi
   const types = page.getByLabel('Bildirishnoma turi');

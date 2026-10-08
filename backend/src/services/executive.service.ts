@@ -156,7 +156,8 @@ export interface ExecutiveSummaryDto {
   /** Davr oxirigacha oxirgi 6 oy: tushum, xarajat, foyda */
   trend: ExecutiveTrendPointDto[];
   /** Diqqat talab qiladigan holatlar */
-  attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger' }>;
+  /** `link` — shu holat ro'yxati ochiladigan sahifa (filtr bilan) */
+  attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger'; link: string }>;
 }
 
 const DAY_MS = 86_400_000;
@@ -433,14 +434,19 @@ async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveS
   const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED', ...salaryPeriodInBranch(scope) } });
   const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING', ...inBranch(scope) } });
   const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL', ...inBranch(scope) } });
+  // Ish qatlami (CRM 4.0, 2-faza): muddati o'tgan vazifalar va tasdiq kutayotgan so'rovlar
+  const overdueTasks = await prisma.task.count({ where: { status: 'OPEN', dueAt: { lt: now }, ...(scope.branchId ? { assignee: { branchId: scope.branchId } } : {}) } });
+  const pendingApprovals = await prisma.approvalRequest.count({ where: { status: 'PENDING', ...inBranch(scope) } });
 
   const rows: ExecutiveSummaryDto['attention'] = [
-    { key: 'criticalAlerts', label: 'Kritik ogohlantirishlar', value: criticalAlerts, tone: 'danger' },
-    { key: 'debtors', label: 'Qarzdor o‘quvchilar', value: debtors, tone: 'danger' },
-    { key: 'unmarkedLessons', label: 'Davomati belgilanmagan darslar', value: unmarkedLessons, tone: 'warning' },
-    { key: 'overdueFollowUps', label: 'Kechikkan follow-up', value: overdueFollowUps, tone: 'warning' },
-    { key: 'pendingSalaries', label: 'Tasdiq kutayotgan maoshlar', value: pendingSalaries, tone: 'warning' },
-    { key: 'pendingUsers', label: 'Tasdiqlanmagan xodimlar', value: pendingUsers, tone: 'warning' },
+    { key: 'criticalAlerts', label: 'Kritik ogohlantirishlar', value: criticalAlerts, tone: 'danger', link: '/alerts?severity=CRITICAL' },
+    { key: 'debtors', label: 'Qarzdor o‘quvchilar', value: debtors, tone: 'danger', link: '/debts' },
+    { key: 'overdueTasks', label: 'Muddati o‘tgan vazifalar', value: overdueTasks, tone: 'danger', link: '/tasks?scope=all&overdue=1' },
+    { key: 'pendingApprovals', label: 'Tasdiq kutayotgan xarajatlar', value: pendingApprovals, tone: 'warning', link: '/expenses' },
+    { key: 'unmarkedLessons', label: 'Davomati belgilanmagan darslar', value: unmarkedLessons, tone: 'warning', link: '/attendance' },
+    { key: 'overdueFollowUps', label: 'Kechikkan follow-up', value: overdueFollowUps, tone: 'warning', link: '/follow-ups?scope=overdue' },
+    { key: 'pendingSalaries', label: 'Tasdiq kutayotgan maoshlar', value: pendingSalaries, tone: 'warning', link: '/salaries?status=CALCULATED' },
+    { key: 'pendingUsers', label: 'Tasdiqlanmagan xodimlar', value: pendingUsers, tone: 'warning', link: '/users?status=PENDING' },
   ];
   return rows.filter((row) => row.value > 0);
 }

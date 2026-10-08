@@ -94,6 +94,9 @@ export const PERMISSIONS = {
   EMPLOYEE_SENSITIVE: 'employee.sensitive',
   STAFF_DOCUMENT_VIEW: 'staff_document.view',
   STAFF_DOCUMENT_MANAGE: 'staff_document.manage',
+  TASK_CREATE: 'task.create',
+  TASK_ASSIGN: 'task.assign',
+  TASK_VIEW_ALL: 'task.view_all',
   TARGET_VIEW: 'target.view',
   TARGET_MANAGE: 'target.manage',
 

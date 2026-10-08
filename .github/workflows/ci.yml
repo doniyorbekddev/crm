@@ -54,6 +54,70 @@ jobs:
       - name: Production build
         run: npm run build
 
+  perf:
+    name: Unumdorlik o'lchovi (~5 000 o'quvchi)
+    runs-on: ubuntu-latest
+    needs: check
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: crm
+          POSTGRES_PASSWORD: crm_ci_password
+          POSTGRES_DB: crm_perf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U crm -d crm_perf"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Skriptlar faqat nomida "perf" bo'lgan bazada ishlaydi
+      DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/crm_perf?schema=public
+      JWT_SECRET: ci-perf-access-secret-0123456789-abcdefghijklmnop
+      JWT_REFRESH_SECRET: ci-perf-refresh-secret-0123456789-abcdefghijklmnop
+      CLIENT_URL: http://localhost:5173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Baza (migratsiya + asosiy seed)
+        run: |
+          npm run db:deploy -w @crm/backend
+          npm run db:seed -w @crm/backend
+
+      - name: Perf seed (PERF_SCALE=2)
+        env:
+          PERF_DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/crm_perf?schema=public
+          # Perf seed "asosiy" bazaga yozib qo'ymaslik uchun ikkala manzil bir xil bo'lsa ishlamaydi
+          DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/postgres?schema=public
+          PERF_SCALE: '2'
+        run: npm run db:perf-seed -w @crm/backend
+
+      - name: O'lchov (chegaralar bilan)
+        env:
+          PERF_BUDGET: '1'
+          PERF_OUT: perf-result.json
+        run: npm run perf:bench -w @crm/backend
+
+      - name: Natija
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-result
+          path: backend/perf-result.json
+          if-no-files-found: ignore
+          retention-days: 14
+
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest

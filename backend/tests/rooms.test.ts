@@ -90,6 +90,42 @@ describe.skipIf(!hasTestDatabase)('Xonalar va jadval to‘qnashuvi', () => {
     expect(await prisma.group.count()).toBe(1);
   });
 
+  it('guruhni tahrirlashda xona saqlanadi, bo‘shatiladi va band xonaga o‘tkazilmaydi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token: teacherToken } = await createUserWithToken(app, { role: 'TEACHER' });
+    const course = await createCourse();
+    const roomA = await createRoom(token, 'ROOM_A', 'A xona');
+    const roomB = await createRoom(token, 'ROOM_B', 'B xona');
+    const created = await request(app).post('/api/groups').set(bearer(token)).send(groupBody({ name: 'Ko‘chadigan', courseId: course.id, roomId: roomA.id }));
+    expect(created.status).toBe(201);
+    const groupId = created.body.data.id as string;
+    const roomOf = async () => (await prisma.group.findUniqueOrThrow({ where: { id: groupId }, select: { roomId: true } })).roomId;
+
+    // Xonani almashtirish — javobda ham, bazada ham yangi xona
+    const moved = await request(app).put(`/api/groups/${groupId}`).set(bearer(token)).send(groupBody({ name: 'Ko‘chadigan', courseId: course.id, roomId: roomB.id }));
+    expect(moved.status).toBe(200);
+    expect(moved.body.data.roomRef).toMatchObject({ id: roomB.id, name: 'B xona' });
+    expect(await roomOf()).toBe(roomB.id);
+
+    // Xona band bo'lsa — rad etiladi va guruh eski xonasida qoladi
+    await request(app).post('/api/groups').set(bearer(token)).send(groupBody({ name: 'Band qiluvchi', courseId: course.id, roomId: roomA.id }));
+    const clash = await request(app).put(`/api/groups/${groupId}`).set(bearer(token)).send(groupBody({ name: 'Ko‘chadigan', courseId: course.id, roomId: roomA.id }));
+    expect(clash.status).toBe(409);
+    expect(clash.body.errors[0]).toMatchObject({ field: 'roomId' });
+    expect(await roomOf()).toBe(roomB.id);
+
+    // Xonasiz saqlash — xona bo'shatiladi
+    const cleared = await request(app).put(`/api/groups/${groupId}`).set(bearer(token)).send(groupBody({ name: 'Ko‘chadigan', courseId: course.id }));
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.data.roomRef).toBeNull();
+    expect(await roomOf()).toBeNull();
+
+    // Ruxsatsiz rol tahrirlay olmaydi
+    const forbidden = await request(app).put(`/api/groups/${groupId}`).set(bearer(teacherToken)).send(groupBody({ name: 'Ko‘chadigan', courseId: course.id, roomId: roomA.id }));
+    expect(forbidden.status).toBe(403);
+    expect(await roomOf()).toBeNull();
+  });
+
   it('vaqtlar kesishmasa yoki kunlar boshqa bo‘lsa — to‘qnashuv yo‘q', async () => {
     const { token } = await createUserWithToken(app, { role: 'ADMIN' });
     const course = await createCourse();

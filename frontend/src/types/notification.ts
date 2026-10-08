@@ -24,12 +24,13 @@ export type NotificationType =
   | 'LOW_SCORE'
   | 'ATTENDANCE_LATE'
   | 'RISK_INCREASED'
+  | 'TASK_UPDATE'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';
 
-/** Turlarning yiriklashtirilgan guruhi — backenddagi `NOTIFICATION_TYPE_CATEGORY` bilan bir xil */
-export type NotificationCategory = 'SALES' | 'FINANCE' | 'ATTENDANCE' | 'HOMEWORK' | 'EXAM' | 'ACADEMIC' | 'SYSTEM';
+/** Toifalar — yagona manba backendda: `backend/src/config/notificationTypes.ts` (kontrakt testi nusxani tekshiradi) */
+export type NotificationCategory = 'ATTENDANCE' | 'PAYMENT' | 'HOMEWORK' | 'EXAM' | 'ACHIEVEMENT' | 'MARKETING' | 'SYSTEM';
 
 export interface NotificationItem {
   id: string;
@@ -42,6 +43,11 @@ export interface NotificationItem {
   isRead: boolean;
   readAt: string | null;
   createdAt: string;
+  /** Web'da ochiladigan sahifa (bo'lmasa `entityType` dan hisoblanadi) */
+  actionUrl?: string | null;
+  snoozedUntil?: string | null;
+  /** Shu bildirishnomadan yaratilgan vazifa */
+  taskId?: string | null;
 }
 
 export interface NotificationListParams {

@@ -20,11 +20,13 @@ import './services/observability.js';
  * Express ilovasini yaratadi. `listen` bu yerda chaqirilmaydi —
  * shu sababli testlarda (Supertest) ilovani port ochmasdan ishlatish mumkin.
  */
-export function createApp(): Express {
+export function createApp(options: { trustProxy?: number } = {}): Express {
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', env.TRUST_PROXY);
+  // Ishonchli proxy'lar soni. Parametr faqat testlar uchun (ishlab turgan tizimda — muhit o'zgaruvchisi):
+  // noto'g'ri son hamma foydalanuvchini bitta IP qilib qo'yadi yoki IP ni soxtalashtirishga yo'l ochadi.
+  app.set('trust proxy', options.trustProxy ?? env.TRUST_PROXY);
 
   app.use(
     helmet({

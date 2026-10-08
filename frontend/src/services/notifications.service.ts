@@ -39,6 +39,18 @@ export const notificationsService = {
     return { data: response.data.data, message: response.data.message };
   },
 
+  /** Kechiktirish: shu vaqtgacha ro'yxatda ko'rinmaydi */
+  async snooze(id: string, until: string): Promise<string> {
+    const response = await api.post<ApiSuccessResponse<unknown>>(`/notifications/${id}/snooze`, { until });
+    return response.data.message;
+  },
+
+  /** Bildirishnomadan vazifa (sarlavha va havola bildirishnomadan olinadi) */
+  async createTask(id: string): Promise<string> {
+    const response = await api.post<ApiSuccessResponse<unknown>>(`/notifications/${id}/task`, {});
+    return response.data.message;
+  },
+
   async remove(id: string): Promise<string> {
     const response = await api.delete<ApiSuccessResponse<null>>(`/notifications/${id}`);
     return response.data.message;

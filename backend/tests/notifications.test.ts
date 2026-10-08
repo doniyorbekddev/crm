@@ -106,15 +106,22 @@ describe.skipIf(!hasTestDatabase)('Notifications API (integratsion)', () => {
       return { titles: (response.body.data as Array<{ title: string }>).map((item) => item.title).sort(), total: response.body.meta.total as number };
     };
 
-    expect(await titles('category=SALES')).toEqual({ titles: ['FOLLOW_UP_OVERDUE', 'NEW_LEAD'], total: 2 });
-    expect(await titles('category=FINANCE')).toEqual({ titles: ['NEW_PAYMENT'], total: 1 });
+    // Toifalar yagona manbadan (config/notificationTypes.ts) — bot sozlamalaridagi bilan bir xil guruhlash
+    expect(await titles('category=MARKETING')).toEqual({ titles: ['FOLLOW_UP_OVERDUE', 'NEW_LEAD'], total: 2 });
+    expect(await titles('category=PAYMENT')).toEqual({ titles: ['NEW_PAYMENT'], total: 1 });
+    expect(await titles('category=HOMEWORK')).toEqual({ titles: ['HOMEWORK_GRADED'], total: 1 });
     expect(await titles('category=SYSTEM')).toEqual({ titles: ['DAILY_DIGEST', 'SYSTEM'], total: 2 });
     expect(await titles('category=EXAM')).toEqual({ titles: [], total: 0 });
     // Tur toifaga kirsa — o'sha tur, kirmasa — bo'sh (ikkalasi birga qo'llanadi)
-    expect(await titles('category=SALES&type=NEW_LEAD')).toEqual({ titles: ['NEW_LEAD'], total: 1 });
-    expect(await titles('category=SALES&type=NEW_PAYMENT')).toEqual({ titles: [], total: 0 });
+    expect(await titles('category=MARKETING&type=NEW_LEAD')).toEqual({ titles: ['NEW_LEAD'], total: 1 });
+    expect(await titles('category=MARKETING&type=NEW_PAYMENT')).toEqual({ titles: [], total: 0 });
     // Toifasiz so'rov avvalgidek hammasini qaytaradi
     expect((await titles('limit=50')).total).toBe(types.length);
+
+    // Orqaga moslik: eski nomlar rad etilmaydi, kanonik toifaga o'giriladi
+    expect(await titles('category=SALES')).toEqual(await titles('category=MARKETING'));
+    expect(await titles('category=FINANCE')).toEqual(await titles('category=PAYMENT'));
+    expect((await request(app).get('/api/notifications?category=ACADEMIC').set(bearer(token))).status).toBe(200);
 
     const bad = await request(app).get('/api/notifications?category=UNKNOWN').set(bearer(token));
     expect(bad.status).toBe(422);

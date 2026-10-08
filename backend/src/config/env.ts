@@ -90,6 +90,8 @@ const envSchema = z
     DATABASE_URL: z
       .string('DATABASE_URL majburiy')
       .regex(/^postgres(ql)?:\/\//, 'DATABASE_URL postgresql:// bilan boshlanishi kerak'),
+    /** Baza ulanishlari pulining eng katta hajmi (ixtiyoriy; berilmasa 10) */
+    DATABASE_POOL_MAX: optionalString.pipe(z.coerce.number<string | undefined>('DATABASE_POOL_MAX butun son bo‘lishi kerak').int().min(2).max(200).optional()),
     JWT_SECRET: z.string('JWT_SECRET majburiy').min(32, 'JWT_SECRET kamida 32 belgi bo‘lishi kerak'),
     JWT_REFRESH_SECRET: z
       .string('JWT_REFRESH_SECRET majburiy')

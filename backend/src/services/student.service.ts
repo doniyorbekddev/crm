@@ -17,6 +17,7 @@ import type {
   UpdateStudentStatusInput,
 } from '../validators/student.validator.js';
 import { auditService } from './audit.service.js';
+import { lockStudentContract } from './debtLock.js';
 import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
 import type { BranchAccess } from './branchAccess.js';
 import { getLeadAccess, visibleLeadFilter } from './leadAccess.js';
@@ -433,9 +434,12 @@ export const studentService = {
       exceptStudentId: id,
     });
     const contractPrice = input.contractPrice ?? finalPrice;
-    const paid = student.debt?.paidAmount.toNumber() ?? 0;
 
     const updated = await prisma.$transaction(async (tx) => {
+      // To'langan summa va joriy narx qulf ostida o'qiladi — parallel to'lov yoki chegirma bilan qarz
+      // eskirgan qiymatda yozilib qolmaydi
+      const locked = await lockStudentContract(tx, id);
+      const paid = locked.debt?.paidAmount ?? 0;
       const record = await tx.student.update({
         where: { id },
         data: {
@@ -459,7 +463,7 @@ export const studentService = {
       });
 
       // Shartnoma narxi o‘zgarsa, qarzdorlik qayta hisoblanadi (to‘langan summa saqlanadi)
-      if (contractPrice !== student.contractPrice.toNumber()) {
+      if (contractPrice !== locked.contractPrice) {
         await tx.debt.update({
           where: { studentId: id },
           data: {

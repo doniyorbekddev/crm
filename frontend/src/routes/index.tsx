@@ -472,6 +472,10 @@ export const router = createBrowserRouter([
                     ],
                   },
                   {
+                    path: "my-work",
+                    lazy: lazyComponent(() => import("@/pages/my-work/MyWorkPage")),
+                  },
+                  {
                     path: "tasks",
                     lazy: lazyComponent(() => import("@/pages/tasks/TasksPage")),
                   },

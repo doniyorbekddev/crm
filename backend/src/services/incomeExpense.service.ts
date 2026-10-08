@@ -508,7 +508,7 @@ export const expenseService = {
         });
         await notifyApprovers(
           tx,
-          { id: expense.id, number: expense.number, amount: input.amount, categoryName: category.name, description: input.description ?? null },
+          { id: expense.id, number: expense.number, amount: input.amount, categoryName: category.name, description: input.description ?? null, branchId },
           actor.id,
         );
         await auditService.recordInTransaction(tx, {

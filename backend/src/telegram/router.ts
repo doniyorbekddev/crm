@@ -23,6 +23,7 @@ import { GRADE_FLOW, SEARCH_FLOW, WORKSPACE_ACTIONS, WORKSPACE_COMMANDS, handleG
 import { resolveStudentId } from './handlers/student.js';
 import { IDLE_FLOW, telegramSessionService } from './session.service.js';
 import { allowChat } from './rateLimit.js';
+import { handleTaskAction } from './handlers/tasks.js';
 import type { BotAttachment, BotContext, TelegramMessage, TelegramUpdate } from './types.js';
 
 /**
@@ -360,6 +361,10 @@ async function handleCallback(context: BotContext, scope: NonNullable<BotContext
   }
   if (action.startsWith('sl_') && scope.actor) {
     const handled = await handleSalesAction(context, scope, action, arg);
+    if (handled) return handled;
+  }
+  if (action.startsWith('tk_') && scope.actor) {
+    const handled = await handleTaskAction(context, scope, action, arg);
     if (handled) return handled;
   }
   if (action.startsWith('ow_') && scope.actor) {

@@ -11,6 +11,7 @@ import { EXTRA_ACTIONS } from './extras.js';
 import { EXAM_ACTIONS } from './exam.js';
 import { WORKSPACE_ACTIONS } from './workspace.js';
 import { PERMISSIONS } from '../../config/permissions.js';
+import { TASK_ACTIONS } from '../taskButtons.js';
 import { permissionService } from '../../services/permission.service.js';
 
 /**
@@ -79,6 +80,8 @@ async function itemsFor(scope: CommandScope): Promise<readonly MenuItem[]> {
   if (!scope.actor) return COMMON_ITEMS;
   const permissions = await permissionService.getRolePermissions(scope.actor.roleId);
   const items: MenuItem[] = [];
+  // Vazifalar — har bir xodimda (o'ziga biriktirilganlar)
+  items.push({ text: '📋 Vazifalarim', data: callback(TASK_ACTIONS.list) });
   if (permissions.has(PERMISSIONS.DASHBOARD_VIEW)) items.push({ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) });
   if (permissions.has(PERMISSIONS.ATTENDANCE_MARK)) items.push(...TEACHER_ITEMS);
   // KPI: o'qituvchi — o'z guruhlari, rahbar (analytics.view) — o'qituvchilar kesimi (TZ 3.1 GAP-10)

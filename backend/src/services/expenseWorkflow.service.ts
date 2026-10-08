@@ -10,6 +10,7 @@ import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { accountIdForMethod, recordTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
+import { closeApproval, openExpenseApproval } from './approval.service.js';
 import { moneyUz } from '../utils/money.js';
 
 /**
@@ -44,9 +45,11 @@ export async function requiresApproval(actor: AuthUser | null, amount: number, d
 /** Tasdiqlash ruxsati bor faol xodimlarga bildirishnoma */
 export async function notifyApprovers(
   db: Prisma.TransactionClient,
-  expense: { id: string; number: number; amount: number; categoryName: string; description: string | null },
+  expense: { id: string; number: number; amount: number; categoryName: string; description: string | null; branchId?: string | null },
   exceptUserId: string | null,
 ): Promise<void> {
+  // "Ishlarim" markazidagi tasdiqlar ro'yxati uchun (xabar bilan bitta tranzaksiyada)
+  await openExpenseApproval(db, expense, exceptUserId);
   const approvers = await db.user.findMany({
     where: {
       deletedAt: null,
@@ -129,6 +132,7 @@ export const expenseWorkflowService = {
 
     await prisma.$transaction(async (tx) => {
       await tx.expense.update({ where: { id }, data: { status: 'APPROVED', approvedById: actor.id, approvedAt: new Date() } });
+      await closeApproval(tx, { entityType: 'expense', entityId: id }, { status: 'APPROVED', decidedById: actor.id });
       if (expense.responsibleId && expense.responsibleId !== actor.id) {
         await notificationService.createInTransaction(tx, {
           userId: expense.responsibleId,
@@ -168,6 +172,7 @@ export const expenseWorkflowService = {
         where: { id },
         data: { status: 'REJECTED', rejectedById: actor.id, rejectedAt: new Date(), rejectReason: input.reason },
       });
+      await closeApproval(tx, { entityType: 'expense', entityId: id }, { status: 'REJECTED', decidedById: actor.id, reason: input.reason });
       if (expense.responsibleId && expense.responsibleId !== actor.id) {
         await notificationService.createInTransaction(tx, {
           userId: expense.responsibleId,

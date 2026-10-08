@@ -19,7 +19,7 @@ export type AlertType =
 export type AlertSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 /** Kritik — yuqori, ogohlantirish — o‘rta, ma’lumot va yutuq — past */
 export type AlertPriority = 'HIGH' | 'MEDIUM' | 'LOW';
-export type AlertStatusFilter = 'open' | 'unread' | 'resolved' | 'all';
+export type AlertStatusFilter = 'open' | 'unread' | 'mine' | 'snoozed' | 'resolved' | 'all';
 export type TargetType = 'LEADS' | 'SALES' | 'REVENUE';
 
 export interface Alert {
@@ -38,6 +38,11 @@ export interface Alert {
   readBy: PersonRef | null;
   resolvedAt: string | null;
   resolvedBy: PersonRef | null;
+  /** Mas'ul xodim (biriktirilgan bo'lsa) */
+  assignee?: PersonRef | null;
+  snoozedUntil?: string | null;
+  /** Shu ogohlantirishdan yaratilgan ochiq vazifalar soni */
+  openTasks?: number;
 }
 
 export interface AlertSummary {

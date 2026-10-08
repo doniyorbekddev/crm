@@ -1,12 +1,13 @@
 import { prisma } from '../config/database.js';
-import { NOTIFICATION_PRIORITY, isMutableNotificationType } from '../config/notificationTypes.js';
+import { NOTIFICATION_PRIORITY, isMutableNotificationType, notificationTypesOf } from '../config/notificationTypes.js';
 import { notificationDeliveryService } from './notificationDelivery.service.js';
+import type { DeliveryButton } from './notificationDelivery.service.js';
 import { NotificationType } from '../generated/prisma/enums.js';
 import type { NotificationPriority, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { toSkipTake } from '../utils/pagination.js';
-import { notificationTypesOf, type NotificationListQuery } from '../validators/notification.validator.js';
+import type { NotificationListQuery } from '../validators/notification.validator.js';
 
 export interface NotificationInput {
   userId: string;
@@ -17,6 +18,10 @@ export interface NotificationInput {
   entityId?: string;
   /** Bir xil bildirishnoma ikki marta yaratilmasligi uchun */
   dedupeKey?: string;
+  /** Web'da ochiladigan sahifa (ilova ichidagi yo'l) */
+  actionUrl?: string;
+  /** Telegram xabari ostidagi tugmalar (bot amali yoki havola) */
+  buttons?: DeliveryButton[];
 }
 
 export interface NotificationDto {
@@ -30,6 +35,11 @@ export interface NotificationDto {
   isRead: boolean;
   readAt: string | null;
   createdAt: string;
+  /** Web'da ochiladigan sahifa (bo'lmasa klient `entityType` dan hisoblaydi) */
+  actionUrl: string | null;
+  snoozedUntil: string | null;
+  /** Shu bildirishnomadan yaratilgan vazifa */
+  taskId: string | null;
 }
 
 export interface NotificationSummaryDto {
@@ -60,6 +70,9 @@ const notificationSelect = {
   entityId: true,
   readAt: true,
   createdAt: true,
+  actionUrl: true,
+  snoozedUntil: true,
+  taskId: true,
 } satisfies Prisma.NotificationSelect;
 
 type NotificationRecord = Prisma.NotificationGetPayload<{ select: typeof notificationSelect }>;
@@ -76,7 +89,15 @@ function toDto(notification: NotificationRecord): NotificationDto {
     isRead: notification.readAt !== null,
     readAt: notification.readAt?.toISOString() ?? null,
     createdAt: notification.createdAt.toISOString(),
+    actionUrl: notification.actionUrl,
+    snoozedUntil: notification.snoozedUntil?.toISOString() ?? null,
+    taskId: notification.taskId,
   };
+}
+
+/** Kechiktirilmagan (yoki kechiktirish muddati o'tgan) bildirishnomalar */
+function notSnoozed(now: Date = new Date()): Prisma.NotificationWhereInput {
+  return { OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }] };
 }
 
 function dayStart(date: string): Date {
@@ -86,6 +107,8 @@ function dayStart(date: string): Date {
 function buildWhere(userId: string, query: Partial<NotificationListQuery>): Prisma.NotificationWhereInput {
   return {
     userId,
+    // Kechiktirilganlar muddati kelguncha ro'yxatda ko'rinmaydi
+    OR: notSnoozed().OR!,
     ...(query.unreadOnly ? { readAt: null } : {}),
     ...(query.readOnly ? { readAt: { not: null } } : {}),
     ...(query.type ? { type: query.type } : {}),
@@ -115,6 +138,7 @@ function toCreateData(input: NotificationInput): Prisma.NotificationUncheckedCre
     entityType: input.entityType ?? null,
     entityId: input.entityId ?? null,
     dedupeKey: input.dedupeKey ?? null,
+    actionUrl: input.actionUrl ?? null,
   };
 }
 
@@ -130,6 +154,7 @@ async function enqueueExternal(tx: Prisma.TransactionClient, inputs: Notificatio
       body: input.message,
       target: { userId: input.userId },
       dedupeKey: input.dedupeKey ?? null,
+      ...(input.buttons ? { buttons: input.buttons } : {}),
     });
   }
 }
@@ -237,7 +262,7 @@ export const notificationService = {
     const total = await prisma.notification.count({ where: { userId: actor.id } });
     const grouped = await prisma.notification.groupBy({
       by: ['type'],
-      where: { userId: actor.id, readAt: null },
+      where: { userId: actor.id, readAt: null, ...notSnoozed() },
       _count: { _all: true },
     });
 
@@ -330,6 +355,13 @@ export const notificationService = {
   },
 
   /** Hammasini o‘qilgan deb belgilaydi, nechtasi belgilangani qaytariladi */
+  /** Kechiktirish: shu vaqtgacha ro'yxatda va hisoblagichda ko'rinmaydi */
+  async snooze(actor: AuthUser, id: string, until: Date): Promise<NotificationDto> {
+    const updated = await prisma.notification.updateMany({ where: { id, userId: actor.id }, data: { snoozedUntil: until } });
+    if (updated.count === 0) throw AppError.notFound('Bildirishnoma topilmadi');
+    return toDto(await prisma.notification.findUniqueOrThrow({ where: { id }, select: notificationSelect }));
+  },
+
   async markAllRead(actor: AuthUser): Promise<number> {
     const result = await prisma.notification.updateMany({
       where: { userId: actor.id, readAt: null },

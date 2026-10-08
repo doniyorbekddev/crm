@@ -130,7 +130,9 @@ sudo certbot --nginx -d crm.example.uz        # sertifikat + avtomatik yangilani
 Certbot HTTPS blokini o‘zi qo‘shadi. Shundan keyin:
 
 - `CLIENT_URL=https://crm.example.uz` ekanini tekshiring;
-- backend `TRUST_PROXY=1` bilan ishlaydi (compose’da qo‘yilgan) — IP va rate limit to‘g‘ri hisoblanadi;
+- backend `TRUST_PROXY=1` bilan ishlaydi (compose’da qo‘yilgan). Haqiqiy mijoz IP sini frontend konteyneridagi Nginx aniqlaydi
+  (`frontend/nginx/app.conf`, `real_ip`) va backendga bitta manzil yuboradi — host Nginx bo‘lsa ham, bo‘lmasa ham. Deploy’dan keyin
+  tekshiring: [CRM-4.0-PHASE-0.md](CRM-4.0-PHASE-0.md) §1 «Production Verification Required»;
 - refresh cookie `secure` bo‘ladi (`NODE_ENV=production`), ya’ni **faqat HTTPS orqali** yuboriladi;
 - HSTS sarlavhasi productionda backend tomonidan qo‘yiladi.
 
@@ -275,13 +277,11 @@ yurishi; server qayta ishga tushgach 1–15 daqiqada to'ladi). Prometheus: `crm_
 > Baza zaxirasi bilan birga shu volume'ni ham zaxiralang, aks holda tiklangan bazadagi hujjat yozuvlari
 > faylsiz qoladi:
 >
-> ```bash
-> docker run --rm -v crm_uploads:/data -v "$PWD/backups":/backup alpine \
->   tar czf /backup/uploads-$(date +%F_%H-%M).tar.gz -C /data .
-> ```
+> `backup-db.sh` endi shu fayllarni ham arxivlaydi (`backups/uploads-<sana>.tar.gz`) va `BACKUP_REMOTE` berilsa nusxalarni
+> boshqa serverga ko‘chiradi. To‘liq tartib, tiklash va hali sozlanishi kerak bo‘lganlar: [CRM-4.0-BACKUP-RECOVERY.md](CRM-4.0-BACKUP-RECOVERY.md).
 
 ```bash
-./scripts/backup-db.sh                     # backups/crm-<sana>.sql.gz, 30 kun saqlanadi
+./scripts/backup-db.sh                     # baza + yuklangan fayllar; baza nusxasi 30 kun (cron: 14), fayllar 7 kun
 ./scripts/verify-backup.sh                 # oxirgi nusxani tiklab ko‘radi (ishchi bazaga tegmaydi)
 ./scripts/restore-db.sh backups/crm-2026-09-12_03-00.sql.gz
 ```
@@ -351,7 +351,7 @@ crontab -e
 | Loginda 401, lekin parol to‘g‘ri | `CLIENT_URL` mos emas — cookie yuborilmayapti | `CLIENT_URL` ni brauzerdagi manzil bilan bir xil qiling, keyin `up -d` |
 | Sahifani yangilaganda 404 | Nginx SPA fallback ishlamayapti | `frontend/nginx/app.conf` dagi `try_files ... /index.html` joyida ekanini tekshiring |
 | `migrate` servisi xato beradi | Migratsiya konflikti | `docker compose ... logs migrate`, zaxiradan tiklab qayta urinib ko‘ring |
-| Rate limit juda tez ishlaydi | `TRUST_PROXY` noto‘g‘ri — barcha so‘rovlar bitta IP’dan ko‘rinadi | Nginx `X-Forwarded-For` yuborishini va `TRUST_PROXY=1` ekanini tekshiring |
+| Rate limit juda tez ishlaydi yoki bir kishining xato parollari hammani bloklaydi | Barcha so‘rovlar bitta IP’dan ko‘rinadi | `SELECT ip, count(*) FROM audit_logs WHERE "createdAt" > now() - interval '1 day' GROUP BY ip` — bitta manzil chiqsa, `frontend/nginx/app.conf` dagi `real_ip` bloki va `TRUST_PROXY=1` ni tekshiring ([CRM-4.0-PHASE-0.md](CRM-4.0-PHASE-0.md) §1) |
 | 413 xatolik | So‘rov tanasi 256 KB dan katta | Bu ataylab qo‘yilgan chegara; fayl yuklash alohida endpoint orqali bo‘ladi |
 
 ---

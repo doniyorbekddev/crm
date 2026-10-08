@@ -242,7 +242,7 @@ export interface ExecutiveSummary {
   insights: ExecutiveInsight[];
   forecast: ExecutiveForecast | null;
   trend: ExecutiveTrendPoint[];
-  attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger' }>;
+  attention: Array<{ key: string; label: string; value: number; tone: 'warning' | 'danger'; link?: string }>;
 }
 
 /** TZ 3.0 §76 — rahbar panelidagi akademiya holati (oxirgi `windowDays` kun) */

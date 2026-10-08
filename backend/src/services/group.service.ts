@@ -290,6 +290,8 @@ export const groupService = {
           courseId: input.courseId,
           teacherId: input.teacherId ?? null,
           room: input.room ?? null,
+          // Ziddiyat tekshiruvi yuqorida shu xona bilan o'tkazilgan — saqlanmasa, xona almashtirish jimgina yo'qoladi
+          roomId: input.roomId ?? null,
           startDate: input.startDate,
           endDate: input.endDate ?? null,
           scheduleDays: input.scheduleDays,

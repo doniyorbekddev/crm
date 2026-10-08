@@ -157,6 +157,29 @@ describe.skipIf(!hasTestDatabase)('Direktor paneli (integratsion)', () => {
     expect(keys).not.toContain('pendingSalaries');
   });
 
+  it('diqqat chiplari: har birida filtrli havola; muddati o‘tgan vazifa va tasdiq kutayotgan so‘rov ham ko‘rinadi', async () => {
+    const { token, user } = await createUserWithToken(app, { role: 'OWNER' });
+    await prisma.task.createMany({
+      data: [
+        { title: 'Kechikkan', assigneeId: user.id, dueAt: new Date(Date.now() - 3_600_000) },
+        { title: 'Vaqti bor', assigneeId: user.id, dueAt: new Date(Date.now() + 3_600_000) },
+        { title: 'Yopilgan', assigneeId: user.id, dueAt: new Date(Date.now() - 3_600_000), status: 'DONE' },
+      ],
+    });
+    await prisma.approvalRequest.create({ data: { type: 'EXPENSE', entityType: 'expense', entityId: 'e1', title: 'Xarajat #1' } });
+    await prisma.alert.create({ data: { type: 'HIGH_DEBT', severity: 'CRITICAL', title: 'Kritik', message: '-' } });
+
+    const response = await request(app).get('/api/dashboard/executive').set(bearer(token));
+    const attention = response.body.data.attention as Array<{ key: string; value: number; link: string }>;
+    const byKey = new Map(attention.map((row) => [row.key, row]));
+
+    expect(byKey.get('overdueTasks')).toMatchObject({ value: 1, link: '/tasks?scope=all&overdue=1' });
+    expect(byKey.get('pendingApprovals')).toMatchObject({ value: 1, link: '/expenses' });
+    expect(byKey.get('criticalAlerts')).toMatchObject({ value: 1, link: '/alerts?severity=CRITICAL' });
+    // Har chip ilova ichidagi sahifaga olib boradi
+    expect(attention.every((row) => /^\/[a-z]/.test(row.link))).toBe(true);
+  });
+
   it('oxirgi 6 oy dinamikasi qaytadi', async () => {
     const { token } = await createUserWithToken(app, { role: 'OWNER' });
 

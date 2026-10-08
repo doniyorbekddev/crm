@@ -54,8 +54,10 @@ chatda — faqat umumiy "ovozsiz" rejim (`TelegramLink.muted`). Tizim turi har d
 
 ## Toifa bo'yicha filtr
 
-`GET /api/notifications?category=…` — turlarning yiriklashtirilgan guruhi: `SALES`, `FINANCE`, `ATTENDANCE`, `HOMEWORK`,
-`EXAM`, `ACADEMIC`, `SYSTEM`. Tur → toifa jadvali `backend/src/validators/notification.validator.ts` da
-(`NOTIFICATION_TYPE_CATEGORY`); u `satisfies Record<NotificationType, …>` bilan tekshiriladi, shuning uchun enumga yangi
-tur qo'shilsa, toifasi ko'rsatilmaguncha backend kompilyatsiya bo'lmaydi. Frontenddagi nusxa — `utils/notificationLabels.ts`.
+`GET /api/notifications?category=…` — turlarning yiriklashtirilgan guruhi: `ATTENDANCE`, `PAYMENT`, `HOMEWORK`, `EXAM`,
+`ACHIEVEMENT`, `MARKETING`, `SYSTEM`. **Yagona manba** — `backend/src/config/notificationTypes.ts` (`NOTIFICATION_CATEGORIES`,
+`NOTIFICATION_CATEGORY`): bot sozlamalari ham, ro'yxat filtri ham shu ta'rifdan foydalanadi. Jadval `Record<NotificationType, …>`
+bo'lgani uchun enumga yangi tur qo'shilsa, toifasi ko'rsatilmaguncha backend kompilyatsiya bo'lmaydi. Frontenddagi nusxa
+(`utils/notificationLabels.ts`) kontrakt testi bilan solishtiriladi (`backend/tests/unit/notificationCategories.test.ts`).
+Eski nomlar qabul qilinadi va o'giriladi: `SALES` → `MARKETING`, `FINANCE` → `PAYMENT`, `ACADEMIC` → `ACHIEVEMENT`.
 `type` bilan birga berilsa, ikkalasi AND bo'lib qo'llanadi. Parametr ixtiyoriy — berilmasa javob avvalgidek.

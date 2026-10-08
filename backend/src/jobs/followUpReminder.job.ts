@@ -3,6 +3,7 @@ import { formatLeadNumber } from '../config/leadLabels.js';
 import { notificationService } from '../services/notification.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 const INTERVAL_MS = 60_000;
 const BATCH_SIZE = 50;
@@ -101,12 +102,15 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const now = new Date();
-    const reminders = await sendDueReminders(now);
-    const overdue = await sendOverdueAlerts(now);
-    if (reminders > 0 || overdue > 0) {
-      logger.info({ reminders, overdue }, 'Follow-up eslatmalari yuborildi');
-    }
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('followUpReminder', async () => {
+      const now = new Date();
+      const reminders = await sendDueReminders(now);
+      const overdue = await sendOverdueAlerts(now);
+      if (reminders > 0 || overdue > 0) {
+        logger.info({ reminders, overdue }, 'Follow-up eslatmalari yuborildi');
+      }
+    });
     reportJobSuccess('followUpReminder');
   } catch (error) {
     reportJobFailure('followUpReminder', error, 'Follow-up eslatmalari jobida xatolik');

@@ -1,6 +1,7 @@
 import { pendingUploadService } from '../services/pendingUpload.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Yetim fayllar (TZ 3.1 PHASE 21): 24 soatdan beri hech narsaga bog'lanmagan yuklamalar diskdan o'chiriladi.
@@ -15,8 +16,11 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const result = await pendingUploadService.sweep(new Date());
-    if (result.removed + result.kept + result.failed > 0) logger.info(result, 'Yetim yuklamalar tozalandi');
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('orphanUploads', async () => {
+      const result = await pendingUploadService.sweep(new Date());
+      if (result.removed + result.kept + result.failed > 0) logger.info(result, 'Yetim yuklamalar tozalandi');
+    });
     reportJobSuccess('orphanUploads');
   } catch (error) {
     reportJobFailure('orphanUploads', error, 'Yetim fayllarni tozalash jobida xatolik');

@@ -5,6 +5,7 @@ import { progressSnapshotService } from '../services/progressSnapshot.service.js
 import { businessDateString, currentBusinessMonth } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Tungi progress vazifasi (TZ 3.0 §26–27), kuniga bir marta, o'quv markaz vaqti bilan 03:00 dan keyin:
@@ -40,9 +41,12 @@ async function runOnce(): Promise<void> {
   if (running || lastRunDay === today || localHour(now) < RUN_HOUR) return;
   running = true;
   try {
-    const result = await runNightlyProgress(now);
-    lastRunDay = today;
-    logger.info(result, 'Tungi progress: o‘zlashtirish va oylik snapshot');
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('progress', async () => {
+      const result = await runNightlyProgress(now);
+      lastRunDay = today;
+      logger.info(result, 'Tungi progress: o‘zlashtirish va oylik snapshot');
+    });
     reportJobSuccess('progress');
   } catch (error) {
     reportJobFailure('progress', error, 'Tungi progress jobida xatolik');

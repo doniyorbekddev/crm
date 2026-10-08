@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { isWeeklyReportTime, sendWeeklyReports } from '../src/jobs/weeklyReport.job.js';
@@ -313,6 +313,39 @@ describe.skipIf(!hasTestDatabase)('Ota-ona kabineti va haftalik hisobot (PHASE 3
       expect(notifications[0]!.message).toContain('darsdan');
       const deliveries = await prisma.notificationDelivery.count({ where: { title: { startsWith: 'Haftalik hisobot' }, channel: 'TELEGRAM' } });
       expect(deliveries).toBe(1);
+    });
+
+    it('job: hisoboti yuborilgan o‘quvchi uchun keyingi yurishda hisobot qayta qurilmaydi', async () => {
+      const { student } = await seedWeek();
+      const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+      await request(app).post(`/api/students/${student.id}/portal-account`).set(bearer(admin)).send({});
+      // Faqat Telegrami bor (kabinet hisobi yo'q) o'quvchi ham "yuborilgan" deb tanilishi kerak
+      const telegramOnly = await createStudent(student.courseId, null, 'Telegramli');
+      await prisma.telegramLink.create({ data: { studentId: telegramOnly.id, linkCode: 'weekly-tg-only', chatId: '778', verifiedAt: new Date() } });
+      const build = vi.spyOn(weeklyReportService, 'build');
+
+      try {
+        const first = await sendWeeklyReports();
+        expect(first.students).toBe(2);
+        expect(first.notified).toBeGreaterThan(0);
+        expect(build).toHaveBeenCalledTimes(2);
+
+        build.mockClear();
+        const second = await sendWeeklyReports();
+        // Qabul qiluvchilar soni o'sha, lekin og'ir ish (hisobot + AI xulosasi) takrorlanmaydi
+        expect(second).toEqual({ students: 2, notified: 0 });
+        expect(build).not.toHaveBeenCalled();
+
+        // Keyin qo'shilgan o'quvchi — faqat u uchun quriladi
+        const late = await createStudent(student.courseId, null, 'Kechikkan');
+        await prisma.telegramLink.create({ data: { studentId: late.id, linkCode: 'weekly-late', chatId: '779', verifiedAt: new Date() } });
+        const third = await sendWeeklyReports();
+        expect(third.students).toBe(3);
+        expect(build).toHaveBeenCalledTimes(1);
+        expect(build.mock.calls[0]![0]).toBe(late.id);
+      } finally {
+        build.mockRestore();
+      }
     });
   });
 

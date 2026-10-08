@@ -14,7 +14,8 @@ import type {
   PaymentStatsQuery,
 } from '../validators/payment.validator.js';
 import { auditService } from './audit.service.js';
-import { branchFilter, getBranchAccess } from './branchAccess.js';
+import { assertBranchAccess, branchFilter, getBranchAccess } from './branchAccess.js';
+import { lockDebt } from './debtLock.js';
 import type { BranchAccess } from './branchAccess.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { notificationService } from './notification.service.js';
@@ -243,6 +244,28 @@ async function recalculateDebt(tx: Prisma.TransactionClient, studentId: string):
   return { paid, remaining };
 }
 
+/**
+ * To'lovni o'zgartirishdan (bekor qilish, qaytarish) oldin: avval o'quvchining qarz qatori, keyin to'lov
+ * qatori qulflanadi — to'lov yaratish bilan bir xil tartib. Qulf ostida to'lov hali bekor qilinmaganini tekshiradi.
+ */
+async function lockPaymentForChange(tx: Prisma.TransactionClient, payment: { id: string; studentId: string }): Promise<void> {
+  await lockDebt(tx, payment.studentId);
+  const [row] = await tx.$queryRaw<Array<{ deletedAt: Date | null }>>`
+    SELECT "deletedAt" FROM "payments" WHERE "id" = ${payment.id} FOR UPDATE
+  `;
+  if (!row) {
+    throw AppError.notFound('To‘lov topilmadi');
+  }
+  if (row.deletedAt) {
+    throw AppError.conflict('Bu to‘lov allaqachon bekor qilingan');
+  }
+}
+
+/** Amal tugagach natijani qaytarish uchun — doira amalning o'zida tekshirilgan (webhook aktyorsiz ishlaydi) */
+async function loadPaymentDto(id: string): Promise<PaymentDto> {
+  return toPaymentDto(await prisma.payment.findUniqueOrThrow({ where: { id }, select: paymentSelect }));
+}
+
 export const paymentService = {
   async list(actor: AuthUser, query: PaymentListQuery): Promise<{ items: PaymentDto[]; total: number }> {
     const where = buildPaymentWhere(query, await getBranchAccess(actor));
@@ -257,8 +280,9 @@ export const paymentService = {
   },
 
   /** Filtrga mos to‘lovlar — eksport uchun; "Jami" faqat bekor qilinmaganlarni qo‘shadi */
-  async exportTable(query: PaymentListQuery): Promise<ExportTable> {
-    const where = buildPaymentWhere(query);
+  async exportTable(actor: AuthUser, query: PaymentListQuery): Promise<ExportTable> {
+    // Ro'yxat bilan bir xil filial doirasi — eksport ro'yxatda ko'rinmaydigan to'lovni bermaydi
+    const where = buildPaymentWhere(query, await getBranchAccess(actor));
     const records = await prisma.payment.findMany({
       where,
       select: paymentSelect,
@@ -322,8 +346,9 @@ export const paymentService = {
     };
   },
 
-  async getById(id: string): Promise<PaymentDto> {
-    const payment = await prisma.payment.findUnique({ where: { id }, select: paymentSelect });
+  /** Boshqa filial to'lovi — "topilmadi" (mavjudligi oshkor qilinmaydi), ro'yxatdagi doira bilan bir xil */
+  async getById(actor: AuthUser, id: string): Promise<PaymentDto> {
+    const payment = await prisma.payment.findFirst({ where: { id, ...branchFilter(await getBranchAccess(actor)) }, select: paymentSelect });
     if (!payment) {
       throw AppError.notFound('To‘lov topilmadi');
     }
@@ -510,7 +535,7 @@ export const paymentService = {
       return { id: payment.id, replayed: false };
     });
 
-    return { payment: await this.getById(result.id), replayed: result.replayed };
+    return { payment: await loadPaymentDto(result.id), replayed: result.replayed };
   },
 
   /**
@@ -520,11 +545,12 @@ export const paymentService = {
   async remove(actor: AuthUser, id: string, input: DeletePaymentInput, client: ClientInfo): Promise<PaymentDto> {
     const payment = await prisma.payment.findUnique({
       where: { id },
-      select: { id: true, number: true, studentId: true, amount: true, paidAt: true, teacherId: true, deletedAt: true, transactionId: true },
+      select: { id: true, number: true, studentId: true, amount: true, paidAt: true, teacherId: true, deletedAt: true, transactionId: true, branchId: true },
     });
     if (!payment) {
       throw AppError.notFound('To‘lov topilmadi');
     }
+    assertBranchAccess(await getBranchAccess(actor), payment.branchId);
     if (payment.deletedAt) {
       throw AppError.conflict('Bu to‘lov allaqachon bekor qilingan');
     }
@@ -534,6 +560,12 @@ export const paymentService = {
     await assertFinancialPeriodOpen(prisma, payment.paidAt);
 
     await prisma.$transaction(async (tx) => {
+      // Yuqoridagi tekshiruvlar qulfsiz o'qilgan — bir vaqtda kelgan ikkinchi bekor qilish yoki qaytarish
+      // ularni eskirtirishi mumkin. Shu sabab qulf ostida qayta tekshiriladi.
+      await lockPaymentForChange(tx, { id, studentId: payment.studentId });
+      if ((await tx.paymentRefund.count({ where: { paymentId: id } })) > 0) {
+        throw AppError.conflict('To‘lovning bir qismi qaytarilgan — bekor qilib bo‘lmaydi. Qolgan summani “Pulni qaytarish” orqali qaytaring');
+      }
       await tx.payment.update({
         where: { id },
         data: { deletedAt: new Date(), deletedById: actor.id, deleteReason: input.reason },
@@ -564,7 +596,7 @@ export const paymentService = {
       });
     });
 
-    return this.getById(id);
+    return loadPaymentDto(id);
   },
 
   /**
@@ -586,6 +618,7 @@ export const paymentService = {
         paidAt: true,
         teacherId: true,
         deletedAt: true,
+        branchId: true,
         student: { select: { firstName: true, lastName: true } },
         refunds: { select: { amount: true } },
       },
@@ -593,6 +626,8 @@ export const paymentService = {
     if (!payment) {
       throw AppError.notFound('To‘lov topilmadi');
     }
+    // Provayder webhook'i aktyorsiz keladi — unda doira provayder tranzaksiyasi bilan belgilangan
+    if (actor) assertBranchAccess(await getBranchAccess(actor), payment.branchId);
     if (payment.deletedAt) {
       throw AppError.conflict('Bekor qilingan to‘lovni qaytarib bo‘lmaydi');
     }
@@ -609,7 +644,23 @@ export const paymentService = {
     const refundedAt = new Date();
     await assertFinancialPeriodOpen(prisma, refundedAt);
 
+    let refundedBefore = refunded;
     await prisma.$transaction(async (tx) => {
+      // Qaytariladigan summa yuqorida qulfsiz hisoblangan. Ikki parallel so'rov ikkalasi ham "yetarli" deb
+      // o'tib, birgalikda to'lov summasidan oshib ketmasligi uchun qulf ostida qayta hisoblanadi.
+      await lockPaymentForChange(tx, { id, studentId: payment.studentId });
+      const already = await tx.paymentRefund.aggregate({ where: { paymentId: id }, _sum: { amount: true } });
+      refundedBefore = already._sum.amount?.toNumber() ?? 0;
+      const refundableNow = payment.amount.toNumber() - refundedBefore;
+      if (refundableNow <= 0) {
+        throw AppError.conflict('To‘lov to‘liq qaytarilgan');
+      }
+      if (input.amount > refundableNow) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          { field: 'amount', message: `Eng ko‘pi ${moneyUz(refundableNow)} qaytarish mumkin` },
+        ]);
+      }
+
       const accountId = input.accountId
         ? (await tx.financialAccount.findFirst({ where: { id: input.accountId, isActive: true }, select: { id: true } }))?.id
         : await accountIdForMethod(tx, input.method);
@@ -673,14 +724,14 @@ export const paymentService = {
           amount: input.amount,
           method: input.method,
           reason: input.reason,
-          refundedTotal: refunded + input.amount,
+          refundedTotal: refundedBefore + input.amount,
           remaining,
         },
         ...client,
       });
     });
 
-    return this.getById(id);
+    return loadPaymentDto(id);
   },
 
 };

@@ -1,5 +1,6 @@
 import { notificationDeliveryService } from '../services/notificationDelivery.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Yetkazish navbatini qayta ishlaydi. Har daqiqada — foydalanuvchi xabarni tez olishi kerak,
@@ -13,7 +14,10 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    await notificationDeliveryService.processQueue(new Date());
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('notificationDelivery', async () => {
+      await notificationDeliveryService.processQueue(new Date());
+    });
     reportJobSuccess('notificationDelivery');
   } catch (error) {
     reportJobFailure('notificationDelivery', error, 'Yetkazish navbati jobida xatolik');

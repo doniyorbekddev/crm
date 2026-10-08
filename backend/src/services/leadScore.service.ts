@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import type { LeadStatus, LeadTemperature, Prisma } from '../generated/prisma/client.js';
+import type { LeadStatus, LeadTemperature } from '../generated/prisma/client.js';
 
 /**
  * Lead scoring — "bu lead qanchalik qizigan?" degan savolga 0–100 ball bilan javob.
@@ -53,6 +53,8 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
 };
 
 const DAY_MS = 86_400_000;
+/** Fon hisobida bitta bo'lakdagi leadlar soni */
+const RECALCULATE_BATCH = 1000;
 /** Shu kundan keyin lead sovuy boshlaydi */
 const STALE_AFTER_DAYS = 14;
 
@@ -219,52 +221,74 @@ export const leadScoreService = {
     );
   },
 
-  /** Yopilmagan barcha leadlarni qayta hisoblaydi (fon vazifasi) */
+  /**
+   * Yopilmagan barcha leadlarni qayta hisoblaydi (fon vazifasi).
+   * Leadlar `id` bo'yicha bo'laklab o'qiladi va har bo'lak bitta UPDATE bilan yoziladi —
+   * xotira ham, so'rovlar soni ham leadlar soniga qarab o'smaydi.
+   */
   async recalculateAll(now: Date = new Date()): Promise<{ updated: number; hot: number }> {
-    const leads = await prisma.lead.findMany({
-      where: { deletedAt: null, status: { notIn: ['WON', 'LOST'] } },
-      select: {
-        id: true,
-        status: true,
-        courseId: true,
-        sourceId: true,
-        lastContactedAt: true,
-        nextFollowUpAt: true,
-        createdAt: true,
-        calls: { select: { result: true } },
-      },
-    });
-    if (leads.length === 0) return { updated: 0, hot: 0 };
-
     const conversion = await loadSourceConversion();
     const stamp = new Date();
+    let updated = 0;
     let hot = 0;
+    let cursor: string | undefined;
 
-    for (const lead of leads) {
-      const result = computeLeadScore(
-        {
-          status: lead.status,
-          courseId: lead.courseId,
-          lastContactedAt: lead.lastContactedAt,
-          nextFollowUpAt: lead.nextFollowUpAt,
-          createdAt: lead.createdAt,
-          calls: lead.calls,
-          sourceConversion: conversion.get(lead.sourceId) ?? null,
-        },
-        now,
-      );
-      if (result.temperature === 'HOT' || result.temperature === 'VERY_HOT') hot += 1;
-      await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-          score: result.score,
-          temperature: result.temperature,
-          scoreFactors: result.factors as unknown as Prisma.InputJsonValue,
-          scoreUpdatedAt: stamp,
+    for (;;) {
+      const leads = await prisma.lead.findMany({
+        where: { deletedAt: null, status: { notIn: ['WON', 'LOST'] }, ...(cursor ? { id: { gt: cursor } } : {}) },
+        orderBy: { id: 'asc' },
+        take: RECALCULATE_BATCH,
+        select: {
+          id: true,
+          status: true,
+          courseId: true,
+          sourceId: true,
+          lastContactedAt: true,
+          nextFollowUpAt: true,
+          createdAt: true,
+          calls: { select: { result: true } },
         },
       });
+      if (leads.length === 0) break;
+      cursor = leads[leads.length - 1]!.id;
+
+      const rows = leads.map((lead) => {
+        const result = computeLeadScore(
+          {
+            status: lead.status,
+            courseId: lead.courseId,
+            lastContactedAt: lead.lastContactedAt,
+            nextFollowUpAt: lead.nextFollowUpAt,
+            createdAt: lead.createdAt,
+            calls: lead.calls,
+            sourceConversion: conversion.get(lead.sourceId) ?? null,
+          },
+          now,
+        );
+        if (result.temperature === 'HOT' || result.temperature === 'VERY_HOT') hot += 1;
+        return { id: lead.id, score: result.score, temperature: result.temperature, factors: result.factors };
+      });
+
+      // `updatedAt` ga tegilmaydi: bu tizim hisobi, lead tahriri emas ("oxirgi o'zgargan" saralashi buzilmasin).
+      // Faqat natijasi o'zgargan leadlar yoziladi: job har 30 daqiqada yuradi, ball esa kamdan-kam o'zgaradi —
+      // `scoreUpdatedAt` shu sababli "oxirgi o'zgarish" vaqti.
+      await prisma.$executeRaw`
+        UPDATE "leads" AS l
+        SET "score" = v."score",
+            "temperature" = v."temperature"::"LeadTemperature",
+            "scoreFactors" = v."factors",
+            "scoreUpdatedAt" = ${stamp}
+        FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+          AS v("id" text, "score" smallint, "temperature" text, "factors" jsonb)
+        WHERE l."id" = v."id"
+          AND (l."score" IS DISTINCT FROM v."score"
+            OR l."temperature"::text IS DISTINCT FROM v."temperature"
+            OR l."scoreFactors" IS DISTINCT FROM v."factors")
+      `;
+      updated += rows.length;
+      if (leads.length < RECALCULATE_BATCH) break;
     }
 
-    return { updated: leads.length, hot };
+    return { updated, hot };
   },
 };

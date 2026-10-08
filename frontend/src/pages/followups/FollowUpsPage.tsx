@@ -29,6 +29,7 @@ import { formatDateTime, formatPhone } from '@/utils/format';
 import { leadFullName } from '@/utils/leadLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LEAD_PRIORITY_LABELS, LEAD_PRIORITY_TONES } from '@/utils/leadLabels';
+import { useInitialParam } from '@/hooks/useInitialParam';
 
 const PAGE_SIZE = 20;
 
@@ -42,7 +43,7 @@ export default function FollowUpsPage() {
   const canDelete = usePermission(PERMISSIONS.FOLLOWUP_DELETE);
   const canViewAll = usePermission(PERMISSIONS.LEAD_VIEW_ALL);
 
-  const [scope, setScope] = useState<FollowUpScope>('today');
+  const [scope, setScope] = useState<FollowUpScope>(useInitialParam<FollowUpScope>('scope', ['all', 'overdue', 'today', 'tomorrow', 'upcoming', 'done'], 'today'));
   const [assignedTo, setAssignedTo] = useState(canViewAll ? '' : 'me');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);

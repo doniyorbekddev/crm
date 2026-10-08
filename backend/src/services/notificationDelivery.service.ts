@@ -39,12 +39,17 @@ type QueueItem = {
   broadcast: { mediaPath: string | null; mediaFileName: string | null; mediaFileId: string | null } | null;
 };
 
-/** `[{ text, url }]` → bitta ustunli havola tugmalari */
-function urlKeyboard(buttons: Prisma.JsonValue): InlineKeyboard | undefined {
+/**
+ * Saqlangan tugmalar → klaviatura. Havola tugmalari (`url`, broadcast) — har biri alohida qatorda;
+ * bot amali tugmalari (`data`, masalan vazifa "Bajarildi") — bitta qatorda yonma-yon.
+ * Shakli noto'g'ri yozuvlar tashlab yuboriladi (JSON ustunga ishonilmaydi).
+ */
+function keyboardOf(buttons: Prisma.JsonValue): InlineKeyboard | undefined {
   if (!Array.isArray(buttons)) return undefined;
-  const rows = buttons
-    .filter((button): button is { text: string; url: string } => typeof button === 'object' && button !== null && typeof (button as { text?: unknown }).text === 'string' && typeof (button as { url?: unknown }).url === 'string')
-    .map((button) => [{ text: button.text, url: button.url, data: '' }]);
+  const items = (buttons as unknown[]).filter((button): button is Record<string, unknown> => typeof button === 'object' && button !== null && !Array.isArray(button) && typeof (button as { text?: unknown }).text === 'string');
+  const links = items.filter((button) => typeof button.url === 'string').map((button) => [{ text: button.text as string, url: button.url as string, data: '' }]);
+  const actions = items.filter((button) => typeof button.url !== 'string' && typeof button.data === 'string' && button.data !== '').map((button) => ({ text: button.text as string, data: button.data as string }));
+  const rows = [...links, ...(actions.length > 0 ? [actions] : [])];
   return rows.length ? rows : undefined;
 }
 
@@ -57,7 +62,7 @@ async function sendItem(chatId: string, item: QueueItem, uploaded: Map<string, s
   // (aks holda "<dars>" Telegramda "&lt;dars&gt;" bo'lib ko'rinardi)
   const body = item.broadcastId ? item.body : escapeHtml(item.body);
   const text = `<b>${escapeHtml(item.title)}</b>\n${body}`;
-  const keyboard = urlKeyboard(item.buttons);
+  const keyboard = keyboardOf(item.buttons);
   const kind = item.mediaKind === 'photo' || item.mediaKind === 'document' ? item.mediaKind : null;
   if (!kind) return telegramService.sendMessage(chatId, text, keyboard);
 
@@ -91,7 +96,11 @@ export interface EnqueueInput {
   target: { userId?: string | null; studentId?: string | null; parentId?: string | null };
   /** Bildirishnomaning dedupe kaliti (bo'lsa) — kanal qo'shilib unikal kalit yasaladi */
   dedupeKey?: string | null;
+  /** Xabar ostidagi tugmalar: havola (`url`) yoki bot amali (`data`) */
+  buttons?: DeliveryButton[];
 }
+
+export type DeliveryButton = { text: string; url: string } | { text: string; data: string };
 
 type Tx = Prisma.TransactionClient;
 
@@ -131,6 +140,7 @@ export const notificationDeliveryService = {
       title: input.title,
       body: input.body,
       dedupeKey: input.dedupeKey ? `${input.dedupeKey}:${channel}:${chat.id}`.slice(0, 200) : null,
+      ...(input.buttons?.length ? { buttons: input.buttons as unknown as Prisma.InputJsonValue } : {}),
     }));
 
     const result = await tx.notificationDelivery.createMany({ data: rows, skipDuplicates: true });

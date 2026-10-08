@@ -245,6 +245,10 @@ export const referralService = {
     const evaluation = await discountService.evaluate(referral.referrerStudentId, { ruleKey: REFERRAL_RULE_KEY });
 
     await prisma.$transaction(async (tx) => {
+      // Holat sharti yangilanishning o'zida: ikki marta bosilganda yoki ikki xodim bir vaqtda bosganda
+      // faqat bittasi "egallaydi", ikkinchisi 409 oladi (ikki bonus berilmaydi)
+      const claimed = await tx.referral.updateMany({ where: { id, status: 'CONVERTED' }, data: { status: 'REWARDED' } });
+      if (claimed.count === 0) throw AppError.conflict('Bu taklif uchun bonus allaqachon berilgan');
       const discountId = await discountService.grantInTransaction(tx, {
         studentId: referral.referrerStudentId,
         ruleId: rule.id,
@@ -255,6 +259,10 @@ export const referralService = {
         amount: evaluation.amount,
         note: 'Do‘st taklif qilgani uchun bonus',
         grantedById: actor.id,
+        expected: {
+          contractPrice: evaluation.newContractPrice + evaluation.amount,
+          discountTotal: evaluation.basePrice - (evaluation.newContractPrice + evaluation.amount),
+        },
       });
       await tx.referral.update({
         where: { id },

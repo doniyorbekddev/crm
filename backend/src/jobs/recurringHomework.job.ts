@@ -1,5 +1,6 @@
 import { recurringHomeworkService } from '../services/recurringHomework.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Takrorlanuvchi uy vazifalari (TZ 3.1 GAP-18): har 15 daqiqada bugungi takrorlanishlar — e'lon vaqti kelganlari.
@@ -13,7 +14,10 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    await recurringHomeworkService.generate(new Date());
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('recurringHomework', async () => {
+      await recurringHomeworkService.generate(new Date());
+    });
     reportJobSuccess('recurringHomework');
   } catch (error) {
     reportJobFailure('recurringHomework', error, 'Takrorlanuvchi vazifalar jobida xatolik');

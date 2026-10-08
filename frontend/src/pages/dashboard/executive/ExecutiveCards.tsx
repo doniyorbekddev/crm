@@ -1,4 +1,4 @@
-import { AlertTriangle, CircleCheck, Info } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CircleCheck, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
@@ -101,19 +101,30 @@ export function AttentionCard({ items }: { items: ExecutiveSummary['attention'] 
         <CardTitle>Diqqat talab qiladi</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2 p-4">
-        {items.map((item) => (
-          <span
-            key={item.key}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-control border px-3 py-1.5 text-body',
-              item.tone === 'danger' ? 'border-danger-border bg-danger-subtle text-danger' : 'border-warning-border bg-warning-subtle text-warning',
-            )}
-          >
-            <AlertTriangle className="size-3.5" aria-hidden />
-            {item.label}
-            <strong className="tabular-nums">{formatNumber(item.value)}</strong>
-          </span>
-        ))}
+        {items.map((item) => {
+          const className = cn(
+            'inline-flex items-center gap-2 rounded-control border px-3 py-1.5 text-body',
+            item.tone === 'danger' ? 'border-danger-border bg-danger-subtle text-danger' : 'border-warning-border bg-warning-subtle text-warning',
+          );
+          const content = (
+            <>
+              <AlertTriangle className="size-3.5" aria-hidden />
+              {item.label}
+              <strong className="tabular-nums">{formatNumber(item.value)}</strong>
+            </>
+          );
+          // Chip — shu holat ro'yxatiga olib boradigan havola (server filtrli manzilni beradi)
+          return item.link ? (
+            <Link key={item.key} to={item.link} className={cn(className, 'focus-ring transition-colors hover:brightness-95')}>
+              {content}
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          ) : (
+            <span key={item.key} className={className}>
+              {content}
+            </span>
+          );
+        })}
       </CardContent>
     </Card>
   );

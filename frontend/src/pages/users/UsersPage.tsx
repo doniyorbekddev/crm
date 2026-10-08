@@ -34,6 +34,7 @@ import { ApproveUserModal } from './ApproveUserModal';
 import { ResetUserPasswordModal } from './ResetUserPasswordModal';
 import { UserFormModal } from './UserFormModal';
 import { USER_STATUS_LABELS, USER_STATUS_TONES } from './userLabels';
+import { useInitialParam } from '@/hooks/useInitialParam';
 
 type StatusFilter = 'ALL' | UserStatus;
 
@@ -58,7 +59,7 @@ export default function UsersPage() {
   const isSuperAdmin = currentUser?.role.key === SUPER_ADMIN_ROLE_KEY;
 
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [status, setStatus] = useState<StatusFilter>(useInitialParam<StatusFilter>('status', ['ALL', 'ACTIVE', 'PENDING', 'BLOCKED'], 'ALL'));
   const [roleId, setRoleId] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);

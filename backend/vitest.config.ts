@@ -14,6 +14,9 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     globalSetup: ['tests/globalSetup.ts'],
+    // Test serverlari faqat 127.0.0.1 ga bog'lanadi — boshqa lokal jarayon tinglayotgan portga so'rov tushib qolmasin
+    // (tasodifiy 400 va osilib qolishlarning sababi shu edi; batafsil: tests/setupLoopback.ts)
+    setupFiles: ['tests/setupLoopback.ts'],
     // Integratsion testlar bitta bazani ishlatadi — fayllar ketma-ket bajariladi
     fileParallelism: false,
     // TZ 3.1 PHASE 20: to'plam ~900 ta integratsion testga yetdi; yuklangan mashinada (E2E, VM parallel) ba'zi testlar

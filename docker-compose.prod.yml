@@ -56,6 +56,8 @@ services:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      # Ulanishlar puli hajmi (bo'sh — standart 10). docs/CRM-4.0-PHASE-1.md
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-}
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
@@ -63,7 +65,10 @@ services:
       CLIENT_URL: ${CLIENT_URL}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       APP_UTC_OFFSET_MINUTES: ${APP_UTC_OFFSET_MINUTES:-300}
-      # Nginx orqasida ishlaydi — haqiqiy IP X-Forwarded-For dan olinadi
+      # Backend oldida bitta ishonchli proxy bor — frontend konteyneridagi Nginx. U mijoz manzilini
+      # o'zi aniqlab, X-Forwarded-For da bitta qiymat yuboradi (frontend/nginx/app.conf), shuning
+      # uchun host Nginx bo'lsa ham, bo'lmasa ham bu yerda 1. Ataylab qat'iy qiymat: .env.production dagi
+      # tasodifiy TRUST_PROXY (masalan dev'dan ko'chirilgan 0) hamma foydalanuvchini bitta IP qilib qo'ymasin.
       TRUST_PROXY: 1
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SLOW_REQUEST_MS: ${SLOW_REQUEST_MS:-800}

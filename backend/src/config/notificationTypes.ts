@@ -38,6 +38,7 @@ export const NOTIFICATION_PRIORITY: Record<NotificationType, NotificationPriorit
   LOW_SCORE: NotificationPriority.HIGH,
   ATTENDANCE_LATE: NotificationPriority.NORMAL,
   RISK_INCREASED: NotificationPriority.HIGH,
+  TASK_UPDATE: NotificationPriority.NORMAL,
 };
 
 /**
@@ -98,6 +99,23 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   DAILY_DIGEST: 'SYSTEM',
   WEEKLY_REPORT: 'SYSTEM',
   NEGATIVE_FEEDBACK: 'SYSTEM',
+  TASK_UPDATE: 'SYSTEM',
+};
+
+/** Toifaga kiruvchi turlar (ro'yxat filtri va bot sozlamalari uchun) */
+export function notificationTypesOf(category: NotificationCategory): NotificationType[] {
+  return (Object.keys(NOTIFICATION_CATEGORY) as NotificationType[]).filter((type) => NOTIFICATION_CATEGORY[type] === category);
+}
+
+/**
+ * Eski nomlar. Ro'yxat filtri (`GET /notifications?category=`) qisqa vaqt alohida, boshqacha guruhlangan
+ * ro'yxat bilan chiqqan edi; u shu yagona ta'rifga birlashtirildi. Eski qiymat bilan kelgan so'rov
+ * rad etilmaydi — eng yaqin kanonik toifaga o'giriladi. Yangi kodda ishlatilmaydi.
+ */
+export const LEGACY_NOTIFICATION_CATEGORY_ALIASES: Readonly<Record<string, NotificationCategory>> = {
+  SALES: 'MARKETING',
+  FINANCE: 'PAYMENT',
+  ACADEMIC: 'ACHIEVEMENT',
 };
 
 export function isNotificationCategory(value: string | null | undefined): value is NotificationCategory {

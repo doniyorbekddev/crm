@@ -5,6 +5,7 @@ import { AppError } from '../utils/AppError.js';
 import { moneyUz } from '../utils/money.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import { auditService } from './audit.service.js';
+import { assertContractUnchanged, lockStudentContract } from './debtLock.js';
 
 /**
  * Chegirma dvigateli — qoida asosida ishlaydigan chegirmalar.
@@ -570,11 +571,23 @@ export const discountService = {
   },
 
   async grant(actor: AuthUser, studentId: string, input: GrantDiscountInput, client: ClientInfo): Promise<StudentDiscountSummary> {
-    const { resolved, amount, newContractPrice } = await this.evaluate(studentId, input);
-    const student = await loadStudentForDiscount(studentId);
-    const paid = student.debt?.paidAmount.toNumber() ?? 0;
+    const { resolved, amount, basePrice, newContractPrice } = await this.evaluate(studentId, input);
+    // `evaluate` cheklovlarni shu qiymatlar bilan tekshirgan: qulf ostida ular o'zgargan bo'lsa, hisob eskirgan
+    const expected = { contractPrice: newContractPrice + amount, discountTotal: basePrice - (newContractPrice + amount) };
 
     await prisma.$transaction(async (tx) => {
+      // Parallel to'lov yoki ikkinchi chegirma bilan poyga bo'lmasligi uchun: avval qulf, keyin qayta tekshiruv
+      const locked = await lockStudentContract(tx, studentId);
+      assertContractUnchanged(locked, expected);
+      const paid = locked.debt?.paidAmount ?? 0;
+      if (resolved.promoCodeId) {
+        // Limit shartli yangilanishda tekshiriladi — ikki so'rov bir vaqtda oxirgi o'rinni egallay olmaydi
+        const claimed = await tx.$executeRaw`
+          UPDATE "promo_codes" SET "usedCount" = "usedCount" + 1, "updatedAt" = ${new Date()}
+          WHERE "id" = ${resolved.promoCodeId} AND ("usageLimit" = 0 OR "usedCount" < "usageLimit")
+        `;
+        if (claimed === 0) throw AppError.unprocessable('Promo kod ishlatilish chegarasiga yetgan');
+      }
       const created = await tx.studentDiscount.create({
         data: {
           studentId,
@@ -595,9 +608,6 @@ export const discountService = {
         data: { contractPrice: newContractPrice, discountTotal: { increment: amount } },
       });
       await syncDebt(tx, studentId, newContractPrice, paid);
-      if (resolved.promoCodeId) {
-        await tx.promoCode.update({ where: { id: resolved.promoCodeId }, data: { usedCount: { increment: 1 } } });
-      }
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'discount.granted',
@@ -626,16 +636,20 @@ export const discountService = {
     if (!discount) throw AppError.notFound('Chegirma topilmadi');
     if (discount.revokedAt) throw AppError.conflict('Bu chegirma allaqachon bekor qilingan');
 
-    const student = await loadStudentForDiscount(discount.studentId);
+    await loadStudentForDiscount(discount.studentId);
     const amount = discount.amount.toNumber();
-    const newContractPrice = student.contractPrice.toNumber() + amount;
-    const paid = student.debt?.paidAmount.toNumber() ?? 0;
 
     await prisma.$transaction(async (tx) => {
-      await tx.studentDiscount.update({
-        where: { id: discountId },
+      // Narx va to'langan summa qulf ostida o'qiladi; "hali bekor qilinmagan" sharti yangilanishning o'zida —
+      // ikki marta bosilganda summa shartnomaga ikki marta qaytmaydi
+      const locked = await lockStudentContract(tx, discount.studentId);
+      const revoked = await tx.studentDiscount.updateMany({
+        where: { id: discountId, revokedAt: null },
         data: { revokedAt: new Date(), revokedById: actor.id, revokeReason: reason },
       });
+      if (revoked.count === 0) throw AppError.conflict('Bu chegirma allaqachon bekor qilingan');
+      const newContractPrice = locked.contractPrice + amount;
+      const paid = locked.debt?.paidAmount ?? 0;
       await tx.student.update({
         where: { id: discount.studentId },
         data: { contractPrice: newContractPrice, discountTotal: { decrement: amount } },
@@ -664,13 +678,23 @@ export const discountService = {
    */
   async grantInTransaction(
     tx: Prisma.TransactionClient,
-    params: { studentId: string; ruleId: string | null; label: string; type: DiscountType; valueType: DiscountValueType; value: number; amount: number; note: string; grantedById: string },
+    params: {
+      studentId: string;
+      ruleId: string | null;
+      label: string;
+      type: DiscountType;
+      valueType: DiscountValueType;
+      value: number;
+      amount: number;
+      note: string;
+      grantedById: string;
+      /** Cheklovlar tekshirilgan paytdagi qiymatlar — qulf ostida o'zgargan bo'lsa 409 */
+      expected?: { contractPrice: number; discountTotal: number };
+    },
   ): Promise<string> {
-    const student = await tx.student.findUniqueOrThrow({
-      where: { id: params.studentId },
-      select: { contractPrice: true, debt: { select: { paidAmount: true } } },
-    });
-    const newContractPrice = student.contractPrice.toNumber() - params.amount;
+    const locked = await lockStudentContract(tx, params.studentId);
+    if (params.expected) assertContractUnchanged(locked, params.expected);
+    const newContractPrice = locked.contractPrice - params.amount;
     const created = await tx.studentDiscount.create({
       data: {
         studentId: params.studentId,
@@ -689,7 +713,7 @@ export const discountService = {
       where: { id: params.studentId },
       data: { contractPrice: newContractPrice, discountTotal: { increment: params.amount } },
     });
-    await syncDebt(tx, params.studentId, newContractPrice, student.debt?.paidAmount.toNumber() ?? 0);
+    await syncDebt(tx, params.studentId, newContractPrice, locked.debt?.paidAmount ?? 0);
     return created.id;
   },
 };

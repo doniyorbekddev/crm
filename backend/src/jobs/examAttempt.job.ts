@@ -1,6 +1,7 @@
 import { examTakingService } from '../services/examTaking.service.js';
 import { logger } from '../utils/logger.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /**
  * Onlayn imtihon muddati (TZ 3.0 §25): o'quvchi sahifani yopib qo'ysa ham vaqt tugagach
@@ -15,8 +16,11 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const finalized = await examTakingService.finalizeExpired();
-    if (finalized > 0) logger.info({ finalized }, 'Muddati tugagan imtihon urinishlari yakunlandi');
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('examAttempt', async () => {
+      const finalized = await examTakingService.finalizeExpired();
+      if (finalized > 0) logger.info({ finalized }, 'Muddati tugagan imtihon urinishlari yakunlandi');
+    });
     reportJobSuccess('examAttempt');
   } catch (error) {
     reportJobFailure('examAttempt', error, 'Imtihon urinishlari jobida xatolik');

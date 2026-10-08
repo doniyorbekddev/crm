@@ -21,7 +21,7 @@ export const paymentController = {
   async export(req: Request, res: Response): Promise<void> {
     const query = paymentListQuerySchema.parse(req.query);
     const format = exportFormatSchema.parse(req.query.format);
-    sendTable(res, await paymentService.exportTable(query), `tolovlar-${businessDateString(new Date())}`, format);
+    sendTable(res, await paymentService.exportTable(requireAuthUser(req), query), `tolovlar-${businessDateString(new Date())}`, format);
   },
 
   async list(req: Request, res: Response): Promise<void> {
@@ -37,7 +37,7 @@ export const paymentController = {
 
   async getById(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    sendSuccess(res, await paymentService.getById(id));
+    sendSuccess(res, await paymentService.getById(requireAuthUser(req), id));
   },
 
   async create(req: Request, res: Response): Promise<void> {

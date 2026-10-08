@@ -17,7 +17,8 @@ import {
 export const alertController = {
   async list(req: Request, res: Response): Promise<void> {
     const query = alertListQuerySchema.parse(req.query);
-    const { items, total } = await alertService.list(query, await alertService.scopeFor(requireAuthUser(req)));
+    // `mine` — har doim so'rovchining o'zi (boshqa xodim nomidan so'rab bo'lmaydi)
+    const { items, total } = await alertService.list({ ...query, assigneeId: requireAuthUser(req).id }, await alertService.scopeFor(requireAuthUser(req)));
     sendSuccess(res, items, { meta: buildPaginationMeta(query.page, query.limit, total) });
   },
 

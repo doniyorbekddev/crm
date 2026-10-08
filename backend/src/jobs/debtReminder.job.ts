@@ -4,6 +4,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { logger } from '../utils/logger.js';
 import { moneyUz } from '../utils/money.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { withJobLease } from './jobLease.js';
 
 /** Har 30 daqiqada tekshiriladi, lekin bildirishnoma kuniga bir marta yuboriladi (dedupeKey orqali) */
 const INTERVAL_MS = 30 * 60_000;
@@ -59,10 +60,13 @@ async function runOnce(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const sent = await sendDailyDebtSummary(new Date());
-    if (sent > 0) {
-      logger.info({ sent }, 'Qarzdorlik bo‘yicha kunlik bildirishnoma yuborildi');
-    }
+    // Boshqa backend nusxasi shu vazifani bajarayotgan bo'lsa — bu yurish o'tkazib yuboriladi
+    await withJobLease('debtReminder', async () => {
+      const sent = await sendDailyDebtSummary(new Date());
+      if (sent > 0) {
+        logger.info({ sent }, 'Qarzdorlik bo‘yicha kunlik bildirishnoma yuborildi');
+      }
+    });
     reportJobSuccess('debtReminder');
   } catch (error) {
     reportJobFailure('debtReminder', error, 'Qarzdorlik eslatmasi jobida xatolik');

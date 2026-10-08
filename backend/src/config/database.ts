@@ -4,7 +4,9 @@ import { logger } from '../utils/logger.js';
 import { env } from './env.js';
 import { metrics } from '../utils/metrics.js';
 
-const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+// Pul hajmi: berilmasa `pg` standarti (10). Bir nechta backend nusxasi bo'lsa yig'indi PostgreSQL
+// `max_connections` dan oshmasligi kerak — docs/CRM-4.0-PHASE-1.md.
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL, ...(env.DATABASE_POOL_MAX ? { max: env.DATABASE_POOL_MAX } : {}) });
 
 /** Ilova bo‘ylab yagona Prisma Client (connection pool bitta bo‘lishi uchun). */
 export const prisma = new PrismaClient({

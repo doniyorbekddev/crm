@@ -100,6 +100,9 @@ export const PERMISSIONS = {
 
   ALERT_VIEW: 'alert.view',
   ALERT_MANAGE: 'alert.manage',
+  TASK_CREATE: 'task.create',
+  TASK_ASSIGN: 'task.assign',
+  TASK_VIEW_ALL: 'task.view_all',
   TARGET_VIEW: 'target.view',
   TARGET_MANAGE: 'target.manage',
 
@@ -248,6 +251,9 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
     module: 'alerts',
     description: 'Ogohlantirish qoidalari va chegaralarini, kunlik xulosani sozlash',
   },
+  { key: PERMISSIONS.TASK_CREATE, module: 'tasks', description: 'O‘zi uchun vazifa yaratish' },
+  { key: PERMISSIONS.TASK_ASSIGN, module: 'tasks', description: 'Boshqa xodimga vazifa berish va qayta biriktirish' },
+  { key: PERMISSIONS.TASK_VIEW_ALL, module: 'tasks', description: 'O‘z filiali doirasida barcha xodimlarning vazifalarini ko‘rish va boshqarish' },
   { key: PERMISSIONS.TARGET_VIEW, module: 'targets', description: 'Sotuv rejalarini ko‘rish' },
   { key: PERMISSIONS.TARGET_MANAGE, module: 'targets', description: 'Sotuv rejasini belgilash' },
 
@@ -401,6 +407,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     description: 'Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish',
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
+      PERMISSIONS.TASK_CREATE,
       ...LEAD_WORK_PERMISSIONS,
       PERMISSIONS.LEAD_ASSIGN,
       PERMISSIONS.STUDENT_VIEW,
@@ -415,7 +422,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     key: ROLE_KEYS.CALL_CENTER,
     name: 'Call Center',
     description: 'Leadlar, qo‘ng‘iroqlar va follow-up',
-    permissions: [PERMISSIONS.DASHBOARD_VIEW, ...LEAD_WORK_PERMISSIONS],
+    permissions: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.TASK_CREATE, ...LEAD_WORK_PERMISSIONS],
   },
   {
     key: ROLE_KEYS.TEACHER,
@@ -423,6 +430,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     description: 'O‘z guruhlari, o‘quvchilari va davomat',
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
+      PERMISSIONS.TASK_CREATE,
       PERMISSIONS.COURSE_VIEW,
       PERMISSIONS.LESSON_MANAGE,
       PERMISSIONS.GROUP_VIEW,
@@ -460,6 +468,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     description: 'To‘lovlar, qarzdorlik va moliyaviy hisobotlar',
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
+      PERMISSIONS.TASK_CREATE,
       PERMISSIONS.EMPLOYEE_VIEW,
       PERMISSIONS.COURSE_VIEW,
       PERMISSIONS.GROUP_VIEW,
