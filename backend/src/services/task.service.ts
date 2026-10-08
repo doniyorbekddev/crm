@@ -94,12 +94,29 @@ const taskSelect = {
   assignee: { select: { id: true, firstName: true, lastName: true, branchId: true } },
   createdBy: person,
   rule: { select: { key: true, name: true } },
-  _count: { select: { comments: true } },
 } satisfies Prisma.TaskSelect;
 
 type TaskRow = Prisma.TaskGetPayload<{ select: typeof taskSelect }>;
 
-function toDto(row: TaskRow, now = new Date()): TaskDto {
+/**
+ * Izohlar soni — faqat berilgan vazifalar uchun, alohida so'rov bilan.
+ *
+ * `select` ichidagi `_count` ishlatilmaydi: Prisma uni butun `task_comments` jadvali bo'yicha yig'ilgan quyi so'rov
+ * bilan birlashtiradi, va statistika yo'q bazada (ommaviy yuklash yoki zaxiradan tiklashdan keyin) reja tuzuvchi
+ * 40 000 vazifali ro'yxat uchun 3,4 soniyalik reja tanlagan (o'lchangan). Bu yerda so'rov har doim sahifadagi
+ * bir necha ID bo'yicha indeksdan o'qiydi — statistikaga bog'liq emas.
+ */
+async function commentCounts(db: Tx | typeof prisma, taskIds: string[]): Promise<Map<string, number>> {
+  if (taskIds.length === 0) return new Map();
+  const rows = await db.taskComment.groupBy({ by: ['taskId'], where: { taskId: { in: taskIds } }, _count: { _all: true } });
+  return new Map(rows.map((row) => [row.taskId, row._count._all]));
+}
+
+async function toDtoWithCount(row: TaskRow): Promise<TaskDto> {
+  return toDto(row, (await commentCounts(prisma, [row.id])).get(row.id) ?? 0);
+}
+
+function toDto(row: TaskRow, commentCount: number, now = new Date()): TaskDto {
   return {
     id: row.id,
     title: row.title,
@@ -116,7 +133,7 @@ function toDto(row: TaskRow, now = new Date()): TaskDto {
     createdBy: row.createdBy,
     rule: row.rule,
     alertId: row.alertId,
-    commentCount: row._count.comments,
+    commentCount,
     escalatedAt: row.escalatedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -212,7 +229,8 @@ export const taskService = {
       prisma.task.count({ where }),
       prisma.task.count({ where: { AND: [owner, { status: 'OPEN' }] } }),
     ]);
-    return { items: rows.map((row) => toDto(row, now)), openCount, total, page: query.page, limit: query.limit };
+    const counts = await commentCounts(prisma, rows.map((row) => row.id));
+    return { items: rows.map((row) => toDto(row, counts.get(row.id) ?? 0, now)), openCount, total, page: query.page, limit: query.limit };
   },
 
   async getById(actor: AuthUser, id: string): Promise<TaskDetailDto> {
@@ -229,7 +247,7 @@ export const taskService = {
     const manager = isManagerOf(row, scope);
     const author = row.createdById === actor.id;
     return {
-      ...toDto(row),
+      ...toDto(row, comments.length),
       comments: comments.map((comment) => ({ ...comment, createdAt: comment.createdAt.toISOString() })),
       assignments: assignments.map((item) => ({ id: item.id, from: item.fromUser, to: item.toUser, changedBy: item.changedBy, note: item.note, createdAt: item.createdAt.toISOString() })),
       can: { edit: manager || author, assign: scope.canAssign && (manager || author), changeStatus: manager || author || row.assigneeId === actor.id },
@@ -285,7 +303,7 @@ export const taskService = {
       });
       return task.id;
     });
-    return toDto(await prisma.task.findUniqueOrThrow({ where: { id }, select: taskSelect }));
+    return toDto(await prisma.task.findUniqueOrThrow({ where: { id }, select: taskSelect }), 0);
   },
 
   /** Holat va/yoki maydonlarni o'zgartirish */
@@ -343,7 +361,7 @@ export const taskService = {
       }
       return row;
     });
-    return toDto(updated);
+    return toDtoWithCount(updated);
   },
 
   /** Avvalgi chaqiruv shakli (`PATCH /tasks/:id {status}`) uchun */
@@ -382,7 +400,7 @@ export const taskService = {
       await auditService.recordInTransaction(tx, { userId: actor.id, action: 'task.assigned', entityType: 'task', entityId: id, metadata: { from: task.assigneeId, to: assignee.id, note: input.note ?? null }, ...client });
       return tx.task.findUniqueOrThrow({ where: { id }, select: taskSelect });
     });
-    return toDto(updated);
+    return toDtoWithCount(updated);
   },
 
   /** Izoh: vazifani ko'ra oladigan har kim yozadi; ikkinchi tomon (ijrochi / muallif) xabar oladi */

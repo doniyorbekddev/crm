@@ -226,7 +226,7 @@ Yangi E2E (`e2e/specs/work-layer.spec.ts`, 3 senariy):
 | "Ishlarim" — eng ko'p follow-up'i bor sotuv xodimi (1 368 ta) | 7 ms |
 | Vazifalar: meniki | 10 ms |
 | Vazifalar: hammasi (80 000), 1-sahifa | 35 ms |
-| Vazifalar: hammasi, 500-sahifa | 162 ms |
+| Vazifalar: hammasi, 500-sahifa | 162 ms (izohlar soni alohida so'rovga o'tkazilgandan keyin qayta o'lchanmagan; 40 000 talik yangi bazada 34 ms) |
 | Vazifalar: kechikkanlar | 23 ms |
 | Vazifalar: matn bo'yicha qidiruv | 58 ms |
 | Eskalatsiya: bitta yurish (500 vazifa, 94 ta yig'ma xabar) | 340 ms |
@@ -242,6 +242,21 @@ rahbar shunchaki kam ma'lumot ko'radi.
   yuborilmagan) — production'da bitta vazifa berib ko'rish kerak;
 - production'dagi haqiqiy vaqtlar;
 - ikki backend nusxasi bilan eskalatsiya (ijara "begona egali" qator bilan sinalgan, haqiqiy ikkinchi jarayon bilan emas).
+
+### CI va deploy zanjiri — 2026-10-08 da topilgan va tuzatilgan
+
+Faza 0–2 ni push qilganda ko'rindi: **CI kamida 2026-09-24 dan beri har yurishda yiqilgan** (oxirgi 100 ta yurishning 100 tasi), shu
+sababli **production'ga avtomatik deploy bir marta ham bo'lmagan** (100 ta deploy'ning hammasi "skipped"). Ya'ni shu davrdagi
+hech bir push serverga chiqmagan.
+
+| Sabab | Tuzatish |
+|---|---|
+| `ci.yml` da `DATABASE_URL` va `TEST_DATABASE_URL` bir xil edi; test sozlamasi buni "ishchi bazani tozalab yuborish xavfi" deb to'xtatadi — backend testlari CI'da umuman boshlanmagan | `DATABASE_URL` test vazifasidan olib tashlandi (testlar bazani `TEST_DATABASE_URL` dan oladi; typecheck, lint, build bazaga ulanmaydi) |
+| code-runner'ning "xotira bombasi" sandbox testi 2 soniyalik vaqt chegarasiga juda yaqin edi: 0,1 CPU bilan taqlid qilinganda xotira chegarasiga 1 919 ms da yetdi; sekinroq mashinada `memory` o'rniga `timeout` chiqardi | Xotira testlari uchun vaqt chegarasi 15 s. Kutilgan natija (`memory`) o'zgarmagan |
+| Yangi yuklangan (statistikasi yo'q) bazada vazifalar ro'yxati 3 427 ms — CI'dagi 2 s chegaradan oshardi | Izohlar soni va ogohlantirishning ochiq vazifalar soni endi sahifadagi ID'lar bo'yicha alohida so'rov bilan olinadi: 3 427 → 10 ms. Bu zaxiradan tiklangan production bazasiga ham taalluqli edi |
+
+Tuzatishlardan keyin CI'ning uchala vazifasi `.env` faylisiz toza nusxada lokalda takrorlandi: backend 1011/1011, E2E 54/54,
+unumdorlik o'lchovi chegara ichida. Lokal farq: CI o'z Chromium'ini o'rnatadi, lokalda tizim Chrome'i ishlatildi.
 
 ## 8. Qilinmaganlar
 

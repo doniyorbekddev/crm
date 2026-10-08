@@ -25,9 +25,12 @@ jobs:
           --health-retries 10
 
     env:
-      # Integratsion testlar shu bazani ishlatadi (har test faylida tozalanadi)
+      # Integratsion testlar shu bazani ishlatadi (har test faylida tozalanadi).
+      # DATABASE_URL ataylab berilmagan: test sozlamasi (`backend/tests/globalSetup.ts`) u TEST_DATABASE_URL bilan
+      # bir xil bo'lsa "ishchi bazani tozalab yuborish xavfi" deb to'xtaydi — ikkalasi bir xil berilgani uchun
+      # CI har yurishda shu yerda yiqilardi va deploy hech qachon boshlanmasdi. Testlar bazani
+      # TEST_DATABASE_URL dan oladi; typecheck, lint va build bazaga ulanmaydi.
       TEST_DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/crm_test?schema=public
-      DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/crm_test?schema=public
       JWT_SECRET: ci-access-secret-0123456789-abcdefghijklmnop
       JWT_REFRESH_SECRET: ci-refresh-secret-0123456789-abcdefghijklmnop
       CLIENT_URL: http://localhost:5173

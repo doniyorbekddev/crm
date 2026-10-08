@@ -18,6 +18,13 @@ const dockerReady = spawnSync('docker', ['version', '--format', '{{.Server.Versi
 const RUNTIME = process.env.CODE_RUNNER_RUNTIME ?? 'runc';
 const LIMITS: Limits = { ...DEFAULT_LIMITS, timeMs: 2_000 };
 const run = (language: Language, code: string, input = '') => execute(language, code, input, LIMITS, { runtime: RUNTIME });
+/**
+ * Xotira testlari uchun vaqt chegarasi uzunroq: maqsad — konteyner **xotira** chegarasida o'ldirilishini ko'rish.
+ * 2 soniyada sekin mashina (CI, 0.5 CPU) 128 MB ga yetib ulgurmay vaqt chegarasiga urilardi va test tasodifiy
+ * `timeout` olardi. Kutilgan natija o'zgarmagan (`memory`), faqat unga yetish uchun vaqt berilgan.
+ */
+const MEMORY_LIMITS: Limits = { ...LIMITS, timeMs: 15_000 };
+const runUntilMemory = (language: Language, code: string) => execute(language, code, '', MEMORY_LIMITS, { runtime: RUNTIME });
 
 /** Til qatlamisiz: xuddi shu izolyatsiya bayroqlari bilan xom shell buyrug'i */
 async function rawContainer(script: string, env: Record<string, string> = {}): Promise<{ code: number | null; out: string; ms: number }> {
@@ -65,7 +72,7 @@ describe.skipIf(!dockerReady)(`§41 sandbox xavfsizligi (runtime: ${RUNTIME})`, 
       ['javascript', 'const a = []; while (true) a.push(new Array(1e6).fill(7));'],
       ['python', 'a = []\nwhile True:\n    a.append(bytearray(10**7))'],
     ] as const)('%s — xotira chegarasi (OOM), host ta’sirlanmaydi', async (language, code) => {
-      const result = await run(language, code);
+      const result = await runUntilMemory(language, code);
       expect(result.status).toBe('memory');
       // Keyingi ish odatdagidek ishlaydi
       expect((await run('javascript', 'console.log("ok")')).status).toBe('ok');

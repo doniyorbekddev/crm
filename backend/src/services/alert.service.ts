@@ -181,11 +181,10 @@ const alertSelect = {
   resolvedBy: { select: { id: true, firstName: true, lastName: true } },
   assignee: { select: { id: true, firstName: true, lastName: true } },
   snoozedUntil: true,
-  _count: { select: { tasks: { where: { status: 'OPEN' } } } },
 } satisfies Prisma.AlertSelect;
 
 export type AlertRecord = Prisma.AlertGetPayload<{ select: typeof alertSelect }>;
-export { alertSelect, toDto as toAlertDto, linkFor as alertLinkFor };
+export { alertSelect, alertDtoOf as toAlertDto, linkFor as alertLinkFor };
 
 /** Kechiktirilmagan (yoki kechiktirish muddati o'tgan) ogohlantirishlar */
 export function notSnoozed(now: Date = new Date()): Prisma.AlertWhereInput {
@@ -225,7 +224,23 @@ function linkFor(entityType: string | null, entityId: string | null): string | n
   }
 }
 
-function toDto(alert: AlertRecord): AlertDto {
+/**
+ * Ogohlantirishlardan yaratilgan ochiq vazifalar soni — faqat berilgan ID'lar uchun, `tasks(alertId)` indeksi orqali.
+ * `select` ichidagi `_count` ishlatilmaydi: u har so'rovda butun `tasks` jadvalini guruhlab chiqardi (sabab —
+ * `task.service.ts` dagi `commentCounts` izohida).
+ */
+async function openTaskCounts(alertIds: string[]): Promise<Map<string, number>> {
+  if (alertIds.length === 0) return new Map();
+  const rows = await prisma.task.groupBy({ by: ['alertId'], where: { alertId: { in: alertIds }, status: 'OPEN' }, _count: { _all: true } });
+  return new Map(rows.filter((row) => row.alertId !== null).map((row) => [row.alertId!, row._count._all]));
+}
+
+/** Bitta ogohlantirish uchun DTO (ochiq vazifalar soni bilan) */
+async function alertDtoOf(alert: AlertRecord): Promise<AlertDto> {
+  return toDto(alert, (await openTaskCounts([alert.id])).get(alert.id) ?? 0);
+}
+
+function toDto(alert: AlertRecord, openTasks: number): AlertDto {
   return {
     id: alert.id,
     type: alert.type,
@@ -244,7 +259,7 @@ function toDto(alert: AlertRecord): AlertDto {
     resolvedBy: alert.resolvedBy,
     assignee: alert.assignee,
     snoozedUntil: alert.snoozedUntil?.toISOString() ?? null,
-    openTasks: alert._count.tasks,
+    openTasks,
   };
 }
 
@@ -931,7 +946,8 @@ export const alertService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.alert.count({ where });
-    return { items: items.map(toDto), total };
+    const openTasks = await openTaskCounts(items.map((item) => item.id));
+    return { items: items.map((item) => toDto(item, openTasks.get(item.id) ?? 0)), total };
   },
 
   async summary(scope: Prisma.AlertWhereInput = {}): Promise<AlertSummaryDto> {
@@ -963,7 +979,7 @@ export const alertService = {
     const record = alert.readAt
       ? await prisma.alert.findUniqueOrThrow({ where: { id }, select: alertSelect })
       : await prisma.alert.update({ where: { id }, data: { readAt: new Date(), readById: actor.id }, select: alertSelect });
-    return toDto(record);
+    return alertDtoOf(record);
   },
 
   async markAllRead(actor: AuthUser): Promise<{ updated: number }> {
@@ -1005,7 +1021,7 @@ export const alertService = {
       metadata: { title: alert.title, note: input.note ?? null },
       ...client,
     });
-    return toDto(updated);
+    return alertDtoOf(updated);
   },
 
   async settings(): Promise<AlertSettingsDto> {
