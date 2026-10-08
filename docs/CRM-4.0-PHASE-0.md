@@ -58,6 +58,12 @@ Mavjud `rateLimit.test.ts` o'zgarmagan.
 
 ### Verification Result
 - Backend testlari: **o'tdi** (`clientIp` 6/6, `rateLimit` 2/2).
+- **Yangilanish (2026-10-08): konfiguratsiya lokal Docker'da bajarib tekshirildi.** `nginx:1.27-alpine` (production obrazi bilan bir xil)
+  + sarlavhalarni qaytaradigan soxta backend, mijoz — xususiy Docker tarmog'idagi boshqa konteyner:
+  `nginx -t` — muvaffaqiyatli; `X-Forwarded-For` yo'q → backend mijoz konteynerining manzilini oladi; `X-Forwarded-For: 203.0.113.7`
+  (host nginx qo'shgandek) → `203.0.113.7`; `X-Forwarded-For: 1.2.3.4, 203.0.113.7` (mijoz soxtasi + host nginx) → `203.0.113.7`.
+  Ya'ni sintaksis va `real_ip` mantig'i tasdiqlandi. **Tasdiqlanmagani** — production'dagi haqiqiy zanjir (host nginx sozlamasi,
+  `audit_logs.ip`, rate limit): quyidagi B–G qadamlar hali serverda bajarilishi kerak. Quyidagi band — tekshiruvdan oldingi holat.
 - **Nginx konfiguratsiyasi bajarib tekshirilmagan.** Bu muhitda Docker ishlamaydi va nginx o'rnatilmagan — `nginx -t` ham, ikki
   proxy'li zanjir sinovi ham yurgizilmadi. O'zgarish standart `ngx_http_realip_module` direktivalaridan iborat (rasmiy `nginx` obrazida
   bor), lekin sintaksis va xatti-harakat **serverda tasdiqlanishi shart**.
@@ -380,7 +386,7 @@ Past. Foydalanuvchi uchun ko'rinadigan o'zgarish: bildirishnomalar sahifasidagi 
 | 5 | Guruhni tahrirlashda xona | ✅ VERIFIED |
 | 7 | Bildirishnoma toifalari — bitta manba | ✅ VERIFIED |
 | 1 | TRUST_PROXY: backend xatti-harakati (IP, rate limit, login bloki) | ✅ VERIFIED (testlar) |
-| 1 | TRUST_PROXY: nginx konfiguratsiyasi va haqiqiy zanjir | ⚠️ REQUIRES PRODUCTION VERIFICATION (nginx bajarib tekshirilmagan — ❌ NOT VERIFIED lokalda) |
+| 1 | TRUST_PROXY: nginx konfiguratsiyasi va haqiqiy zanjir | ⚠️ REQUIRES PRODUCTION VERIFICATION (sintaksis va `real_ip` mantig'i 2026-10-08 da lokal Docker'da ✅ tasdiqlandi; haqiqiy zanjir — serverda) |
 | 6 | Zaxira skripti (repozitoriy tomoni) | ✅ VERIFIED (lokal) |
 | 6 | Production zaxirasi va tiklash | ⚠️ REQUIRES PRODUCTION VERIFICATION |
 | — | Tasodifiy test yiqilishlari (yopish bosqichida topildi) | ✅ VERIFIED — sabab topildi va tuzatildi |
@@ -445,7 +451,7 @@ Tuzatishdan oldingi to'liq yurishlar: 4 tadan 2 tasida bittadan-ikkitadan tasodi
 | Mijoz IP: proxy'dan kelgan bitta manzil auditga yoziladi | ✅ VERIFIED (`clientIp`) |
 | Proxy'siz rejimda mijoz yuborgan `X-Forwarded-For` e'tiborga olinmaydi (backend) | ✅ VERIFIED |
 | Rate limit va login bloki mijoz bo'yicha alohida | ✅ VERIFIED (backend testi) |
-| nginx `real_ip` bloki sintaksisi va xatti-harakati | ❌ NOT VERIFIED — bu muhitda Docker ishlamaydi, nginx yo'q |
+| nginx `real_ip` bloki sintaksisi va xatti-harakati | ✅ VERIFIED (2026-10-08, lokal Docker, `nginx:1.27-alpine`: `nginx -t` + uch so'rov) — yopish paytida ❌ edi |
 | Haqiqiy production zanjirida IP, rate limit, soxtalashtirish | ⚠️ REQUIRES PRODUCTION VERIFICATION (§1, A–G) |
 | Ruxsatlar va mavjud doira yordamchilari chetlab o'tilmagan; yangi ruxsat tizimi yo'q | ✅ VERIFIED (diff ko'rigi) |
 
@@ -518,7 +524,7 @@ Faza 0 ichida ochiq qolgan: yo'q.
 | Zaxira: deploy har safar fayllarni ham arxivlaydi | Past | Disk hajmi kuzatilsin (`UPLOADS_KEEP_DAYS`) |
 | Test infratuzilmasi o'zgarishi | Past | Faqat testlar; ilova kodiga ta'sir yo'q |
 
-**🔴 BLOCKER:** repozitoriy tomonida yo'q. Production'ga chiqarishdan oldin §1 A-qadam (`nginx -t`) majburiy.
+**🔴 BLOCKER:** repozitoriy tomonida yo'q. §1 A-qadam (`nginx -t`) 2026-10-08 da lokal Docker'da bajarildi; serverda deploy skripti sog'liq tekshiruvi bilan qayta tasdiqlaydi.
 
 **Xulosa:** Faza 0 repozitoriy tomonida yakunlandi va tekshirildi. Ikki band (1 va 6) production'da tasdiqlanmaguncha "to'liq yopilgan"
 hisoblanmaydi. Faza 1 boshlanmagan.
