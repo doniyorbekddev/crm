@@ -32,14 +32,18 @@ MIN_USERS="${MIN_USERS:-1}"
 # ---------------------------------------------------------------------
 # Muhit: serverda docker compose, ishlab chiqishda mahalliy psql
 # ---------------------------------------------------------------------
+# Env fayl BAJARILMAYDI (`source` emas) — faqat kerakli kalitlar matn sifatida o'qiladi.
+# Sababi va qoidalari: scripts/lib/env.sh
+# shellcheck source=scripts/lib/env.sh
+source "$(dirname "$0")/lib/env.sh"
 if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  set -a; source "$ENV_FILE"; set +a
+  env_load "$ENV_FILE" POSTGRES_USER POSTGRES_DB DATABASE_URL MIN_USERS
 fi
 
 USE_DOCKER=0
 if [ -f "$COMPOSE_FILE" ] && command -v docker >/dev/null 2>&1 &&
-   [ -n "$(docker compose -f "$COMPOSE_FILE" ps -q postgres 2>/dev/null || true)" ]; then
+   [ -f "$ENV_FILE" ] &&
+   [ -n "$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q postgres 2>/dev/null || true)" ]; then
   USE_DOCKER=1
 fi
 

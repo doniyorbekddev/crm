@@ -35,8 +35,12 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
+# Env fayl BAJARILMAYDI (`source` emas) — faqat kerakli kalitlar matn sifatida o'qiladi.
+# Sababi va qoidalari: scripts/lib/env.sh
+# shellcheck source=scripts/lib/env.sh
+source "$(dirname "$0")/lib/env.sh"
+env_load "$ENV_FILE" POSTGRES_USER POSTGRES_DB KEEP_DAYS UPLOADS_KEEP_DAYS BACKUP_UPLOADS BACKUP_REMOTE MIN_BYTES
+[ -n "${POSTGRES_USER:-}" ] && [ -n "${POSTGRES_DB:-}" ] || { echo "Xatolik: $ENV_FILE da POSTGRES_USER yoki POSTGRES_DB topilmadi" >&2; exit 1; }
 
 KEEP_DAYS="${KEEP_DAYS:-30}"
 UPLOADS_KEEP_DAYS="${UPLOADS_KEEP_DAYS:-7}"
@@ -49,7 +53,10 @@ log() { echo "[$(date '+%F %T')] $*"; }
 fail() { log "XATOLIK: $*" >&2; exit 1; }
 compose() { docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"; }
 
+# Zaxirada parol xeshlari va shaxsiy ma'lumot bor: katalog faqat egasiga (700), fayllar 600
+umask 077
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 STAMP="$(date +%Y-%m-%d_%H-%M)"
 FILE="$BACKUP_DIR/crm-$STAMP.sql.gz"
 UPLOADS_FILE="$BACKUP_DIR/uploads-$STAMP.tar.gz"

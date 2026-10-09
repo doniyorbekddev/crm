@@ -17,8 +17,17 @@ if [ -z "$DUMP" ] || [ ! -f "$DUMP" ]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
+[ -f "$ENV_FILE" ] || { echo "Xatolik: $ENV_FILE topilmadi" >&2; exit 1; }
+# Env fayl BAJARILMAYDI (`source` emas) — faqat kerakli kalitlar matn sifatida o'qiladi.
+# Sababi va qoidalari: scripts/lib/env.sh
+# shellcheck source=scripts/lib/env.sh
+source "$(dirname "$0")/lib/env.sh"
+env_load "$ENV_FILE" POSTGRES_USER POSTGRES_DB HTTP_PORT
+[ -n "${POSTGRES_USER:-}" ] && [ -n "${POSTGRES_DB:-}" ] || { echo "Xatolik: $ENV_FILE da POSTGRES_USER yoki POSTGRES_DB topilmadi" >&2; exit 1; }
+
+# Buzilgan arxivni ishchi baza ustiga tiklashdan OLDIN ushlash: backend to'xtatilib,
+# baza yarim tiklangan holda qolmasin
+gzip -t "$DUMP" || { echo "Xatolik: arxiv buzilgan (gzip -t o'tmadi): $DUMP" >&2; exit 1; }
 
 echo "DIQQAT: '$POSTGRES_DB' bazasidagi barcha ma'lumotlar $DUMP bilan almashtiriladi."
 read -r -p "Davom etilsinmi? (ha/yo'q) " answer
@@ -31,4 +40,4 @@ gunzip -c "$DUMP" | docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exe
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1
 
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" start backend
-echo "Tiklandi. Tekshiring: curl -s http://localhost:\${HTTP_PORT:-8080}/api/health"
+echo "Tiklandi. Tekshiring: curl -s http://localhost:${HTTP_PORT:-8080}/api/health"
