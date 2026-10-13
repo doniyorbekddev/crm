@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChangePasswordCard } from '@/components/ChangePasswordCard';
 import { PageHeader } from '@/components/PageHeader';
-import { Avatar } from '@/components/ui/Avatar';
+import { AvatarUploader } from '@/components/AvatarUploader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { TelegramLinkCard } from '@/components/TelegramLinkCard';
@@ -98,7 +98,7 @@ export default function ProfilePage() {
         <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardContent className="flex flex-col items-center text-center">
-              <Avatar firstName={user.firstName} lastName={user.lastName} size="lg" />
+              <AvatarUploader />
               <h2 className="mt-4 text-lg font-semibold">
                 {user.firstName} {user.lastName}
               </h2>

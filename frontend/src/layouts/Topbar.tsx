@@ -1,6 +1,7 @@
 import { Menu, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { GlobalSearch } from '@/components/GlobalSearch';
+import { LanguageSelect } from '@/components/LanguageSelect';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconButton } from '@/components/ui/IconButton';
 import { useUiStore } from '@/store/ui.store';
@@ -59,6 +60,7 @@ export function Topbar() {
         </IconButton>
         <BranchSelect />
         <NotificationBell />
+        <LanguageSelect className="hidden sm:inline-flex" />
         <ThemeToggle className="hidden sm:inline-flex" />
         <span aria-hidden className="mx-0.5 hidden h-6 w-px bg-border sm:block" />
         <UserMenu />

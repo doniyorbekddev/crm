@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GraduationCap } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 import { BrandMark } from '@/components/BrandMark';
+import { LanguageSelect } from '@/components/LanguageSelect';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -69,6 +70,7 @@ function PortalHeader() {
         <BrandMark />
         <div className="flex items-center gap-2">
           <NotificationBell listPath="/portal/notifications" />
+          <LanguageSelect />
           <ThemeToggle className="hidden sm:inline-flex" />
           <span className="hidden text-body text-fg-muted md:inline">
             {user?.firstName} {user?.lastName}

@@ -16,6 +16,7 @@ export interface UserListItem {
   lastLoginAt: string | null;
   createdAt: string;
   role: RoleRef;
+  avatarUrl?: string | null;
 }
 
 export type UserStatusSummary = Record<'ALL' | UserStatus, number>;

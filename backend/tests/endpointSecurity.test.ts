@@ -67,11 +67,16 @@ const PUBLIC = new Set([
   // Brend (nom, logo, valyuta, til) — login sahifasi kirishdan oldin ko'rsatadi; maxfiy maydon yo'q (test bilan)
   'GET /api/public/branding',
   'GET /api/public/branding/logo',
+  // Profil rasmlari: tokensiz, lekin manzil taxmin qilib bo'lmaydigan tasodifiy nom; faqat avatar fayllari beriladi (avatar.test.ts)
+  'GET /api/public/avatars/:year/:month/:file',
 ]);
 
 /** Kirgan har bir foydalanuvchi uchun (ruxsatsiz) — faqat o'ziga tegishli ma'lumot */
 const AUTH_ONLY = new Set([
   'GET /api/auth/me',
+  // O'z profil rasmi — har qanday kirgan foydalanuvchi faqat o'zinikini o'zgartiradi
+  'POST /api/auth/me/avatar',
+  'DELETE /api/auth/me/avatar',
   'PATCH /api/auth/change-password',
   'POST /api/auth/logout-all',
   'GET /api/auth/me/preferences',

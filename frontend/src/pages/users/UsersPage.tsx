@@ -226,7 +226,7 @@ export default function UsersPage() {
                   cell: (user) => (
                     <>
                       <div className="flex min-w-56 items-center gap-3">
-                        <Avatar firstName={user.firstName} lastName={user.lastName} size="sm" />
+                        <Avatar firstName={user.firstName} lastName={user.lastName} src={user.avatarUrl} size="sm" />
                         <div className="min-w-0">
                           <p className="flex items-center gap-2 font-medium text-fg">
                             <span className="truncate">

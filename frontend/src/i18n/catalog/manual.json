@@ -1,0 +1,25 @@
+{
+"exact": [
+"500 mingtacha",
+"Kassadagi qoldiq",
+"faol",
+"solishtirish yo‘q"
+],
+"patterns": [
+"Salom, {0}!",
+"jami {0}",
+"marja {0}",
+"oldin: {0}",
+"rejada {0}",
+"sotildi: {0}",
+"{0} belgi",
+"{0} hafta",
+"{0} kun",
+"{0} ming",
+"{0} mln",
+"{0} oy",
+"{0} soat",
+"{0}mln",
+"{0}mlrd"
+]
+}

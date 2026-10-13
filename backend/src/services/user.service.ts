@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { avatarUrlOf } from './avatar.service.js';
 import { ROLE_KEYS } from '../config/permissions.js';
 import type { Prisma, UserStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -26,6 +27,7 @@ const userSelect = {
   status: true,
   lastLoginAt: true,
   createdAt: true,
+  avatarPath: true,
   role: { select: { id: true, key: true, name: true } },
 } satisfies Prisma.UserSelect;
 
@@ -41,6 +43,7 @@ export interface UserDto {
   lastLoginAt: string | null;
   createdAt: string;
   role: { id: string; key: string; name: string };
+  avatarUrl: string | null;
 }
 
 export type UserStatusSummary = Record<'ALL' | UserStatus, number>;
@@ -56,6 +59,7 @@ function toUserDto(user: UserRecord): UserDto {
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     role: user.role,
+    avatarUrl: avatarUrlOf(user.avatarPath),
   };
 }
 

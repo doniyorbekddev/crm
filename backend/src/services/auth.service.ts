@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { avatarUrlOf } from './avatar.service.js';
 import { resolveLoginIdentifier } from './portalAccount.service.js';
 import { env, primaryClientUrl } from '../config/env.js';
 import { PERMISSIONS, ROLE_KEYS } from '../config/permissions.js';
@@ -53,6 +54,7 @@ const authUserSelect = {
   createdAt: true,
   deletedAt: true,
   mustChangePassword: true,
+  avatarPath: true,
   role: {
     select: {
       id: true,
@@ -78,6 +80,8 @@ export interface AuthUserDto {
   permissions: string[];
   /** Vaqtinchalik parol bilan kirilgan — avval parolni almashtirishi kerak */
   mustChangePassword: boolean;
+  /** Profil rasmi manzili (API bazasiga nisbatan) yoki null */
+  avatarUrl: string | null;
 }
 
 export interface AuthSession {
@@ -112,6 +116,7 @@ function toAuthUserDto(user: AuthUserRecord): AuthUserDto {
     role: { id: user.role.id, key: user.role.key, name: user.role.name },
     permissions: user.role.permissions.map((item) => item.permission.key).sort(),
     mustChangePassword: user.mustChangePassword,
+    avatarUrl: avatarUrlOf(user.avatarPath),
   };
 }
 

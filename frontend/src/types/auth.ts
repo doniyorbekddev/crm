@@ -13,6 +13,8 @@ export interface AuthUser {
   permissions: string[];
   /** Vaqtinchalik parol bilan kirilgan — avval o‘z parolini o‘rnatishi kerak */
   mustChangePassword: boolean;
+  /** Profil rasmi (API bazasiga nisbatan yo'l) */
+  avatarUrl?: string | null;
 }
 
 export interface AuthSession {

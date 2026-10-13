@@ -37,6 +37,17 @@ export const authService = {
     return response.data.data;
   },
 
+  /** Profil rasmi: tana — tayyorlangan rasm baytlari */
+  async uploadAvatar(image: Blob): Promise<MessageResult<{ avatarUrl: string }>> {
+    const response = await api.post<ApiSuccessResponse<{ avatarUrl: string }>>('/auth/me/avatar', image, { headers: { 'Content-Type': image.type || 'application/octet-stream' } });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async removeAvatar(): Promise<string> {
+    const response = await api.delete<ApiSuccessResponse<null>>('/auth/me/avatar');
+    return response.data.message;
+  },
+
   async me(): Promise<AuthUser> {
     const response = await api.get<ApiSuccessResponse<AuthUser>>('/auth/me');
     return response.data.data;

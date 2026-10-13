@@ -254,6 +254,8 @@ model User {
   passwordChangedAt  DateTime?
   /// Vaqtinchalik parol (kabinet ochilganda yoki xodim tiklaganda) — birinchi kirishda almashtirilishi shart
   mustChangePassword Boolean    @default(false)
+  /// Profil rasmi: saqlash papkasidagi nisbiy yo'l ("2026/10/<uuid>.jpg"). Tasodifiy nom — ochiq havola sifatida ishlatiladi
+  avatarPath         String?    @unique @db.VarChar(120)
   branchId           String     @default("branch_main")
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt

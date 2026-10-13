@@ -1,6 +1,7 @@
 import { BellRing, ChartNoAxesCombined, PhoneCall, Wallet } from 'lucide-react';
 import { Outlet } from 'react-router-dom';
 import { BrandMark } from '@/components/BrandMark';
+import { LanguageSelect } from '@/components/LanguageSelect';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { appEnv } from '@/lib/env';
 
@@ -43,7 +44,8 @@ export default function AuthLayout() {
       </aside>
 
       <main className="relative flex flex-col items-center justify-center px-4 py-12 sm:px-8">
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <div className="absolute top-4 right-4 flex items-center gap-2 sm:top-6 sm:right-6">
+          <LanguageSelect />
           <ThemeToggle />
         </div>
         <div className="w-full max-w-sm">

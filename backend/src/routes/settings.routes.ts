@@ -4,6 +4,8 @@ import { academySettingsController } from '../controllers/academySettings.contro
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { uploadBody } from './document.routes.js';
+import { avatarService } from '../services/avatar.service.js';
+import { sendStoredFile } from '../utils/sendStoredFile.js';
 
 /** Umumiy sozlamalar (TZ 3.1 GAP-01): faqat `settings.manage` — OWNER va SUPER_ADMIN */
 export const settingsRouter = Router();
@@ -20,3 +22,9 @@ export const publicRouter = Router();
 
 publicRouter.get('/branding', academySettingsController.branding);
 publicRouter.get('/branding/logo', academySettingsController.logo);
+// Profil rasmlari: tokensiz, lekin manzil taxmin qilib bo'lmaydigan tasodifiy nom (services/avatar.service.ts)
+publicRouter.get('/avatars/:year/:month/:file', async (req, res) => {
+  const file = await avatarService.file(`${String(req.params.year)}/${String(req.params.month)}/${String(req.params.file)}`);
+  // Nom o'zgarmas (rasm almashsa yangi nom) — uzoq kesh xavfsiz
+  await sendStoredFile(res, file, 'public, max-age=31536000, immutable');
+});

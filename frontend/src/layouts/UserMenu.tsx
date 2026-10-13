@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LanguageSelect } from '@/components/LanguageSelect';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Avatar } from '@/components/ui/Avatar';
 import { useLogout } from '@/hooks/useLogout';
@@ -39,7 +40,7 @@ export function UserMenu() {
         aria-expanded={open}
         className="focus-ring flex items-center gap-2.5 rounded-control p-1 transition-colors hover:bg-surface-muted sm:pr-2"
       >
-        <Avatar firstName={user.firstName} lastName={user.lastName} size="sm" />
+        <Avatar firstName={user.firstName} lastName={user.lastName} src={user.avatarUrl} size="sm" />
         <span className="hidden min-w-0 text-left sm:block">
           <span className="block max-w-40 truncate text-body-sm font-medium text-fg">
             {user.firstName} {user.lastName}
@@ -61,7 +62,8 @@ export function UserMenu() {
             <p className="truncate text-caption text-fg-muted">{user.email}</p>
           </div>
           {/* Telefonda mavzu tanlovi shu yerda (yuqori panelda joy tejaladi) */}
-          <div className="border-b border-border px-4 py-2.5 sm:hidden">
+          <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:hidden">
+            <LanguageSelect className="sm:hidden" />
             <ThemeToggle />
           </div>
           <Link
