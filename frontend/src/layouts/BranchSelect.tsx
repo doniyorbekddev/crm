@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Building2 } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 import { queryKeys } from '@/lib/queryKeys';
 import { branchesService } from '@/services/branches.service';
 import { useBranchStore } from '@/store/branch.store';
@@ -27,11 +28,12 @@ export function BranchSelect() {
     <label className="hidden items-center gap-2 sm:flex">
       <Building2 className="size-4 text-fg-subtle" aria-hidden />
       <span className="sr-only">Filial</span>
-      <select
+      <Select
         value={branchId ?? ''}
         onChange={(event) => setBranchId(event.target.value || null)}
         aria-label="Filial"
-        className="h-9 max-w-44 rounded-control border border-border bg-surface px-2 text-body text-fg outline-none transition-colors hover:border-fg-subtle/60 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/20"
+        wrapperClassName="max-w-44"
+        className="h-9"
       >
         <option value="">Barcha filiallar</option>
         {branches.map((branch) => (
@@ -39,7 +41,7 @@ export function BranchSelect() {
             {branch.name}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }
