@@ -231,7 +231,13 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
 
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="mb-3 text-caption font-semibold tracking-wide text-fg-muted uppercase">Sotuv</legend>
-          <FormField label="Manba" htmlFor="lead-sourceId" error={errors.sourceId?.message} required>
+          <FormField
+            label="Manba"
+            htmlFor="lead-sourceId"
+            error={errors.sourceId?.message}
+            required
+            {...(lookups.sources.length === 0 ? { hint: 'Manbalar ro‘yxati bo‘sh — tizim administratoriga murojaat qiling (serverda: npm run db:sync-permissions)' } : {})}
+          >
             <Select id="lead-sourceId" invalid={Boolean(errors.sourceId)} aria-describedby={describedBy('sourceId')} {...register('sourceId')}>
               <option value="">Manbani tanlang</option>
               {lookups.sources.map((source) => (

@@ -7,18 +7,19 @@
  * (masalan ombor yoki chegirma) uning ruxsati bazada bo'lmasa, `requirePermission` hammani
  * rad etadi: sahifa hech kimda, hatto Super Adminda ham ochilmaydi.
  *
- * Shu skript **faqat ruxsat va tizim rollarini** moslaydi:
+ * Shu skript **ruxsatlar, tizim rollari va lead manbalarini** moslaydi:
  *   - yangi ruxsatlar yaratiladi, mavjudlarining izohi yangilanadi;
  *   - **shu yurishda yangi paydo bo'lgan** ruxsatlar tizim rollariga qo'shiladi;
  *   - Super Admin tomonidan qo'lda o'zgartirilgan rol ruxsatlari **tegilmaydi**
- *     (`SEED_RESET_PERMISSIONS=true` bo'lmasa).
+ *     (`SEED_RESET_PERMISSIONS=true` bo'lmasa);
+ *   - yo'q lead manbalari yaratiladi (mavjudlari tegilmaydi).
  *
  * Demo ma'lumot yaratmaydi, admin hisobi ochmaydi — shuning uchun har deployda xavfsiz ishlaydi.
  */
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../src/generated/prisma/client.js';
-import { seedRolesAndPermissions } from './coreSeed.js';
+import { seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
 
 config({ quiet: true });
 
@@ -35,6 +36,15 @@ async function main(): Promise<void> {
   await seedRolesAndPermissions(prisma, (message: string) => console.log(`  ${message}`));
   const after = await prisma.permission.count();
   console.log(`✔ Ruxsatlar moslandi: ${before} → ${after}`);
+
+  // Lead manbalari ham shu yerda ta'minlanadi. Ular ruxsat emas, lekin xuddi shunday "busiz ishlamaydigan"
+  // ma'lumot: ilovada manba qo'shadigan sahifa yo'q, lid formasi esa manbani majburiy so'raydi. Birlamchi
+  // sozlash (`db:bootstrap`) yurmagan bazada (admin qo'lda yaratilgan) ro'yxat bo'sh qolib, lid qo'shib
+  // bo'lmasdi. Faqat YO'Q manbalar yaratiladi — mavjudlarining nomi, tartibi va faolligi o'zgarmaydi.
+  const sourcesBefore = await prisma.source.count();
+  await seedLeadSources(prisma, () => undefined);
+  const sourcesAfter = await prisma.source.count();
+  console.log(`✔ Lead manbalari: ${sourcesBefore} → ${sourcesAfter}`);
 }
 
 main()
