@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
+import { attendanceController } from '../controllers/attendance.controller.js';
 import { attendanceAnalyticsController, attendanceSessionController } from '../controllers/attendanceSession.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
@@ -9,6 +10,8 @@ export const attendanceRouter = Router();
 
 attendanceRouter.use(authenticate, requirePermission(PERMISSIONS.ATTENDANCE_VIEW));
 
+// Kunlik taxta: shu sanaga darsi bor guruhlar (o'qituvchi — faqat o'ziniki; doira servisda)
+attendanceRouter.get('/day', attendanceController.day);
 attendanceRouter.get('/stats', attendanceAnalyticsController.stats);
 attendanceRouter.get('/ranking', attendanceAnalyticsController.ranking);
 attendanceRouter.get('/teacher-overview', attendanceAnalyticsController.teacherOverview);

@@ -76,7 +76,7 @@ describe('TeachingPage', () => {
     expect(screen.getByText('Bugun dars · davomat yo‘q')).toBeInTheDocument();
     expect(screen.getByText('91%')).toBeInTheDocument();
     expect(screen.getByText('2 xavf ostida', { exact: false })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Davomat/ })).toHaveAttribute('href', '/attendance?groupId=g1');
+    expect(screen.getByRole('link', { name: /Davomat/ })).toHaveAttribute('href', '/attendance/groups/g1');
     expect(screen.getByRole('link', { name: /4 baholash/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /2 tekshirish/ })).toBeInTheDocument();
     // Ruxsatsiz — o'qituvchi tanlash yo'q

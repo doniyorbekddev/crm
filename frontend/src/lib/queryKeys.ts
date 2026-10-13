@@ -208,6 +208,7 @@ export const queryKeys = {
   attendance: {
     all: ['attendance'] as const,
     sheet: (groupId: string, date: string) => ['attendance', 'sheet', groupId, date] as const,
+    day: (date: string) => ['attendance', 'day', date] as const,
     stats: (params: AttendanceStatsParams) => ['attendance', 'stats', params] as const,
     ranking: (params: AttendanceRankingParams) => ['attendance', 'ranking', params] as const,
     teacherOverview: ['attendance', 'teacher-overview'] as const,

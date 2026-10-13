@@ -1,9 +1,10 @@
+import { openFirstLessonGroup } from '../attendance';
 import { expect, login, test } from '../fixtures';
 
 test('davomat jurnali klaviatura bilan boshqariladi', async ({ page }) => {
   await login(page, 'teacher');
-  await page.goto('/attendance');
-  await expect(page.getByRole('heading', { level: 1, name: 'Davomat' })).toBeVisible();
+  // Davomat endi taxtadan ochiladi: bugungi guruh kartasi → guruh davomati sahifasi
+  await openFirstLessonGroup(page);
 
   const rows = page.getByRole('group', { name: /davomati$/ });
   await expect(rows.first()).toBeVisible();

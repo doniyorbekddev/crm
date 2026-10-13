@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
-import type { AttendanceSheet, MarkAttendancePayload } from '@/types/attendance';
+import type { AttendanceSheet, MarkAttendancePayload, AttendanceDay } from '@/types/attendance';
 import type {
   AttendanceCalendar,
   AttendanceRankingParams,
@@ -23,6 +23,12 @@ export const attendanceService = {
   async mark(groupId: string, payload: MarkAttendancePayload): Promise<MessageResult<AttendanceSheet>> {
     const response = await api.post<ApiSuccessResponse<AttendanceSheet>>(`/groups/${groupId}/attendance`, payload);
     return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Kunlik taxta; sana berilmasa — server o'quv markaz vaqti bo'yicha bugunni oladi */
+  async day(date?: string): Promise<AttendanceDay> {
+    const response = await api.get<ApiSuccessResponse<AttendanceDay>>('/attendance/day', { params: date ? { date } : {} });
+    return response.data.data;
   },
 
   async stats(params: AttendanceStatsParams): Promise<AttendanceStats> {

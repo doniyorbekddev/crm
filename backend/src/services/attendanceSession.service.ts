@@ -263,26 +263,20 @@ export const attendanceSessionService = {
     tx: Prisma.TransactionClient,
     input: { groupId: string; date: Date; teacherId: string | null; markedById: string; topicId?: string | null },
   ): Promise<string> {
-    const existing = await tx.attendanceSession.findUnique({
+    // Bir vaqtda kelgan ikki saqlash (ikki marta bosish, ikki qurilma) ikkalasi ham "seans yo'q" deb ko'rib, ikkinchisi
+    // unikal cheklovga urilardi va butun saqlash 500 bilan yiqilardi. `ON CONFLICT DO NOTHING` — kim birinchi yozsa
+    // o'sha yaratadi, ikkinchisi kutib, tayyor seansni oladi.
+    await tx.attendanceSession.createMany({
+      data: [{ groupId: input.groupId, date: input.date, teacherId: input.teacherId, markedById: input.markedById, status: 'HELD', topicId: input.topicId ?? null }],
+      skipDuplicates: true,
+    });
+    const session = await tx.attendanceSession.findUniqueOrThrow({
       where: { groupId_date: { groupId: input.groupId, date: input.date } },
-      select: { id: true },
+      select: { id: true, topicId: true },
     });
-    if (existing) {
-      if (input.topicId) await tx.attendanceSession.update({ where: { id: existing.id }, data: { topicId: input.topicId } });
-      return existing.id;
+    if (input.topicId && session.topicId !== input.topicId) {
+      await tx.attendanceSession.update({ where: { id: session.id }, data: { topicId: input.topicId } });
     }
-
-    const created = await tx.attendanceSession.create({
-      data: {
-        groupId: input.groupId,
-        date: input.date,
-        teacherId: input.teacherId,
-        markedById: input.markedById,
-        status: 'HELD',
-        topicId: input.topicId ?? null,
-      },
-      select: { id: true },
-    });
-    return created.id;
+    return session.id;
   },
 };

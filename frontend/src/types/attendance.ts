@@ -33,7 +33,38 @@ export interface AttendanceSheet {
   isScheduledDay: boolean;
   canMark: boolean;
   students: AttendanceRow[];
+  /** Shu kuni belgilangan, lekin hozir guruhda faol bo'lmagan o'quvchilar — faqat ko'rish uchun */
+  formerStudents?: AttendanceRow[];
   summary: AttendanceSummary;
+  /** O'quv markaz vaqti bo'yicha bugungi sana */
+  today?: string;
+  sessionStatus?: 'PLANNED' | 'HELD' | 'CANCELLED' | null;
+}
+
+export type AttendanceDayGroupState = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface AttendanceDayGroup {
+  id: string;
+  name: string;
+  courseName: string;
+  room: string | null;
+  startTime: string;
+  endTime: string;
+  teacher: PersonRef | null;
+  students: number;
+  marked: number;
+  absent: number;
+  state: AttendanceDayGroupState;
+  isScheduledDay: boolean;
+}
+
+/** Kunlik taxta: shu sanaga darsi bor guruhlar */
+export interface AttendanceDay {
+  date: string;
+  today: string;
+  groups: AttendanceDayGroup[];
+  /** Shu kuni darsi yo'q faol guruhlar (qo'shimcha dars belgilash uchun) */
+  otherGroups: Array<{ id: string; name: string; courseName: string; students: number }>;
 }
 
 export interface MarkAttendancePayload {

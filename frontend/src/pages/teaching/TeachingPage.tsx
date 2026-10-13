@@ -78,7 +78,7 @@ function GroupCard({ group }: { group: TeachingGroupCard }) {
           )}
         </p>
         <div className="flex flex-wrap gap-2 text-body">
-          <Link to={`/attendance?groupId=${group.id}`} className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">
+          <Link to={`/attendance/groups/${group.id}`} className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">
             <CalendarCheck className="size-4" aria-hidden /> Davomat
           </Link>
           <Link to="/homework" className="inline-flex items-center gap-1 rounded-chip border border-border px-2 py-1 text-fg hover:bg-surface-muted">

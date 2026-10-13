@@ -469,6 +469,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/attendance/AttendancePage"),
                         ),
                       },
+                      {
+                        path: "attendance/groups/:groupId",
+                        lazy: lazyComponent(
+                          () => import("@/pages/attendance/GroupAttendancePage"),
+                        ),
+                      },
                     ],
                   },
                   {

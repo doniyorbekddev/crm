@@ -121,7 +121,7 @@ describe('Guruh sahifasi', () => {
     setUser([PERMISSIONS.GROUP_VIEW, PERMISSIONS.GROUP_MANAGE, PERMISSIONS.ATTENDANCE_VIEW, PERMISSIONS.AI_ACADEMIC]);
     renderPage();
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.getByRole('link', { name: 'Davomat' })).toHaveAttribute('href', '/attendance?groupId=g1');
+    expect(screen.getByRole('link', { name: 'Davomat' })).toHaveAttribute('href', '/attendance/groups/g1');
     expect(screen.getByRole('button', { name: 'Tahrirlash' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'AI tahlil' })).toBeInTheDocument();
 

@@ -2,7 +2,8 @@ import { prisma } from '../config/database.js';
 import { assertTopicForGroup, startTopicForAttendees } from './curriculum.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
-import type { AttendanceStatus, Prisma, StudentStatus, WeekDay } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { AttendanceStatus, StudentStatus, WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import type { ClientInfo } from '../utils/requestContext.js';
@@ -15,6 +16,9 @@ import { permissionService } from './permission.service.js';
 import { masteryService } from './mastery.service.js';
 import { notifyAttendanceLate } from './studentNotify.service.js';
 import { isRosterLimited } from './teachingAccess.js';
+import { branchScopeOf, inBranch } from './branchScope.js';
+import type { BranchScope } from './branchScope.js';
+import { businessDateString } from '../utils/dates.js';
 
 /** JS `getUTCDay()` (0 = yakshanba) → Prisma WeekDay */
 const WEEK_DAYS: readonly WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -52,7 +56,46 @@ export interface AttendanceSheetDto {
   isScheduledDay: boolean;
   canMark: boolean;
   students: AttendanceStudentRow[];
+  /**
+   * Shu kuni belgilangan, lekin hozir guruhda faol bo'lmagan o'quvchilar (chiqib ketgan, muzlatilgan, boshqa guruhga
+   * o'tgan). Tarix yo'qolmasligi uchun ko'rsatiladi; ularni qayta belgilab bo'lmaydi va `summary` ga kirmaydi.
+   */
+  formerStudents: AttendanceStudentRow[];
   summary: Record<AttendanceStatus, number> & { unmarked: number; total: number };
+  /** O'quv markaz vaqti bo'yicha bugungi sana */
+  today: string;
+  /** Seans bekor qilingan bo'lsa — belgilashdan oldin ogohlantirish uchun */
+  sessionStatus: 'PLANNED' | 'HELD' | 'CANCELLED' | null;
+}
+
+export type DayGroupState = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface AttendanceDayGroupDto {
+  id: string;
+  name: string;
+  courseName: string;
+  room: string | null;
+  /** Seansda vaqt o'zgartirilgan bo'lsa — o'sha, aks holda guruh jadvalidagi vaqt */
+  startTime: string;
+  endTime: string;
+  teacher: { id: string; firstName: string; lastName: string } | null;
+  /** Guruhdagi faol o'quvchilar */
+  students: number;
+  /** Ulardan shu kunga belgilanganlari */
+  marked: number;
+  absent: number;
+  state: DayGroupState;
+  /** false — jadvalda yo'q kun, lekin seans ochilgan (qo'shimcha dars) */
+  isScheduledDay: boolean;
+}
+
+export interface AttendanceDayDto {
+  date: string;
+  today: string;
+  /** Shu kunga darsi bor guruhlar (boshlanish vaqti bo'yicha) */
+  groups: AttendanceDayGroupDto[];
+  /** Shu kuni darsi yo'q, lekin foydalanuvchi ochishi mumkin bo'lgan faol guruhlar (qo'shimcha dars uchun) */
+  otherGroups: Array<{ id: string; name: string; courseName: string; students: number }>;
 }
 
 export interface StudentAttendanceDto {
@@ -73,6 +116,8 @@ interface AttendanceAccess {
   canMark: boolean;
   /** O‘qituvchi faqat o‘zi dars beradigan guruh jurnalini ochadi */
   onlyOwnGroups: boolean;
+  /** Filialga biriktirilgan xodim boshqa filial guruhini ochmaydi */
+  scope: BranchScope;
 }
 
 async function getAttendanceAccess(actor: AuthUser): Promise<AttendanceAccess> {
@@ -81,7 +126,13 @@ async function getAttendanceAccess(actor: AuthUser): Promise<AttendanceAccess> {
     userId: actor.id,
     canMark: permissions.has(PERMISSIONS.ATTENDANCE_MARK),
     onlyOwnGroups: isRosterLimited(permissions, PERMISSIONS.GROUP_MANAGE),
+    scope: await branchScopeOf(actor),
   };
+}
+
+/** Foydalanuvchi ko'ra oladigan guruhlar: o'qituvchi — faqat o'zi dars beradiganlar, qolganlar — filial doirasida */
+function visibleGroups(access: AttendanceAccess): Prisma.GroupWhereInput {
+  return access.onlyOwnGroups ? { teacherId: access.userId } : inBranch(access.scope);
 }
 
 function emptySummary(): Record<AttendanceStatus, number> {
@@ -100,13 +151,17 @@ const groupSheetSelect = {
   endTime: true,
   scheduleDays: true,
   teacherId: true,
+  branchId: true,
   course: { select: { name: true } },
   teacher: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.GroupSelect;
 
 async function findVisibleGroup(access: AttendanceAccess, groupId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: groupSheetSelect });
-  if (!group || (access.onlyOwnGroups && group.teacherId !== access.userId)) {
+  // Guruh ID'si klientdan keladi — egalik va filial har so'rovda shu yerda tekshiriladi. Begona guruh uchun 404
+  // (mavjudligi oshkor qilinmaydi).
+  const foreignBranch = !access.onlyOwnGroups && access.scope.branchId !== null && group?.branchId !== access.scope.branchId;
+  if (!group || (access.onlyOwnGroups && group.teacherId !== access.userId) || foreignBranch) {
     throw AppError.notFound('Guruh topilmadi');
   }
   return group;
@@ -126,7 +181,7 @@ export const attendanceService = {
 
     const session = await prisma.attendanceSession.findUnique({
       where: { groupId_date: { groupId, date } },
-      select: { id: true, topic: true, startTime: true, endTime: true },
+      select: { id: true, topic: true, startTime: true, endTime: true, status: true },
     });
 
     const records = await prisma.attendance.findMany({
@@ -140,6 +195,31 @@ export const attendanceService = {
       },
     });
     const byStudent = new Map(records.map((record) => [record.studentId, record]));
+    // Belgisi bor, lekin joriy ro'yxatda yo'q o'quvchilar — tarix uchun (yozuv saqlanadi, qayta belgilanmaydi)
+    const activeIds = new Set(students.map((student) => student.id));
+    const formerIds = records.map((record) => record.studentId).filter((id) => !activeIds.has(id));
+    const former =
+      formerIds.length === 0
+        ? []
+        : await prisma.student.findMany({
+            where: { id: { in: formerIds } },
+            select: { id: true, number: true, firstName: true, lastName: true, phone: true },
+            orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+          });
+    const formerStudents: AttendanceStudentRow[] = former.map((student) => {
+      const record = byStudent.get(student.id)!;
+      return {
+        studentId: student.id,
+        code: formatStudentNumber(student.number),
+        firstName: student.firstName,
+        lastName: student.lastName,
+        phone: student.phone,
+        status: record.status,
+        note: record.note,
+        markedAt: record.updatedAt.toISOString(),
+        markedBy: record.markedBy,
+      };
+    });
 
     const summary = { ...emptySummary(), unmarked: 0, total: students.length };
     const rows: AttendanceStudentRow[] = students.map((student) => {
@@ -160,7 +240,10 @@ export const attendanceService = {
     });
 
     return {
-      session,
+      session: session ? { id: session.id, topic: session.topic, startTime: session.startTime, endTime: session.endTime } : null,
+      sessionStatus: session?.status ?? null,
+      today: businessDateString(new Date()),
+      formerStudents,
       group: {
         id: group.id,
         name: group.name,
@@ -176,6 +259,83 @@ export const attendanceService = {
       canMark: access.canMark,
       students: rows,
       summary,
+    };
+  },
+
+  /**
+   * Bir kunlik taxta: shu sanaga darsi bor guruhlar va ularning davomat holati.
+   *
+   * "Darsi bor" = guruh faol, sana guruhning boshlanish–tugash oralig'ida va (hafta kuni jadvalda bor YOKI shu kunga
+   * seans ochilgan). Alohida "dars" jadvali yo'q: jadval — guruhdagi haftalik shablon, haqiqiy dars — `attendance_sessions`
+   * (`groupId + date` yagona, shuning uchun bitta guruh bir kunda bitta karta).
+   */
+  async day(actor: AuthUser, date: Date): Promise<AttendanceDayDto> {
+    const access = await getAttendanceAccess(actor);
+    const weekDay = WEEK_DAYS[date.getUTCDay()]!;
+    const groups = await prisma.group.findMany({
+      where: { AND: [visibleGroups(access), { status: 'ACTIVE', startDate: { lte: date }, OR: [{ endDate: null }, { endDate: { gte: date } }] }] },
+      select: {
+        id: true,
+        name: true,
+        room: true,
+        startTime: true,
+        endTime: true,
+        scheduleDays: true,
+        course: { select: { name: true } },
+        teacher: { select: { id: true, firstName: true, lastName: true } },
+        sessions: { where: { date }, select: { status: true, startTime: true, endTime: true } },
+        _count: { select: { students: { where: { deletedAt: null, status: { in: [...MARKABLE_STATUSES] } } } } },
+      },
+      orderBy: [{ startTime: 'asc' }, { name: 'asc' }],
+    });
+    const due = groups.filter((group) => group.scheduleDays.includes(weekDay) || group.sessions.length > 0);
+
+    // Faqat HOZIR SHU GURUHDA faol o'quvchilarning belgilari sanaladi — "tugallandi" holati joriy ro'yxatga nisbatan.
+    // (Boshqa guruhga o'tgan o'quvchining eski belgisi sanalsa, belgilar soni o'quvchilar sonidan oshib ketardi.)
+    const marks =
+      due.length === 0
+        ? []
+        : await prisma.$queryRaw<Array<{ groupId: string; marked: number; absent: number }>>`
+            SELECT a."groupId", COUNT(*)::int AS "marked", COUNT(*) FILTER (WHERE a."status" = 'ABSENT')::int AS "absent"
+            FROM "attendances" a
+            JOIN "students" s ON s."id" = a."studentId" AND s."groupId" = a."groupId"
+            WHERE a."date" = ${date}::date AND a."groupId" IN (${Prisma.join(due.map((group) => group.id))})
+              AND s."deletedAt" IS NULL AND s."status"::text IN (${Prisma.join([...MARKABLE_STATUSES])})
+            GROUP BY a."groupId"
+          `;
+    const markedBy = new Map(marks.map((row) => [row.groupId, { marked: row.marked, absent: row.absent }]));
+
+    const dueIds = new Set(due.map((group) => group.id));
+    return {
+      date: toDateOnly(date),
+      today: businessDateString(new Date()),
+      groups: due
+        .map((group) => {
+          const session = group.sessions[0];
+          const students = group._count.students;
+          const { marked, absent } = markedBy.get(group.id) ?? { marked: 0, absent: 0 };
+          const state: DayGroupState =
+            session?.status === 'CANCELLED' ? 'CANCELLED' : marked === 0 ? 'NOT_STARTED' : marked < students ? 'IN_PROGRESS' : 'COMPLETED';
+          return {
+            id: group.id,
+            name: group.name,
+            courseName: group.course.name,
+            room: group.room,
+            startTime: session?.startTime ?? group.startTime,
+            endTime: session?.endTime ?? group.endTime,
+            teacher: group.teacher,
+            students,
+            marked,
+            absent,
+            state,
+            isScheduledDay: group.scheduleDays.includes(weekDay),
+          };
+        })
+        .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.name.localeCompare(b.name, 'uz')),
+      otherGroups: groups
+        .filter((group) => !dueIds.has(group.id))
+        .map((group) => ({ id: group.id, name: group.name, courseName: group.course.name, students: group._count.students }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'uz')),
     };
   },
 

@@ -207,7 +207,7 @@ export function AttendanceSection({ scope }: { scope: AcademicScope }) {
         header={
           <CardHeader className="items-center">
             <CardTitle>So‘nggi darslar</CardTitle>
-            <ViewAll to={scope.groupId ? `/attendance?groupId=${scope.groupId}` : '/attendance'} />
+            <ViewAll to={scope.groupId ? `/attendance/groups/${scope.groupId}` : '/attendance'} />
           </CardHeader>
         }
         rows={sessionsQuery.data}

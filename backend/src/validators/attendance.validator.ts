@@ -6,10 +6,17 @@ const dateOnlySchema = z
   .string('Sanani kiriting')
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Sana formati: 2026-10-01')
-  .transform((value) => new Date(`${value}T00:00:00.000Z`));
+  .transform((value) => new Date(`${value}T00:00:00.000Z`))
+  // Shakli to'g'ri, lekin mavjud bo'lmagan sana (2026-13-45) — bazagacha yetib 500 bermasin
+  .refine((value) => !Number.isNaN(value.getTime()), 'Sana noto‘g‘ri');
 
 export const attendanceQuerySchema = z.object({
   date: dateOnlySchema,
+});
+
+/** Kunlik taxta: sana ixtiyoriy — berilmasa o'quv markaz vaqti bo'yicha bugun (controller qo'yadi) */
+export const attendanceDayQuerySchema = z.object({
+  date: dateOnlySchema.optional(),
 });
 
 export const markAttendanceSchema = z.object({
