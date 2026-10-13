@@ -65,6 +65,7 @@
   --app-success-subtle: #ecfdf5;
   --app-success-border: #a7f3d0;
   --app-success-solid: #047857;
+  --app-success-solid-hover: #065f46;
   --app-warning: #b45309;
   --app-warning-subtle: #fffbeb;
   --app-warning-border: #fde68a;
@@ -135,6 +136,7 @@
   --app-success-subtle: #0d2e26;
   --app-success-border: #14503f;
   --app-success-solid: #047857;
+  --app-success-solid-hover: #065f46;
   --app-warning: #fcd34d;
   --app-warning-subtle: #33270b;
   --app-warning-border: #5f4712;
@@ -186,6 +188,7 @@
   --color-success-subtle: var(--app-success-subtle);
   --color-success-border: var(--app-success-border);
   --color-success-solid: var(--app-success-solid);
+  --color-success-solid-hover: var(--app-success-solid-hover);
   --color-warning: var(--app-warning);
   --color-warning-subtle: var(--app-warning-subtle);
   --color-warning-border: var(--app-warning-border);

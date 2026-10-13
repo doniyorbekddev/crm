@@ -131,7 +131,7 @@ export function TodayTasksCard() {
           <EmptyState size="sm" icon={CalendarClock} title="Bugunga vazifa yo‘q" description="Kechikkan follow-up ham yo‘q" />
         ) : (
           // Ro'yxat uzun bo'lsa karta ichida aylanadi — yonidagi grafik kartasi cho'zilib ketmaydi
-          <ul className="max-h-[22.5rem] divide-y divide-border overflow-y-auto">
+          <ul className="max-h-90 divide-y divide-border overflow-y-auto">
             {query.data.map((item) => (
               <li key={item.id}>
                 <Link to={`/leads/${item.lead.id}`} className="block px-5 py-3 outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">

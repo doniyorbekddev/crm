@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { IconButton } from '@/components/ui/IconButton';
 import { moveWidget } from '@/utils/widgetLayout';
 import type { WidgetDefinition, WidgetLayout } from '@/utils/widgetLayout';
 
@@ -40,24 +41,20 @@ export function WidgetLayoutPanel({ widgets, onChange, onReset }: WidgetLayoutPa
               />
               <span className="truncate">{widget.label}</span>
             </label>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`${widget.label} — yuqoriga`}
+            <IconButton
+              label={`${widget.label} — yuqoriga`}
               disabled={index === 0}
               onClick={() => onChange({ order: moveWidget(order, widget.key, -1), hidden })}
             >
-              <ArrowUp className="size-4" aria-hidden />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`${widget.label} — pastga`}
+              <ArrowUp aria-hidden />
+            </IconButton>
+            <IconButton
+              label={`${widget.label} — pastga`}
               disabled={index === widgets.length - 1}
               onClick={() => onChange({ order: moveWidget(order, widget.key, 1), hidden })}
             >
-              <ArrowDown className="size-4" aria-hidden />
-            </Button>
+              <ArrowDown aria-hidden />
+            </IconButton>
           </li>
         ))}
       </ul>

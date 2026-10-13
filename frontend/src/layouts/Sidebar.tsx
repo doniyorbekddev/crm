@@ -47,7 +47,7 @@ export function Sidebar() {
           'fixed inset-y-0 left-0 z-drawer flex w-60 flex-col border-r border-border bg-surface transition-[transform,width] duration-normal',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0',
-          collapsed ? 'lg:w-[72px]' : 'lg:w-60',
+          collapsed ? 'lg:w-18' : 'lg:w-60',
         )}
       >
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
@@ -105,7 +105,7 @@ export function Sidebar() {
                               )
                             }
                           >
-                            <Icon className="size-[18px] shrink-0" aria-hidden />
+                            <Icon className="size-4.5 shrink-0" aria-hidden />
                             <span className={cn('truncate', collapsed && 'lg:sr-only')}>{label}</span>
                           </NavLink>
                         </Tooltip>

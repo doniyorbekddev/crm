@@ -19,7 +19,7 @@ export default function AppLayout() {
       <div
         className={cn(
           'flex min-h-full flex-col transition-[padding] duration-normal print:pl-0',
-          collapsed ? 'lg:pl-[72px]' : 'lg:pl-60',
+          collapsed ? 'lg:pl-18' : 'lg:pl-60',
         )}
       >
         {/* `sticky` shu o'rovchida: ichki elementda bo'lsa o'rovchi balandligi bilan cheklanib, ishlamaydi */}

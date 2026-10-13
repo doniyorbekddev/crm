@@ -4,15 +4,18 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/store/auth.store';
+import { useBranchStore } from '@/store/branch.store';
 import { useUiStore } from '@/store/ui.store';
 import type { AuthUser } from '@/types/auth';
+import type { Branch } from '@/types/branch';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { BranchSelect } from './BranchSelect';
 import { NAV_SECTIONS, findNavEntry } from './navigation';
 import { NotificationBell } from './NotificationBell';
 import { ShellBreadcrumb } from './ShellBreadcrumb';
 import { Sidebar } from './Sidebar';
 
-/** Dizayn PHASE 2 — ilova qobig'i: navigatsiya guruhlari, sidebar, yo'l, bildirishnomalar paneli */
+/** Dizayn PHASE 2 — ilova qobig'i: navigatsiya guruhlari, sidebar, yo'l, filial tanlash, bildirishnomalar paneli */
 
 vi.mock('@/hooks/useBranding', () => ({ useBranding: () => ({ name: 'IT-Academy', logoUrl: null }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -42,6 +45,8 @@ vi.mock('@/services/notifications.service', () => ({
   },
 }));
 const { notificationsService } = await import('@/services/notifications.service');
+vi.mock('@/services/branches.service', () => ({ branchesService: { list: vi.fn(async () => []) } }));
+const { branchesService } = await import('@/services/branches.service');
 
 function userWith(permissions: string[]): AuthUser {
   return {
@@ -167,6 +172,24 @@ describe('ShellBreadcrumb', () => {
   it('menyuda yo‘q sahifa — hech narsa chizilmaydi', () => {
     renderAt('/nomalum', <ShellBreadcrumb />);
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+});
+
+describe('Filial tanlash', () => {
+  const branch = (id: string, name: string, isActive = true) => ({ id, key: id, name, isActive }) as Branch;
+
+  it('ikki va undan ko‘p filial: faqat faollari ro‘yxatda; tanlov saqlanadi, "Barcha filiallar" — tanlovsiz', async () => {
+    useBranchStore.setState({ branchId: null });
+    vi.mocked(branchesService.list).mockResolvedValue([branch('b1', 'Markaz'), branch('b2', 'Chilonzor'), branch('b3', 'Yopilgan', false)]);
+    renderAt('/students', <BranchSelect />);
+
+    const select = await screen.findByRole('combobox', { name: 'Filial' });
+    expect(within(select).getAllByRole('option').map((option) => option.textContent)).toEqual(['Barcha filiallar', 'Markaz', 'Chilonzor']);
+
+    await userEvent.selectOptions(select, 'Chilonzor');
+    expect(useBranchStore.getState().branchId).toBe('b2');
+    await userEvent.selectOptions(select, 'Barcha filiallar');
+    expect(useBranchStore.getState().branchId).toBeNull();
   });
 });
 

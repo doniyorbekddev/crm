@@ -42,10 +42,11 @@ Light va dark qiymatlari `:root` / `.dark` da (`--app-*`), Tailwind klasslari `@
 ### Semantik holatlar
 
 Har biri to'rt qismli: **matn/ikonka** · `-subtle` (fon) · `-border` · `-solid` (oq matnli to'liq fon).
+`success` va `danger` da to'liq fonli tugmaning hover holati uchun `-solid-hover` ham bor.
 
 | Ohang | Ma'no | Misol |
 |---|---|---|
-| `success` | bajarildi, to'landi, faol, keldi | `text-success bg-success-subtle border-success-border` |
+| `success` | bajarildi, to'landi, faol, keldi | `text-success bg-success-subtle border-success-border`; tugma: `bg-success-solid hover:bg-success-solid-hover` |
 | `warning` | kutilmoqda, e'tibor, kechikdi | `text-warning bg-warning-subtle` |
 | `danger` | kelmadi, qarz, kritik, xato | `text-danger bg-danger-subtle`; tugma: `bg-danger-solid` |
 | `info` | rejalashtirilgan, ma'lumot | `text-info bg-info-subtle` |
