@@ -84,7 +84,8 @@ export interface StudentDto {
   leadId: string | null;
   firstName: string;
   lastName: string;
-  phone: string;
+  /** O'quvchi yoki ota-ona telefonidan kamida bittasi bor */
+  phone: string | null;
   parentPhone: string | null;
   telegram: string | null;
   email: string | null;
@@ -383,7 +384,7 @@ export const studentService = {
         data: {
           firstName: input.firstName,
           lastName: input.lastName,
-          phone: input.phone,
+          phone: input.phone ?? null,
           parentPhone: input.parentPhone ?? null,
           telegram: input.telegram ?? null,
           email: input.email ?? null,
@@ -445,7 +446,7 @@ export const studentService = {
         data: {
           firstName: input.firstName,
           lastName: input.lastName,
-          phone: input.phone,
+          phone: input.phone ?? null,
           parentPhone: input.parentPhone ?? null,
           telegram: input.telegram ?? null,
           email: input.email ?? null,

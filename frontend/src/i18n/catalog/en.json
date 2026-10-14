@@ -4644,7 +4644,11 @@
 "KPI chegarasi saqlandi": "KPI threshold saved",
 "KPI bonus fondi saqlandi": "KPI bonus pool saved",
 "KPI natijasi saqlandi": "KPI result saved",
-"Maosh tasdiqlashga yuborildi": "Salary submitted for approval"
+"Maosh tasdiqlashga yuborildi": "Salary submitted for approval",
+"Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Please enter at least one phone number — the student's or a parent's.",
+"Ixtiyoriy · kamida bitta raqam kerak": "Optional · at least one number required",
+"Ota-onasining telefon raqami": "Parent's phone number",
+"O‘quvchining telefon raqami": "Student's phone number"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",

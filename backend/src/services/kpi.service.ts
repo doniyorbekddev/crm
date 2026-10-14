@@ -300,7 +300,7 @@ export async function acquisitionsFor(db: Db, userId: string, year: number, mont
     const assignee = await assigneeAtConversion(db, student.lead, student.createdAt);
     if (assignee !== userId) continue;
     // Bir odam ikki marta kiritilgan bo'lsa (bir xil telefon) — bir marta
-    const phone = student.phone.replace(/\D/g, '');
+    const phone = (student.phone ?? '').replace(/\D/g, '');
     if (phone && seenPhones.has(phone)) continue;
     if (phone) seenPhones.add(phone);
     result.push({

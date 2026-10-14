@@ -41,7 +41,7 @@ export interface DebtDto {
   code: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone: string | null;
   parentPhone: string | null;
   course: { id: string; name: string };
   group: { id: string; name: string } | null;

@@ -88,7 +88,7 @@ export interface TeacherOverviewDto {
   }>;
   todayLessons: number;
   markedLessons: number;
-  todayAbsent: Array<{ studentId: string; firstName: string; lastName: string; groupName: string; phone: string }>;
+  todayAbsent: Array<{ studentId: string; firstName: string; lastName: string; groupName: string; phone: string | null }>;
   monthRate: number;
   monthCounts: AttendanceCounts;
 }

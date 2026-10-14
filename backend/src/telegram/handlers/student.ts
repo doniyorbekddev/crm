@@ -159,7 +159,7 @@ export async function showProfile(context: BotContext, scope: CommandScope): Pro
   const lines = [
     `<b>${escapeHtml(student.firstName)} ${escapeHtml(student.lastName)}</b>`,
     `🆔 ${formatStudentNumber(student.number)}`,
-    `📱 ${escapeHtml(student.phone)}`,
+    `📱 ${student.phone ? escapeHtml(student.phone) : '—'}`,
     '',
     `📚 Kurs: ${escapeHtml(student.course.name)}`,
     `👥 Guruh: ${student.group ? escapeHtml(student.group.name) : '—'}`,

@@ -34,7 +34,8 @@ export const studentListQuerySchema = paginationQuerySchema.extend({
 const studentFieldsSchema = z.object({
   firstName: nameSchema('Ism'),
   lastName: nameSchema('Familiya'),
-  phone: phoneSchema,
+  /** O'quvchi va ota-ona telefoni — ikkalasi ham ixtiyoriy, lekin kamida bittasi bo'lishi shart (pastdagi refine) */
+  phone: optionalField(phoneSchema),
   parentPhone: optionalField(phoneSchema),
   telegram: optionalField(z.string().trim().max(64)),
   email: optionalField(emailSchema),
@@ -50,8 +51,19 @@ const studentFieldsSchema = z.object({
   notes: optionalField(z.string().trim().max(2000, 'Izoh juda uzun')),
 });
 
-export const createStudentSchema = studentFieldsSchema;
-export const updateStudentSchema = studentFieldsSchema;
+export const STUDENT_PHONE_REQUIRED_MESSAGE = 'Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.';
+
+/** Kamida bitta telefon: xato ikkala maydonga ham biriktiriladi — forma ikkalasini belgilaydi */
+const withContactPhone = <T extends z.ZodType<{ phone?: string | undefined; parentPhone?: string | undefined }>>(schema: T) =>
+  schema.superRefine((value, context) => {
+    if (value.phone || value.parentPhone) return;
+    for (const path of ['phone', 'parentPhone']) {
+      context.addIssue({ code: 'custom', path: [path], message: STUDENT_PHONE_REQUIRED_MESSAGE });
+    }
+  });
+
+export const createStudentSchema = withContactPhone(studentFieldsSchema);
+export const updateStudentSchema = withContactPhone(studentFieldsSchema);
 
 export const updateStudentStatusSchema = z.object({
   status: z.enum(STUDENT_STATUSES, 'Holat noto‘g‘ri'),

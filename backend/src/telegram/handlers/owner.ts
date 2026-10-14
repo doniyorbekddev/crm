@@ -117,7 +117,7 @@ export async function showDebtors(context: BotContext, scope: CommandScope): Pro
   for (const debt of items) {
     const overdue = debt.schedule && debt.schedule.overdueAmount > 0 ? ` · ⏰ ${debt.schedule.overdueDays} kun kechikkan` : '';
     lines.push(`• <b>${escapeHtml(debt.firstName)} ${escapeHtml(debt.lastName)}</b> — ${moneyUz(debt.remaining)}${overdue}`);
-    lines.push(`   ${escapeHtml(debt.group?.name ?? debt.course.name)} · ${escapeHtml(debt.phone)}`);
+    lines.push(`   ${escapeHtml(debt.group?.name ?? debt.course.name)} · ${escapeHtml(debt.phone ?? (debt.parentPhone ? `ota-ona: ${debt.parentPhone}` : '—'))}`);
   }
   await context.render(lines.join('\n'), [[{ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) }, ...menuRow()]]);
   return { action: OWNER_ACTIONS.debts };

@@ -8,7 +8,7 @@ export interface AttendanceRow {
   code: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone: string | null;
   status: AttendanceStatus | null;
   note: string | null;
   markedAt: string | null;

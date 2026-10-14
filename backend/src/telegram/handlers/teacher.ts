@@ -164,7 +164,7 @@ export async function showStudents(context: BotContext, scope: CommandScope, gro
     const sheet = await attendanceService.getSheet(actor, groupId, todayDate());
     const lines = [`<b>👨‍🎓 ${escapeHtml(sheet.group.name)}</b> · ${sheet.students.length} o‘quvchi`, ''];
     for (const row of sheet.students) {
-      lines.push(`• ${escapeHtml(row.firstName)} ${escapeHtml(row.lastName)} · ${escapeHtml(row.phone)}`);
+      lines.push(`• ${escapeHtml(row.firstName)} ${escapeHtml(row.lastName)} · ${row.phone ? escapeHtml(row.phone) : '—'}`);
     }
     if (sheet.students.length === 0) lines.push('Faol o‘quvchi yo‘q.');
 

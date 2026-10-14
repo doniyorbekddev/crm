@@ -31,7 +31,8 @@ export interface AttendanceStudentRow {
   code: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  /** O'quvchida telefon bo'lmasligi mumkin (ota-ona raqami bor) */
+  phone: string | null;
   status: AttendanceStatus | null;
   note: string | null;
   markedAt: string | null;

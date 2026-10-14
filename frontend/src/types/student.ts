@@ -20,7 +20,8 @@ export interface StudentItem {
   leadId: string | null;
   firstName: string;
   lastName: string;
-  phone: string;
+  /** O'quvchi yoki ota-ona telefonidan kamida bittasi bor */
+  phone: string | null;
   parentPhone: string | null;
   telegram: string | null;
   email: string | null;
@@ -72,8 +73,9 @@ export type StudentStatusSummary = Record<StudentStatus | 'ALL', number>;
 export interface StudentPayload {
   firstName: string;
   lastName: string;
+  /** Bo'sh qator — raqam yo'q; o'quvchi yoki ota-ona raqamidan kamida bittasi shart */
   phone: string;
-  parentPhone?: string;
+  parentPhone: string;
   telegram?: string;
   email?: string;
   birthDate?: string;

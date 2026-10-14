@@ -173,6 +173,7 @@ export const searchService = {
           firstName: true,
           lastName: true,
           phone: true,
+          parentPhone: true,
           status: true,
           course: { select: { name: true } },
           group: { select: { name: true } },
@@ -188,7 +189,7 @@ export const searchService = {
           hits: students.map((student) => ({
             id: student.id,
             title: `${student.firstName} ${student.lastName}`,
-            subtitle: [student.phone, student.course.name, student.group?.name, STUDENT_STATUS_LABELS[student.status]]
+            subtitle: [student.phone ?? (student.parentPhone ? `ota-ona: ${student.parentPhone}` : null), student.course.name, student.group?.name, STUDENT_STATUS_LABELS[student.status]]
               .filter(Boolean)
               .join(' · '),
             code: formatStudentNumber(student.number),

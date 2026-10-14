@@ -4679,7 +4679,11 @@
 "KPI chegarasi saqlandi": "Порог KPI сохранён",
 "KPI bonus fondi saqlandi": "Бонусный фонд KPI сохранён",
 "KPI natijasi saqlandi": "Результат KPI сохранён",
-"Maosh tasdiqlashga yuborildi": "Зарплата отправлена на утверждение"
+"Maosh tasdiqlashga yuborildi": "Зарплата отправлена на утверждение",
+"Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Пожалуйста, укажите хотя бы один номер телефона — ученика или родителя.",
+"Ixtiyoriy · kamida bitta raqam kerak": "Необязательно · нужен хотя бы один номер",
+"Ota-onasining telefon raqami": "Телефон родителя",
+"O‘quvchining telefon raqami": "Телефон ученика"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",

@@ -97,7 +97,7 @@ export interface PaymentDto {
     code: string;
     firstName: string;
     lastName: string;
-    phone: string;
+    phone: string | null;
     group: { id: string; name: string } | null;
   };
   course: { id: string; name: string };

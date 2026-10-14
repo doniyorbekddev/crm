@@ -142,13 +142,17 @@ export function TeacherOverview({ onSelectGroup }: TeacherOverviewProps) {
                       </p>
                       <p className="truncate text-caption text-fg-muted">{student.groupName}</p>
                     </div>
-                    <a
-                      href={`tel:${student.phone}`}
-                      className="inline-flex shrink-0 items-center gap-1.5 text-caption text-primary hover:underline"
-                    >
-                      <Phone className="size-3.5" aria-hidden />
-                      {formatPhone(student.phone)}
-                    </a>
+                    {student.phone ? (
+                      <a
+                        href={`tel:${student.phone}`}
+                        className="inline-flex shrink-0 items-center gap-1.5 text-caption text-primary hover:underline"
+                      >
+                        <Phone className="size-3.5" aria-hidden />
+                        {formatPhone(student.phone)}
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-caption text-fg-subtle">—</span>
+                    )}
                   </li>
                 ))}
               </ul>

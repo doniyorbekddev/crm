@@ -989,7 +989,8 @@ model Student {
   leadId          String?       @unique
   firstName       String        @db.VarChar(100)
   lastName        String        @db.VarChar(100)
-  phone           String        @db.VarChar(32)
+  /// O'quvchi yoki ota-ona telefonidan kamida bittasi bo'ladi (validator va bazadagi CHECK)
+  phone           String?       @db.VarChar(32)
   parentPhone     String?       @db.VarChar(32)
   telegram        String?       @db.VarChar(64)
   email           String?       @db.VarChar(255)

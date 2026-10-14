@@ -43,11 +43,23 @@ export function StudentQuickView({ student, showAttendance, onClose }: { student
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
         <Field label="Telefon">
-          <a href={`tel:${student.phone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
-            {formatPhone(student.phone)}
-          </a>
+          {student.phone ? (
+            <a href={`tel:${student.phone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
+              {formatPhone(student.phone)}
+            </a>
+          ) : (
+            '—'
+          )}
         </Field>
-        <Field label="Ota-ona telefoni">{student.parentPhone ? formatPhone(student.parentPhone) : '—'}</Field>
+        <Field label="Ota-ona telefoni">
+          {student.parentPhone ? (
+            <a href={`tel:${student.parentPhone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
+              {formatPhone(student.parentPhone)}
+            </a>
+          ) : (
+            '—'
+          )}
+        </Field>
         <Field label="Kurs">{student.course.name}</Field>
         <Field label="Guruh">{student.group?.name ?? 'Guruhsiz'}</Field>
         <Field label="Shartnoma narxi">{formatMoney(student.contractPrice)}</Field>

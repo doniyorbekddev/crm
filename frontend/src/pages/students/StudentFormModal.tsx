@@ -19,11 +19,24 @@ import { studentsService } from '@/services/students.service';
 import type { StudentItem, StudentPayload } from '@/types/student';
 import { formatMoney } from '@/utils/format';
 
+const STUDENT_PHONE_REQUIRED_MESSAGE = 'Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.';
+
+/** Bo'sh yoki O'zbekiston/xalqaro raqam: "+998 90 123-45-67", "901234567" (backend bilan bir xil normallashtirish) */
+const optionalPhone = z
+  .string()
+  .trim()
+  .refine((value) => {
+    if (value === '') return true;
+    const digits = value.replace(/\D/g, '');
+    return digits.length === 9 || (digits.length >= 9 && digits.length <= 15);
+  }, 'Telefon raqam noto‘g‘ri (masalan: +998901234567)');
+
 const studentFormSchema = z.object({
   firstName: z.string().trim().min(2, 'Kamida 2 belgi').max(100, 'Ism juda uzun'),
   lastName: z.string().trim().min(2, 'Kamida 2 belgi').max(100, 'Familiya juda uzun'),
-  phone: z.string().trim().min(7, 'Telefon raqamni kiriting'),
-  parentPhone: z.string().trim(),
+  /** Ikkalasi ham ixtiyoriy — lekin kamida bittasi bo'lishi shart (pastdagi superRefine, backendda ham shunday) */
+  phone: optionalPhone,
+  parentPhone: optionalPhone,
   telegram: z.string().trim().max(64, 'Juda uzun'),
   email: z.string().trim(),
   birthDate: z.string(),
@@ -35,6 +48,11 @@ const studentFormSchema = z.object({
   contractPrice: z.string().refine((value) => value === '' || /^\d{1,9}$/.test(value), 'Faqat butun son'),
   startDate: z.string().min(1, 'Boshlanish sanasini kiriting'),
   notes: z.string().trim().max(2000, 'Izoh juda uzun'),
+}).superRefine((values, context) => {
+  if (values.phone || values.parentPhone) return;
+  for (const path of ['phone', 'parentPhone'] as const) {
+    context.addIssue({ code: 'custom', path: [path], message: STUDENT_PHONE_REQUIRED_MESSAGE });
+  }
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -43,10 +61,11 @@ function toPayload(values: StudentFormValues): StudentPayload {
   return {
     firstName: values.firstName,
     lastName: values.lastName,
+    // Bo'sh qator ham yuboriladi — tahrirlashda raqamni o'chirish shu bilan bo'ladi
     phone: values.phone,
+    parentPhone: values.parentPhone,
     courseId: values.courseId,
     startDate: values.startDate,
-    ...(values.parentPhone ? { parentPhone: values.parentPhone } : {}),
     ...(values.telegram ? { telegram: values.telegram } : {}),
     ...(values.email ? { email: values.email } : {}),
     ...(values.birthDate ? { birthDate: values.birthDate } : {}),
@@ -120,7 +139,7 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'courseId', 'groupId', 'contractNumber', 'contractPrice'])) {
+      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'parentPhone', 'courseId', 'groupId', 'contractNumber', 'contractPrice'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -162,11 +181,36 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
           <Input id="student-lastName" invalid={Boolean(errors.lastName)} {...register('lastName')} />
         </FormField>
 
-        <FormField label="Telefon" htmlFor="student-phone" error={errors.phone?.message} required>
-          <Input id="student-phone" placeholder="+998901234567" invalid={Boolean(errors.phone)} {...register('phone')} />
+        <FormField
+          label="O‘quvchining telefon raqami"
+          htmlFor="student-phone"
+          error={errors.phone?.message}
+          hint="Ixtiyoriy · kamida bitta raqam kerak"
+        >
+          <Input
+            id="student-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+998901234567"
+            invalid={Boolean(errors.phone)}
+            {...register('phone', { deps: ['parentPhone'] })}
+          />
         </FormField>
-        <FormField label="Ota-ona telefoni" htmlFor="student-parentPhone" error={errors.parentPhone?.message} hint="Ixtiyoriy">
-          <Input id="student-parentPhone" placeholder="+998901234567" {...register('parentPhone')} />
+        <FormField
+          label="Ota-onasining telefon raqami"
+          htmlFor="student-parentPhone"
+          error={errors.parentPhone?.message}
+          hint="Ixtiyoriy · kamida bitta raqam kerak"
+        >
+          <Input
+            id="student-parentPhone"
+            type="tel"
+            inputMode="tel"
+            placeholder="+998901234567"
+            invalid={Boolean(errors.parentPhone)}
+            {...register('parentPhone', { deps: ['phone'] })}
+          />
         </FormField>
 
         <FormField label="Kurs" htmlFor="student-course" error={errors.courseId?.message} required>

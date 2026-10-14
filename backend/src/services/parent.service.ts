@@ -182,7 +182,7 @@ async function assertStudentsExist(studentIds: string[]): Promise<void> {
 /**
  * O‘quvchida asosiy vakil bittadan oshmasligini ta’minlaydi: `preferredLinkId` berilsa u asosiy bo‘ladi,
  * aks holda mavjud asosiy saqlanadi yoki eng birinchi biriktirilgan ota-ona tanlanadi.
- * `student.parentPhone` shunga moslanadi (ota-ona qolmasa — null).
+ * `student.parentPhone` shunga moslanadi (ota-ona qolmasa — null, agar o'quvchining o'z raqami bo'lsa).
  */
 async function syncPrimary(tx: Prisma.TransactionClient, studentId: string, preferredLinkId?: string): Promise<void> {
   const links = await tx.studentParent.findMany({
@@ -191,7 +191,9 @@ async function syncPrimary(tx: Prisma.TransactionClient, studentId: string, pref
     select: { id: true, isPrimary: true, parent: { select: { phone: true } } },
   });
   if (links.length === 0) {
-    await tx.student.update({ where: { id: studentId }, data: { parentPhone: null } });
+    // O'quvchining o'z raqami bo'lmasa, ota-ona raqami yagona aloqa — o'chirilmaydi (kamida bitta telefon qoidasi)
+    const student = await tx.student.findUniqueOrThrow({ where: { id: studentId }, select: { phone: true } });
+    if (student.phone) await tx.student.update({ where: { id: studentId }, data: { parentPhone: null } });
     return;
   }
   const primary = links.find((link) => link.id === preferredLinkId) ?? links.find((link) => link.isPrimary) ?? links[0]!;

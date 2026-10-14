@@ -22,7 +22,7 @@ export interface PaymentItem {
     code: string;
     firstName: string;
     lastName: string;
-    phone: string;
+    phone: string | null;
     group: { id: string; name: string } | null;
   };
   course: { id: string; name: string };
@@ -94,7 +94,7 @@ export interface DebtItem {
   code: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone: string | null;
   parentPhone: string | null;
   course: { id: string; name: string };
   group: { id: string; name: string } | null;
