@@ -4429,7 +4429,20 @@
 "📝 Vazifa": "📝 Task",
 "📝 sababli": "📝 excused",
 "📢 Xabar": "📢 Message",
-"🕒 kechikdi": "🕒 late"
+"🕒 kechikdi": "🕒 late",
+"Faqat zaif omillar": "Weak factors only",
+"Global qidiruv va tez amallar": "Global search and quick actions",
+"Hal qilinmagan muammo yo‘q — kechikkan to‘lov, belgilanmagan dars va kutilayotgan tasdiq yo‘q": "No open issues — no overdue payments, unmarked lessons or pending approvals",
+"Keyingi qadamlar": "Next steps",
+"Klaviatura yorliqlari": "Keyboard shortcuts",
+"macOS’da Ctrl o‘rniga ⌘ ishlaydi": "On macOS, use ⌘ instead of Ctrl",
+"Oyna yoki menyuni yopish": "Close dialog or menu",
+"Qidiruv natijalari va menyular bo‘ylab yurish": "Move through search results and menus",
+"Sotuv va resurslar": "Sales and resources",
+"Tanlanganini ochish": "Open selected",
+"Tez yaratish": "Quick create",
+"yorliqlar": "shortcuts",
+"Shu ro‘yxatni ochish": "Open this list"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5001,6 +5014,10 @@
 "📈 Kurs progressi: {0}%": "📈 Course progress: {0}%",
 "📊 <b>Haftalik hisobot</b> · {0}": "📊 <b>Weekly report</b> · {0}",
 "📚 Mashq kerak: {0}": "📚 Needs practice: {0}",
-"📝 Uy vazifasi: {0}": "📝 Homework: {0}"
+"📝 Uy vazifasi: {0}": "📝 Homework: {0}",
+"Barcha omillar ({0})": "All factors ({0})",
+"Davomat {0}% — {1}% dan past": "Attendance {0}% — below {1}%",
+"Ketib qolish xavfi: {0}": "Dropout risk: {0}",
+"Zaif omil yo‘q — {0} balldan past ko‘rsatkich topilmadi.": "No weak factors — nothing scored below {0}."
 }
 }

@@ -40,7 +40,7 @@ const isCode = (node) => {
   if (ts.isJsxAttribute(parent)) return /^(className|wrapperClassName|id|htmlFor|name|type|to|href|src|key|role|variant|size|tone|data-.*|value|accept|autoComplete|inputMode|method|target|rel|d|viewBox|fill|stroke|path|lazy|mode|side|align|icon)$/.test(parent.name.getText());
   if (ts.isCallExpression(parent) && /^(cn|clsx|register|setError|watch|getValues|setValue|invalidateQueries|navigate|startsWith|endsWith|includes|get|set|has|append|test|match|replace|split|join|querySelector(All)?|addEventListener|removeEventListener|getItem|setItem|removeItem|import|lazyComponent|z\.enum)$/.test(parent.expression.getText().split('.').pop() ?? '')) return true;
   if (ts.isPropertyAssignment(parent) && parent.name === node) return true;
-  if (ts.isPropertyAssignment(parent) && /^(queryKey|path|className|to|href|key|id|type|variant|tone|size|method|url|icon|accept|sortBy|sortOrder|field)$/.test(parent.name.getText())) return true;
+  if (ts.isPropertyAssignment(parent) && /^(queryKey|path|className|to|href|key|id|type|variant|tone|size|method|url|icon|accept|sortBy|sortOrder|field|keywords)$/.test(parent.name.getText())) return true;
   if (ts.isBinaryExpression(parent) && /^(===|!==|==|!=)$/.test(parent.operatorToken.getText())) return true;
   if (ts.isCaseClause(parent) || ts.isElementAccessExpression(parent) || ts.isTypeOfExpression(parent)) return true;
   return false;

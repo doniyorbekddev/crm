@@ -19,6 +19,8 @@ interface ActionMenuProps {
   label?: string;
   /** Berilsa — "…" o‘rniga matnli tugma (masalan, "Eksport") */
   trigger?: { label: string; icon: LucideIcon };
+  /** `primary` — asosiy amal tugmasi (topbar "Yaratish"); telefonda faqat belgi ko'rinadi */
+  triggerVariant?: 'outline' | 'primary';
   disabled?: boolean;
 }
 
@@ -30,7 +32,7 @@ const ITEM_HEIGHT = 40;
  * jadvalning `overflow` konteyneri uni kesib qo‘ymasligi uchun.
  * Telefonda — pastdan chiqadigan varaq (bosh barmoq yetadigan joyda, bandlar kattaroq); rollar bir xil.
  */
-export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false }: ActionMenuProps) {
+export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant = 'outline', disabled = false }: ActionMenuProps) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -129,11 +131,13 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={trigger ? undefined : label}
+        aria-label={trigger && triggerVariant === 'outline' ? undefined : (trigger?.label ?? label)}
         disabled={disabled}
         className={cn(
           'focus-ring transition-colors disabled:pointer-events-none disabled:opacity-60',
-          trigger
+          trigger && triggerVariant === 'primary'
+            ? 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control bg-brand-600 px-2.5 text-body font-medium text-white shadow-sm hover:bg-brand-700 active:bg-brand-800 sm:px-3'
+            : trigger
             ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-control border border-border bg-surface px-3.5 text-body font-medium text-fg shadow-sm hover:bg-surface-muted'
             : 'grid size-8 place-items-center rounded-chip text-fg-muted hover:bg-surface-muted hover:text-fg',
         )}
@@ -141,7 +145,7 @@ export function ActionMenu({ items, label = 'Amallar', trigger, disabled = false
         {trigger ? (
           <>
             <trigger.icon className="size-4" aria-hidden />
-            {trigger.label}
+            {triggerVariant === 'primary' ? <span className="hidden sm:inline">{trigger.label}</span> : trigger.label}
           </>
         ) : (
           <MoreHorizontal className="size-4" aria-hidden />

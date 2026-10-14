@@ -135,6 +135,7 @@ export default function DebtsPage() {
     {
       key: 'contract',
       label: 'Shartnoma',
+      align: 'right',
       tdClassName: 'whitespace-nowrap text-fg-muted',
       cell: (debt: DebtTableRow) => (
         <>
@@ -145,6 +146,7 @@ export default function DebtsPage() {
     {
       key: 'paid',
       label: 'To‘langan',
+      align: 'right',
       tdClassName: 'whitespace-nowrap text-fg',
       cell: (debt: DebtTableRow) => (
         <>
@@ -156,6 +158,7 @@ export default function DebtsPage() {
       key: 'remaining',
       sortable: true,
       label: 'Qolgan',
+      align: 'right',
       tdClassName: 'whitespace-nowrap',
       cell: (debt: DebtTableRow) => (
         <>

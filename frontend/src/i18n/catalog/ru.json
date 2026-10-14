@@ -4464,7 +4464,20 @@
 "📝 sababli": "📝 по уважительной причине",
 "📢 Xabar": "📢 Сообщение",
 "📣 Marketing": "📣 Маркетинг",
-"🕒 kechikdi": "🕒 опоздал"
+"🕒 kechikdi": "🕒 опоздал",
+"Faqat zaif omillar": "Только слабые факторы",
+"Global qidiruv va tez amallar": "Глобальный поиск и быстрые действия",
+"Hal qilinmagan muammo yo‘q — kechikkan to‘lov, belgilanmagan dars va kutilayotgan tasdiq yo‘q": "Нерешённых проблем нет — нет просроченных оплат, неотмеченных уроков и ожидающих подтверждений",
+"Keyingi qadamlar": "Следующие шаги",
+"Klaviatura yorliqlari": "Сочетания клавиш",
+"macOS’da Ctrl o‘rniga ⌘ ishlaydi": "На macOS вместо Ctrl используется ⌘",
+"Oyna yoki menyuni yopish": "Закрыть окно или меню",
+"Qidiruv natijalari va menyular bo‘ylab yurish": "Перемещение по результатам поиска и меню",
+"Sotuv va resurslar": "Продажи и ресурсы",
+"Tanlanganini ochish": "Открыть выбранное",
+"Tez yaratish": "Быстрое создание",
+"yorliqlar": "сочетания клавиш",
+"Shu ro‘yxatni ochish": "Открыть этот список"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5037,6 +5050,10 @@
 "📈 Kurs progressi: {0}%": "📈 Прогресс по курсу: {0}%",
 "📊 <b>Haftalik hisobot</b> · {0}": "📊 <b>Еженедельный отчёт</b> · {0}",
 "📚 Mashq kerak: {0}": "📚 Нужна практика: {0}",
-"📝 Uy vazifasi: {0}": "📝 Домашнее задание: {0}"
+"📝 Uy vazifasi: {0}": "📝 Домашнее задание: {0}",
+"Barcha omillar ({0})": "Все факторы ({0})",
+"Davomat {0}% — {1}% dan past": "Посещаемость {0}% — ниже {1}%",
+"Ketib qolish xavfi: {0}": "Риск ухода: {0}",
+"Zaif omil yo‘q — {0} balldan past ko‘rsatkich topilmadi.": "Слабых факторов нет — показателей ниже {0} баллов не найдено."
 }
 }

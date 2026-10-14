@@ -172,6 +172,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
               {
                 key: 'c2',
                 label: 'Summa',
+                align: 'right',
                 tdClassName: 'font-medium whitespace-nowrap text-fg',
                 cell: (item) => <>{formatMoney(item.amount)}</>,
               },

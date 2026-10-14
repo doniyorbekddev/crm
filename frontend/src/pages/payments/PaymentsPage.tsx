@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -64,6 +65,7 @@ export default function PaymentsPage() {
   const [sort, setSort] = useState<string>('paidAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  useCreateIntent(() => setDialog({ type: 'create' }), canCreate);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
 
@@ -152,6 +154,7 @@ export default function PaymentsPage() {
       key: 'amount',
       sortable: true,
       label: 'Summa',
+      align: 'right',
       tdClassName: (payment: PaymentTableRow) => cn('font-medium whitespace-nowrap', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg'),
       cell: (payment: PaymentTableRow) => (
         <>

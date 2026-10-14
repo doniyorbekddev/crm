@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Select } from '@/components/ui/Select';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -88,6 +89,7 @@ export default function StudentsPage() {
   const [sort, setSort] = useState<string>('createdAt:desc');
   const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
+  useCreateIntent(() => setDialog({ type: 'create' }), canManage);
   const branchParam = useBranchParam();
 
   const [sortBy, sortOrder] = sort.split(':') as [StudentListParams['sortBy'], StudentListParams['sortOrder']];

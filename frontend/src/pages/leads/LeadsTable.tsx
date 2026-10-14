@@ -85,18 +85,23 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
       required: true,
       cell: (lead: LeadTableRow) => (
         <>
-          <div className="min-w-52">
-            <div className="flex items-center gap-2">
+          <div className="max-w-80 min-w-52">
+            <div className="flex min-w-0 items-center gap-2">
               <Link
                 to={`/leads/${lead.id}`}
                 onClick={(event) => event.stopPropagation()}
-                className="font-medium text-fg hover:text-brand-600 hover:underline"
+                title={leadFullName(lead)}
+                className="min-w-0 truncate font-medium text-fg hover:text-brand-600 hover:underline"
               >
                 {leadFullName(lead)}
               </Link>
-              {lead.priority === 'URGENT' || lead.priority === 'HIGH' ? <LeadPriorityBadge priority={lead.priority} /> : null}
+              {lead.priority === 'URGENT' || lead.priority === 'HIGH' ? (
+                <span className="shrink-0">
+                  <LeadPriorityBadge priority={lead.priority} />
+                </span>
+              ) : null}
             </div>
-            <p className="text-caption text-fg-muted">
+            <p className="whitespace-nowrap text-caption text-fg-muted tabular-nums">
               {lead.code} · {formatPhone(lead.phone)}
             </p>
           </div>

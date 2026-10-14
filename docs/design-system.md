@@ -213,9 +213,11 @@ Modal — qisqa forma va tasdiq. Drawer — tezkor ko'rish/tahrir, sahifa kontek
 |---|---|
 | **Sidebar** (`layouts/Sidebar.tsx`) | 240px; yig'ilganda 72px (ikonka + maslahat); telefonda drawer (Esc, fon bosilishi). Bandlar ruxsat bo'yicha |
 | **Navigatsiya** (`layouts/navigation.ts`) | 8 guruh: Umumiy · Sotuv · O'quv jarayoni · Moliya · Odamlar · Analitika · Avtomatlashtirish · Tizim. Guruh yig'iladi (tanlov saqlanadi); joriy sahifa guruhi doim ochiq. Yangi sahifa — tegishli guruhga bitta qator (`id` barqaror kalit) |
-| **Topbar** | 56px, `z-header`: menyu tugmasi, yo'l (`ShellBreadcrumb`), qidiruv, filial, bildirishnomalar, mavzu, foydalanuvchi |
+| **Topbar** | 56px, `z-header`: menyu tugmasi, yo'l (`ShellBreadcrumb`), qidiruv, **Yaratish**, filial, bildirishnomalar, til, mavzu, foydalanuvchi |
+| **Yaratish** (`QuickCreateMenu`) | Ruxsat etilgan yaratish amallari (lead, o'quvchi, to'lov, xarajat, vazifa) — ro'yxat `components/quickActions.ts` da. Har amal mavjud sahifani `?create=1` bilan ochadi; sahifa `useCreateIntent(open, canCreate)` bilan o'z oynasini ochadi va parametrni olib tashlaydi. Yangi amal — ro'yxatga bitta qator + sahifada hook. Ruxsat yo'q bo'lsa tugma ko'rinmaydi |
+| **Yorliqlar** | `Ctrl/Cmd+K` va `/` — qidiruv; `?` — yorliqlar oynasi (`ShortcutsDialog`). Bitta tugmali yorliqlar matn maydonida va boshqa oyna ochiq bo'lganda ishlamaydi |
 | **Yo'l** | Menyu tuzilmasidan avtomatik: "Guruh › Sahifa". Ichki sahifada sahifa nomi ro'yxatga havola. Sahifa o'z yo'lini bermoqchi bo'lsa — `PageHeader breadcrumb={<Breadcrumb items={…} />}` |
-| **Global qidiruv** | `Ctrl/Cmd+K`; `z-command`; natijalar toifa bo'yicha (soni bilan), ↑/↓/Enter, Esc; fokus oynada, yopilganda qaytadi |
+| **Global qidiruv** | `Ctrl/Cmd+K`; `z-command`; avval **Amallar** (tez yaratish, so'z bo'yicha filtrlanadi), keyin natijalar toifa bo'yicha (soni bilan), ↑/↓/Enter, Esc; fokus oynada, yopilganda qaytadi |
 | **Bildirishnomalar** | Qo'ng'iroqcha → `Drawer`: Hammasi / O'qilmagan / Muhim (API filtrlari), "Hammasini o'qish", "Barchasini ko'rish" |
 | **Kabinet** (`PortalLayout`) | 56px sarlavha, ostida chiziqli bo'limlar (kompyuter), pastki panel + "Yana" (telefon) |
 | **Mavzu** | Kompyuterda yuqori panelda; telefonda foydalanuvchi menyusi ichida |
@@ -229,6 +231,9 @@ Modal — qisqa forma va tasdiq. Drawer — tezkor ko'rish/tahrir, sahifa kontek
 - **KPI** — faqat `StatCard`. Qiymat doim neytral rangda; holat ikonka ohangida (`tone`) va izohda. `to` — karta bo'limiga
   havola; `size="sm"` — zich to'rlar (Dashboard, Direktor paneli). O'zgarish: `trend` (`positive: false` — o'sishi yomon ko'rsatkich).
 - **Dashboard tuzilishi**: ko'rsatkichlar yo'nalish bo'yicha guruhlarda (`section` + sarlavha), so'ng grafik va ro'yxatlar.
+- **Direktor paneli** (standart tartib): *Diqqat talab qiladi* (doim birinchi; muammo bo'lmasa — yashil "hal qilinmagan muammo
+  yo'q" holati) → KPI guruhlari *Moliya / O'quvchilar / Sotuv va resurslar* → *Bugun* + dinamika → sog'lomlik, xulosalar,
+  prognoz. Foydalanuvchi o'z tartibini saqlagan bo'lsa, u ustun turadi.
   Har ro'yxat kartasi o'z so'rovini o'zi yuboradi — ruxsatsiz yoki yashirilgan vidjet so'rov yubormaydi.
 
 ## 8.3. Ro'yxat sahifasi qolipi (PHASE 4)
@@ -256,6 +261,9 @@ const density = useTableDensity();                    // zichlik (barcha jadvall
 - **Saralash** — API qo'llaydigan tayyor variantlar (`Select`), `toolbarActions` da. Ustun sarlavhasi bo'yicha saralash
   faqat API shunday parametr qabul qilganda (`sortable` + `onSortChange`).
 - **Amallar** — `actions` ustunida bitta `ActionMenu`; ko'p ishlatiladigan bitta amal tugma bo'lishi mumkin.
+- **Summalar** — ustunda `align: 'right'` (`ColumnDef` va `DataTableColumn`): o'ngga tekislanadi va `tabular-nums` oladi —
+  raqamlar xonama-xona ustma-ust turadi.
+- **Asosiy ustun** (ism) bir qatorda: `truncate` + `title`, yonidagi nishon `shrink-0` — nishon ismni ikkinchi qatorga surmaydi.
 - Sahifa butun oyna bo'yicha aylanadi — yopishqoq sarlavha faqat `maxHeight` berilgan jadvalda (`stickyHeader`).
 
 ### Ichki jadval (`DataTable bare`)
@@ -286,6 +294,10 @@ satri bo'lib qoladi, sxema o'zgarmaydi.
 - Sarlavhada eng ko'pi bitta asosiy (to'ldirilgan) tugma; kam ishlatiladigan amallar "Yana" menyusida.
 - Amallar ro'yxat sahifasidagi bilan **bir xil oynalar va ruxsatlar** — tafsilot sahifasi yangi funksiya qo'shmaydi.
 - Bo'lim mazmuni alohida fayllarda (`profile/*`); sahifa fayli faqat qobiq.
+- **Keyingi qadamlar** (`profile/NextStepsCard.tsx`) — sarlavha ostida, faqat profilda ko'rinib turgan signallardan
+  (ketib qolish xavfi, davomat 85% dan past) va mavjud amallardan; ruxsat bo'lmasa qadam chiqmaydi. Sarlavhadagi asosiy
+  tugma (masalan, qarzda "To'lov qabul qilish") bu yerda takrorlanmaydi.
+- **Xavf kartasi** — 60 balldan past (zaif) omillar ko'rinadi, qolganlari "Barcha omillar (N)" ortida yig'ilgan.
 
 **Ranglarni ko'chirish**: `python3 frontend/scripts/tokenize-colors.py src/pages/<papka>` — xom palitra klasslarini
 (`text-red-600 dark:text-red-400` …) semantik tokenlarga almashtiradi. Ishga tushirgach `git diff` ni ko'rib chiqing.

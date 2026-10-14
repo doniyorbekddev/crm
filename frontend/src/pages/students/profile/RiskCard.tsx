@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -38,6 +39,9 @@ function FactorRow({ factor }: { factor: RiskFactor }) {
   );
 }
 
+/** Shu balldan past omil "zaif" — kartada doim ko'rinadi; qolganlari yig'ilgan */
+const WEAK_FACTOR_SCORE = 60;
+
 /**
  * O'quvchining ketib qolish xavfi. Holat (o'qimoqda / muzlatilgan) bilan aralashtirilmaydi —
  * bu alohida o'lchov: o'quvchi bir vaqtda "Faol" va "Kritik" bo'lishi mumkin.
@@ -47,6 +51,11 @@ export function RiskCard({ studentId }: { studentId: string }) {
     queryKey: queryKeys.students.risk(studentId),
     queryFn: () => studentsService.risk(studentId),
   });
+  const [showAll, setShowAll] = useState(false);
+  const factors = riskQuery.data?.factors ?? [];
+  const weak = factors.filter((factor) => factor.score !== null && factor.score < WEAK_FACTOR_SCORE);
+  const visibleFactors = showAll ? factors : weak;
+  const hiddenCount = factors.length - weak.length;
 
   return (
     <Card>
@@ -97,11 +106,27 @@ export function RiskCard({ studentId }: { studentId: string }) {
               )}
             </div>
 
-            <ul className="mt-4 divide-y divide-border">
-              {riskQuery.data.factors.map((factor) => (
-                <FactorRow key={factor.key} factor={factor} />
-              ))}
-            </ul>
+            {visibleFactors.length > 0 && (
+              <ul className="mt-4 divide-y divide-border">
+                {visibleFactors.map((factor) => (
+                  <FactorRow key={factor.key} factor={factor} />
+                ))}
+              </ul>
+            )}
+            {!showAll && weak.length === 0 && factors.length > 0 && (
+              <p className="mt-3 text-caption text-fg-muted">{`Zaif omil yo‘q — ${WEAK_FACTOR_SCORE} balldan past ko‘rsatkich topilmadi.`}</p>
+            )}
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAll((value) => !value)}
+                aria-expanded={showAll}
+                className="focus-ring mt-2 inline-flex items-center gap-1 rounded-chip text-caption font-medium text-primary hover:underline"
+              >
+                <ChevronDown className={cn('size-3.5 transition-transform', showAll && 'rotate-180')} aria-hidden />
+                {showAll ? 'Faqat zaif omillar' : `Barcha omillar (${factors.length})`}
+              </button>
+            )}
           </>
         )}
       </CardContent>

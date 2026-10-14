@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { taskService } from '@/services/task.service';
@@ -39,6 +40,7 @@ export default function TasksPage() {
   const [priority, setPriority] = useState<TaskPriority | ''>('');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  useCreateIntent(() => setCreating(true), canCreate);
   const [openId, setOpenId] = useState<string | null>(null);
   const params = { ...(status ? { status } : {}), ...(priority ? { priority } : {}), ...(overdueOnly ? { overdue: true } : {}), scope, page, limit: PAGE_SIZE };
   const query = useQuery({ queryKey: ['tasks', params], queryFn: () => taskService.list(params) });

@@ -1,27 +1,51 @@
 import { Menu, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { LanguageSelect } from '@/components/LanguageSelect';
+import { QuickCreateMenu } from '@/components/QuickCreateMenu';
+import { availableQuickActions } from '@/components/quickActions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconButton } from '@/components/ui/IconButton';
+import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { BranchSelect } from './BranchSelect';
 import { NotificationBell } from './NotificationBell';
+import { ShortcutsDialog } from './ShortcutsDialog';
 import { ShellBreadcrumb } from './ShellBreadcrumb';
 import { UserMenu } from './UserMenu';
+
+/** Matn yozilayotgan joyda bitta tugmali yorliqlar ishlamasin */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
 
 export function Topbar() {
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleCollapsed = useUiStore((state) => state.toggleSidebarCollapsed);
   const setMobileOpen = useUiStore((state) => state.setMobileSidebarOpen);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const quickActions = useMemo(() => availableQuickActions(user), [user]);
 
-  // Ctrl+K / Cmd+K — global qidiruv
+  // Ctrl+K / Cmd+K va "/" — global qidiruv; "?" — klaviatura yorliqlari
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setSearchOpen(true);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented || isTypingTarget(event.target)) return;
+      // Boshqa oyna ochiq bo'lsa yorliqlar ishlamaydi
+      if (document.querySelector('[aria-modal="true"]')) return;
+      if (event.key === '/') {
+        event.preventDefault();
+        setSearchOpen(true);
+      } else if (event.key === '?') {
+        event.preventDefault();
+        setShortcutsOpen(true);
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -58,6 +82,7 @@ export function Topbar() {
         <IconButton label="Global qidiruv" tooltip={false} size="lg" onClick={() => setSearchOpen(true)} className="sm:hidden">
           <Search aria-hidden />
         </IconButton>
+        <QuickCreateMenu />
         <BranchSelect />
         <NotificationBell />
         <LanguageSelect className="hidden sm:inline-flex" />
@@ -66,7 +91,8 @@ export function Topbar() {
         <UserMenu />
       </div>
 
-      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} actions={quickActions} />
     </header>
   );
 }

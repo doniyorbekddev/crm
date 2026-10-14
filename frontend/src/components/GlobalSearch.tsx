@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Award, BookOpen, BookOpenCheck, ClipboardList, FileCheck, GraduationCap, Layers, ScrollText, Search, Target, UserCog, Users, UsersRound, Wallet, X } from 'lucide-react';
+import { Award, BookOpen, CornerDownLeft, BookOpenCheck, ClipboardList, FileCheck, GraduationCap, Layers, ScrollText, Search, Target, UserCog, Users, UsersRound, Wallet, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import type { QuickAction } from '@/components/quickActions';
+import { matchQuickActions } from '@/components/quickActions';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -38,10 +40,14 @@ interface GlobalSearchProps {
   /** Kesh kaliti nomlar maydoni — kabinet va xodim natijalari aralashmasin */
   scopeKey?: string;
   placeholder?: string;
+  /** Tez amallar ("Yangi lead", "To'lov qabul qilish"…) — natijalardan oldin "Amallar" bo'limida */
+  actions?: readonly QuickAction[];
 }
 
+const NO_ACTIONS: readonly QuickAction[] = [];
+
 /** Ctrl+K / Cmd+K bilan ochiladigan global qidiruv oynasi */
-export function GlobalSearch({ open, onClose, search = searchService.search, scopeKey = 'staff', placeholder = 'Ism, telefon, L-000123, ST-000045, kurs yoki guruh…' }: GlobalSearchProps) {
+export function GlobalSearch({ open, onClose, search = searchService.search, scopeKey = 'staff', placeholder = 'Ism, telefon, L-000123, ST-000045, kurs yoki guruh…', actions = NO_ACTIONS }: GlobalSearchProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -61,10 +67,16 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
     staleTime: 30_000,
   });
 
-  /** Klaviatura bilan yurish uchun yassilangan ro‘yxat */
-  const flatHits = useMemo<SearchHit[]>(
-    () => (searchQuery.data?.groups ?? []).flatMap((group) => group.hits),
-    [searchQuery.data],
+  /** Qisqa so'zda — barcha amallar; aks holda so'zga mos kelganlari */
+  const matchedActions = useMemo(() => matchQuickActions(actions, query.length < 2 ? '' : query), [actions, query]);
+
+  /** Klaviatura bilan yurish uchun yassilangan ro‘yxat: avval amallar, keyin topilganlar */
+  const flatUrls = useMemo<string[]>(
+    () => [
+      ...matchedActions.map((action) => action.url),
+      ...(query.length >= 2 ? (searchQuery.data?.groups ?? []).flatMap((group) => group.hits.map((hit: SearchHit) => hit.url)) : []),
+    ],
+    [matchedActions, query, searchQuery.data],
   );
 
   useEffect(() => {
@@ -81,34 +93,39 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
-  const resultsKey = searchQuery.data ? `${searchQuery.data.query}:${flatHits.length}` : query;
+  const resultsKey = `${searchQuery.data?.query ?? query}:${flatUrls.length}`;
   const activeIndex = selection.key === resultsKey ? selection.index : 0;
   const setActiveIndex = (next: number) => setSelection({ key: resultsKey, index: next });
 
   if (!open) return null;
 
-  const goTo = (hit: SearchHit) => {
+  const goTo = (url: string) => {
     onClose();
     setValue('');
-    navigate(hit.url);
+    void navigate(url);
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (flatHits.length === 0) return;
+    if (flatUrls.length === 0) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setActiveIndex((activeIndex + 1) % flatHits.length);
+      setActiveIndex((activeIndex + 1) % flatUrls.length);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setActiveIndex((activeIndex - 1 + flatHits.length) % flatHits.length);
+      setActiveIndex((activeIndex - 1 + flatUrls.length) % flatUrls.length);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      const hit = flatHits[activeIndex];
-      if (hit) goTo(hit);
+      const url = flatUrls[activeIndex];
+      if (url) goTo(url);
     }
   };
 
-  let flatIndex = -1;
+  /** Har bir natija guruhining yassi ro'yxatdagi boshlanish o'rni (amallardan keyin) */
+  const groupStarts: number[] = [];
+  (searchQuery.data?.groups ?? []).reduce((start, group) => {
+    groupStarts.push(start);
+    return start + group.hits.length;
+  }, matchedActions.length);
 
   return createPortal(
     <div className="fixed inset-0 z-command flex items-start justify-center p-3 pt-[8vh] sm:p-4 sm:pt-[12vh]">
@@ -146,8 +163,35 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
         </div>
 
         <div id={listId} className="max-h-[60vh] overflow-y-auto">
+          {matchedActions.length > 0 && (
+            <div>
+              <p className="bg-surface-muted px-4 py-1.5 text-overline text-fg-muted uppercase">Amallar</p>
+              <ul>
+                {matchedActions.map((action, index) => {
+                  const active = index === activeIndex;
+                  return (
+                    <li key={action.key}>
+                      <button
+                        type="button"
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={() => goTo(action.url)}
+                        className={cn(
+                          'flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors',
+                          active ? 'bg-primary-subtle' : 'hover:bg-surface-muted',
+                        )}
+                      >
+                        <action.icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-fg-muted')} aria-hidden />
+                        <span className="min-w-0 flex-1 truncate text-body text-fg">{action.label}</span>
+                        {active && <CornerDownLeft className="size-3.5 shrink-0 text-fg-subtle" aria-hidden />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           {query.length < 2 ? (
-            <p className="px-4 py-10 text-center text-body text-fg-muted">Qidirish uchun kamida 2 ta belgi kiriting</p>
+            <p className={cn('px-4 text-center text-fg-muted', matchedActions.length > 0 ? 'border-t border-border py-3 text-caption' : 'py-10 text-body')}>Qidirish uchun kamida 2 ta belgi kiriting</p>
           ) : searchQuery.isPending ? (
             <div className="space-y-3 px-4 py-4" aria-busy="true" aria-label="Qidirilmoqda">
               {[0, 1, 2, 3].map((index) => (
@@ -167,7 +211,7 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
               «{searchQuery.data.query}» bo‘yicha hech narsa topilmadi
             </p>
           ) : (
-            searchQuery.data.groups.map((group) => {
+            searchQuery.data.groups.map((group, groupIndex) => {
               // Noma'lum guruh (server yangiroq bo'lsa) — oynani yiqitmasin
               const Icon = GROUP_ICONS[group.key] ?? Search;
               return (
@@ -177,16 +221,15 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
                     <span className="tabular-nums">{group.hits.length}</span>
                   </p>
                   <ul>
-                    {group.hits.map((hit) => {
-                      flatIndex += 1;
-                      const index = flatIndex;
+                    {group.hits.map((hit, hitIndex) => {
+                      const index = (groupStarts[groupIndex] ?? 0) + hitIndex;
                       const active = index === activeIndex;
                       return (
                         <li key={`${group.key}-${hit.id}`}>
                           <button
                             type="button"
                             onMouseEnter={() => setActiveIndex(index)}
-                            onClick={() => goTo(hit)}
+                            onClick={() => goTo(hit.url)}
                             className={cn(
                               'flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors',
                               active ? 'bg-primary-subtle' : 'hover:bg-surface-muted',
@@ -216,6 +259,12 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
           </span>
           <span>
             <kbd className="rounded-sm border border-border bg-surface px-1 font-sans">Esc</kbd> yopish
+            {actions.length > 0 && (
+              <>
+                {' '}
+                · <kbd className="rounded-sm border border-border bg-surface px-1 font-sans">?</kbd> yorliqlar
+              </>
+            )}
           </span>
         </div>
       </div>

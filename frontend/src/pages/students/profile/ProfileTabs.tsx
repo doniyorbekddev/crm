@@ -330,6 +330,7 @@ export function PaymentsTab({ studentId }: { studentId: string }) {
             {
               key: 'c1',
               label: 'Summa',
+              align: 'right',
               tdClassName: (payment) => cn('font-medium', payment.isDeleted ? 'text-fg-muted line-through' : 'text-fg'),
               cell: (payment) => (
                 <>

@@ -16,7 +16,8 @@ test('o‘qituvchi: guruh kartasi → shu guruh o‘quvchilari → belgilash va 
   await expect(page.getByText(/EN-0\d/)).toHaveCount(0);
 
   const groupName = await openFirstLessonGroup(page);
-  expect(groupName).toMatch(/^(FE|BE)-/);
+  // Faqat o'z guruhi (seed: FE/BE juft kunlari, CL toq kunlari) — boshqa o'qituvchining EN-* guruhi emas
+  expect(groupName).toMatch(/^(FE|BE|CL)-/);
   const lessonUrl = page.url();
 
   // Faqat o'quvchi qatorlari va har birida to'rtta holat tugmasi (select emas)

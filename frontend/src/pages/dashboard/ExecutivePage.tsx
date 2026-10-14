@@ -60,15 +60,19 @@ function executiveParams(value: DateRangeValue): ExecutiveParams | null {
 
 type WidgetKey = 'health' | 'insights' | 'kpis' | 'academy' | 'forecast' | 'attention' | 'today' | 'trend' | 'summary';
 
+/**
+ * Standart tartib — "nima qilish kerak" birinchi: hal qilinmagan muammolar, keyin asosiy raqamlar, bugungi kun va
+ * dinamika; tahliliy bloklar (sog'lomlik, prognoz, akademiya holati) pastda. Foydalanuvchi o'z tartibini saqlasa — o'shasi.
+ */
 const EXECUTIVE_WIDGETS: ReadonlyArray<WidgetDefinition<WidgetKey>> = [
-  { key: 'health', label: 'Sog‘lomlik bahosi', span: 'half' },
-  { key: 'insights', label: 'Xulosalar', span: 'half' },
-  { key: 'kpis', label: 'Asosiy ko‘rsatkichlar', span: 'full' },
-  { key: 'academy', label: 'Akademiya holati', span: 'full' },
-  { key: 'forecast', label: 'Oy oxiri prognozi', span: 'full' },
   { key: 'attention', label: 'Diqqat talab qiladi', span: 'full' },
+  { key: 'kpis', label: 'Asosiy ko‘rsatkichlar', span: 'full' },
   { key: 'today', label: 'Bugun', span: 'third' },
   { key: 'trend', label: 'Dinamika grafigi', span: 'twoThirds' },
+  { key: 'health', label: 'Sog‘lomlik bahosi', span: 'half' },
+  { key: 'insights', label: 'Xulosalar', span: 'half' },
+  { key: 'forecast', label: 'Oy oxiri prognozi', span: 'full' },
+  { key: 'academy', label: 'Akademiya holati', span: 'full' },
   { key: 'summary', label: 'Davr yakunlari', span: 'full' },
 ];
 
@@ -180,7 +184,8 @@ export default function ExecutivePage() {
     kpis: <ExecutiveKpiGrid data={data} />,
     academy: <AcademyOverviewCard kpi={data.kpi} />,
     forecast: data.forecast ? <ForecastCard forecast={data.forecast} /> : null,
-    attention: data.attention.length > 0 ? <AttentionCard items={data.attention} /> : null,
+    // Muammo bo'lmasa ham ko'rinadi — "hammasi joyida" ham direktor uchun javob
+    attention: <AttentionCard items={data.attention} />,
     today: <TodayCard today={data.today} />,
     trend: <TrendChart trend={data.trend} />,
     summary: <PeriodSummaryCard data={data} />,

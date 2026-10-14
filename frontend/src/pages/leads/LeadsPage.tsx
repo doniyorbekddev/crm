@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -36,6 +37,7 @@ export default function LeadsPage() {
   const search = useDebounce(filterState.search.trim(), 400);
   const filters = useMemo(() => toLeadFilters(filterState, search), [filterState, search]);
   const [createOpen, setCreateOpen] = useState(false);
+  useCreateIntent(() => setCreateOpen(true), canCreate);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   const lookupsQuery = useQuery({ queryKey: queryKeys.lookups.leadForm, queryFn: lookupsService.leadForm, staleTime: 5 * 60_000 });

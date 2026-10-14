@@ -13,6 +13,8 @@ export interface ColumnDef<Row> {
   label: string;
   header?: ReactNode;
   cell: (row: Row) => ReactNode;
+  /** Raqam/summa ustunlari o'ngga — `tabular-nums` bilan */
+  align?: 'left' | 'right' | 'center';
   thClassName?: string;
   /** Qatorga bog'liq bo'lishi mumkin (masalan, o'chirilgan to'lov chizilgan) */
   tdClassName?: string | ((row: Row) => string);

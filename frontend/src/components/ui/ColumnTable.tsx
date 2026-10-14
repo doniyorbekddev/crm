@@ -1,6 +1,9 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import type { ResolvedColumn } from '@/utils/tableColumns';
+import { cn } from '@/lib/cn';
 import { TD, TH } from './Table';
+
+const ALIGN = { left: undefined, right: 'text-right', center: 'text-center' } as const;
 
 function widthStyle(width: number | null): CSSProperties | undefined {
   return width ? { width, minWidth: width, maxWidth: width } : undefined;
@@ -11,7 +14,7 @@ export function ColumnHeaders<Row>({ columns }: { columns: ReadonlyArray<Resolve
   return (
     <>
       {columns.map((column) => (
-        <TH key={column.key} className={column.thClassName} style={widthStyle(column.width)}>
+        <TH key={column.key} className={cn(ALIGN[column.align ?? 'left'], column.thClassName)} style={widthStyle(column.width)}>
           {column.header ?? column.label}
         </TH>
       ))}
@@ -26,7 +29,11 @@ export function ColumnCells<Row>({ columns, row }: { columns: ReadonlyArray<Reso
       {columns.map((column) => (
         <TD
           key={column.key}
-          className={typeof column.tdClassName === 'function' ? column.tdClassName(row) : column.tdClassName}
+          className={cn(
+            ALIGN[column.align ?? 'left'],
+            column.align === 'right' && 'tabular-nums',
+            typeof column.tdClassName === 'function' ? column.tdClassName(row) : column.tdClassName,
+          )}
           style={widthStyle(column.width)}
           {...(column.stopRowClick ? { onClick: (event: MouseEvent) => event.stopPropagation() } : {})}
         >

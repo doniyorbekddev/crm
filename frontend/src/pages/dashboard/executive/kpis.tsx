@@ -115,27 +115,45 @@ export function buildKpis(data: ExecutiveSummary): KpiDefinition[] {
   ];
 }
 
+/** Ko'rsatkichlar yo'nalish bo'yicha uch qatorda — har qator o'z sarlavhasi bilan, ko'z bir qarashda bo'limni topadi */
+const KPI_GROUPS: ReadonlyArray<{ title: string; keys: readonly string[] }> = [
+  { title: 'Moliya', keys: ['revenue', 'expense', 'profit', 'debt'] },
+  { title: 'O‘quvchilar', keys: ['students', 'new-students', 'dropped', 'attendance'] },
+  { title: 'Sotuv va resurslar', keys: ['leads', 'conversion', 'groups', 'salary'] },
+];
+
 /** 12 ta asosiy ko'rsatkich — har biri bo'limiga havola, oldingi davr bilan solishtirilgan */
 export function ExecutiveKpiGrid({ data }: { data: ExecutiveSummary }) {
+  const kpis = buildKpis(data);
+  const grouped = new Set(KPI_GROUPS.flatMap((group) => group.keys));
+  // Guruhga kiritilmagan ko'rsatkich (yangi qo'shilsa) yo'qolib qolmasin — oxirgi qatorga tushadi
+  const groups = [...KPI_GROUPS.map((group) => ({ title: group.title, items: kpis.filter((kpi) => group.keys.includes(kpi.key)) })), { title: 'Boshqa', items: kpis.filter((kpi) => !grouped.has(kpi.key)) }].filter((group) => group.items.length > 0);
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {buildKpis(data).map((kpi) => {
-        const { trend, note } = kpi.change ? changeTrend(data.changes[kpi.change.key], kpi.change) : { trend: null, note: null };
-        const description = [note, kpi.hint].filter(Boolean).join(' · ');
-        return (
-          <StatCard
-            key={kpi.key}
-            size="sm"
-            title={kpi.label}
-            value={kpi.value}
-            icon={kpi.icon}
-            to={kpi.to}
-            trend={trend}
-            {...(kpi.tone ? { tone: kpi.tone } : {})}
-            {...(description ? { description } : {})}
-          />
-        );
-      })}
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <section key={group.title} aria-label={group.title}>
+          <h2 className="mb-2 text-overline text-fg-subtle uppercase">{group.title}</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {group.items.map((kpi) => {
+              const { trend, note } = kpi.change ? changeTrend(data.changes[kpi.change.key], kpi.change) : { trend: null, note: null };
+              const description = [note, kpi.hint].filter(Boolean).join(' · ');
+              return (
+                <StatCard
+                  key={kpi.key}
+                  size="sm"
+                  title={kpi.label}
+                  value={kpi.value}
+                  icon={kpi.icon}
+                  to={kpi.to}
+                  trend={trend}
+                  {...(kpi.tone ? { tone: kpi.tone } : {})}
+                  {...(description ? { description } : {})}
+                />
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

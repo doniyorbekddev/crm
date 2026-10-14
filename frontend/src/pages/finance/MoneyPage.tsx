@@ -18,6 +18,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
 import { TableSkeleton } from '@/components/ui/Table';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -66,6 +67,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     | { type: 'attachments'; entry: MoneyEntry }
     | null
   >(null);
+  useCreateIntent(() => setDialog({ type: 'create' }), canManage);
   const canExport = usePermission(PERMISSIONS.REPORT_EXPORT);
   const { exporting, run: runExport } = useExport();
   const [voidError, setVoidError] = useState<string | null>(null);
@@ -354,6 +356,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
                 {
                   key: 'c2',
                   label: 'Summa',
+                  align: 'right',
                   tdClassName: (entry) => cn( 'font-medium whitespace-nowrap', entry.isVoided ? 'text-fg-muted line-through' : isIncome ? 'text-success' : 'text-fg', ),
                   cell: (entry) => (
                     <>

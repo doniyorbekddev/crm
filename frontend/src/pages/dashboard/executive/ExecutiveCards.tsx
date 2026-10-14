@@ -101,6 +101,12 @@ export function AttentionCard({ items }: { items: ExecutiveSummary['attention'] 
         <CardTitle>Diqqat talab qiladi</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2 p-4">
+        {items.length === 0 && (
+          <p className="inline-flex items-center gap-2 text-body text-success">
+            <CircleCheck className="size-4" aria-hidden />
+            Hal qilinmagan muammo yo‘q — kechikkan to‘lov, belgilanmagan dars va kutilayotgan tasdiq yo‘q
+          </p>
+        )}
         {items.map((item) => {
           const className = cn(
             'inline-flex items-center gap-2 rounded-control border px-3 py-1.5 text-body',

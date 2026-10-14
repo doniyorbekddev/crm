@@ -56,6 +56,7 @@ import { AttendancePanel } from './profile/AttendancePanel';
 import { CertificatesCard } from './profile/CertificatesCard';
 import { GroupHistoryTab } from './profile/GroupHistoryTab';
 import { MasteryTab } from './profile/MasteryTab';
+import { NextStepsCard, buildNextSteps } from './profile/NextStepsCard';
 import { ParentsTab } from './profile/ParentsTab';
 import { PaymentScheduleTab } from './profile/PaymentScheduleTab';
 import { AchievementsTab, ActivityTab, ExamsTab, HomeworkTab, OverviewTab, PaymentsTab } from './profile/ProfileTabs';
@@ -151,6 +152,13 @@ export default function StudentProfilePage() {
     { value: 'activity', label: 'Faollik', icon: History },
   ];
 
+  const nextSteps = buildNextSteps({
+    riskLevel: student.riskLevel,
+    attendance,
+    can: { message: canMessage, attendance: canViewAttendance },
+    open: { message: () => setDialog('message'), calendar: () => setDialog('calendar') },
+  });
+
   const moreActions = [
     ...(canViewAttendance ? [{ label: 'Davomat kalendari', icon: CalendarCheck, onSelect: () => setDialog('calendar') }] : []),
     ...(canMessage ? [{ label: 'Xabar yuborish', icon: MessageSquare, onSelect: () => setDialog('message') }] : []),
@@ -229,6 +237,8 @@ export default function StudentProfilePage() {
           </>
         }
       />
+
+      <NextStepsCard steps={nextSteps} />
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as TabKey)}>
         <TabList label="Profil bo‘limlari" className="mb-4">
