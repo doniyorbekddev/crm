@@ -23,6 +23,7 @@ export const SALARY_TYPE_HINTS: Record<SalaryType, string> = {
 export const SALARY_STATUS_ORDER: readonly SalaryPeriodStatus[] = [
   'PENDING',
   'CALCULATED',
+  'UNDER_REVIEW',
   'APPROVED',
   'PARTIALLY_PAID',
   'PAID',
@@ -31,6 +32,7 @@ export const SALARY_STATUS_ORDER: readonly SalaryPeriodStatus[] = [
 export const SALARY_STATUS_LABELS: Record<SalaryPeriodStatus, string> = {
   PENDING: 'Hisoblanmagan',
   CALCULATED: 'Hisoblandi',
+  UNDER_REVIEW: 'Ko‘rib chiqilmoqda',
   APPROVED: 'Tasdiqlandi',
   PARTIALLY_PAID: 'Qisman to‘langan',
   PAID: 'To‘langan',
@@ -39,7 +41,8 @@ export const SALARY_STATUS_LABELS: Record<SalaryPeriodStatus, string> = {
 export const SALARY_STATUS_TONES: Record<SalaryPeriodStatus, BadgeTone> = {
   PENDING: 'gray',
   CALCULATED: 'blue',
-  APPROVED: 'yellow',
+  UNDER_REVIEW: 'yellow',
+  APPROVED: 'info',
   PARTIALLY_PAID: 'purple',
   PAID: 'green',
 };

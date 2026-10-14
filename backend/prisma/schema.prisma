@@ -313,6 +313,10 @@ model User {
   commissionEntries         CommissionEntry[]      @relation("CommissionTeacher")
   createdCommissions        CommissionEntry[]      @relation("CommissionCreatedBy")
   unlockedSalaries          TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
+  submittedSalaries         TeacherSalaryPeriod[]  @relation("SalarySubmittedBy")
+  rejectedSalaries          TeacherSalaryPeriod[]  @relation("SalaryRejectedBy")
+  createdKpis               KpiDefinition[]        @relation("KpiDefinitionCreatedBy")
+  kpiManualResults          KpiManualResult[]      @relation("KpiManualResultCreatedBy")
   createdAdjustments        PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
   approvedAdjustments       PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
   voidedAdjustments         PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
@@ -1636,6 +1640,8 @@ enum SalaryType {
 enum SalaryPeriodStatus {
   PENDING
   CALCULATED
+  /// Buxgalter tasdiqlashga yuborgan — direktor tasdiqlaydi yoki sabab bilan rad etadi
+  UNDER_REVIEW
   APPROVED
   PARTIALLY_PAID
   PAID
@@ -1993,12 +1999,27 @@ model TeacherSalaryPeriod {
   unlockedAt       DateTime?
   unlockedById     String?
   unlockReason     String?            @db.VarChar(255)
+  /// Xodimning KPI bonusi (bonus fondi × vaznli bajarilish; chegaradan past bo'lsa 0)
+  kpiBonus         Decimal            @default(0) @db.Decimal(14, 2)
+  /// Vaznli bajarilish, % (KPI bo'lmasa null)
+  kpiAchievement   Decimal?           @db.Decimal(6, 2)
+  /// Hisoblash paytidagi KPI natijalari nusxasi — keyin stavka yoki KPI o'zgarsa ham tushuntirib bo'ladi
+  kpiDetails       Json?
+  /// Hisoblashda topilgan ogohlantirishlar (yetishmayotgan ma'lumot, g'ayrioddiy o'zgarish)
+  warnings         Json?
+  submittedAt      DateTime?
+  submittedById    String?
+  rejectedAt       DateTime?
+  rejectedById     String?
+  rejectReason     String?            @db.VarChar(255)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
   teacherProfile    TeacherProfile?        @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   approvedBy        User?                  @relation("SalaryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   unlockedBy        User?                  @relation("SalaryUnlockedBy", fields: [unlockedById], references: [id], onDelete: SetNull)
+  submittedBy       User?                  @relation("SalarySubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  rejectedBy        User?                  @relation("SalaryRejectedBy", fields: [rejectedById], references: [id], onDelete: SetNull)
   employee          Employee?              @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   payments          TeacherSalaryPayment[]
   commissionEntries CommissionEntry[]
@@ -3039,6 +3060,8 @@ model Employee {
   position          EmployeePosition
   /// Oylik belgilangan maosh (oy o‘rtasida kirgan/ketganda kunlarga proporsional)
   baseSalary        Decimal          @default(0) @db.Decimal(14, 2)
+  /// Oylik maksimal KPI bonusi: bonus = fond × vaznli bajarilish (0 — KPI bonusi yo'q)
+  kpiBonusPool      Decimal          @default(0) @db.Decimal(14, 2)
   status            EmployeeStatus   @default(ACTIVE)
   hireDate          DateTime         @db.Date
   terminationDate   DateTime?        @db.Date
@@ -3064,6 +3087,7 @@ model Employee {
   salaryPeriods TeacherSalaryPeriod[]
   documents     Document[]
   leaves        EmployeeLeave[]
+  kpiResults    KpiManualResult[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -3073,6 +3097,72 @@ model Employee {
   @@index([department])
   @@index([contractEndDate])
   @@map("employees")
+}
+
+/// KPI o'lchov usuli — har biri mavjud CRM yozuvlaridan hisoblanadi (MANUAL — sabab bilan qo'lda kiritiladi)
+enum KpiMetric {
+  /// Jalb qilingan o'quvchilar soni: lead o'quvchiga aylanganda mas'ul bo'lgan xodim, o'quvchi shu oyda birinchi to'lovni qilgan
+  ACQUIRED_STUDENTS
+  /// Lead konversiyasi, %: oyda biriktirilgan yangi leadlardan sotuvga aylangani
+  LEAD_CONVERSION
+  /// To'lov yig'ilishi, %: filialda oyga to'g'ri kelgan to'lov jadvali summasidan yig'ilgan sof tushum
+  PAYMENT_COLLECTION
+  /// Filial davomati, %: kelgan va kechikkanlar barcha belgilarga nisbatan
+  ATTENDANCE_RATE
+  /// O'quvchilarni saqlash, %: 100 − oyda ketganlar ulushi
+  STUDENT_RETENTION
+  /// Vazifalarni o'z vaqtida bajarish, %: muddati shu oyda bo'lgan vazifalardan muddatida bajarilgani
+  TASK_COMPLETION
+  /// Qo'lda kiritiladigan natija (masalan, mamnuniyat so'rovi) — har oy sabab bilan
+  MANUAL
+}
+
+/// Lavozim bo'yicha KPI. Bir lavozimning oyda amal qiladigan KPI vaznlari yig'indisi 100 bo'lishi kerak —
+/// aks holda KPI bonusi hisoblanmaydi va maoshda ogohlantirish chiqadi.
+model KpiDefinition {
+  id            String           @id @default(cuid())
+  name          String           @db.VarChar(120)
+  position      EmployeePosition
+  metric        KpiMetric
+  /// Maqsad: ACQUIRED_STUDENTS — son, qolganlari — foiz
+  target        Decimal          @db.Decimal(14, 2)
+  /// Vazn, %
+  weight        Int              @db.SmallInt
+  description   String?          @db.VarChar(500)
+  effectiveFrom DateTime         @db.Date
+  effectiveTo   DateTime?        @db.Date
+  isActive      Boolean          @default(true)
+  createdById   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  createdBy     User?             @relation("KpiDefinitionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  manualResults KpiManualResult[]
+
+  @@index([position, isActive])
+  @@map("kpi_definitions")
+}
+
+/// MANUAL KPI'ning oylik natijasi — kim, qachon va nima sababdan kiritgani bilan
+model KpiManualResult {
+  id          String   @id @default(cuid())
+  kpiId       String
+  employeeId  String
+  year        Int
+  month       Int      @db.SmallInt
+  actual      Decimal  @db.Decimal(14, 2)
+  reason      String   @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  kpi       KpiDefinition @relation(fields: [kpiId], references: [id], onDelete: Restrict)
+  employee  Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdBy User?         @relation("KpiManualResultCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([kpiId, employeeId, year, month])
+  @@index([employeeId, year, month])
+  @@map("kpi_manual_results")
 }
 
 /// Ta'til turi

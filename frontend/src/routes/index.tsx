@@ -600,6 +600,18 @@ export const router = createBrowserRouter([
                           () => import("@/pages/teachers/SalariesPage"),
                         ),
                       },
+                      {
+                        path: "salaries/kpi",
+                        lazy: lazyComponent(
+                          () => import("@/pages/payroll/KpiSettingsPage"),
+                        ),
+                      },
+                      {
+                        path: "salaries/:type/:id",
+                        lazy: lazyComponent(
+                          () => import("@/pages/payroll/PayrollProfilePage"),
+                        ),
+                      },
                     ],
                   },
                   {

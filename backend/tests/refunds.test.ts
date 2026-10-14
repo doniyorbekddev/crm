@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { currentBusinessMonth } from '../src/utils/dates.js';
+import { submitted } from './helpers/salary.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
@@ -126,7 +127,7 @@ describe.skipIf(!hasTestDatabase)('To‘lovni qaytarish (integratsion)', () => {
     const marchPayment = await pay(adminToken, first.id, 1_000_000, '2026-03-10T09:00:00.000Z');
     await request(app).post('/api/salaries/calculate').set(bearer(adminToken)).send({ year: 2026, month: 3 }).expect(200);
     const periods = await request(app).get('/api/salaries/periods').query({ year: 2026, month: 3 }).set(bearer(adminToken));
-    await request(app).post(`/api/salaries/periods/${periods.body.data[0].id}/approve`).set(bearer(adminToken)).expect(200);
+    await request(app).post(`/api/salaries/periods/${await submitted(app, periods.body.data[0].id, adminToken)}/approve`).set(bearer(adminToken)).expect(200);
 
     await request(app).post(refundUrl(marchPayment.id)).set(bearer(token)).send({ amount: 200_000, method: 'CASH', reason: 'Qisman qaytarish' }).expect(200);
     const current = currentBusinessMonth();

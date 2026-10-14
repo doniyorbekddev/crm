@@ -431,7 +431,7 @@ async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveS
   const overdueFollowUps = await prisma.followUp.count({
     where: { status: 'PENDING', dueAt: { lt: dayStart }, ...(scope.branchId ? { lead: inBranch(scope) } : {}) },
   });
-  const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: 'CALCULATED', ...salaryPeriodInBranch(scope) } });
+  const pendingSalaries = await prisma.teacherSalaryPeriod.count({ where: { status: { in: ['CALCULATED', 'UNDER_REVIEW'] }, ...salaryPeriodInBranch(scope) } });
   const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING', ...inBranch(scope) } });
   const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL', ...inBranch(scope) } });
   // Ish qatlami (CRM 4.0, 2-faza): muddati o'tgan vazifalar va tasdiq kutayotgan so'rovlar
@@ -445,7 +445,7 @@ async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveS
     { key: 'pendingApprovals', label: 'Tasdiq kutayotgan xarajatlar', value: pendingApprovals, tone: 'warning', link: '/expenses' },
     { key: 'unmarkedLessons', label: 'Davomati belgilanmagan darslar', value: unmarkedLessons, tone: 'warning', link: '/attendance' },
     { key: 'overdueFollowUps', label: 'Kechikkan follow-up', value: overdueFollowUps, tone: 'warning', link: '/follow-ups?scope=overdue' },
-    { key: 'pendingSalaries', label: 'Tasdiq kutayotgan maoshlar', value: pendingSalaries, tone: 'warning', link: '/salaries?status=CALCULATED' },
+    { key: 'pendingSalaries', label: 'Tasdiq kutayotgan maoshlar', value: pendingSalaries, tone: 'warning', link: '/salaries' },
     { key: 'pendingUsers', label: 'Tasdiqlanmagan xodimlar', value: pendingUsers, tone: 'warning', link: '/users?status=PENDING' },
   ];
   return rows.filter((row) => row.value > 0);

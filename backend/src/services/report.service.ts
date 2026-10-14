@@ -1450,6 +1450,7 @@ const CODE_LABELS: Record<string, string> = {
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
   CALCULATED: 'Hisoblandi',
+  UNDER_REVIEW: 'Ko‘rib chiqilmoqda',
   APPROVED: 'Tasdiqlandi',
   PARTIALLY_PAID: 'Qisman to‘langan',
   PAID: 'To‘langan',

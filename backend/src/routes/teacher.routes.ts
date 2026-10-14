@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
+import { kpiController } from '../controllers/kpi.controller.js';
 import { salaryController } from '../controllers/salary.controller.js';
 import { teacherController } from '../controllers/teacher.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
@@ -53,6 +54,19 @@ salaryRouter.post('/periods/:id/payments', requirePermission(PERMISSIONS.SALARY_
 salaryRouter.post('/periods/:id/unlock', requirePermission(PERMISSIONS.SALARY_UNLOCK), salaryController.unlock);
 salaryRouter.post('/adjustments', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.addAdjustment);
 salaryRouter.post('/adjustments/:id/void', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.voidAdjustment);
+salaryRouter.post('/periods/:id/submit', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.submit);
+salaryRouter.post('/periods/:id/reject', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.reject);
+salaryRouter.post('/submit', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.submitMonth);
+salaryRouter.get('/profile', salaryView, salaryController.profile);
+
+/** KPI: ko'rish — maosh ko'rish ruxsati; sozlash — maoshni tasdiqlovchi (direktor); natija kiritish — hisoblovchi */
+salaryRouter.get('/kpi', salaryView, kpiController.definitions);
+salaryRouter.get('/kpi/preview', salaryView, kpiController.preview);
+salaryRouter.post('/kpi', requirePermission(PERMISSIONS.SALARY_APPROVE), kpiController.create);
+salaryRouter.put('/kpi/settings', requirePermission(PERMISSIONS.SALARY_APPROVE), kpiController.updateSettings);
+salaryRouter.put('/kpi/pool/:id', requirePermission(PERMISSIONS.SALARY_APPROVE), kpiController.setPool);
+salaryRouter.post('/kpi/results', requirePermission(PERMISSIONS.SALARY_CALCULATE), kpiController.saveResult);
+salaryRouter.put('/kpi/:id', requirePermission(PERMISSIONS.SALARY_APPROVE), kpiController.update);
 
 /**
  * Spec bo‘yicha payroll yo‘llari (promt 72-bo‘lim) — /salaries bilan bir xil servis.
@@ -68,6 +82,8 @@ payrollRouter.post('/calculate', heavyLimiter, requirePermission(PERMISSIONS.SAL
 payrollRouter.post('/adjustments', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.addAdjustment);
 payrollRouter.post('/adjustments/:id/void', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.voidAdjustment);
 payrollRouter.get('/:id', salaryView, salaryController.getById);
+payrollRouter.post('/:id/submit', requirePermission(PERMISSIONS.SALARY_CALCULATE), salaryController.submit);
+payrollRouter.post('/:id/reject', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.reject);
 payrollRouter.post('/:id/approve', requirePermission(PERMISSIONS.SALARY_APPROVE), salaryController.approve);
 payrollRouter.post('/:id/pay', requirePermission(PERMISSIONS.SALARY_PAY), salaryController.pay);
 payrollRouter.post('/:id/unlock', requirePermission(PERMISSIONS.SALARY_UNLOCK), salaryController.unlock);

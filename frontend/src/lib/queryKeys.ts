@@ -288,7 +288,9 @@ export const queryKeys = {
   salaries: {
     all: ['salaries'] as const,
     periods: (params: SalaryPeriodParams) => ['salaries', 'periods', params] as const,
-    summary: (params: { year: number; month: number }) => ['salaries', 'summary', params] as const,
+    summary: (params: { year: number; month: number; branchId?: string }) => ['salaries', 'summary', params] as const,
+    profile: (params: { type: string; id: string; year: number; month: number }) => ['salaries', 'profile', params] as const,
+    kpi: ['salaries', 'kpi'] as const,
   },
   alerts: {
     all: ['alerts'] as const,

@@ -26,6 +26,8 @@ export interface EmployeeDto {
   position: EmployeePosition;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
+  /** Oylik KPI bonus fondi — baseSalary bilan bir xil ruxsat */
+  kpiBonusPool: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
@@ -79,6 +81,7 @@ const employeeSelect = {
   department: true,
   position: true,
   baseSalary: true,
+  kpiBonusPool: true,
   status: true,
   hireDate: true,
   terminationDate: true,
@@ -123,6 +126,7 @@ async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = tr
       department: record.department,
       position: record.position,
       baseSalary: salaryVisible ? record.baseSalary.toNumber() : null,
+      kpiBonusPool: salaryVisible ? record.kpiBonusPool.toNumber() : null,
       status: record.status,
       hireDate: toDateOnly(record.hireDate),
       terminationDate: record.terminationDate ? toDateOnly(record.terminationDate) : null,

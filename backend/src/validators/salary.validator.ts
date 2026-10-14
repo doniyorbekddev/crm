@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { optionalField } from './common.validator.js';
 import { PAYMENT_METHODS } from './payment.validator.js';
 
-export const SALARY_PERIOD_STATUSES = ['PENDING', 'CALCULATED', 'APPROVED', 'PARTIALLY_PAID', 'PAID'] as const;
+export const SALARY_PERIOD_STATUSES = ['PENDING', 'CALCULATED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_PAID', 'PAID'] as const;
 
 const idSchema = z.string().trim().min(1).max(50);
 
@@ -29,6 +29,7 @@ export const salaryPeriodListQuerySchema = z.object({
   /** TEACHER — faqat o‘qituvchilar, EMPLOYEE — faqat xodimlar */
   payeeType: z.enum(['TEACHER', 'EMPLOYEE'], 'To‘lov oluvchi turi noto‘g‘ri').optional(),
   status: z.enum(SALARY_PERIOD_STATUSES, 'Holat noto‘g‘ri').optional(),
+  branchId: idSchema.optional(),
 });
 
 export const calculateSalarySchema = z
@@ -141,3 +142,17 @@ export type PaySalaryInput = z.infer<typeof paySalarySchema>;
 export type CreateAdjustmentInput = z.infer<typeof createAdjustmentSchema>;
 export type ReasonInput = z.infer<typeof reasonSchema>;
 export type SalaryHistoryQuery = z.infer<typeof salaryHistoryQuerySchema>;
+
+export const payrollProfileQuerySchema = z.object({
+  type: z.enum(['TEACHER', 'EMPLOYEE'], 'To‘lov oluvchi turi noto‘g‘ri'),
+  id: idSchema,
+  year: yearSchema.default(() => now().getUTCFullYear()),
+  month: monthSchema.default(() => now().getUTCMonth() + 1),
+});
+export type PayrollProfileQuery = z.infer<typeof payrollProfileQuerySchema>;
+
+export const submitMonthSchema = z.object({
+  year: yearSchema,
+  month: monthSchema,
+  branchId: optionalField(idSchema),
+});

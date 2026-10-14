@@ -1,3 +1,5 @@
+import type { EmployeePosition } from './employee';
+import type { KpiEvaluation } from './payroll';
 import type { PersonRef } from './lead';
 import type { PaymentMethod } from './payment';
 import type { GroupStatus, WeekDay } from './group';
@@ -5,7 +7,7 @@ import type { UserStatus } from './auth';
 import type { EmployeeStatus } from './employee';
 
 export type SalaryType = 'FIXED' | 'PER_LESSON' | 'PER_STUDENT' | 'PERCENTAGE' | 'MIXED';
-export type SalaryPeriodStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PARTIALLY_PAID' | 'PAID';
+export type SalaryPeriodStatus = 'PENDING' | 'CALCULATED' | 'UNDER_REVIEW' | 'APPROVED' | 'PARTIALLY_PAID' | 'PAID';
 export type SalaryPaymentKind = 'SALARY' | 'ADVANCE';
 export type PayeeType = 'TEACHER' | 'EMPLOYEE';
 
@@ -137,7 +139,7 @@ export interface SalaryPeriod {
     lastName: string;
     specialization: string | null;
   } | null;
-  employee: { id: string; firstName: string; lastName: string; position: string } | null;
+  employee: { id: string; firstName: string; lastName: string; position: EmployeePosition; department: string | null; branchId: string } | null;
   salaryType: SalaryType;
   lessonsCount: number;
   studentsCount: number;
@@ -162,6 +164,18 @@ export interface SalaryPeriod {
   unlockedAt: string | null;
   unlockedBy: PersonRef | null;
   unlockReason: string | null;
+  /** Xodim KPI bonusi va vaznli bajarilish (o'qituvchida 0 / null) */
+  kpiBonus: number;
+  kpiAchievement: number | null;
+  /** Hisoblash paytidagi KPI natijalari nusxasi */
+  kpiDetails: KpiEvaluation | null;
+  /** Ko'rib chiqishda e'tibor berilishi kerak bo'lgan holatlar */
+  warnings: string[];
+  submittedAt: string | null;
+  submittedBy: PersonRef | null;
+  rejectedAt: string | null;
+  rejectedBy: PersonRef | null;
+  rejectReason: string | null;
   adjustments: PayrollAdjustment[];
   payments: SalaryPayment[];
 }
@@ -267,6 +281,7 @@ export interface SalaryPeriodParams {
   month: number;
   teacherProfileId?: string;
   status?: SalaryPeriodStatus;
+  branchId?: string;
 }
 
 export interface SalarySummary {
@@ -279,6 +294,12 @@ export interface SalarySummary {
   paid: number;
   remaining: number;
   byStatus: Array<{ status: SalaryPeriodStatus; count: number; total: number }>;
+  underReview: number;
+  kpiBonus: number;
+  /** O'qituvchilar va xodimlar lavozimi bo'yicha jami */
+  byGroup: Array<{ key: string; label: string; count: number; total: number }>;
+  /** Maosh xarajat moddalari bo'yicha oy byudjeti (belgilanmagan bo'lsa null) */
+  budget: number | null;
 }
 
 export interface CalculateSalaryResult {

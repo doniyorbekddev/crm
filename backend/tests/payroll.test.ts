@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { submitted } from './helpers/salary.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
@@ -115,7 +116,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
     expect(await prisma.notification.count({ where: { userId: teacher.userId, title: 'Jarima qo‘shildi' } })).toBe(1);
 
     const current = await period(adminToken, teacher.profileId);
-    const approved = await request(app).post(`/api/salaries/periods/${current.id}/approve`).set(bearer(adminToken));
+    const approved = await request(app).post(`/api/salaries/periods/${await submitted(app, current.id, adminToken)}/approve`).set(bearer(adminToken));
     expect(approved.status).toBe(200);
     expect(approved.body.data.adjustments.every((row: { approvedBy: unknown }) => row.approvedBy !== null)).toBe(true);
     expect((await adjust(adminToken, teacher.profileId, { type: 'BONUS', category: 'SPECIAL', amount: 50_000, reason: 'Kech qo‘shildi' })).status).toBe(409);
@@ -148,7 +149,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
     // Jarima avansdan keyin maoshni avansdan kichik qilsa — tasdiqlanmaydi
     const bigPenalty = await adjust(adminToken, teacher.profileId, { type: 'PENALTY', category: 'DISCIPLINE', amount: 3_500_000, reason: 'Katta jarima' });
     expect(bigPenalty.body.data).toMatchObject({ totalAmount: 1_500_000, remainingAmount: 0 });
-    expect((await request(app).post(`/api/salaries/periods/${calculated.id}/approve`).set(bearer(adminToken))).status).toBe(422);
+    expect((await request(app).post(`/api/salaries/periods/${await submitted(app, calculated.id, adminToken)}/approve`).set(bearer(adminToken))).status).toBe(422);
 
     const penaltyId = bigPenalty.body.data.adjustments[0].id as string;
     const voided = await request(app).post(`/api/salaries/adjustments/${penaltyId}/void`).set(bearer(adminToken)).send({ reason: 'Xato kiritilgan' });
@@ -157,7 +158,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
     expect(voided.body.data.adjustments[0]).toMatchObject({ id: penaltyId, voidReason: 'Xato kiritilgan', amount: 3_500_000 });
     expect((await request(app).post(`/api/salaries/adjustments/${penaltyId}/void`).set(bearer(adminToken)).send({ reason: 'Yana' })).status).toBe(409);
 
-    const approved = await request(app).post(`/api/salaries/periods/${calculated.id}/approve`).set(bearer(adminToken));
+    const approved = await request(app).post(`/api/salaries/periods/${await submitted(app, calculated.id, adminToken)}/approve`).set(bearer(adminToken));
     expect(approved.body.data).toMatchObject({ status: 'PARTIALLY_PAID', remainingAmount: 3_000_000 });
     expect((await request(app).post(payUrl).set(bearer(adminToken)).send({ kind: 'ADVANCE', amount: 1_000_000, method: 'CASH' })).status).toBe(422);
 
@@ -169,7 +170,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
     const teacher = await teacherWithRule(adminToken, { type: 'FIXED', baseSalary: 1_000_000 });
     await calculate(adminToken, teacher.profileId);
     const current = await period(adminToken, teacher.profileId);
-    await request(app).post(`/api/salaries/periods/${current.id}/approve`).set(bearer(adminToken)).expect(200);
+    await request(app).post(`/api/salaries/periods/${await submitted(app, current.id, adminToken)}/approve`).set(bearer(adminToken)).expect(200);
 
     const unlockUrl = `/api/salaries/periods/${current.id}/unlock`;
     expect((await request(app).post(unlockUrl).set(bearer(adminToken)).send({ reason: 'Xato hisob' })).status).toBe(403);
@@ -186,7 +187,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
 
     // Ochilgan maoshga tuzatish kiritiladi va qayta tasdiqlanadi
     expect((await adjust(adminToken, teacher.profileId, { type: 'BONUS', category: 'MONTHLY', amount: 100_000, reason: 'Tuzatish bonusi' })).status).toBe(201);
-    await request(app).post(`/api/salaries/periods/${current.id}/approve`).set(bearer(adminToken)).expect(200);
+    await request(app).post(`/api/salaries/periods/${await submitted(app, current.id, adminToken)}/approve`).set(bearer(adminToken)).expect(200);
     await request(app).post(`/api/salaries/periods/${current.id}/payments`).set(bearer(adminToken)).send({ amount: 100_000, method: 'CASH' }).expect(200);
     expect((await request(app).post(unlockUrl).set(bearer(ownerToken)).send({ reason: 'Yana ochish' })).status).toBe(409);
   });
@@ -199,7 +200,7 @@ describe.skipIf(!hasTestDatabase)('Payroll — bonus, jarima, avans va qayta och
     expect(list.body.data).toHaveLength(1);
     const id = list.body.data[0].id as string;
     expect((await request(app).get(`/api/payroll/${id}`).set(bearer(adminToken))).body.data.totalAmount).toBe(2_000_000);
-    expect((await request(app).post(`/api/payroll/${id}/approve`).set(bearer(adminToken))).status).toBe(200);
+    expect((await request(app).post(`/api/payroll/${await submitted(app, id, adminToken)}/approve`).set(bearer(adminToken))).status).toBe(200);
     const paid = await request(app).post(`/api/payroll/${id}/pay`).set(bearer(adminToken)).send({ amount: 2_000_000, method: 'CASH' });
     expect(paid.body.data.status).toBe('PAID');
 

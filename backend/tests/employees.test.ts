@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { submitted } from './helpers/salary.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 
@@ -167,7 +168,7 @@ describe.skipIf(!hasTestDatabase)('Xodimlar va umumiy payroll (integratsion)', (
       .send({ kind: 'ADVANCE', amount: 1_000_000, method: 'CASH' });
     expect(advance.body.data).toMatchObject({ paidAmount: 1_000_000, remainingAmount: 3_500_000 });
 
-    expect((await request(app).post(`/api/payroll/${periodId}/approve`).set(bearer(adminToken))).body.data.status).toBe('PARTIALLY_PAID');
+    expect((await request(app).post(`/api/payroll/${await submitted(app, periodId, adminToken)}/approve`).set(bearer(adminToken))).body.data.status).toBe('PARTIALLY_PAID');
     const paid = await request(app).post(`/api/payroll/${periodId}/pay`).set(bearer(adminToken)).send({ amount: 3_500_000, method: 'BANK' });
     expect(paid.body.data).toMatchObject({ status: 'PAID', remainingAmount: 0 });
 

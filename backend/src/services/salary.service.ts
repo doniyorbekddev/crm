@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { formatSalaryAmount, formatSalaryPeriod } from '../config/salaryLabels.js';
 import { EMPLOYEE_POSITION_LABELS } from '../config/employeeLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
@@ -7,7 +8,6 @@ import type {
   PaymentMethod,
   PayrollAdjustmentCategory,
   PayrollAdjustmentType,
-  Prisma,
   SalaryPaymentKind,
   SalaryPeriodStatus,
   SalaryType,
@@ -31,6 +31,7 @@ import { COMMISSION_SALARY_TYPES, commissionService } from './commission.service
 import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
+import { evaluateEmployeeKpi, type KpiEvaluationDto } from './kpi.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
 const SALARY_EXPENSE_CATEGORY = 'TEACHER_SALARY';
@@ -113,7 +114,7 @@ export interface SalaryPeriodDto {
     lastName: string;
     specialization: string | null;
   } | null;
-  employee: { id: string; firstName: string; lastName: string; position: EmployeePosition } | null;
+  employee: { id: string; firstName: string; lastName: string; position: EmployeePosition; department: string | null; branchId: string } | null;
   salaryType: SalaryType;
   lessonsCount: number;
   studentsCount: number;
@@ -140,6 +141,18 @@ export interface SalaryPeriodDto {
   unlockedAt: string | null;
   unlockedBy: PersonRefDto | null;
   unlockReason: string | null;
+  /** Xodim KPI bonusi va vaznli bajarilish (o'qituvchida 0 / null) */
+  kpiBonus: number;
+  kpiAchievement: number | null;
+  /** Hisoblash paytidagi KPI natijalari nusxasi */
+  kpiDetails: KpiEvaluationDto | null;
+  /** Ko'rib chiqishda e'tibor berilishi kerak bo'lgan holatlar */
+  warnings: string[];
+  submittedAt: string | null;
+  submittedBy: PersonRefDto | null;
+  rejectedAt: string | null;
+  rejectedBy: PersonRefDto | null;
+  rejectReason: string | null;
   adjustments: PayrollAdjustmentDto[];
   payments: SalaryPaymentDto[];
 }
@@ -155,6 +168,13 @@ export interface SalarySummaryDto {
   paid: number;
   remaining: number;
   byStatus: Array<{ status: SalaryPeriodStatus; count: number; total: number }>;
+  /** Tasdiqlashga yuborilgan (direktor qarorini kutayotgan) */
+  underReview: number;
+  kpiBonus: number;
+  /** O'qituvchilar va xodimlar lavozimi bo'yicha jami */
+  byGroup: Array<{ key: string; label: string; count: number; total: number }>;
+  /** Maosh xarajat moddalari bo'yicha oy byudjeti (belgilanmagan bo'lsa null) */
+  budget: number | null;
 }
 
 export interface CalculateResultDto {
@@ -203,9 +223,18 @@ const periodSelect = {
   lockedAt: true,
   unlockedAt: true,
   unlockReason: true,
+  kpiBonus: true,
+  kpiAchievement: true,
+  kpiDetails: true,
+  warnings: true,
+  submittedAt: true,
+  rejectedAt: true,
+  rejectReason: true,
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
   unlockedBy: { select: { id: true, firstName: true, lastName: true } },
-  employee: { select: { id: true, firstName: true, lastName: true, position: true, userId: true } },
+  submittedBy: { select: { id: true, firstName: true, lastName: true } },
+  rejectedBy: { select: { id: true, firstName: true, lastName: true } },
+  employee: { select: { id: true, firstName: true, lastName: true, position: true, userId: true, department: true, branchId: true } },
   adjustments: {
     orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
     select: {
@@ -358,7 +387,14 @@ export function toSalaryPeriodDto(period: PeriodRecord): SalaryPeriodDto {
         }
       : null,
     employee: period.employee
-      ? { id: period.employee.id, firstName: period.employee.firstName, lastName: period.employee.lastName, position: period.employee.position }
+      ? {
+          id: period.employee.id,
+          firstName: period.employee.firstName,
+          lastName: period.employee.lastName,
+          position: period.employee.position,
+          department: period.employee.department,
+          branchId: period.employee.branchId,
+        }
       : null,
     salaryType: period.salaryType,
     lessonsCount: period.lessonsCount,
@@ -384,6 +420,15 @@ export function toSalaryPeriodDto(period: PeriodRecord): SalaryPeriodDto {
     unlockedAt: period.unlockedAt?.toISOString() ?? null,
     unlockedBy: period.unlockedBy,
     unlockReason: period.unlockReason,
+    kpiBonus: period.kpiBonus.toNumber(),
+    kpiAchievement: period.kpiAchievement?.toNumber() ?? null,
+    kpiDetails: (period.kpiDetails as KpiEvaluationDto | null) ?? null,
+    warnings: Array.isArray(period.warnings) ? (period.warnings as string[]) : [],
+    submittedAt: period.submittedAt?.toISOString() ?? null,
+    submittedBy: period.submittedBy,
+    rejectedAt: period.rejectedAt?.toISOString() ?? null,
+    rejectedBy: period.rejectedBy,
+    rejectReason: period.rejectReason,
     adjustments: period.adjustments.map((adjustment) => ({
       id: adjustment.id,
       type: adjustment.type,
@@ -557,7 +602,9 @@ async function recomputeTotals(tx: Prisma.TransactionClient, salaryPeriodId: str
       studentAmount: true,
       percentageAmount: true,
       modelBonus: true,
+      kpiBonus: true,
       paidAmount: true,
+      status: true,
     },
   });
   const adjustments = await sumAdjustments(tx, salaryPeriodId);
@@ -567,6 +614,7 @@ async function recomputeTotals(tx: Prisma.TransactionClient, salaryPeriodId: str
       period.lessonAmount.toNumber() +
       period.studentAmount.toNumber() +
       period.percentageAmount.toNumber() +
+      period.kpiBonus.toNumber() +
       bonus -
       adjustments.penalty,
     0,
@@ -574,6 +622,8 @@ async function recomputeTotals(tx: Prisma.TransactionClient, salaryPeriodId: str
   await tx.teacherSalaryPeriod.update({
     where: { id: salaryPeriodId },
     data: {
+      // Ko'rib chiqilayotgan maosh summasi o'zgarsa — qayta yuborish kerak
+      ...(period.status === 'UNDER_REVIEW' ? { status: 'CALCULATED' as const, submittedAt: null, submittedById: null } : {}),
       bonus,
       penalty: adjustments.penalty,
       totalAmount,
@@ -581,6 +631,37 @@ async function recomputeTotals(tx: Prisma.TransactionClient, salaryPeriodId: str
     },
   });
   return totalAmount;
+}
+
+/** O'tgan oyga nisbatan keskin o'zgarish (50% va undan ko'p) — ko'rib chiqishda tekshirish uchun */
+async function changeWarning(
+  tx: Prisma.TransactionClient,
+  payee: { teacherProfileId: string } | { employeeId: string },
+  year: number,
+  month: number,
+  total: number,
+): Promise<string | null> {
+  const previous = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+  const row = await tx.teacherSalaryPeriod.findFirst({ where: { ...payee, ...previous }, select: { totalAmount: true } });
+  const before = row?.totalAmount.toNumber() ?? 0;
+  if (before <= 0) return null;
+  const change = Math.round(((total - before) / before) * 100);
+  return Math.abs(change) >= 50
+    ? `O‘tgan oyga nisbatan ${change > 0 ? '+' : ''}${change}% o‘zgarish (${formatSalaryAmount(before)} → ${formatSalaryAmount(total)})`
+    : null;
+}
+
+/** Oy, to'lov oluvchi turi va filial bo'yicha (o'qituvchi — foydalanuvchisi filiali, xodim — o'z filiali) */
+function periodWhere(query: SalaryPeriodListQuery): Prisma.TeacherSalaryPeriodWhereInput {
+  return {
+    year: query.year,
+    month: query.month,
+    ...(query.payeeType === 'TEACHER' ? { teacherProfileId: { not: null } } : {}),
+    ...(query.payeeType === 'EMPLOYEE' ? { employeeId: { not: null } } : {}),
+    ...(query.branchId
+      ? { OR: [{ teacherProfile: { user: { branchId: query.branchId } } }, { employee: { branchId: query.branchId } }] }
+      : {}),
+  };
 }
 
 async function findPeriodOrFail(id: string): Promise<PeriodRecord> {
@@ -689,15 +770,23 @@ export const salaryService = {
   async periods(query: SalaryPeriodListQuery): Promise<SalaryPeriodDto[]> {
     const periods = await prisma.teacherSalaryPeriod.findMany({
       where: {
-        year: query.year,
-        month: query.month,
-        ...(query.payeeType === 'TEACHER' ? { teacherProfileId: { not: null } } : {}),
-        ...(query.payeeType === 'EMPLOYEE' ? { employeeId: { not: null } } : {}),
+        ...periodWhere(query),
         ...(query.teacherProfileId ? { teacherProfileId: query.teacherProfileId } : {}),
         ...(query.employeeId ? { employeeId: query.employeeId } : {}),
         ...(query.status ? { status: query.status } : {}),
       },
       orderBy: [{ totalAmount: 'desc' }, { createdAt: 'asc' }],
+      select: periodSelect,
+    });
+    return periods.map(toSalaryPeriodDto);
+  },
+
+  /** Bitta xodimning oxirgi oylari (maosh tarixi) */
+  async employeeHistory(employeeId: string, limit: number): Promise<SalaryPeriodDto[]> {
+    const periods = await prisma.teacherSalaryPeriod.findMany({
+      where: { employeeId },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      take: limit,
       select: periodSelect,
     });
     return periods.map(toSalaryPeriodDto);
@@ -718,38 +807,58 @@ export const salaryService = {
     return periods.map(toSalaryPeriodDto);
   },
 
-  /** Oylik yig‘ma ko‘rsatkichlar */
+  /** Oylik yig‘ma ko‘rsatkichlar (direktor maosh paneli) */
   async summary(query: SalaryPeriodListQuery): Promise<SalarySummaryDto> {
-    const grouped = await prisma.teacherSalaryPeriod.groupBy({
-      by: ['status'],
-      where: {
-        year: query.year,
-        month: query.month,
-        ...(query.payeeType === 'TEACHER' ? { teacherProfileId: { not: null } } : {}),
-        ...(query.payeeType === 'EMPLOYEE' ? { employeeId: { not: null } } : {}),
+    const rows = await prisma.teacherSalaryPeriod.findMany({
+      where: periodWhere(query),
+      select: {
+        status: true,
+        totalAmount: true,
+        paidAmount: true,
+        remainingAmount: true,
+        kpiBonus: true,
+        teacherProfileId: true,
+        employee: { select: { position: true } },
       },
-      _count: { _all: true },
-      _sum: { totalAmount: true, paidAmount: true, remainingAmount: true },
     });
 
-    const byStatus = grouped.map((row) => ({
-      status: row.status,
-      count: row._count._all,
-      total: row._sum.totalAmount?.toNumber() ?? 0,
-    }));
+    const byStatus = new Map<SalaryPeriodStatus, { count: number; total: number }>();
+    const byGroup = new Map<string, { label: string; count: number; total: number }>();
+    for (const row of rows) {
+      const total = row.totalAmount.toNumber();
+      const status = byStatus.get(row.status) ?? { count: 0, total: 0 };
+      byStatus.set(row.status, { count: status.count + 1, total: status.total + total });
+      const key = row.teacherProfileId ? 'TEACHER' : (row.employee?.position ?? 'OTHER');
+      const label = row.teacherProfileId ? 'O‘qituvchilar' : EMPLOYEE_POSITION_LABELS[row.employee?.position ?? 'OTHER'];
+      const group = byGroup.get(key) ?? { label, count: 0, total: 0 };
+      byGroup.set(key, { label, count: group.count + 1, total: group.total + total });
+    }
 
+    // Byudjet: maosh xarajat moddalari (o'qituvchi va xodim) rejasi
+    const budgetLines = await prisma.budgetLine.aggregate({
+      where: {
+        budget: { year: query.year, month: query.month },
+        category: { key: { in: [SALARY_EXPENSE_CATEGORY, EMPLOYEE_SALARY_EXPENSE_CATEGORY] } },
+      },
+      _sum: { plannedAmount: true },
+      _count: { _all: true },
+    });
+
+    const sum = (pick: (row: (typeof rows)[number]) => number) => rows.reduce((total, row) => total + pick(row), 0);
     return {
       year: query.year,
       month: query.month,
       label: formatSalaryPeriod(query.year, query.month),
-      periods: grouped.reduce((sum, row) => sum + row._count._all, 0),
-      awaitingApproval: grouped
-        .filter((row) => row.status === 'PENDING' || row.status === 'CALCULATED')
-        .reduce((sum, row) => sum + row._count._all, 0),
-      accrued: grouped.reduce((sum, row) => sum + (row._sum.totalAmount?.toNumber() ?? 0), 0),
-      paid: grouped.reduce((sum, row) => sum + (row._sum.paidAmount?.toNumber() ?? 0), 0),
-      remaining: grouped.reduce((sum, row) => sum + (row._sum.remainingAmount?.toNumber() ?? 0), 0),
-      byStatus,
+      periods: rows.length,
+      awaitingApproval: rows.filter((row) => row.status === 'PENDING' || row.status === 'CALCULATED' || row.status === 'UNDER_REVIEW').length,
+      underReview: rows.filter((row) => row.status === 'UNDER_REVIEW').length,
+      accrued: sum((row) => row.totalAmount.toNumber()),
+      paid: sum((row) => row.paidAmount.toNumber()),
+      remaining: sum((row) => row.remainingAmount.toNumber()),
+      kpiBonus: sum((row) => row.kpiBonus.toNumber()),
+      byStatus: [...byStatus.entries()].map(([status, value]) => ({ status, ...value })),
+      byGroup: [...byGroup.entries()].map(([key, value]) => ({ key, ...value })).sort((a, b) => b.total - a.total),
+      budget: budgetLines._count._all > 0 ? (budgetLines._sum.plannedAmount?.toNumber() ?? 0) : null,
     };
   },
 
@@ -780,6 +889,9 @@ export const salaryService = {
             lastName: true,
             position: true,
             baseSalary: true,
+            kpiBonusPool: true,
+            userId: true,
+            branchId: true,
             status: true,
             hireDate: true,
             terminationDate: true,
@@ -834,6 +946,12 @@ export const salaryService = {
         const paidAmount = existing?.paidAmount.toNumber() ?? 0;
         const remainingAmount = Math.max(totalAmount - paidAmount, 0);
 
+        const warnings: string[] = [];
+        if (workload.lessonsCount === 0 && totalAmount > 0) warnings.push('Oyda o‘tilgan dars qayd etilmagan, lekin maosh hisoblandi');
+        if (parts.percentageAmount < 0) warnings.push('Qaytarilgan to‘lovlar foizi tushumdan katta — manfiy qoldiq keyingi oyga ko‘chadi');
+        const change = await changeWarning(tx, { teacherProfileId: profile.id }, input.year, input.month, totalAmount);
+        if (change) warnings.push(change);
+
         const calculatedAt = new Date();
         const data = {
           salaryType: rule.type,
@@ -851,9 +969,12 @@ export const salaryService = {
           totalAmount,
           paidAmount,
           remainingAmount,
-          // Avans berilgan bo'lsa ham tasdiqlanmaguncha holat CALCULATED
+          // Avans berilgan bo'lsa ham tasdiqlanmaguncha holat CALCULATED; qayta hisoblash ko'rib chiqishni bekor qiladi
           status: 'CALCULATED' as const,
           calculatedAt,
+          warnings,
+          submittedAt: null,
+          submittedById: null,
         };
 
         const period = existing
@@ -931,8 +1052,14 @@ export const salaryService = {
         const activeDays = Math.max(Math.round((activeTo - activeFrom) / DAY_MS), 0);
         const baseAmount = Math.round((baseSalary * activeDays) / monthDays);
         const adjustments = existing ? await sumAdjustments(tx, existing.id) : { bonus: 0, penalty: 0 };
-        const totalAmount = Math.max(baseAmount + adjustments.bonus - adjustments.penalty, 0);
+        // KPI bonusi: fond × vaznli bajarilish (qoida — kpi.service). Natijalar nusxasi maoshda saqlanadi
+        const kpi = await evaluateEmployeeKpi(tx, employee, input.year, input.month);
+        const totalAmount = Math.max(baseAmount + kpi.bonus + adjustments.bonus - adjustments.penalty, 0);
         const paidAmount = existing?.paidAmount.toNumber() ?? 0;
+        const warnings = [...kpi.warnings];
+        if (activeDays < monthDays) warnings.push(`Oyda ${activeDays} / ${monthDays} kun ishlagan — belgilangan maosh kunlarga proporsional`);
+        const change = await changeWarning(tx, { employeeId: employee.id }, input.year, input.month, totalAmount);
+        if (change) warnings.push(change);
 
         const data = {
           salaryType: 'FIXED' as const,
@@ -950,8 +1077,14 @@ export const salaryService = {
           totalAmount,
           paidAmount,
           remainingAmount: Math.max(totalAmount - paidAmount, 0),
+          kpiBonus: kpi.bonus,
+          kpiAchievement: kpi.achievement,
+          kpiDetails: kpi.results.length > 0 || kpi.pool > 0 ? (kpi as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+          warnings,
           status: 'CALCULATED' as const,
           calculatedAt: new Date(),
+          submittedAt: null,
+          submittedById: null,
         };
         const period = existing
           ? await tx.teacherSalaryPeriod.update({ where: { id: existing.id }, data, select: { id: true } })
@@ -972,6 +1105,8 @@ export const salaryService = {
             activeDays,
             monthDays,
             baseAmount,
+            kpiBonus: kpi.bonus,
+            kpiAchievement: kpi.achievement,
             totalAmount,
           },
           ...client,
@@ -1193,6 +1328,8 @@ export const salaryService = {
           lockedAt: null,
           approvedAt: null,
           approvedById: null,
+          submittedAt: null,
+          submittedById: null,
           unlockedAt: now,
           unlockedById: actor.id,
           unlockReason: input.reason,
@@ -1229,14 +1366,110 @@ export const salaryService = {
     return this.periodById(id);
   },
 
+  /**
+   * Tasdiqlashga yuborish (buxgalter): hisoblangan maosh direktor qaroriga o'tadi. Shundan keyin summa
+   * o'zgarsa (qayta hisoblash, bonus/jarima) — maosh yana "Hisoblangan"ga qaytadi va qayta yuboriladi.
+   */
+  async submit(actor: AuthUser, id: string, client: ClientInfo): Promise<SalaryPeriodDto> {
+    const period = await findPeriodOrFail(id);
+    if (period.status !== 'CALCULATED') {
+      throw AppError.unprocessable(
+        period.status === 'PENDING' ? 'Avval maoshni hisoblang' : period.status === 'UNDER_REVIEW' ? 'Maosh allaqachon tasdiqlashga yuborilgan' : 'Maosh tasdiqlangan',
+      );
+    }
+    if (period.totalAmount.toNumber() <= 0 && period.percentageAmount.toNumber() >= 0) {
+      throw AppError.unprocessable('Maosh summasi nol — tasdiqlashga yuborib bo‘lmaydi');
+    }
+    await prisma.$transaction(async (tx) => {
+      await tx.teacherSalaryPeriod.update({
+        where: { id },
+        data: { status: 'UNDER_REVIEW', submittedAt: new Date(), submittedById: actor.id, rejectedAt: null, rejectedById: null, rejectReason: null },
+      });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'salary.submitted',
+        entityType: 'salary',
+        entityId: id,
+        metadata: {
+          payee: payeeName(period),
+          period: formatSalaryPeriod(period.year, period.month),
+          totalAmount: period.totalAmount.toNumber(),
+          warnings: Array.isArray(period.warnings) ? period.warnings.length : 0,
+        },
+        ...client,
+      });
+    });
+    return this.periodById(id);
+  },
+
+  /** Oyning barcha hisoblangan maoshlarini bittada yuborish (nol summalilar o'tkazib yuboriladi) */
+  async submitMonth(actor: AuthUser, input: { year: number; month: number; branchId?: string | undefined }, client: ClientInfo): Promise<{ submitted: number; skipped: number }> {
+    const rows = await prisma.teacherSalaryPeriod.findMany({
+      where: { ...periodWhere({ year: input.year, month: input.month, branchId: input.branchId }), status: 'CALCULATED' },
+      select: { id: true },
+    });
+    let submitted = 0;
+    let skipped = 0;
+    for (const row of rows) {
+      try {
+        await this.submit(actor, row.id, client);
+        submitted += 1;
+      } catch (error) {
+        if (!(error instanceof AppError)) throw error;
+        skipped += 1;
+      }
+    }
+    return { submitted, skipped };
+  },
+
+  /** Rad etish (direktor): sabab yoziladi, maosh "Hisoblangan"ga qaytadi va tuzatilgach qayta yuboriladi */
+  async reject(actor: AuthUser, id: string, input: ReasonInput, client: ClientInfo): Promise<SalaryPeriodDto> {
+    const period = await findPeriodOrFail(id);
+    if (period.status !== 'UNDER_REVIEW') {
+      throw AppError.unprocessable('Faqat tasdiqlashga yuborilgan maosh rad etiladi');
+    }
+    const now = new Date();
+    const label = formatSalaryPeriod(period.year, period.month);
+    await prisma.$transaction(async (tx) => {
+      await tx.teacherSalaryPeriod.update({
+        where: { id },
+        data: { status: 'CALCULATED', submittedAt: null, submittedById: null, rejectedAt: now, rejectedById: actor.id, rejectReason: input.reason },
+      });
+      const submitterId = period.submittedBy?.id;
+      if (submitterId && submitterId !== actor.id) {
+        await notificationService.createInTransaction(tx, {
+          userId: submitterId,
+          type: 'SYSTEM',
+          title: 'Maosh rad etildi',
+          message: `${payeeName(period)} — ${label}: ${input.reason}`,
+          entityType: 'salary',
+          entityId: id,
+          dedupeKey: `salary:${id}:rejected:${now.getTime()}`,
+        });
+      }
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'salary.rejected',
+        entityType: 'salary',
+        entityId: id,
+        metadata: { payee: payeeName(period), period: label, reason: input.reason, totalAmount: period.totalAmount.toNumber() },
+        ...client,
+      });
+    });
+    return this.periodById(id);
+  },
+
   /** Tasdiqlash — shundan keyin hisob o‘zgarmaydi (lockedAt) va to‘lash mumkin bo‘ladi */
   async approve(actor: AuthUser, id: string, client: ClientInfo): Promise<SalaryPeriodDto> {
     const period = await findPeriodOrFail(id);
     if (period.lockedAt) {
       throw AppError.conflict('Bu maosh allaqachon tasdiqlangan');
     }
-    if (period.status !== 'CALCULATED') {
+    if (period.status === 'PENDING') {
       throw AppError.unprocessable('Avval maoshni hisoblang');
+    }
+    if (period.status !== 'UNDER_REVIEW') {
+      throw AppError.unprocessable('Avval maoshni tasdiqlashga yuboring');
     }
 
     const teacherId = period.teacherProfile?.user.id ?? null;
@@ -1251,6 +1484,7 @@ export const salaryService = {
       period.lessonAmount.toNumber() +
       period.studentAmount.toNumber() +
       percentageAmount +
+      period.kpiBonus.toNumber() +
       period.bonus.toNumber() -
       period.penalty.toNumber();
     // Qaytarilgan to'lovlar foizi maoshdan katta — manfiy qoldiq keyingi oyga ko'chiriladi
@@ -1347,7 +1581,7 @@ export const salaryService = {
       throw AppError.conflict('Bu maosh to‘liq to‘langan');
     }
     if (isAdvance) {
-      if (period.lockedAt || period.status !== 'CALCULATED') {
+      if (period.lockedAt || (period.status !== 'CALCULATED' && period.status !== 'UNDER_REVIEW')) {
         throw AppError.unprocessable('Avans faqat hisoblangan va hali tasdiqlanmagan maoshdan beriladi');
       }
     } else if (period.status !== 'APPROVED' && period.status !== 'PARTIALLY_PAID') {

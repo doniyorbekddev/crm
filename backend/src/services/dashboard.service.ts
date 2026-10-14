@@ -220,11 +220,11 @@ async function moneyBlock(access: DashboardAccess, now: Date, branch: BranchScop
       ? { OR: [{ teacherProfile: viaUser(branch) }, { employee: inBranch(branch) }] }
       : {};
     const due = await prisma.teacherSalaryPeriod.aggregate({
-      where: { ...salaryScope, status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] } },
+      where: { ...salaryScope, status: { in: ['CALCULATED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_PAID'] } },
       _sum: { remainingAmount: true },
     });
     salaryDue = due._sum.remainingAmount?.toNumber() ?? 0;
-    salaryAwaitingApproval = await prisma.teacherSalaryPeriod.count({ where: { ...salaryScope, status: 'CALCULATED' } });
+    salaryAwaitingApproval = await prisma.teacherSalaryPeriod.count({ where: { ...salaryScope, status: { in: ['CALCULATED', 'UNDER_REVIEW'] } } });
   }
 
   return {

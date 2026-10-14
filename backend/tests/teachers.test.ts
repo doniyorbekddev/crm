@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { submitted } from './helpers/salary.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
@@ -412,7 +413,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       await calculate(fixture.adminToken, fixture.profileId);
       const period = await loadPeriod(fixture.adminToken, fixture.profileId);
       const approved = await request(app)
-        .post(`/api/salaries/periods/${period.id}/approve`)
+        .post(`/api/salaries/periods/${await submitted(app, period.id, fixture.adminToken)}/approve`)
         .set(bearer(fixture.adminToken));
       expect(approved.status).toBe(200);
       expect(approved.body.data).toMatchObject({ status: 'APPROVED' });
@@ -520,13 +521,13 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi boshqaruvi (integratsion)', () =
       expect((await calculate(accountantToken, fixture.profileId)).status).toBe(200);
       const period = await loadPeriod(accountantToken, fixture.profileId);
 
-      const approve = await request(app).post(`/api/salaries/periods/${period.id}/approve`).set(bearer(accountantToken));
+      const approve = await request(app).post(`/api/salaries/periods/${await submitted(app, period.id, accountantToken)}/approve`).set(bearer(accountantToken));
       expect(approve.status).toBe(403);
 
       const rule = await setRule(accountantToken, fixture.profileId, { type: 'FIXED', baseSalary: 1_000_000 });
       expect(rule.status).toBe(403);
 
-      await request(app).post(`/api/salaries/periods/${period.id}/approve`).set(bearer(fixture.adminToken));
+      await request(app).post(`/api/salaries/periods/${await submitted(app, period.id, fixture.adminToken)}/approve`).set(bearer(fixture.adminToken));
       const payment = await request(app)
         .post(`/api/salaries/periods/${period.id}/payments`)
         .set(bearer(accountantToken))

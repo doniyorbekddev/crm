@@ -302,6 +302,16 @@ satri bo'lib qoladi, sxema o'zgarmaydi.
 **Ranglarni ko'chirish**: `python3 frontend/scripts/tokenize-colors.py src/pages/<papka>` — xom palitra klasslarini
 (`text-red-600 dark:text-red-400` …) semantik tokenlarga almashtiradi. Ishga tushirgach `git diff` ni ko'rib chiqing.
 
+## 8.5. Moliyaviy hisob sahifalari (maosh)
+
+- **Jarayon chizig'i** (`payroll/PayrollOverview.tsx`): holatlar tartib bilan sanoq kartalari; bosilganda ro'yxat filtrlanadi
+  (`aria-pressed`). Harakat talab qiladigan bosqich sanog'i `text-warning`.
+- **Hisob izohi** (`payroll/CalculationBreakdown.tsx`): har qator — nom, formula (`tabular-nums`), manba izohi va summa;
+  oxirida jami va umumiy formula. Hisoblangan raqam izohsiz ko'rsatilmaydi.
+- **Yakuniy emas** belgisi: tasdiqlanmagan summa "dastlabki hisob" deb yoziladi; tasdiq oynasida "pul o'tkazmaydi".
+- **Ogohlantirishlar** jadvalda ikonka + son (`title` da matn), profilda `Alert tone="warning"` ro'yxati.
+- Batafsil qoidalar: `docs/payroll.md`.
+
 ## 9. Ikonkalar
 
 Faqat `lucide-react`. O'lchamlar: 16 (`size-4`, standart), 18, 20 (`size-5`), 24. Bezak ikonka — `aria-hidden`.

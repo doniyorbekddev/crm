@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { payrollProfileService } from '../services/payrollProfile.service.js';
 import { salaryService } from '../services/salary.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
@@ -8,8 +9,10 @@ import {
   calculateSalarySchema,
   createAdjustmentSchema,
   paySalarySchema,
+  payrollProfileQuerySchema,
   reasonSchema,
   salaryPeriodListQuerySchema,
+  submitMonthSchema,
 } from '../validators/salary.validator.js';
 
 export const salaryController = {
@@ -44,6 +47,34 @@ export const salaryController = {
     const input = adjustSalarySchema.parse(req.body);
     sendSuccess(res, await salaryService.adjust(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: 'Izoh saqlandi',
+    });
+  },
+
+  async profile(req: Request, res: Response): Promise<void> {
+    const query = payrollProfileQuerySchema.parse(req.query);
+    sendSuccess(res, await payrollProfileService.profile(query));
+  },
+
+  async submit(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await salaryService.submit(requireAuthUser(req), id, getClientInfo(req)), {
+      message: 'Maosh tasdiqlashga yuborildi',
+    });
+  },
+
+  async submitMonth(req: Request, res: Response): Promise<void> {
+    const input = submitMonthSchema.parse(req.body);
+    const result = await salaryService.submitMonth(requireAuthUser(req), input, getClientInfo(req));
+    sendSuccess(res, result, {
+      message: result.submitted === 0 ? 'Yuboriladigan hisoblangan maosh yo‘q' : `${result.submitted} ta maosh tasdiqlashga yuborildi`,
+    });
+  },
+
+  async reject(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = reasonSchema.parse(req.body);
+    sendSuccess(res, await salaryService.reject(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Maosh rad etildi',
     });
   },
 

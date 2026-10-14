@@ -22,6 +22,8 @@ export interface Employee {
   position: EmployeePosition;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
+  /** Oylik KPI bonus fondi (maosh ruxsati bo'lmasa null) */
+  kpiBonusPool: number | null;
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;

@@ -4,6 +4,7 @@ import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { nextMonth } from '../src/services/commission.service.js';
 import { currentBusinessMonth } from '../src/utils/dates.js';
+import { submitted } from './helpers/salary.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup } from './helpers/fixtures.js';
@@ -170,7 +171,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi foizi — real to‘lovlardan (i
     expect(await prisma.auditLog.count({ where: { action: 'commission.reversed' } })).toBe(1);
 
     // Hisob eskirgan — tasdiqlanmaydi
-    const stale = await request(app).post(`/api/salaries/periods/${calculated.id}/approve`).set(bearer(adminToken));
+    const stale = await request(app).post(`/api/salaries/periods/${await submitted(app, calculated.id, adminToken)}/approve`).set(bearer(adminToken));
     expect(stale.status).toBe(409);
 
     await calculate(adminToken, MARCH);
@@ -183,7 +184,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi foizi — real to‘lovlardan (i
     const payment = await pay(adminToken, student.id, 600_000, inMonth(MARCH));
     await calculate(adminToken, MARCH);
     const marchPeriod = await period(adminToken, teacher.profileId, MARCH);
-    const approved = await request(app).post(`/api/salaries/periods/${marchPeriod.id}/approve`).set(bearer(adminToken));
+    const approved = await request(app).post(`/api/salaries/periods/${await submitted(app, marchPeriod.id, adminToken)}/approve`).set(bearer(adminToken));
     expect(approved.status).toBe(200);
 
     await cancel(adminToken, payment.id);
@@ -203,7 +204,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi foizi — real to‘lovlardan (i
     const currentPeriod = await period(adminToken, teacher.profileId, current);
     expect(currentPeriod).toMatchObject({ percentageAmount: -180_000, totalAmount: 0 });
 
-    const carried = await request(app).post(`/api/salaries/periods/${currentPeriod.id}/approve`).set(bearer(adminToken));
+    const carried = await request(app).post(`/api/salaries/periods/${await submitted(app, currentPeriod.id, adminToken)}/approve`).set(bearer(adminToken));
     expect(carried.status).toBe(200);
     expect(carried.body.data).toMatchObject({ status: 'APPROVED', percentageAmount: 0, totalAmount: 0 });
 
@@ -235,7 +236,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi foizi — real to‘lovlardan (i
     expect(calculated.percentageAmount).toBe(300_000);
 
     await pay(adminToken, student.id, 500_000, inMonth(MARCH, 15));
-    expect((await request(app).post(`/api/salaries/periods/${calculated.id}/approve`).set(bearer(adminToken))).status).toBe(409);
+    expect((await request(app).post(`/api/salaries/periods/${await submitted(app, calculated.id, adminToken)}/approve`).set(bearer(adminToken))).status).toBe(409);
 
     // Martdan boshlab 40%
     const rule = await request(app)
@@ -249,7 +250,7 @@ describe.skipIf(!hasTestDatabase)('O‘qituvchi foizi — real to‘lovlardan (i
     const entries = (await detail(adminToken, teacher.profileId, MARCH)).entries as Array<{ percentage: number }>;
     expect(entries.every((entry) => entry.percentage === 40)).toBe(true);
 
-    expect((await request(app).post(`/api/salaries/periods/${recalculated.id}/approve`).set(bearer(adminToken))).status).toBe(200);
+    expect((await request(app).post(`/api/salaries/periods/${await submitted(app, recalculated.id, adminToken)}/approve`).set(bearer(adminToken))).status).toBe(200);
   });
 
   it('o‘qituvchi faqat o‘z daromadini ko‘radi', async () => {

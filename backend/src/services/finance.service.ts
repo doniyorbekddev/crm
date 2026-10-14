@@ -748,7 +748,7 @@ export const financeService = {
       _count: { _all: true },
     });
     const salaries = await prisma.teacherSalaryPeriod.aggregate({
-      where: { status: { in: ['CALCULATED', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 }, ...salaryPeriodInBranch(scope) },
+      where: { status: { in: ['CALCULATED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 }, ...salaryPeriodInBranch(scope) },
       _sum: { remainingAmount: true },
     });
     const debts = await prisma.debt.aggregate({ where: { remainingAmount: { gt: 0 }, ...viaStudent(scope) }, _sum: { remainingAmount: true } });
