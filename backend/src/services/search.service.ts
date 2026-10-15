@@ -109,6 +109,7 @@ export const searchService = {
         { telegram: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
         ...phoneCondition,
+        ...(digits.length >= 3 ? [{ parentPhone: { contains: digits } }] : []),
       ];
       if (leadNumber !== null) or.push({ number: leadNumber });
 
@@ -125,6 +126,7 @@ export const searchService = {
           firstName: true,
           lastName: true,
           phone: true,
+          parentPhone: true,
           status: true,
           course: { select: { name: true } },
         },
@@ -139,7 +141,7 @@ export const searchService = {
           hits: leads.map((lead) => ({
             id: lead.id,
             title: [lead.firstName, lead.lastName].filter(Boolean).join(' '),
-            subtitle: [lead.phone, lead.course?.name].filter(Boolean).join(' · '),
+            subtitle: [lead.phone ?? (lead.parentPhone ? `ota-ona: ${lead.parentPhone}` : null), lead.course?.name].filter(Boolean).join(' · '),
             code: formatLeadNumber(lead.number),
             url: `/leads/${lead.id}`,
           })),

@@ -171,15 +171,32 @@ export default function LeadProfilePage() {
           </>
         }
         meta={[
-          {
-            name: 'Telefon',
-            icon: Phone,
-            label: (
-              <a href={`tel:${lead.phone}`} className="focus-ring rounded-sm transition-colors hover:text-primary">
-                {formatPhone(lead.phone)}
-              </a>
-            ),
-          },
+          ...(lead.phone
+            ? [
+                {
+                  name: 'Telefon',
+                  icon: Phone,
+                  label: (
+                    <a href={`tel:${lead.phone}`} className="focus-ring rounded-sm transition-colors hover:text-primary">
+                      {formatPhone(lead.phone)}
+                    </a>
+                  ),
+                },
+              ]
+            : []),
+          ...(lead.parentPhone
+            ? [
+                {
+                  name: 'Ota-ona telefoni',
+                  icon: Phone,
+                  label: (
+                    <a href={`tel:${lead.parentPhone}`} className="focus-ring rounded-sm transition-colors hover:text-primary">
+                      ota-ona: {formatPhone(lead.parentPhone)}
+                    </a>
+                  ),
+                },
+              ]
+            : []),
           ...(lead.telegram
             ? [
                 {
@@ -282,6 +299,7 @@ export default function LeadProfilePage() {
                 <InfoRow label="Jins">{lead.gender ? GENDER_LABELS[lead.gender] : '—'}</InfoRow>
                 <InfoRow label="Manzil">{lead.address ?? '—'}</InfoRow>
                 <InfoRow label="Telefon">{formatPhone(lead.phone)}</InfoRow>
+                <InfoRow label="Ota-ona telefoni">{formatPhone(lead.parentPhone)}</InfoRow>
                 <InfoRow label="Telegram">
                   {lead.telegram ? (
                     <span className="inline-flex items-center gap-1">

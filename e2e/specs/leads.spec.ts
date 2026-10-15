@@ -9,7 +9,7 @@ test('manager yangi lead qo‘shadi, profili ochiladi, statusini o‘zgartiradi 
   const dialog = page.getByRole('dialog', { name: 'Yangi lead' });
   await dialog.getByLabel('Ism').fill('Sardor');
   await dialog.getByLabel('Familiya').fill(lastName);
-  await dialog.getByLabel('Telefon').fill(uniquePhone());
+  await dialog.getByLabel('Lidning telefon raqami').fill(uniquePhone());
   await dialog.getByLabel('Manba').selectOption({ index: 1 });
   await dialog.getByRole('button', { name: 'Saqlash', exact: true }).click();
   await expect(dialog).toBeHidden();

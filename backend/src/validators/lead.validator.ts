@@ -81,19 +81,39 @@ const telegramSchema = z
 const leadFieldsSchema = z.object({
   firstName: nameSchema('Ism'),
   lastName: optionalField(z.string().trim().max(100, 'Familiya juda uzun')),
-  phone: phoneSchema,
+  /** Lead va ota-ona telefoni — ikkalasi ixtiyoriy, lekin kamida bittasi shart (withLeadRules) */
+  phone: optionalField(phoneSchema),
+  parentPhone: optionalField(phoneSchema),
   telegram: optionalField(telegramSchema),
   email: optionalField(emailSchema),
   age: optionalField(z.coerce.number('Yosh raqam bo‘lishi kerak').int().min(3, 'Yosh noto‘g‘ri').max(100, 'Yosh noto‘g‘ri')),
   gender: optionalField(z.enum(['MALE', 'FEMALE'], 'Jins noto‘g‘ri')),
   address: optionalField(z.string().trim().max(255, 'Manzil juda uzun')),
-  sourceId: z.string('Manbani tanlang').trim().min(1, 'Manbani tanlang').max(50),
+  /** Ro'yxatdagi manba yoki `sourceName` — o'zi yozgan manba (bo'lmasa yaratiladi) */
+  sourceId: optionalField(z.string().trim().min(1).max(50)),
+  sourceName: optionalField(z.string().trim().min(2, 'Manba nomi kamida 2 belgi').max(100, 'Manba nomi juda uzun')),
   courseId: optionalField(idSchema),
   priority: z.enum(LEAD_PRIORITIES, 'Muhimlik noto‘g‘ri').default('MEDIUM'),
   notes: optionalField(z.string().trim().max(2000, 'Izoh 2000 belgidan oshmasligi kerak')),
 });
 
-export const createLeadSchema = leadFieldsSchema.extend({
+export const LEAD_PHONE_REQUIRED_MESSAGE = 'Iltimos, lid yoki ota-onaning telefon raqamidan kamida bittasini kiriting.';
+
+/** Kamida bitta telefon va manba (ro'yxatdan yoki yozilgan) — xato tegishli maydonlarga biriktiriladi */
+function withLeadRules<T extends z.ZodType<{ phone?: string | undefined; parentPhone?: string | undefined; sourceId?: string | undefined; sourceName?: string | undefined }>>(schema: T) {
+  return schema.superRefine((value, context) => {
+    if (!value.phone && !value.parentPhone) {
+      for (const path of ['phone', 'parentPhone']) {
+        context.addIssue({ code: 'custom', path: [path], message: LEAD_PHONE_REQUIRED_MESSAGE });
+      }
+    }
+    if (!value.sourceId && !value.sourceName) {
+      context.addIssue({ code: 'custom', path: ['sourceId'], message: 'Manbani tanlang yoki o‘zingiz yozing' });
+    }
+  });
+}
+
+const createLeadFieldsSchema = leadFieldsSchema.extend({
   assignedToId: optionalField(idSchema),
   /** Do‘stini taklif qilgan o‘quvchining kodi: R00045 */
   referralCode: optionalField(z.string().trim().max(16, 'Kod 16 belgidan oshmasligi kerak')),
@@ -101,7 +121,8 @@ export const createLeadSchema = leadFieldsSchema.extend({
   allowDuplicate: z.boolean().default(false),
 });
 
-export const updateLeadSchema = leadFieldsSchema;
+export const createLeadSchema = withLeadRules(createLeadFieldsSchema);
+export const updateLeadSchema = withLeadRules(leadFieldsSchema);
 
 export const updateLeadStatusSchema = z
   .object({

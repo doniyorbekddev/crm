@@ -58,7 +58,7 @@ export interface FollowUpDto {
   createdAt: string;
   assignedTo: { id: string; firstName: string; lastName: string } | null;
   createdBy: { id: string; firstName: string; lastName: string } | null;
-  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string };
+  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string | null };
 }
 
 export interface FollowUpSummaryDto {

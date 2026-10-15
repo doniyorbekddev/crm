@@ -60,7 +60,7 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
         />
       </div>
       <p className="mt-0.5 truncate text-caption text-fg-muted">
-        {lead.code} · {formatPhone(lead.phone)}
+        {lead.code} · {lead.phone ? formatPhone(lead.phone) : lead.parentPhone ? `ota-ona: ${formatPhone(lead.parentPhone)}` : '—'}
       </p>
       {lead.temperature !== null && lead.temperature !== 'COLD' && (
         <p className="mt-1.5">

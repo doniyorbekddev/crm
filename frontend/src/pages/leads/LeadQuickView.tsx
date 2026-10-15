@@ -44,9 +44,22 @@ export function LeadQuickView({ lead, onClose }: { lead: LeadListItem; onClose: 
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
         <Field label="Telefon">
-          <a href={`tel:${lead.phone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
-            {formatPhone(lead.phone)}
-          </a>
+          {lead.phone ? (
+            <a href={`tel:${lead.phone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
+              {formatPhone(lead.phone)}
+            </a>
+          ) : (
+            '—'
+          )}
+        </Field>
+        <Field label="Ota-ona telefoni">
+          {lead.parentPhone ? (
+            <a href={`tel:${lead.parentPhone}`} className="focus-ring rounded-chip hover:text-primary hover:underline">
+              {formatPhone(lead.parentPhone)}
+            </a>
+          ) : (
+            '—'
+          )}
         </Field>
         <Field label="Telegram">{lead.telegram ?? '—'}</Field>
         <Field label="Kurs">{lead.course?.name ?? 'Tanlanmagan'}</Field>

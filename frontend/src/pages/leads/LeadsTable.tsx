@@ -102,7 +102,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
               ) : null}
             </div>
             <p className="whitespace-nowrap text-caption text-fg-muted tabular-nums">
-              {lead.code} · {formatPhone(lead.phone)}
+              {lead.code} · {lead.phone ? formatPhone(lead.phone) : lead.parentPhone ? `ota-ona: ${formatPhone(lead.parentPhone)}` : '—'}
             </p>
           </div>
         </>

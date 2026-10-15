@@ -131,18 +131,14 @@ describe.skipIf(!hasTestDatabase)('O‘quvchi guruh tarixi va o‘tkazish (integ
     expect(rows[0].reason).toBe('Ma’lumotlarni tahrirlash orqali');
   });
 
-  it('o‘tkazish qoidalari: shu guruh, boshqa kurs, yopilgan va to‘lgan guruh, sababsiz so‘rov rad etiladi', async () => {
-    const { owner, course, first, second, foreign } = await setup();
+  it('o‘tkazish qoidalari: shu guruh, yopilgan va to‘lgan guruh, sababsiz so‘rov rad etiladi', async () => {
+    const { owner, course, first, second } = await setup();
     const studentId = await createStudent(owner, course.id, first.id);
     const reason = 'Sinov uchun';
 
     const same = await transfer(owner, studentId, { groupId: first.id, reason });
     expect(same.status).toBe(422);
     expect(same.body.errors).toEqual([{ field: 'groupId', message: 'O‘quvchi allaqachon shu guruhda' }]);
-
-    const otherCourse = await transfer(owner, studentId, { groupId: foreign.id, reason });
-    expect(otherCourse.status).toBe(422);
-    expect(otherCourse.body.errors[0].message).toContain('kursiga tegishli emas');
 
     expect((await transfer(owner, studentId, { groupId: 'clnotexistinggroup00000000', reason })).status).toBe(422);
     expect((await transfer(owner, studentId, { groupId: second.id })).status).toBe(422);
@@ -162,6 +158,21 @@ describe.skipIf(!hasTestDatabase)('O‘quvchi guruh tarixi va o‘tkazish (integ
 
     expect((await history(owner, studentId)).body.data).toHaveLength(1);
     expect((await prisma.student.findUniqueOrThrow({ where: { id: studentId } })).groupId).toBe(first.id);
+  });
+
+  it('boshqa kurs guruhiga o‘tkazish: kurs ham o‘zgaradi, shartnoma va qarz o‘zgarmaydi, tarixga yoziladi', async () => {
+    const { owner, course, first, foreign } = await setup();
+    const studentId = await createStudent(owner, course.id, first.id);
+    const before = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { debt: true } });
+
+    const moved = await transfer(owner, studentId, { groupId: foreign.id, reason: 'Ingliz tiliga o‘tdi' });
+    expect(moved.status).toBe(200);
+    expect(moved.body.data).toMatchObject({ group: { id: foreign.id }, course: { id: foreign.courseId } });
+
+    const after = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { debt: true } });
+    expect(after.contractPrice.toNumber()).toBe(before.contractPrice.toNumber());
+    expect(after.debt?.totalAmount.toNumber()).toBe(before.debt?.totalAmount.toNumber());
+    expect((await history(owner, studentId)).body.data[0]).toMatchObject({ kind: 'TRANSFERRED', to: { name: 'EN-01' }, reason: 'Ingliz tiliga o‘tdi' });
   });
 
   it('bir vaqtda ikki o‘quvchi oxirgi bo‘sh o‘ringa o‘tkazilsa, faqat bittasi sig‘adi', async () => {

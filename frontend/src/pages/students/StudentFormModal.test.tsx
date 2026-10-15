@@ -10,7 +10,17 @@ const REQUIRED = 'Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida 
 
 vi.mock('@/services/students.service', () => ({
   studentsService: {
-    formLookups: vi.fn(async () => ({ courses: [{ id: 'c1', name: 'Frontend', finalPrice: 1_000_000 }], groups: [] })),
+    formLookups: vi.fn(async () => ({
+      courses: [
+        { id: 'c1', name: 'Frontend', finalPrice: 1_000_000 },
+        { id: 'c2', name: 'Ingliz tili', finalPrice: 800_000 },
+      ],
+      groups: [
+        { id: 'g1', name: 'FE-01', courseId: 'c1', capacity: 10, studentCount: 3, freeSeats: 7 },
+        { id: 'g2', name: 'EN-01', courseId: 'c2', capacity: 10, studentCount: 2, freeSeats: 8 },
+        { id: 'g3', name: 'EN-02', courseId: 'c2', capacity: 5, studentCount: 5, freeSeats: 0 },
+      ],
+    })),
     create: vi.fn(async () => ({ data: {}, message: 'O‘quvchi qo‘shildi' })),
     update: vi.fn(async () => ({ data: {}, message: 'Saqlandi' })),
   },
@@ -96,5 +106,31 @@ describe('O‘quvchi formasi — telefonlar', () => {
     await user.click(screen.getByRole('button', { name: 'Saqlash' }));
     expect(await screen.findAllByText(REQUIRED)).toHaveLength(2);
     expect(studentsService.update).not.toHaveBeenCalled();
+  });
+
+  it('guruh: barcha kurslarning ochiq guruhlari chiqadi, to‘lgani tanlanmaydi; boshqa kurs guruhi tanlansa kurs o‘zgaradi', async () => {
+    const user = userEvent.setup();
+    renderForm({
+      id: 's1',
+      firstName: 'Ali',
+      lastName: 'Valiyev',
+      phone: '+998901112233',
+      parentPhone: null,
+      course: { id: 'c1', name: 'Frontend' },
+      group: { id: 'g1', name: 'FE-01' },
+      contractPrice: 1_000_000,
+      startDate: '2026-10-01',
+    } as unknown as StudentItem);
+    await screen.findByRole('option', { name: /EN-01/ });
+    expect(screen.getByRole('option', { name: /FE-01/ })).toBeEnabled();
+    expect(screen.getByRole('option', { name: 'EN-02 · to‘lgan' })).toBeDisabled();
+
+    await user.selectOptions(screen.getByLabelText(/^Guruh/), 'g2');
+    expect(screen.getByLabelText(/^Kurs/)).toHaveValue('c2');
+    expect(screen.getByText(/Kurs o‘zgaradi: «Frontend» → «Ingliz tili»/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Saqlash' }));
+    await vi.waitFor(() => expect(studentsService.update).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(studentsService.update).mock.calls[0]![1]).toMatchObject({ courseId: 'c2', groupId: 'g2' });
   });
 });

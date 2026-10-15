@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
@@ -21,14 +21,21 @@ import type { LeadDetail, LeadFormLookups, LeadPayload } from '@/types/lead';
 import { GENDER_LABELS, LEAD_PRIORITY_LABELS, LEAD_PRIORITY_ORDER } from '@/utils/leadLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
+const LEAD_PHONE_REQUIRED_MESSAGE = 'Iltimos, lid yoki ota-onaning telefon raqamidan kamida bittasini kiriting.';
+/** Manba ro'yxatidagi "o'zim yozaman" bandi */
+const CUSTOM_SOURCE = '__custom__';
+
+const optionalPhone = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || /^\+?[\d\s()-]{9,20}$/.test(value), 'Telefon raqam noto‘g‘ri');
+
 const leadFormSchema = z.object({
   firstName: nameField('Ism'),
   lastName: z.string().trim().max(100, 'Familiya juda uzun'),
-  phone: z
-    .string()
-    .trim()
-    .min(1, 'Telefon raqamni kiriting')
-    .refine((value) => /^\+?[\d\s()-]{9,20}$/.test(value), 'Telefon raqam noto‘g‘ri'),
+  /** Ikkalasi ixtiyoriy — kamida bittasi shart (pastdagi superRefine, backendda ham) */
+  phone: optionalPhone,
+  parentPhone: optionalPhone,
   telegram: z
     .string()
     .trim()
@@ -44,6 +51,7 @@ const leadFormSchema = z.object({
   gender: z.enum(['', 'MALE', 'FEMALE']),
   address: z.string().trim().max(255, 'Manzil juda uzun'),
   sourceId: z.string().min(1, 'Manbani tanlang'),
+  sourceName: z.string().trim().max(100, 'Manba nomi juda uzun'),
   courseId: z.string(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   assignedToId: z.string(),
@@ -52,6 +60,15 @@ const leadFormSchema = z.object({
     .trim()
     .refine((value) => value === '' || /^R?\d{1,6}$/i.test(value), 'Taklif kodi R00045 ko‘rinishida bo‘lsin'),
   notes: z.string().trim().max(2000, 'Izoh 2000 belgidan oshmasligi kerak'),
+}).superRefine((values, context) => {
+  if (!values.phone && !values.parentPhone) {
+    for (const path of ['phone', 'parentPhone'] as const) {
+      context.addIssue({ code: 'custom', path: [path], message: LEAD_PHONE_REQUIRED_MESSAGE });
+    }
+  }
+  if (values.sourceId === CUSTOM_SOURCE && values.sourceName.length < 2) {
+    context.addIssue({ code: 'custom', path: ['sourceName'], message: 'Manba nomini yozing (kamida 2 belgi)' });
+  }
 });
 
 type LeadFormValues = z.infer<typeof leadFormSchema>;
@@ -59,8 +76,10 @@ type LeadFormValues = z.infer<typeof leadFormSchema>;
 function toPayload(values: LeadFormValues): LeadPayload {
   return {
     firstName: values.firstName,
+    // Bo'sh qator ham yuboriladi — tahrirlashda raqamni o'chirish shu bilan bo'ladi
     phone: values.phone,
-    sourceId: values.sourceId,
+    parentPhone: values.parentPhone,
+    ...(values.sourceId === CUSTOM_SOURCE ? { sourceName: values.sourceName } : { sourceId: values.sourceId }),
     priority: values.priority,
     ...(values.lastName ? { lastName: values.lastName } : {}),
     ...(values.telegram ? { telegram: values.telegram } : {}),
@@ -94,12 +113,14 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
     firstName: lead?.firstName ?? '',
     lastName: lead?.lastName ?? '',
     phone: lead?.phone ?? '',
+    parentPhone: lead?.parentPhone ?? '',
     telegram: lead?.telegram ?? '',
     email: lead?.email ?? '',
     age: lead?.age ? String(lead.age) : '',
     gender: lead?.gender ?? '',
     address: lead?.address ?? '',
     sourceId: lead?.source.id ?? '',
+    sourceName: '',
     courseId: lead?.course?.id ?? '',
     priority: lead?.priority ?? 'MEDIUM',
     // Sales Manager uchun yangi lead standart holatda o‘ziga biriktiriladi
@@ -112,8 +133,10 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(leadFormSchema), defaultValues });
+  const sourceId = useWatch({ control, name: 'sourceId' });
 
   const save = useMutation({
     mutationFn: async ({ values, allowDuplicate }: { values: LeadFormValues; allowDuplicate: boolean }) => {
@@ -135,12 +158,12 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
     },
     onError: (error, variables) => {
       const isDuplicatePhone =
-        mode === 'create' && getErrorStatus(error) === 409 && getFieldErrors(error).some((detail) => detail.field === 'phone');
+        mode === 'create' && getErrorStatus(error) === 409 && getFieldErrors(error).some((detail) => detail.field === 'phone' || detail.field === 'parentPhone');
       if (isDuplicatePhone) {
         setDuplicate({ message: getErrorMessage(error), values: variables.values });
         return;
       }
-      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'telegram', 'email', 'age', 'sourceId', 'courseId', 'assignedToId'])) {
+      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'parentPhone', 'telegram', 'email', 'age', 'sourceId', 'sourceName', 'courseId', 'assignedToId'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -201,8 +224,27 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
           <FormField label="Familiya" htmlFor="lead-lastName" error={errors.lastName?.message}>
             <Input id="lead-lastName" invalid={Boolean(errors.lastName)} aria-describedby={describedBy('lastName')} {...register('lastName')} />
           </FormField>
-          <FormField label="Telefon" htmlFor="lead-phone" error={errors.phone?.message} required>
-            <Input id="lead-phone" type="tel" placeholder="+998 90 123 45 67" invalid={Boolean(errors.phone)} aria-describedby={describedBy('phone')} {...register('phone')} />
+          <FormField label="Lidning telefon raqami" htmlFor="lead-phone" error={errors.phone?.message} hint="Ixtiyoriy · kamida bitta raqam kerak">
+            <Input
+              id="lead-phone"
+              type="tel"
+              inputMode="tel"
+              placeholder="+998 90 123 45 67"
+              invalid={Boolean(errors.phone)}
+              aria-describedby={describedBy('phone')}
+              {...register('phone', { deps: ['parentPhone'] })}
+            />
+          </FormField>
+          <FormField label="Ota-onasining telefon raqami" htmlFor="lead-parentPhone" error={errors.parentPhone?.message} hint="Ixtiyoriy · kamida bitta raqam kerak">
+            <Input
+              id="lead-parentPhone"
+              type="tel"
+              inputMode="tel"
+              placeholder="+998 90 123 45 67"
+              invalid={Boolean(errors.parentPhone)}
+              aria-describedby={describedBy('parentPhone')}
+              {...register('parentPhone', { deps: ['phone'] })}
+            />
           </FormField>
           <FormField label="Telegram" htmlFor="lead-telegram" error={errors.telegram?.message}>
             <Input id="lead-telegram" placeholder="@username" invalid={Boolean(errors.telegram)} aria-describedby={describedBy('telegram')} {...register('telegram')} />
@@ -245,8 +287,26 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
                   {source.name}
                 </option>
               ))}
+              <option value={CUSTOM_SOURCE}>Boshqa — o‘zim yozaman…</option>
             </Select>
           </FormField>
+          {sourceId === CUSTOM_SOURCE && (
+            <FormField
+              label="Manba nomi"
+              htmlFor="lead-sourceName"
+              error={errors.sourceName?.message}
+              required
+              hint="Masalan: Ko‘rgazma, Flayer, YouTube. Mavjud bo‘lsa o‘sha tanlanadi, aks holda ro‘yxatga qo‘shiladi"
+            >
+              <Input
+                id="lead-sourceName"
+                autoFocus
+                invalid={Boolean(errors.sourceName)}
+                aria-describedby={describedBy('sourceName')}
+                {...register('sourceName')}
+              />
+            </FormField>
+          )}
           <FormField label="Qiziqqan kurs" htmlFor="lead-courseId" error={errors.courseId?.message}>
             <Select id="lead-courseId" invalid={Boolean(errors.courseId)} {...register('courseId')}>
               <option value="">Hali tanlanmagan</option>

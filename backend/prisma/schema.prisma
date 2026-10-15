@@ -534,7 +534,10 @@ model Lead {
   number          Int              @unique @default(autoincrement())
   firstName       String           @db.VarChar(100)
   lastName        String?          @db.VarChar(100)
-  phone           String           @db.VarChar(32)
+  /// Lead yoki ota-ona telefonidan kamida bittasi bo'ladi (validator va bazadagi CHECK)
+  phone           String?          @db.VarChar(32)
+  /// Ota-onasining telefoni — o'quvchiga aylantirilganda student.parentPhone ga o'tadi
+  parentPhone     String?          @db.VarChar(32)
   telegram        String?          @db.VarChar(64)
   email           String?          @db.VarChar(255)
   age             Int?             @db.SmallInt
@@ -588,6 +591,7 @@ model Lead {
   @@index([nextFollowUpAt])
   @@index([deletedAt])
   @@index([phone])
+  @@index([parentPhone])
   // Qidiruv (ILIKE '%...%') uchun trigram indekslar — 100 000+ leadda ham tez
   @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_first_name_trgm_idx")
   @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_last_name_trgm_idx")

@@ -79,7 +79,9 @@ export interface LeadListItem {
   code: string;
   firstName: string;
   lastName: string | null;
-  phone: string;
+  /** Lead yoki ota-ona telefonidan kamida bittasi bor */
+  phone: string | null;
+  parentPhone: string | null;
   telegram: string | null;
   email: string | null;
   status: LeadStatus;
@@ -155,13 +157,17 @@ export interface LeadNote {
 export interface LeadPayload {
   firstName: string;
   lastName?: string;
+  /** Bo'sh qator — raqam yo'q; lead yoki ota-ona raqamidan kamida bittasi shart */
   phone: string;
+  parentPhone: string;
   telegram?: string;
   email?: string;
   age?: number;
   gender?: Gender;
   address?: string;
-  sourceId: string;
+  /** Ro'yxatdagi manba yoki `sourceName` — o'zi yozgan manba (bo'lmasa yaratiladi) */
+  sourceId?: string;
+  sourceName?: string;
   courseId?: string;
   priority: LeadPriority;
   notes?: string;

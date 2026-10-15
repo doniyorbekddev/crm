@@ -44,7 +44,7 @@ export interface CallDto {
   nextCallAt: string | null;
   createdAt: string;
   manager: { id: string; firstName: string; lastName: string } | null;
-  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string };
+  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string | null };
 }
 
 function toCallDto(call: CallRecord): CallDto {

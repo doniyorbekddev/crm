@@ -4648,7 +4648,21 @@
 "Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Please enter at least one phone number — the student's or a parent's.",
 "Ixtiyoriy · kamida bitta raqam kerak": "Optional · at least one number required",
 "Ota-onasining telefon raqami": "Parent's phone number",
-"O‘quvchining telefon raqami": "Student's phone number"
+"O‘quvchining telefon raqami": "Student's phone number",
+"Boshqa — o‘zim yozaman…": "Other — I'll type it…",
+"Iltimos, lid yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Please enter at least one phone number — the lead's or a parent's.",
+"Lidning telefon raqami": "Lead's phone number",
+"Manba nomi": "Source name",
+"Manba nomi juda uzun": "Source name is too long",
+"Manba nomi kamida 2 belgi": "Source name must be at least 2 characters",
+"Manba nomini yozing (kamida 2 belgi)": "Enter a source name (at least 2 characters)",
+"Manbani tanlang yoki o‘zingiz yozing": "Select a source or type your own",
+"Masalan: Ko‘rgazma, Flayer, YouTube. Mavjud bo‘lsa o‘sha tanlanadi, aks holda ro‘yxatga qo‘shiladi": "E.g. Exhibition, Flyer, YouTube. If it already exists it is reused, otherwise it is added to the list",
+"Barcha ochiq guruhlar, kurs bo‘yicha": "All open groups, by course",
+"boshqa kurs": "another course",
+"Boshqa kurs": "Other course",
+"Boshqa ochiq guruh yo‘q — avval yangi guruh oching.": "No other open groups — open a new group first.",
+"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Optional · all open groups; choosing another course's group changes the course too"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5249,6 +5263,9 @@
 "to‘langan {0}": "paid {0}",
 "Vaznli bajarilish {0}% — chegara {1}% dan past, KPI bonusi 0": "Weighted achievement {0}% — below the {1}% threshold, KPI bonus 0",
 "O‘qituvchi · {0}": "Teacher · {0}",
-"O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "{0}{1}% change vs last month ({2} → {3})"
+"O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "{0}{1}% change vs last month ({2} → {3})",
+"Kurs o‘zgaradi: «{0}» → «{1}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Course will change: “{0}” → “{1}”. The contract price does not change automatically — update it below if needed. Received payments stay with their group.",
+"Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "This group belongs to the “{0}” course — the student's course will change too. Contract price and payments stay the same; update the price via “Edit” if needed.",
+"{0} · {1} ta bo‘sh o‘rin": "{0} · {1} seats free"
 }
 }

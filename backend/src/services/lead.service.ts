@@ -42,6 +42,7 @@ const leadListSelect = {
   firstName: true,
   lastName: true,
   phone: true,
+  parentPhone: true,
   telegram: true,
   email: true,
   status: true,
@@ -77,6 +78,7 @@ const leadCoreSelect = {
   firstName: true,
   lastName: true,
   phone: true,
+  parentPhone: true,
   telegram: true,
   email: true,
   age: true,
@@ -107,7 +109,9 @@ export interface LeadListItemDto {
   code: string;
   firstName: string;
   lastName: string | null;
-  phone: string;
+  /** Lead yoki ota-ona telefonidan kamida bittasi bor */
+  phone: string | null;
+  parentPhone: string | null;
   telegram: string | null;
   email: string | null;
   status: LeadStatus;
@@ -173,6 +177,7 @@ function toListItem(lead: LeadListRecord): LeadListItemDto {
     firstName: lead.firstName,
     lastName: lead.lastName,
     phone: lead.phone,
+    parentPhone: lead.parentPhone,
     telegram: lead.telegram,
     email: lead.email,
     status: lead.status,
@@ -227,7 +232,7 @@ function searchCondition(term: string): Prisma.LeadWhereInput {
   ];
   const digits = term.replace(/\D/g, '');
   if (digits.length >= 2) {
-    conditions.push({ phone: { contains: digits } });
+    conditions.push({ phone: { contains: digits } }, { parentPhone: { contains: digits } });
   }
   const numberMatch = /^(?:l-?)?0*(\d{1,9})$/i.exec(term);
   if (numberMatch?.[1]) {
@@ -328,6 +333,42 @@ async function loadDetail(id: string): Promise<LeadDetailDto> {
 }
 
 /** Manba va kurs mavjudligini tekshiradi (foreign key xatosi o‘rniga tushunarli xabar). */
+/**
+ * Manba: ro'yxatdan tanlangan (`sourceId`) yoki xodim o'zi yozgan (`sourceName`). Yozilgan nom mavjud manbaga
+ * (katta-kichik harfsiz) mos kelsa o'sha ishlatiladi — takror yaratilmaydi; aks holda yangi faol manba qo'shiladi
+ * va keyingi safar hamma uchun ro'yxatda chiqadi.
+ */
+async function resolveSource(input: { sourceId?: string | undefined; sourceName?: string | undefined }, actorId: string) {
+  if (input.sourceId || !input.sourceName) return input.sourceId ?? '';
+  const name = input.sourceName.replace(/\s+/g, ' ').trim();
+  const existing = await prisma.source.findFirst({ where: { name: { equals: name, mode: 'insensitive' } }, select: { id: true, isActive: true } });
+  if (existing) {
+    if (!existing.isActive) await prisma.source.update({ where: { id: existing.id }, data: { isActive: true } });
+    return existing.id;
+  }
+  const slug = name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 30);
+  const last = await prisma.source.aggregate({ _max: { sortOrder: true } });
+  const created = await prisma.$transaction(async (tx) => {
+    const source = await tx.source.create({
+      data: { key: `CUSTOM_${slug || 'MANBA'}_${Date.now().toString(36).toUpperCase()}`, name, sortOrder: (last._max.sortOrder ?? 0) + 1 },
+      select: { id: true },
+    });
+    await auditService.recordInTransaction(tx, {
+      userId: actorId,
+      action: 'source.created',
+      entityType: 'source',
+      entityId: source.id,
+      metadata: { name, via: 'lead_form' },
+    });
+    return source;
+  });
+  return created.id;
+}
+
 async function resolveReferences(sourceId: string, courseId: string | undefined) {
   const [source, course] = await Promise.all([
     prisma.source.findUnique({ where: { id: sourceId }, select: { id: true, name: true } }),
@@ -389,20 +430,21 @@ async function addActivity(
 
 type LeadFieldValues = Pick<
   LeadCoreRecord,
-  'firstName' | 'lastName' | 'phone' | 'telegram' | 'email' | 'age' | 'gender' | 'address' | 'sourceId' | 'courseId' | 'priority' | 'notes'
+  'firstName' | 'lastName' | 'phone' | 'parentPhone' | 'telegram' | 'email' | 'age' | 'gender' | 'address' | 'sourceId' | 'courseId' | 'priority' | 'notes'
 >;
 
-function toLeadFields(input: UpdateLeadInput): LeadFieldValues {
+function toLeadFields(input: UpdateLeadInput, sourceId: string): LeadFieldValues {
   return {
     firstName: input.firstName,
     lastName: input.lastName ?? null,
-    phone: input.phone,
+    phone: input.phone ?? null,
+    parentPhone: input.parentPhone ?? null,
     telegram: input.telegram ?? null,
     email: input.email ?? null,
     age: input.age ?? null,
     gender: input.gender ?? null,
     address: input.address ?? null,
-    sourceId: input.sourceId,
+    sourceId,
     courseId: input.courseId ?? null,
     priority: input.priority,
     notes: input.notes ?? null,
@@ -413,6 +455,7 @@ const FIELD_LABELS: Record<keyof LeadFieldValues, string> = {
   firstName: 'ism',
   lastName: 'familiya',
   phone: 'telefon',
+  parentPhone: 'ota-ona telefoni',
   telegram: 'telegram',
   email: 'email',
   age: 'yosh',
@@ -534,20 +577,24 @@ export const leadService = {
 
   async create(actor: AuthUser, input: CreateLeadInput, client: ClientInfo): Promise<LeadDetailDto> {
     const access = await getLeadAccess(actor);
-    const { source } = await resolveReferences(input.sourceId, input.courseId);
     const assignee = await resolveAssignee(access, input.assignedToId ?? null);
 
-    if (!input.allowDuplicate) {
+    // Takror: kiritilgan har ikki raqam mavjud leadning istalgan raqamiga mos kelsa
+    const numbers = [input.phone, input.parentPhone].filter((value): value is string => Boolean(value));
+    if (!input.allowDuplicate && numbers.length > 0) {
       const duplicate = await prisma.lead.findFirst({
-        where: { phone: input.phone, deletedAt: null },
-        select: { number: true },
+        where: { deletedAt: null, OR: [{ phone: { in: numbers } }, { parentPhone: { in: numbers } }] },
+        select: { number: true, phone: true, parentPhone: true },
       });
       if (duplicate) {
+        const field = input.phone && (duplicate.phone === input.phone || duplicate.parentPhone === input.phone) ? 'phone' : 'parentPhone';
         throw AppError.conflict(`Bu telefon raqam bilan lead allaqachon mavjud (${formatLeadNumber(duplicate.number)})`, [
-          { field: 'phone', message: 'Bu raqam bilan lead mavjud' },
+          { field, message: 'Bu raqam bilan lead mavjud' },
         ]);
       }
     }
+    const sourceId = await resolveSource(input, actor.id);
+    const { source } = await resolveReferences(sourceId, input.courseId);
 
     const branchId = resolveBranchId(await getBranchAccess(actor));
 
@@ -558,7 +605,7 @@ export const leadService = {
 
       const created = await tx.lead.create({
         data: {
-          ...toLeadFields(input),
+          ...toLeadFields(input, source.id),
           assignedToId: assignee?.id ?? autoAssigneeId,
           createdById: actor.id,
           branchId,
@@ -634,9 +681,9 @@ export const leadService = {
   async update(actor: AuthUser, id: string, input: UpdateLeadInput, client: ClientInfo): Promise<LeadDetailDto> {
     const access = await getLeadAccess(actor);
     const lead = await findVisibleLead(access, id);
-    await resolveReferences(input.sourceId, input.courseId);
+    const { source } = await resolveReferences(await resolveSource(input, actor.id), input.courseId);
 
-    const next = toLeadFields(input);
+    const next = toLeadFields(input, source.id);
     const changedFields = (Object.keys(next) as Array<keyof LeadFieldValues>).filter((field) => next[field] !== lead[field]);
     if (changedFields.length === 0) {
       return loadDetail(id);

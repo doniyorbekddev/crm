@@ -4683,7 +4683,21 @@
 "Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Пожалуйста, укажите хотя бы один номер телефона — ученика или родителя.",
 "Ixtiyoriy · kamida bitta raqam kerak": "Необязательно · нужен хотя бы один номер",
 "Ota-onasining telefon raqami": "Телефон родителя",
-"O‘quvchining telefon raqami": "Телефон ученика"
+"O‘quvchining telefon raqami": "Телефон ученика",
+"Boshqa — o‘zim yozaman…": "Другое — введу сам…",
+"Iltimos, lid yoki ota-onaning telefon raqamidan kamida bittasini kiriting.": "Пожалуйста, укажите хотя бы один номер — лида или родителя.",
+"Lidning telefon raqami": "Телефон лида",
+"Manba nomi": "Название источника",
+"Manba nomi juda uzun": "Название источника слишком длинное",
+"Manba nomi kamida 2 belgi": "Название источника — не менее 2 символов",
+"Manba nomini yozing (kamida 2 belgi)": "Введите название источника (не менее 2 символов)",
+"Manbani tanlang yoki o‘zingiz yozing": "Выберите источник или введите свой",
+"Masalan: Ko‘rgazma, Flayer, YouTube. Mavjud bo‘lsa o‘sha tanlanadi, aks holda ro‘yxatga qo‘shiladi": "Например: Выставка, Флаер, YouTube. Если такой уже есть — выберется он, иначе добавится в список",
+"Barcha ochiq guruhlar, kurs bo‘yicha": "Все открытые группы, по курсам",
+"boshqa kurs": "другой курс",
+"Boshqa kurs": "Другой курс",
+"Boshqa ochiq guruh yo‘q — avval yangi guruh oching.": "Других открытых групп нет — сначала откройте новую группу.",
+"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Необязательно · все открытые группы; при выборе группы другого курса курс тоже изменится"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5285,6 +5299,9 @@
 "to‘langan {0}": "выплачено {0}",
 "Vaznli bajarilish {0}% — chegara {1}% dan past, KPI bonusi 0": "Взвешенное выполнение {0}% — ниже порога {1}%, бонус KPI 0",
 "O‘qituvchi · {0}": "Преподаватель · {0}",
-"O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "Изменение {0}{1}% к прошлому месяцу ({2} → {3})"
+"O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "Изменение {0}{1}% к прошлому месяцу ({2} → {3})",
+"Kurs o‘zgaradi: «{0}» → «{1}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Курс изменится: «{0}» → «{1}». Цена договора не меняется автоматически — при необходимости обновите её ниже. Принятые платежи остаются в своей группе.",
+"Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "Эта группа относится к курсу «{0}» — курс ученика тоже изменится. Цена договора и платежи не меняются; при необходимости обновите цену через «Редактировать».",
+"{0} · {1} ta bo‘sh o‘rin": "{0} · свободных мест: {1}"
 }
 }

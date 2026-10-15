@@ -593,9 +593,10 @@ export const studentService = {
   },
 
   /**
-   * Boshqa guruhga o‘tkazish yoki guruhdan chiqarish: faqat o‘quvchi kursining ochiq (rejalashtirilgan
-   * yoki faol) guruhiga, bo‘sh o‘rin bo‘lsa, sabab bilan. Kursni almashtirish shartnomani o‘zgartiradi —
-   * u tahrirlash orqali qilinadi. Qabul qilingan to‘lovlar va o‘qituvchi foizi o‘z guruhida qoladi.
+   * Boshqa guruhga o‘tkazish yoki guruhdan chiqarish: istalgan ochiq (rejalashtirilgan yoki faol) guruhga,
+   * bo‘sh o‘rin bo‘lsa, sabab bilan. Guruh boshqa kursniki bo‘lsa — o‘quvchining kursi ham o‘sha kursga
+   * o‘zgaradi (tahrirlashdagi kabi shartnoma narxi o‘zgarmaydi). Qabul qilingan to‘lovlar va o‘qituvchi
+   * foizi o‘z guruhida qoladi.
    */
   async transferGroup(actor: AuthUser, id: string, input: TransferStudentGroupInput, client: ClientInfo): Promise<StudentDto> {
     const access = await getStudentAccess(actor);
@@ -610,6 +611,7 @@ export const studentService = {
 
     await prisma.$transaction(async (tx) => {
       let toGroupName: string | null = null;
+      let toCourseId: string | null = null;
       if (toGroupId) {
         // Guruh qatori qulflanadi: bir vaqtda bir nechta o'quvchi o'tkazilsa ham sig'imdan oshmaydi
         const [group] = await tx.$queryRaw<Array<{ id: string; name: string; courseId: string; capacity: number; status: string }>>`
@@ -617,9 +619,7 @@ export const studentService = {
         `;
         const invalid = (message: string) => AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'groupId', message }]);
         if (!group) throw invalid('Guruh topilmadi');
-        if (group.courseId !== student.course.id) {
-          throw invalid('Guruh o‘quvchining kursiga tegishli emas — kursni almashtirish uchun o‘quvchi ma’lumotlarini tahrirlang');
-        }
+        if (group.courseId !== student.course.id) toCourseId = group.courseId;
         if (group.status !== 'PLANNED' && group.status !== 'ACTIVE') {
           throw invalid(`«${group.name}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga o‘tkaziladi`);
         }
@@ -630,14 +630,19 @@ export const studentService = {
         toGroupName = group.name;
       }
 
-      await tx.student.update({ where: { id }, data: { groupId: toGroupId } });
+      await tx.student.update({ where: { id }, data: { groupId: toGroupId, ...(toCourseId ? { courseId: toCourseId } : {}) } });
       await recordGroupChange(tx, { studentId: id, fromGroupId, toGroupId, reason: input.reason, changedById: actor.id });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'student.group_changed',
         entityType: 'student',
         entityId: id,
-        metadata: { from: student.group?.name ?? null, to: toGroupName, reason: input.reason },
+        metadata: {
+          from: student.group?.name ?? null,
+          to: toGroupName,
+          reason: input.reason,
+          ...(toCourseId ? { courseFrom: student.course.id, courseTo: toCourseId } : {}),
+        },
         ...client,
       });
     });
@@ -716,6 +721,7 @@ export const studentService = {
         firstName: true,
         lastName: true,
         phone: true,
+        parentPhone: true,
         telegram: true,
         email: true,
         gender: true,
@@ -754,7 +760,7 @@ export const studentService = {
           firstName: lead.firstName,
           lastName: lead.lastName ?? lead.firstName,
           phone: lead.phone,
-          parentPhone: input.parentPhone ?? null,
+          parentPhone: input.parentPhone ?? lead.parentPhone ?? null,
           telegram: lead.telegram,
           email: lead.email,
           gender: lead.gender,

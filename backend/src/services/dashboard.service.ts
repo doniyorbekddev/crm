@@ -134,7 +134,7 @@ export interface DashboardFollowUpDto {
   title: string;
   notes: string | null;
   overdue: boolean;
-  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string };
+  lead: { id: string; code: string; firstName: string; lastName: string | null; phone: string | null };
 }
 
 interface DashboardAccess {

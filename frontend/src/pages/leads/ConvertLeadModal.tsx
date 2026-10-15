@@ -60,7 +60,8 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: ConvertLeadModa
   const defaultValues: ConvertFormValues = {
     courseId: lead.course?.id ?? '',
     groupId: '',
-    parentPhone: '',
+    // Leadda kiritilgan ota-ona raqami o'quvchiga o'tadi (o'zgartirish mumkin)
+    parentPhone: lead.parentPhone ?? '',
     contractNumber: '',
     contractPrice: '',
     startDate: new Date().toISOString().slice(0, 10),

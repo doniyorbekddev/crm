@@ -237,7 +237,7 @@ function leadCard(lead: LeadDetailDto): string {
   const heat = lead.temperature ? `${TEMPERATURE[lead.temperature]} ` : '';
   return [
     `<b>👤 ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.code)}`,
-    `📱 ${escapeHtml(lead.phone)}${lead.telegram ? ` · ${escapeHtml(lead.telegram)}` : ''}`,
+    `📱 ${escapeHtml(lead.phone ?? (lead.parentPhone ? `ota-ona: ${lead.parentPhone}` : '—'))}${lead.telegram ? ` · ${escapeHtml(lead.telegram)}` : ''}`,
     `📚 ${lead.course ? escapeHtml(lead.course.name) : '—'}`,
     `📌 ${LEAD_STATUS_LABELS[lead.status]}`,
     lead.score === null ? '' : `${heat}Skor: <b>${lead.score}</b>/100`,
@@ -367,7 +367,7 @@ export async function showFollowUp(context: BotContext, scope: CommandScope, id:
 
     const lines = [
       `<b>⏰ ${escapeHtml(item.title)}</b> ${FOLLOW_UP_STATE[item.state]}`,
-      `👤 ${escapeHtml(item.lead.firstName)}${item.lead.lastName ? ` ${escapeHtml(item.lead.lastName)}` : ''} · ${escapeHtml(item.lead.phone)}`,
+      `👤 ${escapeHtml(item.lead.firstName)}${item.lead.lastName ? ` ${escapeHtml(item.lead.lastName)}` : ''} · ${escapeHtml(item.lead.phone ?? '—')}`,
       `📅 Muddat: ${fmtDateTime(item.dueAt)}`,
       item.notes ? `📝 ${escapeHtml(item.notes)}` : '',
       item.completedAt ? `✅ Bajarildi: ${fmtDate(item.completedAt)}` : '',
@@ -463,7 +463,7 @@ export async function askCallResult(context: BotContext, scope: CommandScope, le
   return safely(context, SALES_ACTIONS.leads, async () => {
     const lead = await leadService.getById(actor, leadId);
     await saveDraft(context, 'type', { leadId: lead.id });
-    await context.render(`<b>📞 ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.phone)}\n\n1/5. Qo‘ng‘iroq turi?`, [
+    await context.render(`<b>📞 ${escapeHtml(leadName(lead))}</b> · ${escapeHtml(lead.phone ?? '—')}\n\n1/5. Qo‘ng‘iroq turi?`, [
       [
         { text: DIRECTION_LABELS.OUTGOING, data: callback(SALES_ACTIONS.callType, 'OUT') },
         { text: DIRECTION_LABELS.INCOMING, data: callback(SALES_ACTIONS.callType, 'IN') },

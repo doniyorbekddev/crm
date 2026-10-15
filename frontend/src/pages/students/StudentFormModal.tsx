@@ -18,6 +18,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { studentsService } from '@/services/students.service';
 import type { StudentItem, StudentPayload } from '@/types/student';
 import { formatMoney } from '@/utils/format';
+import { GroupOptions, courseNameOf } from './GroupOptions';
 
 const STUDENT_PHONE_REQUIRED_MESSAGE = 'Iltimos, o‘quvchi yoki ota-onaning telefon raqamidan kamida bittasini kiriting.';
 
@@ -116,6 +117,7 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
     handleSubmit,
     control,
     setValue,
+    getValues,
     setError,
     formState: { errors },
   } = useForm({ resolver: zodResolver(studentFormSchema), defaultValues });
@@ -125,9 +127,9 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
 
   const selectedCourse = lookupsQuery.data?.courses.find((course) => course.id === courseId);
   // Guruh faqat tanlangan kursga tegishli bo‘lishi mumkin
-  const availableGroups = (lookupsQuery.data?.groups ?? []).filter(
-    (group) => group.courseId === courseId && (group.freeSeats > 0 || group.id === student?.group?.id),
-  );
+  const groupCourseOf = (id: string) => lookupsQuery.data?.groups.find((group) => group.id === id)?.courseId;
+  // Tahrirlashda kurs o'zgarsa — ogohlantirish (shartnoma narxi avtomatik o'zgarmaydi)
+  const courseChanged = Boolean(student && courseId && courseId !== student.course.id);
 
   const save = useMutation({
     mutationFn: (values: StudentFormValues) => {
@@ -219,7 +221,11 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
             invalid={Boolean(errors.courseId)}
             aria-describedby={errors.courseId ? fieldErrorId('student-course') : undefined}
             {...register('courseId', {
-              onChange: () => setValue('groupId', ''),
+              // Tanlangan guruh boshqa kursniki bo'lib qolsa — guruh tozalanadi
+              onChange: (event: { target: { value: string } }) => {
+                const groupId = getValues('groupId');
+                if (groupId && groupCourseOf(groupId) !== event.target.value) setValue('groupId', '');
+              },
             })}
           >
             <option value="">Kursni tanlang</option>
@@ -234,17 +240,28 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
           label="Guruh"
           htmlFor="student-group"
           error={errors.groupId?.message}
-          hint={courseId ? (availableGroups.length === 0 ? 'Bu kursda bo‘sh guruh yo‘q' : 'Ixtiyoriy') : 'Avval kursni tanlang'}
+          hint="Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi"
         >
-          <Select id="student-group" disabled={!courseId || availableGroups.length === 0} {...register('groupId')}>
+          <Select
+            id="student-group"
+            disabled={!lookupsQuery.data}
+            {...register('groupId', {
+              // Boshqa kursning guruhi tanlansa — o'quvchining kursi shu guruh kursiga o'tadi
+              onChange: (event: { target: { value: string } }) => {
+                const groupCourse = groupCourseOf(event.target.value);
+                if (groupCourse && groupCourse !== getValues('courseId')) setValue('courseId', groupCourse, { shouldValidate: true });
+              },
+            })}
+          >
             <option value="">Guruhsiz</option>
-            {availableGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name} ({group.studentCount}/{group.capacity})
-              </option>
-            ))}
+            <GroupOptions lookups={lookupsQuery.data} preferredCourseId={courseId || student?.course.id} keepGroupId={student?.group?.id} />
           </Select>
         </FormField>
+        {courseChanged && (
+          <Alert tone="warning" className="sm:col-span-2">
+            {`Kurs o‘zgaradi: «${student!.course.name}» → «${courseNameOf(lookupsQuery.data, courseId)}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.`}
+          </Alert>
+        )}
 
         <FormField label="Shartnoma raqami" htmlFor="student-contractNumber" error={errors.contractNumber?.message} hint="Ixtiyoriy">
           <Input id="student-contractNumber" placeholder="SH-2026-001" invalid={Boolean(errors.contractNumber)} {...register('contractNumber')} />

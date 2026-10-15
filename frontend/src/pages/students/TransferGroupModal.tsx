@@ -11,6 +11,7 @@ import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { studentsService } from '@/services/students.service';
 import type { StudentItem } from '@/types/student';
+import { GroupOptions, courseNameOf } from './GroupOptions';
 
 /** Select qiymati: o‘quvchini guruhdan chiqarish */
 const REMOVE_FROM_GROUP = '__remove__';
@@ -31,8 +32,10 @@ export function TransferGroupModal({ student, onClose, onSaved }: TransferGroupM
     queryFn: studentsService.formLookups,
     staleTime: 60_000,
   });
-  // Faqat shu kursning boshqa ochiq guruhlari (kursni almashtirish shartnomani o'zgartiradi — tahrirlash orqali)
-  const groups = (lookupsQuery.data?.groups ?? []).filter((group) => group.courseId === student.course.id && group.id !== student.group?.id);
+  // Barcha ochiq guruhlar (hozirgisidan tashqari); boshqa kurs guruhiga o'tkazilsa kurs ham o'zgaradi
+  const otherGroups = (lookupsQuery.data?.groups ?? []).filter((group) => group.id !== student.group?.id);
+  const target = otherGroups.find((group) => group.id === groupId);
+  const courseChanges = Boolean(target && target.courseId !== student.course.id);
 
   const save = useMutation({
     mutationFn: () =>
@@ -87,19 +90,20 @@ export function TransferGroupModal({ student, onClose, onSaved }: TransferGroupM
       )}
 
       <div className="space-y-4">
-        <FormField label="Yangi guruh" htmlFor="transfer-group" hint={`«${student.course.name}» kursining ochiq guruhlari`} required>
+        <FormField label="Yangi guruh" htmlFor="transfer-group" hint="Barcha ochiq guruhlar, kurs bo‘yicha" required>
           <Select id="transfer-group" value={groupId} onChange={(event) => setGroupId(event.target.value)} disabled={lookupsQuery.isPending}>
             <option value="">Tanlang…</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id} disabled={group.freeSeats <= 0}>
-                {group.name} · {group.freeSeats > 0 ? `${group.freeSeats} ta bo‘sh o‘rin` : 'to‘lgan'}
-              </option>
-            ))}
+            <GroupOptions lookups={lookupsQuery.data} preferredCourseId={student.course.id} excludeGroupId={student.group?.id} />
             {student.group && <option value={REMOVE_FROM_GROUP}>Guruhdan chiqarish</option>}
           </Select>
         </FormField>
-        {lookupsQuery.isSuccess && groups.length === 0 && (
-          <p className="text-body text-fg-muted">Bu kursda boshqa ochiq guruh yo‘q — avval yangi guruh oching.</p>
+        {lookupsQuery.isSuccess && otherGroups.length === 0 && (
+          <p className="text-body text-fg-muted">Boshqa ochiq guruh yo‘q — avval yangi guruh oching.</p>
+        )}
+        {courseChanges && target && (
+          <Alert tone="info">
+            {`Bu guruh «${courseNameOf(lookupsQuery.data, target.courseId)}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.`}
+          </Alert>
         )}
 
         <FormField label="Sabab" htmlFor="transfer-reason" hint="Guruh tarixida saqlanadi" required>
