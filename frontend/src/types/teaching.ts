@@ -28,6 +28,8 @@ export interface TeachingStudentRow {
   code: string;
   firstName: string;
   lastName: string;
+  /** Qo'shimcha a'zo — asosiy guruhi boshqa (to'lov o'sha guruh bo'yicha) */
+  extraMember?: boolean;
   attendanceRate: number | null;
   homeworkRate: number | null;
   examAverage: number | null;

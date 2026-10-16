@@ -30,10 +30,11 @@ import { createDefaultSchedule } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
-import type { StudentMessageInput, TransferStudentGroupInput } from '../validators/student.validator.js';
+import type { AddStudentGroupInput, RemoveStudentGroupInput, StudentMessageInput, TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
 import { isRosterLimited } from './teachingAccess.js';
 import { gamificationHooks } from './gamification.service.js';
+import { ACTIVE_MEMBERSHIP, groupOccupancy, studentInGroup, studentTaughtBy } from './groupMembership.js';
 
 export const studentSelect = {
   id: true,
@@ -63,6 +64,26 @@ export const studentSelect = {
   createdAt: true,
   course: { select: { id: true, name: true } },
   group: { select: { id: true, name: true } },
+  // Qo'shimcha (o'quv) guruhlar — moliyaga ta'sir qilmaydi
+  groupMemberships: {
+    where: ACTIVE_MEMBERSHIP,
+    orderBy: { joinedAt: 'asc' },
+    select: {
+      id: true,
+      joinedAt: true,
+      group: {
+        select: {
+          id: true,
+          name: true,
+          scheduleDays: true,
+          startTime: true,
+          endTime: true,
+          course: { select: { id: true, name: true } },
+          teacher: { select: { id: true, firstName: true, lastName: true } },
+        },
+      },
+    },
+  },
   debt: { select: { totalAmount: true, paidAmount: true, remainingAmount: true, status: true } },
 } satisfies Prisma.StudentSelect;
 
@@ -110,7 +131,20 @@ export interface StudentDto {
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };
+  /** Asosiy guruh — to'lov va o'qituvchi foizi shunga yoziladi */
   group: { id: string; name: string } | null;
+  /** Qo'shimcha o'quv guruhlari (masalan, PMT ikkinchi fani) — alohida shartnoma yoki qarz yaratmaydi */
+  extraGroups: Array<{
+    membershipId: string;
+    joinedAt: string;
+    id: string;
+    name: string;
+    course: { id: string; name: string };
+    teacher: { id: string; firstName: string; lastName: string } | null;
+    scheduleDays: string[];
+    startTime: string;
+    endTime: string;
+  }>;
   debt: { total: number; paid: number; remaining: number; status: DebtStatus } | null;
 }
 
@@ -147,6 +181,17 @@ export function toStudentDto(student: StudentRecord): StudentDto {
     createdAt: student.createdAt.toISOString(),
     course: student.course,
     group: student.group,
+    extraGroups: student.groupMemberships.map((membership) => ({
+      membershipId: membership.id,
+      joinedAt: membership.joinedAt.toISOString(),
+      id: membership.group.id,
+      name: membership.group.name,
+      course: membership.group.course,
+      teacher: membership.group.teacher,
+      scheduleDays: membership.group.scheduleDays,
+      startTime: membership.group.startTime,
+      endTime: membership.group.endTime,
+    })),
     debt: student.debt
       ? {
           total: student.debt.totalAmount.toNumber(),
@@ -188,12 +233,12 @@ async function getStudentAccess(actor: AuthUser): Promise<StudentAccess> {
 function buildWhere(access: StudentAccess, query: Partial<StudentListQuery>): Prisma.StudentWhereInput {
   const conditions: Prisma.StudentWhereInput[] = [];
   conditions.push(branchFilter(access.branch, query.branchId));
-  if (access.onlyOwnGroups) conditions.push({ group: { teacherId: access.userId } });
+  if (access.onlyOwnGroups) conditions.push(studentTaughtBy(access.userId));
   if (query.status) conditions.push({ status: query.status });
   if (query.riskLevel) conditions.push({ riskLevel: query.riskLevel });
   if (query.courseId) conditions.push({ courseId: query.courseId });
-  if (query.groupId) conditions.push({ groupId: query.groupId });
-  if (query.teacherId) conditions.push({ group: { teacherId: query.teacherId } });
+  if (query.groupId) conditions.push(studentInGroup(query.groupId));
+  if (query.teacherId) conditions.push(studentTaughtBy(query.teacherId));
 
   for (const term of splitSearchTerms(query.search)) {
     const or: Prisma.StudentWhereInput[] = [
@@ -228,7 +273,7 @@ function buildOrderBy(sortBy: StudentListQuery['sortBy'], sortOrder: StudentList
 
 async function findVisibleStudent(access: StudentAccess, id: string): Promise<StudentRecord> {
   const student = await prisma.student.findFirst({
-    where: { id, deletedAt: null, ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}) },
+    where: { id, deletedAt: null, ...(access.onlyOwnGroups ? studentTaughtBy(access.userId) : {}) },
     select: studentSelect,
   });
   if (!student) {
@@ -255,7 +300,7 @@ async function resolvePlacement(input: {
   if (input.groupId) {
     const group = await prisma.group.findUnique({
       where: { id: input.groupId },
-      select: { id: true, name: true, courseId: true, capacity: true, _count: { select: { students: { where: { deletedAt: null } } } } },
+      select: { id: true, name: true, courseId: true, capacity: true },
     });
     if (!group) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'groupId', message: 'Guruh topilmadi' }]);
@@ -265,10 +310,11 @@ async function resolvePlacement(input: {
         { field: 'groupId', message: 'Bu guruh tanlangan kursga tegishli emas' },
       ]);
     }
+    // O'quvchi shu guruhda allaqachon (asosiy yoki qo'shimcha) bo'lsa — o'rni hisobda bor
     const alreadyInGroup = input.exceptStudentId
-      ? await prisma.student.count({ where: { id: input.exceptStudentId, groupId: input.groupId } })
+      ? await prisma.student.count({ where: { id: input.exceptStudentId, ...studentInGroup(input.groupId) } })
       : 0;
-    if (group._count.students - alreadyInGroup >= group.capacity) {
+    if ((await groupOccupancy(prisma, input.groupId)) - alreadyInGroup >= group.capacity) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
         { field: 'groupId', message: `«${group.name}» guruhida bo‘sh o‘rin yo‘q` },
       ]);
@@ -293,6 +339,14 @@ async function resolvePlacement(input: {
  */
 async function assignReferralCode(tx: Prisma.TransactionClient, studentId: string, number: number): Promise<void> {
   await tx.student.update({ where: { id: studentId }, data: { referralCode: `R${String(number).padStart(5, '0')}` } });
+}
+
+/** Qo'shimcha a'zolikni yopish (yozuv o'chirilmaydi — tarix uchun leftAt) */
+async function closeExtraMembership(tx: Prisma.TransactionClient, studentId: string, groupId: string, actorId: string, reason: string): Promise<void> {
+  await tx.studentGroupMembership.updateMany({
+    where: { studentId, groupId, ...ACTIVE_MEMBERSHIP },
+    data: { leftAt: new Date(), removedById: actorId, leftReason: reason },
+  });
 }
 
 export const studentService = {
@@ -482,6 +536,7 @@ export const studentService = {
         reason: 'Ma’lumotlarni tahrirlash orqali',
         changedById: actor.id,
       });
+      if (input.groupId) await closeExtraMembership(tx, id, input.groupId, actor.id, 'Asosiy guruhga aylantirildi');
 
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
@@ -623,7 +678,8 @@ export const studentService = {
         if (group.status !== 'PLANNED' && group.status !== 'ACTIVE') {
           throw invalid(`«${group.name}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga o‘tkaziladi`);
         }
-        const occupied = await tx.student.count({ where: { groupId: toGroupId, deletedAt: null } });
+        const extraMembership = await tx.studentGroupMembership.findFirst({ where: { studentId: id, groupId: toGroupId, ...ACTIVE_MEMBERSHIP }, select: { id: true } });
+        const occupied = (await groupOccupancy(tx, toGroupId)) - (extraMembership ? 1 : 0);
         if (occupied >= Number(group.capacity)) {
           throw invalid(`«${group.name}» guruhida bo‘sh o‘rin yo‘q`);
         }
@@ -631,6 +687,8 @@ export const studentService = {
       }
 
       await tx.student.update({ where: { id }, data: { groupId: toGroupId, ...(toCourseId ? { courseId: toCourseId } : {}) } });
+      // Qo'shimcha guruh asosiyga aylandi — qo'shimcha a'zolik yopiladi (ikki marta sanalmaydi)
+      if (toGroupId) await closeExtraMembership(tx, id, toGroupId, actor.id, 'Asosiy guruhga aylantirildi');
       await recordGroupChange(tx, { studentId: id, fromGroupId, toGroupId, reason: input.reason, changedById: actor.id });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
@@ -647,6 +705,88 @@ export const studentService = {
       });
     });
 
+    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+  },
+
+  /**
+   * Qo'shimcha o'quv guruhiga qo'shish. Asosiy guruh, shartnoma, qarz va to'lovlar o'zgarmaydi — bitta
+   * umumiy oylik to'lov saqlanadi. Guruh qatori qulflanadi (sig'im), takroriy faol a'zolik bazadagi
+   * partial unique index bilan ham to'xtatiladi (parallel so'rovlar).
+   */
+  async addGroup(actor: AuthUser, id: string, input: AddStudentGroupInput, client: ClientInfo): Promise<StudentDto> {
+    const access = await getStudentAccess(actor);
+    const student = await findVisibleStudent(access, id);
+    const invalid = (message: string) => AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'groupId', message }]);
+    if (student.group?.id === input.groupId) throw invalid('Bu o‘quvchining asosiy guruhi');
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const [group] = await tx.$queryRaw<Array<{ id: string; name: string; capacity: number; status: string }>>`
+          SELECT "id", "name", "capacity", "status"::text AS "status" FROM "groups" WHERE "id" = ${input.groupId} FOR UPDATE
+        `;
+        if (!group) throw invalid('Guruh topilmadi');
+        if (group.status !== 'PLANNED' && group.status !== 'ACTIVE') {
+          throw invalid(`«${group.name}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga qo‘shiladi`);
+        }
+        const existing = await tx.studentGroupMembership.findFirst({ where: { studentId: id, groupId: group.id, ...ACTIVE_MEMBERSHIP }, select: { id: true } });
+        if (existing) throw AppError.conflict(`O‘quvchi allaqachon «${group.name}» guruhida`, [{ field: 'groupId', message: 'O‘quvchi allaqachon shu guruhda' }]);
+        if ((await groupOccupancy(tx, group.id)) >= Number(group.capacity)) throw invalid(`«${group.name}» guruhida bo‘sh o‘rin yo‘q`);
+
+        await tx.studentGroupMembership.create({
+          data: { studentId: id, groupId: group.id, reason: input.reason ?? null, addedById: actor.id },
+        });
+        // Tarix va ochiq vazifalar — mavjud guruh tarixi mexanizmi orqali
+        await recordGroupChange(tx, { studentId: id, fromGroupId: null, toGroupId: group.id, reason: input.reason ?? 'Qo‘shimcha guruhga qo‘shildi', changedById: actor.id });
+        await auditService.recordInTransaction(tx, {
+          userId: actor.id,
+          action: 'student.group_added',
+          entityType: 'student',
+          entityId: id,
+          metadata: { group: group.name, primaryGroup: student.group?.name ?? null, reason: input.reason ?? null },
+          ...client,
+        });
+      });
+    } catch (error) {
+      // Bir vaqtda ikki so'rov: ikkinchisini partial unique index to'xtatadi
+      if ((error as { code?: string }).code === 'P2002') {
+        throw AppError.conflict('O‘quvchi allaqachon shu guruhda', [{ field: 'groupId', message: 'O‘quvchi allaqachon shu guruhda' }]);
+      }
+      throw error;
+    }
+    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+  },
+
+  /** Qo'shimcha guruhdan chiqarish: a'zolik yopiladi (tarix saqlanadi), boshqa guruhlar va profil o'zgarmaydi */
+  async removeGroup(actor: AuthUser, id: string, groupId: string, input: RemoveStudentGroupInput, client: ClientInfo): Promise<StudentDto> {
+    const access = await getStudentAccess(actor);
+    const student = await findVisibleStudent(access, id);
+    if (student.group?.id === groupId) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+        { field: 'groupId', message: 'Asosiy guruh “Guruhga o‘tkazish” orqali o‘zgartiriladi' },
+      ]);
+    }
+    const membership = await prisma.studentGroupMembership.findFirst({
+      where: { studentId: id, groupId, ...ACTIVE_MEMBERSHIP },
+      select: { id: true, group: { select: { name: true } } },
+    });
+    if (!membership) throw AppError.notFound('O‘quvchi bu qo‘shimcha guruhda emas');
+
+    await prisma.$transaction(async (tx) => {
+      const closed = await tx.studentGroupMembership.updateMany({
+        where: { id: membership.id, ...ACTIVE_MEMBERSHIP },
+        data: { leftAt: new Date(), removedById: actor.id, leftReason: input.reason },
+      });
+      if (closed.count === 0) throw AppError.conflict('A’zolik allaqachon yopilgan');
+      await recordGroupChange(tx, { studentId: id, fromGroupId: groupId, toGroupId: null, reason: input.reason, changedById: actor.id });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'student.group_removed',
+        entityType: 'student',
+        entityId: id,
+        metadata: { group: membership.group.name, reason: input.reason },
+        ...client,
+      });
+    });
     return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 

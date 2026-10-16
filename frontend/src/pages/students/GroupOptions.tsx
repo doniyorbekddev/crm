@@ -6,6 +6,10 @@ interface GroupOptionsProps {
   preferredCourseId?: string | undefined;
   /** Ro'yxatdan chiqariladigan guruh (masalan, hozirgi guruh — o'tkazish oynasida) */
   excludeGroupId?: string | undefined;
+  /** Bir nechta chiqariladigan guruh (o'quvchi allaqachon a'zo bo'lganlar) */
+  excludeGroupIds?: readonly string[];
+  /** true — barcha ochiq guruhlar (nofaol kurs guruhlari ham): qo'shimcha guruh kursni o'zgartirmaydi */
+  anyCourse?: boolean;
   /** To'lgan bo'lsa ham tanlanadigan guruh (tahrirlashda o'quvchining o'z guruhi) */
   keepGroupId?: string | undefined;
 }
@@ -14,11 +18,14 @@ interface GroupOptionsProps {
  * Barcha ochiq guruhlar kurs bo'yicha `<optgroup>` larda. To'lgan guruh ko'rinadi, lekin tanlanmaydi.
  * Boshqa kursning guruhi tanlansa, chaqiruvchi o'quvchining kursini shu guruh kursiga moslaydi.
  */
-export function GroupOptions({ lookups, preferredCourseId, excludeGroupId, keepGroupId }: GroupOptionsProps) {
+export function GroupOptions({ lookups, preferredCourseId, excludeGroupId, excludeGroupIds = [], keepGroupId, anyCourse = false }: GroupOptionsProps) {
   const courseName = new Map((lookups?.courses ?? []).map((course) => [course.id, course.name]));
   // Faqat faol kurslar guruhlari — kurs ham tanlanadigan bo'lishi kerak (o'quvchining o'z guruhi doim qoladi)
   const groups = (lookups?.groups ?? []).filter(
-    (group) => group.id !== excludeGroupId && (courseName.has(group.courseId) || group.id === keepGroupId),
+    (group) =>
+      group.id !== excludeGroupId &&
+      !excludeGroupIds.includes(group.id) &&
+      (anyCourse || courseName.has(group.courseId) || group.id === keepGroupId),
   );
   const courseIds = [...new Set(groups.map((group) => group.courseId))].sort((a, b) =>
     a === preferredCourseId ? -1 : b === preferredCourseId ? 1 : (courseName.get(a) ?? '').localeCompare(courseName.get(b) ?? '', 'uz'),

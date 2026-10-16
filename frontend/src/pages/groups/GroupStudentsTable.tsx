@@ -1,6 +1,7 @@
 import { DataTable } from '@/components/ui/DataTable';
 import { GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/cn';
@@ -40,7 +41,10 @@ export function GroupStudentsTable({ students, label }: { students: TeachingStud
               <Link to={`/students/${student.id}`} className="focus-ring rounded-sm font-medium text-fg hover:underline">
                 {student.lastName} {student.firstName}
               </Link>
-              <p className="font-mono text-caption text-fg-subtle">{student.code}</p>
+              <p className="text-caption text-fg-subtle">
+                <span className="font-mono">{student.code}</span>
+                {student.extraMember && <Badge tone="neutral" className="ml-1.5">qo‘shimcha guruh</Badge>}
+              </p>
             </>
           ),
         },

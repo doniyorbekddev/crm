@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentTaughtBy } from './groupMembership.js';
 import { formatLeadNumber } from '../config/leadLabels.js';
 import { formatPaymentNumber } from '../config/paymentLabels.js';
 import { PERMISSIONS } from '../config/permissions.js';
@@ -166,8 +167,7 @@ export const searchService = {
         where: {
           deletedAt: null,
           ...branch,
-          ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}),
-          AND: [{ OR: or }],
+          AND: [{ OR: or }, ...(onlyOwnGroups ? [studentTaughtBy(actor.id)] : [])],
         },
         select: {
           id: true,
@@ -205,7 +205,7 @@ export const searchService = {
     if (permissions.has(PERMISSIONS.PARENT_VIEW)) {
       const onlyOwnGroups = isRosterLimited(permissions, PERMISSIONS.STUDENT_MANAGE);
       const childFilter: Prisma.StudentParentWhereInput = {
-        student: { deletedAt: null, ...branch, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) },
+        student: { deletedAt: null, ...branch, ...(onlyOwnGroups ? studentTaughtBy(actor.id) : {}) },
       };
       const parents = await prisma.parent.findMany({
         where: {
@@ -479,7 +479,7 @@ export const searchService = {
       const certificateNumber = Number.isInteger(numeric) && numeric > 0 && numeric < 2_000_000_000 ? numeric : null;
       const certificates = await prisma.certificate.findMany({
         where: {
-          ...(onlyOwnGroups || branchLimited ? { student: { ...branch, ...(onlyOwnGroups ? { group: { teacherId: actor.id } } : {}) } } : {}),
+          ...(onlyOwnGroups || branchLimited ? { student: { ...branch, ...(onlyOwnGroups ? studentTaughtBy(actor.id) : {}) } } : {}),
           OR: [
             { studentName: { contains: query, mode: 'insensitive' } },
             { courseName: { contains: query, mode: 'insensitive' } },

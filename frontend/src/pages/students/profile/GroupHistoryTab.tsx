@@ -1,8 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Layers, UserMinus, UserPlus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -12,7 +10,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { studentsService } from '@/services/students.service';
 import type { GroupChangeKind, StudentGroupChange, StudentItem } from '@/types/student';
 import { formatDateTime } from '@/utils/format';
-import { TransferGroupModal } from '../TransferGroupModal';
+import { StudentGroupsCard } from './StudentGroupsCard';
 
 const KIND_ICONS: Record<GroupChangeKind, LucideIcon> = {
   ENROLLED: UserPlus,
@@ -27,8 +25,6 @@ function changeTitle(change: StudentGroupChange): string {
 }
 
 export function GroupHistoryTab({ student, canManage }: { student: StudentItem; canManage: boolean }) {
-  const queryClient = useQueryClient();
-  const [transferOpen, setTransferOpen] = useState(false);
   const query = useQuery({
     queryKey: queryKeys.students.groupHistory(student.id),
     queryFn: () => studentsService.groupHistory(student.id),
@@ -36,16 +32,8 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-3">
-        <p className="text-body text-fg-muted">
-          Hozirgi guruh: <span className="font-medium text-fg">{student.group?.name ?? 'guruhsiz'}</span>
-        </p>
-        {canManage && (
-          <Button size="sm" variant="secondary" leftIcon={<ArrowLeftRight className="size-4" aria-hidden />} onClick={() => setTransferOpen(true)}>
-            Guruhga o‘tkazish
-          </Button>
-        )}
-      </div>
+      <StudentGroupsCard student={student} canManage={canManage} />
+      <p className="px-4 pt-3 text-label text-fg">Guruh tarixi</p>
 
       {query.isPending ? (
         <div className="space-y-3 p-4">
@@ -92,16 +80,6 @@ export function GroupHistoryTab({ student, canManage }: { student: StudentItem; 
         </ol>
       )}
 
-      {transferOpen && (
-        <TransferGroupModal
-          student={student}
-          onClose={() => setTransferOpen(false)}
-          onSaved={() => {
-            setTransferOpen(false);
-            void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
-          }}
-        />
-      )}
     </Card>
   );
 }

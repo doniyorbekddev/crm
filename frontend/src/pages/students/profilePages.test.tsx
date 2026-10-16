@@ -26,6 +26,7 @@ const PROFILE = {
     referralCode: 'NIL45',
     course: { id: 'c1', name: 'Frontend' },
     group: { id: 'g1', name: 'FE-01' },
+    extraGroups: [],
     debt: { total: 4_800_000, remaining: 1_200_000 },
   },
   gamification: {

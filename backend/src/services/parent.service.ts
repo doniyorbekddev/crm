@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentTaughtBy } from './groupMembership.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import type { ParentRelation, Prisma, StudentStatus } from '../generated/prisma/client.js';
@@ -79,7 +80,7 @@ async function getParentAccess(actor: AuthUser): Promise<ParentAccess> {
 
 function linkedStudentFilter(access: ParentAccess): Prisma.StudentParentWhereInput {
   return {
-    student: { deletedAt: null, ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}) },
+    student: { deletedAt: null, ...(access.onlyOwnGroups ? studentTaughtBy(access.userId) : {}) },
   };
 }
 

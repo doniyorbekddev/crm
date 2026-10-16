@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentGroupIds } from './groupMembership.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -156,12 +157,16 @@ export interface PortalLessonDto {
   room: string | null;
   status: 'PLANNED' | 'HELD' | 'CANCELLED';
   topic?: string | null;
+  /** Qaysi guruh darsi (o'quvchi bir nechta guruhda bo'lsa farqlash uchun) */
+  group?: { id: string; name: string; course: string };
 }
 
 export interface PortalLessonsDto {
   group: { id: string; name: string; course: string } | null;
   /** O'qituvchi haqida faqat ism va yo'nalish — telefon va email ko'rsatilmaydi */
   teacher: { name: string; specialization: string | null } | null;
+  /** Barcha faol guruhlar (asosiy birinchi) — PMT kabi bir nechta fan */
+  groups: Array<{ id: string; name: string; course: string; teacher: { name: string; specialization: string | null } | null }>;
   lessons: PortalLessonDto[];
 }
 
@@ -282,76 +287,89 @@ function riskReasons(raw: unknown): string[] {
 }
 
 /** Guruh jadvalidan keyingi 14 kundagi darslar (bosh sahifa va dashboard uchun umumiy) */
+const lessonGroupSelect = {
+  id: true,
+  name: true,
+  scheduleDays: true,
+  startTime: true,
+  endTime: true,
+  status: true,
+  endDate: true,
+  roomRef: { select: { name: true } },
+  room: true,
+  teacher: { select: { firstName: true, lastName: true, teacherProfile: { select: { specialization: true } } } },
+  course: { select: { name: true } },
+} satisfies Prisma.GroupSelect;
+
+type LessonGroup = Prisma.GroupGetPayload<{ select: typeof lessonGroupSelect }>;
+
+function teacherOf(group: LessonGroup): PortalLessonsDto['teacher'] {
+  return group.teacher
+    ? { name: `${group.teacher.firstName} ${group.teacher.lastName}`, specialization: group.teacher.teacherProfile?.specialization ?? null }
+    : null;
+}
+
+/**
+ * Yaqin darslar: o'quvchining barcha faol guruhlari (asosiy + qo'shimcha, masalan PMT Matematika va Ingliz tili)
+ * jadvali bitta ro'yxatda, har dars o'z guruhi bilan. `group`/`teacher` — asosiy guruh (avvalgi shakl saqlanadi).
+ */
 async function buildUpcomingLessons(studentId: string): Promise<PortalLessonsDto> {
   const student = await prisma.student.findFirstOrThrow({
     where: { id: studentId, deletedAt: null },
     select: {
-      group: {
-        select: {
-          id: true,
-          name: true,
-          scheduleDays: true,
-          startTime: true,
-          endTime: true,
-          status: true,
-          endDate: true,
-          roomRef: { select: { name: true } },
-          room: true,
-          teacher: { select: { firstName: true, lastName: true, teacherProfile: { select: { specialization: true } } } },
-          course: { select: { name: true } },
-        },
-      },
+      group: { select: lessonGroupSelect },
+      groupMemberships: { where: { leftAt: null }, orderBy: { joinedAt: 'asc' }, select: { group: { select: lessonGroupSelect } } },
     },
   });
 
-  const group = student.group;
-  if (!group || group.status !== 'ACTIVE') {
-    return { group: null, teacher: null, lessons: [] };
+  const groups = [student.group, ...student.groupMemberships.map((row) => row.group)].filter(
+    (group): group is LessonGroup => Boolean(group && group.status === 'ACTIVE'),
+  );
+  if (groups.length === 0) {
+    return { group: null, teacher: null, groups: [], lessons: [] };
   }
 
   const now = new Date();
   const today = startOfBusinessDay(now);
-  const lessons: PortalLessonDto[] = [];
   const weekdayNames: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-
-  // Keyingi 14 kunni ko'rib chiqamiz — jadval haftalik takrorlanadi
-  for (let offset = 0; offset < 14 && lessons.length < 8; offset += 1) {
-    const date = new Date(today.getTime() + offset * 86_400_000);
-    const weekday = weekdayNames[date.getUTCDay()]!;
-    if (!group.scheduleDays.includes(weekday)) continue;
-    if (group.endDate && date > group.endDate) break;
-    lessons.push({
-      date: businessDateString(date),
-      startTime: group.startTime,
-      endTime: group.endTime,
-      room: group.roomRef?.name ?? group.room ?? null,
-      status: 'PLANNED',
-    });
-  }
-
-  // Rejalashtirilgan seanslar holatini qo'shamiz (bekor qilingan darslar ko'rinsin)
   const sessions = await prisma.attendanceSession.findMany({
-    where: { groupId: group.id, date: { gte: today } },
+    where: { groupId: { in: groups.map((group) => group.id) }, date: { gte: today } },
     // `topic` — matn (eski usul), `topicRef` — kurrikulum mavzusi
-    select: { date: true, status: true, topic: true, curriculumTopic: { select: { title: true } } },
+    select: { groupId: true, date: true, status: true, topic: true, curriculumTopic: { select: { title: true } } },
   });
-  const byDate = new Map(sessions.map((session) => [businessDateString(session.date), session]));
-  for (const lesson of lessons) {
-    const session = byDate.get(lesson.date);
-    if (!session) continue;
-    lesson.status = session.status;
-    lesson.topic = session.curriculumTopic?.title ?? session.topic ?? null;
-  }
+  const sessionOf = new Map(sessions.map((session) => [`${session.groupId}:${businessDateString(session.date)}`, session]));
 
+  const lessons: PortalLessonDto[] = [];
+  // Keyingi 14 kun — jadval haftalik takrorlanadi; har guruhdan ko'pi bilan 8 ta dars
+  for (const group of groups) {
+    let count = 0;
+    for (let offset = 0; offset < 14 && count < 8; offset += 1) {
+      const date = new Date(today.getTime() + offset * 86_400_000);
+      const weekday = weekdayNames[date.getUTCDay()]!;
+      if (!group.scheduleDays.includes(weekday)) continue;
+      if (group.endDate && date > group.endDate) break;
+      const dateKey = businessDateString(date);
+      const session = sessionOf.get(`${group.id}:${dateKey}`);
+      lessons.push({
+        date: dateKey,
+        startTime: group.startTime,
+        endTime: group.endTime,
+        room: group.roomRef?.name ?? group.room ?? null,
+        status: session?.status ?? 'PLANNED',
+        ...(session ? { topic: session.curriculumTopic?.title ?? session.topic ?? null } : {}),
+        group: { id: group.id, name: group.name, course: group.course.name },
+      });
+      count += 1;
+    }
+  }
+  lessons.sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+
+  const primary = groups[0]!;
   return {
-    group: { id: group.id, name: group.name, course: group.course.name },
-    teacher: group.teacher
-      ? {
-          name: `${group.teacher.firstName} ${group.teacher.lastName}`,
-          specialization: group.teacher.teacherProfile?.specialization ?? null,
-        }
-      : null,
-    lessons,
+    group: { id: primary.id, name: primary.name, course: primary.course.name },
+    teacher: teacherOf(primary),
+    groups: groups.map((group) => ({ id: group.id, name: group.name, course: group.course.name, teacher: teacherOf(group) })),
+    lessons: groups.length > 1 ? lessons.slice(0, 12) : lessons.slice(0, 8),
   };
 }
 
@@ -579,12 +597,11 @@ export const portalService = {
         orderBy: { homework: { deadline: 'asc' } },
         select: { homework: { select: { id: true, title: true, deadline: true } } },
       }),
-      prisma.student
-        .findFirst({ where: { id: studentId }, select: { groupId: true } })
-        .then((row) =>
-          row?.groupId
+      studentGroupIds(prisma, studentId)
+        .then((groupIds) =>
+          groupIds.length > 0
             ? prisma.exam.findFirst({
-                where: { groupId: row.groupId, status: 'PLANNED', date: { gte: today } },
+                where: { groupId: { in: groupIds }, status: 'PLANNED', date: { gte: today } },
                 orderBy: { date: 'asc' },
                 select: { id: true, title: true, date: true },
               })
@@ -806,12 +823,13 @@ export const portalService = {
    */
   async examDetail(actor: AuthUser, examId: string, requestedStudentId?: string): Promise<PortalExamDetailDto> {
     const studentId = await requireOwnStudent(actor, requestedStudentId);
-    const student = await prisma.student.findFirstOrThrow({ where: { id: studentId, deletedAt: null }, select: { groupId: true } });
+    await prisma.student.findFirstOrThrow({ where: { id: studentId, deletedAt: null }, select: { id: true } });
+    const groupIds = await studentGroupIds(prisma, studentId);
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
         OR: [
-          ...(student.groupId ? [{ groupId: student.groupId }] : []),
+          ...(groupIds.length > 0 ? [{ groupId: { in: groupIds } }] : []),
           { results: { some: { studentId } } },
           { attempts: { some: { studentId } } },
         ],

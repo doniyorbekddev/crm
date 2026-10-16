@@ -119,6 +119,17 @@ export const studentsService = {
     return response.data.data;
   },
 
+  /** Qo'shimcha o'quv guruhiga qo'shish — moliyaviy yozuv yaratmaydi */
+  async addGroup(id: string, payload: { groupId: string; reason?: string }): Promise<MessageResult<StudentItem>> {
+    const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/groups`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async removeGroup(id: string, groupId: string, reason: string): Promise<MessageResult<StudentItem>> {
+    const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/groups/${groupId}/remove`, { reason });
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async transferGroup(id: string, payload: TransferGroupPayload): Promise<MessageResult<StudentItem>> {
     const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/transfer`, payload);
     return { data: response.data.data, message: response.data.message };

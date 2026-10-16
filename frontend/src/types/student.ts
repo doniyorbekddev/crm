@@ -46,7 +46,10 @@ export interface StudentItem {
   notes: string | null;
   createdAt: string;
   course: { id: string; name: string };
+  /** Asosiy guruh — to'lov va o'qituvchi foizi shunga yoziladi */
   group: { id: string; name: string } | null;
+  /** Qo'shimcha o'quv guruhlari (masalan, PMT ikkinchi fani) — alohida shartnoma yoki qarz yaratmaydi */
+  extraGroups: StudentExtraGroup[];
   debt: StudentDebt | null;
 }
 
@@ -157,4 +160,16 @@ export interface StudentMessagePayload {
   audience: StudentMessageAudience;
   title: string;
   message: string;
+}
+
+export interface StudentExtraGroup {
+  membershipId: string;
+  joinedAt: string;
+  id: string;
+  name: string;
+  course: { id: string; name: string };
+  teacher: { id: string; firstName: string; lastName: string } | null;
+  scheduleDays: string[];
+  startTime: string;
+  endTime: string;
 }

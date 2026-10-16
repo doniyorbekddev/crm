@@ -4662,7 +4662,28 @@
 "boshqa kurs": "another course",
 "Boshqa kurs": "Other course",
 "Boshqa ochiq guruh yo‘q — avval yangi guruh oching.": "No other open groups — open a new group first.",
-"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Optional · all open groups; choosing another course's group changes the course too"
+"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Optional · all open groups; choosing another course's group changes the course too",
+"A’zolik allaqachon yopilgan": "Membership is already closed",
+"Asosiy guruh “Guruhga o‘tkazish” orqali o‘zgartiriladi": "The main group is changed via “Move to group”",
+"Asosiy guruhga aylantirildi": "Made the main group",
+"Asosiy guruhni o‘zgartirish": "Change main group",
+"Bu o‘quvchining asosiy guruhi": "This is the student's main group",
+"Davomat, vazifa va imtihonlar har guruhda alohida; to‘lov va qarz bitta — o‘quvchi profilida.": "Attendance, homework and exams are kept per group; payment and debt are single — on the student's profile.",
+"Faqat shu guruhdagi a’zolik yopiladi — boshqa guruhlar, davomat tarixi, to‘lov va qarz o‘zgarmaydi.": "Only this group's membership is closed — other groups, attendance history, payment and debt stay unchanged.",
+"Ixtiyoriy · guruh tarixida saqlanadi": "Optional · saved in group history",
+"Joriy guruhlar": "Current groups",
+"Masalan, PMT: Matematika va Ingliz tili. O‘quvchi profili bitta qoladi; yangi shartnoma, qarz yoki oylik to‘lov yaratilmaydi — to‘lov asosiy guruh bo‘yicha yuritiladi.": "E.g. PMT: Math and English. The student keeps one profile; no new contract, debt or monthly payment is created — payment follows the main group.",
+"Oylik to‘lov shu guruh bo‘yicha": "Monthly payment follows this group",
+"Qo‘shimcha": "Additional",
+"qo‘shimcha guruh": "additional group",
+"Qo‘shimcha guruh": "Additional group",
+"Qo‘shimcha guruhdan chiqarish": "Remove from additional group",
+"Qo‘shimcha guruhga qo‘shildi": "Added to additional group",
+"Qo‘shimcha guruhga qo‘shish": "Add to additional group",
+"O‘quvchi bu qo‘shimcha guruhda emas": "The student is not in this additional group",
+"O‘quvchi qo‘shimcha guruhdan chiqarildi": "Student removed from the additional group",
+"O‘quvchi qo‘shimcha guruhga qo‘shildi": "Student added to the additional group",
+"Chiqarish": "Remove"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5266,6 +5287,8 @@
 "O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "{0}{1}% change vs last month ({2} → {3})",
 "Kurs o‘zgaradi: «{0}» → «{1}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Course will change: “{0}” → “{1}”. The contract price does not change automatically — update it below if needed. Received payments stay with their group.",
 "Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "This group belongs to the “{0}” course — the student's course will change too. Contract price and payments stay the same; update the price via “Edit” if needed.",
-"{0} · {1} ta bo‘sh o‘rin": "{0} · {1} seats free"
+"{0} · {1} ta bo‘sh o‘rin": "{0} · {1} seats free",
+"«{0}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga qo‘shiladi": "Group “{0}” is closed — only planned or active groups can be joined",
+"O‘quvchi allaqachon «{0}» guruhida": "The student is already in group “{0}”"
 }
 }

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { Request, Response } from 'express';
 import { weeklyReportQuerySchema } from '../validators/portal.validator.js';
 import { attendanceService } from '../services/attendance.service.js';
@@ -14,11 +15,18 @@ import {
   studentListQuerySchema,
   studentMessageSchema,
   transferStudentGroupSchema,
+  addStudentGroupSchema,
+  removeStudentGroupSchema,
   updateStudentSchema,
   updateStudentStatusSchema,
 } from '../validators/student.validator.js';
 import { businessDateString } from '../utils/dates.js';
 import { sendTable } from '../utils/tableExport.js';
+
+const studentGroupParamSchema = z.object({
+  id: z.string().trim().min(1).max(50),
+  groupId: z.string().trim().min(1).max(50),
+});
 
 export const studentController = {
   /** Profil: davomat, uy vazifasi, imtihon, XP, izohlar va progress grafigi */
@@ -82,6 +90,22 @@ export const studentController = {
   async groupHistory(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await studentService.groupHistory(requireAuthUser(req), id));
+  },
+
+  async addGroup(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = addStudentGroupSchema.parse(req.body);
+    sendSuccess(res, await studentService.addGroup(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'O‘quvchi qo‘shimcha guruhga qo‘shildi',
+    });
+  },
+
+  async removeGroup(req: Request, res: Response): Promise<void> {
+    const { id, groupId } = studentGroupParamSchema.parse(req.params);
+    const input = removeStudentGroupSchema.parse(req.body);
+    sendSuccess(res, await studentService.removeGroup(requireAuthUser(req), id, groupId, input, getClientInfo(req)), {
+      message: 'O‘quvchi qo‘shimcha guruhdan chiqarildi',
+    });
   },
 
   async transferGroup(req: Request, res: Response): Promise<void> {

@@ -317,6 +317,8 @@ model User {
   rejectedSalaries          TeacherSalaryPeriod[]  @relation("SalaryRejectedBy")
   createdKpis               KpiDefinition[]        @relation("KpiDefinitionCreatedBy")
   kpiManualResults          KpiManualResult[]      @relation("KpiManualResultCreatedBy")
+  addedGroupMemberships     StudentGroupMembership[] @relation("GroupMembershipAddedBy")
+  removedGroupMemberships   StudentGroupMembership[] @relation("GroupMembershipRemovedBy")
   createdAdjustments        PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
   approvedAdjustments       PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
   voidedAdjustments         PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
@@ -965,6 +967,7 @@ model Group {
   roomRef           Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
   teacher           User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   students          Student[]
+  memberships       StudentGroupMembership[]
   attendances       Attendance[]
   sessions          AttendanceSession[]
   homework          Homework[]
@@ -1051,6 +1054,7 @@ model Student {
   incomes           Income[]
   installments      PaymentInstallment[]
   groupChanges      StudentGroupChange[]
+  groupMemberships  StudentGroupMembership[]
   statusChanges     StudentStatusChange[]
   topicProgress     StudentTopicProgress[]
   examAttempts      ExamAttempt[]
@@ -1145,6 +1149,32 @@ model StudentStatusChange {
   @@index([toStatus, changedAt])
   @@index([changedAt])
   @@map("student_status_changes")
+}
+
+/// Qo'shimcha guruh a'zoligi (masalan, PMT: Matematika + Ingliz tili). Asosiy guruh — `Student.groupId`
+/// (to'lov va o'qituvchi foizi shunga yoziladi); bu yerdagi guruhlar faqat o'quv jarayoni uchun:
+/// ro'yxat, davomat, vazifa, imtihon. Moliyaviy majburiyat (shartnoma, qarz) yaratmaydi.
+/// Bitta guruhda faol (leftAt = null) a'zolik bittadan oshmaydi — bazadagi partial unique index.
+model StudentGroupMembership {
+  id          String    @id @default(cuid())
+  studentId   String
+  groupId     String
+  joinedAt    DateTime  @default(now())
+  /// Guruhdan chiqqan vaqt — yozuv o'chirilmaydi, tarix saqlanadi
+  leftAt      DateTime?
+  reason      String?   @db.VarChar(255)
+  leftReason  String?   @db.VarChar(255)
+  addedById   String?
+  removedById String?
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group     Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  addedBy   User?   @relation("GroupMembershipAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  removedBy User?   @relation("GroupMembershipRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, leftAt])
+  @@index([groupId, leftAt])
+  @@map("student_group_memberships")
 }
 
 model StudentGroupChange {

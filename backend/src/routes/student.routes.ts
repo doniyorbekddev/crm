@@ -45,6 +45,9 @@ studentRouter.get('/:id/telegram-link', requirePermission(PERMISSIONS.PORTAL_MAN
 // Bitta o'quvchiga/ota-onaga xabar: o'quvchini boshqaruvchi yoki unga vazifa beruvchi xodim (o'qituvchi — faqat o'z guruhi)
 studentRouter.post('/:id/message', heavyLimiter, requireAnyPermission(PERMISSIONS.STUDENT_MANAGE, PERMISSIONS.HOMEWORK_MANAGE), studentController.sendMessage);
 studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.transferGroup);
+/** Qo'shimcha o'quv guruhlari (PMT: ikkinchi fan) — moliyaga ta'sir qilmaydi */
+studentRouter.post('/:id/groups', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.addGroup);
+studentRouter.post('/:id/groups/:groupId/remove', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.removeGroup);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);
 studentRouter.patch('/:id/status', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.setStatus);

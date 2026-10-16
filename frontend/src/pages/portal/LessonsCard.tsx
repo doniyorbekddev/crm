@@ -35,7 +35,7 @@ export function LessonsCard({ studentId }: { studentId?: string }) {
           <CalendarDays className="size-4 text-fg-subtle" aria-hidden />
           Kelgusi darslar
         </CardTitle>
-        {query.data?.teacher && (
+        {query.data?.teacher && (query.data.groups?.length ?? 1) <= 1 && (
           <span className="text-caption text-fg-muted">
             O‘qituvchi: {query.data.teacher.name}
             {query.data.teacher.specialization ? ` · ${query.data.teacher.specialization}` : ''}
@@ -54,13 +54,14 @@ export function LessonsCard({ studentId }: { studentId?: string }) {
         ) : (
           <ul className="divide-y divide-border">
             {query.data.lessons.map((lesson) => (
-              <li key={`${lesson.date}-${lesson.startTime}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+              <li key={`${lesson.group?.id ?? ''}-${lesson.date}-${lesson.startTime}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                 <div className="min-w-0">
                   <p className="text-body text-fg">
                     {formatDate(lesson.date)} · {lesson.startTime}–{lesson.endTime}
                   </p>
                   <p className="text-caption text-fg-subtle">
-                    {query.data?.group?.name}
+                    {/* Bir nechta fan bo'lsa — kurs nomi va guruhi har darsda */}
+                    {lesson.group && (query.data?.groups?.length ?? 1) > 1 ? `${lesson.group.course} · ${lesson.group.name}` : query.data?.group?.name}
                     {lesson.room ? ` · ${lesson.room}` : ''}
                     {lesson.topic ? ` · ${lesson.topic}` : ''}
                   </p>

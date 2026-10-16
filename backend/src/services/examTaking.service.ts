@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentGroupIds } from './groupMembership.js';
 import type { AttemptStatus, ExamType, Prisma, QuestionType } from '../generated/prisma/client.js';
 import { AppError } from '../utils/AppError.js';
 import { detectFileType, saveFile } from '../utils/fileStorage.js';
@@ -85,9 +86,11 @@ function attemptDeadline(startedAt: Date, exam: { durationMinutes: number | null
 
 /** Imtihon o'quvchi guruhiniki va onlaynmi */
 async function examForStudent(studentId: string, examId: string) {
-  const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true, status: true } });
+  const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { status: true } });
+  // O'quvchining barcha guruhlari (asosiy + qo'shimcha) imtihonlari
+  const groupIds = student ? await studentGroupIds(prisma, studentId) : [];
   const exam = await prisma.exam.findFirst({
-    where: { id: examId, isOnline: true, ...(student?.groupId ? { groupId: student.groupId } : { id: '__none__' }) },
+    where: { id: examId, isOnline: true, ...(groupIds.length > 0 ? { groupId: { in: groupIds } } : { id: '__none__' }) },
     select: {
       id: true,
       title: true,
@@ -176,7 +179,7 @@ async function loadAttempt(studentId: string, attemptId: string) {
       percentage: true,
       passed: true,
       exam: { select: { title: true, type: true, durationMinutes: true, endAt: true, status: true, groupId: true } },
-      student: { select: { status: true, deletedAt: true, groupId: true } },
+      student: { select: { status: true, deletedAt: true, groupId: true, groupMemberships: { where: { leftAt: null }, select: { groupId: true } } } },
       questions: { orderBy: { sortOrder: 'asc' }, select: { id: true, examQuestionId: true, sortOrder: true, points: true, snapshot: true, answerKey: true } },
       answers: { select: { id: true, examQuestionId: true, optionIds: true, text: true, filePath: true, score: true, isCorrect: true, feedback: true } },
     },
@@ -198,7 +201,8 @@ function assertAttemptWritable(attempt: LoadedAttempt): void {
     throw AppError.unprocessable('Imtihon yopilgan yoki bekor qilingan — javob qabul qilinmaydi');
   }
   if (attempt.student.deletedAt || attempt.student.status !== 'ACTIVE') throw AppError.unprocessable('O‘quvchi faol emas — imtihon topshirib bo‘lmaydi');
-  if (attempt.student.groupId !== attempt.exam.groupId) throw AppError.unprocessable('Bu imtihon endi sizning guruhingizga tegishli emas');
+  const inGroup = attempt.student.groupId === attempt.exam.groupId || attempt.student.groupMemberships.some((row) => row.groupId === attempt.exam.groupId);
+  if (!inGroup) throw AppError.unprocessable('Bu imtihon endi sizning guruhingizga tegishli emas');
 }
 
 function toView(attempt: LoadedAttempt): AttemptViewDto {
@@ -329,10 +333,12 @@ async function finalizeIfExpired(attempt: { id: string; status: AttemptStatus; s
 export const examTakingService = {
   /** O'quvchi guruhining onlayn imtihonlari va har biri bo'yicha holat */
   async available(studentId: string, now: Date = new Date()): Promise<AvailableExamDto[]> {
-    const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { groupId: true, status: true } });
-    if (!student?.groupId) return [];
+    const student = await prisma.student.findFirst({ where: { id: studentId, deletedAt: null }, select: { status: true } });
+    if (!student) return [];
+    const groupIds = await studentGroupIds(prisma, studentId);
+    if (groupIds.length === 0) return [];
     const exams = await prisma.exam.findMany({
-      where: { groupId: student.groupId, isOnline: true, status: { in: [...OPEN_STATUSES] } },
+      where: { groupId: { in: groupIds }, isOnline: true, status: { in: [...OPEN_STATUSES] } },
       orderBy: [{ startAt: 'asc' }, { date: 'asc' }],
       select: {
         id: true,

@@ -31,7 +31,8 @@ const groupSelect = {
   createdAt: true,
   course: { select: { id: true, name: true } },
   teacher: { select: { id: true, firstName: true, lastName: true } },
-  _count: { select: { students: { where: { deletedAt: null } } } },
+  // Asosiy o'quvchilar + faol qo'shimcha a'zolar (PMT kabi bir nechta fan guruhi)
+  _count: { select: { students: { where: { deletedAt: null } }, memberships: { where: { leftAt: null, student: { deletedAt: null } } } } },
 } satisfies Prisma.GroupSelect;
 
 type GroupRecord = Prisma.GroupGetPayload<{ select: typeof groupSelect }>;
@@ -73,8 +74,8 @@ function toGroupDto(group: GroupRecord): GroupDto {
     startTime: group.startTime,
     endTime: group.endTime,
     capacity: group.capacity,
-    studentCount: group._count.students,
-    freeSeats: Math.max(group.capacity - group._count.students, 0),
+    studentCount: group._count.students + group._count.memberships,
+    freeSeats: Math.max(group.capacity - group._count.students - group._count.memberships, 0),
     status: group.status,
     createdAt: group.createdAt.toISOString(),
     course: group.course,
@@ -261,9 +262,9 @@ export const groupService = {
     await assertNameAvailable(input.name, id);
     await assertReferences(input.courseId, input.teacherId);
 
-    if (input.capacity < group._count.students) {
+    if (input.capacity < group._count.students + group._count.memberships) {
       throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
-        { field: 'capacity', message: `Guruhda ${group._count.students} ta o‘quvchi bor — sig‘im undan kam bo‘lmasin` },
+        { field: 'capacity', message: `Guruhda ${group._count.students + group._count.memberships} ta o‘quvchi bor — sig‘im undan kam bo‘lmasin` },
       ]);
     }
 
@@ -321,9 +322,9 @@ export const groupService = {
     const access = await getGroupAccess(actor);
     const group = await findVisibleGroup(access, id);
 
-    if (group._count.students > 0) {
+    if (group._count.students + group._count.memberships > 0) {
       throw AppError.conflict(
-        `Guruhda ${group._count.students} ta o‘quvchi bor. Avval ularni boshqa guruhga o‘tkazing yoki guruh holatini o‘zgartiring`,
+        `Guruhda ${group._count.students + group._count.memberships} ta o‘quvchi bor. Avval ularni boshqa guruhga o‘tkazing yoki guruh holatini o‘zgartiring`,
       );
     }
 

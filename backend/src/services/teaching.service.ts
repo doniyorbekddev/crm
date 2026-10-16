@@ -46,6 +46,8 @@ export interface TeachingStudentRowDto {
   code: string;
   firstName: string;
   lastName: string;
+  /** Qo'shimcha a'zo — asosiy guruhi boshqa (to'lov o'sha guruh bo'yicha) */
+  extraMember: boolean;
   attendanceRate: number | null;
   homeworkRate: number | null;
   examAverage: number | null;
@@ -77,9 +79,22 @@ const groupSelect = {
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     select: { id: true, number: true, firstName: true, lastName: true },
   },
+  // Qo'shimcha a'zolar (PMT: ikkinchi fan) — shu guruh ro'yxatida ham ko'rinadi
+  memberships: {
+    where: { leftAt: null, student: { deletedAt: null, status: { in: ['ACTIVE', 'FROZEN'] } } },
+    select: { student: { select: { id: true, number: true, firstName: true, lastName: true } } },
+  },
 } satisfies Prisma.GroupSelect;
 
 type GroupRecord = Prisma.GroupGetPayload<{ select: typeof groupSelect }>;
+
+/** Guruh ro'yxati: asosiy o'quvchilar + qo'shimcha a'zolar (familiya bo'yicha) */
+function rosterOf(group: GroupRecord): Array<GroupRecord['students'][number] & { extraMember: boolean }> {
+  return [
+    ...group.students.map((student) => ({ ...student, extraMember: false })),
+    ...group.memberships.map((membership) => ({ ...membership.student, extraMember: true })),
+  ].sort((a, b) => a.lastName.localeCompare(b.lastName, 'uz') || a.firstName.localeCompare(b.firstName, 'uz'));
+}
 
 function average(values: Array<number | null>): number | null {
   const scored = values.filter((value): value is number => value !== null);
@@ -94,7 +109,7 @@ function groupScope(access: TeachingAccess, teacherId: string | undefined): Pris
 /** Guruhlar kesimida kutilayotgan ishlar, bugungi dars va o'quvchilar ko'rsatkichlari */
 async function buildCards(groups: GroupRecord[], now: Date) {
   const groupIds = groups.map((group) => group.id);
-  const studentIds = groups.flatMap((group) => group.students.map((student) => student.id));
+  const studentIds = [...new Set(groups.flatMap((group) => rosterOf(group).map((student) => student.id)))];
   const today = dateColumn(now);
   const weekday = DAY_NAMES[new Date(`${businessDateString(now)}T00:00:00Z`).getUTCDay()]!;
 
@@ -123,7 +138,7 @@ async function buildCards(groups: GroupRecord[], now: Date) {
   const marked = new Set(markedToday.map((row) => row.groupId));
 
   const rowsFor = (group: GroupRecord): TeachingStudentRowDto[] =>
-    group.students.map((student) => {
+    rosterOf(group).map((student) => {
       const entry = risk.get(student.id);
       const metrics: StudentRiskMetrics = entry?.metrics ?? {
         attendanceRate: null,

@@ -117,6 +117,19 @@ export const transferStudentGroupSchema = z.object({
 
 export type TransferStudentGroupInput = z.infer<typeof transferStudentGroupSchema>;
 
+/** Qo'shimcha o'quv guruhiga qo'shish (masalan, PMT ikkinchi fani) — moliyaviy yozuv yaratmaydi */
+export const addStudentGroupSchema = z.object({
+  groupId: z.string('Guruhni tanlang').trim().min(1, 'Guruhni tanlang').max(50),
+  reason: optionalField(z.string().trim().max(255, 'Sabab juda uzun')),
+});
+export type AddStudentGroupInput = z.infer<typeof addStudentGroupSchema>;
+
+/** Qo'shimcha guruhdan chiqarish — boshqa guruhlar va o'quvchi profili o'zgarmaydi */
+export const removeStudentGroupSchema = z.object({
+  reason: z.string('Sababni kiriting').trim().min(3, 'Sabab kamida 3 belgi').max(255, 'Sabab juda uzun'),
+});
+export type RemoveStudentGroupInput = z.infer<typeof removeStudentGroupSchema>;
+
 /** Xodimdan o'quvchiga yoki ota-onasiga bitta xabar (ilova ichida + bog'langan Telegram) */
 export const studentMessageSchema = z.object({
   audience: z.enum(['STUDENT', 'PARENT', 'BOTH'], 'Qabul qiluvchi noto‘g‘ri').default('STUDENT'),

@@ -4697,7 +4697,28 @@
 "boshqa kurs": "другой курс",
 "Boshqa kurs": "Другой курс",
 "Boshqa ochiq guruh yo‘q — avval yangi guruh oching.": "Других открытых групп нет — сначала откройте новую группу.",
-"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Необязательно · все открытые группы; при выборе группы другого курса курс тоже изменится"
+"Ixtiyoriy · barcha ochiq guruhlar; boshqa kurs guruhi tanlansa kurs ham o‘zgaradi": "Необязательно · все открытые группы; при выборе группы другого курса курс тоже изменится",
+"A’zolik allaqachon yopilgan": "Членство уже закрыто",
+"Asosiy guruh “Guruhga o‘tkazish” orqali o‘zgartiriladi": "Основная группа меняется через «Перевести в группу»",
+"Asosiy guruhga aylantirildi": "Стала основной группой",
+"Asosiy guruhni o‘zgartirish": "Сменить основную группу",
+"Bu o‘quvchining asosiy guruhi": "Это основная группа ученика",
+"Davomat, vazifa va imtihonlar har guruhda alohida; to‘lov va qarz bitta — o‘quvchi profilida.": "Посещаемость, задания и экзамены — отдельно по каждой группе; оплата и долг — одни, в профиле ученика.",
+"Faqat shu guruhdagi a’zolik yopiladi — boshqa guruhlar, davomat tarixi, to‘lov va qarz o‘zgarmaydi.": "Закрывается только членство в этой группе — другие группы, история посещаемости, оплата и долг не меняются.",
+"Ixtiyoriy · guruh tarixida saqlanadi": "Необязательно · сохраняется в истории групп",
+"Joriy guruhlar": "Текущие группы",
+"Masalan, PMT: Matematika va Ingliz tili. O‘quvchi profili bitta qoladi; yangi shartnoma, qarz yoki oylik to‘lov yaratilmaydi — to‘lov asosiy guruh bo‘yicha yuritiladi.": "Например, PMT: Математика и Английский. Профиль ученика остаётся один; новый договор, долг или ежемесячная оплата не создаются — оплата ведётся по основной группе.",
+"Oylik to‘lov shu guruh bo‘yicha": "Ежемесячная оплата — по этой группе",
+"Qo‘shimcha": "Дополнительная",
+"qo‘shimcha guruh": "доп. группа",
+"Qo‘shimcha guruh": "Доп. группа",
+"Qo‘shimcha guruhdan chiqarish": "Исключить из доп. группы",
+"Qo‘shimcha guruhga qo‘shildi": "Добавлен в доп. группу",
+"Qo‘shimcha guruhga qo‘shish": "Добавить в доп. группу",
+"O‘quvchi bu qo‘shimcha guruhda emas": "Ученик не состоит в этой доп. группе",
+"O‘quvchi qo‘shimcha guruhdan chiqarildi": "Ученик исключён из доп. группы",
+"O‘quvchi qo‘shimcha guruhga qo‘shildi": "Ученик добавлен в доп. группу",
+"Chiqarish": "Исключить"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5302,6 +5323,8 @@
 "O‘tgan oyga nisbatan {0}{1}% o‘zgarish ({2} → {3})": "Изменение {0}{1}% к прошлому месяцу ({2} → {3})",
 "Kurs o‘zgaradi: «{0}» → «{1}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Курс изменится: «{0}» → «{1}». Цена договора не меняется автоматически — при необходимости обновите её ниже. Принятые платежи остаются в своей группе.",
 "Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "Эта группа относится к курсу «{0}» — курс ученика тоже изменится. Цена договора и платежи не меняются; при необходимости обновите цену через «Редактировать».",
-"{0} · {1} ta bo‘sh o‘rin": "{0} · свободных мест: {1}"
+"{0} · {1} ta bo‘sh o‘rin": "{0} · свободных мест: {1}",
+"«{0}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga qo‘shiladi": "Группа «{0}» закрыта — добавлять можно только в запланированную или активную группу",
+"O‘quvchi allaqachon «{0}» guruhida": "Ученик уже в группе «{0}»"
 }
 }

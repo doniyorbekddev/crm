@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentInGroup } from './groupMembership.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { HomeworkStatus, HomeworkTarget, QuestionDifficulty, SubmissionStatus } from '../generated/prisma/client.js';
@@ -323,7 +324,7 @@ async function toDetailDto(homework: HomeworkRecord): Promise<HomeworkDetailDto>
 async function ensureSubmissions(tx: Prisma.TransactionClient, homeworkId: string, groupId: string, studentIds?: string[]): Promise<number> {
   const students = studentIds
     ? studentIds.map((id) => ({ id }))
-    : await tx.student.findMany({ where: { groupId, deletedAt: null, status: 'ACTIVE' }, select: { id: true } });
+    : await tx.student.findMany({ where: { ...studentInGroup(groupId), deletedAt: null, status: 'ACTIVE' }, select: { id: true } });
   if (students.length === 0) return 0;
 
   await tx.homeworkSubmission.createMany({
@@ -353,7 +354,7 @@ export async function attachOpenGroupHomework(tx: Prisma.TransactionClient, stud
 /** Tanlangan o'quvchilar guruhda va faolmi */
 async function assertTargets(groupId: string, studentIds: string[]): Promise<void> {
   const unique = [...new Set(studentIds)];
-  const found = await prisma.student.count({ where: { id: { in: unique }, groupId, deletedAt: null, status: 'ACTIVE' } });
+  const found = await prisma.student.count({ where: { id: { in: unique }, ...studentInGroup(groupId), deletedAt: null, status: 'ACTIVE' } });
   if (found !== unique.length || unique.length !== studentIds.length) {
     throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'studentIds', message: 'O‘quvchilar shu guruhning faol a’zosi bo‘lishi kerak' }]);
   }

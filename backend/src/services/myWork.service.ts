@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+
 import { PERMISSIONS } from '../config/permissions.js';
 import type { WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -228,7 +229,7 @@ export const myWorkService = {
           const today = dateColumn(now);
           const weekday = DAY_NAMES[new Date(`${businessDateString(now)}T00:00:00Z`).getUTCDay()]!;
           const groups = await prisma.group.findMany({
-            where: { teacherId: actor.id, status: 'ACTIVE', scheduleDays: { has: weekday }, attendances: { none: { date: today } }, students: { some: { deletedAt: null, status: 'ACTIVE' } } },
+            where: { teacherId: actor.id, status: 'ACTIVE', scheduleDays: { has: weekday }, attendances: { none: { date: today } }, OR: [{ students: { some: { deletedAt: null, status: 'ACTIVE' } } }, { memberships: { some: { leftAt: null, student: { deletedAt: null, status: 'ACTIVE' } } } }] },
             orderBy: { startTime: 'asc' },
             select: { id: true, name: true, startTime: true },
           });

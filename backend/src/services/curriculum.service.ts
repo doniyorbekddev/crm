@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { studentInGroup } from './groupMembership.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import type { Prisma, TopicProgressStatus } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -345,7 +346,7 @@ export const curriculumService = {
     const studentIds = input.groupId
       ? (
           await prisma.student.findMany({
-            where: { groupId: input.groupId, deletedAt: null, status: 'ACTIVE' },
+            where: { ...studentInGroup(input.groupId), deletedAt: null, status: 'ACTIVE' },
             select: { id: true },
           })
         ).map((student) => student.id)

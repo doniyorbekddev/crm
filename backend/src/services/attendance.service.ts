@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { assertTopicForGroup, startTopicForAttendees } from './curriculum.service.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import { studentInGroup, studentTaughtBy } from './groupMembership.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { AttendanceStatus, StudentStatus, WeekDay } from '../generated/prisma/client.js';
@@ -174,8 +175,9 @@ export const attendanceService = {
     const access = await getAttendanceAccess(actor);
     const group = await findVisibleGroup(access, groupId);
 
+    // Asosiy o'quvchilar va qo'shimcha a'zolar (PMT: ikkinchi fan guruhi) — davomat shu guruh kontekstida
     const students = await prisma.student.findMany({
-      where: { groupId, deletedAt: null, status: { in: [...MARKABLE_STATUSES] } },
+      where: { ...studentInGroup(groupId), deletedAt: null, status: { in: [...MARKABLE_STATUSES] } },
       select: { id: true, number: true, firstName: true, lastName: true, phone: true },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
@@ -285,7 +287,12 @@ export const attendanceService = {
         course: { select: { name: true } },
         teacher: { select: { id: true, firstName: true, lastName: true } },
         sessions: { where: { date }, select: { status: true, startTime: true, endTime: true } },
-        _count: { select: { students: { where: { deletedAt: null, status: { in: [...MARKABLE_STATUSES] } } } } },
+        _count: {
+          select: {
+            students: { where: { deletedAt: null, status: { in: [...MARKABLE_STATUSES] } } },
+            memberships: { where: { leftAt: null, student: { deletedAt: null, status: { in: [...MARKABLE_STATUSES] } } } },
+          },
+        },
       },
       orderBy: [{ startTime: 'asc' }, { name: 'asc' }],
     });
@@ -299,8 +306,12 @@ export const attendanceService = {
         : await prisma.$queryRaw<Array<{ groupId: string; marked: number; absent: number }>>`
             SELECT a."groupId", COUNT(*)::int AS "marked", COUNT(*) FILTER (WHERE a."status" = 'ABSENT')::int AS "absent"
             FROM "attendances" a
-            JOIN "students" s ON s."id" = a."studentId" AND s."groupId" = a."groupId"
-            WHERE a."date" = ${date}::date AND a."groupId" IN (${Prisma.join(due.map((group) => group.id))})
+            JOIN "students" s ON s."id" = a."studentId"
+            WHERE a."date" = ${date}::date
+              AND (s."groupId" = a."groupId" OR EXISTS (
+                SELECT 1 FROM "student_group_memberships" m
+                WHERE m."studentId" = s."id" AND m."groupId" = a."groupId" AND m."leftAt" IS NULL
+              )) AND a."groupId" IN (${Prisma.join(due.map((group) => group.id))})
               AND s."deletedAt" IS NULL AND s."status"::text IN (${Prisma.join([...MARKABLE_STATUSES])})
             GROUP BY a."groupId"
           `;
@@ -313,7 +324,7 @@ export const attendanceService = {
       groups: due
         .map((group) => {
           const session = group.sessions[0];
-          const students = group._count.students;
+          const students = group._count.students + group._count.memberships;
           const { marked, absent } = markedBy.get(group.id) ?? { marked: 0, absent: 0 };
           const state: DayGroupState =
             session?.status === 'CANCELLED' ? 'CANCELLED' : marked === 0 ? 'NOT_STARTED' : marked < students ? 'IN_PROGRESS' : 'COMPLETED';
@@ -358,7 +369,7 @@ export const attendanceService = {
     }
 
     const students = await prisma.student.findMany({
-      where: { id: { in: ids }, groupId, deletedAt: null, status: { in: [...MARKABLE_STATUSES] } },
+      where: { id: { in: ids }, ...studentInGroup(groupId), deletedAt: null, status: { in: [...MARKABLE_STATUSES] } },
       select: { id: true },
     });
     if (students.length !== ids.length) {
@@ -512,15 +523,17 @@ export const attendanceService = {
   async studentHistory(actor: AuthUser, studentId: string, limit = 60): Promise<StudentAttendanceHistoryDto> {
     const access = await getAttendanceAccess(actor);
     const student = await prisma.student.findFirst({
-      where: { id: studentId, deletedAt: null, ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}) },
+      where: { id: studentId, deletedAt: null, ...(access.onlyOwnGroups ? studentTaughtBy(access.userId) : {}) },
       select: { id: true },
     });
     if (!student) {
       throw AppError.notFound('O‘quvchi topilmadi');
     }
 
+    // O'qituvchi o'quvchining boshqa fan (begona guruh) davomatini ko'rmaydi
+    const scope: Prisma.AttendanceWhereInput = { studentId, ...(access.onlyOwnGroups ? { group: { teacherId: access.userId } } : {}) };
     const items = await prisma.attendance.findMany({
-      where: { studentId },
+      where: scope,
       select: { id: true, date: true, status: true, note: true, group: { select: { name: true } } },
       orderBy: { date: 'desc' },
       take: limit,
@@ -528,7 +541,7 @@ export const attendanceService = {
 
     const grouped = await prisma.attendance.groupBy({
       by: ['status'],
-      where: { studentId },
+      where: scope,
       _count: { _all: true },
     });
 

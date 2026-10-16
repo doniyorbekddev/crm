@@ -47,12 +47,16 @@ export interface PortalLesson {
   room: string | null;
   status: 'PLANNED' | 'HELD' | 'CANCELLED';
   topic?: string | null;
+  /** Qaysi guruh (fan) darsi — o'quvchi bir nechta guruhda bo'lsa */
+  group?: { id: string; name: string; course: string };
 }
 
 export interface PortalLessons {
   group: { id: string; name: string; course: string } | null;
   /** O‘qituvchi haqida faqat ism va yo‘nalish — aloqa ma’lumotlari ko‘rsatilmaydi */
   teacher: { name: string; specialization: string | null } | null;
+  /** Barcha faol guruhlar (asosiy birinchi) — PMT kabi bir nechta fan */
+  groups?: Array<{ id: string; name: string; course: string; teacher: { name: string; specialization: string | null } | null }>;
   lessons: PortalLesson[];
 }
 

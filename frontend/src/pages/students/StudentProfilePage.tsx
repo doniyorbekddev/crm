@@ -129,7 +129,9 @@ export default function StudentProfilePage() {
   const meta: ProfileMetaItem[] = [
     { name: 'ID raqam', icon: Hash, label: <span className="font-mono">{student.code}</span> },
     { name: 'Kurs', icon: BookOpen, label: student.course.name },
-    ...(student.group ? [{ name: 'Guruh', icon: Layers, label: student.group.name }] : []),
+    ...(student.group || student.extraGroups.length > 0
+      ? [{ name: 'Guruhlar', icon: Layers, label: [student.group?.name, ...student.extraGroups.map((group) => group.name)].filter(Boolean).join(', ') }]
+      : []),
     ...(student.phone ? [{ name: 'Telefon', icon: Phone, label: formatPhone(student.phone) }] : []),
     ...(student.parentPhone ? [{ name: 'Ota-ona telefoni', icon: Phone, label: `ota-ona: ${formatPhone(student.parentPhone)}` }] : []),
     { name: 'O‘qish boshlangan', icon: CalendarDays, label: `${formatDate(student.startDate)} dan` },

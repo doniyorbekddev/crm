@@ -111,20 +111,24 @@ export const lookupService = {
         name: true,
         courseId: true,
         capacity: true,
-        _count: { select: { students: { where: { deletedAt: null } } } },
+        // Asosiy o'quvchilar + faol qo'shimcha a'zolar
+        _count: { select: { students: { where: { deletedAt: null } }, memberships: { where: { leftAt: null, student: { deletedAt: null } } } } },
       },
     });
 
     return {
       courses: courses.map((course) => ({ id: course.id, name: course.name, finalPrice: course.finalPrice.toNumber() })),
-      groups: groups.map((group) => ({
-        id: group.id,
-        name: group.name,
-        courseId: group.courseId,
-        capacity: group.capacity,
-        studentCount: group._count.students,
-        freeSeats: Math.max(group.capacity - group._count.students, 0),
-      })),
+      groups: groups.map((group) => {
+        const studentCount = group._count.students + group._count.memberships;
+        return {
+          id: group.id,
+          name: group.name,
+          courseId: group.courseId,
+          capacity: group.capacity,
+          studentCount,
+          freeSeats: Math.max(group.capacity - studentCount, 0),
+        };
+      }),
     };
   },
 
