@@ -86,3 +86,19 @@ export interface StudentAttendanceHistory {
   items: StudentAttendanceItem[];
   summary: Record<AttendanceStatus, number> & { total: number; attendanceRate: number };
 }
+
+/** Tanlangan kunning barcha davomat belgilari (status bo'yicha filtrlash uchun) */
+export interface AttendanceDayRecords {
+  date: string;
+  today: string;
+  counts: Record<AttendanceStatus, number> & { total: number };
+  items: Array<{
+    id: string;
+    status: AttendanceStatus;
+    note: string | null;
+    markedAt: string;
+    markedBy: { id: string; firstName: string; lastName: string } | null;
+    student: { id: string; code: string; firstName: string; lastName: string; phone: string | null; parentPhone: string | null };
+    group: { id: string; name: string; courseName: string; startTime: string };
+  }>;
+}

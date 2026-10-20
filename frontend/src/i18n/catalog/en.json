@@ -4683,7 +4683,18 @@
 "O‘quvchi bu qo‘shimcha guruhda emas": "The student is not in this additional group",
 "O‘quvchi qo‘shimcha guruhdan chiqarildi": "Student removed from the additional group",
 "O‘quvchi qo‘shimcha guruhga qo‘shildi": "Student added to the additional group",
-"Chiqarish": "Remove"
+"Chiqarish": "Remove",
+"Belgilangan o‘quvchilar holat bo‘yicha — sanani yuqoridagi kalendardan tanlang": "Marked students by status — pick a date in the calendar above",
+"Boshqa holatni tanlang yoki qidiruvni tozalang": "Choose another status or clear the search",
+"Bu holatda o‘quvchi yo‘q": "No students with this status",
+"Bu kunda davomat belgilanmagan": "No attendance was marked on this day",
+"Guruh kartasini ochib davomatni belgilang": "Open a group card and mark attendance",
+"Kelganlar": "Present",
+"Kelmaganlar": "Absent",
+"Kech qolganlar": "Late",
+"Kun davomati": "Day attendance",
+"Kun davomatida qidirish": "Search day attendance",
+"O‘quvchi, kod yoki guruh…": "Student, code or group…"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",

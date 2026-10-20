@@ -1,7 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowRight, CalendarOff, CheckCircle2, Clock, DoorOpen, Users } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import type { BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +13,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService } from '@/services/attendance.service';
 import type { AttendanceDayGroup, AttendanceDayGroupState } from '@/types/attendance';
 import { formatDate } from '@/utils/format';
+import { AttendanceDayRecords } from './AttendanceDayRecords';
 
 const STATE_LABELS: Record<AttendanceDayGroupState, string> = {
   NOT_STARTED: 'Boshlanmagan',
@@ -101,8 +101,19 @@ function GroupCard({ group, date }: { group: AttendanceDayGroup; date: string })
  * Bugungi sana serverdan (o'quv markaz vaqti) olinadi — brauzer soati yoki vaqt zonasiga bog'liq emas.
  */
 export function AttendanceDayBoard() {
-  /** Bo'sh — bugun (sanani server aniqlaydi) */
-  const [picked, setPicked] = useState('');
+  /** Bo'sh — bugun (sanani server aniqlaydi). URL'da — yangilansa yoki guruhdan qaytilsa ham shu kun ochiq qoladi */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const picked = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get('day') ?? '') ? searchParams.get('day')! : '';
+  const setPicked = (value: string) =>
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value) next.set('day', value);
+        else next.delete('day');
+        return next;
+      },
+      { replace: true },
+    );
   const query = useQuery({
     queryKey: queryKeys.attendance.day(picked || 'today'),
     queryFn: () => attendanceService.day(picked || undefined),
@@ -183,6 +194,8 @@ export function AttendanceDayBoard() {
               </ul>
             </details>
           )}
+
+          <AttendanceDayRecords date={data.date} />
         </>
       )}
     </section>

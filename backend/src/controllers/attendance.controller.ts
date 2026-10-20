@@ -14,6 +14,13 @@ export const attendanceController = {
     sendSuccess(res, await attendanceService.day(requireAuthUser(req), day));
   },
 
+  /** Kun davomati ro'yxati (status filtri frontendda) — sana berilmasa bugun */
+  async dayRecords(req: Request, res: Response): Promise<void> {
+    const { date } = attendanceDayQuerySchema.parse(req.query);
+    const day = date ?? new Date(`${businessDateString(new Date())}T00:00:00.000Z`);
+    sendSuccess(res, await attendanceService.dayRecords(requireAuthUser(req), day));
+  },
+
   async getSheet(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     const { date } = attendanceQuerySchema.parse(req.query);

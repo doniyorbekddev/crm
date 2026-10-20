@@ -91,6 +91,22 @@ export interface AttendanceDayGroupDto {
   isScheduledDay: boolean;
 }
 
+/** Tanlangan kunning barcha davomat belgilari (status bo'yicha filtrlash uchun) */
+export interface AttendanceDayRecordsDto {
+  date: string;
+  today: string;
+  counts: Record<AttendanceStatus, number> & { total: number };
+  items: Array<{
+    id: string;
+    status: AttendanceStatus;
+    note: string | null;
+    markedAt: string;
+    markedBy: { id: string; firstName: string; lastName: string } | null;
+    student: { id: string; code: string; firstName: string; lastName: string; phone: string | null; parentPhone: string | null };
+    group: { id: string; name: string; courseName: string; startTime: string };
+  }>;
+}
+
 export interface AttendanceDayDto {
   date: string;
   today: string;
@@ -272,6 +288,52 @@ export const attendanceService = {
    * seans ochilgan). Alohida "dars" jadvali yo'q: jadval — guruhdagi haftalik shablon, haqiqiy dars — `attendance_sessions`
    * (`groupId + date` yagona, shuning uchun bitta guruh bir kunda bitta karta).
    */
+  /**
+   * Kun davomati ro'yxati: tanlangan sanadagi barcha belgilar (kelgan, kechikkan, sababli, kelmagan) — guruh,
+   * o'quvchi va kim belgilagani bilan. O'qituvchi faqat o'z guruhlarini, qolganlar filial doirasida ko'radi.
+   * Belgilar bazada saqlangani uchun istalgan o'tgan kun xuddi shu ko'rinishda ochiladi.
+   */
+  async dayRecords(actor: AuthUser, date: Date): Promise<AttendanceDayRecordsDto> {
+    const access = await getAttendanceAccess(actor);
+    const records = await prisma.attendance.findMany({
+      where: { date, group: visibleGroups(access), student: { deletedAt: null } },
+      orderBy: [{ group: { startTime: 'asc' } }, { group: { name: 'asc' } }, { student: { lastName: 'asc' } }, { student: { firstName: 'asc' } }],
+      take: 3000,
+      select: {
+        id: true,
+        status: true,
+        note: true,
+        updatedAt: true,
+        markedBy: { select: { id: true, firstName: true, lastName: true } },
+        student: { select: { id: true, number: true, firstName: true, lastName: true, phone: true, parentPhone: true } },
+        group: { select: { id: true, name: true, startTime: true, course: { select: { name: true } } } },
+      },
+    });
+    const counts = { ...emptySummary(), total: records.length };
+    for (const record of records) counts[record.status] += 1;
+    return {
+      date: toDateOnly(date),
+      today: businessDateString(new Date()),
+      counts,
+      items: records.map((record) => ({
+        id: record.id,
+        status: record.status,
+        note: record.note,
+        markedAt: record.updatedAt.toISOString(),
+        markedBy: record.markedBy,
+        student: {
+          id: record.student.id,
+          code: formatStudentNumber(record.student.number),
+          firstName: record.student.firstName,
+          lastName: record.student.lastName,
+          phone: record.student.phone,
+          parentPhone: record.student.parentPhone,
+        },
+        group: { id: record.group.id, name: record.group.name, courseName: record.group.course.name, startTime: record.group.startTime },
+      })),
+    };
+  },
+
   async day(actor: AuthUser, date: Date): Promise<AttendanceDayDto> {
     const access = await getAttendanceAccess(actor);
     const weekDay = WEEK_DAYS[date.getUTCDay()]!;

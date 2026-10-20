@@ -92,6 +92,7 @@ export default function GroupAttendancePage() {
       queryClient.setQueryData(queryKeys.attendance.sheet(groupId, date), result.data);
       // Taxtadagi karta holati, o'qituvchi paneli va o'quvchi sahifalari yangilanadi (ochiq jurnalning o'zi emas)
       void queryClient.invalidateQueries({ queryKey: ['attendance', 'day'] });
+      void queryClient.invalidateQueries({ queryKey: ['attendance', 'day-records'] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.attendance.teacherOverview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.curriculum.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
@@ -167,7 +168,7 @@ export default function GroupAttendancePage() {
   }
 
   const back = (
-    <Link to="/attendance" className="focus-ring inline-flex items-center gap-1 rounded-sm text-body text-fg-muted hover:text-fg">
+    <Link to={date ? `/attendance?day=${date}` : '/attendance'} className="focus-ring inline-flex items-center gap-1 rounded-sm text-body text-fg-muted hover:text-fg">
       <ArrowLeft className="size-4" aria-hidden />
       Davomat
     </Link>

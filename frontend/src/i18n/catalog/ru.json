@@ -4718,7 +4718,18 @@
 "O‘quvchi bu qo‘shimcha guruhda emas": "Ученик не состоит в этой доп. группе",
 "O‘quvchi qo‘shimcha guruhdan chiqarildi": "Ученик исключён из доп. группы",
 "O‘quvchi qo‘shimcha guruhga qo‘shildi": "Ученик добавлен в доп. группу",
-"Chiqarish": "Исключить"
+"Chiqarish": "Исключить",
+"Belgilangan o‘quvchilar holat bo‘yicha — sanani yuqoridagi kalendardan tanlang": "Отмеченные ученики по статусу — выберите дату в календаре выше",
+"Boshqa holatni tanlang yoki qidiruvni tozalang": "Выберите другой статус или очистите поиск",
+"Bu holatda o‘quvchi yo‘q": "Учеников с таким статусом нет",
+"Bu kunda davomat belgilanmagan": "В этот день посещаемость не отмечена",
+"Guruh kartasini ochib davomatni belgilang": "Откройте карточку группы и отметьте посещаемость",
+"Kelganlar": "Пришли",
+"Kelmaganlar": "Не пришли",
+"Kech qolganlar": "Опоздали",
+"Kun davomati": "Посещаемость за день",
+"Kun davomatida qidirish": "Поиск по посещаемости за день",
+"O‘quvchi, kod yoki guruh…": "Ученик, код или группа…"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",

@@ -243,4 +243,43 @@ describe.skipIf(!hasTestDatabase)('Davomat: kunlik taxta va guruh jurnali', () =
     expect(perStudent.every((row) => row._count._all === 1)).toBe(true);
     expect((await day(token, MONDAY)).body.data.groups[0]).toMatchObject({ state: 'COMPLETED', marked: 3, students: 3 });
   }, 60_000);
+
+  it('kun davomati ro‘yxati: holatlar soni, o‘tgan kun saqlanadi, o‘qituvchi faqat o‘z guruhini ko‘radi', async () => {
+    const course = await createCourse('Frontend');
+    const { token: admin } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { user: teacher, token } = await createUserWithToken(app, { role: 'TEACHER' });
+    const { user: other, token: otherToken } = await createUserWithToken(app, { role: 'TEACHER' });
+    const own = await createGroup({ courseId: course.id, teacherId: teacher.id, name: 'FE-1', scheduleDays: ['MONDAY'] });
+    const foreign = await createGroup({ courseId: course.id, teacherId: other.id, name: 'FE-2', scheduleDays: ['MONDAY'] });
+    const [ali, vali, sami, gani] = await Promise.all(['Ali', 'Vali', 'Sami', 'Gani'].map((name) => enroll(course.id, own.id, name)));
+    const zarina = await enroll(course.id, foreign.id, 'Zarina');
+
+    await mark(token, own.id, MONDAY, [
+      { studentId: ali!.id, status: 'PRESENT' },
+      { studentId: vali!.id, status: 'ABSENT' },
+      { studentId: sami!.id, status: 'LATE' },
+      { studentId: gani!.id, status: 'EXCUSED' },
+    ]).expect(200);
+    await mark(otherToken, foreign.id, MONDAY, [{ studentId: zarina.id, status: 'ABSENT' }]).expect(200);
+
+    const records = (token: string, date?: string) => request(app).get('/api/attendance/day/records').query(date ? { date } : {}).set(bearer(token));
+
+    // Rahbar: barcha guruhlar
+    const all = await records(admin, MONDAY);
+    expect(all.status).toBe(200);
+    expect(all.body.data).toMatchObject({ date: MONDAY, counts: { total: 5, PRESENT: 1, ABSENT: 2, LATE: 1, EXCUSED: 1 } });
+    const absent = all.body.data.items.filter((row: { status: string }) => row.status === 'ABSENT');
+    expect(absent.map((row: { student: { firstName: string } }) => row.student.firstName).sort()).toEqual(['Vali', 'Zarina']);
+    expect(absent[0]).toMatchObject({ group: { courseName: 'Frontend' }, markedBy: { firstName: expect.any(String) } });
+
+    // O'qituvchi: faqat o'z guruhi
+    const mine = await records(token, MONDAY);
+    expect(mine.body.data.counts).toMatchObject({ total: 4, ABSENT: 1 });
+    expect(mine.body.data.items.every((row: { group: { id: string } }) => row.group.id === own.id)).toBe(true);
+
+    // Boshqa kun — bo'sh; o'tgan kun qayta so'ralganda o'sha belgilar
+    expect((await records(admin, TUESDAY)).body.data.counts.total).toBe(0);
+    expect((await records(admin, MONDAY)).body.data.counts.total).toBe(5);
+    expect((await records(admin, 'noto‘g‘ri')).status).toBe(422);
+  });
 });

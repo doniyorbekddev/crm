@@ -12,6 +12,7 @@ attendanceRouter.use(authenticate, requirePermission(PERMISSIONS.ATTENDANCE_VIEW
 
 // Kunlik taxta: shu sanaga darsi bor guruhlar (o'qituvchi — faqat o'ziniki; doira servisda)
 attendanceRouter.get('/day', attendanceController.day);
+attendanceRouter.get('/day/records', attendanceController.dayRecords);
 attendanceRouter.get('/stats', attendanceAnalyticsController.stats);
 attendanceRouter.get('/ranking', attendanceAnalyticsController.ranking);
 attendanceRouter.get('/teacher-overview', attendanceAnalyticsController.teacherOverview);
