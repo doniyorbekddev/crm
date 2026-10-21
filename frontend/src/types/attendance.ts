@@ -102,3 +102,24 @@ export interface AttendanceDayRecords {
     group: { id: string; name: string; courseName: string; startTime: string };
   }>;
 }
+
+export type AttendanceJournalTotals = Record<AttendanceStatus, number> & { marked: number; rate: number | null };
+
+/** Guruhning oylik davomat jurnali: o'quvchilar × dars kunlari */
+export interface AttendanceJournal {
+  group: { id: string; name: string; courseName: string; teacher: string | null };
+  year: number;
+  month: number;
+  today: string;
+  days: Array<{ date: string; weekday: WeekDay; scheduled: boolean; session: 'HELD' | 'CANCELLED' | 'PLANNED' | null; marked: number; absent: number }>;
+  students: Array<{
+    id: string;
+    code: string;
+    name: string;
+    extraMember: boolean;
+    former: boolean;
+    cells: Record<string, AttendanceStatus>;
+    totals: AttendanceJournalTotals;
+  }>;
+  totals: AttendanceJournalTotals;
+}

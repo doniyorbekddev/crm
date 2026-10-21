@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
-import type { AttendanceSheet, MarkAttendancePayload, AttendanceDay, AttendanceDayRecords } from '@/types/attendance';
+import type { AttendanceSheet, MarkAttendancePayload, AttendanceDay, AttendanceDayRecords, AttendanceJournal } from '@/types/attendance';
 import type {
   AttendanceCalendar,
   AttendanceRankingParams,
@@ -15,6 +15,11 @@ import type {
 } from '@/types/attendanceAnalytics';
 
 export const attendanceService = {
+  /** Oylik jurnal; oy berilmasa — joriy oy (o'quv markaz vaqti bo'yicha) */
+  async journal(groupId: string, month?: string): Promise<AttendanceJournal> {
+    const response = await api.get<ApiSuccessResponse<AttendanceJournal>>(`/groups/${groupId}/attendance/month`, { params: month ? { month } : {} });
+    return response.data.data;
+  },
   async sheet(groupId: string, date: string): Promise<AttendanceSheet> {
     const response = await api.get<ApiSuccessResponse<AttendanceSheet>>(`/groups/${groupId}/attendance`, { params: { date } });
     return response.data.data;

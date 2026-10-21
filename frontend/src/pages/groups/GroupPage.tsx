@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, Pencil, Send, Target, UserRound, UsersRound } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, NotebookTabs, Pencil, Send, Target, UserRound, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -123,6 +123,15 @@ export default function GroupPage() {
               >
                 <CalendarCheck className="size-4" aria-hidden />
                 Davomat
+              </Link>
+            )}
+            {canViewAttendance && (
+              <Link
+                to={`/attendance/groups/${group.id}/journal`}
+                className="focus-ring inline-flex h-9 items-center gap-2 rounded-control border border-border px-3.5 text-body font-medium text-fg transition-colors hover:bg-surface-muted"
+              >
+                <NotebookTabs className="size-4" aria-hidden />
+                Oylik jurnal
               </Link>
             )}
             <Button variant="secondary" leftIcon={<Target className="size-4" aria-hidden />} onClick={() => setDialog('mastery')}>

@@ -4747,7 +4747,12 @@
 "O‘qituvchisi yo‘q faol guruhlar": "Active groups without a teacher",
 "O‘quvchi kartasida kiriting": "Enter it on the student card",
 "O‘quvchi vazifa, baho va jadvalni o‘zi ko‘ra olmaydi": "The student cannot see homework, grades and schedule",
-"O‘quvchilar → Kabinetlar ochish": "Students → Open portal accounts"
+"O‘quvchilar → Kabinetlar ochish": "Students → Open portal accounts",
+"· qo‘shimcha guruh": "· additional group",
+"Belgilar: + keldi, K kechikdi, S sababli, Y kelmadi, · belgilanmagan, × bekor qilingan. Davomat foizi = (keldi + kechikdi) / belgilanganlar. Kun sarlavhasini bossangiz, o‘sha kunning varag‘i ochiladi.": "Marks: + present, K late, S excused, Y absent, · not marked, × cancelled. Attendance = (present + late) / marked. Click a date to open that day's sheet.",
+"Bu oyda dars kuni yo‘q": "No lesson days this month",
+"Guruh jadvali yoki boshlanish sanasi bu oyga to‘g‘ri kelmaydi": "The group's schedule or start date doesn't fall in this month",
+"O‘quvchi guruhga qo‘shilgach jurnalda ko‘rinadi": "Students appear in the journal once added to the group"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",

@@ -4782,7 +4782,12 @@
 "O‘qituvchisi yo‘q faol guruhlar": "Активные группы без преподавателя",
 "O‘quvchi kartasida kiriting": "Укажите в карточке ученика",
 "O‘quvchi vazifa, baho va jadvalni o‘zi ko‘ra olmaydi": "Ученик не видит задания, оценки и расписание",
-"O‘quvchilar → Kabinetlar ochish": "Ученики → Открыть кабинеты"
+"O‘quvchilar → Kabinetlar ochish": "Ученики → Открыть кабинеты",
+"· qo‘shimcha guruh": "· дополнительная группа",
+"Belgilar: + keldi, K kechikdi, S sababli, Y kelmadi, · belgilanmagan, × bekor qilingan. Davomat foizi = (keldi + kechikdi) / belgilanganlar. Kun sarlavhasini bossangiz, o‘sha kunning varag‘i ochiladi.": "Обозначения: + пришёл, K опоздал, S уважительная причина, Y не пришёл, · не отмечено, × отменено. Посещаемость = (пришёл + опоздал) / отмеченные. Нажмите на дату, чтобы открыть лист этого дня.",
+"Bu oyda dars kuni yo‘q": "В этом месяце нет учебных дней",
+"Guruh jadvali yoki boshlanish sanasi bu oyga to‘g‘ri kelmaydi": "Расписание или дата начала группы не попадают на этот месяц",
+"O‘quvchi guruhga qo‘shilgach jurnalda ko‘rinadi": "Ученик появится в журнале после добавления в группу"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",

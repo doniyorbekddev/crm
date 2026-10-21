@@ -43,3 +43,12 @@ export const markAttendanceSchema = z.object({
 
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>;
 export type MarkAttendanceInput = z.infer<typeof markAttendanceSchema>;
+
+/** Oylik jurnal: ?month=2026-10 (berilmasa — joriy oy, o'quv markaz vaqti bo'yicha) */
+export const attendanceMonthQuerySchema = z.object({
+  month: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Oy formati: 2026-10')
+    .optional(),
+});

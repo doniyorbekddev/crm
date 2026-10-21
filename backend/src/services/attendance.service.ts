@@ -138,7 +138,7 @@ interface AttendanceAccess {
   scope: BranchScope;
 }
 
-async function getAttendanceAccess(actor: AuthUser): Promise<AttendanceAccess> {
+export async function getAttendanceAccess(actor: AuthUser): Promise<AttendanceAccess> {
   const permissions = await permissionService.getRolePermissions(actor.roleId);
   return {
     userId: actor.id,
@@ -174,7 +174,7 @@ const groupSheetSelect = {
   teacher: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.GroupSelect;
 
-async function findVisibleGroup(access: AttendanceAccess, groupId: string) {
+export async function findVisibleGroup(access: AttendanceAccess, groupId: string) {
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: groupSheetSelect });
   // Guruh ID'si klientdan keladi — egalik va filial har so'rovda shu yerda tekshiriladi. Begona guruh uchun 404
   // (mavjudligi oshkor qilinmaydi).

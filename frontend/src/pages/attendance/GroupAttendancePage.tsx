@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarCheck, CheckCheck, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, CheckCheck, CheckCircle2, NotebookTabs } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Link, Navigate, useBlocker, useParams, useSearchParams } from 'react-router-dom';
@@ -214,20 +214,29 @@ export default function GroupAttendancePage() {
         description={`${sheet.group.courseName} · ${formatDate(sheet.date)} · ${startTime}–${endTime}${sheet.group.room ? ` · ${sheet.group.room}-xona` : ''}`}
         breadcrumb={back}
         actions={
-          <Input
-            type="date"
-            aria-label="Dars sanasi"
-            className="sm:w-44"
-            value={date}
-            disabled={dirty || save.isPending}
-            title={dirty ? 'Avval o‘zgarishlarni saqlang' : undefined}
-            onChange={(event) => {
-              if (DATE_PATTERN.test(event.target.value)) {
-                setSavedAt(null);
-                setSearchParams({ date: event.target.value }, { replace: true });
-              }
-            }}
-          />
+          <>
+            <Link
+              to={`/attendance/groups/${groupId}/journal?month=${date.slice(0, 7)}`}
+              className="focus-ring inline-flex h-9 items-center gap-2 rounded-control border border-border px-3 text-body font-medium text-fg hover:bg-surface-muted"
+            >
+              <NotebookTabs className="size-4" aria-hidden />
+              Oylik jurnal
+            </Link>
+            <Input
+              type="date"
+              aria-label="Dars sanasi"
+              className="sm:w-44"
+              value={date}
+              disabled={dirty || save.isPending}
+              title={dirty ? 'Avval o‘zgarishlarni saqlang' : undefined}
+              onChange={(event) => {
+                if (DATE_PATTERN.test(event.target.value)) {
+                  setSavedAt(null);
+                  setSearchParams({ date: event.target.value }, { replace: true });
+                }
+              }}
+            />
+          </>
         }
       />
 

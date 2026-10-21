@@ -15,6 +15,8 @@ groupRouter.get('/', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.
 groupRouter.get('/:id', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.getById);
 groupRouter.get('/:id/mastery', requirePermission(PERMISSIONS.GROUP_VIEW), masteryController.group);
 groupRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.getSheet);
+groupRouter.get('/:id/attendance/month', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.month);
+groupRouter.get('/:id/attendance/month/export', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.monthExport);
 /** Chop etiladigan Telegram taklifnomalari (QR) — kod yaratadi, shuning uchun POST */
 groupRouter.post('/:id/telegram-invites', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.groupInvites);
 groupRouter.post('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_MARK), attendanceController.mark);
