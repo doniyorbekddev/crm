@@ -48,6 +48,8 @@ studentRouter.post('/:id/transfer', requirePermission(PERMISSIONS.STUDENT_MANAGE
 /** Qo'shimcha o'quv guruhlari (PMT: ikkinchi fan) — moliyaga ta'sir qilmaydi */
 studentRouter.post('/:id/groups', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.addGroup);
 studentRouter.post('/:id/groups/:groupId/remove', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.removeGroup);
+// PMT: qo'shimcha guruh o'qituvchisi ulushi — maosh hisobiga ta'sir qiladi, shuning uchun maosh huquqi
+studentRouter.put('/:id/groups/:groupId/share', requirePermission(PERMISSIONS.SALARY_CALCULATE), studentController.setGroupShare);
 studentRouter.post('/', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.create);
 studentRouter.put('/:id', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.update);
 studentRouter.patch('/:id/status', requirePermission(PERMISSIONS.STUDENT_MANAGE), studentController.setStatus);

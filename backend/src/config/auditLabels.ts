@@ -129,6 +129,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'document.downloaded': 'Xodim hujjati yuklab olindi',
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
   'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
+  'student.group_share_changed': 'PMT o‘qituvchi ulushi o‘zgartirildi',
   'sms.settings_updated': 'SMS sozlamalari o‘zgartirildi',
   'sms.test_sent': 'Sinov SMS yuborildi',
   'settings.academy_updated': 'Markaz ma’lumotlari o‘zgartirildi',
@@ -279,6 +280,7 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'settings.academy_logo_updated',
   'settings.academy_logo_removed',
   'sms.settings_updated',
+  'student.group_share_changed',
 ];
 
 export function auditActionLabel(action: string): string {

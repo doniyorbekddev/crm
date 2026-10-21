@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftRight, Layers, Plus, UserMinus, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Layers, Percent, Plus, UserMinus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -7,15 +7,19 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
+import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { studentsService } from '@/services/students.service';
 import type { StudentExtraGroup, StudentItem } from '@/types/student';
 import type { WeekDay } from '@/types/group';
 import { WEEK_DAY_LABELS } from '@/utils/courseLabels';
+import { formatMoney } from '@/utils/format';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 import { GroupOptions } from '../GroupOptions';
 import { TransferGroupModal } from '../TransferGroupModal';
 
@@ -30,7 +34,11 @@ function scheduleOf(group: StudentExtraGroup): string {
  */
 export function StudentGroupsCard({ student, canManage }: { student: StudentItem; canManage: boolean }) {
   const queryClient = useQueryClient();
-  const [dialog, setDialog] = useState<{ type: 'transfer' } | { type: 'add' } | { type: 'remove'; group: StudentExtraGroup } | null>(null);
+  // Ulush maosh hisobiga ta'sir qiladi — maoshni hisoblash huquqi kerak
+  const canSetShare = usePermission(PERMISSIONS.SALARY_CALCULATE);
+  const [dialog, setDialog] = useState<
+    { type: 'transfer' } | { type: 'add' } | { type: 'remove'; group: StudentExtraGroup } | { type: 'share'; group: StudentExtraGroup } | null
+  >(null);
   const saved = () => {
     setDialog(null);
     void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
@@ -72,6 +80,8 @@ export function StudentGroupsCard({ student, canManage }: { student: StudentItem
           <span className="inline-flex items-center gap-1 text-caption text-fg-subtle">
             <Wallet className="size-3.5" aria-hidden />
             Oylik to‘lov shu guruh bo‘yicha
+            {student.extraGroups.some((group) => group.commissionShare > 0) &&
+              ` · asosiy o‘qituvchi ulushi ${100 - student.extraGroups.reduce((sum, group) => sum + group.commissionShare, 0)}%`}
           </span>
         </li>
         {student.extraGroups.map((group) => (
@@ -82,17 +92,25 @@ export function StudentGroupsCard({ student, canManage }: { student: StudentItem
                   {group.name}
                 </Link>
                 <Badge tone="neutral">Qo‘shimcha</Badge>
+                {group.commissionShare > 0 && <Badge tone="blue">Ulush {group.commissionShare}%</Badge>}
               </p>
               <p className="text-caption text-fg-muted">
                 {group.course.name}
                 {group.teacher ? ` · ${group.teacher.firstName} ${group.teacher.lastName}` : ''} · {scheduleOf(group)}
               </p>
             </div>
-            {canManage && (
-              <Button size="sm" variant="ghost" leftIcon={<UserMinus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'remove', group })}>
-                Chiqarish
-              </Button>
-            )}
+            <div className="flex flex-wrap gap-1">
+              {canSetShare && (
+                <Button size="sm" variant="ghost" leftIcon={<Percent className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'share', group })}>
+                  Ulush
+                </Button>
+              )}
+              {canManage && (
+                <Button size="sm" variant="ghost" leftIcon={<UserMinus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'remove', group })}>
+                  Chiqarish
+                </Button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
@@ -106,6 +124,7 @@ export function StudentGroupsCard({ student, canManage }: { student: StudentItem
       {dialog?.type === 'transfer' && <TransferGroupModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog?.type === 'add' && <AddGroupModal student={student} onClose={() => setDialog(null)} onSaved={saved} />}
       {dialog?.type === 'remove' && <RemoveGroupModal student={student} group={dialog.group} onClose={() => setDialog(null)} onSaved={saved} />}
+      {dialog?.type === 'share' && <ShareModal student={student} group={dialog.group} onClose={() => setDialog(null)} onSaved={saved} />}
     </div>
   );
 }
@@ -201,6 +220,70 @@ function RemoveGroupModal({ student, group, onClose, onSaved }: { student: Stude
         <FormField label="Sabab" htmlFor="extra-group-remove" required hint="Guruh tarixida saqlanadi">
           <Textarea id="extra-group-remove" rows={3} maxLength={255} autoFocus value={reason} onChange={(event) => setReason(event.target.value)} />
         </FormField>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * PMT: qo'shimcha guruh o'qituvchisiga oylik to'lovdan ulush. Faqat keyingi to'lovlarga ta'sir qiladi —
+ * bo'linish har to'lov paytida qotiriladi, o'tgan to'lov va maoshlar o'zgarmaydi.
+ */
+function ShareModal({ student, group, onClose, onSaved }: { student: StudentItem; group: StudentExtraGroup; onClose: () => void; onSaved: () => void }) {
+  const [value, setValue] = useState(String(group.commissionShare));
+  const [error, setError] = useState<string | null>(null);
+  const others = student.extraGroups.filter((item) => item.id !== group.id).reduce((sum, item) => sum + item.commissionShare, 0);
+  const share = Number(value.replace(',', '.'));
+  const valid = value.trim() !== '' && Number.isFinite(share) && share >= 0 && others + share <= 100 && Math.round(share * 100) === share * 100;
+  const save = useMutation({
+    mutationFn: () => studentsService.setGroupShare(student.id, group.id, share),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      onSaved();
+    },
+    onError: (mutationError) => setError(getErrorMessage(mutationError)),
+  });
+  const example = 1_000_000;
+  const extraPart = valid ? Math.round((example * share) / 100) : 0;
+
+  return (
+    <Modal
+      open
+      title="O‘qituvchi ulushi"
+      description={`${student.firstName} ${student.lastName} · ${group.name}${group.teacher ? ` · ${group.teacher.firstName} ${group.teacher.lastName}` : ''}`}
+      onClose={onClose}
+      closeDisabled={save.isPending}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={save.isPending}>
+            Bekor qilish
+          </Button>
+          <Button loading={save.isPending} disabled={!valid} onClick={() => save.mutate()}>
+            Saqlash
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && <Alert tone="error">{error}</Alert>}
+        <Alert tone="info">
+          O‘quvchining oylik to‘lovidan shu ulush «{group.name}» o‘qituvchisining foiz asosiga, qolgani asosiy guruh o‘qituvchisiga yoziladi.
+          Faqat keyingi to‘lovlarga amal qiladi — o‘tgan to‘lovlar va maoshlar o‘zgarmaydi.
+        </Alert>
+        <FormField
+          label="Ulush, %"
+          htmlFor="group-share"
+          hint={others > 0 ? `Boshqa qo‘shimcha guruhlarda: ${others}% · jami 100% dan oshmasin` : '0 — hammasi asosiy guruh o‘qituvchisiga'}
+          {...(value.trim() !== '' && !valid ? { error: `0 dan ${100 - others} gacha` } : {})}
+        >
+          <Input id="group-share" inputMode="decimal" value={value} autoFocus onChange={(event) => setValue(event.target.value)} />
+        </FormField>
+        {valid && share > 0 && (
+          <p className="text-caption text-fg-muted">
+            Masalan, {formatMoney(example)} to‘lovdan: «{group.name}» o‘qituvchisiga {formatMoney(extraPart)}, asosiy guruh o‘qituvchisiga{' '}
+            {formatMoney(example - extraPart)} (har biri o‘z foizi bilan).
+          </p>
+        )}
       </div>
     </Modal>
   );

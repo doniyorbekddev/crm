@@ -30,7 +30,7 @@ import { createDefaultSchedule } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
-import type { AddStudentGroupInput, RemoveStudentGroupInput, StudentMessageInput, TransferStudentGroupInput } from '../validators/student.validator.js';
+import type { AddStudentGroupInput, RemoveStudentGroupInput, StudentGroupShareInput, StudentMessageInput, TransferStudentGroupInput } from '../validators/student.validator.js';
 import { moneyUz } from '../utils/money.js';
 import { isRosterLimited } from './teachingAccess.js';
 import { gamificationHooks } from './gamification.service.js';
@@ -64,13 +64,14 @@ export const studentSelect = {
   createdAt: true,
   course: { select: { id: true, name: true } },
   group: { select: { id: true, name: true } },
-  // Qo'shimcha (o'quv) guruhlar — moliyaga ta'sir qilmaydi
+  // Qo'shimcha (o'quv) guruhlar — qarz/shartnoma yaratmaydi; o'qituvchi ulushi (PMT) ixtiyoriy
   groupMemberships: {
     where: ACTIVE_MEMBERSHIP,
     orderBy: { joinedAt: 'asc' },
     select: {
       id: true,
       joinedAt: true,
+      commissionShare: true,
       group: {
         select: {
           id: true,
@@ -144,6 +145,8 @@ export interface StudentDto {
     scheduleDays: string[];
     startTime: string;
     endTime: string;
+    /** Shu guruh o'qituvchisiga oylik to'lovdan ulush (%), 0 — hammasi asosiy guruh o'qituvchisiga */
+    commissionShare: number;
   }>;
   debt: { total: number; paid: number; remaining: number; status: DebtStatus } | null;
 }
@@ -191,6 +194,7 @@ export function toStudentDto(student: StudentRecord): StudentDto {
       scheduleDays: membership.group.scheduleDays,
       startTime: membership.group.startTime,
       endTime: membership.group.endTime,
+      commissionShare: membership.commissionShare.toNumber(),
     })),
     debt: student.debt
       ? {
@@ -753,6 +757,44 @@ export const studentService = {
       }
       throw error;
     }
+    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+  },
+
+  /**
+   * PMT: qo'shimcha guruh o'qituvchisining ulushi (oylik to'lovdan, %). Faqat **keyingi** to'lovlarga ta'sir qiladi —
+   * bo'linish har to'lov paytida qotiriladi, o'tgan to'lovlar va maoshlar o'zgarmaydi. Ulushlar yig'indisi ≤ 100%.
+   */
+  async setGroupShare(actor: AuthUser, id: string, groupId: string, input: StudentGroupShareInput, client: ClientInfo): Promise<StudentDto> {
+    const access = await getStudentAccess(actor);
+    await findVisibleStudent(access, id);
+    await prisma.$transaction(async (tx) => {
+      // Bir o'quvchining a'zoliklari qulflanadi: parallel o'zgartirish yig'indini 100% dan oshirmasin
+      await tx.$queryRaw`SELECT "id" FROM "student_group_memberships" WHERE "studentId" = ${id} AND "leftAt" IS NULL FOR UPDATE`;
+      const memberships = await tx.studentGroupMembership.findMany({
+        where: { studentId: id, ...ACTIVE_MEMBERSHIP },
+        select: { id: true, groupId: true, commissionShare: true, group: { select: { name: true } } },
+      });
+      const membership = memberships.find((row) => row.groupId === groupId);
+      if (!membership) throw AppError.notFound('O‘quvchi bu qo‘shimcha guruhda emas');
+      const others = memberships.filter((row) => row.id !== membership.id).reduce((sum, row) => sum + row.commissionShare.toNumber(), 0);
+      if (others + input.commissionShare > 100) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          { field: 'commissionShare', message: `Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda ${others}%)` },
+        ]);
+      }
+      const before = membership.commissionShare.toNumber();
+      if (before === input.commissionShare) return;
+      await tx.studentGroupMembership.update({ where: { id: membership.id }, data: { commissionShare: input.commissionShare } });
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'student.group_share_changed',
+        entityType: 'student',
+        entityId: id,
+        before: { group: membership.group.name, commissionShare: before },
+        after: { group: membership.group.name, commissionShare: input.commissionShare },
+        ...client,
+      });
+    });
     return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 

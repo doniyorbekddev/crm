@@ -22,8 +22,11 @@ vi.mock('@/services/students.service', () => ({
     })),
     addGroup: vi.fn(async () => ({ data: {}, message: 'O‘quvchi qo‘shimcha guruhga qo‘shildi' })),
     removeGroup: vi.fn(async () => ({ data: {}, message: 'Chiqarildi' })),
+    setGroupShare: vi.fn(async () => ({ data: {}, message: 'O‘qituvchi ulushi saqlandi' })),
   },
 }));
+let salaryPermission = false;
+vi.mock('@/hooks/usePermission', () => ({ usePermission: () => salaryPermission }));
 
 const STUDENT = {
   id: 's1',
@@ -43,6 +46,7 @@ const STUDENT = {
       scheduleDays: ['TUESDAY', 'THURSDAY'],
       startTime: '14:00',
       endTime: '15:30',
+      commissionShare: 0,
     },
   ],
 } as unknown as StudentItem;
@@ -58,7 +62,10 @@ function renderCard(canManage = true) {
 }
 
 describe('O‘quvchining guruhlari (PMT)', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    salaryPermission = false;
+  });
 
   it('asosiy va qo‘shimcha guruh: fan, o‘qituvchi, jadval; to‘lov asosiy guruh bo‘yicha', () => {
     renderCard();
@@ -85,5 +92,24 @@ describe('O‘quvchining guruhlari (PMT)', () => {
     renderCard(false);
     expect(screen.queryByRole('button', { name: 'Qo‘shimcha guruh' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Chiqarish' })).toBeNull();
+  });
+
+  it('ulush: faqat maosh huquqi bilan; 100% dan oshsa saqlab bo‘lmaydi; namuna bo‘linish ko‘rsatiladi', async () => {
+    const user = userEvent.setup();
+    renderCard();
+    expect(screen.queryByRole('button', { name: 'Ulush' })).toBeNull();
+    salaryPermission = true;
+    renderCard();
+    await user.click(screen.getAllByRole('button', { name: 'Ulush' })[0]!);
+    const dialog = screen.getByRole('dialog');
+    const input = within(dialog).getByLabelText(/Ulush, %/);
+    await user.clear(input);
+    await user.type(input, '120');
+    expect(within(dialog).getByRole('button', { name: 'Saqlash' })).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, '40');
+    expect(within(dialog).getByText(/^Masalan,/)).toHaveTextContent(/400.000.*600.000/);
+    await user.click(within(dialog).getByRole('button', { name: 'Saqlash' }));
+    await vi.waitFor(() => expect(studentsService.setGroupShare).toHaveBeenCalledWith('s1', 'g2', 40));
   });
 });

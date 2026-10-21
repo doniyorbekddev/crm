@@ -8,6 +8,7 @@ import { businessMonthRange, currentBusinessMonth } from '../utils/dates.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CommissionQuery } from '../validators/commission.validator.js';
 import { auditService } from './audit.service.js';
+import { ACTIVE_MEMBERSHIP } from './groupMembership.js';
 
 /**
  * O‘qituvchi foizi (revenue commission) — promt: "o‘qituvchiga biriktirilgan o‘quvchilardan HAQIQATDA
@@ -113,6 +114,73 @@ export function commissionAmount(base: number, percentage: number): number {
 
 const accrualKey = (paymentId: string) => `payment:${paymentId}:accrual`;
 const reversalKey = (paymentId: string) => `payment:${paymentId}:reversal`;
+/** PMT: qo'shimcha guruh o'qituvchisining yozuvi (asosiy o'qituvchi kalitlari o'zgarmagan — eski yozuvlar bilan mos) */
+const shareAccrualKey = (paymentId: string, teacherId: string) => `payment:${paymentId}:accrual:${teacherId}`;
+
+/** To'lovning bir o'qituvchiga tegishli qismi (foiz asosi) */
+interface CommissionPart {
+  teacherId: string;
+  base: number;
+  /** Asosiy guruh o'qituvchisi (to'lovdagi `teacherId`) */
+  main: boolean;
+  /** Qo'shimcha guruh ulushi bo'lsa — izoh uchun */
+  share: { percent: number; groupName: string | null } | null;
+}
+
+/**
+ * To'lov o'qituvchilar bo'yicha: qo'shimcha guruh ulushlari to'lov paytida qotirilgan (payment_teacher_shares),
+ * qolgani asosiy guruh o'qituvchisiga. Ulushsiz (eski) to'lov — butun summa asosiy o'qituvchiga, avvalgidek.
+ */
+async function partsOf(db: Db, payment: { id: string; amount: number; teacherId: string | null }): Promise<CommissionPart[]> {
+  const shares = await db.paymentTeacherShare.findMany({
+    where: { paymentId: payment.id },
+    orderBy: { createdAt: 'asc' },
+    select: { teacherId: true, sharePercent: true, baseAmount: true, group: { select: { name: true } } },
+  });
+  const extra = shares.map((row) => ({
+    teacherId: row.teacherId,
+    base: row.baseAmount.toNumber(),
+    main: false,
+    share: { percent: row.sharePercent.toNumber(), groupName: row.group?.name ?? null },
+  }));
+  const mainBase = payment.amount - extra.reduce((sum, part) => sum + part.base, 0);
+  return [...(payment.teacherId ? [{ teacherId: payment.teacherId, base: mainBase, main: true, share: null }] : []), ...extra];
+}
+
+function shareReason(share: NonNullable<CommissionPart['share']>): string {
+  return `PMT ulushi${share.groupName ? `: ${share.groupName}` : ''} (${share.percent}%)`;
+}
+
+/**
+ * To'lov paytida PMT bo'linishini qotiradi: o'quvchining faol qo'shimcha guruhlaridagi ulushlar (o'qituvchi bo'yicha
+ * jamlanadi). Asosiy o'qituvchining o'zi dars beradigan qo'shimcha guruh ulushi unda qoladi (alohida yozuv emas).
+ * Ulushlar yig'indisi 100% dan oshmaydi (a'zolikda tekshiriladi); yaxlitlash summadan oshirmaydi.
+ */
+async function recordShares(db: Db, payment: { id: string; studentId: string; amount: number; teacherId: string | null }): Promise<void> {
+  if ((await db.paymentTeacherShare.count({ where: { paymentId: payment.id } })) > 0) return;
+  const memberships = await db.studentGroupMembership.findMany({
+    where: { studentId: payment.studentId, ...ACTIVE_MEMBERSHIP, commissionShare: { gt: 0 }, group: { teacherId: { not: null } } },
+    orderBy: { joinedAt: 'asc' },
+    select: { groupId: true, commissionShare: true, group: { select: { teacherId: true } } },
+  });
+  const byTeacher = new Map<string, { groupId: string; percent: number }>();
+  for (const membership of memberships) {
+    const teacherId = membership.group.teacherId!;
+    if (teacherId === payment.teacherId) continue;
+    const current = byTeacher.get(teacherId);
+    byTeacher.set(teacherId, { groupId: current?.groupId ?? membership.groupId, percent: (current?.percent ?? 0) + membership.commissionShare.toNumber() });
+  }
+  let left = payment.amount;
+  const rows = [];
+  for (const [teacherId, value] of byTeacher) {
+    const percent = Math.min(value.percent, 100);
+    const base = Math.min(Math.round((payment.amount * percent) / 100), left);
+    if (base <= 0) continue;
+    left -= base;
+    rows.push({ paymentId: payment.id, teacherId, groupId: value.groupId, sharePercent: percent, baseAmount: base });
+  }
+  if (rows.length > 0) await db.paymentTeacherShare.createMany({ data: rows });
+}
 
 function monthIndex(value: YearMonth): number {
   return value.year * 12 + (value.month - 1);
@@ -272,7 +340,7 @@ function toTeacherRef(profile: ProfileRef): TeacherRefDto {
 const summaryKey = (profileId: string, value: YearMonth) => `${profileId}:${value.year}-${value.month}`;
 
 /**
- * Bir nechta o‘qituvchi × bir nechta oy uchun yig‘ma ko‘rsatkichlar — 5 ta so‘rov bilan
+ * Bir nechta o‘qituvchi × bir nechta oy uchun yig‘ma ko‘rsatkichlar — 6 ta so‘rov bilan
  * (o‘qituvchi va oylar sonidan qat’i nazar).
  */
 async function summarizeMonths(profiles: ProfileRef[], months: YearMonth[]): Promise<Map<string, CommissionMonthDto>> {
@@ -285,14 +353,14 @@ async function summarizeMonths(profiles: ProfileRef[], months: YearMonth[]): Pro
   const profileIds = profiles.map((profile) => profile.id);
   const monthFilter = months.map(({ year, month }) => ({ year, month }));
 
-  const [payments, entries, rules, periods, groups] = await Promise.all([
+  const [payments, entries, rules, periods, groups, shares] = await Promise.all([
     prisma.payment.findMany({
       where: {
         teacherId: { in: userIds },
         deletedAt: null,
         paidAt: { gte: businessMonthRange(first.year, first.month).start, lt: businessMonthRange(last.year, last.month).end },
       },
-      select: { teacherId: true, amount: true, paidAt: true },
+      select: { teacherId: true, amount: true, paidAt: true, teacherShares: { select: { baseAmount: true } } },
     }),
     prisma.commissionEntry.groupBy({
       by: ['teacherId', 'year', 'month'],
@@ -321,6 +389,14 @@ async function summarizeMonths(profiles: ProfileRef[], months: YearMonth[]): Pro
     prisma.group.findMany({
       where: { teacherId: { in: userIds } },
       select: { teacherId: true, _count: { select: { students: { where: { deletedAt: null, status: 'ACTIVE' } } } } },
+    }),
+    // PMT: boshqa guruh to'lovidan shu o'qituvchilarga qotirilgan ulushlar
+    prisma.paymentTeacherShare.findMany({
+      where: {
+        teacherId: { in: userIds },
+        payment: { deletedAt: null, paidAt: { gte: businessMonthRange(first.year, first.month).start, lt: businessMonthRange(last.year, last.month).end } },
+      },
+      select: { teacherId: true, baseAmount: true, payment: { select: { paidAt: true } } },
     }),
   ]);
 
@@ -364,7 +440,14 @@ async function summarizeMonths(profiles: ProfileRef[], months: YearMonth[]): Pro
     const row = result.get(summaryKey(profile.id, currentBusinessMonth(payment.paidAt)));
     if (!row) continue;
     row.payments += 1;
-    row.revenue += payment.amount.toNumber();
+    row.revenue += payment.amount.toNumber() - payment.teacherShares.reduce((sum, share) => sum + share.baseAmount.toNumber(), 0);
+  }
+  for (const share of shares) {
+    const profile = profileByUser.get(share.teacherId);
+    const row = profile ? result.get(summaryKey(profile.id, currentBusinessMonth(share.payment.paidAt))) : undefined;
+    if (!row) continue;
+    row.payments += 1;
+    row.revenue += share.baseAmount.toNumber();
   }
   for (const entry of entries) {
     const profile = profileByUser.get(entry.teacherId);
@@ -386,23 +469,38 @@ interface PaymentRef {
 /**
  * + yozuvning teskarisi (to‘liq yoki qisman). Asl yozuv o‘chirilmaydi.
  * Asl oy maoshi tasdiqlangan bo‘lsa — teskari yozuv keyingi ochiq oyga tushadi.
+ * PMT bo'linishi bo'lsa — har o'qituvchining qismi o'z ulushiga proporsional qaytariladi.
  */
 async function reverseAccrual(
   db: Db,
   payment: PaymentRef,
   options: { sourceKey: string; baseAmount: number; actorId: string | null; reason: string; client: ClientInfo },
 ): Promise<void> {
-  if (!payment.teacherId) return;
-  const profile = await db.teacherProfile.findUnique({ where: { userId: payment.teacherId }, select: { id: true } });
+  for (const part of await partsOf(db, payment)) {
+    await reversePart(db, payment, part, options);
+  }
+}
+
+async function reversePart(
+  db: Db,
+  payment: PaymentRef,
+  part: CommissionPart,
+  options: { sourceKey: string; baseAmount: number; actorId: string | null; reason: string; client: ClientInfo },
+): Promise<void> {
+  if (part.base <= 0) return;
+  const profile = await db.teacherProfile.findUnique({ where: { userId: part.teacherId }, select: { id: true } });
   if (!profile) return;
-  if (await db.commissionEntry.findUnique({ where: { sourceKey: options.sourceKey }, select: { id: true } })) return;
+  const sourceKey = part.main ? options.sourceKey : `${options.sourceKey}:${part.teacherId}`;
+  if (await db.commissionEntry.findUnique({ where: { sourceKey }, select: { id: true } })) return;
 
   let accrual = await db.commissionEntry.findUnique({
-    where: { sourceKey: accrualKey(payment.id) },
+    where: { sourceKey: part.main ? accrualKey(payment.id) : shareAccrualKey(payment.id, part.teacherId) },
     select: { id: true, year: true, month: true, baseAmount: true, percentage: true, amount: true },
   });
 
   if (!accrual) {
+    // Qo'shimcha guruh ulushida + yozuv bo'lmasa (foizsiz model) — qaytariladigan foiz yo'q
+    if (!part.main) return;
     // Funksiya qo'shilishidan oldingi to'lov: oy maoshi tasdiqlangan va foiz umumiy tushumdan
     // hisoblangan bo'lsa — tarixiy + yozuv tiklanadi, aks holda qaytariladigan foiz yo'q.
     const paidMonth = currentBusinessMonth(payment.paidAt);
@@ -413,12 +511,12 @@ async function reverseAccrual(
     accrual = await db.commissionEntry.create({
       data: {
         sourceKey: accrualKey(payment.id),
-        teacherId: payment.teacherId,
+        teacherId: part.teacherId,
         paymentId: payment.id,
         kind: 'ACCRUAL',
-        baseAmount: payment.amount,
+        baseAmount: part.base,
         percentage,
-        amount: commissionAmount(payment.amount, percentage),
+        amount: commissionAmount(part.base, percentage),
         year: paidMonth.year,
         month: paidMonth.month,
         occurredAt: payment.paidAt,
@@ -435,23 +533,25 @@ async function reverseAccrual(
     ? await resolveOpenMonth(db, profile.id, currentBusinessMonth())
     : { year: accrual.year, month: accrual.month };
   const percentage = accrual.percentage.toNumber();
+  // Shu o'qituvchi qismidan qaytariladigan asos: to'liq bekor qilishda — butun qism, qisman qaytarishda — ulushga proporsional
+  const base = options.baseAmount === payment.amount ? part.base : Math.round((options.baseAmount * part.base) / payment.amount);
+  if (base <= 0) return;
   // To'liq bekor qilishda aynan + yozuv qoplanadi, qisman qaytarishda summaga proporsional
-  const amount =
-    options.baseAmount === accrual.baseAmount.toNumber() ? -accrual.amount.toNumber() : -commissionAmount(options.baseAmount, percentage);
+  const amount = base === accrual.baseAmount.toNumber() ? -accrual.amount.toNumber() : -commissionAmount(base, percentage);
 
   const reversal = await db.commissionEntry.create({
     data: {
-      sourceKey: options.sourceKey,
-      teacherId: payment.teacherId,
+      sourceKey,
+      teacherId: part.teacherId,
       paymentId: payment.id,
       kind: 'REVERSAL',
-      baseAmount: -options.baseAmount,
+      baseAmount: -base,
       percentage,
       amount,
       year: target.year,
       month: target.month,
       occurredAt: new Date(),
-      reason: options.reason,
+      reason: part.share ? `${options.reason} · ${shareReason(part.share)}`.slice(0, 255) : options.reason,
       createdById: options.actorId,
     },
     select: { id: true },
@@ -465,10 +565,11 @@ async function reverseAccrual(
     metadata: {
       receipt: formatPaymentNumber(payment.number),
       amount,
-      base: -options.baseAmount,
+      base: -base,
       period: formatSalaryPeriod(target.year, target.month),
       movedToOpenPeriod: Boolean(accrualLocked),
       reason: options.reason,
+      ...(part.share ? { share: part.share.percent } : {}),
     },
     ...options.client,
   });
@@ -479,36 +580,44 @@ async function reverseAccrual(
 // ---------------------------------------------------------------------
 
 export const commissionService = {
-  /** To‘lov qabul qilinganda: o‘qituvchida foizli model bo‘lsa, + yozuv */
+  /**
+   * To‘lov qabul qilinganda: PMT bo'linishi qotiriladi, so'ng foizli modeldagi har o'qituvchiga o'z qismidan + yozuv
+   * (asosiy guruh o'qituvchisi — qolgan summadan, qo'shimcha guruh o'qituvchisi — ulushidan).
+   */
   async accrueForPayment(
     db: Db,
-    payment: { id: string; amount: number; paidAt: Date; teacherId: string | null },
+    payment: { id: string; studentId: string; amount: number; paidAt: Date; teacherId: string | null },
     actorId: string | null,
   ): Promise<void> {
-    if (!payment.teacherId) return;
-    const profile = await db.teacherProfile.findUnique({ where: { userId: payment.teacherId }, select: { id: true } });
-    if (!profile) return;
-    if (await db.commissionEntry.findUnique({ where: { sourceKey: accrualKey(payment.id) }, select: { id: true } })) return;
+    await recordShares(db, payment);
+    for (const part of await partsOf(db, payment)) {
+      if (part.base <= 0) continue;
+      const profile = await db.teacherProfile.findUnique({ where: { userId: part.teacherId }, select: { id: true } });
+      if (!profile) continue;
+      const sourceKey = part.main ? accrualKey(payment.id) : shareAccrualKey(payment.id, part.teacherId);
+      if (await db.commissionEntry.findUnique({ where: { sourceKey }, select: { id: true } })) continue;
 
-    const target = await resolveOpenMonth(db, profile.id, currentBusinessMonth(payment.paidAt));
-    const percentage = await percentageForMonth(db, profile.id, target);
-    if (percentage <= 0) return;
+      const target = await resolveOpenMonth(db, profile.id, currentBusinessMonth(payment.paidAt));
+      const percentage = await percentageForMonth(db, profile.id, target);
+      if (percentage <= 0) continue;
 
-    await db.commissionEntry.create({
-      data: {
-        sourceKey: accrualKey(payment.id),
-        teacherId: payment.teacherId,
-        paymentId: payment.id,
-        kind: 'ACCRUAL',
-        baseAmount: payment.amount,
-        percentage,
-        amount: commissionAmount(payment.amount, percentage),
-        year: target.year,
-        month: target.month,
-        occurredAt: payment.paidAt,
-        createdById: actorId,
-      },
-    });
+      await db.commissionEntry.create({
+        data: {
+          sourceKey,
+          teacherId: part.teacherId,
+          paymentId: payment.id,
+          kind: 'ACCRUAL',
+          baseAmount: part.base,
+          percentage,
+          amount: commissionAmount(part.base, percentage),
+          year: target.year,
+          month: target.month,
+          occurredAt: payment.paidAt,
+          reason: part.share ? shareReason(part.share) : null,
+          createdById: actorId,
+        },
+      });
+    }
   },
 
   /** To‘lov bekor qilinganda: + yozuvning to‘liq teskarisi */
@@ -543,17 +652,19 @@ export const commissionService = {
     const { start, end } = businessMonthRange(value.year, value.month);
 
     if (percentage > 0) {
+      // Asosiy guruh o'qituvchisi sifatida: yozuvi yo'q to'lovlar (asos — PMT ulushlaridan qolgani)
       const missing = await db.payment.findMany({
         where: {
           teacherId: profile.userId,
           deletedAt: null,
           paidAt: { gte: start, lt: end },
-          commissionEntries: { none: { kind: 'ACCRUAL' } },
+          commissionEntries: { none: { kind: 'ACCRUAL', teacherId: profile.userId } },
         },
-        select: { id: true, amount: true, paidAt: true },
+        select: { id: true, amount: true, paidAt: true, teacherShares: { select: { baseAmount: true } } },
       });
       for (const payment of missing) {
-        const amount = payment.amount.toNumber();
+        const amount = payment.amount.toNumber() - payment.teacherShares.reduce((sum, share) => sum + share.baseAmount.toNumber(), 0);
+        if (amount <= 0) continue;
         await db.commissionEntry.create({
           data: {
             sourceKey: accrualKey(payment.id),
@@ -566,6 +677,34 @@ export const commissionService = {
             year: value.year,
             month: value.month,
             occurredAt: payment.paidAt,
+            createdById: actorId,
+          },
+        });
+      }
+      // Qo'shimcha guruh o'qituvchisi sifatida: qotirilgan ulushi bor, yozuvi yo'q to'lovlar
+      const missingShares = await db.paymentTeacherShare.findMany({
+        where: {
+          teacherId: profile.userId,
+          payment: { deletedAt: null, paidAt: { gte: start, lt: end }, commissionEntries: { none: { kind: 'ACCRUAL', teacherId: profile.userId } } },
+        },
+        select: { baseAmount: true, sharePercent: true, group: { select: { name: true } }, payment: { select: { id: true, paidAt: true } } },
+      });
+      for (const share of missingShares) {
+        const amount = share.baseAmount.toNumber();
+        if (amount <= 0) continue;
+        await db.commissionEntry.create({
+          data: {
+            sourceKey: shareAccrualKey(share.payment.id, profile.userId),
+            teacherId: profile.userId,
+            paymentId: share.payment.id,
+            kind: 'ACCRUAL',
+            baseAmount: amount,
+            percentage,
+            amount: commissionAmount(amount, percentage),
+            year: value.year,
+            month: value.month,
+            occurredAt: share.payment.paidAt,
+            reason: shareReason({ percent: share.sharePercent.toNumber(), groupName: share.group?.name ?? null }),
             createdById: actorId,
           },
         });
@@ -605,17 +744,23 @@ export const commissionService = {
       }
     }
 
-    const [commission, revenue] = await Promise.all([
+    const monthPayments = { deletedAt: null, paidAt: { gte: start, lt: end } };
+    const [commission, revenue, sharedOut, sharedIn] = await Promise.all([
       db.commissionEntry.aggregate({
         where: { teacherId: profile.userId, year: value.year, month: value.month },
         _sum: { amount: true },
       }),
       db.payment.aggregate({
-        where: { teacherId: profile.userId, deletedAt: null, paidAt: { gte: start, lt: end } },
+        where: { teacherId: profile.userId, ...monthPayments },
         _sum: { amount: true },
       }),
+      // Tushum: asosiy guruh to'lovlari − boshqa o'qituvchilarga berilgan PMT ulushlari + o'ziga berilgan ulushlar
+      db.paymentTeacherShare.aggregate({ where: { payment: { teacherId: profile.userId, ...monthPayments } }, _sum: { baseAmount: true } }),
+      db.paymentTeacherShare.aggregate({ where: { teacherId: profile.userId, payment: monthPayments }, _sum: { baseAmount: true } }),
     ]);
-    return { revenue: revenue._sum.amount?.toNumber() ?? 0, commission: commission._sum.amount?.toNumber() ?? 0 };
+    const revenueTotal =
+      (revenue._sum.amount?.toNumber() ?? 0) - (sharedOut._sum.baseAmount?.toNumber() ?? 0) + (sharedIn._sum.baseAmount?.toNumber() ?? 0);
+    return { revenue: revenueTotal, commission: commission._sum.amount?.toNumber() ?? 0 };
   },
 
   /** Oydagi barcha yozuvlarni maosh davriga bog‘laydi */

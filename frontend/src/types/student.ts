@@ -172,4 +172,6 @@ export interface StudentExtraGroup {
   scheduleDays: string[];
   startTime: string;
   endTime: string;
+  /** PMT: shu guruh o'qituvchisiga oylik to'lovdan ulush (%), 0 — hammasi asosiy guruh o'qituvchisiga */
+  commissionShare: number;
 }

@@ -497,7 +497,7 @@ export const paymentService = {
       await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
       await commissionService.accrueForPayment(
         tx,
-        { id: payment.id, amount: input.amount, paidAt: payment.paidAt, teacherId: payment.teacherId },
+        { id: payment.id, studentId: student.id, amount: input.amount, paidAt: payment.paidAt, teacherId: payment.teacherId },
         actor?.id ?? null,
       );
 

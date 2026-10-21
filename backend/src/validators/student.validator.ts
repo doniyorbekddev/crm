@@ -124,6 +124,16 @@ export const addStudentGroupSchema = z.object({
 });
 export type AddStudentGroupInput = z.infer<typeof addStudentGroupSchema>;
 
+/** PMT: qo'shimcha guruh o'qituvchisi ulushi (oylik to'lovdan, %) */
+export const studentGroupShareSchema = z.object({
+  commissionShare: z
+    .number('Ulushni kiriting')
+    .min(0, 'Ulush 0 dan kam bo‘lmaydi')
+    .max(100, 'Ulush 100% dan oshmaydi')
+    .refine((value) => Math.round(value * 100) === value * 100, 'Ko‘pi bilan 2 xona kasr'),
+});
+export type StudentGroupShareInput = z.infer<typeof studentGroupShareSchema>;
+
 /** Qo'shimcha guruhdan chiqarish — boshqa guruhlar va o'quvchi profili o'zgarmaydi */
 export const removeStudentGroupSchema = z.object({
   reason: z.string('Sababni kiriting').trim().min(3, 'Sabab kamida 3 belgi').max(255, 'Sabab juda uzun'),

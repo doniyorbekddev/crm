@@ -4774,7 +4774,17 @@
 "Telefon raqami yo‘q": "No phone number",
 "Telegram ulanmagan ota-onaga muhim xabarlar SMS bo‘lib boradi. Telegrami borlarga SMS ketmaydi.": "Parents without Telegram get important messages by SMS. Those with Telegram don't get SMS.",
 "Ulangan · jo‘natuvchi": "Connected · sender",
-"O‘tkazib yuborildi:": "Skipped:"
+"O‘tkazib yuborildi:": "Skipped:",
+", asosiy guruh o‘qituvchisiga": ", to the main group's teacher",
+"» o‘qituvchisining foiz asosiga, qolgani asosiy guruh o‘qituvchisiga yoziladi. Faqat keyingi to‘lovlarga amal qiladi — o‘tgan to‘lovlar va maoshlar o‘zgarmaydi.": "» teacher's commission base, the rest to the main group's teacher. Applies to future payments only — past payments and salaries don't change.",
+"(har biri o‘z foizi bilan).": "(each at their own rate).",
+"0 — hammasi asosiy guruh o‘qituvchisiga": "0 — everything goes to the main group's teacher",
+"Ko‘pi bilan 2 xona kasr": "At most 2 decimal places",
+"PMT o‘qituvchi ulushi o‘zgartirildi": "PMT teacher share changed",
+"Ulush 0 dan kam bo‘lmaydi": "Share cannot be below 0",
+"O‘qituvchi ulushi": "Teacher share",
+"O‘qituvchi ulushi saqlandi — keyingi to‘lovlardan amal qiladi": "Teacher share saved — applies from the next payments",
+"O‘quvchining oylik to‘lovidan shu ulush «": "This share of the student's monthly payment goes to the «"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5390,6 +5400,9 @@
 "{0} ta faol o‘quvchi · {1} · {2}": "{0} active students · {1} · {2}",
 "{0} ta yo‘nalishda e’tibor kerak": "{0} areas need attention",
 "jadval {0} · shartnoma {1}": "schedule {0} · contract {1}",
-"muddati o‘tgan: {0}": "overdue: {0}"
+"muddati o‘tgan: {0}": "overdue: {0}",
+"· asosiy o‘qituvchi ulushi {0}%": "· main teacher share {0}%",
+"Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "Other extra groups: {0}% · total must not exceed 100%",
+"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Extra group shares must not exceed 100% in total (others: {0}%)"
 }
 }

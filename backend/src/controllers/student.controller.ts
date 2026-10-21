@@ -17,6 +17,7 @@ import {
   transferStudentGroupSchema,
   addStudentGroupSchema,
   removeStudentGroupSchema,
+  studentGroupShareSchema,
   updateStudentSchema,
   updateStudentStatusSchema,
 } from '../validators/student.validator.js';
@@ -97,6 +98,14 @@ export const studentController = {
     const input = addStudentGroupSchema.parse(req.body);
     sendSuccess(res, await studentService.addGroup(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: 'O‘quvchi qo‘shimcha guruhga qo‘shildi',
+    });
+  },
+
+  async setGroupShare(req: Request, res: Response): Promise<void> {
+    const { id, groupId } = studentGroupParamSchema.parse(req.params);
+    const input = studentGroupShareSchema.parse(req.body);
+    sendSuccess(res, await studentService.setGroupShare(requireAuthUser(req), id, groupId, input, getClientInfo(req)), {
+      message: 'O‘qituvchi ulushi saqlandi — keyingi to‘lovlardan amal qiladi',
     });
   },
 

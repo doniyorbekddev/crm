@@ -518,14 +518,18 @@ export async function loadWorkload(
     where: { deletedAt: null, status: 'ACTIVE', group: { teacherId: teacherUserId } },
   });
 
-  // Tushum to'lov paytida yozilgan o'qituvchi bo'yicha (o'quvchining hozirgi guruhi emas)
+  // Tushum to'lov paytida yozilgan o'qituvchi bo'yicha (o'quvchining hozirgi guruhi emas).
+  // PMT: boshqa o'qituvchiga qotirilgan ulush ayriladi, shu o'qituvchiga berilgan ulush qo'shiladi
   const paymentRange = businessMonthRange(year, month);
-  const revenue = await tx.payment.aggregate({
-    where: { deletedAt: null, teacherId: teacherUserId, paidAt: { gte: paymentRange.start, lt: paymentRange.end } },
-    _sum: { amount: true },
-  });
+  const monthPayments = { deletedAt: null, paidAt: { gte: paymentRange.start, lt: paymentRange.end } };
+  const [revenue, sharedOut, sharedIn] = await Promise.all([
+    tx.payment.aggregate({ where: { teacherId: teacherUserId, ...monthPayments }, _sum: { amount: true } }),
+    tx.paymentTeacherShare.aggregate({ where: { payment: { teacherId: teacherUserId, ...monthPayments } }, _sum: { baseAmount: true } }),
+    tx.paymentTeacherShare.aggregate({ where: { teacherId: teacherUserId, payment: monthPayments }, _sum: { baseAmount: true } }),
+  ]);
+  const groupRevenue = (revenue._sum.amount?.toNumber() ?? 0) - (sharedOut._sum.baseAmount?.toNumber() ?? 0) + (sharedIn._sum.baseAmount?.toNumber() ?? 0);
 
-  return { lessonsCount, studentsCount, groupRevenue: revenue._sum.amount?.toNumber() ?? 0 };
+  return { lessonsCount, studentsCount, groupRevenue };
 }
 
 export interface SalaryParts {

@@ -4809,7 +4809,17 @@
 "Telefon raqami yo‘q": "Нет номера телефона",
 "Telegram ulanmagan ota-onaga muhim xabarlar SMS bo‘lib boradi. Telegrami borlarga SMS ketmaydi.": "Родителям без Telegram важные сообщения приходят по SMS. Тем, у кого есть Telegram, SMS не отправляются.",
 "Ulangan · jo‘natuvchi": "Подключено · отправитель",
-"O‘tkazib yuborildi:": "Пропущено:"
+"O‘tkazib yuborildi:": "Пропущено:",
+", asosiy guruh o‘qituvchisiga": ", преподавателю основной группы",
+"» o‘qituvchisining foiz asosiga, qolgani asosiy guruh o‘qituvchisiga yoziladi. Faqat keyingi to‘lovlarga amal qiladi — o‘tgan to‘lovlar va maoshlar o‘zgarmaydi.": "» в базу процента её преподавателя, остальное — преподавателю основной группы. Действует только для следующих платежей — прошлые платежи и зарплаты не меняются.",
+"(har biri o‘z foizi bilan).": "(каждому по его проценту).",
+"0 — hammasi asosiy guruh o‘qituvchisiga": "0 — всё преподавателю основной группы",
+"Ko‘pi bilan 2 xona kasr": "Не более 2 знаков после запятой",
+"PMT o‘qituvchi ulushi o‘zgartirildi": "Изменена доля преподавателя (PMT)",
+"Ulush 0 dan kam bo‘lmaydi": "Доля не может быть меньше 0",
+"O‘qituvchi ulushi": "Доля преподавателя",
+"O‘qituvchi ulushi saqlandi — keyingi to‘lovlardan amal qiladi": "Доля преподавателя сохранена — действует со следующих платежей",
+"O‘quvchining oylik to‘lovidan shu ulush «": "Эта доля ежемесячного платежа ученика идёт «"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5426,6 +5436,9 @@
 "{0} ta faol o‘quvchi · {1} · {2}": "Активных учеников: {0} · {1} · {2}",
 "{0} ta yo‘nalishda e’tibor kerak": "Требуют внимания направлений: {0}",
 "jadval {0} · shartnoma {1}": "график {0} · договор {1}",
-"muddati o‘tgan: {0}": "просрочено: {0}"
+"muddati o‘tgan: {0}": "просрочено: {0}",
+"· asosiy o‘qituvchi ulushi {0}%": "· доля основного преподавателя {0}%",
+"Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "В других доп. группах: {0}% · всего не более 100%",
+"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Сумма долей доп. групп не должна превышать 100% (в других {0}%)"
 }
 }

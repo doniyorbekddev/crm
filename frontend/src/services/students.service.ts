@@ -125,6 +125,12 @@ export const studentsService = {
     return { data: response.data.data, message: response.data.message };
   },
 
+  /** PMT: qo'shimcha guruh o'qituvchisi ulushi — faqat keyingi to'lovlarga ta'sir qiladi */
+  async setGroupShare(id: string, groupId: string, commissionShare: number): Promise<MessageResult<StudentItem>> {
+    const response = await api.put<ApiSuccessResponse<StudentItem>>(`/students/${id}/groups/${groupId}/share`, { commissionShare });
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async removeGroup(id: string, groupId: string, reason: string): Promise<MessageResult<StudentItem>> {
     const response = await api.post<ApiSuccessResponse<StudentItem>>(`/students/${id}/groups/${groupId}/remove`, { reason });
     return { data: response.data.data, message: response.data.message };

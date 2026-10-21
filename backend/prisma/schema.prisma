@@ -313,6 +313,7 @@ model User {
   alertsRead                Alert[]                @relation("AlertReadBy")
   taughtPayments            Payment[]              @relation("PaymentTeacher")
   commissionEntries         CommissionEntry[]      @relation("CommissionTeacher")
+  paymentTeacherShares      PaymentTeacherShare[]
   createdCommissions        CommissionEntry[]      @relation("CommissionCreatedBy")
   unlockedSalaries          TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
   submittedSalaries         TeacherSalaryPeriod[]  @relation("SalarySubmittedBy")
@@ -976,6 +977,7 @@ model Group {
   recurringHomework RecurringHomework[]
   exams             Exam[]
   payments          Payment[]
+  paymentTeacherShares PaymentTeacherShare[]
   certificates      Certificate[]
   feedback          Feedback[]
   changesFrom       StudentGroupChange[] @relation("GroupChangeFrom")
@@ -1166,6 +1168,9 @@ model StudentGroupMembership {
   leftAt      DateTime?
   reason      String?   @db.VarChar(255)
   leftReason  String?   @db.VarChar(255)
+  /// PMT: shu guruh o'qituvchisiga o'quvchi oylik to'lovidan beriladigan ulush (0–100%). Qolgani asosiy guruh o'qituvchisiga.
+  /// Faqat keyingi to'lovlarga ta'sir qiladi — bo'linish to'lov paytida payment_teacher_shares ga qotiriladi.
+  commissionShare Decimal @default(0) @db.Decimal(5, 2)
   addedById   String?
   removedById String?
 
@@ -1243,6 +1248,7 @@ model Payment {
   teacher           User?             @relation("PaymentTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   commissionEntries CommissionEntry[]
   refunds           PaymentRefund[]
+  teacherShares     PaymentTeacherShare[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -2986,6 +2992,27 @@ enum CommissionEntryKind {
 
 /// O‘qituvchi foizining tarixi: har bir to‘lovdan (+), bekor qilingan to‘lovdan (−) va salbiy
 /// qoldiqni keyingi oyga ko‘chirishdan yozuv. Yozuvlar o‘chirilmaydi — tuzatish teskari yozuv bilan.
+/// To'lov paytida qotirilgan PMT bo'linishi: qo'shimcha guruh o'qituvchisining ulushi (foiz asosi).
+/// Asosiy guruh o'qituvchisining asosi = to'lov − shu yozuvlar yig'indisi. Keyin a'zolik o'zgarsa ham tarix o'zgarmaydi.
+model PaymentTeacherShare {
+  id           String   @id @default(cuid())
+  paymentId    String
+  teacherId    String
+  /// Qaysi qo'shimcha guruh tufayli (guruh o'chsa ham ulush qoladi)
+  groupId      String?
+  sharePercent Decimal  @db.Decimal(5, 2)
+  baseAmount   Decimal  @db.Decimal(14, 2)
+  createdAt    DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([paymentId, teacherId])
+  @@index([teacherId])
+  @@map("payment_teacher_shares")
+}
+
 model CommissionEntry {
   id             String              @id @default(cuid())
   /// Takrorlanmaslik kaliti: payment:<id>:accrual, payment:<id>:reversal, period:<id>:carry-out
