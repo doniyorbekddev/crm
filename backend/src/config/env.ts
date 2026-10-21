@@ -39,6 +39,8 @@ export interface EnvRuleInput {
   PAYME_KEY?: string;
   CODE_RUNNER_URL?: string;
   CODE_RUNNER_TOKEN?: string;
+  ESKIZ_EMAIL?: string;
+  ESKIZ_PASSWORD?: string;
 }
 
 /** Telegram `secret_token` faqat shu belgilarni qabul qiladi (setWebhook, 1–256 belgi) */
@@ -70,6 +72,10 @@ export function productionEnvIssues(values: EnvRuleInput): Array<{ path: string;
   }
   if (Boolean(values.PAYME_MERCHANT_ID) !== Boolean(values.PAYME_KEY)) {
     issues.push({ path: 'PAYME_KEY', message: 'Payme qisman sozlangan: PAYME_MERCHANT_ID va PAYME_KEY birga berilishi kerak' });
+  }
+
+  if (Boolean(values.ESKIZ_EMAIL) !== Boolean(values.ESKIZ_PASSWORD)) {
+    issues.push({ path: 'ESKIZ_PASSWORD', message: 'Eskiz qisman sozlangan: ESKIZ_EMAIL va ESKIZ_PASSWORD birga berilishi kerak' });
   }
 
   if (values.CODE_RUNNER_URL) {
@@ -173,6 +179,13 @@ const envSchema = z
     PAYME_FISCAL_PACKAGE_CODE: optionalString,
     /** To'lovdan keyin qaytiladigan sahifa (bo'lmasa — birinchi CLIENT_URL) */
     PAYMENT_RETURN_URL: optionalString,
+
+    // --- SMS: Eskiz.uz (ixtiyoriy). Bo'sh — SMS kanali o'chiq (navbatga ham tushmaydi, soxta "yuborildi" yo'q) ---
+    ESKIZ_EMAIL: optionalString,
+    ESKIZ_PASSWORD: optionalString,
+    /** Jo'natuvchi nomi (Eskiz kabinetida tasdiqlangan); tasdiqlanmagan bo'lsa — standart 4546 */
+    ESKIZ_FROM: z.string().trim().min(1).max(11).default('4546'),
+    ESKIZ_BASE_URL: z.url().default('https://notify.eskiz.uz/api'),
 
     // --- Kod sandbox (TZ 3.1 GAP-19): alohida runner server. Bo'sh — kod bajarilmaydi (soxta natija yo'q) ---
     CODE_RUNNER_URL: optionalString,

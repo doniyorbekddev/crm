@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { academySettingsController } from '../controllers/academySettings.controller.js';
+import { smsSettingsController } from '../controllers/smsSettings.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { heavyLimiter } from '../middleware/rateLimiter.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import { uploadBody } from './document.routes.js';
 import { avatarService } from '../services/avatar.service.js';
@@ -16,6 +18,11 @@ settingsRouter.get('/academy', academySettingsController.get);
 settingsRouter.put('/academy', academySettingsController.save);
 settingsRouter.post('/academy/logo', uploadBody, academySettingsController.uploadLogo);
 settingsRouter.delete('/academy/logo', academySettingsController.removeLogo);
+// SMS zaxira kanali (Eskiz.uz): kalitlar faqat server env'da — bu yerda holat, turlar va limit
+settingsRouter.get('/sms', smsSettingsController.get);
+settingsRouter.put('/sms', smsSettingsController.save);
+settingsRouter.get('/sms/balance', smsSettingsController.balance);
+settingsRouter.post('/sms/test', heavyLimiter, smsSettingsController.test);
 
 /** Tokensiz ochiq ma'lumot — faqat brend (nom, logo, valyuta, til) */
 export const publicRouter = Router();

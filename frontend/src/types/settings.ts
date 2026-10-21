@@ -37,3 +37,21 @@ export interface Branding {
   currency: AcademyCurrency;
   defaultLanguage: AcademyLanguage;
 }
+
+export type SmsRecipients = 'PARENTS' | 'PARENTS_AND_STUDENTS';
+
+export interface SmsSettingsPayload {
+  enabled: boolean;
+  types: string[];
+  recipients: SmsRecipients;
+  dailyLimit: number;
+}
+
+/** SMS zaxira kanali (Eskiz.uz). Kalitlar serverda — bu yerda faqat "sozlanganmi" */
+export interface SmsSettings extends SmsSettingsPayload {
+  configured: boolean;
+  sender: string;
+  availableTypes: Array<{ type: string; label: string; example: string }>;
+  today: { sent: number; failed: number; skipped: number; pending: number };
+  updatedAt: string | null;
+}

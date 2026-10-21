@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import { prisma } from '../config/database.js';
 import type { DeliveryChannel, Prisma } from '../generated/prisma/client.js';
 import { logger } from '../utils/logger.js';
@@ -5,6 +6,8 @@ import { readFile } from 'node:fs/promises';
 import { mimeForStoredPath, resolveStoredPath } from '../utils/fileStorage.js';
 import { escapeHtml, isTelegramEnabled, telegramService, type InlineKeyboard, type TelegramSendResult } from './telegram.service.js';
 import { metrics } from '../utils/metrics.js';
+import { eskizService, isSmsConfigured, normalizeSmsPhone, toSmsText } from './eskiz.service.js';
+import { loadSmsSettings, smsSentToday } from './smsSettings.service.js';
 
 /**
  * Yetkazish navbati (outbox).
@@ -98,6 +101,11 @@ export interface EnqueueInput {
   dedupeKey?: string | null;
   /** Xabar ostidagi tugmalar: havola (`url`) yoki bot amali (`data`) */
   buttons?: DeliveryButton[];
+  /**
+   * SMS zaxirasi: qabul qiluvchida tasdiqlangan Telegram chati **umuman** bo'lmasa, shu raqamga SMS navbatga qo'yiladi.
+   * Chaqiruvchi faqat SMS ruxsat etilganda beradi (smsFallbackAllowed); raqam kerak bo'lgandagina o'qiladi.
+   */
+  smsPhone?: () => Promise<string | null>;
 }
 
 export type DeliveryButton = { text: string; url: string } | { text: string; data: string };
@@ -108,12 +116,17 @@ function backoffFor(attempts: number): Date {
   return new Date(Date.now() + BACKOFF_BASE_MS * attempts * attempts);
 }
 
-/** Qabul qiluvchining tasdiqlangan va faol Telegram chatlari */
-async function findChats(tx: Tx, target: EnqueueInput['target']) {
+function ownersOf(target: EnqueueInput['target']): Prisma.TelegramLinkWhereInput[] {
   const owner: Prisma.TelegramLinkWhereInput[] = [];
   if (target.userId) owner.push({ userId: target.userId });
   if (target.studentId) owner.push({ studentId: target.studentId });
   if (target.parentId) owner.push({ parentId: target.parentId });
+  return owner;
+}
+
+/** Qabul qiluvchining tasdiqlangan va faol Telegram chatlari */
+async function findChats(tx: Tx, target: EnqueueInput['target']) {
+  const owner = ownersOf(target);
   if (owner.length === 0) return [];
 
   // Ovozsiz (bot "Sozlamalar"da eslatmalar o'chirilgan) chatga avtomatik eslatma ketmaydi
@@ -123,6 +136,96 @@ async function findChats(tx: Tx, target: EnqueueInput['target']) {
   });
 }
 
+/** SMS navbatga: faqat Telegram umuman ulanmagan bo'lsa (ovozsiz qilingan chat — egasining tanlovi, SMS ham ketmaydi) */
+async function enqueueSms(tx: Tx, input: EnqueueInput, smsPhone: () => Promise<string | null>): Promise<number> {
+  // Takrorlanishdan himoya kalitsiz SMS yuborilmaydi (pulli kanal — qayta ishga tushgan job ikki marta yubormasin)
+  const owner = ownersOf(input.target);
+  if (!input.dedupeKey || owner.length === 0) return 0;
+  const linked = await tx.telegramLink.count({ where: { OR: owner, verifiedAt: { not: null }, isActive: true } });
+  if (linked > 0) return 0;
+  const phone = normalizeSmsPhone(await smsPhone());
+  if (!phone) return 0;
+  const result = await tx.notificationDelivery.createMany({
+    data: [
+      {
+        notificationId: input.notificationId ?? null,
+        channel: 'SMS',
+        phone,
+        title: input.title,
+        body: input.body,
+        dedupeKey: `${input.dedupeKey}:SMS`.slice(0, 200),
+      },
+    ],
+    skipDuplicates: true,
+  });
+  return result.count;
+}
+
+/** SMS tungi vaqtda yuborilmaydi: 21:00–08:00 (o'quv markaz vaqti) — ertalab 08:00 ga suriladi */
+const SMS_QUIET_FROM_HOUR = 21;
+const SMS_QUIET_UNTIL_HOUR = 8;
+
+type SmsRunState = { sentToday: number | null; limit: number | null };
+
+function smsQuietUntil(now: Date): Date | null {
+  const offsetMs = env.APP_UTC_OFFSET_MINUTES * 60_000;
+  const local = new Date(now.getTime() + offsetMs);
+  const hour = local.getUTCHours();
+  if (hour >= SMS_QUIET_UNTIL_HOUR && hour < SMS_QUIET_FROM_HOUR) return null;
+  const morning = new Date(local);
+  morning.setUTCHours(SMS_QUIET_UNTIL_HOUR, 0, 0, 0);
+  if (hour >= SMS_QUIET_FROM_HOUR) morning.setUTCDate(morning.getUTCDate() + 1);
+  return new Date(morning.getTime() - offsetMs);
+}
+
+/**
+ * Bitta SMS yozuvi. Sozlanmagan yoki o'chirilgan bo'lsa — SKIPPED (soxta "yuborildi" yo'q);
+ * kunlik limit tugasa — SKIPPED (ertaga eskirgan xabar ketmasin); tunda — ertalabga suriladi.
+ */
+async function processSms(
+  item: { id: string; title: string; body: string; attempts: number; phone: string | null },
+  now: Date,
+  state: SmsRunState,
+): Promise<'sent' | 'failed' | 'skipped' | 'postponed'> {
+  const skip = async (reason: string) => {
+    await prisma.notificationDelivery.update({ where: { id: item.id }, data: { status: 'SKIPPED', lastError: reason } });
+    return 'skipped' as const;
+  };
+  if (!isSmsConfigured()) return skip('SMS sozlanmagan (Eskiz kalitlari yo‘q)');
+  const settings = await loadSmsSettings();
+  if (!settings.enabled) return skip('SMS o‘chirilgan (Sozlamalar)');
+  if (!item.phone) return skip('Telefon raqami yo‘q');
+
+  const quietUntil = smsQuietUntil(now);
+  if (quietUntil) {
+    await prisma.notificationDelivery.update({ where: { id: item.id }, data: { nextAttemptAt: quietUntil } });
+    return 'postponed';
+  }
+
+  state.limit ??= settings.dailyLimit;
+  state.sentToday ??= await smsSentToday(now);
+  if (state.sentToday >= state.limit) return skip(`Kunlik SMS limiti (${state.limit}) tugadi`);
+
+  const result = await eskizService.send(item.phone, toSmsText(item.body));
+  const attempts = item.attempts + 1;
+  if (result.ok) {
+    state.sentToday += 1;
+    await prisma.notificationDelivery.update({
+      where: { id: item.id },
+      data: { status: 'SENT', attempts, sentAt: new Date(), lastError: null, providerMessageId: result.providerMessageId ?? null },
+    });
+    return 'sent';
+  }
+  const giveUp = !result.retryable || attempts >= MAX_ATTEMPTS;
+  await prisma.notificationDelivery.update({
+    where: { id: item.id },
+    data: { status: giveUp ? 'FAILED' : 'PENDING', attempts, lastError: result.error ?? null, nextAttemptAt: giveUp ? undefined : backoffFor(attempts) },
+  });
+  if (!giveUp) return 'postponed';
+  metrics.notificationFailures.inc({ channel: 'SMS' });
+  return 'failed';
+}
+
 export const notificationDeliveryService = {
   /**
    * Navbatga qo'shadi. Asosiy amal bilan **bitta tranzaksiyada** chaqiriladi, shuning uchun
@@ -130,7 +233,7 @@ export const notificationDeliveryService = {
    */
   async enqueueInTransaction(tx: Tx, input: EnqueueInput): Promise<number> {
     const chats = await findChats(tx, input.target);
-    if (chats.length === 0) return 0;
+    if (chats.length === 0) return input.smsPhone ? enqueueSms(tx, input, input.smsPhone) : 0;
 
     const channel: DeliveryChannel = 'TELEGRAM';
     const rows = chats.map((chat) => ({
@@ -168,6 +271,8 @@ export const notificationDeliveryService = {
     let failed = 0;
     let skipped = 0;
     let throttled = false;
+    /** SMS: kunlik limit hisoblagichi — birinchi SMS yozuvida o'qiladi */
+    const sms: SmsRunState = { sentToday: null, limit: null };
 
     for (let batch = 0; batch < maxBatches && !throttled && Date.now() < deadline; batch += 1) {
       const pending = await prisma.notificationDelivery.findMany({
@@ -185,12 +290,21 @@ export const notificationDeliveryService = {
           broadcastId: true,
           broadcast: { select: { mediaPath: true, mediaFileName: true, mediaFileId: true } },
           telegramLink: { select: { chatId: true, isActive: true, verifiedAt: true } },
+          channel: true,
+          phone: true,
         },
       });
       if (pending.length === 0) break;
 
       for (const [index, item] of pending.entries()) {
         seen.push(item.id);
+        if (item.channel === 'SMS') {
+          const outcome = await processSms(item, now, sms);
+          if (outcome === 'sent') sent += 1;
+          else if (outcome === 'failed') failed += 1;
+          else if (outcome === 'skipped') skipped += 1;
+          continue;
+        }
         const chatId = item.telegramLink?.chatId;
         const usable = chatId && item.telegramLink?.isActive && item.telegramLink.verifiedAt;
 

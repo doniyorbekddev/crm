@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { NOTIFICATION_PRIORITY, isMutableNotificationType, notificationTypesOf } from '../config/notificationTypes.js';
 import { notificationDeliveryService } from './notificationDelivery.service.js';
 import type { DeliveryButton } from './notificationDelivery.service.js';
+import { smsFallbackAllowed } from './smsSettings.service.js';
 import { NotificationType } from '../generated/prisma/enums.js';
 import type { NotificationPriority, Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
@@ -236,11 +237,22 @@ export const notificationService = {
         if (setting && !setting.telegram) return 0;
       }
     }
+    // SMS zaxirasi (Eskiz): Telegram umuman ulanmagan bo'lsa — faqat Sozlamalarda yoqilgan turlar uchun
+    const recipient = input.parentId ? 'parent' : 'student';
+    const sms = await smsFallbackAllowed(input.type, recipient);
     return notificationDeliveryService.enqueueInTransaction(tx, {
       title: input.title,
       body: input.message,
       target: { studentId: input.studentId ?? null, parentId: input.parentId ?? null },
       dedupeKey: input.dedupeKey ?? null,
+      ...(sms
+        ? {
+            smsPhone: async () =>
+              input.parentId
+                ? ((await tx.parent.findUnique({ where: { id: input.parentId }, select: { phone: true } }))?.phone ?? null)
+                : ((await tx.student.findUnique({ where: { id: input.studentId! }, select: { phone: true } }))?.phone ?? null),
+          }
+        : {}),
     });
   },
 

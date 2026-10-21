@@ -175,6 +175,8 @@ enum AttendanceStatus {
 enum DeliveryChannel {
   IN_APP
   TELEGRAM
+  /// Eskiz.uz orqali SMS — Telegram ulanmagan ota-ona/o'quvchiga zaxira kanal (faqat yoqilgan turlar)
+  SMS
 }
 
 /// Yetkazish holati — navbat (outbox) uchun
@@ -1393,6 +1395,10 @@ model NotificationDelivery {
   /// Ommaviy xabar bo'lsa — qaysi biri (statistika uchun)
   broadcastId    String?
   telegramLinkId String?
+  /// SMS kanali: qabul qiluvchi raqami (998XXXXXXXXX)
+  phone          String?         @db.VarChar(20)
+  /// SMS provayderi (Eskiz) qaytargan xabar identifikatori
+  providerMessageId String?      @db.VarChar(64)
   title          String          @db.VarChar(200)
   body           String
   /// "photo" | "document" — bo'lsa xabar media bilan (izoh = body)
@@ -1416,6 +1422,7 @@ model NotificationDelivery {
   @@index([notificationId])
   @@index([broadcastId])
   @@index([createdAt])
+  @@index([channel, status, sentAt])
   @@map("notification_deliveries")
 }
 

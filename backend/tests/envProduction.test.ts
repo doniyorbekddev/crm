@@ -44,6 +44,12 @@ describe('§45 production env qoidalari', () => {
     expect(paths({ PAYME_MERCHANT_ID: 'm', PAYME_KEY: 'k' })).toEqual([]);
   });
 
+  it('Eskiz qisman sozlangan — xato; email va parol birga — to‘g‘ri', () => {
+    expect(paths({ ESKIZ_EMAIL: 'a@b.uz' })).toEqual(['ESKIZ_PASSWORD']);
+    expect(paths({ ESKIZ_PASSWORD: 'p' })).toEqual(['ESKIZ_PASSWORD']);
+    expect(paths({ ESKIZ_EMAIL: 'a@b.uz', ESKIZ_PASSWORD: 'p' })).toEqual([]);
+  });
+
   it('runner URL bor — token majburiy (≥32); URL noto‘g‘ri — xato', () => {
     expect(paths({ CODE_RUNNER_URL: 'http://10.0.0.5:8080' })).toEqual(['CODE_RUNNER_TOKEN']);
     expect(paths({ CODE_RUNNER_URL: 'http://10.0.0.5:8080', CODE_RUNNER_TOKEN: 'qisqa' })).toEqual(['CODE_RUNNER_TOKEN']);

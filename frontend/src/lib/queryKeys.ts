@@ -33,6 +33,8 @@ export const queryKeys = {
   settings: {
     academy: ['settings', 'academy'] as const,
     branding: ['settings', 'branding'] as const,
+    sms: ['settings', 'sms'] as const,
+    smsBalance: ['settings', 'sms', 'balance'] as const,
   },
   auth: {
     me: ['auth', 'me'] as const,

@@ -72,6 +72,10 @@ services:
       TRUST_PROXY: 1
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SLOW_REQUEST_MS: ${SLOW_REQUEST_MS:-800}
+      # SMS (Eskiz.uz) — bo'sh bo'lsa o'chiq
+      ESKIZ_EMAIL: ${ESKIZ_EMAIL:-}
+      ESKIZ_PASSWORD: ${ESKIZ_PASSWORD:-}
+      ESKIZ_FROM: ${ESKIZ_FROM:-4546}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}

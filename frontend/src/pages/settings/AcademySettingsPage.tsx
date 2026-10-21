@@ -18,6 +18,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { academySettingsService, brandingAssetUrl } from '@/services/academySettings.service';
 import type { AcademySettings, AcademySettingsPayload, Weekday, WorkingDay } from '@/types/settings';
 import { formatDateTime } from '@/utils/format';
+import { SmsSettingsCard } from './SmsSettingsCard';
 
 const DAY_LABELS: Record<Weekday, string> = {
   MONDAY: 'Dushanba',
@@ -299,6 +300,7 @@ function SettingsForm({ settings }: { settings: AcademySettings }) {
 
         <div className="space-y-4">
           <LogoCard settings={settings} />
+          <SmsSettingsCard />
         </div>
       </div>
     </>

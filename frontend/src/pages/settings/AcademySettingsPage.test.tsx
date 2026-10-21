@@ -20,6 +20,7 @@ const base: AcademySettings = {
 };
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('./SmsSettingsCard', () => ({ SmsSettingsCard: () => null }));
 vi.mock('@/services/academySettings.service', () => ({
   academySettingsService: {
     get: vi.fn(async () => base),
