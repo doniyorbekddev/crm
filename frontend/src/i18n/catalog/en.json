@@ -4720,7 +4720,34 @@
 "O‘quvchilardan import": "Import from students",
 "O‘quvchilardan ota-onalarni import qilish": "Import parents from students",
 "Chop etish (": "Print (",
-"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "The name is unknown — the profile is named “Parent of Ali Valiyev” and flagged in the note; edit it later. One phone number — one parent (siblings share one profile)."
+"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "The name is unknown — the profile is named “Parent of Ali Valiyev” and flagged in the note; edit it later. One phone number — one parent (siblings share one profile).",
+"Avtomatik xabarlar hech kimga yetib bormaydi": "Automatic messages reach no one",
+"Bu sahifa hech narsani o‘zgartirmaydi — har bir yozuv o‘z sahifasida tuzatiladi.": "This page changes nothing — each record is fixed on its own page.",
+"Davomat, vazifa va imtihonlarda ko‘rinmaydi": "Not visible in attendance, homework and exams",
+"Davomatni hech kim belgilamaydi, foiz hisoblanmaydi": "Nobody marks attendance; no commission is calculated",
+"Faol, lekin guruhsiz o‘quvchilar": "Active students without a group",
+"Guruh sahifasi → Telegram taklifnoma": "Group page → Telegram invite",
+"Hammasi joyida": "All good",
+"Ismi aniqlashtirilmagan ota-onalar (avtomatik yaratilgan)": "Parents with unconfirmed names (auto-created)",
+"Kabineti ochilmagan o‘quvchilar": "Students without a portal account",
+"Kelmadi, qarz va haftalik hisobot xabarlari ota-onaga yuborilmaydi": "Absence, debt and weekly report messages are not sent to parents",
+"Ko‘pincha chegirma yoki yaxlitlash qoldig‘i — o‘quvchi “qarzdor” bo‘lib ko‘rinadi": "Often a discount or rounding remainder — the student shows as a “debtor”",
+"Ma’lumotlar sifati": "Data quality",
+"muammo topilmadi": "no issues found",
+"Muddati o‘tgan mayda qoldiq (50 000 so‘mdan kam)": "Small overdue remainder (under 50,000 soum)",
+"Muddati o‘tgan qarz va eslatmalar noto‘g‘ri hisoblanadi": "Overdue debt and reminders are calculated incorrectly",
+"Ota-ona bilan aloqa qilib bo‘lmaydi": "The parent cannot be contacted",
+"Ota-ona telefoni bor, lekin ota-ona profili yo‘q": "Parent phone present, but no parent profile",
+"Ota-ona telefoni ham, profili ham yo‘q": "No parent phone and no parent profile",
+"Ro‘yxat (": "List (",
+"Telegram ulanmagan (o‘quvchi ham, ota-onasi ham)": "Telegram not connected (neither student nor parent)",
+"To‘lov jadvali shartnoma summasiga mos emas": "Payment schedule does not match the contract amount",
+"Xabar va hisobotlarda “...ning ota-onasi” deb chiqadi": "Shown as “Parent of …” in messages and reports",
+"Xabarlar, davomat va to‘lov hisoblari to‘g‘ri ishlashi uchun to‘ldirilishi kerak bo‘lgan ma’lumotlar": "Data to complete so messages, attendance and payment calculations work correctly",
+"O‘qituvchisi yo‘q faol guruhlar": "Active groups without a teacher",
+"O‘quvchi kartasida kiriting": "Enter it on the student card",
+"O‘quvchi vazifa, baho va jadvalni o‘zi ko‘ra olmaydi": "The student cannot see homework, grades and schedule",
+"O‘quvchilar → Kabinetlar ochish": "Students → Open portal accounts"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5332,6 +5359,10 @@
 "Ota-ona: {0}": "Parent: {0}",
 "{0} {1}ning ota-onasi": "Parent of {0} {1}",
 "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Telefon kamerasi bilan skanerlang → Telegram ochiladi → <b>Start</b> ni bosing. Kod bir marta ishlaydi{5}.</div> </div>": "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Scan with the phone camera → Telegram opens → tap <b>Start</b>. The code works once{5}.</div> </div>",
-"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">No link</div></div>"
+"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">No link</div></div>",
+"{0} ta faol o‘quvchi · {1} · {2}": "{0} active students · {1} · {2}",
+"{0} ta yo‘nalishda e’tibor kerak": "{0} areas need attention",
+"jadval {0} · shartnoma {1}": "schedule {0} · contract {1}",
+"muddati o‘tgan: {0}": "overdue: {0}"
 }
 }

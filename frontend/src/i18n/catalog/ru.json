@@ -4755,7 +4755,34 @@
 "O‘quvchilardan import": "Импорт из учеников",
 "O‘quvchilardan ota-onalarni import qilish": "Импорт родителей из учеников",
 "Chop etish (": "Печать (",
-"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "Имя и фамилия неизвестны — профиль назовётся «Родитель ученика Али Валиева» с пометкой в примечании; затем исправите. Один номер — один родитель (братья и сёстры привязываются к одному профилю)."
+"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "Имя и фамилия неизвестны — профиль назовётся «Родитель ученика Али Валиева» с пометкой в примечании; затем исправите. Один номер — один родитель (братья и сёстры привязываются к одному профилю).",
+"Avtomatik xabarlar hech kimga yetib bormaydi": "Автоматические уведомления никому не доходят",
+"Bu sahifa hech narsani o‘zgartirmaydi — har bir yozuv o‘z sahifasida tuzatiladi.": "Эта страница ничего не меняет — каждая запись исправляется на своей странице.",
+"Davomat, vazifa va imtihonlarda ko‘rinmaydi": "Не видны в посещаемости, заданиях и экзаменах",
+"Davomatni hech kim belgilamaydi, foiz hisoblanmaydi": "Посещаемость никто не отмечает, процент не начисляется",
+"Faol, lekin guruhsiz o‘quvchilar": "Активные ученики без группы",
+"Guruh sahifasi → Telegram taklifnoma": "Страница группы → Приглашение в Telegram",
+"Hammasi joyida": "Всё в порядке",
+"Ismi aniqlashtirilmagan ota-onalar (avtomatik yaratilgan)": "Родители без уточнённого имени (созданы автоматически)",
+"Kabineti ochilmagan o‘quvchilar": "Ученики без кабинета",
+"Kelmadi, qarz va haftalik hisobot xabarlari ota-onaga yuborilmaydi": "Уведомления о пропусках, долге и недельный отчёт не отправляются родителям",
+"Ko‘pincha chegirma yoki yaxlitlash qoldig‘i — o‘quvchi “qarzdor” bo‘lib ko‘rinadi": "Часто это остаток скидки или округления — ученик выглядит «должником»",
+"Ma’lumotlar sifati": "Качество данных",
+"muammo topilmadi": "проблем не найдено",
+"Muddati o‘tgan mayda qoldiq (50 000 so‘mdan kam)": "Небольшой просроченный остаток (меньше 50 000 сум)",
+"Muddati o‘tgan qarz va eslatmalar noto‘g‘ri hisoblanadi": "Просроченный долг и напоминания считаются неверно",
+"Ota-ona bilan aloqa qilib bo‘lmaydi": "С родителем невозможно связаться",
+"Ota-ona telefoni bor, lekin ota-ona profili yo‘q": "Есть телефон родителя, но нет профиля родителя",
+"Ota-ona telefoni ham, profili ham yo‘q": "Нет ни телефона, ни профиля родителя",
+"Ro‘yxat (": "Список (",
+"Telegram ulanmagan (o‘quvchi ham, ota-onasi ham)": "Telegram не подключён (ни ученик, ни родитель)",
+"To‘lov jadvali shartnoma summasiga mos emas": "График платежей не совпадает с суммой договора",
+"Xabar va hisobotlarda “...ning ota-onasi” deb chiqadi": "В сообщениях и отчётах отображается как «Родитель ученика …»",
+"Xabarlar, davomat va to‘lov hisoblari to‘g‘ri ishlashi uchun to‘ldirilishi kerak bo‘lgan ma’lumotlar": "Данные, которые нужно заполнить для корректной работы уведомлений, посещаемости и расчётов оплаты",
+"O‘qituvchisi yo‘q faol guruhlar": "Активные группы без преподавателя",
+"O‘quvchi kartasida kiriting": "Укажите в карточке ученика",
+"O‘quvchi vazifa, baho va jadvalni o‘zi ko‘ra olmaydi": "Ученик не видит задания, оценки и расписание",
+"O‘quvchilar → Kabinetlar ochish": "Ученики → Открыть кабинеты"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5368,6 +5395,10 @@
 "Ota-ona: {0}": "Родитель: {0}",
 "{0} {1}ning ota-onasi": "Родитель ученика {0} {1}",
 "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Telefon kamerasi bilan skanerlang → Telegram ochiladi → <b>Start</b> ni bosing. Kod bir marta ishlaydi{5}.</div> </div>": "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Отсканируйте камерой телефона → откроется Telegram → нажмите <b>Start</b>. Код срабатывает один раз{5}.</div> </div>",
-"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Нет ссылки</div></div>"
+"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Нет ссылки</div></div>",
+"{0} ta faol o‘quvchi · {1} · {2}": "Активных учеников: {0} · {1} · {2}",
+"{0} ta yo‘nalishda e’tibor kerak": "Требуют внимания направлений: {0}",
+"jadval {0} · shartnoma {1}": "график {0} · договор {1}",
+"muddati o‘tgan: {0}": "просрочено: {0}"
 }
 }

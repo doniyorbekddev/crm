@@ -591,6 +591,19 @@ export const router = createBrowserRouter([
                   },
                   {
                     element: (
+                      <PermissionGate permission={PERMISSIONS.STUDENT_MANAGE} />
+                    ),
+                    children: [
+                      {
+                        path: "data-quality",
+                        lazy: lazyComponent(
+                          () => import("@/pages/data-quality/DataQualityPage"),
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
                       <PermissionGate permission={PERMISSIONS.SALARY_VIEW} />
                     ),
                     children: [
