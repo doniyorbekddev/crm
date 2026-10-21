@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, Pencil, Target, UserRound, UsersRound } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, Pencil, Send, Target, UserRound, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { TableSkeleton } from '@/components/ui/Table';
 import { Tab, TabList, TabPanel, Tabs } from '@/components/ui/Tabs';
 import { usePermission } from '@/hooks/usePermission';
+import { TelegramInvitesModal } from './TelegramInvitesModal';
 import { queryKeys } from '@/lib/queryKeys';
 import { GroupAiModal } from '@/pages/teaching/GroupAiModal';
 import { groupsService } from '@/services/groups.service';
@@ -27,7 +28,7 @@ import { GroupMasteryMatrix } from './GroupMasteryMatrix';
 import { GroupMasteryModal } from './GroupMasteryModal';
 import { GroupStudentsTable } from './GroupStudentsTable';
 
-type Dialog = 'edit' | 'mastery' | 'ai' | null;
+type Dialog = 'edit' | 'mastery' | 'ai' | 'telegram' | null;
 type TabKey = 'students' | 'attendance' | 'homework' | 'exams' | 'progress';
 
 const BACK = { to: '/groups', label: 'Guruhlar' };
@@ -67,6 +68,7 @@ export default function GroupPage() {
   const canViewStudents = usePermission(TEACHING_ACCESS);
   const canViewHomework = usePermission(PERMISSIONS.HOMEWORK_VIEW);
   const canViewExams = usePermission(PERMISSIONS.EXAM_VIEW);
+  const canManagePortal = usePermission(PERMISSIONS.PORTAL_MANAGE);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [tab, setTab] = useState<TabKey>('students');
 
@@ -129,6 +131,11 @@ export default function GroupPage() {
             {canUseAi && (
               <Button variant="secondary" leftIcon={<Bot className="size-4" aria-hidden />} onClick={() => setDialog('ai')}>
                 AI tahlil
+              </Button>
+            )}
+            {canManagePortal && (
+              <Button variant="secondary" leftIcon={<Send className="size-4" aria-hidden />} onClick={() => setDialog('telegram')}>
+                Telegram taklifnoma
               </Button>
             )}
             {canManage && (
@@ -208,6 +215,7 @@ export default function GroupPage() {
           }}
         />
       )}
+      {dialog === 'telegram' && <TelegramInvitesModal groupId={group.id} onClose={() => setDialog(null)} />}
     </>
   );
 }

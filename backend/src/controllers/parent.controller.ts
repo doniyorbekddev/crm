@@ -8,8 +8,7 @@ import {
   linkStudentSchema,
   parentListQuerySchema,
   updateLinkSchema,
-  updateParentSchema,
-} from '../validators/parent.validator.js';
+  updateParentSchema, parentImportSchema } from '../validators/parent.validator.js';
 
 const linkParamSchema = idParamSchema;
 
@@ -28,6 +27,17 @@ export const parentController = {
   async forStudent(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     sendSuccess(res, await parentService.forStudent(requireAuthUser(req), id));
+  },
+
+  /** O'quvchilarning ota-ona telefonidan profillar: `dryRun: true` — faqat reja */
+  async importFromStudents(req: Request, res: Response): Promise<void> {
+    const input = parentImportSchema.parse(req.body);
+    const result = await parentService.importFromStudents(requireAuthUser(req), input, getClientInfo(req));
+    sendSuccess(res, result, {
+      message: result.dryRun
+        ? 'Reja tayyor — tasdiqlang'
+        : `${result.created} ta ota-ona yaratildi, ${result.linkedToExisting} ta o‘quvchi mavjud ota-onaga bog‘landi`,
+    });
   },
 
   async create(req: Request, res: Response): Promise<void> {

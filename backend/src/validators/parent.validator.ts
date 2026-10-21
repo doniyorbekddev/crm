@@ -48,3 +48,8 @@ export type CreateParentInput = z.infer<typeof createParentSchema>;
 export type UpdateParentInput = z.infer<typeof updateParentSchema>;
 export type LinkStudentInput = z.infer<typeof linkStudentSchema>;
 export type UpdateLinkInput = z.infer<typeof updateLinkSchema>;
+
+/** O'quvchilarning ota-ona telefonidan profillar yaratish (dryRun — faqat ko'rib chiqish) */
+export const parentImportSchema = z.object({
+  dryRun: z.boolean('dryRun noto‘g‘ri').default(true),
+});

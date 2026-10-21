@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { ownerForActor, telegramLinkService, verifyWebhookSecret } from '../services/telegramLink.service.js';
 import { isTelegramEnabled } from '../services/telegram.service.js';
+import { telegramInviteService } from '../services/telegramInvite.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
@@ -35,6 +36,12 @@ export const telegramController = {
     const { id } = idParamSchema.parse(req.params);
     const link = await telegramLinkService.ensureLink({ studentId: id });
     sendSuccess(res, { ...link, enabled: isTelegramEnabled() });
+  },
+
+  /** Guruh uchun chop etiladigan QR taklifnomalar (o'quvchi va ota-onalar, 14 kunlik bir martalik kod) */
+  async groupInvites(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await telegramInviteService.forGroup(requireAuthUser(req), id, getClientInfo(req)));
   },
 
   /** Bot holati — monitoring (navbat, xatolar, oxirgi faollik) */

@@ -31,6 +31,12 @@ const LINK_CODE_BYTES = 8;
  */
 const CODE_TTL_MS = 15 * 60_000;
 
+/**
+ * Chop etiladigan taklifnoma (QR varaq) kodi — qog'oz o'quvchi/ota-onaga qo'lda beriladi va bir necha kun
+ * ichida skanerlanadi. Kod baribir bir martalik: birinchi tasdiqlashdan keyin ishlamaydi.
+ */
+export const PRINT_INVITE_TTL_MS = 14 * 24 * 60 * 60_000;
+
 export interface TelegramLinkOwner {
   userId?: string | null;
   studentId?: string | null;
@@ -170,7 +176,8 @@ export const telegramLinkService = {
    * havolani nusxalab, keyin qaytib kelganda eskisi ishlamay qolardi. Shuning uchun amal
    * qilayotgan kod qaytariladi, **muddati o'tgani** esa almashtiriladi.
    */
-  async ensureLink(owner: TelegramLinkOwner, now: Date = new Date()): Promise<TelegramLinkDto> {
+  async ensureLink(owner: TelegramLinkOwner, now: Date = new Date(), options: { ttlMs?: number } = {}): Promise<TelegramLinkDto> {
+    const ttlMs = options.ttlMs ?? CODE_TTL_MS;
     const where = ownerWhere(owner);
     const existing = await prisma.telegramLink.findFirst({
       where,
@@ -181,12 +188,14 @@ export const telegramLinkService = {
     // Allaqachon bog'langan — kod bilan ishimiz yo'q
     if (existing?.verifiedAt) return toDto(existing);
 
-    const stillValid = existing?.codeExpiresAt !== null && existing?.codeExpiresAt !== undefined && existing.codeExpiresAt > now;
+    // Uzun muddatli taklifnoma so'ralsa, qisqa (15 daqiqalik) kod yetmaydi: muddatining kamida yarmi qolmagan kod yangilanadi
+    const minRemainingMs = options.ttlMs ? ttlMs / 2 : 0;
+    const stillValid = Boolean(existing?.codeExpiresAt && existing.codeExpiresAt.getTime() > now.getTime() + minRemainingMs);
     if (existing && stillValid) return toDto(existing);
 
     const fresh = {
       linkCode: randomBytes(LINK_CODE_BYTES).toString('hex'),
-      codeExpiresAt: new Date(now.getTime() + CODE_TTL_MS),
+      codeExpiresAt: new Date(now.getTime() + ttlMs),
       codeUsedAt: null,
     };
 

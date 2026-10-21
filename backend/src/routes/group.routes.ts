@@ -3,6 +3,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceController } from '../controllers/attendance.controller.js';
 import { groupController } from '../controllers/group.controller.js';
 import { masteryController } from '../controllers/mastery.controller.js';
+import { telegramController } from '../controllers/telegram.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 
@@ -14,6 +15,8 @@ groupRouter.get('/', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.
 groupRouter.get('/:id', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.getById);
 groupRouter.get('/:id/mastery', requirePermission(PERMISSIONS.GROUP_VIEW), masteryController.group);
 groupRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.getSheet);
+/** Chop etiladigan Telegram taklifnomalari (QR) — kod yaratadi, shuning uchun POST */
+groupRouter.post('/:id/telegram-invites', requirePermission(PERMISSIONS.PORTAL_MANAGE), telegramController.groupInvites);
 groupRouter.post('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_MARK), attendanceController.mark);
 groupRouter.post('/', requirePermission(PERMISSIONS.GROUP_MANAGE), groupController.create);
 groupRouter.put('/:id', requirePermission(PERMISSIONS.GROUP_MANAGE), groupController.update);

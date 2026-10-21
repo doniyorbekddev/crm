@@ -21,6 +21,7 @@ parentRouter.post(
   heavyLimiter,
   portalController.bulkCreateParentAccounts,
 );
+parentRouter.post('/import-from-students', manage, heavyLimiter, parentController.importFromStudents);
 parentRouter.get('/:id', view, parentController.getById);
 parentRouter.post('/', manage, parentController.create);
 parentRouter.put('/:id', manage, parentController.update);

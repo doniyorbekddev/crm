@@ -4694,7 +4694,33 @@
 "Kech qolganlar": "Late",
 "Kun davomati": "Day attendance",
 "Kun davomatida qidirish": "Search day attendance",
-"O‘quvchi, kod yoki guruh…": "Student, code or group…"
+"O‘quvchi, kod yoki guruh…": "Student, code or group…",
+"Brauzer chop etish oynasini to‘sib qo‘ydi — qalqib chiquvchi oynalarga ruxsat bering": "The browser blocked the print window — allow pop-ups",
+"dryRun noto‘g‘ri": "Invalid dryRun",
+"Import qilinadigan ma’lumot yo‘q": "Nothing to import",
+"Kod 14 kun amal qiladi va bir marta ishlaydi. Ulanganlar varaqqa chiqmaydi.": "The code is valid for 14 days and works once. Already connected people are not printed.",
+"Mavjud ota-onaga bog‘lanadi": "Linked to an existing parent",
+"Mavjudga bog‘lanadi": "To existing",
+"Ota-ona:": "Parent:",
+"Ota-onalar → O‘quvchilardan import": "Parents → Import from students",
+"Ota-onalar ulangan": "Parents connected",
+"Ota-onasi kiritilmagan": "No parent entered",
+"Reja tayyor — tasdiqlang": "Plan ready — confirm",
+"ta o‘quvchining ota-onasi profilga kiritilmagan — ular uchun faqat o‘quvchi QR kodi chiqadi.": "students have no parent profile — only the student QR is printed for them.",
+"Telegram bot sozlanmagan — havola yaratib bo‘lmaydi. Sozlamalar → Telegram.": "The Telegram bot is not configured — links cannot be created. Settings → Telegram.",
+"Telegram taklifnoma": "Telegram invite",
+"Telegram taklifnomalari": "Telegram invites",
+"ulangan": "connected",
+"ulanmagan": "not connected",
+"O‘quvchi kartasidagi ota-ona telefonidan ota-ona profillari yaratiladi — shunda ularga Telegram va kabinet orqali xabar yuborish mumkin": "Parent profiles are created from the parent phone on student cards — so they can be reached via Telegram and the portal",
+"O‘quvchi ma’lumotidagi ota-ona telefonidan avtomatik yaratildi — ism-familiyasini aniqlashtiring": "Created automatically from the parent phone on the student record — please confirm the name",
+"O‘quvchi va ota-onalar QR kodni skanerlab Telegram botga ulanadi — davomat, vazifa va to‘lov xabarlari keladi": "Students and parents scan the QR to join the bot — attendance, homework and payment messages arrive",
+"O‘quvchi:": "Student:",
+"O‘quvchilar ulangan": "Students connected",
+"O‘quvchilardan import": "Import from students",
+"O‘quvchilardan ota-onalarni import qilish": "Import parents from students",
+"Chop etish (": "Print (",
+"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "The name is unknown — the profile is named “Parent of Ali Valiyev” and flagged in the note; edit it later. One phone number — one parent (siblings share one profile)."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5300,6 +5326,12 @@
 "Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "This group belongs to the “{0}” course — the student's course will change too. Contract price and payments stay the same; update the price via “Edit” if needed.",
 "{0} · {1} ta bo‘sh o‘rin": "{0} · {1} seats free",
 "«{0}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga qo‘shiladi": "Group “{0}” is closed — only planned or active groups can be joined",
-"O‘quvchi allaqachon «{0}» guruhida": "The student is already in group “{0}”"
+"O‘quvchi allaqachon «{0}» guruhida": "The student is already in group “{0}”",
+"{0} ta ota-ona yaratildi, {1} ta o‘quvchi mavjud ota-onaga bog‘landi": "{0} parents created, {1} students linked to existing parents",
+"Ota-ona telefoni kiritilgan barcha o‘quvchilar ({0}) allaqachon ota-onaga bog‘langan": "All students with a parent phone ({0}) are already linked to a parent",
+"Ota-ona: {0}": "Parent: {0}",
+"{0} {1}ning ota-onasi": "Parent of {0} {1}",
+"<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Telefon kamerasi bilan skanerlang → Telegram ochiladi → <b>Start</b> ni bosing. Kod bir marta ishlaydi{5}.</div> </div>": "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Scan with the phone camera → Telegram opens → tap <b>Start</b>. The code works once{5}.</div> </div>",
+"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">No link</div></div>"
 }
 }

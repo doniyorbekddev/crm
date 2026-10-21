@@ -1,7 +1,8 @@
 import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Link2, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { KeyRound, Link2, Pencil, Plus, Trash2, UserPlus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
+import { ImportParentsModal } from './ImportParentsModal';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BulkPortalAccountsModal } from '@/components/BulkPortalAccountsModal';
@@ -45,6 +46,7 @@ type Dialog =
   | { type: 'delete'; parent: ParentItem }
   | { type: 'portal' | 'portalReset'; parent: ParentItem }
   | { type: 'portalBulk' }
+  | { type: 'import' }
   | null;
 
 /** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
@@ -196,6 +198,11 @@ export default function ParentsPage() {
         actions={
           showActions ? (
             <>
+              {canManage && (
+                <Button variant="secondary" leftIcon={<UserPlus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'import' })}>
+                  O‘quvchilardan import
+                </Button>
+              )}
               {canManagePortal && (
                 <Button variant="secondary" leftIcon={<KeyRound className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'portalBulk' })}>
                   Kabinetlar ochish
@@ -329,6 +336,15 @@ export default function ParentsPage() {
         onConfirm={() => dialog?.type === 'delete' && remove.mutate(dialog.parent)}
         onCancel={close}
       />
+      {dialog?.type === 'import' && (
+        <ImportParentsModal
+          onClose={() => setDialog(null)}
+          onDone={() => {
+            setDialog(null);
+            refresh();
+          }}
+        />
+      )}
     </>
   );
 }

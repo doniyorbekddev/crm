@@ -18,6 +18,7 @@ import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 import { studentService } from './student.service.js';
 import { isRosterLimited } from './teachingAccess.js';
+import { branchScopeOf, inBranch } from './branchScope.js';
 
 /**
  * Ota-ona profillari (promt.md 35-bo‘lim). Bir ota-onaga bir nechta farzand biriktiriladi.
@@ -205,7 +206,103 @@ async function syncPrimary(tx: Prisma.TransactionClient, studentId: string, pref
   await tx.student.update({ where: { id: studentId }, data: { parentPhone: primary.parent.phone } });
 }
 
+/** O'quvchi ma'lumotidan ota-ona yaratish natijasi (ko'rib chiqish yoki bajarilgan) */
+export interface ParentImportResultDto {
+  dryRun: boolean;
+  /** Yangi yaratiladigan (yoki yaratilgan) ota-onalar */
+  created: number;
+  /** Mavjud ota-onaga bog'lanadigan o'quvchilar */
+  linkedToExisting: number;
+  /** Allaqachon ota-onasi bog'langan — o'tkazib yuborildi */
+  skippedAlreadyLinked: number;
+  items: Array<{ phone: string; parentName: string; action: 'CREATE' | 'LINK'; students: Array<{ id: string; name: string; code: string }> }>;
+}
+
+const IMPORTED_PARENT_NOTE = 'O‘quvchi ma’lumotidagi ota-ona telefonidan avtomatik yaratildi — ism-familiyasini aniqlashtiring';
+
 export const parentService = {
+  /**
+   * O'quvchilarning "Ota-onasining telefon raqami" maydonidan ota-ona profillarini yaratish.
+   * Bir telefon — bitta ota-ona (aka-uka/opa-singillar bitta profilga bog'lanadi); shu telefonli ota-ona
+   * bor bo'lsa yangisi yaratilmaydi, faqat bog'lanadi. Ota-onasi allaqachon bog'langan o'quvchi o'tkazib
+   * yuboriladi. Ism ma'lum emas — "Ali Valiyevning ota-onasi" deb yoziladi va izohda belgilanadi.
+   * `dryRun` — hech narsa yozmasdan reja qaytaradi.
+   */
+  async importFromStudents(actor: AuthUser, input: { dryRun: boolean }, client: ClientInfo): Promise<ParentImportResultDto> {
+    const scope = await branchScopeOf(actor);
+    const students = await prisma.student.findMany({
+      where: { deletedAt: null, parentPhone: { not: null }, ...inBranch(scope) },
+      orderBy: [{ createdAt: 'asc' }],
+      select: { id: true, number: true, firstName: true, lastName: true, parentPhone: true, _count: { select: { parents: true } } },
+    });
+    const skippedAlreadyLinked = students.filter((student) => student._count.parents > 0).length;
+    const pending = students.filter((student) => student._count.parents === 0);
+
+    const byPhone = new Map<string, typeof pending>();
+    for (const student of pending) {
+      const phone = student.parentPhone!;
+      byPhone.set(phone, [...(byPhone.get(phone) ?? []), student]);
+    }
+    const existing = await prisma.parent.findMany({
+      where: { phone: { in: [...byPhone.keys()] } },
+      select: { id: true, phone: true, firstName: true, lastName: true },
+    });
+    const existingByPhone = new Map(existing.map((parent) => [parent.phone, parent]));
+
+    const items: ParentImportResultDto['items'] = [...byPhone.entries()].map(([phone, group]) => {
+      const found = existingByPhone.get(phone);
+      const first = group[0]!;
+      return {
+        phone,
+        parentName: found ? `${found.firstName} ${found.lastName}` : `${first.firstName} ${first.lastName}ning ota-onasi`,
+        action: found ? 'LINK' : 'CREATE',
+        students: group.map((student) => ({ id: student.id, name: `${student.firstName} ${student.lastName}`, code: formatStudentNumber(student.number) })),
+      };
+    });
+    const result: ParentImportResultDto = {
+      dryRun: input.dryRun,
+      created: items.filter((item) => item.action === 'CREATE').length,
+      linkedToExisting: items.filter((item) => item.action === 'LINK').reduce((sum, item) => sum + item.students.length, 0),
+      skippedAlreadyLinked,
+      items,
+    };
+    if (input.dryRun || items.length === 0) return result;
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const first = byPhone.get(item.phone)![0]!;
+        const parentId =
+          existingByPhone.get(item.phone)?.id ??
+          (
+            await tx.parent.create({
+              data: { firstName: `${first.firstName} ${first.lastName}ning`.slice(0, 100), lastName: 'ota-onasi', phone: item.phone, notes: IMPORTED_PARENT_NOTE },
+              select: { id: true },
+            })
+          ).id;
+        for (const student of item.students) {
+          // Parallel import yoki qo'lda bog'lash bilan to'qnashmaslik uchun — takror bog'lanish o'tkazib yuboriladi
+          const link = await tx.studentParent.upsert({
+            where: { studentId_parentId: { studentId: student.id, parentId } },
+            create: { studentId: student.id, parentId, relation: 'GUARDIAN', isPrimary: true },
+            update: {},
+            select: { id: true },
+          });
+          await syncPrimary(tx, student.id, link.id);
+        }
+      }
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'parent.imported_from_students',
+        entityType: 'parent',
+        entityId: null,
+        metadata: { created: result.created, linkedToExisting: result.linkedToExisting, skippedAlreadyLinked, phones: items.length },
+        ...client,
+      });
+    }, { timeout: 60_000 });
+    return result;
+  },
+
+
   async list(actor: AuthUser, query: ParentListQuery): Promise<{ items: ParentDto[]; total: number }> {
     const access = await getParentAccess(actor);
     const conditions: Prisma.ParentWhereInput[] = [scopeWhere(access)];

@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
 import type { GroupFormLookups, GroupItem, GroupListParams, GroupPayload } from '@/types/group';
+import type { GroupTelegramInvites } from '@/types/onboarding';
 
 export const groupsService = {
   async list(params: GroupListParams): Promise<Paginated<GroupItem>> {
@@ -14,6 +15,12 @@ export const groupsService = {
   },
 
   /** Bitta guruh (mavjud `GET /groups/:id`) — guruh sahifasi uchun */
+  /** Chop etiladigan Telegram taklifnomalari (14 kunlik bir martalik kodlar yaratadi) */
+  async telegramInvites(id: string): Promise<GroupTelegramInvites> {
+    const response = await api.post<ApiSuccessResponse<GroupTelegramInvites>>(`/groups/${id}/telegram-invites`);
+    return response.data.data;
+  },
+
   async getById(id: string): Promise<GroupItem> {
     const response = await api.get<ApiSuccessResponse<GroupItem>>(`/groups/${id}`);
     return response.data.data;

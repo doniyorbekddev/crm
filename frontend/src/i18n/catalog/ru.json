@@ -4729,7 +4729,33 @@
 "Kech qolganlar": "Опоздали",
 "Kun davomati": "Посещаемость за день",
 "Kun davomatida qidirish": "Поиск по посещаемости за день",
-"O‘quvchi, kod yoki guruh…": "Ученик, код или группа…"
+"O‘quvchi, kod yoki guruh…": "Ученик, код или группа…",
+"Brauzer chop etish oynasini to‘sib qo‘ydi — qalqib chiquvchi oynalarga ruxsat bering": "Браузер заблокировал окно печати — разрешите всплывающие окна",
+"dryRun noto‘g‘ri": "Неверный dryRun",
+"Import qilinadigan ma’lumot yo‘q": "Нечего импортировать",
+"Kod 14 kun amal qiladi va bir marta ishlaydi. Ulanganlar varaqqa chiqmaydi.": "Код действует 14 дней и срабатывает один раз. Уже подключённые не попадают на лист.",
+"Mavjud ota-onaga bog‘lanadi": "Будет привязан к существующему родителю",
+"Mavjudga bog‘lanadi": "К существующему",
+"Ota-ona:": "Родитель:",
+"Ota-onalar → O‘quvchilardan import": "Родители → Импорт из учеников",
+"Ota-onalar ulangan": "Родителей подключено",
+"Ota-onasi kiritilmagan": "Родитель не указан",
+"Reja tayyor — tasdiqlang": "План готов — подтвердите",
+"ta o‘quvchining ota-onasi profilga kiritilmagan — ular uchun faqat o‘quvchi QR kodi chiqadi.": "учеников без профиля родителя — для них печатается только QR ученика.",
+"Telegram bot sozlanmagan — havola yaratib bo‘lmaydi. Sozlamalar → Telegram.": "Telegram-бот не настроен — ссылку создать нельзя. Настройки → Telegram.",
+"Telegram taklifnoma": "Приглашение в Telegram",
+"Telegram taklifnomalari": "Приглашения в Telegram",
+"ulangan": "подключён",
+"ulanmagan": "не подключён",
+"O‘quvchi kartasidagi ota-ona telefonidan ota-ona profillari yaratiladi — shunda ularga Telegram va kabinet orqali xabar yuborish mumkin": "Из телефона родителя в карточке ученика создаются профили родителей — тогда им можно писать через Telegram и кабинет",
+"O‘quvchi ma’lumotidagi ota-ona telefonidan avtomatik yaratildi — ism-familiyasini aniqlashtiring": "Создан автоматически по телефону родителя из данных ученика — уточните имя и фамилию",
+"O‘quvchi va ota-onalar QR kodni skanerlab Telegram botga ulanadi — davomat, vazifa va to‘lov xabarlari keladi": "Ученики и родители сканируют QR и подключаются к боту — приходят уведомления о посещаемости, заданиях и оплате",
+"O‘quvchi:": "Ученик:",
+"O‘quvchilar ulangan": "Учеников подключено",
+"O‘quvchilardan import": "Импорт из учеников",
+"O‘quvchilardan ota-onalarni import qilish": "Импорт родителей из учеников",
+"Chop etish (": "Печать (",
+"Ism-familiya ma’lum emas — profil “Ali Valiyevning ota-onasi” deb nomlanadi va izohda belgilanadi; keyin tahrirlab to‘g‘rilaysiz. Bir telefon raqami — bitta ota-ona (aka-uka, opa-singillar bitta profilga bog‘lanadi).": "Имя и фамилия неизвестны — профиль назовётся «Родитель ученика Али Валиева» с пометкой в примечании; затем исправите. Один номер — один родитель (братья и сёстры привязываются к одному профилю)."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5336,6 +5362,12 @@
 "Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "Эта группа относится к курсу «{0}» — курс ученика тоже изменится. Цена договора и платежи не меняются; при необходимости обновите цену через «Редактировать».",
 "{0} · {1} ta bo‘sh o‘rin": "{0} · свободных мест: {1}",
 "«{0}» guruhi yopilgan — faqat rejalashtirilgan yoki faol guruhga qo‘shiladi": "Группа «{0}» закрыта — добавлять можно только в запланированную или активную группу",
-"O‘quvchi allaqachon «{0}» guruhida": "Ученик уже в группе «{0}»"
+"O‘quvchi allaqachon «{0}» guruhida": "Ученик уже в группе «{0}»",
+"{0} ta ota-ona yaratildi, {1} ta o‘quvchi mavjud ota-onaga bog‘landi": "Создано родителей: {0}, привязано к существующим: {1}",
+"Ota-ona telefoni kiritilgan barcha o‘quvchilar ({0}) allaqachon ota-onaga bog‘langan": "Все ученики с телефоном родителя ({0}) уже привязаны к родителю",
+"Ota-ona: {0}": "Родитель: {0}",
+"{0} {1}ning ota-onasi": "Родитель ученика {0} {1}",
+"<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Telefon kamerasi bilan skanerlang → Telegram ochiladi → <b>Start</b> ni bosing. Kod bir marta ishlaydi{5}.</div> </div>": "<div class=\"card\"> <div class=\"head\"><div class=\"name\">{0}</div><div class=\"muted\">{1} · {2}</div></div> <div class=\"codes\"> {3} {4} </div> <div class=\"hint\">Отсканируйте камерой телефона → откроется Telegram → нажмите <b>Start</b>. Код срабатывает один раз{5}.</div> </div>",
+"<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Havola yo‘q</div></div>": "<div class=\"qr\"><div class=\"t\">{0}</div><div class=\"muted\">Нет ссылки</div></div>"
 }
 }

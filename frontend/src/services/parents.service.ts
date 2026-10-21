@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
+import type { ParentImportResult } from '@/types/onboarding';
 import type { BulkParentPortalAccountsResult, PortalAccount } from '@/types/portal';
 import type {
   CreateParentPayload,
@@ -13,6 +14,12 @@ import type {
 } from '@/types/parent';
 
 export const parentsService = {
+  /** O'quvchilarning ota-ona telefonidan profillar: dryRun — faqat reja */
+  async importFromStudents(dryRun: boolean): Promise<MessageResult<ParentImportResult>> {
+    const response = await api.post<ApiSuccessResponse<ParentImportResult>>('/parents/import-from-students', { dryRun });
+    return { data: response.data.data, message: response.data.message };
+  },
+
   /** Kabinet ochish — email ixtiyoriy, bo‘lmasa telefon raqami login bo‘ladi */
   async createPortalAccount(id: string, email?: string): Promise<MessageResult<PortalAccount>> {
     const response = await api.post<ApiSuccessResponse<PortalAccount>>(`/parents/${id}/portal-account`, email ? { email } : {});
