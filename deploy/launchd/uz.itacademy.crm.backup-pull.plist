@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Server zaxira nusxalarini har kuni shu Mac'ga tortib olish (scripts/pull-backups.sh).
+  O'rnatish: deploy/launchd/install-backup-pull.sh (skript nusxasi ~/.local/bin ga ko'chiriladi —
+  macOS fon jarayonlariga Desktop papkasini o'qishga ruxsat bermaydi).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>uz.itacademy.crm.backup-pull</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HOME__/.local/bin/crm-pull-backups.sh</string>
+  </array>
+  <!-- Har kuni 10:00 va 18:00 da (server nusxasi 03:00 da olinadi) hamda kompyuter yoqilganda -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__HOME__/CRM-Backups/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/CRM-Backups/launchd.log</string>
+</dict>
+</plist>

@@ -186,3 +186,17 @@ haqida ogohlantirish (monitoring) — Faza 1 ishi; fayl arxivlari qo'shilgach `b
 | Sana | Kim | Nusxa (fayl) | Manba (lokal / tashqi) | Qayerga tiklandi | Jadvallar / migratsiyalar | Fayllar soni | Ketgan vaqt (RTO) | Natija |
 |---|---|---|---|---|---|---|---|---|
 | — | — | — | — | — | — | — | — | ❌ NOT VERIFIED |
+
+## Ikkinchi joy: Mac'ga kunlik tortib olish (2026-10-21)
+
+Server nusxalari (`~/crm/backups`) har kuni direktorning Mac kompyuteriga tortib olinadi —
+server buzilsa ham baza nusxalari ikkinchi joyda qoladi.
+
+- Skript: `scripts/pull-backups.sh` (serverda hech narsa o'chirmaydi; yangi `.gz` fayllar `gzip -t` bilan
+  tekshiriladi, buzuqlari `corrupt-` nomi bilan ajratiladi; mahalliy nusxalar 90 kun saqlanadi).
+- Joy: `~/CRM-Backups` (ruxsat 700, fayllar 600), log: `~/CRM-Backups/pull.log`.
+- Avtomatik: launchd `uz.itacademy.crm.backup-pull` — har kuni 10:00, 18:00 va kompyuter yoqilganda.
+  O'rnatish/yangilash: `deploy/launchd/install-backup-pull.sh`.
+- SSH kaliti paroli macOS Keychain'da — agent bo'sh bo'lsa ham so'rovsiz ishlaydi.
+
+Tiklash: kerakli faylni serverga qaytarib (`scp`) `scripts/restore-db.sh` bilan — avval `crm_verify_*` bazaga.
