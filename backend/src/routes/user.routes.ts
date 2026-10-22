@@ -15,4 +15,5 @@ userRouter.post('/', requirePermission(PERMISSIONS.USER_MANAGE), userController.
 userRouter.put('/:id', requirePermission(PERMISSIONS.USER_MANAGE), userController.update);
 userRouter.patch('/:id/status', requirePermission(PERMISSIONS.USER_MANAGE), userController.setStatus);
 userRouter.patch('/:id/password', requirePermission(PERMISSIONS.USER_MANAGE), userController.resetPassword);
+userRouter.post('/:id/2fa/reset', requirePermission(PERMISSIONS.USER_MANAGE), userController.resetTwoFactor);
 userRouter.delete('/:id', requirePermission(PERMISSIONS.USER_MANAGE), userController.remove);

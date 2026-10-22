@@ -110,3 +110,24 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+// --- Ikki bosqichli kirish (TOTP) ---
+const secondFactorCode = z.string('Kodni kiriting').trim().min(6, 'Kodni kiriting').max(20, 'Kod juda uzun');
+
+export const twoFactorLoginSchema = z.object({
+  challengeToken: z.string('Qaytadan kiring').min(20).max(2000),
+  code: secondFactorCode,
+});
+
+export const twoFactorPasswordSchema = z.object({
+  password: z.string('Parolni kiriting').min(1, 'Parolni kiriting').max(200),
+});
+
+export const twoFactorCodeSchema = z.object({
+  code: z.string('Kodni kiriting').trim().regex(/^\d{3}\s?\d{3}$/, '6 xonali kodni kiriting'),
+});
+
+export const twoFactorConfirmSchema = z.object({
+  password: z.string('Parolni kiriting').min(1, 'Parolni kiriting').max(200),
+  code: secondFactorCode,
+});

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChangePasswordCard } from '@/components/ChangePasswordCard';
+import { TwoFactorCard } from '@/components/TwoFactorCard';
 import { PageHeader } from '@/components/PageHeader';
 import { AvatarUploader } from '@/components/AvatarUploader';
 import { Badge } from '@/components/ui/Badge';
@@ -154,6 +155,7 @@ export default function ProfilePage() {
 
           <TelegramLinkCard />
           <ChangePasswordCard />
+          <TwoFactorCard />
           <SessionsCard />
         </div>
       </div>

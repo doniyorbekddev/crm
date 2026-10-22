@@ -180,6 +180,9 @@ const envSchema = z
     /** To'lovdan keyin qaytiladigan sahifa (bo'lmasa — birinchi CLIENT_URL) */
     PAYMENT_RETURN_URL: optionalString,
 
+    /** 2FA (TOTP) sirlarini shifrlash kaliti (kamida 32 belgi). Bo'sh — JWT_SECRET dan hosil qilinadi */
+    TOTP_ENCRYPTION_KEY: optionalString.refine((value) => value === undefined || value.length >= 32, 'TOTP_ENCRYPTION_KEY kamida 32 belgi bo‘lishi kerak'),
+
     // --- SMS: Eskiz.uz (ixtiyoriy). Bo'sh — SMS kanali o'chiq (navbatga ham tushmaydi, soxta "yuborildi" yo'q) ---
     ESKIZ_EMAIL: optionalString,
     ESKIZ_PASSWORD: optionalString,

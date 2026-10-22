@@ -16,7 +16,10 @@ import {
   hashToken,
   signAccessToken,
   signRefreshToken,
+  signTwoFactorChallenge,
+  TWO_FACTOR_CHALLENGE_TTL_SECONDS,
   verifyRefreshToken,
+  verifyTwoFactorChallenge,
 } from '../utils/tokens.js';
 import type {
   ChangePasswordInput,
@@ -27,6 +30,7 @@ import type {
 } from '../validators/auth.validator.js';
 import { auditService } from './audit.service.js';
 import { emailService } from './email.service.js';
+import { verifySecondFactor } from './twoFactor.service.js';
 
 const INVALID_CREDENTIALS = 'Email yoki parol noto‘g‘ri';
 const SESSION_EXPIRED = 'Sessiya muddati tugagan. Qaytadan kiring';
@@ -55,6 +59,7 @@ const authUserSelect = {
   deletedAt: true,
   mustChangePassword: true,
   avatarPath: true,
+  totpEnabledAt: true,
   role: {
     select: {
       id: true,
@@ -82,6 +87,8 @@ export interface AuthUserDto {
   mustChangePassword: boolean;
   /** Profil rasmi manzili (API bazasiga nisbatan) yoki null */
   avatarUrl: string | null;
+  /** Ikki bosqichli kirish yoqilgan */
+  twoFactorEnabled: boolean;
 }
 
 export interface AuthSession {
@@ -96,6 +103,13 @@ export interface SessionResult {
   refreshToken: string;
   refreshExpiresAt: Date;
 }
+
+/** Parol to'g'ri, lekin 2FA yoqilgan — sessiya o'rniga kod so'raladi */
+export interface TwoFactorChallengeResult {
+  twoFactor: { challengeToken: string; expiresIn: number };
+}
+
+export type LoginResult = SessionResult | TwoFactorChallengeResult;
 
 export interface RegisterResult {
   id: string;
@@ -117,6 +131,7 @@ function toAuthUserDto(user: AuthUserRecord): AuthUserDto {
     permissions: user.role.permissions.map((item) => item.permission.key).sort(),
     mustChangePassword: user.mustChangePassword,
     avatarUrl: avatarUrlOf(user.avatarPath),
+    twoFactorEnabled: user.totpEnabledAt !== null,
   };
 }
 
@@ -164,6 +179,27 @@ async function revokeFamily(familyId: string): Promise<void> {
   });
 }
 
+/** Muvaffaqiyatli kirish: refresh token oilasi ochiladi, oxirgi kirish vaqti yoziladi */
+async function startSession(userId: string, client: ClientInfo, metadata?: Record<string, string>): Promise<SessionResult> {
+  const familyId = generateTokenId();
+  const { updated, refresh } = await prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+      select: authUserSelect,
+    });
+    const issued = await issueRefreshToken(tx, userId, familyId, client);
+    return { updated: updatedUser, refresh: issued };
+  });
+
+  await auditService.record({ userId, action: 'auth.login', entityType: 'user', entityId: userId, ...(metadata ? { metadata } : {}), ...client });
+
+  return { session: buildSession(updated), refreshToken: refresh.token, refreshExpiresAt: refresh.expiresAt };
+}
+
+const TWO_FACTOR_EXPIRED = 'Tasdiqlash muddati tugadi. Qaytadan kiring';
+const TWO_FACTOR_LOCK_THRESHOLD = 5;
+
 /** Hisob darajasidagi blok: bitta hisobga turli IP’lardan parol tanlashga qarshi (IP limitidan tashqari) */
 const LOGIN_LOCK_THRESHOLD = 8;
 const LOGIN_LOCK_WINDOW_MS = 15 * 60_000;
@@ -188,7 +224,7 @@ async function assertLoginNotLocked(
 }
 
 export const authService = {
-  async login(rawInput: LoginInput, client: ClientInfo): Promise<SessionResult> {
+  async login(rawInput: LoginInput, client: ClientInfo): Promise<LoginResult> {
     // O'quvchi ID raqami (ST-000045) bilan ham kira oladi — hisob emailiga aylantiriladi
     const input = { ...rawInput, email: await resolveLoginIdentifier(rawInput.email) };
     const user = await prisma.user.findUnique({
@@ -229,20 +265,45 @@ export const authService = {
 
     assertCanSignIn(user);
 
-    const familyId = generateTokenId();
-    const { updated, refresh } = await prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-        select: authUserSelect,
-      });
-      const issued = await issueRefreshToken(tx, user.id, familyId, client);
-      return { updated: updatedUser, refresh: issued };
+    if (user.totpEnabledAt) {
+      // Sessiya hali berilmaydi: 5 daqiqalik tasdiqlash tokeni — faqat /auth/login/2fa da ishlaydi
+      await auditService.record({ userId: user.id, action: 'auth.2fa_challenge', entityType: 'user', entityId: user.id, ...client });
+      return { twoFactor: { challengeToken: signTwoFactorChallenge(user.id), expiresIn: TWO_FACTOR_CHALLENGE_TTL_SECONDS } };
+    }
+    return startSession(user.id, client);
+  },
+
+  /**
+   * 2FA ning ikkinchi qadami: tasdiqlash tokeni + 6 xonali kod (yoki tiklash kodi). Kod tanlashga qarshi —
+   * 15 daqiqada 5 xato urinishdan keyin hisob vaqtincha bloklanadi (yangi parol kiritish ham buni chetlab o'tmaydi).
+   */
+  async completeTwoFactor(input: { challengeToken: string; code: string }, client: ClientInfo): Promise<SessionResult> {
+    const challenge = verifyTwoFactorChallenge(input.challengeToken);
+    if (!challenge) throw AppError.unauthorized(TWO_FACTOR_EXPIRED);
+    const user = await prisma.user.findUnique({
+      where: { id: challenge.userId },
+      select: { id: true, status: true, deletedAt: true, lastLoginAt: true, passwordChangedAt: true, totpEnabledAt: true, totpSecret: true, totpLastStep: true },
     });
+    // Tasdiqlash davomida parol almashtirilgan yoki 2FA o'chirilgan bo'lsa — eski token yaroqsiz
+    if (!user || !user.totpEnabledAt || (user.passwordChangedAt && user.passwordChangedAt.getTime() > challenge.iat * 1000 + 999)) {
+      throw AppError.unauthorized(TWO_FACTOR_EXPIRED);
+    }
+    assertCanSignIn(user);
 
-    await auditService.record({ userId: user.id, action: 'auth.login', entityType: 'user', entityId: user.id, ...client });
+    const windowStart = new Date(Date.now() - LOGIN_LOCK_WINDOW_MS);
+    const since = user.lastLoginAt && user.lastLoginAt > windowStart ? user.lastLoginAt : windowStart;
+    const failures = await prisma.auditLog.count({ where: { action: 'auth.2fa_failed', userId: user.id, createdAt: { gte: since } } });
+    if (failures >= TWO_FACTOR_LOCK_THRESHOLD) {
+      await auditService.record({ userId: user.id, action: 'auth.login_locked', entityType: 'user', entityId: user.id, metadata: { failures, step: '2fa' }, ...client });
+      throw AppError.tooManyRequests('Juda ko‘p noto‘g‘ri kod. Hisob 15 daqiqaga vaqtincha bloklandi.');
+    }
 
-    return { session: buildSession(updated), refreshToken: refresh.token, refreshExpiresAt: refresh.expiresAt };
+    const method = await verifySecondFactor(user, input.code);
+    if (!method) {
+      await auditService.record({ userId: user.id, action: 'auth.2fa_failed', entityType: 'user', entityId: user.id, ...client });
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'code', message: 'Kod noto‘g‘ri yoki muddati o‘tgan' }]);
+    }
+    return startSession(user.id, client, { twoFactor: method });
   },
 
   async register(input: RegisterInput, client: ClientInfo): Promise<RegisterResult> {

@@ -15,6 +15,24 @@ export interface AuthUser {
   mustChangePassword: boolean;
   /** Profil rasmi (API bazasiga nisbatan yo'l) */
   avatarUrl?: string | null;
+  /** Ikki bosqichli kirish yoqilgan */
+  twoFactorEnabled?: boolean;
+}
+
+/** Parol to'g'ri, 2FA yoqilgan — sessiya o'rniga ilovadagi kod so'raladi */
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  challengeToken: string;
+  /** Tasdiqlash tokeni muddati (soniya) */
+  expiresIn: number;
+}
+
+export type LoginResponse = AuthSession | TwoFactorChallenge;
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  enabledAt: string | null;
+  recoveryCodesLeft: number;
 }
 
 export interface AuthSession {

@@ -130,6 +130,13 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'budget.copied': 'Budjet o‘tgan oydan nusxalandi',
   'alert.settings_updated': 'Ogohlantirish sozlamalari o‘zgartirildi',
   'student.group_share_changed': 'PMT o‘qituvchi ulushi o‘zgartirildi',
+  'auth.2fa_challenge': 'Kirish: 2FA kodi so‘raldi',
+  'auth.2fa_failed': 'Kirish: 2FA kodi noto‘g‘ri',
+  'auth.2fa_setup_started': '2FA sozlash boshlandi',
+  'auth.2fa_enabled': 'Ikki bosqichli kirish yoqildi',
+  'auth.2fa_disabled': 'Ikki bosqichli kirish o‘chirildi',
+  'auth.2fa_recovery_regenerated': '2FA tiklash kodlari yangilandi',
+  'user.2fa_reset_by_admin': 'Xodimning 2FA si admin tomonidan o‘chirildi',
   'sms.settings_updated': 'SMS sozlamalari o‘zgartirildi',
   'sms.test_sent': 'Sinov SMS yuborildi',
   'settings.academy_updated': 'Markaz ma’lumotlari o‘zgartirildi',
@@ -281,6 +288,9 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'settings.academy_logo_removed',
   'sms.settings_updated',
   'student.group_share_changed',
+  'auth.2fa_enabled',
+  'auth.2fa_disabled',
+  'user.2fa_reset_by_admin',
 ];
 
 export function auditActionLabel(action: string): string {

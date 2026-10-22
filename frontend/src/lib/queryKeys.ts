@@ -38,6 +38,7 @@ export const queryKeys = {
   },
   auth: {
     me: ['auth', 'me'] as const,
+    twoFactor: ['auth', '2fa'] as const,
   },
   dashboard: {
     all: ['dashboard'] as const,

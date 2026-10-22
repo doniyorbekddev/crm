@@ -16,6 +16,8 @@ authRouter.use((_req, res, next) => {
 });
 
 authRouter.post('/login', authLimiter, authController.login);
+// 2FA: parol to'g'ri bo'lgach — tasdiqlash tokeni + kod
+authRouter.post('/login/2fa', authLimiter, authController.loginTwoFactor);
 authRouter.post('/register', authLimiter, authController.register);
 authRouter.post('/refresh', authController.refresh);
 authRouter.post('/logout', authController.logout);
@@ -34,3 +36,9 @@ authRouter.put('/me/preferences/:key', authenticate, authController.savePreferen
 authRouter.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
 authRouter.post('/reset-password', authLimiter, authController.resetPassword);
 authRouter.patch('/change-password', authenticate, authController.changePassword);
+// Ikki bosqichli kirish sozlamalari — faqat o'ziniki; har o'zgarish parol (va kod) bilan tasdiqlanadi
+authRouter.get('/2fa', authenticate, authController.twoFactorStatus);
+authRouter.post('/2fa/setup', authenticate, authLimiter, authController.twoFactorSetup);
+authRouter.post('/2fa/enable', authenticate, authLimiter, authController.twoFactorEnable);
+authRouter.post('/2fa/disable', authenticate, authLimiter, authController.twoFactorDisable);
+authRouter.post('/2fa/recovery-codes', authenticate, authLimiter, authController.twoFactorRecoveryCodes);

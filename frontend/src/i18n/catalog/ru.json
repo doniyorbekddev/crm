@@ -4819,7 +4819,35 @@
 "Ulush 0 dan kam bo‘lmaydi": "Доля не может быть меньше 0",
 "O‘qituvchi ulushi": "Доля преподавателя",
 "O‘qituvchi ulushi saqlandi — keyingi to‘lovlardan amal qiladi": "Доля преподавателя сохранена — действует со следующих платежей",
-"O‘quvchining oylik to‘lovidan shu ulush «": "Эта доля ежемесячного платежа ученика идёт «"
+"O‘quvchining oylik to‘lovidan shu ulush «": "Эта доля ежемесячного платежа ученика идёт «",
+"2FA tiklash kodlari yangilandi": "Коды восстановления 2FA обновлены",
+"Base32 emas": "Не Base32",
+"Hisob egasi ekaningizni tasdiqlash uchun": "Чтобы подтвердить, что вы владелец аккаунта",
+"Ikki bosqichli kirish o‘chirildi": "Двухэтапный вход отключён",
+"Ikki bosqichli kirish o‘chirildi. Xodimning barcha sessiyalari yopildi": "Двухэтапный вход отключён. Все сеансы сотрудника закрыты",
+"Ikki bosqichli kirish o‘chirilsinmi?": "Отключить двухэтапный вход?",
+"Ilova ko‘rsatgan 6 xonali kodni pastga kiriting.": "Введите ниже 6-значный код из приложения.",
+"Ilovada “Hisob qo‘shish” → “QR kodni skanerlash”.": "В приложении: «Добавить аккаунт» → «Сканировать QR-код».",
+"Ilovadagi kod bilan": "С кодом из приложения",
+"Ilovadagi kod yoki tiklash kodi": "Код из приложения или код восстановления",
+"Juda ko‘p noto‘g‘ri kod. Hisob 15 daqiqaga vaqtincha bloklandi.": "Слишком много неверных кодов. Аккаунт временно заблокирован на 15 минут.",
+"Kirish: 2FA kodi noto‘g‘ri": "Вход: неверный код 2FA",
+"Kirish: 2FA kodi so‘raldi": "Вход: запрошен код 2FA",
+"Kod noto‘g‘ri yoki muddati o‘tgan": "Код неверный или устарел",
+"Nusxa olib bo‘lmadi — kodlarni qo‘lda yozib oling": "Не удалось скопировать — перепишите коды вручную",
+"Parol noto‘g‘ri": "Неверный пароль",
+"Parol o‘g‘irlansa ham hisobingizga kirib bo‘lmaydi: kirishda telefondagi ilova kodi so‘raladi.": "Даже при краже пароля в аккаунт не войти: при входе запрашивается код из приложения на телефоне.",
+"Saqlab qo‘ygan tiklash kodlaringizdan birini kiriting (masalan, ABCD-EFGH).": "Введите один из сохранённых кодов восстановления (например, ABCD-EFGH).",
+"Skanerlab bo‘lmasa, kalitni qo‘lda kiriting:": "Если не сканируется, введите ключ вручную:",
+"Tasdiqlash va yoqish": "Подтвердить и включить",
+"Telefon yo‘qmi? Tiklash kodi bilan": "Нет телефона? Код восстановления",
+"Telefon yo‘qolsa, shu kodlardan biri bilan kirasiz. Har biri bir marta ishlaydi va boshqa ko‘rsatilmaydi.": "Если телефон потеряется, войдёте с одним из этих кодов. Каждый работает один раз и больше не показывается.",
+"Telefoningizdagi autentifikator ilovasi ko‘rsatgan 6 xonali kodni kiriting.": "Введите 6-значный код из приложения-аутентификатора на телефоне.",
+"TOTP_ENCRYPTION_KEY kamida 32 belgi bo‘lishi kerak": "TOTP_ENCRYPTION_KEY должен быть не короче 32 символов",
+"Xodimning 2FA si admin tomonidan o‘chirildi": "2FA сотрудника отключена администратором",
+"Yoqilmagan. Kerak bo‘ladi: telefonda Google Authenticator yoki shunga o‘xshash ilova.": "Не включено. Понадобится Google Authenticator или похожее приложение на телефоне.",
+"O‘z 2FA sozlamangizni Profil sahifasida o‘zgartiring": "Свою 2FA меняйте на странице профиля",
+"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "После отключения аккаунт снова будет защищён только паролем."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5439,6 +5467,7 @@
 "muddati o‘tgan: {0}": "просрочено: {0}",
 "· asosiy o‘qituvchi ulushi {0}%": "· доля основного преподавателя {0}%",
 "Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "В других доп. группах: {0}% · всего не более 100%",
-"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Сумма долей доп. групп не должна превышать 100% (в других {0}%)"
+"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Сумма долей доп. групп не должна превышать 100% (в других {0}%)",
+"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "Если {0} {1} потерял(а) телефон и коды восстановления. Все сеансы будут закрыты; затем можно войти по паролю и снова включить 2FA."
 }
 }

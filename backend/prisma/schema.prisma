@@ -256,6 +256,13 @@ model User {
   passwordChangedAt  DateTime?
   /// Vaqtinchalik parol (kabinet ochilganda yoki xodim tiklaganda) — birinchi kirishda almashtirilishi shart
   mustChangePassword Boolean    @default(false)
+  /// Ikki bosqichli kirish (TOTP): sir AES-256-GCM bilan shifrlangan; yoqilganda kirish kod bilan tasdiqlanadi
+  totpSecret         String?    @db.VarChar(255)
+  /// Sozlash jarayonidagi (hali tasdiqlanmagan) sir
+  totpPendingSecret  String?    @db.VarChar(255)
+  totpEnabledAt      DateTime?
+  /// Oxirgi qabul qilingan TOTP qadami — bir kodni ikki marta ishlatishga qarshi
+  totpLastStep       Int?
   /// Profil rasmi: saqlash papkasidagi nisbiy yo'l ("2026/10/<uuid>.jpg"). Tasodifiy nom — ochiq havola sifatida ishlatiladi
   avatarPath         String?    @unique @db.VarChar(120)
   branchId           String     @default("branch_main")
@@ -265,6 +272,7 @@ model User {
 
   role                 Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
   refreshTokens        RefreshToken[]
+  recoveryCodes        UserRecoveryCode[]
   passwordResetTokens  PasswordResetToken[]
   assignedLeads        Lead[]                @relation("LeadAssignee")
   createdLeads         Lead[]                @relation("LeadCreator")
@@ -3011,6 +3019,20 @@ model PaymentTeacherShare {
   @@unique([paymentId, teacherId])
   @@index([teacherId])
   @@map("payment_teacher_shares")
+}
+
+/// 2FA tiklash kodlari (telefon yo'qolganda) — bir martalik, faqat SHA-256 xeshi saqlanadi
+model UserRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String    @unique @db.VarChar(64)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_recovery_codes")
 }
 
 model CommissionEntry {

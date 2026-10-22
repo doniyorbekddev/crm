@@ -46,6 +46,12 @@ export const usersService = {
     return response.data.message;
   },
 
+  /** Telefon va tiklash kodlari yo'qolganda — xodimning 2FA sini o'chirish (sessiyalari yopiladi) */
+  async resetTwoFactor(id: string): Promise<MessageResult<UserListItem>> {
+    const response = await api.post<ApiSuccessResponse<UserListItem>>(`/users/${id}/2fa/reset`);
+    return { data: response.data.data, message: response.data.message };
+  },
+
   async remove(id: string): Promise<string> {
     const response = await api.delete<ApiSuccessResponse<null>>(`/users/${id}`);
     return response.data.message;

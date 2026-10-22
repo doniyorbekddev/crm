@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { authService } from '../services/auth.service.js';
 import { preferenceService } from '../services/preference.service.js';
+import { twoFactorService } from '../services/twoFactor.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../utils/refreshCookie.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
@@ -10,6 +11,10 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
+  twoFactorCodeSchema,
+  twoFactorConfirmSchema,
+  twoFactorLoginSchema,
+  twoFactorPasswordSchema,
 } from '../validators/auth.validator.js';
 import { preferenceKeyParamSchema } from '../validators/preference.validator.js';
 
@@ -17,8 +22,49 @@ export const authController = {
   async login(req: Request, res: Response): Promise<void> {
     const input = loginSchema.parse(req.body);
     const result = await authService.login(input, getClientInfo(req));
+    if ('twoFactor' in result) {
+      // Cookie yo'q — sessiya faqat kod tasdiqlangach
+      sendSuccess(res, { twoFactorRequired: true, ...result.twoFactor }, { message: 'Ilovadagi tasdiqlash kodini kiriting' });
+      return;
+    }
     setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
     sendSuccess(res, result.session, { message: 'Tizimga muvaffaqiyatli kirdingiz' });
+  },
+
+  async loginTwoFactor(req: Request, res: Response): Promise<void> {
+    const input = twoFactorLoginSchema.parse(req.body);
+    const result = await authService.completeTwoFactor(input, getClientInfo(req));
+    setRefreshCookie(res, result.refreshToken, result.refreshExpiresAt);
+    sendSuccess(res, result.session, { message: 'Tizimga muvaffaqiyatli kirdingiz' });
+  },
+
+  async twoFactorStatus(req: Request, res: Response): Promise<void> {
+    sendSuccess(res, await twoFactorService.status(requireAuthUser(req).id));
+  },
+
+  async twoFactorSetup(req: Request, res: Response): Promise<void> {
+    const input = twoFactorPasswordSchema.parse(req.body);
+    sendSuccess(res, await twoFactorService.setup(requireAuthUser(req).id, input, getClientInfo(req)));
+  },
+
+  async twoFactorEnable(req: Request, res: Response): Promise<void> {
+    const input = twoFactorCodeSchema.parse(req.body);
+    sendSuccess(res, await twoFactorService.enable(requireAuthUser(req).id, input, getClientInfo(req)), {
+      message: 'Ikki bosqichli kirish yoqildi. Tiklash kodlarini xavfsiz joyga saqlang',
+    });
+  },
+
+  async twoFactorDisable(req: Request, res: Response): Promise<void> {
+    const input = twoFactorConfirmSchema.parse(req.body);
+    await twoFactorService.disable(requireAuthUser(req).id, input, getClientInfo(req));
+    sendSuccess(res, null, { message: 'Ikki bosqichli kirish o‘chirildi' });
+  },
+
+  async twoFactorRecoveryCodes(req: Request, res: Response): Promise<void> {
+    const input = twoFactorConfirmSchema.parse(req.body);
+    sendSuccess(res, await twoFactorService.regenerateRecoveryCodes(requireAuthUser(req).id, input, getClientInfo(req)), {
+      message: 'Yangi tiklash kodlari yaratildi — eskilari endi ishlamaydi',
+    });
   },
 
   async register(req: Request, res: Response): Promise<void> {

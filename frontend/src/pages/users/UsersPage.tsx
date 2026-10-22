@@ -1,7 +1,7 @@
 import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, KeyRound, Pencil, Plus, Trash2, UserCheck, Users } from 'lucide-react';
+import { Ban, CheckCircle2, KeyRound, Pencil, Plus, ShieldOff, Trash2, UserCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -49,7 +49,7 @@ const PAGE_SIZE = 20;
 
 type DialogState =
   | { type: 'create' }
-  | { type: 'edit' | 'approve' | 'reset-password' | 'block' | 'unblock' | 'delete'; user: UserListItem }
+  | { type: 'edit' | 'approve' | 'reset-password' | 'reset-2fa' | 'block' | 'unblock' | 'delete'; user: UserListItem }
   | null;
 
 export default function UsersPage() {
@@ -101,6 +101,16 @@ export default function UsersPage() {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
+  const resetTwoFactor = useMutation({
+    mutationFn: (id: string) => usersService.resetTwoFactor(id),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      closeDialog();
+      void refreshUsers();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => usersService.remove(id),
     onSuccess: (message) => {
@@ -132,6 +142,7 @@ export default function UsersPage() {
     if (user.status === 'ACTIVE') {
       items.push(
         { label: 'Parolni tiklash', icon: KeyRound, onSelect: () => setDialog({ type: 'reset-password', user }) },
+        ...(user.twoFactorEnabled ? [{ label: '2FA ni o‘chirish', icon: ShieldOff, onSelect: () => setDialog({ type: 'reset-2fa', user }) }] : []),
         { label: 'Bloklash', icon: Ban, tone: 'danger', onSelect: () => setDialog({ type: 'block', user }) },
       );
     }
@@ -366,6 +377,18 @@ export default function UsersPage() {
           onConfirm={() =>
             statusMutation.mutate({ id: dialog.user.id, payload: { status: dialog.type === 'block' ? 'BLOCKED' : 'ACTIVE' } })
           }
+          onCancel={closeDialog}
+        />
+      )}
+      {dialog?.type === 'reset-2fa' && (
+        <ConfirmDialog
+          open
+          title="Ikki bosqichli kirish o‘chirilsinmi?"
+          description={`${dialog.user.firstName} ${dialog.user.lastName} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.`}
+          confirmLabel="2FA ni o‘chirish"
+          tone="danger"
+          loading={resetTwoFactor.isPending}
+          onConfirm={() => resetTwoFactor.mutate(dialog.user.id)}
           onCancel={closeDialog}
         />
       )}

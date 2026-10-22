@@ -69,6 +69,31 @@ export function verifyAccessToken(token: string): AccessTokenPayload | null {
   }
 }
 
+/** 2FA: parol to'g'ri, kod kutilmoqda. Boshqa audience — access token sifatida o'tmaydi */
+const TWO_FACTOR_AUDIENCE = 'crm-2fa';
+export const TWO_FACTOR_CHALLENGE_TTL_SECONDS = 5 * 60;
+
+export function signTwoFactorChallenge(userId: string): string {
+  return jwt.sign({ purpose: '2fa' }, env.JWT_SECRET, {
+    subject: userId,
+    jwtid: generateTokenId(),
+    expiresIn: TWO_FACTOR_CHALLENGE_TTL_SECONDS,
+    issuer: ISSUER,
+    audience: TWO_FACTOR_AUDIENCE,
+    algorithm: 'HS256',
+  });
+}
+
+export function verifyTwoFactorChallenge(token: string): { userId: string; iat: number } | null {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'], issuer: ISSUER, audience: TWO_FACTOR_AUDIENCE });
+    if (typeof decoded === 'string' || decoded.purpose !== '2fa' || typeof decoded.sub !== 'string' || typeof decoded.iat !== 'number') return null;
+    return { userId: decoded.sub, iat: decoded.iat };
+  } catch {
+    return null;
+  }
+}
+
 export function signRefreshToken(input: { userId: string; tokenId: string; familyId: string }): string {
   return jwt.sign({ fam: input.familyId }, env.JWT_REFRESH_SECRET, {
     subject: input.userId,

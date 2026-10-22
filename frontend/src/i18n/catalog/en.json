@@ -4784,7 +4784,35 @@
 "Ulush 0 dan kam bo‘lmaydi": "Share cannot be below 0",
 "O‘qituvchi ulushi": "Teacher share",
 "O‘qituvchi ulushi saqlandi — keyingi to‘lovlardan amal qiladi": "Teacher share saved — applies from the next payments",
-"O‘quvchining oylik to‘lovidan shu ulush «": "This share of the student's monthly payment goes to the «"
+"O‘quvchining oylik to‘lovidan shu ulush «": "This share of the student's monthly payment goes to the «",
+"2FA tiklash kodlari yangilandi": "2FA recovery codes regenerated",
+"Base32 emas": "Not Base32",
+"Hisob egasi ekaningizni tasdiqlash uchun": "To confirm you own this account",
+"Ikki bosqichli kirish o‘chirildi": "Two-step sign-in disabled",
+"Ikki bosqichli kirish o‘chirildi. Xodimning barcha sessiyalari yopildi": "Two-step sign-in disabled. All of the employee's sessions were closed",
+"Ikki bosqichli kirish o‘chirilsinmi?": "Disable two-step sign-in?",
+"Ilova ko‘rsatgan 6 xonali kodni pastga kiriting.": "Enter the 6-digit code shown by the app below.",
+"Ilovada “Hisob qo‘shish” → “QR kodni skanerlash”.": "In the app: “Add account” → “Scan a QR code”.",
+"Ilovadagi kod bilan": "Use the app code",
+"Ilovadagi kod yoki tiklash kodi": "App code or recovery code",
+"Juda ko‘p noto‘g‘ri kod. Hisob 15 daqiqaga vaqtincha bloklandi.": "Too many wrong codes. The account is temporarily locked for 15 minutes.",
+"Kirish: 2FA kodi noto‘g‘ri": "Sign-in: wrong 2FA code",
+"Kirish: 2FA kodi so‘raldi": "Sign-in: 2FA code requested",
+"Kod noto‘g‘ri yoki muddati o‘tgan": "The code is wrong or expired",
+"Nusxa olib bo‘lmadi — kodlarni qo‘lda yozib oling": "Couldn't copy — write the codes down manually",
+"Parol noto‘g‘ri": "Wrong password",
+"Parol o‘g‘irlansa ham hisobingizga kirib bo‘lmaydi: kirishda telefondagi ilova kodi so‘raladi.": "Even with a stolen password nobody can sign in: a code from the phone app is required.",
+"Saqlab qo‘ygan tiklash kodlaringizdan birini kiriting (masalan, ABCD-EFGH).": "Enter one of your saved recovery codes (e.g. ABCD-EFGH).",
+"Skanerlab bo‘lmasa, kalitni qo‘lda kiriting:": "If scanning doesn't work, enter the key manually:",
+"Tasdiqlash va yoqish": "Confirm and enable",
+"Telefon yo‘qmi? Tiklash kodi bilan": "No phone? Use a recovery code",
+"Telefon yo‘qolsa, shu kodlardan biri bilan kirasiz. Har biri bir marta ishlaydi va boshqa ko‘rsatilmaydi.": "If you lose your phone, sign in with one of these codes. Each works once and won't be shown again.",
+"Telefoningizdagi autentifikator ilovasi ko‘rsatgan 6 xonali kodni kiriting.": "Enter the 6-digit code from the authenticator app on your phone.",
+"TOTP_ENCRYPTION_KEY kamida 32 belgi bo‘lishi kerak": "TOTP_ENCRYPTION_KEY must be at least 32 characters",
+"Xodimning 2FA si admin tomonidan o‘chirildi": "Employee's 2FA disabled by an admin",
+"Yoqilmagan. Kerak bo‘ladi: telefonda Google Authenticator yoki shunga o‘xshash ilova.": "Not enabled. You'll need Google Authenticator or a similar app on your phone.",
+"O‘z 2FA sozlamangizni Profil sahifasida o‘zgartiring": "Change your own 2FA on the Profile page",
+"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "Once disabled, your account is protected by the password only."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5403,6 +5431,7 @@
 "muddati o‘tgan: {0}": "overdue: {0}",
 "· asosiy o‘qituvchi ulushi {0}%": "· main teacher share {0}%",
 "Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "Other extra groups: {0}% · total must not exceed 100%",
-"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Extra group shares must not exceed 100% in total (others: {0}%)"
+"Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Extra group shares must not exceed 100% in total (others: {0}%)",
+"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "If {0} {1} lost both the phone and the recovery codes. All sessions will be closed; they can then sign in with the password and enable 2FA again."
 }
 }

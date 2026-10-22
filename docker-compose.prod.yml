@@ -72,6 +72,8 @@ services:
       TRUST_PROXY: 1
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SLOW_REQUEST_MS: ${SLOW_REQUEST_MS:-800}
+      # 2FA sirlarini shifrlash kaliti (bo'sh — JWT_SECRET dan hosil qilinadi)
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-}
       # SMS (Eskiz.uz) — bo'sh bo'lsa o'chiq
       ESKIZ_EMAIL: ${ESKIZ_EMAIL:-}
       ESKIZ_PASSWORD: ${ESKIZ_PASSWORD:-}

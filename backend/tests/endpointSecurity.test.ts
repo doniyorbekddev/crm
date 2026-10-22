@@ -55,6 +55,8 @@ const key = (route: { method: string; path: string }) => `${route.method.toUpper
 const PUBLIC = new Set([
   'GET /api/health',
   'POST /api/auth/login',
+  // 2FA ikkinchi qadami: tokensiz, lekin 5 daqiqalik imzolangan tasdiqlash tokeni + kod talab qiladi (twoFactor.test.ts)
+  'POST /api/auth/login/2fa',
   'POST /api/auth/register',
   'POST /api/auth/refresh',
   'POST /api/auth/logout',
@@ -78,6 +80,12 @@ const AUTH_ONLY = new Set([
   'POST /api/auth/me/avatar',
   'DELETE /api/auth/me/avatar',
   'PATCH /api/auth/change-password',
+  // O'z 2FA sozlamasi — har o'zgarish parol (va kod) bilan tasdiqlanadi
+  'GET /api/auth/2fa',
+  'POST /api/auth/2fa/setup',
+  'POST /api/auth/2fa/enable',
+  'POST /api/auth/2fa/disable',
+  'POST /api/auth/2fa/recovery-codes',
   'POST /api/auth/logout-all',
   'GET /api/auth/me/preferences',
   'PUT /api/auth/me/preferences/:key',

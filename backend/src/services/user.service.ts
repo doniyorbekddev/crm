@@ -28,6 +28,7 @@ const userSelect = {
   lastLoginAt: true,
   createdAt: true,
   avatarPath: true,
+  totpEnabledAt: true,
   role: { select: { id: true, key: true, name: true } },
 } satisfies Prisma.UserSelect;
 
@@ -44,6 +45,8 @@ export interface UserDto {
   createdAt: string;
   role: { id: string; key: string; name: string };
   avatarUrl: string | null;
+  /** Ikki bosqichli kirish yoqilgan */
+  twoFactorEnabled: boolean;
 }
 
 export type UserStatusSummary = Record<'ALL' | UserStatus, number>;
@@ -60,6 +63,7 @@ function toUserDto(user: UserRecord): UserDto {
     createdAt: user.createdAt.toISOString(),
     role: user.role,
     avatarUrl: avatarUrlOf(user.avatarPath),
+    twoFactorEnabled: user.totpEnabledAt !== null,
   };
 }
 
@@ -311,6 +315,23 @@ export const userService = {
         ...client,
       });
     });
+  },
+
+  /**
+   * Telefon va tiklash kodlari yo'qolganda: boshqa admin 2FA ni o'chiradi. Sessiyalar bekor qilinadi —
+   * xodim parol bilan kirib, istasa qayta yoqadi.
+   */
+  async resetTwoFactor(actor: AuthUser, id: string, client: ClientInfo): Promise<UserDto> {
+    assertNotSelf(actor, id, 'O‘z 2FA sozlamangizni Profil sahifasida o‘zgartiring');
+    const target = await findActiveUser(id);
+    assertCanManage(actor, target);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null } });
+      await tx.userRecoveryCode.deleteMany({ where: { userId: id } });
+      await revokeSessions(tx, id);
+      await auditService.recordInTransaction(tx, { userId: actor.id, action: 'user.2fa_reset_by_admin', entityType: 'user', entityId: id, ...client });
+    });
+    return toUserDto(await prisma.user.findUniqueOrThrow({ where: { id }, select: userSelect }));
   },
 
   /**

@@ -62,6 +62,13 @@ export const userController = {
     sendSuccess(res, null, { message: 'Parol yangilandi. Xodimning barcha sessiyalari yopildi' });
   },
 
+  async resetTwoFactor(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await userService.resetTwoFactor(requireAuthUser(req), id, getClientInfo(req)), {
+      message: 'Ikki bosqichli kirish o‘chirildi. Xodimning barcha sessiyalari yopildi',
+    });
+  },
+
   async remove(req: Request, res: Response): Promise<void> {
     const actor = requireAuthUser(req);
     const { id } = idParamSchema.parse(req.params);

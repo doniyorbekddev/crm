@@ -5,9 +5,11 @@ import type {
   AuthUser,
   ChangePasswordPayload,
   LoginPayload,
+  LoginResponse,
   RegisterPayload,
   RegisterResult,
   ResetPasswordPayload,
+  TwoFactorStatus,
 } from '@/types/auth';
 
 export interface MessageResult<T> {
@@ -16,9 +18,40 @@ export interface MessageResult<T> {
 }
 
 export const authService = {
-  async login(payload: LoginPayload): Promise<AuthSession> {
-    const response = await api.post<ApiSuccessResponse<AuthSession>>('/auth/login', payload, { skipAuthRefresh: true });
+  /** 2FA yoqilgan bo'lsa sessiya o'rniga tasdiqlash so'rovi qaytadi (`twoFactorRequired`) */
+  async login(payload: LoginPayload): Promise<LoginResponse> {
+    const response = await api.post<ApiSuccessResponse<LoginResponse>>('/auth/login', payload, { skipAuthRefresh: true });
     return response.data.data;
+  },
+
+  async loginTwoFactor(payload: { challengeToken: string; code: string }): Promise<AuthSession> {
+    const response = await api.post<ApiSuccessResponse<AuthSession>>('/auth/login/2fa', payload, { skipAuthRefresh: true });
+    return response.data.data;
+  },
+
+  async twoFactorStatus(): Promise<TwoFactorStatus> {
+    const response = await api.get<ApiSuccessResponse<TwoFactorStatus>>('/auth/2fa');
+    return response.data.data;
+  },
+
+  async twoFactorSetup(password: string): Promise<{ secret: string; otpauthUrl: string }> {
+    const response = await api.post<ApiSuccessResponse<{ secret: string; otpauthUrl: string }>>('/auth/2fa/setup', { password });
+    return response.data.data;
+  },
+
+  async twoFactorEnable(code: string): Promise<MessageResult<{ recoveryCodes: string[] }>> {
+    const response = await api.post<ApiSuccessResponse<{ recoveryCodes: string[] }>>('/auth/2fa/enable', { code });
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async twoFactorDisable(payload: { password: string; code: string }): Promise<string> {
+    const response = await api.post<ApiSuccessResponse<null>>('/auth/2fa/disable', payload);
+    return response.data.message;
+  },
+
+  async twoFactorRecoveryCodes(payload: { password: string; code: string }): Promise<MessageResult<{ recoveryCodes: string[] }>> {
+    const response = await api.post<ApiSuccessResponse<{ recoveryCodes: string[] }>>('/auth/2fa/recovery-codes', payload);
+    return { data: response.data.data, message: response.data.message };
   },
 
   async register(payload: RegisterPayload): Promise<MessageResult<RegisterResult>> {

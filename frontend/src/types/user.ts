@@ -17,6 +17,8 @@ export interface UserListItem {
   createdAt: string;
   role: RoleRef;
   avatarUrl?: string | null;
+  /** Ikki bosqichli kirish yoqilgan */
+  twoFactorEnabled?: boolean;
 }
 
 export type UserStatusSummary = Record<'ALL' | UserStatus, number>;
