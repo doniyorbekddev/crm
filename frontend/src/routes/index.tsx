@@ -672,6 +672,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/debts/DebtsPage"),
                         ),
                       },
+                      {
+                        path: "payment-summary",
+                        lazy: lazyComponent(
+                          () => import("@/pages/payment-summary/PaymentSummaryPage"),
+                        ),
+                      },
                     ],
                   },
                   {

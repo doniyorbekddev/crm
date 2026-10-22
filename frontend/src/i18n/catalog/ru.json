@@ -4847,7 +4847,23 @@
 "Xodimning 2FA si admin tomonidan o‘chirildi": "2FA сотрудника отключена администратором",
 "Yoqilmagan. Kerak bo‘ladi: telefonda Google Authenticator yoki shunga o‘xshash ilova.": "Не включено. Понадобится Google Authenticator или похожее приложение на телефоне.",
 "O‘z 2FA sozlamangizni Profil sahifasida o‘zgartiring": "Свою 2FA меняйте на странице профиля",
-"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "После отключения аккаунт снова будет защищён только паролем."
+"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "После отключения аккаунт снова будет защищён только паролем.",
+"Bu tanlov bo‘yicha o‘quvchi topilmadi": "По этому выбору учеников не найдено",
+"holatiga. “Yig‘ilishi kerak” — shartnoma summalari (chegirmalardan keyin); “Yig‘ilgan” — bekor qilish va qaytarishlardan keyin. Yo‘nalish — o‘quvchining asosiy kursi.": "«Должно быть собрано» — суммы договоров (после скидок); «Собрано» — после отмен и возвратов. Направление — основной курс ученика.",
+"Jami qancha yig‘ilishi kerak, qancha yig‘ildi va qancha qoldi — yo‘nalishlar bo‘yicha": "Сколько всего должно быть собрано, сколько собрано и сколько осталось — по направлениям",
+"Jami yig‘ilishi kerak": "Всего к сбору",
+"Kurs bo‘yicha": "По курсам",
+"ta o‘quvchida shartnoma summasi kiritilmagan — ular “yig‘ilishi kerak” summasiga kirmaydi.": "ученик(ов) без суммы договора — они не входят в сумму «к сбору».",
+"Toifa bo‘yicha": "По категориям",
+"To‘lov jadvali bo‘yicha o‘tib ketgan qism": "Просроченная часть по графику платежей",
+"To‘lov xulosasi": "Сводка оплат",
+"To‘lov xulosasi — yo‘nalishlar bo‘yicha": "Сводка оплат — по направлениям",
+"Yig‘ilish darajasi": "Уровень сбора",
+"Yig‘ilishi kerak": "К сбору",
+"Yo‘nalish (kurs)": "Направление (курс)",
+"Yo‘nalishlar bo‘yicha": "По направлениям",
+"O‘qiyotganlar (faol va muzlatilgan)": "Обучающиеся (активные и замороженные)",
+"O‘quvchisi bor kurslar": "Курсы с учениками"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5468,6 +5484,8 @@
 "· asosiy o‘qituvchi ulushi {0}%": "· доля основного преподавателя {0}%",
 "Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "В других доп. группах: {0}% · всего не более 100%",
 "Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Сумма долей доп. групп не должна превышать 100% (в других {0}%)",
-"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "Если {0} {1} потерял(а) телефон и коды восстановления. Все сеансы будут закрыты; затем можно войти по паролю и снова включить 2FA."
+"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "Если {0} {1} потерял(а) телефон и коды восстановления. Все сеансы будут закрыты; затем можно войти по паролю и снова включить 2FA.",
+"{0} ta qarzdor o‘quvchi": "{0} учеников с долгом",
+"{0} ta shartnoma bo‘yicha": "по {0} договорам"
 }
 }

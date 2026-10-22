@@ -36,6 +36,7 @@ export const queryKeys = {
     sms: ['settings', 'sms'] as const,
     smsBalance: ['settings', 'sms', 'balance'] as const,
   },
+  paymentSummary: (scope: string) => ['payment-summary', scope] as const,
   auth: {
     me: ['auth', 'me'] as const,
     twoFactor: ['auth', '2fa'] as const,

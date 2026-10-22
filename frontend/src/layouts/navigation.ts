@@ -1,4 +1,4 @@
-import { Activity, BadgePercent, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PiggyBank, Presentation, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
+import { Activity, BadgePercent, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -66,6 +66,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/payments', label: 'To‘lovlar', icon: Wallet, permission: PERMISSIONS.PAYMENT_VIEW },
       { to: '/debts', label: 'Qarzdorlik', icon: HandCoins, permission: PERMISSIONS.DEBT_VIEW },
+      { to: '/payment-summary', label: 'To‘lov xulosasi', icon: PieChart, permission: PERMISSIONS.DEBT_VIEW },
       { to: '/finance', label: 'Moliya paneli', icon: PiggyBank, permission: PERMISSIONS.FINANCE_VIEW },
       { to: '/incomes', label: 'Tushumlar', icon: TrendingUp, permission: PERMISSIONS.INCOME_VIEW },
       { to: '/expenses', label: 'Xarajatlar', icon: TrendingDown, permission: PERMISSIONS.EXPENSE_VIEW },

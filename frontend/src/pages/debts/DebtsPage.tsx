@@ -3,7 +3,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HandCoins, Phone, Wallet } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DataTable } from '@/components/ui/DataTable';
 import { FilterBar, FilterField } from '@/components/ui/FilterBar';
 import { useTableDensity } from '@/hooks/useTableDensity';
@@ -51,7 +51,9 @@ export default function DebtsPage() {
   const search = useDebounce(searchInput.trim(), 400);
   const [range, setRange] = useState<DebtRange>('all');
   const [due, setDue] = useState<DebtDueFilter>('all');
-  const [courseId, setCourseId] = useState('');
+  // "To'lov xulosasi"dan kurs bo'yicha ochilganda (?courseId=)
+  const [searchParams] = useSearchParams();
+  const [courseId, setCourseId] = useState(() => searchParams.get('courseId') ?? '');
   const [sort, setSort] = useState<string>('remaining:desc');
   const [page, setPage] = useState(1);
   const [payFor, setPayFor] = useState<StudentItem | null>(null);

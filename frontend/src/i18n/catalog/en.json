@@ -4812,7 +4812,23 @@
 "Xodimning 2FA si admin tomonidan o‘chirildi": "Employee's 2FA disabled by an admin",
 "Yoqilmagan. Kerak bo‘ladi: telefonda Google Authenticator yoki shunga o‘xshash ilova.": "Not enabled. You'll need Google Authenticator or a similar app on your phone.",
 "O‘z 2FA sozlamangizni Profil sahifasida o‘zgartiring": "Change your own 2FA on the Profile page",
-"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "Once disabled, your account is protected by the password only."
+"O‘chirilsa, hisobingiz yana faqat parol bilan himoyalanadi.": "Once disabled, your account is protected by the password only.",
+"Bu tanlov bo‘yicha o‘quvchi topilmadi": "No students for this selection",
+"holatiga. “Yig‘ilishi kerak” — shartnoma summalari (chegirmalardan keyin); “Yig‘ilgan” — bekor qilish va qaytarishlardan keyin. Yo‘nalish — o‘quvchining asosiy kursi.": "“Expected” — contract totals (after discounts); “Collected” — after cancellations and refunds. Direction is the student's main course.",
+"Jami qancha yig‘ilishi kerak, qancha yig‘ildi va qancha qoldi — yo‘nalishlar bo‘yicha": "How much should be collected, how much was collected and what remains — by direction",
+"Jami yig‘ilishi kerak": "Total expected",
+"Kurs bo‘yicha": "By course",
+"ta o‘quvchida shartnoma summasi kiritilmagan — ular “yig‘ilishi kerak” summasiga kirmaydi.": "students have no contract amount — they are not included in “expected”.",
+"Toifa bo‘yicha": "By category",
+"To‘lov jadvali bo‘yicha o‘tib ketgan qism": "Past-due part of the payment schedule",
+"To‘lov xulosasi": "Payment summary",
+"To‘lov xulosasi — yo‘nalishlar bo‘yicha": "Payment summary — by direction",
+"Yig‘ilish darajasi": "Collection rate",
+"Yig‘ilishi kerak": "Expected",
+"Yo‘nalish (kurs)": "Direction (course)",
+"Yo‘nalishlar bo‘yicha": "By direction",
+"O‘qiyotganlar (faol va muzlatilgan)": "Studying (active and frozen)",
+"O‘quvchisi bor kurslar": "Courses with students"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5432,6 +5448,8 @@
 "· asosiy o‘qituvchi ulushi {0}%": "· main teacher share {0}%",
 "Boshqa qo‘shimcha guruhlarda: {0}% · jami 100% dan oshmasin": "Other extra groups: {0}% · total must not exceed 100%",
 "Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Extra group shares must not exceed 100% in total (others: {0}%)",
-"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "If {0} {1} lost both the phone and the recovery codes. All sessions will be closed; they can then sign in with the password and enable 2FA again."
+"{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "If {0} {1} lost both the phone and the recovery codes. All sessions will be closed; they can then sign in with the password and enable 2FA again.",
+"{0} ta qarzdor o‘quvchi": "{0} students in debt",
+"{0} ta shartnoma bo‘yicha": "across {0} contracts"
 }
 }
