@@ -83,6 +83,8 @@ async function capture(context: BrowserContext, name: string, url: string, theme
   if (name !== 'login') expect(page.url(), `${name}: login sahifasiga qaytdi`).not.toMatch(/\/login/);
   const file = `${name}-${theme}-${viewport}.png`;
   await page.screenshot({ path: path.join(OUT, file), fullPage: true });
+  // Birinchi ekran (karkas: yopishqoq panellar, sidebar) — fullPage'da `fixed` elementlar faqat tepada chiqadi
+  await page.screenshot({ path: path.join(OUT, file.replace('.png', '-fold.png')) });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   const contrast = await page.evaluate(scanContrast);
   await page.close();

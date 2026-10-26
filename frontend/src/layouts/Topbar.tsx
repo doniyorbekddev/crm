@@ -28,6 +28,14 @@ export function Topbar() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const quickActions = useMemo(() => availableQuickActions(user), [user]);
+  // Sahifa aylantirilganda pastki chegara paydo bo'ladi (tepada — panel kontent bilan qo'shilib turadi)
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Ctrl+K / Cmd+K va "/" — global qidiruv; "?" — klaviatura yorliqlari
   useEffect(() => {
@@ -53,7 +61,10 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface/90 px-4 backdrop-blur sm:px-6">
+    <header
+      data-scrolled={scrolled || undefined}
+      className="glass flex h-14 shrink-0 items-center justify-between gap-3 border-b border-transparent px-4 transition-[border-color,box-shadow] duration-normal ease-out data-scrolled:border-border data-scrolled:shadow-sm sm:px-6"
+    >
       <div className="flex min-w-0 items-center gap-2">
         <IconButton label="Menyuni ochish" tooltip={false} size="lg" onClick={() => setMobileOpen(true)} className="lg:hidden">
           <Menu aria-hidden />
@@ -73,11 +84,11 @@ export function Topbar() {
           type="button"
           onClick={() => setSearchOpen(true)}
           aria-label="Global qidiruv"
-          className="focus-ring hidden h-9 w-56 items-center gap-2 rounded-control border border-border bg-surface-muted/60 px-3 text-body text-fg-muted transition-colors hover:border-fg-subtle/60 hover:text-fg sm:flex xl:w-72"
+          className="focus-ring hidden h-9 w-56 items-center gap-2 rounded-control border border-border bg-surface/60 px-3 text-body text-fg-muted shadow-highlight transition-colors hover:border-primary-border hover:text-fg sm:flex xl:w-72"
         >
           <Search className="size-4 shrink-0" aria-hidden />
           <span className="flex-1 text-left">Qidirish…</span>
-          <kbd className="rounded-sm border border-border bg-surface px-1.5 font-sans text-overline tracking-normal text-fg-subtle">Ctrl K</kbd>
+          <kbd className="rounded-sm border border-border bg-surface px-1.5 font-mono text-overline tracking-normal text-fg-subtle">Ctrl K</kbd>
         </button>
         <IconButton label="Global qidiruv" tooltip={false} size="lg" onClick={() => setSearchOpen(true)} className="sm:hidden">
           <Search aria-hidden />

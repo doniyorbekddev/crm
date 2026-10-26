@@ -2,6 +2,7 @@ import { BookOpen, BookOpenCheck, CalendarCheck, FileBarChart, FileCheck, Home, 
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useActiveIndicator } from '@/hooks/useActiveIndicator';
 import { cn } from '@/lib/cn';
 
 export interface PortalNavItem {
@@ -33,27 +34,41 @@ const SECONDARY = PORTAL_NAV_ITEMS.filter((item) => !item.primary);
 
 /** Kompyuter: gorizontal tablar */
 export function PortalTabs({ className }: { className?: string }) {
+  const { pathname } = useLocation();
+  const listRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  // Faol bo'lim ostidagi gradient chiziq bo'limdan bo'limga sirpanadi
+  useActiveIndicator(listRef, indicatorRef, { selector: 'a[aria-current="page"]', mode: 'underline' }, [pathname]);
   return (
     <nav aria-label="Kabinet bo‘limlari" className={cn('hidden sm:block print:hidden', className)}>
-      <ul className="flex gap-5 overflow-x-auto">
-        {PORTAL_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-          <li key={to}>
-            <NavLink
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'focus-ring inline-flex h-10 items-center gap-2 border-b-2 px-0.5 text-body font-medium whitespace-nowrap transition-colors',
-                  isActive ? 'border-brand-600 text-fg' : 'border-transparent text-fg-muted hover:border-border hover:text-fg',
-                )
-              }
-            >
-              <Icon className="size-4" aria-hidden />
-              {label}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
+      <div ref={listRef} className="group/tabs relative overflow-x-auto">
+        <span
+          ref={indicatorRef}
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 h-0.5 rounded-pill bg-gradient-brand opacity-0 transition-[transform,opacity] duration-slow ease-out"
+        />
+        <ul className="flex gap-5">
+          {PORTAL_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <li key={to}>
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'focus-ring inline-flex h-10 items-center gap-2 border-b-2 px-0.5 text-body font-medium whitespace-nowrap transition-colors',
+                    isActive
+                      ? 'border-primary text-fg group-data-[indicator=ready]/tabs:border-transparent'
+                      : 'border-transparent text-fg-muted hover:border-border hover:text-fg',
+                  )
+                }
+              >
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </div>
     </nav>
   );
 }
@@ -90,11 +105,11 @@ export function PortalBottomBar() {
   return (
     <nav
       aria-label="Kabinet bo‘limlari"
-      className="fixed inset-x-0 bottom-0 z-header border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden print:hidden"
+      className="glass fixed inset-x-0 bottom-0 z-header border-t border-border pb-[env(safe-area-inset-bottom)] sm:hidden print:hidden"
     >
       <div ref={containerRef} className="relative">
         {open && (
-          <ul id="portal-more-menu" className="absolute right-2 bottom-full mb-2 w-52 animate-fade-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md">
+          <ul id="portal-more-menu" className="absolute right-2 bottom-full mb-2 w-52 origin-bottom-right animate-menu-in overflow-hidden rounded-control border border-border bg-surface-elevated py-1 shadow-md">
             {SECONDARY.map(({ to, label, icon: Icon }) => (
               <li key={to}>
                 <NavLink

@@ -140,6 +140,8 @@
 
   /* Gradientlar — faqat brend lahzalari (matn uchun emas, tugma uchun primary) */
   --app-gradient-brand: linear-gradient(120deg, #6d4cff, #3d7bff 55%, #22c3ee);
+  /* Xuddi shu tus, lekin oq matn ko'taradi (≥ 5.4:1 har uchida) — brend belgisi, avatar. Yorqini faqat bezak uchun */
+  --app-gradient-brand-strong: linear-gradient(120deg, #6248f2, #3557e0 55%, #0a7389);
   --app-gradient-text: linear-gradient(100deg, #5b45f0, #3557e0 50%, #0a7fa8);
   --app-gradient-primary: linear-gradient(180deg, #6a55f2, #5038e6);
   --app-gradient-progress: linear-gradient(90deg, #6a55f2, #3d6dff);
@@ -159,6 +161,9 @@
   --app-stage-line: rgb(255 255 255 / 0.08);
   --app-stage-glass: rgb(255 255 255 / 0.05);
   --app-stage-accent: #5fdcf5;
+  --app-stage-highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  /* Rangli (gradient) sirt ustidagi ichki yorug'lik — tugma, brend belgisi */
+  --app-highlight-on-color: inset 0 1px 0 rgb(255 255 255 / 0.28);
   --app-stage-text: linear-gradient(100deg, #b9abff, #7fa6ff 50%, #5fdcf5);
   --app-stage-aurora-1: rgb(109 76 255 / 0.34);
   --app-stage-aurora-2: rgb(61 123 255 / 0.28);
@@ -325,6 +330,8 @@
   --shadow-lift: var(--app-shadow-lift);
   --shadow-glow: var(--app-glow-primary);
   --shadow-highlight: var(--app-highlight-inset);
+  --shadow-stage-highlight: var(--app-stage-highlight);
+  --shadow-on-color: var(--app-highlight-on-color);
 
 }
 
@@ -542,6 +549,9 @@
 @utility bg-gradient-brand {
   background-image: var(--app-gradient-brand);
 }
+@utility bg-gradient-brand-strong {
+  background-image: var(--app-gradient-brand-strong);
+}
 @utility bg-gradient-primary {
   background-image: var(--app-gradient-primary);
 }
@@ -573,6 +583,31 @@
 /* Ko'tarilgan sirtning yuqori qirrasidagi 1px yorug'lik (boshqa soyalar bilan birga) */
 @utility highlight {
   box-shadow: var(--app-highlight-inset), var(--app-shadow-sm);
+}
+/* Stage paneli to'ri: nozik chiziqlar, markazdan chetga so'nadi (niqob) */
+@utility stage-grid {
+  background-image:
+    linear-gradient(to right, var(--app-stage-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--app-stage-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 75%);
+}
+/* Bolalar navbatma-navbat paydo bo'ladi (70ms) — kirish sahifasi va forma maydonlari */
+@utility stagger-children {
+  & > *,
+  & form > * {
+    animation: rise-in 550ms var(--ease-out) backwards;
+  }
+  & > :nth-child(2) { animation-delay: 70ms; }
+  & > :nth-child(3) { animation-delay: 140ms; }
+  & > :nth-child(4) { animation-delay: 210ms; }
+  & > :nth-child(5) { animation-delay: 280ms; }
+  & form > :nth-child(1) { animation-delay: 210ms; }
+  & form > :nth-child(2) { animation-delay: 280ms; }
+  & form > :nth-child(3) { animation-delay: 350ms; }
+  & form > :nth-child(4) { animation-delay: 420ms; }
+  & form > :nth-child(5) { animation-delay: 490ms; }
 }
 /* Aurora nuri: xira, sekin suzuvchi gradient doira. Faqat login, dashboard hero va bo'sh holatlarda */
 @utility aurora-orb {

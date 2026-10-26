@@ -173,9 +173,10 @@ export function scanTokens(): TokenPairResult[] {
     const name = `--app-${tone}-solid`;
     if (token(name)) check('#ffffff', name, [255, 255, 255, 1], parse(token(name)));
   }
-  // Asosiy tugma gradienti: oq matn har ikki uchida
-  const gradient = token('--app-gradient-primary');
-  for (const stop of gradient.match(/(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}\b)/g) ?? []) check('#ffffff', `--app-gradient-primary ${stop}`, [255, 255, 255, 1], parse(stop));
+  // Oq matn ko'taradigan gradientlar: har bir uchida
+  for (const name of ['--app-gradient-primary', '--app-gradient-brand-strong']) {
+    for (const stop of token(name).match(/(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}\b)/g) ?? []) check('#ffffff', `${name} ${stop}`, [255, 255, 255, 1], parse(stop));
+  }
   if (token('--app-stage-bg')) {
     for (const fg of ['--app-stage-fg', '--app-stage-muted', '--app-stage-accent']) check(fg, '--app-stage-bg', parse(token(fg)), parse(token('--app-stage-bg')));
   }
@@ -183,22 +184,24 @@ export function scanTokens(): TokenPairResult[] {
 }
 
 /**
- * Glif Geist'ning o'zida bormi: belgi `Geist, monospace` va faqat `monospace` bilan o'lchanadi —
- * Geist'da glif bo'lmasa brauzer fallback'ga o'tadi va kengliklar teng chiqadi.
+ * Glif shriftning o'zida bormi: belgi `"<shrift>", serif` va `"<shrift>", monospace` bilan o'lchanadi. Glif shriftda bo'lsa
+ * ikkala holatda ham shu shrift chizadi — kengliklar teng; yo'q bo'lsa har xil fallback chizadi — farq qiladi.
  */
 export async function scanGlyphs(): Promise<Array<{ char: string; code: string; family: string; inFont: boolean }>> {
-  const chars = ['‘', 'ʻ', 'ʼ', '’', 'ў', 'қ', 'ғ', 'ҳ', 'Ж'];
+  const chars = ['‘', '’', 'ʻ', 'ʼ', 'ў', 'қ', 'ғ', 'ҳ', 'Ж'];
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
+  const width = (font: string, char: string) => {
+    ctx.font = font;
+    return ctx.measureText(char.repeat(8)).width;
+  };
   const result: Array<{ char: string; code: string; family: string; inFont: boolean }> = [];
   for (const family of ['Geist', 'Geist Mono']) {
     await document.fonts.load(`32px "${family}"`, chars.join(''));
     for (const char of chars) {
-      ctx.font = `32px "${family}", monospace`;
-      const withFont = ctx.measureText(char.repeat(8)).width;
-      ctx.font = '32px monospace';
-      const fallback = ctx.measureText(char.repeat(8)).width;
-      result.push({ char, code: `U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`, family, inFont: Math.abs(withFont - fallback) > 0.5 });
+      const serif = width(`32px "${family}", serif`, char);
+      const mono = width(`32px "${family}", monospace`, char);
+      result.push({ char, code: `U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`, family, inFont: Math.abs(serif - mono) < 0.01 });
     }
   }
   return result;

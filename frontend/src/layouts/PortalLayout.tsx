@@ -65,7 +65,7 @@ function PortalHeader() {
   const logout = useLogout();
 
   return (
-    <header className="sticky top-0 z-header border-b border-border bg-surface/90 backdrop-blur print:hidden">
+    <header className="glass sticky top-0 z-header border-b border-border print:hidden">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
         <BrandMark />
         <div className="flex items-center gap-2">

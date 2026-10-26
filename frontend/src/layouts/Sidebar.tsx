@@ -1,9 +1,10 @@
 import { ChevronDown, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { BrandMark } from '@/components/BrandMark';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useActiveIndicator } from '@/hooks/useActiveIndicator';
 import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
@@ -23,11 +24,16 @@ export function Sidebar() {
   const toggleSection = useUiStore((state) => state.toggleNavSection);
   const { pathname } = useLocation();
   const activeSectionId = findNavEntry(pathname)?.section.id;
+  const navRef = useRef<HTMLElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
 
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => !item.permission || hasPermission(user, item.permission)),
   })).filter((section) => section.items.length > 0);
+
+  // Faol bo'lim ustidagi yagona pill: bo'limdan bo'limga sirpanadi (hooks/useActiveIndicator)
+  useActiveIndicator(navRef, pillRef, { selector: 'a[aria-current="page"]' }, [pathname, collapsed, closedSections, sections.length, mobileOpen]);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
@@ -44,20 +50,26 @@ export function Sidebar() {
       <aside
         aria-label="Asosiy menyu"
         className={cn(
-          'fixed inset-y-0 left-0 z-drawer flex w-60 flex-col border-r border-border bg-surface transition-[transform,width] duration-normal',
+          'glass fixed inset-y-0 left-0 z-drawer flex w-60 flex-col border-r border-border transition-[transform,width] duration-normal ease-out',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0',
           collapsed ? 'lg:w-18' : 'lg:w-60',
         )}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border-muted px-4">
           <BrandMark showName={!collapsed} className={cn(collapsed && 'lg:mx-auto')} />
           <IconButton label="Menyuni yopish" tooltip={false} onClick={() => setMobileOpen(false)} className="lg:hidden">
             <X aria-hidden />
           </IconButton>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
+        <nav ref={navRef} className="group/nav relative flex-1 overflow-y-auto px-3 py-3">
+          {/* Sirpanuvchi pill: chap chetida gradient chiziq. Faqat transform/opacity animatsiya qilinadi */}
+          <span
+            ref={pillRef}
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-0 rounded-control bg-primary-subtle opacity-0 shadow-highlight transition-[transform,opacity] duration-slow ease-out before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-pill before:bg-gradient-brand"
+          />
           {sections.map((section, index) => {
             const listId = `nav-section-${section.id}`;
             // Yig'ilgan (ikonkali) ko'rinishda bo'lim sarlavhasi yo'q — hamma band ko'rinadi
@@ -101,7 +113,9 @@ export function Sidebar() {
                               cn(
                                 'focus-ring relative flex h-9 w-full items-center gap-2.5 rounded-control px-2.5 text-body font-medium transition-colors',
                                 collapsed && 'lg:justify-center lg:px-0',
-                                isActive ? 'bg-primary-subtle text-primary' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                                isActive
+                                  ? 'bg-primary-subtle text-primary group-data-[indicator=ready]/nav:bg-transparent'
+                                  : 'text-fg-muted hover:bg-surface-muted/70 hover:text-fg',
                               )
                             }
                           >

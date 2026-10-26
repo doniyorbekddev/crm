@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useCurrentUserSync } from '@/hooks/useCurrentUserSync';
 import { cn } from '@/lib/cn';
 import { useUiStore } from '@/store/ui.store';
@@ -7,6 +7,7 @@ import { Topbar } from './Topbar';
 
 export default function AppLayout() {
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
+  const { pathname } = useLocation();
   useCurrentUserSync();
 
   // Chop etishda menyu, yuqori panel va chetki bo'shliqlar olib tashlanadi —
@@ -27,7 +28,11 @@ export default function AppLayout() {
           <Topbar />
         </div>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:max-w-none print:p-0">
-          <Outlet />
+          {/* Sahifa o'tishi: qisqa ko'tarilish + paydo bo'lish (faqat transform/opacity, fill-mode: backwards).
+              Ichidagi overlay'lar (modal, drawer, menyu) portal orqali body'da — transform ularni siljitmaydi */}
+          <div key={pathname} className="animate-rise-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
