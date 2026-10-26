@@ -6,98 +6,176 @@
  * bg-surface, text-fg, text-danger, bg-success-subtle, rounded-control, shadow-sm, z-modal, text-h2 ...
  */
 
-/* Inter — lokal (tashqi CDN yo'q). O'zgaruvchan shrift: 100–900. Litsenziya: assets/fonts/LICENSE-Inter.txt (OFL-1.1) */
+/* Geist (UI) va Geist Mono (raqam, kod, vaqt) — lokal, tashqi CDN yo'q. O'zgaruvchan shrift: 100–900.
+   Litsenziya: assets/fonts/LICENSE-Geist.txt (OFL-1.1). O'zbekcha ‘ (U+2018) — Geist latin to'plamida; ʻ (U+02BB) — pastdagi alohida yuz. */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Geist';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./assets/fonts/inter-latin-wght-normal.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+  src: url('./assets/fonts/geist-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
     U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Geist';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./assets/fonts/inter-latin-ext-wght-normal.woff2') format('woff2');
+  src: url('./assets/fonts/geist-latin-ext-wght-normal.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Geist';
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./assets/fonts/inter-cyrillic-wght-normal.woff2') format('woff2');
+  src: url('./assets/fonts/geist-cyrillic-wght-normal.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/geist-mono-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/geist-mono-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/geist-mono-cyrillic-wght-normal.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+/* Geist'da ʻ (U+02BB, o'zbekcha "oʻ") gliﬁ yo'q — shu bitta belgi lokal Inter'dan (OFL, assets/fonts/LICENSE-Inter.txt).
+   Fayl faqat sahifada shu belgi bo'lsa yuklanadi. Tekshiruv: frontend/scripts/visual (scanGlyphs). */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+02BB;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+02BB;
 }
 
 /* Dark mode <html class="dark"> orqali boshqariladi (Light / Dark / System). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Light va dark qiymatlari. Komponentlar shu o'zgaruvchilarga @theme orqali ulanadi —
-   dark mode uchun alohida klass yozish shart emas. Barcha matn tokenlari (fg-subtle ham) har qanday sirt va
-   `-subtle` fon ustida ≥ 4.5:1 — avtomatik skaner bilan tekshirilgan (PHASE 15). */
+/*
+ * "AURORA" — sovuq neytral sirtlar, ingichka chegaralar, bitta binafsha asosiy rang.
+ * Brend gradienti (binafsha → ko'k → feruza) faqat brend lahzalarida: logo, avatar, faol indikator, login va dashboard
+ * "stage" sirtlari, bo'sh holat. Barcha matn tokenlari har bir sirt va `-subtle` fon ustida ≥ 4.5:1
+ * (frontend/scripts/visual — token matritsasi va har matn tuguni skaneri).
+ */
 :root {
   color-scheme: light;
 
   /* Sirtlar */
-  --app-bg: #f5f7fb;
+  --app-bg: #f6f7fb;
   --app-surface: #ffffff;
-  --app-surface-muted: #f4f6fa;
+  --app-surface-muted: #f9fafd;
   --app-surface-elevated: #ffffff;
-  --app-border: #e4e8ef;
-  --app-border-muted: #eef1f6;
-  --app-fg: #0f172a;
-  --app-fg-muted: #4f5b6d;
-  --app-fg-subtle: #647085;
-  --app-overlay: rgb(15 23 42 / 0.45);
-  --app-skeleton: #e6eaf1;
-  --app-focus: #4c64f6;
+  --app-border: #e4e6ef;
+  --app-border-muted: #eceef5;
+  --app-fg: #0b0d17;
+  --app-fg-muted: #4a5068;
+  --app-fg-subtle: #646a82;
+  --app-overlay: rgb(11 13 23 / 0.42);
+  --app-skeleton: #f1f2f8;
+  --app-focus: #5b45f0;
   /* Kod bloki — ikkala mavzuda ham to'q (terminal ko'rinishi) */
-  --app-code: #0f172a;
-  --app-code-fg: #e2e8f0;
+  --app-code: #0b0d17;
+  --app-code-fg: #e4e6ef;
 
-  /* Semantik holatlar: matn/ikonka · yumshoq fon · chegara · to'liq fon (oq matn bilan) */
-  --app-success: #047857;
-  --app-success-subtle: #ecfdf5;
-  --app-success-border: #a7f3d0;
-  --app-success-solid: #047857;
-  --app-success-solid-hover: #065f46;
-  --app-warning: #b45309;
-  --app-warning-subtle: #fffbeb;
-  --app-warning-border: #fde68a;
-  --app-warning-solid: #b45309;
-  --app-danger: #b91c1c;
-  --app-danger-subtle: #fef2f2;
-  --app-danger-border: #fecaca;
-  --app-danger-solid: #dc2626;
-  --app-danger-solid-hover: #b91c1c;
-  --app-info: #0369a1;
-  --app-info-subtle: #f0f9ff;
-  --app-info-border: #bae6fd;
-  --app-info-solid: #0369a1;
-  /* Brend ohangi (asosiy amal, tanlangan holat) va ikkinchi urg'u (toifalash uchun) */
-  --app-primary: #2940cf;
-  --app-primary-subtle: #eef3ff;
-  --app-primary-border: #c5d3ff;
-  --app-accent: #6d28d9;
-  --app-accent-subtle: #f5f3ff;
-  --app-accent-border: #ddd6fe;
+  /* Semantik holatlar: matn/ikonka · yumshoq fon · chegara · to'liq fon (oq matn bilan, ≥ 4.5:1) */
+  --app-success: #047a66;
+  --app-success-subtle: #edfaf6;
+  --app-success-border: #bfe9dd;
+  --app-success-solid: #047a66;
+  --app-success-solid-hover: #03604f;
+  --app-warning: #a85a07;
+  --app-warning-subtle: #fef7ea;
+  --app-warning-border: #f6dcaa;
+  --app-warning-solid: #a85a07;
+  --app-danger: #c0352c;
+  --app-danger-subtle: #fdf2f1;
+  --app-danger-border: #f6cbc7;
+  --app-danger-solid: #c0352c;
+  --app-danger-solid-hover: #a12b23;
+  --app-info: #2457c5;
+  --app-info-subtle: #eff4ff;
+  --app-info-border: #cddcfb;
+  --app-info-solid: #2457c5;
+  /* Brend (asosiy amal, tanlangan holat) va ikkinchi urg'u — feruza (toifalash uchun) */
+  --app-primary: #5b45f0;
+  --app-primary-subtle: #f3f1ff;
+  --app-primary-border: #d6cfff;
+  --app-primary-solid: #5b45f0;
+  --app-primary-solid-hover: #4a35d6;
+  --app-accent: #0a7389;
+  --app-accent-subtle: #ebf8fb;
+  --app-accent-border: #bfe6ef;
 
-  /* Grafik seriyalari (to'ldirish/chiziq): ma'no bo'yicha — brend, ijobiy, salbiy, ogohlantirish, neytral */
-  --app-chart-brand: #3354ec;
-  --app-chart-positive: #10b981;
-  --app-chart-negative: #ef4444;
-  --app-chart-warning: #f59e0b;
-  --app-chart-accent: #8b5cf6;
-  --app-chart-neutral: #94a3b8;
+  /* Gradientlar — faqat brend lahzalari (matn uchun emas, tugma uchun primary) */
+  --app-gradient-brand: linear-gradient(120deg, #6d4cff, #3d7bff 55%, #22c3ee);
+  --app-gradient-text: linear-gradient(100deg, #5b45f0, #3557e0 50%, #0a7fa8);
+  --app-gradient-primary: linear-gradient(180deg, #6a55f2, #5038e6);
+  --app-gradient-progress: linear-gradient(90deg, #6a55f2, #3d6dff);
 
-  /* Soya — faqat ikki daraja */
-  --app-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
-  --app-shadow-md: 0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.06);
+  /* Yorug'lik va shisha */
+  --app-glow-primary: 0 8px 24px -8px rgb(91 69 240 / 0.55), 0 0 0 1px rgb(91 69 240 / 0.12);
+  --app-surface-glass: rgb(255 255 255 / 0.72);
+  --app-highlight-inset: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --app-aurora-1: rgb(109 76 255 / 0.22);
+  --app-aurora-2: rgb(61 123 255 / 0.2);
+  --app-aurora-3: rgb(34 195 238 / 0.2);
+
+  /* "Stage" — ikkala mavzuda ham doim to'q sirt (login art paneli, dashboard hero) */
+  --app-stage-bg: #07080d;
+  --app-stage-fg: #f1f2f8;
+  --app-stage-muted: #a9aec2;
+  --app-stage-line: rgb(255 255 255 / 0.08);
+  --app-stage-glass: rgb(255 255 255 / 0.05);
+  --app-stage-accent: #5fdcf5;
+  --app-stage-text: linear-gradient(100deg, #b9abff, #7fa6ff 50%, #5fdcf5);
+  --app-stage-aurora-1: rgb(109 76 255 / 0.34);
+  --app-stage-aurora-2: rgb(61 123 255 / 0.28);
+  --app-stage-aurora-3: rgb(34 195 238 / 0.24);
+
+  /* Grafik seriyalari: ma'no bo'yicha — brend, ijobiy, salbiy, ogohlantirish, urg'u, neytral */
+  --app-chart-brand: #6a55f2;
+  --app-chart-positive: #008a72;
+  --app-chart-negative: #c0352c;
+  --app-chart-warning: #b88a00;
+  --app-chart-accent: #0a8fb8;
+  --app-chart-neutral: #8a90a6;
+
+  /* Soya — sovuq tusli; `lift` faqat bosiladigan kartalar hoverida */
+  --app-shadow-sm: 0 1px 2px 0 rgb(11 13 23 / 0.05);
+  --app-shadow-md: 0 12px 32px -12px rgb(11 13 23 / 0.18), 0 2px 6px -2px rgb(11 13 23 / 0.06);
+  --app-shadow-lift: 0 18px 40px -18px rgb(11 13 23 / 0.24), 0 4px 10px -4px rgb(11 13 23 / 0.06);
 
   /* Qatlamlar (z-index) — tasodifiy z-[9999] ishlatilmaydi */
   --z-sticky: 20;
@@ -110,62 +188,78 @@
   --z-toast: 80;
   --z-tooltip: 90;
 
-  /* Harakat */
-  --duration-fast: 120ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
+  /* Harakat: 140 / 220 / 380 / 700 ms. Reduced-motion'da hammasi 0 (pastda) */
+  --duration-fast: 140ms;
+  --duration-normal: 220ms;
+  --duration-slow: 380ms;
+  --duration-slower: 700ms;
 }
 
 .dark {
   color-scheme: dark;
 
-  --app-bg: #0b1020;
-  --app-surface: #111827;
-  --app-surface-muted: #1a2234;
-  --app-surface-elevated: #161f31;
-  --app-border: #253046;
-  --app-border-muted: #1c2638;
-  --app-fg: #e6e9ef;
-  --app-fg-muted: #a0aabb;
-  --app-fg-subtle: #8f9aad;
-  --app-overlay: rgb(2 6 17 / 0.65);
-  --app-skeleton: #1f2a3f;
-  --app-focus: #7089fb;
+  --app-bg: #07080d;
+  --app-surface: #0f1119;
+  --app-surface-muted: #0b0d14;
+  --app-surface-elevated: #151826;
+  --app-border: #1f2233;
+  --app-border-muted: #171a27;
+  --app-fg: #f1f2f8;
+  --app-fg-muted: #a9aec2;
+  /* #868ca3 ko'tarilgan sirtdagi rangli `-subtle` fonlarda 4.06:1 berdi — bir pog'ona ochroq (≥ 4.67:1) */
+  --app-fg-subtle: #9197ad;
+  --app-overlay: rgb(0 0 0 / 0.62);
+  --app-skeleton: #151826;
+  --app-focus: #a594ff;
+  --app-code: #05060a;
 
-  --app-success: #6ee7b7;
-  --app-success-subtle: #0d2e26;
-  --app-success-border: #14503f;
-  --app-success-solid: #047857;
-  --app-success-solid-hover: #065f46;
-  --app-warning: #fcd34d;
-  --app-warning-subtle: #33270b;
-  --app-warning-border: #5f4712;
-  --app-warning-solid: #b45309;
-  --app-danger: #fca5a5;
-  --app-danger-subtle: #3a1519;
-  --app-danger-border: #6b2126;
-  --app-danger-solid: #dc2626;
-  --app-danger-solid-hover: #b91c1c;
-  --app-info: #7dd3fc;
-  --app-info-subtle: #0c2a3d;
-  --app-info-border: #124a68;
-  --app-info-solid: #0369a1;
-  --app-primary: #9fb5ff;
-  --app-primary-subtle: #171f4d;
-  --app-primary-border: #253584;
-  --app-accent: #c4b5fd;
-  --app-accent-subtle: #251a47;
-  --app-accent-border: #40307a;
+  --app-success: #34d3b4;
+  --app-success-subtle: color-mix(in srgb, #34d3b4 12%, transparent);
+  --app-success-border: color-mix(in srgb, #34d3b4 28%, transparent);
+  --app-success-solid: #047a66;
+  --app-success-solid-hover: #03604f;
+  --app-warning: #f5b94a;
+  --app-warning-subtle: color-mix(in srgb, #f5b94a 12%, transparent);
+  --app-warning-border: color-mix(in srgb, #f5b94a 28%, transparent);
+  --app-warning-solid: #a85a07;
+  --app-danger: #ff8a80;
+  --app-danger-subtle: color-mix(in srgb, #ff8a80 12%, transparent);
+  --app-danger-border: color-mix(in srgb, #ff8a80 30%, transparent);
+  --app-danger-solid: #c0352c;
+  --app-danger-solid-hover: #a12b23;
+  --app-info: #7fa6ff;
+  --app-info-subtle: color-mix(in srgb, #7fa6ff 12%, transparent);
+  --app-info-border: color-mix(in srgb, #7fa6ff 28%, transparent);
+  --app-info-solid: #2457c5;
+  --app-primary: #a594ff;
+  --app-primary-subtle: color-mix(in srgb, #a594ff 12%, transparent);
+  --app-primary-border: color-mix(in srgb, #a594ff 32%, transparent);
+  --app-primary-solid: #6a55f2;
+  --app-primary-solid-hover: #5b45f0;
+  --app-accent: #5fdcf5;
+  --app-accent-subtle: color-mix(in srgb, #5fdcf5 12%, transparent);
+  --app-accent-border: color-mix(in srgb, #5fdcf5 28%, transparent);
 
-  --app-chart-brand: #7089fb;
-  --app-chart-positive: #34d399;
-  --app-chart-negative: #f87171;
-  --app-chart-warning: #fbbf24;
-  --app-chart-accent: #a78bfa;
-  --app-chart-neutral: #64748b;
+  --app-gradient-text: linear-gradient(100deg, #b9abff, #7fa6ff 50%, #5fdcf5);
+  --app-gradient-progress: linear-gradient(90deg, #8b7cf6, #6f9bff);
 
-  --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
-  --app-shadow-md: 0 12px 28px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.35);
+  --app-glow-primary: 0 8px 28px -8px rgb(165 148 255 / 0.45), 0 0 0 1px rgb(165 148 255 / 0.18);
+  --app-surface-glass: rgb(15 17 25 / 0.66);
+  --app-highlight-inset: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --app-aurora-1: rgb(109 76 255 / 0.34);
+  --app-aurora-2: rgb(61 123 255 / 0.28);
+  --app-aurora-3: rgb(34 195 238 / 0.24);
+
+  --app-chart-brand: #8b7cf6;
+  --app-chart-positive: #14a487;
+  --app-chart-negative: #d8455e;
+  --app-chart-warning: #a99218;
+  --app-chart-accent: #3fb8d8;
+  --app-chart-neutral: #5d6378;
+
+  --app-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --app-shadow-md: 0 16px 40px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --app-shadow-lift: 0 22px 48px -18px rgb(0 0 0 / 0.7), 0 4px 10px -4px rgb(0 0 0 / 0.4);
 }
 
 @theme inline {
@@ -173,6 +267,7 @@
   --color-surface: var(--app-surface);
   --color-surface-muted: var(--app-surface-muted);
   --color-surface-elevated: var(--app-surface-elevated);
+  --color-surface-glass: var(--app-surface-glass);
   --color-border: var(--app-border);
   --color-border-muted: var(--app-border-muted);
   --color-fg: var(--app-fg);
@@ -205,9 +300,18 @@
   --color-primary: var(--app-primary);
   --color-primary-subtle: var(--app-primary-subtle);
   --color-primary-border: var(--app-primary-border);
+  --color-primary-solid: var(--app-primary-solid);
+  --color-primary-solid-hover: var(--app-primary-solid-hover);
   --color-accent: var(--app-accent);
   --color-accent-subtle: var(--app-accent-subtle);
   --color-accent-border: var(--app-accent-border);
+
+  --color-stage: var(--app-stage-bg);
+  --color-stage-fg: var(--app-stage-fg);
+  --color-stage-muted: var(--app-stage-muted);
+  --color-stage-line: var(--app-stage-line);
+  --color-stage-glass: var(--app-stage-glass);
+  --color-stage-accent: var(--app-stage-accent);
 
   --color-chart-brand: var(--app-chart-brand);
   --color-chart-positive: var(--app-chart-positive);
@@ -218,39 +322,46 @@
 
   --shadow-sm: var(--app-shadow-sm);
   --shadow-md: var(--app-shadow-md);
+  --shadow-lift: var(--app-shadow-lift);
+  --shadow-glow: var(--app-glow-primary);
+  --shadow-highlight: var(--app-highlight-inset);
+
 }
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --color-brand-50: #eef3ff;
-  --color-brand-100: #dfe7ff;
-  --color-brand-200: #c5d3ff;
-  --color-brand-300: #9fb5ff;
-  --color-brand-400: #7089fb;
-  --color-brand-500: #4c64f6;
-  --color-brand-600: #3354ec;
-  --color-brand-700: #2940cf;
-  --color-brand-800: #2637a7;
-  --color-brand-900: #253584;
-  --color-brand-950: #171f4d;
+  /* Brend shkalasi — binafsha (asosiy rang #5b45f0). Komponentlarda semantik tokenlar afzal (primary, primary-solid) */
+  --color-brand-50: #f3f1ff;
+  --color-brand-100: #e9e5ff;
+  --color-brand-200: #d6cfff;
+  --color-brand-300: #b9abff;
+  --color-brand-400: #a594ff;
+  --color-brand-500: #7c66f5;
+  --color-brand-600: #5b45f0;
+  --color-brand-700: #4a35d6;
+  --color-brand-800: #3d2bb0;
+  --color-brand-900: #33268c;
+  --color-brand-950: #1d1652;
 
   /* Tipografiya shkalasi: text-display … text-overline (o'lcham + qator balandligi + vazn birga) */
   --text-display: 2rem;
   --text-display--line-height: 2.5rem;
   --text-display--font-weight: 600;
-  --text-display--letter-spacing: -0.02em;
+  --text-display--letter-spacing: -0.025em;
   --text-h1: 1.5rem;
   --text-h1--line-height: 2rem;
   --text-h1--font-weight: 600;
-  --text-h1--letter-spacing: -0.015em;
+  --text-h1--letter-spacing: -0.02em;
   --text-h2: 1.25rem;
   --text-h2--line-height: 1.75rem;
   --text-h2--font-weight: 600;
-  --text-h2--letter-spacing: -0.01em;
+  --text-h2--letter-spacing: -0.015em;
   --text-h3: 1rem;
   --text-h3--line-height: 1.5rem;
   --text-h3--font-weight: 600;
+  --text-h3--letter-spacing: -0.01em;
   --text-h4: 0.875rem;
   --text-h4--line-height: 1.25rem;
   --text-h4--font-weight: 600;
@@ -270,22 +381,38 @@
   --text-overline--font-weight: 600;
   --text-overline--letter-spacing: 0.06em;
 
-  /* Radius: 6 / 8 / 12 / 16 */
+  /* Radius: control 8 · alert 12 · card 16 · dialog 24 · pill (chip, badge) — to'liq yumaloq.
+     `chip` — kichik ichki elementlar (yopish tugmasi, kbd, kod) uchun 6px bo'lib qoladi */
   --radius-chip: 0.375rem;
   --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
-  --radius-dialog: 1rem;
+  --radius-alert: 0.75rem;
+  --radius-card: 1rem;
+  --radius-dialog: 1.5rem;
+  --radius-pill: 9999px;
 
-  /* Harakat */
+  /* Harakat: chiqish (ko'pchilik), ikki tomonlama (fon siljishi) va prujina (menyu, dialog, bosilgan tugma) */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --default-transition-duration: var(--duration-fast);
   --default-transition-timing-function: var(--ease-standard);
 
-  --animate-fade-in: fade-in var(--duration-normal) var(--ease-standard);
-  --animate-pop-in: pop-in var(--duration-normal) var(--ease-standard);
-  --animate-slide-in-right: slide-in-right var(--duration-slow) var(--ease-standard);
-  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-standard);
-  --animate-slide-in-up: slide-in-up var(--duration-slow) var(--ease-standard);
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out) backwards;
+  --animate-pop-in: pop-in var(--duration-slow) var(--ease-spring) backwards;
+  --animate-menu-in: menu-in var(--duration-normal) var(--ease-spring) backwards;
+  --animate-dialog-in: dialog-in var(--duration-slow) var(--ease-spring) backwards;
+  --animate-slide-in-right: slide-in-right var(--duration-slow) var(--ease-out) backwards;
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-out) backwards;
+  --animate-slide-in-up: slide-in-up var(--duration-slow) var(--ease-out) backwards;
+  --animate-rise-in: rise-in 550ms var(--ease-out) backwards;
+  --animate-grow-x: grow-x var(--duration-slower) var(--ease-out) backwards;
+  --animate-shimmer: shimmer 1.6s var(--ease-in-out) infinite;
+  --animate-float: float 5s var(--ease-in-out) infinite alternate;
+  --animate-aurora-1: aurora-drift 22s var(--ease-in-out) infinite alternate;
+  --animate-aurora-2: aurora-drift 26s var(--ease-in-out) -8s infinite alternate-reverse;
+  --animate-aurora-3: aurora-drift 18s var(--ease-in-out) -4s infinite alternate;
+  --animate-live-dot: live-dot 2.4s var(--ease-out) infinite;
 
   @keyframes fade-in {
     from {
@@ -295,7 +422,19 @@
   @keyframes pop-in {
     from {
       opacity: 0;
-      transform: scale(0.98) translateY(4px);
+      transform: scale(0.96) translateY(4px);
+    }
+  }
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
     }
   }
   @keyframes slide-in-right {
@@ -311,6 +450,49 @@
   @keyframes slide-in-up {
     from {
       transform: translateY(100%);
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes float {
+    to {
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes aurora-drift {
+    from {
+      transform: translate3d(-6%, -4%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(8%, 6%, 0) scale(1.12);
+    }
+  }
+  @keyframes live-dot {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    80%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
     }
   }
 }
@@ -352,6 +534,53 @@
 @utility duration-slow {
   transition-duration: var(--duration-slow);
 }
+@utility duration-slower {
+  transition-duration: var(--duration-slower);
+}
+
+/* Aurora sirtlari va effektlari — faqat token orqali (komponentda xom rang yo'q) */
+@utility bg-gradient-brand {
+  background-image: var(--app-gradient-brand);
+}
+@utility bg-gradient-primary {
+  background-image: var(--app-gradient-primary);
+}
+@utility bg-gradient-progress {
+  background-image: var(--app-gradient-progress);
+}
+/* Gradient matn: rang `transparent`, fon matn shaklida kesiladi */
+@utility text-gradient {
+  background-image: var(--app-gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility text-gradient-stage {
+  background-image: var(--app-stage-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Shishasimon yopishqoq panel (topbar, sidebar, jadval sarlavhasi). backdrop-filter bo'lmasa — to'liq sirt */
+@utility glass {
+  background-color: var(--app-surface);
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--app-surface-glass);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+}
+/* Ko'tarilgan sirtning yuqori qirrasidagi 1px yorug'lik (boshqa soyalar bilan birga) */
+@utility highlight {
+  box-shadow: var(--app-highlight-inset), var(--app-shadow-sm);
+}
+/* Aurora nuri: xira, sekin suzuvchi gradient doira. Faqat login, dashboard hero va bo'sh holatlarda */
+@utility aurora-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(48px);
+  pointer-events: none;
+}
 
 /* Klaviatura fokusi: har doim ko'rinadigan halqa. `outline-none` faqat shu utilita bilan birga. */
 @utility focus-ring {
@@ -379,38 +608,55 @@
     @apply border-border;
   }
 
+  /* Harakatni kamaytirish: davomiylik tokenlari 0, xavfsizlik to'ri — har qanday animatsiya darhol tugaydi.
+     Reveal elementlari yashirilmaydi (MotionEffects), CountUp va grafik animatsiyasi o'chadi (JS da tekshiriladi). */
   @media (prefers-reduced-motion: reduce) {
+    :root {
+      --duration-fast: 0ms;
+      --duration-normal: 0ms;
+      --duration-slow: 0ms;
+      --duration-slower: 0ms;
+    }
     *,
     ::before,
     ::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
       scroll-behavior: auto !important;
     }
   }
 }
 
-/* Toast (sonner) — dizayn tokenlari bilan. Qatlam: sonner o'zi eng yuqorida turadi (modal ustida ham ko'rinishi kerak). */
+/* Toast (sonner) — Aurora tokenlari bilan, prujina bilan kirib keladi. Qatlam: sonner o'zi eng yuqorida turadi. */
 :root [data-sonner-toaster][data-sonner-theme] {
   --border-radius: var(--radius-card);
   --normal-bg: var(--app-surface-elevated);
   --normal-border: var(--app-border);
   --normal-text: var(--app-fg);
-  --success-bg: var(--app-success-subtle);
+  --success-bg: var(--app-surface-elevated);
   --success-border: var(--app-success-border);
   --success-text: var(--app-success);
-  --error-bg: var(--app-danger-subtle);
+  --error-bg: var(--app-surface-elevated);
   --error-border: var(--app-danger-border);
   --error-text: var(--app-danger);
-  --warning-bg: var(--app-warning-subtle);
+  --warning-bg: var(--app-surface-elevated);
   --warning-border: var(--app-warning-border);
   --warning-text: var(--app-warning);
-  --info-bg: var(--app-info-subtle);
+  --info-bg: var(--app-surface-elevated);
   --info-border: var(--app-info-border);
   --info-text: var(--app-info);
   font-family: var(--font-sans);
 }
 :root [data-sonner-toast] {
-  box-shadow: var(--app-shadow-md);
+  box-shadow: var(--app-highlight-inset), var(--app-shadow-md);
+}
+:root [data-sonner-toast][data-mounted='true'] {
+  transition:
+    transform var(--duration-slow) var(--ease-spring),
+    opacity var(--duration-normal) var(--ease-out),
+    height var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out);
 }
