@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
+import { CountUp } from '@/components/motion/CountUp';
 import { Skeleton } from './Skeleton';
 
 export interface StatTrend {
@@ -92,7 +93,8 @@ export function StatCard({ title, value, description, trend, icon: Icon, tone = 
               small ? 'mt-1 text-h3 sm:text-h2' : 'mt-2 text-h1',
             )}
           >
-            {value}
+            {/* Satr qiymat birinchi ko'ringanda 0 dan sanaladi (yakuniy qiymat doim DOM'da) */}
+            {typeof value === 'string' || typeof value === 'number' ? <CountUp text={String(value)} /> : value}
           </p>
           {(resolved || description) && (
             <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption text-fg-muted">

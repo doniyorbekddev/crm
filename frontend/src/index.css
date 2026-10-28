@@ -684,6 +684,39 @@
   }
 }
 
+/* --- Harakat tizimi (components/motion) --- */
+/* Reveal: faqat JS tayyor bo'lgach va faqat hali ekranga kirmagan elementlar yashiriladi */
+html[data-reveal-ready] [data-reveal-pending]:not([data-reveal='stagger']),
+html[data-reveal-ready] [data-reveal='stagger'][data-reveal-pending] > * {
+  opacity: 0;
+  transform: translateY(12px);
+}
+[data-revealed]:not([data-reveal='stagger']) {
+  animation: rise-in 550ms var(--ease-out) backwards;
+}
+[data-reveal='stagger'][data-revealed] > * {
+  animation: rise-in 550ms var(--ease-out) backwards;
+  animation-delay: calc(var(--reveal-index, 0) * 60ms);
+}
+/* CountUp: sanalayotgan raqam bezak sifatida (DOM'da ikkinchi matn yo'q), yakuniy qiymat sr-only matnda */
+.count-up::after {
+  content: attr(data-count);
+}
+/* Spotlight: sichqoncha ortidan yumshoq nur (faqat brend sirtlarida) */
+[data-spotlight] {
+  --mx: 50%;
+  --my: 0%;
+}
+[data-spotlight]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx) var(--my), var(--app-stage-aurora-1), transparent 45%);
+  opacity: 0.8;
+}
+
 /* Toast (sonner) — Aurora tokenlari bilan, prujina bilan kirib keladi. Qatlam: sonner o'zi eng yuqorida turadi. */
 :root [data-sonner-toaster][data-sonner-theme] {
   --border-radius: var(--radius-card);
