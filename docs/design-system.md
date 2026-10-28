@@ -1,7 +1,8 @@
 # Dizayn tizimi
 
 > Academy CRM frontend. Manba: `frontend/src/index.css` (tokenlar), `frontend/src/components/ui/*` (primitivlar).
-> Holat: **redesign yakunlangan** (PHASE 1–16, [ROADMAP-DESIGN.md](ROADMAP-DESIGN.md)). Yangi kod shu qoidalarga amal qiladi.
+> Holat: **"Aurora" dizayn tili** (2026-10, ta'lim platformasi bilan bir xil uslub) — PHASE 1–16 redesign ustiga.
+> Yangi kod shu qoidalarga amal qiladi. Tekshiruv vositasi: `frontend/scripts/visual` (13-bo'lim).
 > Stek: React 19, Tailwind CSS 4 (`@theme`), `lucide-react`. Tashqi UI kutubxonasi yo'q.
 
 ## Asosiy qoida
@@ -17,6 +18,23 @@ Sahifa va komponentlar **xom qiymat ishlatmaydi** — faqat token:
 | `z-50`, `z-[9999]` | `z-modal`, `z-dropdown` |
 | `<button><X/></button>` | `<IconButton label="Yopish"><X/></IconButton>` |
 | `title="..."` | `<Tooltip content="...">` |
+
+## 0. Identitet: "Aurora"
+
+Premium, tinch va tez (Linear/Vercel uslubi). CRM — ish quroli: **o'qilishi birinchi o'rinda**.
+
+- Sovuq neytral sirtlar, ingichka chegaralar, keng bo'shliq, **bitta binafsha asosiy rang** (`primary` #5b45f0 / dark #a594ff).
+- **Brend gradienti** (binafsha → ko'k → feruza, `bg-gradient-brand`) — faqat brend lahzalari: logo, avatar, faol
+  indikatorlar (sidebar pill chizig'i, tab chizig'i), login paneli, dashboard hero, bo'sh holat. Oq matn ko'taradigan
+  sirtda — `bg-gradient-brand-strong` (har uchida ≥ 5.4:1); yorqin gradient faqat bezak.
+- **Aurora nurlari** (`aurora-orb`, `animate-aurora-*`) — xira, sekin (18–26s) suzuvchi doiralar. Faqat login paneli,
+  dashboard hero va bo'sh holatlarda. **Jadval, forma va ma'lumot zich joylar orqasida yo'q.**
+- **Stage sirtlar** — ikkala mavzuda ham doim to'q: login art paneli, dashboard hero (`PageHeader variant="stage"`).
+  Faqat `stage-*` tokenlari (`bg-stage`, `text-stage-fg`, `text-stage-muted`, `border-stage-line`, `bg-stage-glass`,
+  `text-stage-accent`, `text-gradient-stage`); xom rang yozilmaydi.
+- **Shisha** (`glass`) — yopishqoq panellar: topbar, sidebar, portal paneli, jadvalning yopishqoq sarlavhasi
+  (yarim shaffof sirt + `blur(20px) saturate(1.4)`; `backdrop-filter` bo'lmasa — to'liq sirt).
+- Ko'tarilgan sirtlarda 1px ichki yorug'lik: `shadow-highlight` (karta, menyu, dialog), rangli sirtda `shadow-on-color`.
 
 ## 1. Ranglar
 
@@ -53,17 +71,29 @@ Har biri to'rt qismli: **matn/ikonka** · `-subtle` (fon) · `-border` · `-soli
 | `primary` | brend urg'usi, tanlangan holat | `text-primary bg-primary-subtle` |
 | `accent` | toifalash uchun ikkinchi urg'u | `text-accent bg-accent-subtle` |
 
-Brend shkalasi `brand-50…950` saqlangan (asosiy tugma: `bg-brand-600`).
+Brend shkalasi `brand-50…950` — binafsha (`brand-600` = #5b45f0). **Komponentda ishlatilmaydi**: to'liq rangli fon
+`bg-primary-solid` / `hover:bg-primary-solid-hover` (oq matn ≥ 4.5:1 ikkala mavzuda), matn `text-primary`, chegara
+`border-primary`, halqa `ring-primary/20`. Asosiy tugma — `bg-gradient-primary` (`Button`). Yagona istisno —
+sertifikat chop etish (qog'oz).
+
+Aurora qo'shimcha tokenlari: `--app-gradient-{brand,brand-strong,text,primary,progress}`, `--app-glow-primary`
+(`shadow-glow`), `--app-surface-glass` (`bg-surface-glass`), `--app-highlight-inset`, `--app-aurora-{1,2,3}`,
+`--app-stage-*`, `--app-sheen` (tugma nuri), `--app-shimmer` (skeleton), `--app-shadow-lift` (`shadow-lift`).
 **Rang faqat ma'no beradi** — bezak uchun emas; holat faqat rang bilan berilmaydi (matn yoki ikonka ham bo'ladi).
 
-Kontrast: barcha matn tokenlari har qanday sirt va `-subtle` fon ustida ≥ 4.5:1. PHASE 15 da 45 sahifa light va
-dark rejimda avtomatik skaner qilindi (har matn tuguni: rang va haqiqiy fon) — past kontrastli matn 0.
+Kontrast: barcha matn tokenlari har qanday sirt va `-subtle` fon ustida ≥ 4.5:1 — **qoida yumshatilmaydi**; o'tmasa
+qiymat bir pog'ona to'qroq/ochroq qilinadi (masalan dark `fg-subtle` #868ca3 → #9197ad: rangli `-subtle` fonlarda
+4.06 → 4.67:1). Token matritsasi (144 juftlik) va har matn tuguni skaneri: `frontend/scripts/visual` — Aurora
+yakunida 36 sahifa (light/dark × 1440/390) bo'yicha past kontrastli matn 0.
 Oq matnli to'liq fon uchun `-solid` tokenlar (`bg-danger-solid text-white`); `chart-*` ranglar ustiga matn yozilmaydi.
 Grafik legendasi: `formatter={chartLegendFormatter}` — yozuv matn rangida, seriya rangi faqat belgida.
 
 ## 2. Tipografiya
 
-Shrift: **Inter** (o'zgaruvchan, 100–900), lokal: `src/assets/fonts/` (latin, latin-ext, kirill). Tashqi CDN yo'q.
+Shrift: **Geist** (UI) va **Geist Mono** (`font-mono`: kod, kbd, ID kodlar, vaqt) — o'zgaruvchan, 100–900, lokal:
+`src/assets/fonts/` (latin, latin-ext, kirill; OFL — `LICENSE-Geist.txt`). Tashqi CDN yo'q. O'zbekcha `‘` (U+2018)
+Geist'da bor; **`ʻ` (U+02BB) Geist'da yo'q** — shu bitta belgi `unicode-range` orqali lokal Inter'dan (fayl faqat sahifada
+shu belgi bo'lsa yuklanadi). Glif tekshiruvi: `scanGlyphs` (audit hisobotida).
 
 | Klass | O'lcham / qator | Vazn | Qo'llanishi |
 |---|---|---|---|
@@ -91,16 +121,22 @@ Ixtiyoriy qiymat (`p-[13px]`) faqat haqiqiy zarurat bilan.
 
 | Klass | px | Qo'llanishi |
 |---|---|---|
-| `rounded-chip` | 6 | Belgi, ikonka tugma, menyu bandi |
-| `rounded-control` | 8 | Tugma, maydon, menyu, alert |
-| `rounded-card` | 12 | Karta, jadval konteyneri |
-| `rounded-dialog` | 16 | Modal, drawer (telefonda yuqori burchaklar) |
+| `rounded-chip` | 6 | Kichik ichki elementlar: yopish tugmasi, kbd, kod, skeleton |
+| `rounded-control` | 8 | Tugma, maydon, menyu |
+| `rounded-alert` | 12 | Alert, tooltip (grafik) |
+| `rounded-card` | 16 | Karta, jadval konteyneri, toast |
+| `rounded-dialog` | 24 | Modal, drawer (telefonda yuqori burchaklar) |
+| `rounded-pill` | to'liq | Chip, `Badge`, `StatusBadge` |
 | `rounded-full` | — | Avatar, nuqta |
+
+`rounded-chip` ataylab to'liq yumaloq emas — u kod bloklari va katta skeletonlarda ham ishlatiladi; "chip" ko'rinishi
+`rounded-pill` bilan.
 
 ## 5. Soya
 
-Ikki daraja: `shadow-sm` (tugma, bosiladigan sirt) va `shadow-md` (suzuvchi qatlam: menyu, modal, drawer, tooltip).
-Karta **soyasiz** — ierarxiya chegara va fon kontrasti bilan. Dark'da soyalar o'zi quyuqlashadi.
+`shadow-sm` (tugma), `shadow-md` (suzuvchi qatlam: menyu, modal, drawer, tooltip), `shadow-lift` (faqat bosiladigan
+karta hoverida — `lift` utilitasi), `shadow-glow` (asosiy tugma hoverida). Karta asosan chegara bilan, ustida faqat
+1px ichki yorug'lik (`shadow-highlight`). Dark'da soyalar o'zi quyuqlashadi.
 
 ## 6. Qatlamlar (z-index)
 
@@ -118,9 +154,37 @@ Karta **soyasiz** — ierarxiya chegara va fon kontrasti bilan. Dark'da soyalar 
 
 ## 7. Harakat
 
-`duration-fast` 120ms (hover, fokus — standart `transition-*`), `duration-normal` 200ms (menyu, modal),
-`duration-slow` 300ms (drawer, yon menyu); `ease-standard`. Animatsiyalar: `animate-fade-in`, `animate-pop-in`,
-`animate-slide-in-{right,left,up}`. Faqat maqsadli joyda. `prefers-reduced-motion: reduce` — hammasi o'chadi (global).
+**Tokenlar:** `duration-fast` 140ms (hover, fokus), `duration-normal` 220ms (menyu, tab), `duration-slow` 380ms
+(dialog, drawer, pill), `duration-slower` 700ms (progress o'sishi, tugma nuri); `ease-out` (ko'pchilik),
+`ease-in-out` (fon siljishi, shimmer), `ease-spring` (menyu, dialog, bosilgan tugma qaytishi).
+
+**Animatsiyalar** (`@theme` da, `fill-mode: backwards`): `fade-in`, `pop-in`, `menu-in`, `dialog-in`,
+`slide-in-{right,left,up}`, `rise-in` (sahifa o'tishi, reveal), `grow-x` (progress), `shimmer`, `float`,
+`aurora-{1,2,3}`, `live-dot`.
+
+**Qoidalar**
+1. Faqat `transform` va `opacity` animatsiya qilinadi. O'lchangan indikatorlar (sidebar pill, tab chizig'i) —
+   `translate` + o'tishsiz `width` (`hooks/useActiveIndicator`). Progress — `scaleX` yoki `grow-x`.
+2. `animation-fill-mode: backwards` — `both` emas (aks holda hover transformlar ishlamaydi).
+3. Sahifa o'tishi: `AppLayout` da `key={pathname}` + `animate-rise-in` (~550ms). Overlay'lar portal orqali `body` da —
+   transform ularni siljitmaydi.
+4. `MotionEffects` (ildizda bir marta): `data-reveal` / `data-reveal="stagger"` (IntersectionObserver;
+   yashirish faqat `html[data-reveal-ready]` dan keyin va faqat ekrandan tashqaridagilarga), MutationObserver,
+   `data-spotlight` (`--mx`/`--my`, rAF). Reveal faqat dashboard, direktor paneli va hisobot kartalarida.
+5. `CountUp` (StatCard satr qiymatlari): yakuniy qiymat doim bitta haqiqiy matn tugunida (sr-only), sanash — `::after`
+   bezagi; tugagach oddiy matn. `parseFormattedNumber` modul darajasida.
+6. Fon animatsiyalari ≥ 6s va faqat brend joylarida.
+7. `prefers-reduced-motion: reduce`: davomiylik tokenlari 0, global xavfsizlik to'ri (`animation-duration: .01ms`),
+   reveal yashirmaydi, CountUp va grafik animatsiyasi (`chartAnimation()`) o'chadi.
+8. Animatsiya kiritishni bloklamaydi, fokus tartibini buzmaydi; `:focus-visible` halqasi doim ko'rinadi
+   (menyu bandlarida `focus-ring-inset`).
+
+**Nima qilinmaydi**
+- Jadval qatorlarida reveal, spotlight yoki katta animatsiya; forma va jadval orqasida aurora.
+- `width`/`height`/`top` animatsiyasi; `transition-all`.
+- Yangi og'ir kutubxona (framer-motion va h.k.) — CSS va kichik hook'lar yetadi.
+- Gradient matn yoki yorqin brend gradienti ustiga oq matn (`gradient-brand-strong` dan tashqari).
+- Status faqat rang bilan: doim rang + ikonka/matn. Holat ohangli to'ldirishlar tekis (`chart-*`), gradient emas.
 
 ## 8. Komponentlar
 
@@ -361,7 +425,19 @@ Kengliklar: telefon < 640 (`sm`) · planshet 768 (`md`) · noutbuk 1024 (`lg`) �
 | Gorizontal siljish (46 sahifa, 390 va 768px) | 2 sahifa | 0 |
 | Nomsiz interaktiv element / maydon / jadval (45 sahifa) | 18 jadval | 0 |
 
-**Avtomatik skanerlar** (Playwright, vaqtinchalik spec bilan — doimiy testga aylantirish mumkin):
+**Aurora tekshiruv vositasi (doimiy):** `frontend/scripts/visual` — E2E bilan bir xil izolyatsiyalangan sinov bazasi.
+
+```
+npx tsx e2e/prepare.ts
+VISUAL_LABEL=after npx playwright test --config frontend/scripts/visual/playwright.visual.config.ts
+```
+
+`audit.spec.ts`: token matritsasi, har matn tuguni kontrasti (gradient fon va gradient matn bilan), gorizontal siljish,
+konsol xatosi, glif, tarmoq tinchlanishi va skrinshotlar (login, dashboard, o'quvchilar, profil, guruhlar, davomat,
+moliya, sozlamalar, portal × light/dark × 1440/390). `interaction.spec.ts`: klaviatura (tab, menyu, drawer, modal,
+Esc), reduced-motion, reveal, uzun kadrlar. Natija: `frontend/.visual-audit/<label>/` (git'ga kirmaydi).
+
+**Avtomatik skanerlar** (PHASE 15 — o'sha paytda vaqtinchalik spec bilan; endi yuqoridagi vosita):
 kontrast (har matn tuguni, haqiqiy fon bilan), gorizontal siljish (telefon/planshet), a11y (nomsiz tugma/havola/maydon/jadval,
 `h1` soni, takror `id`, `main`).
 
