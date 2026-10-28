@@ -177,7 +177,7 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
                         onClick={() => goTo(action.url)}
                         className={cn(
                           'flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors',
-                          active ? 'bg-primary-subtle' : 'hover:bg-surface-muted',
+                          active ? 'bg-primary-subtle' : 'hover:bg-primary-subtle/60',
                         )}
                       >
                         <action.icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-fg-muted')} aria-hidden />
@@ -232,7 +232,7 @@ export function GlobalSearch({ open, onClose, search = searchService.search, sco
                             onClick={() => goTo(hit.url)}
                             className={cn(
                               'flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors',
-                              active ? 'bg-primary-subtle' : 'hover:bg-surface-muted',
+                              active ? 'bg-primary-subtle' : 'hover:bg-primary-subtle/60',
                             )}
                           >
                             <Icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-fg-muted')} aria-hidden />

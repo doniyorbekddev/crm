@@ -636,6 +636,15 @@
   pointer-events: none;
 }
 
+/* Ro'yxat/menyu bandlari uchun ichki halqa: konteyner `overflow-hidden` bo'lsa ham kesilmaydi */
+@utility focus-ring-inset {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  &:focus-visible {
+    outline-color: var(--color-focus);
+  }
+}
+
 /* Klaviatura fokusi: har doim ko'rinadigan halqa. `outline-none` faqat shu utilita bilan birga. */
 @utility focus-ring {
   outline: 2px solid transparent;

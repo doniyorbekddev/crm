@@ -70,7 +70,7 @@ export function UserMenu() {
             to="/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-body text-fg outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted"
+            className="flex items-center gap-2.5 px-4 py-2.5 focus-ring-inset text-body text-fg transition-colors hover:bg-primary-subtle focus-visible:bg-primary-subtle"
           >
             <UserRound className="size-4 text-fg-muted" aria-hidden />
             Profil
@@ -80,7 +80,7 @@ export function UserMenu() {
             role="menuitem"
             disabled={logout.isPending}
             onClick={() => logout.mutate()}
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-body text-danger outline-none transition-colors hover:bg-danger-subtle focus-visible:bg-danger-subtle disabled:opacity-60"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-body text-danger focus-ring-inset transition-colors hover:bg-danger-subtle focus-visible:bg-danger-subtle disabled:opacity-60"
           >
             <LogOut className="size-4" aria-hidden />
             Chiqish

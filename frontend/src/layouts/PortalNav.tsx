@@ -116,7 +116,7 @@ export function PortalBottomBar() {
                   to={to}
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
-                    cn('flex items-center gap-3 px-4 py-2.5 text-body outline-none transition-colors focus-visible:bg-surface-muted', isActive ? 'bg-primary-subtle text-primary' : 'text-fg hover:bg-surface-muted')
+                    cn('focus-ring-inset flex items-center gap-3 px-4 py-2.5 text-body transition-colors', isActive ? 'bg-primary-subtle text-primary' : 'text-fg hover:bg-primary-subtle/60 focus-visible:bg-primary-subtle/60')
                   }
                 >
                   <Icon className="size-4" aria-hidden />

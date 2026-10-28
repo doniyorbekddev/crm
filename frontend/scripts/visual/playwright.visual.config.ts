@@ -20,7 +20,7 @@ const base = ((rootConfig as { default?: PlaywrightTestConfig }).default ?? root
 export default defineConfig({
   ...base,
   testDir: HERE,
-  testMatch: /audit\.spec\.ts$/,
+  testMatch: /(audit|interaction)\.spec\.ts$/,
   outputDir: path.join(HERE, '../../.visual-audit/.results'),
   timeout: 15 * 60_000,
   reporter: 'list',

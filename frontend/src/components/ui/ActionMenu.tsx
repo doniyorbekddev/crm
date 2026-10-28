@@ -182,11 +182,11 @@ export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant =
                   onSelect();
                 }}
                 className={cn(
-                  'flex w-full items-center gap-2.5 text-left outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
+                  'focus-ring-inset flex w-full items-center gap-2.5 text-left transition-colors disabled:pointer-events-none disabled:opacity-50',
                   sheet ? 'h-12 px-4 text-body-lg' : 'h-10 px-3 text-body',
                   tone === 'danger'
                     ? 'text-danger hover:bg-danger-subtle focus-visible:bg-danger-subtle'
-                    : 'text-fg hover:bg-surface-muted focus-visible:bg-surface-muted',
+                    : 'text-fg hover:bg-primary-subtle focus-visible:bg-primary-subtle',
                 )}
               >
                 <Icon className={cn('size-4 shrink-0', tone === 'default' && 'text-fg-muted')} aria-hidden />

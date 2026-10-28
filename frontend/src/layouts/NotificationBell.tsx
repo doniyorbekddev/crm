@@ -204,7 +204,7 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
                       type="button"
                       onClick={() => openNotification(item)}
                       className={cn(
-                        'flex w-full items-start gap-3 px-5 py-3 text-left outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted',
+                        'focus-ring-inset flex w-full items-start gap-3 px-5 py-3 text-left transition-colors hover:bg-primary-subtle/60 focus-visible:bg-primary-subtle/60',
                         !item.isRead && 'bg-primary-subtle/40',
                       )}
                     >
