@@ -24,7 +24,7 @@ export function TBody(props: ComponentProps<'tbody'>) {
 }
 
 export function TR({ className, ...props }: ComponentProps<'tr'>) {
-  return <tr className={cn('border-t border-border transition-colors hover:bg-surface-muted/60', className)} {...props} />;
+  return <tr className={cn('border-t border-border transition-colors duration-normal ease-out hover:bg-surface-muted', className)} {...props} />;
 }
 
 export function TH({ className, ...props }: ComponentProps<'th'>) {

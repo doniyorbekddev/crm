@@ -256,7 +256,7 @@ export function DataTable<Row>({
     body = (
       <div className={cn('relative overflow-x-auto transition-opacity', stale && 'opacity-60')} style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
         <Table aria-label={label}>
-          <THead className={cn(stickyHeader && 'sticky top-0 z-sticky bg-surface-muted shadow-[inset_0_-1px_0_var(--color-border)]')}>
+          <THead className={cn(stickyHeader && 'glass sticky top-0 z-sticky shadow-[inset_0_-1px_0_var(--color-border)]')}>
             <tr>
               {selection && (
                 <TH className="w-10 pr-0">

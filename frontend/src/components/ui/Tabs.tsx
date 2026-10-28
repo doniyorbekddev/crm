@@ -1,4 +1,5 @@
 import { createContext, useContext, useId, useRef } from 'react';
+import { useActiveIndicator } from '@/hooks/useActiveIndicator';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -56,8 +57,12 @@ export function Tabs({ value, onValueChange, variant = 'underline', panels = tru
 }
 
 export function TabList({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  const { variant } = useTabs();
+  const { variant, value } = useTabs();
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  // Faol tab ostidagi gradient chiziq (yoki pill fon) tabdan tabga sirpanadi
+  useActiveIndicator(scrollRef, indicatorRef, { selector: '[role="tab"][aria-selected="true"]', mode: variant === 'underline' ? 'underline' : 'box' }, [value, variant]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const tabs = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]:not([disabled])') ?? []);
@@ -80,8 +85,23 @@ export function TabList({ label, children, className }: { label: string; childre
   };
 
   return (
-    // Tablar ko'p bo'lsa (yoki telefon) — qator gorizontal aylanadi, sahifa emas
-    <div className={cn('overflow-x-auto', variant === 'underline' && 'border-b border-border', className)}>
+    // Tablar ko'p bo'lsa (yoki telefon) — qator gorizontal aylanadi, sahifa emas; telefonda o'ng cheti xiralashadi
+    <div
+      ref={scrollRef}
+      className={cn(
+        'group/tabs relative overflow-x-auto max-sm:mask-[linear-gradient(to_right,#000_calc(100%-24px),transparent)]',
+        variant === 'underline' && 'border-b border-border',
+        className,
+      )}
+    >
+      <span
+        ref={indicatorRef}
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute top-0 left-0 opacity-0 transition-[transform,opacity] duration-slow ease-out',
+          variant === 'underline' ? 'top-auto bottom-0 h-0.5 rounded-pill bg-gradient-brand' : 'z-[1] rounded-chip bg-surface shadow-highlight shadow-sm',
+        )}
+      />
       <div
         ref={ref}
         role="tablist"
@@ -120,14 +140,19 @@ export function Tab({ value, children, icon, count, countTone = 'default', disab
       disabled={disabled}
       onClick={() => onValueChange(value)}
       className={cn(
-        'focus-ring inline-flex shrink-0 items-center gap-2 text-body font-medium whitespace-nowrap transition-colors',
+        'focus-ring relative z-[2] inline-flex shrink-0 items-center gap-2 text-body font-medium whitespace-nowrap transition-colors duration-normal',
         'disabled:pointer-events-none disabled:opacity-50',
         variant === 'underline'
           ? cn(
               '-mb-px h-10 border-b-2 px-0.5',
-              selected ? 'border-brand-600 text-fg' : 'border-transparent text-fg-muted hover:border-border hover:text-fg',
+              selected
+                ? 'border-primary text-fg group-data-[indicator=ready]/tabs:border-transparent'
+                : 'border-transparent text-fg-muted hover:border-border hover:text-fg',
             )
-          : cn('h-8 rounded-chip px-3', selected ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'),
+          : cn(
+              'h-8 rounded-chip px-3',
+              selected ? 'bg-surface text-fg shadow-sm group-data-[indicator=ready]/tabs:bg-transparent group-data-[indicator=ready]/tabs:shadow-none' : 'text-fg-muted hover:text-fg',
+            ),
       )}
     >
       {icon}

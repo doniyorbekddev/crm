@@ -36,7 +36,8 @@ export function Avatar({ firstName, lastName, src, size = 'md', className }: Ava
     <span
       aria-hidden
       className={cn(
-        'inline-grid shrink-0 place-items-center overflow-hidden rounded-full bg-primary-subtle font-semibold text-primary ring-1 ring-primary-border ring-inset',
+        // Brend gradienti (oq matn bilan ≥ 5.4:1) — rasm bo'lsa uning ostida qoladi
+        'inline-grid shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-brand-strong font-semibold text-white shadow-on-color',
         SIZES[size],
         className,
       )}

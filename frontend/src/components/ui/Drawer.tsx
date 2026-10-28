@@ -71,7 +71,8 @@ export function Drawer({
 
   return createPortal(
     <div className={cn('fixed inset-0 z-drawer flex', sheet ? 'items-end sm:items-stretch' : 'items-stretch', side === 'right' ? 'justify-end' : 'justify-start')}>
-      <div className="absolute inset-0 animate-fade-in bg-overlay" aria-hidden onClick={() => !closeDisabled && onClose()} />
+      {/* Fon panelga nisbatan sekinroq paydo bo'ladi */}
+      <div className="absolute inset-0 animate-[fade-in_var(--duration-slower)_var(--ease-out)_backwards] bg-overlay" aria-hidden onClick={() => !closeDisabled && onClose()} />
       <div
         ref={dialogRef}
         role="dialog"
@@ -80,7 +81,7 @@ export function Drawer({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'relative flex w-full flex-col border-border bg-surface-elevated shadow-md outline-none',
+          'relative flex w-full flex-col border-border bg-surface-elevated shadow-highlight shadow-md outline-none',
           SIZES[size],
           sheet
             ? 'max-h-[92vh] animate-slide-in-up rounded-t-dialog border sm:h-full sm:max-h-none sm:rounded-none sm:border-y-0'

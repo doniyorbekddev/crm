@@ -29,8 +29,8 @@ export function useAnchorPosition(anchorRef: RefObject<HTMLElement | null>, open
     const left = Math.max(EDGE, Math.min(rect.left, window.innerWidth - width - EDGE));
     setStyle(
       opensUp
-        ? { position: 'fixed', left, width, bottom: window.innerHeight - rect.top + gap, maxHeight: Math.max(120, rect.top - EDGE - gap) }
-        : { position: 'fixed', left, width, top: rect.bottom + gap, maxHeight: Math.max(120, spaceBelow - gap) },
+        ? { position: 'fixed', left, width, bottom: window.innerHeight - rect.top + gap, maxHeight: Math.max(120, rect.top - EDGE - gap), transformOrigin: 'bottom left' }
+        : { position: 'fixed', left, width, top: rect.bottom + gap, maxHeight: Math.max(120, spaceBelow - gap), transformOrigin: 'top left' },
     );
   }, [anchorRef, estimatedHeight, minWidth, gap]);
 

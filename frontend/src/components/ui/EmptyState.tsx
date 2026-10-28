@@ -15,8 +15,10 @@ interface EmptyStateProps {
 /** Bo'sh holat: ikonka, sarlavha, izoh va (bo'lsa) keyingi qadam */
 export function EmptyState({ icon: Icon, title, description, action, size = 'md', className }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-4 text-center', size === 'md' ? 'py-14' : 'py-8', className)}>
-      <div className="grid size-11 place-items-center rounded-card border border-border bg-surface-muted text-fg-subtle">
+    <div className={cn('relative isolate flex flex-col items-center justify-center gap-3 px-4 text-center', size === 'md' ? 'py-14' : 'py-8', className)}>
+      {/* Tepada yumshoq primary nur — brend lahzasi (bo'sh holat) */}
+      <span aria-hidden className="pointer-events-none absolute top-0 left-1/2 -z-10 h-32 w-64 -translate-x-1/2 bg-[radial-gradient(closest-side,var(--app-aurora-1),transparent)]" />
+      <div className="grid size-11 animate-float place-items-center rounded-card border border-primary-border bg-surface text-primary shadow-highlight">
         <Icon className="size-5" aria-hidden />
       </div>
       <div>

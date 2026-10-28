@@ -116,10 +116,10 @@ export function StatCard({ title, value, description, trend, icon: Icon, tone = 
     </>
   );
 
-  const base = cn('block h-full min-w-0 rounded-card border border-border bg-surface', small ? 'p-3 sm:p-4' : 'p-4', className);
+  const base = cn('block h-full min-w-0 rounded-card border border-border bg-surface shadow-highlight', small ? 'p-3 sm:p-4' : 'p-4', className);
   if (to) {
     return (
-      <Link to={to} aria-busy={loading || undefined} className={cn(base, 'focus-ring transition-colors hover:border-fg-subtle/50 hover:bg-surface-muted/50')}>
+      <Link to={to} aria-busy={loading || undefined} className={cn(base, 'focus-ring lift hover:border-primary-border')}>
         {body}
       </Link>
     );

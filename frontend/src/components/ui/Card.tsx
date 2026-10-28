@@ -1,9 +1,12 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
-/** Ierarxiya chegara va fon kontrasti bilan — soyasiz (soya faqat suzuvchi qatlamlarda) */
+/**
+ * Ierarxiya chegara va fon kontrasti bilan; yuqori qirrada 1px yorug'lik. Bosiladigan karta (`onClick`) hoverda
+ * −3px ko'tariladi — oddiy kartalar harakatsiz.
+ */
 export function Card({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cn('rounded-card border border-border bg-surface', className)} {...props} />;
+  return <div className={cn('rounded-card border border-border bg-surface shadow-highlight', props.onClick && 'lift cursor-pointer', className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<'div'>) {

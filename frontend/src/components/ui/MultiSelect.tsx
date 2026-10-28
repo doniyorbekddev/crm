@@ -140,7 +140,7 @@ export function MultiSelect({
             ref={panelRef}
             style={style}
             onKeyDown={onPanelKeyDown}
-            className="z-dropdown flex animate-fade-in flex-col overflow-hidden rounded-control border border-border bg-surface-elevated shadow-md"
+            className="z-dropdown flex animate-menu-in flex-col overflow-hidden rounded-control border border-border bg-surface-elevated shadow-highlight shadow-md"
           >
             {withSearch && (
               <div className="border-b border-border p-2">

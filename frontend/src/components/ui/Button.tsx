@@ -2,11 +2,16 @@ import { Loader2 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
+/**
+ * Aurora tugmasi. Asosiy — gradient, hoverda yorug'lik (glow) va ustidan o'tuvchi nur; bosilganda `scale(.97)`,
+ * qo'yib yuborilganda prujina bilan qaytadi. Faqat transform/opacity/soya animatsiya qilinadi.
+ */
 const variantClasses = {
-  primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800',
-  secondary: 'border border-border bg-surface text-fg shadow-sm hover:bg-surface-muted active:bg-surface-muted',
+  primary:
+    'bg-gradient-primary text-white shadow-on-color hover:shadow-glow before:pointer-events-none before:absolute before:inset-0 before:-translate-x-full before:bg-(image:--app-sheen) before:transition-transform before:duration-slower before:ease-out hover:before:translate-x-full',
+  secondary: 'border border-border bg-surface text-fg shadow-highlight hover:border-primary-border hover:bg-surface-muted',
   ghost: 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-  danger: 'bg-danger-solid text-white shadow-sm hover:bg-danger-solid-hover',
+  danger: 'bg-danger-solid text-white shadow-on-color hover:bg-danger-solid-hover',
 } as const;
 
 const sizeClasses = {
@@ -24,6 +29,8 @@ export interface ButtonProps extends ComponentProps<'button'> {
   size?: ButtonSize;
   loading?: boolean;
   leftIcon?: ReactNode;
+  /** O'ngdagi ikonka (masalan strelka) — hoverda 3px oldinga siljiydi */
+  rightIcon?: ReactNode;
 }
 
 export function Button({
@@ -31,10 +38,12 @@ export function Button({
   size = 'md',
   loading = false,
   leftIcon,
+  rightIcon,
   className,
   children,
   disabled,
   type = 'button',
+  title,
   ...props
 }: ButtonProps) {
   return (
@@ -42,8 +51,11 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      // Uzun matn "…" bilan qisqaradi — to'liq matn maslahatda
+      title={title ?? (typeof children === 'string' ? children : undefined)}
       className={cn(
-        'focus-ring inline-flex shrink-0 items-center justify-center rounded-control font-medium whitespace-nowrap transition-colors',
+        'group/button focus-ring relative isolate inline-flex max-w-full shrink-0 items-center justify-center overflow-hidden rounded-control font-medium whitespace-nowrap',
+        'transition-[transform,box-shadow,background-color,border-color,color] duration-slow ease-spring active:scale-[0.97] active:duration-fast active:ease-out',
         'disabled:pointer-events-none disabled:opacity-50',
         variantClasses[variant],
         sizeClasses[size],
@@ -51,8 +63,13 @@ export function Button({
       )}
       {...props}
     >
-      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : leftIcon}
-      {children}
+      {loading ? <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> : leftIcon}
+      {typeof children === 'string' ? <span className="min-w-0 truncate">{children}</span> : children}
+      {rightIcon && (
+        <span aria-hidden className="inline-flex shrink-0 transition-transform duration-normal ease-out group-hover/button:translate-x-[3px]">
+          {rightIcon}
+        </span>
+      )}
     </button>
   );
 }

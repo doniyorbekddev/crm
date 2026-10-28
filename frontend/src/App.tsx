@@ -15,7 +15,8 @@ function AppShell() {
   return (
     <>
       <RouterProvider router={router} />
-      <Toaster theme={resolvedTheme} position="top-right" richColors closeButton />
+      {/* Ranglar va radius — Aurora tokenlari (index.css), ichki yorug'lik va prujinali kirish shu klass orqali */}
+      <Toaster theme={resolvedTheme} position="top-right" richColors closeButton toastOptions={{ className: 'font-sans', style: { borderRadius: 'var(--radius-card)' } }} />
     </>
   );
 }

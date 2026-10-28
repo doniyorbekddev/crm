@@ -48,7 +48,7 @@ export function Modal({ open, title, description, onClose, children, footer, siz
 
   return createPortal(
     <div className="fixed inset-0 z-modal flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 animate-fade-in bg-overlay" aria-hidden onClick={() => !closeDisabled && onClose()} />
+      <div className="absolute inset-0 animate-fade-in bg-overlay backdrop-blur-[6px]" aria-hidden onClick={() => !closeDisabled && onClose()} />
       <div
         ref={dialogRef}
         role="dialog"
@@ -56,7 +56,7 @@ export function Modal({ open, title, description, onClose, children, footer, siz
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'relative flex max-h-[92vh] w-full animate-slide-in-up flex-col rounded-t-dialog border border-border bg-surface-elevated shadow-md outline-none sm:animate-pop-in sm:rounded-dialog',
+          'relative flex max-h-[92vh] w-full animate-slide-in-up flex-col rounded-t-dialog border border-border bg-surface-elevated shadow-highlight shadow-md outline-none sm:animate-dialog-in sm:rounded-dialog',
           SIZES[size],
         )}
       >

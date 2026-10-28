@@ -33,7 +33,7 @@ const ITEM_HEIGHT = 40;
  * Telefonda — pastdan chiqadigan varaq (bosh barmoq yetadigan joyda, bandlar kattaroq); rollar bir xil.
  */
 export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant = 'outline', disabled = false }: ActionMenuProps) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; up: boolean } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const open = position !== null;
@@ -46,6 +46,7 @@ export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant =
     return {
       top: opensUp ? rect.top - menuHeight - 4 : rect.bottom + 4,
       left: Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)),
+      up: opensUp,
     };
   };
 
@@ -136,9 +137,9 @@ export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant =
         className={cn(
           'focus-ring transition-colors disabled:pointer-events-none disabled:opacity-60',
           trigger && triggerVariant === 'primary'
-            ? 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control bg-brand-600 px-2.5 text-body font-medium text-white shadow-sm hover:bg-brand-700 active:bg-brand-800 sm:px-3'
+            ? 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control bg-gradient-primary px-2.5 text-body font-medium text-white shadow-on-color transition-[transform,box-shadow] duration-slow ease-spring hover:shadow-glow active:scale-[0.97] sm:px-3'
             : trigger
-            ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-control border border-border bg-surface px-3.5 text-body font-medium text-fg shadow-sm hover:bg-surface-muted'
+            ? 'inline-flex h-10 shrink-0 items-center gap-2 rounded-control border border-border bg-surface px-3.5 text-body font-medium text-fg shadow-highlight hover:border-primary-border hover:bg-surface-muted'
             : 'grid size-8 place-items-center rounded-chip text-fg-muted hover:bg-surface-muted hover:text-fg',
         )}
       >
@@ -161,12 +162,12 @@ export function ActionMenu({ items, label = 'Amallar', trigger, triggerVariant =
             ref={menuRef}
             role="menu"
             aria-label={trigger?.label ?? label}
-            style={sheet ? undefined : { top: position.top, left: position.left, width: MENU_WIDTH }}
+            style={sheet ? undefined : { top: position.top, left: position.left, width: MENU_WIDTH, transformOrigin: position.up ? 'bottom right' : 'top right' }}
             className={cn(
               'fixed z-dropdown overflow-hidden border-border bg-surface-elevated',
               sheet
                 ? 'inset-x-0 bottom-0 animate-slide-in-up rounded-t-dialog border-t pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-md'
-                : 'animate-fade-in rounded-control border py-1 shadow-md',
+                : 'animate-menu-in rounded-control border py-1 shadow-highlight shadow-md',
             )}
           >
             {sheet && <p className="truncate px-4 pt-1 pb-2 text-caption font-medium text-fg-subtle">{trigger?.label ?? label}</p>}

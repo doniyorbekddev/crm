@@ -28,6 +28,8 @@ interface PageResult {
   overflow: number;
   contrast: ContrastIssue[];
   consoleErrors: string[];
+  /** Tarmoq tinchlanmagan bo'lsa — eng ko'p so'ralgan manzillar */
+  chatty: string[];
   screenshot: string;
 }
 
@@ -64,10 +66,26 @@ async function themedContext(browser: Browser, theme: string, viewport: (typeof 
   return context;
 }
 
-async function settle(page: Page) {
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+/** Tarmoq tinchlanishini kutadi (ko'pi bilan 15s). Tinchlanmasa — 5s ichidagi so'rovlar sanaladi (so'rov halqasini topish uchun) */
+async function settle(page: Page): Promise<string[]> {
+  let chatty: string[] = [];
+  const idle = await page
+    .waitForLoadState('networkidle', { timeout: 15_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!idle) {
+    const seen: string[] = [];
+    const onRequest = (request: { url(): string }) => seen.push(request.url().replace(/^https?:\/\/[^/]+/, '').split('?')[0]!);
+    page.on('request', onRequest);
+    await page.waitForTimeout(5000);
+    page.off('request', onRequest);
+    const counts = new Map<string, number>();
+    for (const url of seen) counts.set(url, (counts.get(url) ?? 0) + 1);
+    chatty = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([url, count]) => `${url} ×${count}/5s`);
+  }
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(MOTION === 'reduce' ? 300 : 1500);
+  return chatty;
 }
 
 async function capture(context: BrowserContext, name: string, url: string, theme: string, viewport: string): Promise<PageResult> {
@@ -78,7 +96,7 @@ async function capture(context: BrowserContext, name: string, url: string, theme
     if (message.type() === 'error' && !/Failed to load resource/.test(message.text())) consoleErrors.push(message.text());
   });
   await page.goto(url);
-  await settle(page);
+  const chatty = await settle(page);
   // Sessiya yo'qolsa skrinshot login sahifasi bo'lib qoladi — buni jim o'tkazib yubormaymiz
   if (name !== 'login') expect(page.url(), `${name}: login sahifasiga qaytdi`).not.toMatch(/\/login/);
   const file = `${name}-${theme}-${viewport}.png`;
@@ -88,7 +106,7 @@ async function capture(context: BrowserContext, name: string, url: string, theme
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   const contrast = await page.evaluate(scanContrast);
   await page.close();
-  return { page: name, theme, viewport, overflow, contrast, consoleErrors, screenshot: file };
+  return { page: name, theme, viewport, overflow, contrast, consoleErrors, chatty, screenshot: file };
 }
 
 async function apiToken(request: APIRequestContext, email: string, password: string) {
@@ -176,6 +194,9 @@ test('vizual audit', async ({ browser, request }) => {
     '',
     '## Past kontrastli matnlar',
     ...results.flatMap((item) => item.contrast.map((issue) => `- ${item.page}/${item.theme}/${item.viewport}: "${issue.text}" ${issue.fg} on ${issue.bg} = ${issue.ratio} (kerak ${issue.required}) — ${issue.selector}`)),
+    '',
+    '## Tarmoq tinchlanmagan sahifalar',
+    ...results.filter((item) => item.chatty.length > 0).map((item) => `- ${item.page}/${item.theme}/${item.viewport}: ${item.chatty.join(', ')}`),
     '',
     '## Konsol xatolari',
     ...results.flatMap((item) => item.consoleErrors.map((error) => `- ${item.page}/${item.theme}/${item.viewport}: ${error}`)),

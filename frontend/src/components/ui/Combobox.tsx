@@ -167,7 +167,7 @@ export function Combobox({
             style={style}
             // Fokus maydonda qolsin: ro'yxatni bosish blur chaqirmaydi
             onMouseDown={(event) => event.preventDefault()}
-            className="z-dropdown animate-fade-in overflow-y-auto rounded-control border border-border bg-surface-elevated py-1 shadow-md"
+            className="z-dropdown animate-menu-in overflow-y-auto rounded-control border border-border bg-surface-elevated py-1 shadow-highlight shadow-md"
           >
             {visible.length === 0 ? (
               <li role="presentation" className="px-3 py-2 text-body text-fg-muted">

@@ -48,7 +48,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
-      <div className="absolute inset-0 animate-fade-in bg-overlay" aria-hidden onClick={() => !loading && onCancel()} />
+      <div className="absolute inset-0 animate-fade-in bg-overlay backdrop-blur-[6px]" aria-hidden onClick={() => !loading && onCancel()} />
       <div
         ref={dialogRef}
         role="alertdialog"
@@ -56,7 +56,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative w-full max-w-md animate-pop-in rounded-dialog border border-border bg-surface-elevated p-6 shadow-md outline-none"
+        className="relative w-full max-w-md animate-dialog-in rounded-dialog border border-border bg-surface-elevated p-6 shadow-highlight shadow-md outline-none"
       >
         <div className="flex gap-4">
           <div
