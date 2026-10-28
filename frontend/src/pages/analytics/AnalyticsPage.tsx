@@ -1,4 +1,4 @@
-import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
+import { CHART_LEGEND_STYLE, chartAnimation, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { StatCard } from '@/components/ui/StatCard';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useQuery } from '@tanstack/react-query';
@@ -197,8 +197,8 @@ export default function AnalyticsPage() {
                           formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
                         />
                         <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
-                        <Bar dataKey="revenue" name="Sof tushum" fill="var(--color-chart-positive)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
-                        <Bar dataKey="cost" name="O‘qituvchi xarajati" fill="var(--color-chart-negative)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
+                        <Bar {...chartAnimation()} dataKey="revenue" name="Sof tushum" fill="var(--color-chart-positive)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
+                        <Bar {...chartAnimation()} dataKey="cost" name="O‘qituvchi xarajati" fill="var(--color-chart-negative)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

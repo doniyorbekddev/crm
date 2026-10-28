@@ -20,15 +20,26 @@ export const CHART_GRID = { strokeDasharray: '3 3', stroke: 'currentColor', opac
 /** `<XAxis {...CHART_AXIS} />`, `<YAxis {...CHART_AXIS} />` */
 export const CHART_AXIS = { stroke: 'currentColor', fontSize: 11, tickLine: false, axisLine: false } as const;
 
-/** `<Tooltip contentStyle={CHART_TOOLTIP_STYLE} />` */
+/** `<Tooltip contentStyle={CHART_TOOLTIP_STYLE} />` — shishasimon sirt (Aurora), ichki yorug'lik bilan */
 export const CHART_TOOLTIP_STYLE = {
-  background: 'var(--color-surface-elevated)',
+  background: 'var(--color-surface-glass)',
+  backdropFilter: 'blur(20px) saturate(1.4)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
   border: '1px solid var(--color-border)',
-  borderRadius: 8,
-  boxShadow: 'var(--shadow-md)',
+  borderRadius: 12,
+  boxShadow: 'var(--app-highlight-inset), var(--shadow-md)',
   fontSize: 12,
   color: 'var(--color-fg)',
 } as const;
+
+/**
+ * Seriya animatsiyasi: `<Bar {...chartAnimation()} />`. 800ms ease-out; reduced-motion'da o'chiq
+ * (recharts JS animatsiyasi CSS xavfsizlik to'riga bo'ysunmaydi — shuning uchun alohida tekshiriladi).
+ */
+export function chartAnimation(): { isAnimationActive: boolean; animationDuration: number; animationEasing: 'ease-out' } {
+  const reduced = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return { isAnimationActive: !reduced, animationDuration: 800, animationEasing: 'ease-out' };
+}
 
 export const CHART_LEGEND_STYLE = { fontSize: 12 } as const;
 

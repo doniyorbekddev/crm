@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3 } from 'lucide-react';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
+import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartAnimation, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -46,10 +46,10 @@ export function TeacherTrendChart({ teacherId }: { teacherId: string }) {
                   formatter={(value, name) => [PERCENT_SERIES.has(String(name)) ? `${String(value)}%` : String(value), String(name)]}
                 />
                 <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
-                <Bar yAxisId="left" dataKey="lessonsHeld" name="O‘tkazilgan darslar" fill={CHART_COLORS.neutral} {...CHART_BAR} />
-                <Line yAxisId="right" type="monotone" dataKey="attendanceRate" name="Davomat" stroke={CHART_COLORS.positive} strokeWidth={2} dot={{ r: 2 }} connectNulls />
-                <Line yAxisId="right" type="monotone" dataKey="homeworkCompletionRate" name="Vazifa topshirilishi" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ r: 2 }} connectNulls />
-                <Line yAxisId="right" type="monotone" dataKey="examAveragePercent" name="Imtihon o‘rtachasi" stroke={CHART_COLORS.warning} strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                <Bar {...chartAnimation()} yAxisId="left" dataKey="lessonsHeld" name="O‘tkazilgan darslar" fill={CHART_COLORS.neutral} {...CHART_BAR} />
+                <Line {...chartAnimation()} yAxisId="right" type="monotone" dataKey="attendanceRate" name="Davomat" stroke={CHART_COLORS.positive} strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                <Line {...chartAnimation()} yAxisId="right" type="monotone" dataKey="homeworkCompletionRate" name="Vazifa topshirilishi" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                <Line {...chartAnimation()} yAxisId="right" type="monotone" dataKey="examAveragePercent" name="Imtihon o‘rtachasi" stroke={CHART_COLORS.warning} strokeWidth={2} dot={{ r: 2 }} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

@@ -1,4 +1,4 @@
-import { CHART_LEGEND_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
+import { CHART_LEGEND_STYLE, chartAnimation, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Area, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -78,7 +78,7 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                   formatter={(value, name) => [formatMoney(typeof value === 'number' ? value : Number(value ?? 0)), String(name ?? '')]}
                 />
                 <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
-                <Area
+                <Area {...chartAnimation()}
                   type="monotone"
                   dataKey="cashBalance"
                   name="Kassadagi qoldiq"
@@ -86,8 +86,8 @@ export function CashFlowChart({ range, period, onPeriodChange }: CashFlowChartPr
                   strokeWidth={2}
                   fill="url(#cash-flow-balance)"
                 />
-                <Line type="monotone" dataKey="income" name="Tushum" stroke={COLORS.income} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="expense" name="Xarajat" stroke={COLORS.expense} strokeWidth={2} dot={false} />
+                <Line {...chartAnimation()} type="monotone" dataKey="income" name="Tushum" stroke={COLORS.income} strokeWidth={2} dot={false} />
+                <Line {...chartAnimation()} type="monotone" dataKey="expense" name="Xarajat" stroke={COLORS.expense} strokeWidth={2} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

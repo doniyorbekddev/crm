@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartLegendFormatter } from '@/components/charts/chartTheme';
+import { CHART_AXIS, CHART_BAR, CHART_COLORS, CHART_GRID, CHART_LEGEND_STYLE, CHART_TOOLTIP_STYLE, chartAnimation, chartLegendFormatter } from '@/components/charts/chartTheme';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Select } from '@/components/ui/Select';
@@ -85,15 +85,15 @@ export function DashboardCharts({ showRevenue, showAcademy = false }: DashboardC
                       }}
                     />
                     <Legend wrapperStyle={CHART_LEGEND_STYLE} formatter={chartLegendFormatter} />
-                    {academy && <Bar yAxisId="left" dataKey="students" name="Yangi o‘quvchilar" fill={CHART_COLORS.brand} {...CHART_BAR} />}
+                    {academy && <Bar {...chartAnimation()} yAxisId="left" dataKey="students" name="Yangi o‘quvchilar" fill={CHART_COLORS.brand} {...CHART_BAR} />}
                     {/* Dars belgilanmagan kunlarda nuqta yo'q — chiziq uzilmaydi (connectNulls), lekin 0% deb ko'rsatilmaydi */}
                     {academy && (
-                      <Line yAxisId="right" type="monotone" dataKey="attendanceRate" name="Davomat" stroke={CHART_COLORS.positive} strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                      <Line {...chartAnimation()} yAxisId="right" type="monotone" dataKey="attendanceRate" name="Davomat" stroke={CHART_COLORS.positive} strokeWidth={2} dot={{ r: 2 }} connectNulls />
                     )}
-                    {!academy && <Bar yAxisId="left" dataKey="leads" name="Yangi leadlar" fill={CHART_COLORS.brand} {...CHART_BAR} />}
-                    {!academy && <Bar yAxisId="left" dataKey="won" name="Sotildi" fill={CHART_COLORS.positive} {...CHART_BAR} />}
+                    {!academy && <Bar {...chartAnimation()} yAxisId="left" dataKey="leads" name="Yangi leadlar" fill={CHART_COLORS.brand} {...CHART_BAR} />}
+                    {!academy && <Bar {...chartAnimation()} yAxisId="left" dataKey="won" name="Sotildi" fill={CHART_COLORS.positive} {...CHART_BAR} />}
                     {!academy && showRevenue && (
-                      <Line yAxisId="right" type="monotone" dataKey="revenue" name="Tushum" stroke={CHART_COLORS.warning} strokeWidth={2} dot={false} />
+                      <Line {...chartAnimation()} yAxisId="right" type="monotone" dataKey="revenue" name="Tushum" stroke={CHART_COLORS.warning} strokeWidth={2} dot={false} />
                     )}
                   </ComposedChart>
                 </ResponsiveContainer>

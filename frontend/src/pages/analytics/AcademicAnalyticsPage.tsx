@@ -17,6 +17,7 @@ import { downloadCsv, toCsv } from '@/lib/csv';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { academicAnalyticsService } from '@/services/academicAnalytics.service';
+import { chartAnimation } from '@/components/charts/chartTheme';
 import type { AcademicDimension, AcademicRow } from '@/types/academicAnalytics';
 
 const DIMENSIONS: Array<{ value: AcademicDimension; label: string }> = [
@@ -185,7 +186,7 @@ export default function AcademicAnalyticsPage() {
                         contentStyle={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', borderRadius: 12, fontSize: 12, color: 'var(--color-fg)' }}
                         formatter={(value) => [value === null || value === undefined ? '—' : `${String(value)}%`, METRIC_LABELS[chartMetric]]}
                       />
-                      <Bar dataKey="value" fill="var(--color-chart-brand)" radius={[6, 6, 0, 0]} />
+                      <Bar {...chartAnimation()} dataKey="value" fill="var(--color-chart-brand)" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
