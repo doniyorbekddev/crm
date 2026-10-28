@@ -141,7 +141,7 @@ export default function ParentsPage() {
       tdClassName: 'whitespace-nowrap',
       cell: (parent: ParentTableRow) => (
         <>
-          <a href={`tel:${parent.phone}`} className="text-fg hover:text-brand-600">
+          <a href={`tel:${parent.phone}`} className="text-fg hover:text-primary">
             {formatPhone(parent.phone)}
           </a>
           <p className="text-caption text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
@@ -159,7 +159,7 @@ export default function ParentsPage() {
             <ul className="space-y-1">
               {parent.students.map((link) => (
                 <li key={link.linkId} className="flex flex-wrap items-center gap-1.5 text-body">
-                  <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-brand-600">
+                  <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-primary">
                     {link.firstName} {link.lastName}
                   </Link>
                   <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{PARENT_RELATION_LABELS[link.relation]}</Badge>

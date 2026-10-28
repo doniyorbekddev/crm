@@ -15,7 +15,7 @@ import { RISK_LEVEL_LABELS, RISK_LEVEL_TONES } from '@/utils/studentLabels';
 /** Signal balliga qarab rang: past ball — qizil chiziq */
 function barTone(score: number): string {
   if (score >= 80) return 'bg-chart-positive';
-  if (score >= 60) return 'bg-brand-500';
+  if (score >= 60) return 'bg-chart-brand';
   if (score >= 40) return 'bg-chart-warning';
   return 'bg-chart-negative';
 }

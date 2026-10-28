@@ -54,7 +54,7 @@ export default function PortalXpPage() {
           </CardHeader>
           <CardContent>
             <div className="h-3 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={profile.progress} aria-valuemin={0} aria-valuemax={100} aria-label="Daraja progressi">
-              <div className="h-full rounded-full bg-brand-600" style={{ width: `${profile.progress}%` }} />
+              <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-progress" style={{ width: `${profile.progress}%` }} />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-card border border-border p-3">

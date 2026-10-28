@@ -254,14 +254,14 @@ function TakeExam({ view }: { view: AttemptView }) {
                             key={option.id}
                             className={cn(
                               'flex cursor-pointer items-center gap-3 rounded-control border px-3 py-2 text-body',
-                              checked ? 'border-brand-500 bg-primary-subtle' : 'border-border hover:bg-surface-muted',
+                              checked ? 'border-primary bg-primary-subtle' : 'border-border hover:bg-surface-muted',
                             )}
                           >
                             <input
                               type={multiple ? 'checkbox' : 'radio'}
                               name={`q-${question.id}`}
                               checked={checked}
-                              className="accent-brand-600"
+                              className="accent-primary"
                               onChange={() => {
                                 const optionIds = multiple ? (checked ? answer.optionIds.filter((value) => value !== option.id) : [...answer.optionIds, option.id]) : [option.id];
                                 change(question, { ...answer, optionIds }, true);

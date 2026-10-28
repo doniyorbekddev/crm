@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 export default function NotFoundPage() {
   return (
     <main className="flex min-h-full flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <p className="text-6xl font-bold tracking-tight text-brand-600">404</p>
+      <p className="text-6xl font-bold tracking-tight text-primary">404</p>
       <div>
         <h1 className="text-h2">Sahifa topilmadi</h1>
         <p className="mt-2 max-w-sm text-body text-fg-muted">
@@ -13,7 +13,7 @@ export default function NotFoundPage() {
       </div>
       <Link
         to="/"
-        className="inline-flex h-9 items-center gap-2 rounded-control bg-brand-600 px-4 text-label text-white shadow-sm transition-colors hover:bg-brand-700"
+        className="inline-flex h-9 items-center gap-2 rounded-control bg-primary-solid px-4 text-label text-white shadow-sm transition-colors hover:bg-primary-solid-hover"
       >
         <ArrowLeft className="size-4" aria-hidden />
         Bosh sahifaga qaytish

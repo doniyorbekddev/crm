@@ -87,7 +87,7 @@ function GroupCard({ group, date }: { group: AttendanceDayGroup; date: string })
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="Belgilangan o‘quvchilar" aria-valuemin={0} aria-valuemax={group.students} aria-valuenow={group.marked}>
-            <div className={cn('h-full rounded-full', group.state === 'COMPLETED' ? 'bg-success-solid' : 'bg-primary')} style={{ width: `${percent}%` }} />
+            <div className={cn('h-full origin-left animate-grow-x rounded-full', group.state === 'COMPLETED' ? 'bg-success-solid' : 'bg-gradient-progress')} style={{ width: `${percent}%` }} />
           </div>
           {!group.isScheduledDay && <p className="mt-1 text-caption text-warning">Jadvaldan tashqari dars</p>}
         </div>

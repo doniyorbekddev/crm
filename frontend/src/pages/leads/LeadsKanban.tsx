@@ -35,7 +35,7 @@ import { LostReasonModal } from './LostReasonModal';
 
 const PRIORITY_DOTS = {
   LOW: 'bg-chart-neutral',
-  MEDIUM: 'bg-brand-400',
+  MEDIUM: 'bg-chart-brand',
   HIGH: 'bg-chart-warning',
   URGENT: 'bg-chart-negative',
 } as const;
@@ -47,11 +47,11 @@ function LeadCard({ lead, now, overlay = false }: { lead: LeadListItem; now: num
     <article
       className={cn(
         'rounded-control border border-border bg-surface p-3 shadow-xs transition-shadow hover:shadow-sm',
-        overlay && 'rotate-2 cursor-grabbing shadow-lg ring-2 ring-brand-500/40',
+        overlay && 'rotate-2 cursor-grabbing shadow-lg ring-2 ring-primary/40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <Link to={`/leads/${lead.id}`} className="min-w-0 text-label text-fg hover:text-brand-600 hover:underline">
+        <Link to={`/leads/${lead.id}`} className="min-w-0 text-label text-fg hover:text-primary hover:underline">
           <span className="block truncate">{leadFullName(lead)}</span>
         </Link>
         <span
@@ -123,7 +123,7 @@ function KanbanColumnView({ column, canDrop, children }: { column: LeadKanbanCol
       aria-label={LEAD_STATUS_LABELS[column.status]}
       className={cn(
         'flex w-72 shrink-0 flex-col rounded-card border border-border bg-surface-muted/60 transition-colors',
-        isOver && 'border-brand-400 bg-primary-subtle',
+        isOver && 'border-primary bg-primary-subtle',
       )}
     >
       <header className="flex items-center justify-between gap-2 px-3 py-2.5">

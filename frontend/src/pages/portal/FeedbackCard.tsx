@@ -91,7 +91,7 @@ export function FeedbackCard({ studentId }: { studentId?: string }) {
                   onClick={() => setNps(score)}
                   className={cn(
                     'size-9 rounded-control border text-body tabular-nums transition-colors',
-                    nps === score ? 'border-brand-500 bg-primary-subtle text-primary' : 'border-border text-fg-muted hover:bg-surface-muted',
+                    nps === score ? 'border-primary bg-primary-subtle text-primary' : 'border-border text-fg-muted hover:bg-surface-muted',
                   )}
                 >
                   {score}

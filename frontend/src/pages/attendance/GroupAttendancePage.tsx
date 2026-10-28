@@ -270,7 +270,11 @@ export default function GroupAttendancePage() {
             </div>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="Davomat to‘ldirilishi" aria-valuemin={0} aria-valuemax={total} aria-valuenow={markedNow}>
-            <div className={cn('h-full rounded-full transition-[width]', total > 0 && markedNow === total ? 'bg-success-solid' : 'bg-primary')} style={{ width: `${total === 0 ? 0 : Math.round((markedNow / total) * 100)}%` }} />
+            {/* Kenglik emas, transform animatsiya qilinadi (layout qayta hisoblanmaydi) */}
+            <div
+              className={cn('h-full w-full origin-left rounded-full transition-transform duration-slow ease-out', total > 0 && markedNow === total ? 'bg-success-solid' : 'bg-gradient-progress')}
+              style={{ transform: `scaleX(${total === 0 ? 0 : markedNow / total})` }}
+            />
           </div>
           {canMark && total > 0 && (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

@@ -134,7 +134,7 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
               tdClassName: 'whitespace-nowrap',
               cell: (row) => (
                 <>
-                  <a href={`tel:${row.phone}`} className="text-fg hover:text-brand-600">
+                  <a href={`tel:${row.phone}`} className="text-fg hover:text-primary">
                     {formatPhone(row.phone)}
                   </a>
                   <p className="text-caption text-fg-muted">{[row.telegram, row.email].filter(Boolean).join(' · ') || '—'}</p>

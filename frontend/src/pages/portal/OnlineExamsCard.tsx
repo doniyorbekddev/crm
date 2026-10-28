@@ -63,7 +63,7 @@ export function OnlineExamsCard() {
                 <li key={exam.examId} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 font-medium text-fg">
-                      <MonitorCheck className="size-4 shrink-0 text-brand-600" aria-hidden />
+                      <MonitorCheck className="size-4 shrink-0 text-primary" aria-hidden />
                       <span className="truncate">{exam.title}</span>
                     </p>
                     <p className="text-caption text-fg-muted">

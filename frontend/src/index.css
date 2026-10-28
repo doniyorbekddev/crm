@@ -715,6 +715,8 @@ html[data-reveal-ready] [data-reveal='stagger'][data-reveal-pending] > * {
   pointer-events: none;
   background: radial-gradient(420px circle at var(--mx) var(--my), var(--app-stage-aurora-1), transparent 45%);
   opacity: 0.8;
+  /* Konteyner `isolate` bo'lishi shart — nur matn ostida, fon ustida */
+  z-index: -1;
 }
 
 /* Toast (sonner) — Aurora tokenlari bilan, prujina bilan kirib keladi. Qatlam: sonner o'zi eng yuqorida turadi. */

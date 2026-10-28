@@ -94,8 +94,8 @@ export function FileUpload({
       className={cn(
         'flex cursor-pointer items-center rounded-card border border-dashed border-border bg-surface text-center transition-colors',
         compact ? 'gap-3 px-3 py-2.5 text-left' : 'flex-col gap-2 px-4 py-6',
-        'hover:border-fg-subtle hover:bg-surface-muted has-focus-visible:border-brand-500 has-focus-visible:ring-3 has-focus-visible:ring-brand-500/20',
-        dragging && 'border-brand-500 bg-primary-subtle',
+        'hover:border-fg-subtle hover:bg-surface-muted has-focus-visible:border-primary has-focus-visible:ring-3 has-focus-visible:ring-primary/20',
+        dragging && 'border-primary bg-primary-subtle',
         invalid && 'border-danger-solid',
         (disabled || busyText) && 'pointer-events-none cursor-not-allowed opacity-60',
         className,

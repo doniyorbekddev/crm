@@ -91,7 +91,7 @@ export function LeadsTable({ filters }: { filters: LeadFilters }) {
                 to={`/leads/${lead.id}`}
                 onClick={(event) => event.stopPropagation()}
                 title={leadFullName(lead)}
-                className="min-w-0 truncate font-medium text-fg hover:text-brand-600 hover:underline"
+                className="min-w-0 truncate font-medium text-fg hover:text-primary hover:underline"
               >
                 {leadFullName(lead)}
               </Link>

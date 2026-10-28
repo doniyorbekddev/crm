@@ -79,6 +79,8 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
+        variant="stage"
+        eyebrow="Jonli ko‘rsatkichlar"
         title={`Salom, ${user?.firstName ?? ''}!`}
         documentTitle="Dashboard"
         description={summary ? `Bugungi holat · ${summary.date}` : 'Ko‘rsatkichlar yuklanmoqda'}
@@ -101,7 +103,8 @@ export default function DashboardPage() {
         {widgets
           .filter((widget) => widget.visible)
           .map((widget) => (
-            <div key={widget.key} className={cn('min-w-0', WIDGET_SPAN_CLASSES[widget.span])}>
+            // Karta ekranga kirganda paydo bo'ladi (reveal faqat dashboard va hisobot kartalarida)
+            <div key={widget.key} data-reveal className={cn('min-w-0', WIDGET_SPAN_CLASSES[widget.span])}>
               {content[widget.key]()}
             </div>
           ))}

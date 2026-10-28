@@ -180,7 +180,7 @@ export default function NotificationsPage() {
             {item.priority === 'HIGH' && (
               <Badge tone={NOTIFICATION_PRIORITY_TONES.HIGH}>{NOTIFICATION_PRIORITY_LABELS.HIGH}</Badge>
             )}
-            {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
+            {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-primary-solid" aria-hidden />}
           </div>
           <p className="mt-0.5 text-body text-fg-muted">{item.message}</p>
           <p className="mt-1 text-caption text-fg-subtle">

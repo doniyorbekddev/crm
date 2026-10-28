@@ -312,7 +312,7 @@ export default function LeadProfilePage() {
                 </InfoRow>
                 <InfoRow label="Email">
                   {lead.email ? (
-                    <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 hover:text-brand-600">
+                    <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 hover:text-primary">
                       <Mail className="size-3.5 text-fg-subtle" aria-hidden />
                       {lead.email}
                     </a>

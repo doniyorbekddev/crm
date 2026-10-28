@@ -200,7 +200,7 @@ export default function ExecutivePage() {
         {widgets
           .filter((widget) => widget.visible && content[widget.key] !== null)
           .map((widget) => (
-            <div key={widget.key} className={cn('min-w-0', WIDGET_SPAN_CLASSES[widget.span])}>
+            <div key={widget.key} data-reveal className={cn('min-w-0', WIDGET_SPAN_CLASSES[widget.span])}>
               {content[widget.key]}
             </div>
           ))}

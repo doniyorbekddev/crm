@@ -8,7 +8,7 @@ import { curriculumService } from '@/services/curriculum.service';
 
 function barTone(percent: number): string {
   if (percent >= 80) return 'bg-chart-positive';
-  if (percent >= 50) return 'bg-brand-500';
+  if (percent >= 50) return 'bg-chart-brand';
   if (percent > 0) return 'bg-chart-warning';
   return 'bg-chart-neutral';
 }

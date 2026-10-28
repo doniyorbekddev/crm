@@ -239,7 +239,7 @@ export default function StudentsPage() {
           {student.riskLevel ? (
             <Badge tone={RISK_LEVEL_TONES[student.riskLevel]}>
               {RISK_LEVEL_LABELS[student.riskLevel]}
-              {student.healthScore !== null && <span className="ml-1 tabular-nums opacity-70">{student.healthScore}</span>}
+              {student.healthScore !== null && <span className="ml-1 font-mono tabular-nums">{student.healthScore}</span>}
             </Badge>
           ) : (
             <Tooltip content="Baho uchun yetarli ma’lumot yo‘q" describe={false}>

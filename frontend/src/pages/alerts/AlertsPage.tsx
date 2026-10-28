@@ -234,7 +234,7 @@ export default function AlertsPage() {
               className={cn(
                 'rounded-card border border-l-4 bg-surface p-3 text-left transition-colors hover:bg-surface-muted sm:p-4',
                 SEVERITY_BORDER[item],
-                active ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-border',
+                active ? 'border-primary ring-2 ring-primary/20' : 'border-border',
               )}
             >
               <p className="text-caption text-fg-muted">{SEVERITY_CARD_TITLES[item]}</p>
@@ -306,7 +306,7 @@ export default function AlertsPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        {isUnread && <span className="size-2 rounded-full bg-brand-500" aria-label="O‘qilmagan" />}
+                        {isUnread && <span className="size-2 rounded-full bg-primary-solid" aria-label="O‘qilmagan" />}
                         <Badge tone={ALERT_SEVERITY_TONES[alert.severity]}>{ALERT_SEVERITY_LABELS[alert.severity]}</Badge>
                         <span className="text-caption text-fg-muted">{ALERT_TYPE_LABELS[alert.type]}</span>
                         <Tooltip content={formatDateTime(alert.createdAt)} describe={false}>

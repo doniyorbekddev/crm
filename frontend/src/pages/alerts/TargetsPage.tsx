@@ -35,7 +35,7 @@ function ProgressCell({ type, cell }: { type: TargetType; cell: TargetCell }) {
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
         <div
-          className={cn('h-full rounded-full', cell.progress >= 100 ? 'bg-chart-positive' : cell.progress >= 70 ? 'bg-chart-warning' : 'bg-brand-500')}
+          className={cn('h-full rounded-full', cell.progress >= 100 ? 'bg-chart-positive' : cell.progress >= 70 ? 'bg-chart-warning' : 'bg-chart-brand')}
           style={{ width: `${cell.target > 0 ? Math.min(Math.max(cell.progress, 2), 100) : 0}%` }}
         />
       </div>

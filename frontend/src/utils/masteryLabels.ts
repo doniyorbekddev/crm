@@ -28,7 +28,7 @@ export function masteryBarClass(level: MasteryLevel | null): string {
     case 'MASTERED':
       return 'bg-chart-positive';
     case 'GOOD':
-      return 'bg-brand-500';
+      return 'bg-chart-brand';
     case 'DEVELOPING':
       return 'bg-chart-warning';
     case 'WEAK':

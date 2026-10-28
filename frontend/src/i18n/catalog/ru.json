@@ -4863,7 +4863,8 @@
 "Yo‘nalish (kurs)": "Направление (курс)",
 "Yo‘nalishlar bo‘yicha": "По направлениям",
 "O‘qiyotganlar (faol va muzlatilgan)": "Обучающиеся (активные и замороженные)",
-"O‘quvchisi bor kurslar": "Курсы с учениками"
+"O‘quvchisi bor kurslar": "Курсы с учениками",
+"Jonli ko‘rsatkichlar": "Показатели в реальном времени"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",

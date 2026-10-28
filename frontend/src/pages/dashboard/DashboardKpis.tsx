@@ -30,7 +30,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
     <section aria-label={title}>
       <h2 className="mb-2 text-overline text-fg-subtle uppercase">{title}</h2>
       {/* Ustunlar soni kenglikka qarab: 5 ta karta bir qatorga sig'adi, bitta karta cho'zilib ketmaydi */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]">{children}</div>
+      <div data-reveal="stagger" className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]">{children}</div>
     </section>
   );
 }

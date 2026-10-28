@@ -206,7 +206,7 @@ export default function FeedbackPage() {
 
                   <p className="mt-1 text-caption text-fg-subtle">
                     {item.student ? (
-                      <Link to={`/students/${item.student.id}`} className="hover:text-brand-600 hover:underline">
+                      <Link to={`/students/${item.student.id}`} className="hover:text-primary hover:underline">
                         {item.student.name}
                       </Link>
                     ) : (

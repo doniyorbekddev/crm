@@ -143,7 +143,7 @@ export default function ActivityPage() {
                 className={cn(
                   'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-caption font-medium transition-colors',
                   active
-                    ? 'border-brand-500 bg-primary-subtle text-primary'
+                    ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border bg-surface text-fg-muted hover:bg-surface-muted hover:text-fg',
                 )}
               >

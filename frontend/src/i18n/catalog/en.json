@@ -4828,7 +4828,8 @@
 "Yo‘nalish (kurs)": "Direction (course)",
 "Yo‘nalishlar bo‘yicha": "By direction",
 "O‘qiyotganlar (faol va muzlatilgan)": "Studying (active and frozen)",
-"O‘quvchisi bor kurslar": "Courses with students"
+"O‘quvchisi bor kurslar": "Courses with students",
+"Jonli ko‘rsatkichlar": "Live metrics"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",

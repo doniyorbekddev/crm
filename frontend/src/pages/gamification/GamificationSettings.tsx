@@ -150,7 +150,7 @@ export function GamificationSettings() {
                       type="checkbox"
                       checked={rule.isActive}
                       onChange={(event) => saveRule.mutate({ id: rule.id, isActive: event.target.checked })}
-                      className="size-4 rounded border-border text-brand-600 focus:ring-brand-500"
+                      className="size-4 rounded border-border text-primary focus:ring-primary"
                     />
                     Faol
                   </label>
@@ -243,7 +243,7 @@ export function GamificationSettings() {
                         type="checkbox"
                         checked={badge.isActive}
                         onChange={(event) => saveBadge.mutate({ id: badge.id, isActive: event.target.checked })}
-                        className="size-4 rounded border-border text-brand-600 focus:ring-brand-500"
+                        className="size-4 rounded border-border text-primary focus:ring-primary"
                       />
                       Faol
                     </label>

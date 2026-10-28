@@ -21,7 +21,7 @@ export function Checkbox({ indeterminate = false, className, label, ...props }: 
       ref={ref}
       type="checkbox"
       className={cn(
-        'focus-ring size-4 cursor-pointer rounded-sm border-border accent-brand-600',
+        'focus-ring size-4 cursor-pointer rounded-sm border-border accent-primary',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}

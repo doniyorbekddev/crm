@@ -189,7 +189,7 @@ function JournalGrid({ journal, groupId }: { journal: AttendanceJournal; groupId
               <th
                 key={day.date}
                 scope="col"
-                className={cn('px-0.5 py-1 text-center font-medium', day.date === journal.today ? 'text-brand-600' : 'text-fg-muted', !day.scheduled && 'bg-surface-muted')}
+                className={cn('px-0.5 py-1 text-center font-medium', day.date === journal.today ? 'text-primary' : 'text-fg-muted', !day.scheduled && 'bg-surface-muted')}
                 title={day.session === 'CANCELLED' ? 'Dars bekor qilingan' : !day.scheduled ? 'Jadvaldan tashqari dars' : undefined}
               >
                 <Link to={`/attendance/groups/${groupId}?date=${day.date}`} className="focus-ring block rounded-sm px-1 hover:text-fg">

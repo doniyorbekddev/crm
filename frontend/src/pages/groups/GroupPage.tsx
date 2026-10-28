@@ -119,7 +119,7 @@ export default function GroupPage() {
             {canViewAttendance && (
               <Link
                 to={`/attendance/groups/${group.id}`}
-                className="focus-ring inline-flex h-9 items-center gap-2 rounded-control bg-brand-600 px-3.5 text-body font-medium text-white shadow-sm transition-colors hover:bg-brand-700"
+                className="focus-ring inline-flex h-9 items-center gap-2 rounded-control bg-primary-solid px-3.5 text-body font-medium text-white shadow-sm transition-colors hover:bg-primary-solid-hover"
               >
                 <CalendarCheck className="size-4" aria-hidden />
                 Davomat

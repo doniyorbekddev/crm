@@ -17,7 +17,7 @@ import { EXAM_STATUS_LABELS, EXAM_STATUS_TONES, GRADE_TONES } from '@/utils/home
 
 function topicTone(percent: number): string {
   if (percent >= 85) return 'bg-chart-positive';
-  if (percent >= 60) return 'bg-brand-500';
+  if (percent >= 60) return 'bg-chart-brand';
   return 'bg-chart-negative';
 }
 

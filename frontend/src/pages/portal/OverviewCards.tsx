@@ -47,7 +47,7 @@ function InfoCard({
   );
   const className = 'block min-w-0 rounded-card border border-border bg-surface p-4';
   return to ? (
-    <Link to={to} className={cn(className, 'transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none')}>
+    <Link to={to} className={cn(className, 'transition-colors hover:bg-surface-muted/60 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none')}>
       {body}
     </Link>
   ) : (

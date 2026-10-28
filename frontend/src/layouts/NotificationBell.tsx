@@ -116,7 +116,7 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
           <span
             className={cn(
               'absolute top-0.5 right-0.5 grid min-w-4 place-items-center rounded-full px-1 text-overline leading-4 tracking-normal text-white ring-2 ring-surface',
-              unreadHigh > 0 ? 'bg-danger-solid' : 'bg-brand-600',
+              unreadHigh > 0 ? 'bg-danger-solid' : 'bg-primary-solid',
             )}
           >
             {unread > 99 ? '99+' : unread}
@@ -219,7 +219,7 @@ export function NotificationBell({ listPath = '/notifications' }: { listPath?: s
                               muhim
                             </span>
                           )}
-                          {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />}
+                          {!item.isRead && <span className="size-1.5 shrink-0 rounded-full bg-primary-solid" aria-hidden />}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-caption text-fg-muted">{item.message}</span>
                         <span className="mt-1 block text-caption text-fg-subtle">

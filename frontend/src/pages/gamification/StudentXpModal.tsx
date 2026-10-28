@@ -121,7 +121,7 @@ export function StudentXpModal({ studentId, onClose }: StudentXpModalProps) {
                 </span>
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface">
-                <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${profile.progress}%` }} />
+                <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-progress" style={{ width: `${profile.progress}%` }} />
               </div>
             </div>
 

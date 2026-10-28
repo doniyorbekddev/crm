@@ -6,7 +6,7 @@ import { Tooltip } from './Tooltip';
 const variantClasses = {
   ghost: 'text-fg-muted hover:bg-surface-muted hover:text-fg',
   secondary: 'border border-border bg-surface text-fg-muted shadow-sm hover:bg-surface-muted hover:text-fg',
-  primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700',
+  primary: 'bg-primary-solid text-white shadow-sm hover:bg-primary-solid-hover',
   danger: 'text-fg-muted hover:bg-danger-subtle hover:text-danger',
 } as const;
 

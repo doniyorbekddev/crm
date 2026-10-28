@@ -108,7 +108,7 @@ export default function ReferralsPage() {
             <ul className="divide-y divide-border">
               {stats.top.map((item) => (
                 <li key={item.studentId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-body">
-                  <Link to={`/students/${item.studentId}`} className="min-w-0 truncate text-fg hover:text-brand-600 hover:underline">
+                  <Link to={`/students/${item.studentId}`} className="min-w-0 truncate text-fg hover:text-primary hover:underline">
                     {item.name}
                     {item.code && <span className="ml-2 font-mono text-caption text-fg-subtle">{item.code}</span>}
                   </Link>
@@ -166,7 +166,7 @@ export default function ReferralsPage() {
                   label: 'Kim taklif qildi',
                   cell: (item) => (
                     <>
-                      <Link to={`/students/${item.referrer.id}`} className="text-fg hover:text-brand-600 hover:underline">
+                      <Link to={`/students/${item.referrer.id}`} className="text-fg hover:text-primary hover:underline">
                         {item.referrer.name}
                       </Link>
                       {item.referrer.code && <span className="ml-2 font-mono text-caption text-fg-subtle">{item.referrer.code}</span>}
@@ -180,11 +180,11 @@ export default function ReferralsPage() {
                   cell: (item) => (
                     <>
                       {item.referred ? (
-                        <Link to={`/students/${item.referred.id}`} className="hover:text-brand-600 hover:underline">
+                        <Link to={`/students/${item.referred.id}`} className="hover:text-primary hover:underline">
                           {item.referred.name}
                         </Link>
                       ) : item.lead ? (
-                        <Link to={`/leads/${item.lead.id}`} className="hover:text-brand-600 hover:underline">
+                        <Link to={`/leads/${item.lead.id}`} className="hover:text-primary hover:underline">
                           {item.lead.name} <span className="text-caption text-fg-subtle">(lead)</span>
                         </Link>
                       ) : (

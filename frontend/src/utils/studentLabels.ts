@@ -78,7 +78,7 @@ export const ATTENDANCE_BUTTON_CLASSES: Record<AttendanceStatus, string> = {
   PRESENT: 'bg-success-solid text-white border-success-solid',
   ABSENT: 'bg-danger-solid text-white border-danger-solid',
   LATE: 'bg-warning-solid text-white border-warning-solid',
-  EXCUSED: 'bg-brand-600 text-white border-brand-600',
+  EXCUSED: 'bg-primary-solid text-white border-primary-solid',
 };
 
 export function fullName(person: { firstName: string; lastName: string }): string {

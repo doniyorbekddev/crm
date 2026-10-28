@@ -182,7 +182,7 @@ export function SalesFunnelCard() {
                     {formatNumber(stage.count)} · {stage.percent}%
                   </span>
                 </div>
-                <ProgressBar percent={Math.round((stage.count / max) * 100)} className={stage.status === 'WON' ? 'bg-chart-positive' : stage.status === 'LOST' ? 'bg-chart-neutral' : 'bg-chart-brand'} />
+                <ProgressBar percent={Math.round((stage.count / max) * 100)} className={stage.status === 'WON' ? 'bg-chart-positive' : stage.status === 'LOST' ? 'bg-chart-neutral' : 'bg-gradient-progress'} />
                 {stage.avgDaysToReach !== null && <p className="mt-0.5 text-caption text-fg-subtle">o‘rtacha {stage.avgDaysToReach} kunda keladi</p>}
               </li>
             ))}

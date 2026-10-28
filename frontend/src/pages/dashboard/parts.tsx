@@ -36,10 +36,11 @@ export function StatRow({ label, value, hint }: { label: string; value: string; 
 }
 
 /** To'ldirish chizig'i (voronka, reja bajarilishi, sog'lomlik) */
-export function ProgressBar({ percent, className = 'bg-chart-brand', size = 'md' }: { percent: number; className?: string; size?: 'sm' | 'md' }) {
+/** Standart — progress gradienti; holat ohangini beruvchi `className` (ijobiy, xavf) tekis rangda qoladi. Chapdan o'sadi */
+export function ProgressBar({ percent, className = 'bg-gradient-progress', size = 'md' }: { percent: number; className?: string; size?: 'sm' | 'md' }) {
   return (
     <div className={`overflow-hidden rounded-full bg-surface-muted ${size === 'sm' ? 'h-1.5' : 'h-2'}`} aria-hidden>
-      <div className={`h-full rounded-full ${className}`} style={{ width: `${Math.max(0, Math.min(percent, 100))}%` }} />
+      <div className={`h-full origin-left animate-grow-x rounded-full ${className}`} style={{ width: `${Math.max(0, Math.min(percent, 100))}%` }} />
     </div>
   );
 }

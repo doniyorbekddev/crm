@@ -29,7 +29,7 @@ const DAY_CLASSES: Record<AttendanceStatus, string> = {
   PRESENT: 'bg-chart-positive text-white',
   ABSENT: 'bg-chart-negative text-white',
   LATE: 'bg-chart-warning text-white',
-  EXCUSED: 'bg-brand-500 text-white',
+  EXCUSED: 'bg-primary-solid text-white',
 };
 
 /** Oyning birinchi kuni haftaning nechanchi kuniga to‘g‘ri kelishi (dushanba = 0) */

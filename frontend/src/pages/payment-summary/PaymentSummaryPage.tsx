@@ -74,7 +74,7 @@ function CollectionBar({ totals, className }: { totals: PaymentSummaryTotals; cl
       aria-valuemax={100}
       aria-valuenow={Math.round(percent)}
     >
-      <div className="h-full rounded-full bg-success-solid" style={{ width: `${percent}%` }} />
+      <div className="h-full origin-left animate-grow-x rounded-full bg-success-solid" style={{ width: `${percent}%` }} />
     </div>
   );
 }
@@ -185,7 +185,7 @@ export default function PaymentSummaryPage() {
                   type="button"
                   aria-pressed={view === value}
                   onClick={() => setView(value)}
-                  className={cn('focus-ring rounded-sm px-3 py-1 text-caption font-medium', view === value ? 'bg-brand-600 text-white' : 'text-fg-muted hover:text-fg')}
+                  className={cn('focus-ring rounded-sm px-3 py-1 text-caption font-medium', view === value ? 'bg-primary-solid text-white' : 'text-fg-muted hover:text-fg')}
                 >
                   {label}
                 </button>

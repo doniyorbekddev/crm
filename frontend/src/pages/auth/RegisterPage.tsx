@@ -71,7 +71,7 @@ export default function RegisterPage() {
         <p className="mt-3 text-body text-fg-muted">{successMessage}</p>
         <Link
           to="/login"
-          className="mt-8 inline-flex h-10 w-full items-center justify-center rounded-control bg-brand-600 px-4 text-label text-white shadow-sm hover:bg-brand-700"
+          className="mt-8 inline-flex h-10 w-full items-center justify-center rounded-control bg-primary-solid px-4 text-label text-white shadow-sm hover:bg-primary-solid-hover"
         >
           Kirish sahifasiga qaytish
         </Link>

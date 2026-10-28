@@ -107,7 +107,7 @@ export function TelegramLinkCard({ audience = 'staff' }: { audience?: 'staff' | 
                 href={linkQuery.data.deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 items-center rounded-control bg-brand-600 px-4 text-label text-white hover:bg-brand-700"
+                className="inline-flex h-10 items-center rounded-control bg-primary-solid px-4 text-label text-white hover:bg-primary-solid-hover"
               >
                 Telegramda ochish
               </a>

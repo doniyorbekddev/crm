@@ -48,7 +48,7 @@ export function ChildrenCards() {
           const active = child.studentId === activeChild;
           const risk = child.risk ? RISK_TEXT[child.risk] : null;
           return (
-            <Card key={child.studentId} className={cn(active && 'ring-2 ring-brand-500')}>
+            <Card key={child.studentId} className={cn(active && 'ring-2 ring-primary')}>
               <CardHeader>
                 <div className="min-w-0">
                   <CardTitle className="truncate">{child.fullName}</CardTitle>
@@ -66,7 +66,7 @@ export function ChildrenCards() {
                   <button
                     type="button"
                     onClick={() => setActiveChild(child.studentId)}
-                    className="rounded-chip px-2 py-1 text-caption font-medium text-primary hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+                    className="rounded-chip px-2 py-1 text-caption font-medium text-primary hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                   >
                     Tanlash
                   </button>

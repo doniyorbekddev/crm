@@ -210,7 +210,7 @@ export default function ReportsPage() {
       </Card>
 
       {report && report.kpis.length > 0 && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div data-reveal="stagger" className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {report.kpis.map((kpi) => (
             <Card key={kpi.label} className="p-4">
               <p className="text-caption text-fg-muted">{kpi.label}</p>

@@ -327,7 +327,7 @@ export default function AuditLogPage() {
                 type="checkbox"
                 checked={criticalOnly}
                 onChange={(event) => changeFilter(() => setCriticalOnly(event.target.checked))}
-                className="size-4 rounded border-border text-brand-600 focus:ring-brand-500"
+                className="size-4 rounded border-border text-primary focus:ring-primary"
               />
               Faqat muhim amallar
             </label>

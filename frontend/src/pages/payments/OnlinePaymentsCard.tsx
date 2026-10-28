@@ -134,7 +134,7 @@ export function OnlinePaymentsCard() {
                 <li key={intent.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-body text-fg">
-                      <Link to={`/students/${intent.student.id}`} className="hover:text-brand-600 hover:underline">
+                      <Link to={`/students/${intent.student.id}`} className="hover:text-primary hover:underline">
                         {intent.student.name}
                       </Link>
                       <Badge tone={STATUS_TONES[intent.status]}>{STATUS_LABELS[intent.status]}</Badge>

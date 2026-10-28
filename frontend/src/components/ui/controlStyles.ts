@@ -5,7 +5,7 @@
  */
 export const controlClass =
   'w-full rounded-control border border-border bg-surface text-body-lg text-fg outline-none transition-colors sm:text-body ' +
-  'placeholder:text-fg-subtle hover:border-fg-subtle/60 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/20 ' +
+  'placeholder:text-fg-subtle hover:border-fg-subtle/60 focus:border-primary focus:ring-3 focus:ring-primary/20 ' +
   'disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-60';
 
 export const controlInvalidClass =

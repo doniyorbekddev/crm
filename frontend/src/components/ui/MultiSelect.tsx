@@ -196,7 +196,7 @@ export function MultiSelect({
                         aria-hidden
                         className={cn(
                           'grid size-4 shrink-0 place-items-center rounded-sm border',
-                          checked ? 'border-brand-600 bg-brand-600 text-white' : 'border-fg-subtle bg-surface',
+                          checked ? 'border-primary-solid bg-primary-solid text-white' : 'border-fg-subtle bg-surface',
                         )}
                       >
                         {checked && <Check className="size-3" />}
