@@ -899,6 +899,8 @@ model Course {
   id             String         @id @default(cuid())
   name           String         @unique @db.VarChar(150)
   category       CourseCategory @default(OTHER)
+  /// category = OTHER bo'lganda markaz o'zi yozgan yo'nalish ("Robototexnika", "Matematika")
+  categoryLabel  String?        @db.VarChar(60)
   description    String?
   durationMonths Int            @db.SmallInt
   /// Kursning to‘liq narxi (so‘m)
@@ -2366,6 +2368,8 @@ model StudentParent {
   studentId String
   parentId  String
   relation  ParentRelation @default(GUARDIAN)
+  /// relation = OTHER bo'lganda: "Buvi", "Aka", "Tog'a"
+  relationLabel String?       @db.VarChar(40)
   isPrimary Boolean        @default(false)
   createdAt DateTime       @default(now())
 
@@ -3149,6 +3153,8 @@ model Employee {
   /// Bo'lim: "Sotuv", "O'quv bo'limi", "Buxgalteriya" — markaz o'zi nomlaydi
   department        String?          @db.VarChar(100)
   position          EmployeePosition
+  /// position = OTHER bo'lganda lavozim nomi ("Metodist", "Haydovchi"). KPI qoidalari OTHER bo'yicha qoladi
+  positionTitle     String?          @db.VarChar(80)
   /// Oylik belgilangan maosh (oy o‘rtasida kirgan/ketganda kunlarga proporsional)
   baseSalary        Decimal          @default(0) @db.Decimal(14, 2)
   /// Oylik maksimal KPI bonusi: bonus = fond × vaznli bajarilish (0 — KPI bonusi yo'q)

@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { CustomizableSelect } from '@/components/ui/CustomizableSelect';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { SuggestInput } from '@/components/ui/SuggestInput';
 import { Textarea } from '@/components/ui/Textarea';
+import { useCustomLabels } from '@/hooks/useCustomLabels';
 import { usePermission } from '@/hooks/usePermission';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { getErrorMessage } from '@/lib/api';
@@ -27,6 +30,7 @@ const schema = z
     lastName: nameField('Familiya'),
     phone: optionalPhoneField,
     position: z.enum(EMPLOYEE_POSITION_ORDER),
+    positionTitle: z.string().trim().max(80, 'Lavozim nomi juda uzun'),
     baseSalary: z.string().refine((value) => /^\d{1,9}$/.test(value), 'Maosh butun son (so‘m) bo‘lishi kerak'),
     hireDate: z.string().min(1, 'Ishga kirgan sanani kiriting'),
     status: z.enum(EMPLOYEE_STATUS_ORDER),
@@ -61,6 +65,7 @@ function toPayload(values: FormValues, includeSalary: boolean, includeSensitive:
     lastName: values.lastName,
     phone: values.phone || null,
     position: values.position,
+    positionTitle: values.position === 'OTHER' && values.positionTitle ? values.positionTitle : null,
     ...(includeSalary ? { baseSalary: Number(values.baseSalary) } : {}),
     hireDate: values.hireDate,
     status: values.status,
@@ -108,6 +113,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
     handleSubmit,
     control,
     setError,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -116,6 +122,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
       lastName: employee?.lastName ?? '',
       phone: employee?.phone ?? '',
       position: employee?.position ?? 'ADMINISTRATOR',
+      positionTitle: employee?.positionTitle ?? '',
       baseSalary: salaryHidden ? '0' : employee ? String(employee.baseSalary) : '',
       hireDate: employee?.hireDate ?? new Date().toISOString().slice(0, 10),
       status: employee?.status ?? 'ACTIVE',
@@ -135,6 +142,10 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
     },
   });
   const status = useWatch({ control, name: 'status' });
+  const positionTitle = useWatch({ control, name: 'positionTitle' });
+  const positionSuggestions = useCustomLabels('employee-position');
+  const usedDepartments = useCustomLabels('employee-department');
+  const departmentSuggestions = [...new Set([...usedDepartments, ...departments])];
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
@@ -146,7 +157,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'position', 'baseSalary', 'hireDate', 'terminationDate', 'userId'])) {
+      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'position', 'positionTitle', 'baseSalary', 'hireDate', 'terminationDate', 'userId'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -199,14 +210,33 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
           <FormField label="Telefon" htmlFor="employee-phone" error={errors.phone?.message}>
             <Input id="employee-phone" type="tel" placeholder="+998 90 123 45 67" invalid={Boolean(errors.phone)} {...register('phone')} />
           </FormField>
-          <FormField label="Lavozim" htmlFor="employee-position" error={errors.position?.message} required>
-            <Select id="employee-position" {...register('position')}>
-              {EMPLOYEE_POSITION_ORDER.map((value) => (
-                <option key={value} value={value}>
-                  {EMPLOYEE_POSITION_LABELS[value]}
-                </option>
-              ))}
-            </Select>
+          <FormField
+            label="Lavozim"
+            htmlFor="employee-position"
+            error={errors.position?.message ?? errors.positionTitle?.message}
+            hint={errors.position || errors.positionTitle ? undefined : 'Yo‘q bo‘lsa — o‘zingiz yozing (KPI “Boshqa” lavozim qoidasi bilan)'}
+            required
+          >
+            <Controller
+              control={control}
+              name="position"
+              render={({ field }) => (
+                <CustomizableSelect
+                  id="employee-position"
+                  order={EMPLOYEE_POSITION_ORDER}
+                  labels={EMPLOYEE_POSITION_LABELS}
+                  otherCode="OTHER"
+                  code={field.value}
+                  customLabel={field.value === 'OTHER' ? positionTitle || null : null}
+                  suggestions={positionSuggestions}
+                  invalid={Boolean(errors.position ?? errors.positionTitle)}
+                  onChange={(code, label) => {
+                    field.onChange(code);
+                    setValue('positionTitle', label ?? '', { shouldValidate: Boolean(label) });
+                  }}
+                />
+              )}
+            />
           </FormField>
           {!salaryHidden && (
             <FormField label="Oylik maosh (so‘m)" htmlFor="employee-baseSalary" error={errors.baseSalary?.message} required hint="Oy o‘rtasida kirgan/ketganda kunlarga proporsional">
@@ -247,12 +277,20 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
             <Input id="employee-email" type="email" invalid={Boolean(errors.email)} {...register('email')} />
           </FormField>
           <FormField label="Bo‘lim" htmlFor="employee-department" error={errors.department?.message} hint="Masalan: Sotuv, O‘quv bo‘limi">
-            <Input id="employee-department" list="employee-departments" invalid={Boolean(errors.department)} {...register('department')} />
-            <datalist id="employee-departments">
-              {departments.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
+            <Controller
+              control={control}
+              name="department"
+              render={({ field }) => (
+                <SuggestInput
+                  id="employee-department"
+                  value={field.value}
+                  onChange={field.onChange}
+                  suggestions={departmentSuggestions}
+                  placeholder="Tanlang yoki yozing"
+                  invalid={Boolean(errors.department)}
+                />
+              )}
+            />
           </FormField>
           <FormField label="Shartnoma raqami" htmlFor="employee-contractNumber" error={errors.contractNumber?.message}>
             <Input id="employee-contractNumber" invalid={Boolean(errors.contractNumber)} {...register('contractNumber')} />

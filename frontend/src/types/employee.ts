@@ -20,6 +20,8 @@ export interface Employee {
   email: string | null;
   department: string | null;
   position: EmployeePosition;
+  /** position = OTHER bo'lganda markaz yozgan lavozim nomi ("Metodist") */
+  positionTitle: string | null;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
   /** Oylik KPI bonus fondi (maosh ruxsati bo'lmasa null) */
@@ -72,6 +74,7 @@ export interface EmployeePayload {
   lastName: string;
   phone: string | null;
   position: EmployeePosition;
+  positionTitle: string | null;
   /** Maosh yashirilgan xodim tahrirlaganda yuborilmaydi (saqlangan qiymat o‘zgarmaydi) */
   baseSalary?: number;
   hireDate: string;

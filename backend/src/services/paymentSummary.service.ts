@@ -97,7 +97,7 @@ export const paymentSummaryService = {
     const range = businessMonthRange(month.year, month.month);
 
     const [courses, students, monthPayments] = await Promise.all([
-      prisma.course.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, category: true, status: true } }),
+      prisma.course.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, category: true, categoryLabel: true, status: true } }),
       prisma.student.findMany({
         where: studentWhere,
         select: { id: true, courseId: true, status: true, debt: { select: { totalAmount: true, paidAmount: true, remainingAmount: true } } },
@@ -116,7 +116,7 @@ export const paymentSummaryService = {
     const rows = new Map<string, PaymentSummaryRow>(
       courses.map((course) => [
         course.id,
-        { courseId: course.id, courseName: course.name, category: course.category, categoryLabel: CATEGORY_LABELS[course.category], courseStatus: course.status, ...emptyTotals() },
+        { courseId: course.id, courseName: course.name, category: course.category, categoryLabel: course.categoryLabel ?? CATEGORY_LABELS[course.category], courseStatus: course.status, ...emptyTotals() },
       ]),
     );
     const totals = emptyTotals();

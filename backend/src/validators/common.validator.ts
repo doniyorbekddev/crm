@@ -53,5 +53,29 @@ export function optionalField<T extends z.ZodType>(schema: T) {
   return z.preprocess((value) => (value === '' || value === null ? undefined : value), schema.optional());
 }
 
+/** Ma'lumotnoma yozuvi nomi (manba, turkum…): bo'shliqlar yig'iladi */
+export const dictionaryEntryNameSchema = z
+  .string('Nomini kiriting')
+  .transform((value) => value.trim().replace(/\s+/g, ' '))
+  .pipe(z.string().min(2, 'Nom kamida 2 belgi').max(100, 'Nom 100 belgidan oshmasin'));
+
+/**
+ * "Boshqa" tanlanganda markaz o'zi yozadigan nom ("Buvi", "Robototexnika"): bo'shliqlar yig'iladi, bo'sh — yo'q.
+ * Enum `OTHER` bo'lmasa servis uni saqlamaydi (`customLabelFor`).
+ */
+export function customLabelField(max: number) {
+  return optionalField(
+    z
+      .string()
+      .transform((value) => value.trim().replace(/\s+/g, ' '))
+      .pipe(z.string().min(2, 'Nom kamida 2 belgi').max(max, `Nom ${max} belgidan oshmasin`)),
+  );
+}
+
+/** Erkin nom faqat "Boshqa" bilan birga ma'noli; boshqa qiymatda eski nom qolib ketmasin */
+export function customLabelFor(code: string, label: string | undefined): string | null {
+  return code === 'OTHER' ? (label ?? null) : null;
+}
+
 /** Eksport formati: `?format=csv` (standart) yoki `?format=xlsx` */
 export const exportFormatSchema = z.enum(EXPORT_FORMATS, 'Format: csv yoki xlsx').default('csv');

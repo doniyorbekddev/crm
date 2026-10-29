@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Combobox } from '@/components/ui/Combobox';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { useInlineCreate } from '@/hooks/useInlineCreate';
+import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
@@ -18,6 +21,7 @@ import { groupsService } from '@/services/groups.service';
 import { roomsService } from '@/services/rooms.service';
 import type { GroupItem, GroupPayload, WeekDay } from '@/types/group';
 import { GROUP_STATUS_LABELS, GROUP_STATUS_ORDER, WEEK_DAY_LABELS, WEEK_DAY_ORDER } from '@/utils/courseLabels';
+import { PERMISSIONS } from '@/utils/permissionKeys';
 
 /** O‘quv markazlarda odatiy jadval: toq va juft kunlar */
 const SCHEDULE_PRESETS: ReadonlyArray<{ label: string; days: WeekDay[] }> = [
@@ -103,7 +107,9 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
     handleSubmit,
     setError,
     setValue,
+    getValues,
     watch,
+    control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(groupFormSchema), defaultValues });
 
@@ -111,6 +117,13 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
     queryKey: queryKeys.rooms.list(false),
     queryFn: () => roomsService.list(),
     staleTime: 5 * 60_000,
+  });
+  const canManageRooms = usePermission(PERMISSIONS.GROUP_MANAGE);
+  // Yangi xona shu guruhni sig'dirishi kerak — sig'imi guruhnikidek (keyin "Xonalar" sahifasida o'zgartiriladi)
+  const createRoom = useInlineCreate({
+    create: async (name) => (await roomsService.create({ name, capacity: Math.max(1, Number(getValues('capacity')) || 15) })).data,
+    invalidate: [queryKeys.rooms.all],
+    noun: 'xonasi',
   });
 
   // Jadval to'qnashuvini saqlashdan oldin ko'rsatamiz — xodim xatoni formada bilib oladi
@@ -224,15 +237,29 @@ export function GroupFormModal({ group, onClose, onSaved }: GroupFormModalProps)
             ))}
           </Select>
         </FormField>
-        <FormField label="Xona" htmlFor="group-room" error={errors.roomId?.message} hint="Band qilish to‘qnashuvi avtomatik tekshiriladi">
-          <Select id="group-room" {...register('roomId')}>
-            <option value="">Xona tanlanmagan</option>
-            {(roomsQuery.data ?? []).map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name} ({room.capacity} o‘rin)
-              </option>
-            ))}
-          </Select>
+        <FormField label="Xona" htmlFor="group-room" error={errors.roomId?.message} hint="To‘qnashuv avtomatik tekshiriladi. Yangi xona: nomini yozib, Enter">
+          <Controller
+            control={control}
+            name="roomId"
+            render={({ field }) => (
+              <Combobox
+                id="group-room"
+                options={(roomsQuery.data ?? []).map((room) => ({ value: room.id, label: room.name, description: `${room.capacity} o‘rin` }))}
+                value={field.value || null}
+                onChange={(value) => field.onChange(value ?? '')}
+                placeholder={roomsQuery.isPending ? 'Yuklanmoqda…' : 'Xona tanlanmagan'}
+                loading={roomsQuery.isPending}
+                emptyText="Xona yo‘q"
+                {...(canManageRooms
+                  ? {
+                      onCreate: createRoom,
+                      createLabel: (text: string) => `“${text}” xonasini qo‘shish`,
+                      createHint: 'Yangi xona qo‘shish uchun nomini yozing',
+                    }
+                  : {})}
+              />
+            )}
+          />
         </FormField>
 
         <div className="sm:col-span-2">

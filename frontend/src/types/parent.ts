@@ -12,6 +12,8 @@ export interface ParentStudentLink {
   status: StudentStatus;
   group: { id: string; name: string } | null;
   relation: ParentRelation;
+  /** relation = OTHER bo'lganda markaz yozgan nom ("Buvi") */
+  relationLabel: string | null;
   isPrimary: boolean;
 }
 
@@ -40,6 +42,8 @@ export interface StudentParent {
   email: string | null;
   notes: string | null;
   relation: ParentRelation;
+  /** relation = OTHER bo'lganda markaz yozgan nom ("Buvi") */
+  relationLabel: string | null;
   isPrimary: boolean;
 }
 
@@ -55,7 +59,14 @@ export interface ParentListParams {
 export interface ParentLinkPayload {
   studentId: string;
   relation: ParentRelation;
+  relationLabel?: string;
   isPrimary: boolean;
+}
+
+/** Qarindoshlik tanlovi: tizim kodi + "Boshqa" uchun o'z nomi */
+export interface RelationChoice {
+  relation: ParentRelation;
+  relationLabel: string | null;
 }
 
 export interface ParentPayload {

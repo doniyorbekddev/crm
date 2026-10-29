@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Combobox } from '@/components/ui/Combobox';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Select } from '@/components/ui/Select';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage, getFieldErrors } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -19,6 +19,7 @@ import type { ExpenseStatus } from '@/types/finance';
 import { EXPENSE_STATUS_LABELS, EXPENSE_STATUS_TONES } from '@/utils/financeLabels';
 import { formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { useFinanceCategories } from './useFinanceCategories';
 
 interface RecurringExpensesModalProps {
   onClose: () => void;
@@ -35,7 +36,7 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
   const canApprove = usePermission(PERMISSIONS.EXPENSE_APPROVE);
 
   const listQuery = useQuery({ queryKey: queryKeys.expenses.recurring, queryFn: recurringExpensesService.list });
-  const categoriesQuery = useQuery({ queryKey: queryKeys.expenses.categories, queryFn: expensesService.categories, staleTime: 60_000 });
+  const { query: categoriesQuery, create: createCategory } = useFinanceCategories('expense');
   const settingsQuery = useQuery({ queryKey: queryKeys.expenses.approvalSettings, queryFn: expensesService.approvalSettings });
 
   const [name, setName] = useState('');
@@ -218,16 +219,20 @@ export function RecurringExpensesModal({ onClose, onChanged }: RecurringExpenses
                 <Input id="recurring-name" value={name} placeholder="Ofis ijarasi" onChange={(event) => setName(event.target.value)} />
               </FormField>
               <FormField label="Kategoriya" htmlFor="recurring-category" error={errors.categoryId} required>
-                <Select id="recurring-category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-                  <option value="">Tanlang…</option>
-                  {(categoriesQuery.data ?? [])
+                <Combobox
+                  id="recurring-category"
+                  options={(categoriesQuery.data ?? [])
                     .filter((category) => category.isActive)
-                    .map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </Select>
+                    .map((category) => ({ value: category.id, label: category.name }))}
+                  value={categoryId || null}
+                  onChange={(value) => setCategoryId(value ?? '')}
+                  loading={categoriesQuery.isPending}
+                  placeholder="Tanlang yoki yozing"
+                  invalid={Boolean(errors.categoryId)}
+                  onCreate={createCategory}
+                  createLabel={(text) => `“${text}” kategoriyasini qo‘shish`}
+                  createHint="Yangi kategoriya uchun nomini yozing"
+                />
               </FormField>
               <FormField label="Summa (so‘m)" htmlFor="recurring-amount" error={errors.amount} required>
                 <Input id="recurring-amount" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} />

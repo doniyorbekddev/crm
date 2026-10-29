@@ -7,6 +7,8 @@ export interface CourseItem {
   id: string;
   name: string;
   category: CourseCategory;
+  /** category = OTHER bo'lganda markaz yozgan yo'nalish nomi */
+  categoryLabel: string | null;
   description: string | null;
   durationMonths: number;
   price: number;
@@ -32,6 +34,7 @@ export interface CourseListParams {
 export interface CoursePayload {
   name: string;
   category: CourseCategory;
+  categoryLabel?: string;
   description?: string;
   durationMonths: number;
   price: number;

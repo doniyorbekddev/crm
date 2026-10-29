@@ -23,6 +23,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { coursesService } from '@/services/courses.service';
 import type { CourseItem, CourseListParams, CourseCategory, CourseStatus } from '@/types/course';
 import { COURSE_CATEGORY_LABELS, COURSE_CATEGORY_ORDER, COURSE_STATUS_LABELS, COURSE_STATUS_ORDER } from '@/utils/courseLabels';
+import { withCustomLabel } from '@/utils/customLabel';
 import { formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { CourseFormModal } from './CourseFormModal';
@@ -159,7 +160,7 @@ export default function CoursesPage() {
                       Darslar (LMS)
                     </Link>
                     <p className="mt-1 text-caption text-fg-muted">
-                      {COURSE_CATEGORY_LABELS[course.category]} · {course.durationMonths} oy
+                      {withCustomLabel(COURSE_CATEGORY_LABELS, course.category, course.categoryLabel)} · {course.durationMonths} oy
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">

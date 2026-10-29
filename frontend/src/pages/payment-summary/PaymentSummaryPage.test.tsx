@@ -62,4 +62,30 @@ describe('PaymentSummaryPage', () => {
     await userEvent.selectOptions(screen.getByLabelText('O‘quvchilar'), 'STUDYING');
     await waitFor(() => expect(getMock).toHaveBeenLastCalledWith('STUDYING'));
   });
+
+  it('markaz yozgan yo‘nalishlar “Boshqa”ga qo‘shilmaydi — har biri alohida guruh', async () => {
+    const custom = (courseId: string, courseName: string, categoryLabel: string, expected: number) => ({
+      ...base,
+      courseId,
+      courseName,
+      category: 'OTHER' as const,
+      categoryLabel,
+      courseStatus: 'ACTIVE' as const,
+      students: 1,
+      expected,
+      collected: 0,
+      remaining: expected,
+      collectedPercent: 0,
+    });
+    getMock.mockResolvedValue({
+      ...DATA,
+      courses: [custom('c4', 'Robo 1', 'Robototexnika', 1_000_000), custom('c5', 'Robo 2', 'robototexnika', 2_000_000), custom('c6', 'Shaxmat', 'Shaxmat', 500_000)],
+    });
+    open();
+    await screen.findByRole('table');
+    await userEvent.click(screen.getByRole('button', { name: 'Toifa bo‘yicha' }));
+    const table = within(screen.getByRole('table'));
+    expect(table.getByRole('row', { name: /Robototexnika/ })).toHaveTextContent('3 000 000 so‘m');
+    expect(table.getByRole('row', { name: /Shaxmat/ })).toHaveTextContent('500 000 so‘m');
+  });
 });

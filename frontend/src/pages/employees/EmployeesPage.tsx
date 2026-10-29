@@ -17,6 +17,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useBranchParam } from '@/store/branch.store';
 import { employeesService } from '@/services/employees.service';
 import type { Employee, EmployeeListParams, EmployeePosition, EmployeeStatus } from '@/types/employee';
+import { withCustomLabel } from '@/utils/customLabel';
 import {
   EMPLOYEE_POSITION_LABELS,
   EMPLOYEE_POSITION_ORDER,
@@ -119,7 +120,7 @@ export default function EmployeesPage() {
       tdClassName: 'whitespace-nowrap text-fg',
       cell: (employee: EmployeeTableRow) => (
         <>
-          {EMPLOYEE_POSITION_LABELS[employee.position]}
+          {withCustomLabel(EMPLOYEE_POSITION_LABELS, employee.position, employee.positionTitle)}
         </>
       ),
     },

@@ -37,7 +37,8 @@ describe('Lead formasi — telefonlar va manba', () => {
     const user = userEvent.setup();
     renderForm();
     await user.type(screen.getByLabelText(/^Ism/), 'Ali');
-    await user.selectOptions(screen.getByRole('combobox', { name: /^Manba/ }), 's1');
+    await user.click(screen.getByRole('combobox', { name: /^Manba/ }));
+    await user.click(screen.getByRole('option', { name: 'Instagram' }));
     await user.click(screen.getByRole('button', { name: 'Saqlash' }));
     expect(await screen.findAllByText(REQUIRED)).toHaveLength(2);
     expect(leadsService.create).not.toHaveBeenCalled();
@@ -49,16 +50,24 @@ describe('Lead formasi — telefonlar va manba', () => {
     expect(vi.mocked(leadsService.create).mock.calls[0]![0]).toMatchObject({ phone: '', parentPhone: '+998 90 123 45 67', sourceId: 's1' });
   });
 
-  it('"Boshqa — o‘zim yozaman" tanlansa manba nomi so‘raladi va sourceName yuboriladi', async () => {
+  it('ro‘yxatda yo‘q manba yozilsa sourceName yuboriladi; juda qisqa nom qabul qilinmaydi', async () => {
     const user = userEvent.setup();
     renderForm();
     await user.type(screen.getByLabelText(/^Ism/), 'Ali');
     await user.type(screen.getByLabelText('Lidning telefon raqami'), '+998901234567');
-    await user.selectOptions(screen.getByRole('combobox', { name: /^Manba/ }), '__custom__');
-    await user.click(screen.getByRole('button', { name: 'Saqlash' }));
-    expect(await screen.findByText('Manba nomini yozing (kamida 2 belgi)')).toBeInTheDocument();
+    const source = screen.getByRole('combobox', { name: /^Manba/ });
 
-    await user.type(screen.getByLabelText(/^Manba nomi/), 'Ko‘rgazma');
+    // 1 belgi — yangi manba sifatida olinmaydi, manba tanlanmagan bo'lib qoladi
+    await user.type(source, 'K');
+    await user.tab();
+    await user.click(screen.getByRole('button', { name: 'Saqlash' }));
+    expect(await screen.findByText('Manbani tanlang')).toBeInTheDocument();
+    expect(leadsService.create).not.toHaveBeenCalled();
+
+    await user.click(source);
+    await user.type(source, ' Ko‘rgazma ');
+    await user.click(screen.getByRole('option', { name: /“Ko‘rgazma” — yangi manba/ }));
+    expect(source).toHaveValue('Ko‘rgazma');
     await user.click(screen.getByRole('button', { name: 'Saqlash' }));
     await vi.waitFor(() => expect(leadsService.create).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(leadsService.create).mock.calls[0]![0];

@@ -1,21 +1,21 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Combobox } from '@/components/ui/Combobox';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
-import { queryKeys } from '@/lib/queryKeys';
-import { expensesService, incomesService } from '@/services/finance.service';
 import { inventoryService } from '@/services/inventory.service';
 import type { Product, StockMovementType } from '@/types/inventory';
 import { formatMoney, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { STOCK_MOVEMENT_LABELS, STOCK_MOVEMENT_ORDER } from '@/utils/inventoryLabels';
+import { useFinanceCategories } from '../finance/useFinanceCategories';
 
 /**
  * Ombor harakati. Sotuv va xaridda pul yozuvini ham shu yerda yaratish mumkin —
@@ -33,11 +33,9 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
   const [formError, setFormError] = useState<string | null>(null);
 
   const moneyPossible = canRecordMoney && (type === 'SALE' || type === 'PURCHASE');
-  const categoriesQuery = useQuery({
-    queryKey: type === 'SALE' ? queryKeys.incomes.categories : queryKeys.expenses.categories,
-    queryFn: () => (type === 'SALE' ? incomesService.categories() : expensesService.categories()),
-    enabled: moneyPossible && withMoney,
-  });
+  const moneyKind = type === 'SALE' ? 'income' : 'expense';
+  const { query: categoriesQuery, create: createCategory } = useFinanceCategories(moneyKind, { enabled: moneyPossible && withMoney });
+  const canCreateCategory = usePermission(moneyKind === 'income' ? PERMISSIONS.INCOME_MANAGE : PERMISSIONS.EXPENSE_MANAGE);
 
   const save = useMutation({
     mutationFn: () =>
@@ -90,6 +88,8 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
             value={type}
             onChange={(event) => {
               setType(event.target.value as StockMovementType);
+              // Tushum va xarajat kategoriyalari alohida — eski tanlov yangi turga to'g'ri kelmaydi
+              setCategoryId('');
               setFormError(null);
             }}
             aria-label="Harakat turi"
@@ -134,14 +134,19 @@ export function MovementModal({ product, onClose, onSaved }: { product: Product;
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-caption text-fg-muted">Kategoriya</span>
-                  <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="Kategoriya">
-                    <option value="">Tanlang</option>
-                    {(categoriesQuery.data ?? []).map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </Select>
+                  <Combobox
+                    aria-label="Kategoriya"
+                    options={(categoriesQuery.data ?? [])
+                      .filter((category) => category.isActive)
+                      .map((category) => ({ value: category.id, label: category.name }))}
+                    value={categoryId || null}
+                    onChange={(value) => setCategoryId(value ?? '')}
+                    loading={categoriesQuery.isPending}
+                    placeholder="Tanlang yoki yozing"
+                    {...(canCreateCategory
+                      ? { onCreate: createCategory, createLabel: (text: string) => `“${text}” kategoriyasini qo‘shish`, createHint: 'Yangi kategoriya uchun nomini yozing' }
+                      : {})}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-caption text-fg-muted">To‘lov usuli</span>

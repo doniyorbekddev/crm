@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emailSchema, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
+import { customLabelField, emailSchema, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
 
 export const PARENT_RELATIONS = ['MOTHER', 'FATHER', 'GUARDIAN', 'OTHER'] as const;
 
@@ -8,6 +8,8 @@ const idSchema = z.string().trim().min(1).max(50);
 const studentLinkSchema = z.object({
   studentId: z.string('O‘quvchini tanlang').trim().min(1, 'O‘quvchini tanlang').max(50),
   relation: z.enum(PARENT_RELATIONS, 'Qarindoshlikni tanlang').default('GUARDIAN'),
+  /** relation = OTHER: "Buvi", "Aka"… */
+  relationLabel: customLabelField(40),
   isPrimary: z.boolean().default(false),
 });
 
@@ -39,6 +41,7 @@ export const linkStudentSchema = studentLinkSchema;
 export const updateLinkSchema = z
   .object({
     relation: z.enum(PARENT_RELATIONS, 'Qarindoshlik noto‘g‘ri').optional(),
+    relationLabel: customLabelField(40),
     isPrimary: z.boolean().optional(),
   })
   .refine((values) => values.relation !== undefined || values.isPrimary !== undefined, 'Kamida bitta maydonni o‘zgartiring');

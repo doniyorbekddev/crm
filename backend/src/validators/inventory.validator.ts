@@ -6,12 +6,14 @@ const idSchema = z.string().trim().min(1).max(50);
 export const STOCK_MOVEMENT_TYPES = ['PURCHASE', 'SALE', 'RETURN', 'DAMAGE', 'TRANSFER_IN', 'TRANSFER_OUT', 'ADJUSTMENT'] as const;
 
 export const productCategorySchema = z.object({
+  /** Berilmasa — yangi turkum, kalit nomdan yasaladi (formadan faqat nom bilan qo'shish) */
   key: z
     .string()
     .trim()
     .min(2, 'Kalit juda qisqa')
     .max(50, 'Kalit juda uzun')
-    .regex(/^[a-z0-9_]+$/, 'Kalit faqat kichik harf, raqam va pastki chiziqdan iborat bo‘lsin'),
+    .regex(/^[a-z0-9_]+$/, 'Kalit faqat kichik harf, raqam va pastki chiziqdan iborat bo‘lsin')
+    .optional(),
   name: z.string().trim().min(2, 'Nom juda qisqa').max(100, 'Nom juda uzun'),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0).max(1000).default(0),

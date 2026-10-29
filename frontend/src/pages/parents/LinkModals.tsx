@@ -12,9 +12,10 @@ import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { parentsService } from '@/services/parents.service';
 import { studentsService } from '@/services/students.service';
-import type { ParentItem, ParentListParams, ParentRelation } from '@/types/parent';
+import type { ParentItem, ParentListParams, RelationChoice } from '@/types/parent';
 import type { StudentListParams } from '@/types/student';
 import { formatPhone } from '@/utils/format';
+import { relationPayload } from '@/utils/parentLabels';
 import { RelationFields } from './RelationFields';
 
 interface PickerOption {
@@ -31,7 +32,7 @@ interface LinkModalShellProps {
   searchInput: string;
   onSearchChange: (value: string) => void;
   options: { pending: boolean; error: unknown; items: PickerOption[]; placeholder: boolean };
-  onSave: (selectedId: string, relation: ParentRelation, isPrimary: boolean) => void;
+  onSave: (selectedId: string, relation: RelationChoice, isPrimary: boolean) => void;
   saving: boolean;
   error: string | null;
   onClose: () => void;
@@ -41,7 +42,7 @@ interface LinkModalShellProps {
 /** Qidirib tanlash + qarindoshlik — ikkala yo‘nalish (ota-onaga farzand, o‘quvchiga ota-ona) uchun umumiy */
 function LinkModalShell(props: LinkModalShellProps) {
   const [selected, setSelected] = useState<PickerOption | null>(null);
-  const [relation, setRelation] = useState<ParentRelation>('GUARDIAN');
+  const [relation, setRelation] = useState<RelationChoice>({ relation: 'GUARDIAN', relationLabel: null });
   const [isPrimary, setIsPrimary] = useState(false);
   const { options } = props;
 
@@ -86,9 +87,9 @@ function LinkModalShell(props: LinkModalShellProps) {
           </div>
           <RelationFields
             idPrefix="link"
-            relation={relation}
+            value={relation}
             isPrimary={isPrimary}
-            onRelationChange={setRelation}
+            onChange={setRelation}
             onPrimaryChange={setIsPrimary}
           />
         </div>
@@ -135,7 +136,8 @@ export function LinkStudentModal({ parent, onClose, onSaved }: LinkStudentModalP
   const linked = new Set(parent.students.map((link) => link.studentId));
 
   const save = useMutation({
-    mutationFn: (input: { studentId: string; relation: ParentRelation; isPrimary: boolean }) => parentsService.linkStudent(parent.id, input),
+    mutationFn: (input: { studentId: string; relation: RelationChoice; isPrimary: boolean }) =>
+      parentsService.linkStudent(parent.id, { studentId: input.studentId, ...relationPayload(input.relation), isPrimary: input.isPrimary }),
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();
@@ -195,8 +197,8 @@ export function LinkParentModal({ student, linkedParentIds, onClose, onSaved }: 
   const linked = new Set(linkedParentIds);
 
   const save = useMutation({
-    mutationFn: (input: { parentId: string; relation: ParentRelation; isPrimary: boolean }) =>
-      parentsService.linkStudent(input.parentId, { studentId: student.id, relation: input.relation, isPrimary: input.isPrimary }),
+    mutationFn: (input: { parentId: string; relation: RelationChoice; isPrimary: boolean }) =>
+      parentsService.linkStudent(input.parentId, { studentId: student.id, ...relationPayload(input.relation), isPrimary: input.isPrimary }),
     onSuccess: (result) => {
       toast.success(result.message);
       onSaved();

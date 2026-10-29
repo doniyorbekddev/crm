@@ -10,12 +10,12 @@ import type { FinanceCategory } from '@/types/finance';
  * Tushum/xarajat kategoriyalari: ro'yxat va nom bilan yangi kategoriya qo'shish.
  * Server yangilangan to'liq ro'yxatni qaytaradi — keshga shu yoziladi (qayta so'rov shart emas).
  */
-export function useFinanceCategories(kind: 'income' | 'expense') {
+export function useFinanceCategories(kind: 'income' | 'expense', { enabled = true }: { enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
   const service = kind === 'income' ? incomesService : expensesService;
   const queryKey = kind === 'income' ? queryKeys.incomes.categories : queryKeys.expenses.categories;
 
-  const query = useQuery({ queryKey, queryFn: service.categories, staleTime: 60_000 });
+  const query = useQuery({ queryKey, queryFn: service.categories, staleTime: 60_000, enabled });
 
   const apply = (categories: FinanceCategory[]) => {
     queryClient.setQueryData(queryKey, categories);

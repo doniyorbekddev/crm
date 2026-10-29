@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { normalizeOptionText } from '@/components/ui/optionList';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
@@ -39,8 +40,10 @@ function percentOf(totals: PaymentSummaryTotals): string {
 function byCategory(rows: PaymentSummaryRow[]): Array<PaymentSummaryTotals & { key: string; label: string }> {
   const groups = new Map<string, PaymentSummaryTotals & { key: string; label: string }>();
   for (const row of rows) {
-    const current = groups.get(row.category) ?? {
-      key: row.category,
+    // Markaz o'zi yozgan yo'nalishlar ("Robototexnika", "Shaxmat") "Boshqa"ga qo'shilib ketmaydi — alohida guruh
+    const groupKey = row.category === 'OTHER' ? `OTHER:${normalizeOptionText(row.categoryLabel)}` : row.category;
+    const current = groups.get(groupKey) ?? {
+      key: groupKey,
       label: row.categoryLabel,
       students: 0,
       activeStudents: 0,
@@ -57,7 +60,7 @@ function byCategory(rows: PaymentSummaryRow[]): Array<PaymentSummaryTotals & { k
       current[field] += row[field];
     }
     current.collectedPercent = current.expected > 0 ? Math.round((current.collected / current.expected) * 1000) / 10 : null;
-    groups.set(row.category, current);
+    groups.set(groupKey, current);
   }
   return [...groups.values()].sort((a, b) => b.expected - a.expected);
 }

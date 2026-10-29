@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalField, paginationQuerySchema } from './common.validator.js';
+import { customLabelField, optionalField, paginationQuerySchema } from './common.validator.js';
 
 export const COURSE_CATEGORIES = [
   'PROGRAMMING',
@@ -31,6 +31,8 @@ export const courseListQuerySchema = paginationQuerySchema.extend({
 const courseFieldsSchema = z.object({
   name: z.string('Kurs nomini kiriting').trim().min(2, 'Kamida 2 belgi').max(150, 'Nom 150 belgidan oshmasligi kerak'),
   category: z.enum(COURSE_CATEGORIES, 'Yo‘nalish noto‘g‘ri').default('OTHER'),
+  /** category = OTHER: o'z yo'nalish nomi */
+  categoryLabel: customLabelField(60),
   description: optionalField(z.string().trim().max(2000, 'Tavsif 2000 belgidan oshmasligi kerak')),
   durationMonths: z.coerce
     .number('Davomiylik raqam bo‘lishi kerak')

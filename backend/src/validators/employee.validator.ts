@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
+import { customLabelField, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
 
 export const EMPLOYEE_POSITIONS = [
   'ADMINISTRATOR',
@@ -37,6 +37,8 @@ const employeeFields = {
   lastName: nameSchema('Familiya'),
   phone: optionalField(phoneSchema),
   position: z.enum(EMPLOYEE_POSITIONS, 'Lavozimni tanlang'),
+  /** position = OTHER: "Metodist", "Haydovchi"… */
+  positionTitle: customLabelField(80),
   baseSalary: z.coerce
     .number('Maosh raqam bo‘lishi kerak')
     .int('Maosh butun son bo‘lishi kerak')

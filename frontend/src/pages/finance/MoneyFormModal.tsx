@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { useCreateSource } from '@/hooks/useInlineCreate';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
@@ -49,6 +50,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
   const service = kind === 'income' ? incomesService : expensesService;
 
   const { query: categoriesQuery, create: createCategory } = useFinanceCategories(kind);
+  const createSource = useCreateSource();
   const accountsQuery = useQuery({
     queryKey: queryKeys.finance.accounts({}),
     queryFn: () => financeService.accounts(),
@@ -256,15 +258,25 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
         )}
 
         {isMarketing && (
-          <FormField label="Reklama manbasi" htmlFor="money-source" hint="Ixtiyoriy — tanlansa, shu kanalning ROI hisobiga kiradi">
-            <Select id="money-source" disabled={sourcesQuery.isPending} {...register('sourceId')}>
-              <option value="">Tanlanmagan</option>
-              {(sourcesQuery.data?.sources ?? []).map((source) => (
-                <option key={source.id} value={source.id}>
-                  {source.name}
-                </option>
-              ))}
-            </Select>
+          <FormField label="Reklama manbasi" htmlFor="money-source" hint="Ixtiyoriy — shu kanalning ROI hisobiga kiradi. Yangi kanal: nomini yozib, Enter">
+            <Controller
+              control={control}
+              name="sourceId"
+              render={({ field }) => (
+                <Combobox
+                  id="money-source"
+                  options={(sourcesQuery.data?.sources ?? []).map((source) => ({ value: source.id, label: source.name }))}
+                  value={field.value || null}
+                  onChange={(value) => field.onChange(value ?? '')}
+                  placeholder={sourcesQuery.isPending ? 'Yuklanmoqda…' : 'Tanlanmagan'}
+                  loading={sourcesQuery.isPending}
+                  emptyText="Manba yo‘q"
+                  onCreate={createSource}
+                  createLabel={(text) => `“${text}” manbasini qo‘shish`}
+                  createHint="Yangi kanal qo‘shish uchun nomini yozing"
+                />
+              )}
+            />
           </FormField>
         )}
 

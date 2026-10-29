@@ -4843,7 +4843,24 @@
 "Tanlangan davrda kategoriyalar bo‘yicha yozuv yo‘q": "No records by category in the selected period",
 "Yangi kategoriya qo‘shish uchun nomini yozing": "Type a name to add a new category",
 "Yangisini qo‘shish uchun nomini yozing": "Type a name to add a new one",
-"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "A hidden category can't be chosen for new entries; it stays in past entries and reports"
+"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "A hidden category can't be chosen for new entries; it stays in past entries and reports",
+"Manba qo‘shildi": "Source added",
+"Manbani tanlang yoki yozing": "Choose or type a source",
+"Markazda qo‘shilgan": "Added by your center",
+"Masalan: Ko‘rgazma, Flayer, YouTube": "For example: Exhibition, Flyer, YouTube",
+"Maydon noto‘g‘ri": "Invalid field",
+"Ro‘yxatda yo‘q bo‘lsa — o‘zingiz yozing": "Not in the list? Type your own",
+"Ro‘yxatda yo‘q bo‘lsa — o‘zingiz yozing (masalan: Robototexnika)": "Not in the list? Type your own (e.g. Robotics)",
+"Taklif yo‘q — yozing": "No suggestions — type a value",
+"Tanlang yoki o‘zingiz yozing": "Choose or type your own",
+"To‘qnashuv avtomatik tekshiriladi. Yangi xona: nomini yozib, Enter": "Conflicts are checked automatically. New room: type its name and press Enter",
+"Yangi — lead bilan birga saqlanadi": "New — saved together with the lead",
+"Yangi kanal qo‘shish uchun nomini yozing": "Type a name to add a channel",
+"Yangi kategoriya uchun nomini yozing": "Type a name for a new category",
+"Yangi turkum qo‘shish uchun nomini yozing": "Type a name to add a product category",
+"Yangi xona qo‘shish uchun nomini yozing": "Type a name to add a room",
+"Yo‘nalish nomi juda uzun": "Track name is too long",
+"Yo‘q bo‘lsa — o‘zingiz yozing (KPI “Boshqa” lavozim qoidasi bilan)": "Not listed? Type your own (KPI follows the “Other” position rule)"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5469,6 +5486,10 @@
 "“{0}” kategoriyasi qo‘shildi": "Category “{0}” added",
 "“{0}” kategoriyasini qo‘shish": "Add category “{0}”",
 "{0} ta o‘quvchi — bugun qo‘ng‘iroq qiling": "{0} students — call today",
-"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} students · time to send a reminder"
+"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} students · time to send a reminder",
+"“{0}” — o‘zim qo‘shaman": "“{0}” — add my own",
+"“{0}” manbasini qo‘shish": "Add source “{0}”",
+"“{0}” turkumini qo‘shish": "Add product category “{0}”",
+"“{0}” xonasini qo‘shish": "Add room “{0}”"
 }
 }

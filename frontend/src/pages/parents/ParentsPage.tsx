@@ -24,7 +24,7 @@ import { parentsService } from '@/services/parents.service';
 import { studentsService } from '@/services/students.service';
 import type { ParentItem, ParentListParams } from '@/types/parent';
 import { formatPhone } from '@/utils/format';
-import { PARENT_RELATION_LABELS } from '@/utils/parentLabels';
+import { relationText } from '@/utils/parentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LinkStudentModal } from './LinkModals';
 import { ParentFormModal } from './ParentFormModal';
@@ -187,7 +187,7 @@ export default function ParentsPage() {
                   <Link to={`/students/${link.studentId}`} className="font-medium text-fg hover:text-primary">
                     {link.firstName} {link.lastName}
                   </Link>
-                  <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{PARENT_RELATION_LABELS[link.relation]}</Badge>
+                  <Badge tone={link.status === 'ACTIVE' ? 'green' : 'gray'}>{relationText(link)}</Badge>
                   {link.isPrimary && <Badge tone="blue">Asosiy</Badge>}
                   {link.group && <span className="text-caption text-fg-muted">{link.group.name}</span>}
                 </li>

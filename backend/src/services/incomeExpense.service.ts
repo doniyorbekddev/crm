@@ -21,6 +21,7 @@ import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
 import { businessMonthRange } from '../utils/dates.js';
+import { sameDictionaryName, uniqueDictionaryKey } from '../utils/dictionaryName.js';
 
 // ---------------------------------------------------------------------
 // DTO'lar
@@ -619,33 +620,6 @@ export const expenseService = {
 // Kategoriyalar va budjet
 // ---------------------------------------------------------------------
 
-/** Nomlarni solishtirish: katta-kichik harf, apostrof turi (‘ ’ ʻ ʼ ') va bo'shliqlar farq qilmaydi */
-function categoryNameKey(name: string): string {
-  return name.toLocaleLowerCase('uz').replace(/[‘’ʻʼ`']/g, "'").replace(/\s+/g, ' ').trim();
-}
-
-function sameCategoryName(a: string, b: string): boolean {
-  return categoryNameKey(a) === categoryNameKey(b);
-}
-
-/** "Ofis ta’miri" → "OFIS_TAMIRI"; band bo'lsa "_2", "_3"… (kalit faqat ichki identifikator) */
-export function uniqueCategoryKey(name: string, taken: ReadonlySet<string>): string {
-  const base =
-    name
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[‘’ʻʼ`']/g, '')
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 40) || 'CATEGORY';
-  if (!taken.has(base)) return base;
-  for (let suffix = 2; ; suffix += 1) {
-    const candidate = `${base}_${suffix}`;
-    if (!taken.has(candidate)) return candidate;
-  }
-}
-
 async function categoryRows(kind: 'income' | 'expense') {
   const select = { id: true, key: true, name: true, isActive: true, sortOrder: true } as const;
   return kind === 'income' ? prisma.incomeCategory.findMany({ select }) : prisma.expenseCategory.findMany({ select });
@@ -717,7 +691,7 @@ export const financeCategoryService = {
     }
 
     // Bir xil nom ikki marta bo'lmasin ("Ijara" va "ijara", "Ta'mir" va "Ta’mir" — bitta kategoriya)
-    const twin = existing.find((row) => sameCategoryName(row.name, input.name));
+    const twin = existing.find((row) => sameDictionaryName(row.name, input.name));
     if (twin?.isActive) {
       throw AppError.conflict('Bunday nomli kategoriya bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
     }
@@ -736,7 +710,7 @@ export const financeCategoryService = {
     }
 
     const data = {
-      key: input.key ?? uniqueCategoryKey(input.name, new Set(existing.map((row) => row.key))),
+      key: input.key ?? uniqueDictionaryKey(input.name, new Set(existing.map((row) => row.key)), { fallback: 'CATEGORY' }),
       name: input.name,
       sortOrder: input.sortOrder ?? Math.min(999, Math.max(0, ...existing.map((row) => row.sortOrder)) + 1),
     };
@@ -775,7 +749,7 @@ export const financeCategoryService = {
     }
     if (input.name !== undefined) {
       const newName = input.name;
-      const twin = (await categoryRows(kind)).find((row) => row.id !== id && sameCategoryName(row.name, newName));
+      const twin = (await categoryRows(kind)).find((row) => row.id !== id && sameDictionaryName(row.name, newName));
       if (twin) {
         throw AppError.conflict('Bunday nomli kategoriya bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
       }

@@ -8,17 +8,18 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CustomizableSelect } from '@/components/ui/CustomizableSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Select } from '@/components/ui/Select';
 import { TableSkeleton } from '@/components/ui/Table';
+import { useCustomLabels } from '@/hooks/useCustomLabels';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { parentsService } from '@/services/parents.service';
 import type { ParentRelation, StudentParent } from '@/types/parent';
 import { formatPhone } from '@/utils/format';
-import { PARENT_RELATION_LABELS, PARENT_RELATION_ORDER } from '@/utils/parentLabels';
+import { PARENT_RELATION_LABELS, PARENT_RELATION_ORDER, relationText } from '@/utils/parentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { LinkParentModal } from '../../parents/LinkModals';
 import { ParentFormModal } from '../../parents/ParentFormModal';
@@ -28,6 +29,7 @@ type Dialog = { type: 'create' } | { type: 'link' } | { type: 'edit'; row: Stude
 export function ParentsTab({ student }: { student: { id: string; name: string } }) {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.PARENT_MANAGE);
+  const relationSuggestions = useCustomLabels('parent-relation', canManage);
   const [dialog, setDialog] = useState<Dialog>(null);
 
   const query = useQuery({ queryKey: queryKeys.students.parents(student.id), queryFn: () => parentsService.forStudent(student.id) });
@@ -43,10 +45,15 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
   };
 
   const updateLink = useMutation({
-    mutationFn: (input: { linkId: string; relation?: ParentRelation; isPrimary?: boolean }) =>
-      parentsService.updateLink(input.linkId, { relation: input.relation, isPrimary: input.isPrimary }),
+    mutationFn: (input: { linkId: string; relation?: ParentRelation; relationLabel?: string | null; isPrimary?: boolean }) =>
+      parentsService.updateLink(input.linkId, {
+        relation: input.relation,
+        ...(input.relation === 'OTHER' && input.relationLabel ? { relationLabel: input.relationLabel } : {}),
+        isPrimary: input.isPrimary,
+      }),
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.students.parents(student.id), result.data);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.lookups.customLabels('parent-relation') });
       toast.success(result.message);
       refresh();
     },
@@ -109,21 +116,24 @@ export function ParentsTab({ student }: { student: { id: string; name: string } 
               cell: (row) => (
                 <>
                   {canManage ? (
-                    <Select
-                      aria-label={`${row.firstName} ${row.lastName} qarindoshligi`}
-                      value={row.relation}
-                      disabled={updateLink.isPending}
-                      onChange={(event) => updateLink.mutate({ linkId: row.linkId, relation: event.target.value as ParentRelation })}
-                      wrapperClassName="w-32"
-                    >
-                      {PARENT_RELATION_ORDER.map((value) => (
-                        <option key={value} value={value}>
-                          {PARENT_RELATION_LABELS[value]}
-                        </option>
-                      ))}
-                    </Select>
+                    <div className="w-40">
+                      <CustomizableSelect
+                        aria-label={`${row.firstName} ${row.lastName} qarindoshligi`}
+                        order={PARENT_RELATION_ORDER}
+                        labels={PARENT_RELATION_LABELS}
+                        otherCode="OTHER"
+                        code={row.relation}
+                        customLabel={row.relationLabel}
+                        suggestions={relationSuggestions}
+                        disabled={updateLink.isPending}
+                        onChange={(relation, relationLabel) => {
+                          if (relation === row.relation && (relationLabel ?? null) === (row.relationLabel ?? null)) return;
+                          updateLink.mutate({ linkId: row.linkId, relation, relationLabel });
+                        }}
+                      />
+                    </div>
                   ) : (
-                    PARENT_RELATION_LABELS[row.relation]
+                    relationText(row)
                   )}
                 </>
               ),

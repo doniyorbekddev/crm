@@ -71,7 +71,7 @@ export const parentsService = {
     return { data: response.data.data, message: response.data.message };
   },
 
-  async updateLink(linkId: string, payload: { relation?: ParentRelation; isPrimary?: boolean }): Promise<MessageResult<StudentParent[]>> {
+  async updateLink(linkId: string, payload: { relation?: ParentRelation; relationLabel?: string | null; isPrimary?: boolean }): Promise<MessageResult<StudentParent[]>> {
     const response = await api.patch<ApiSuccessResponse<StudentParent[]>>(`/parents/links/${linkId}`, payload);
     return { data: response.data.data, message: response.data.message };
   },

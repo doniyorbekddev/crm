@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { Combobox } from '@/components/ui/Combobox';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -133,10 +134,11 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
     register,
     handleSubmit,
     setError,
+    setValue,
     control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(leadFormSchema), defaultValues });
-  const sourceId = useWatch({ control, name: 'sourceId' });
+  const sourceName = useWatch({ control, name: 'sourceName' });
 
   const save = useMutation({
     mutationFn: async ({ values, allowDuplicate }: { values: LeadFormValues; allowDuplicate: boolean }) => {
@@ -276,37 +278,42 @@ export function LeadFormModal({ mode, lead, lookups, onClose, onSaved }: LeadFor
           <FormField
             label="Manba"
             htmlFor="lead-sourceId"
-            error={errors.sourceId?.message}
+            error={errors.sourceId?.message ?? errors.sourceName?.message}
             required
-            {...(lookups.sources.length === 0 ? { hint: 'Manbalar ro‘yxati bo‘sh — tizim administratoriga murojaat qiling (serverda: npm run db:sync-permissions)' } : {})}
+            hint={errors.sourceId || errors.sourceName ? undefined : 'Ro‘yxatda yo‘q bo‘lsa — nomini yozib, Enter bosing'}
           >
-            <Select id="lead-sourceId" invalid={Boolean(errors.sourceId)} aria-describedby={describedBy('sourceId')} {...register('sourceId')}>
-              <option value="">Manbani tanlang</option>
-              {lookups.sources.map((source) => (
-                <option key={source.id} value={source.id}>
-                  {source.name}
-                </option>
-              ))}
-              <option value={CUSTOM_SOURCE}>Boshqa — o‘zim yozaman…</option>
-            </Select>
+            <Controller
+              control={control}
+              name="sourceId"
+              render={({ field }) => (
+                <Combobox
+                  id="lead-sourceId"
+                  options={[
+                    ...lookups.sources.map((source) => ({ value: source.id, label: source.name })),
+                    // Tahrirda lead manbasi yashirilgan bo'lsa ham ko'rinib tursin
+                    ...(lead && !lookups.sources.some((source) => source.id === lead.source.id) ? [{ value: lead.source.id, label: lead.source.name }] : []),
+                    // Yangi manba darhol yaratilmaydi: lead saqlanganda birga qo'shiladi (bekor qilinsa ortiqcha yozuv qolmaydi)
+                    ...(field.value === CUSTOM_SOURCE && sourceName ? [{ value: CUSTOM_SOURCE, label: sourceName, description: 'Yangi — lead bilan birga saqlanadi' }] : []),
+                  ]}
+                  value={field.value || null}
+                  onChange={(value) => {
+                    field.onChange(value ?? '');
+                    if (value !== CUSTOM_SOURCE) setValue('sourceName', '');
+                  }}
+                  placeholder="Manbani tanlang yoki yozing"
+                  invalid={Boolean(errors.sourceId ?? errors.sourceName)}
+                  aria-describedby={describedBy('sourceId')}
+                  onCreate={(text) => {
+                    setValue('sourceName', text, { shouldValidate: true });
+                    return Promise.resolve(CUSTOM_SOURCE);
+                  }}
+                  createLabel={(text) => `“${text}” — yangi manba`}
+                  createHint="Masalan: Ko‘rgazma, Flayer, YouTube"
+                  commitOnBlur
+                />
+              )}
+            />
           </FormField>
-          {sourceId === CUSTOM_SOURCE && (
-            <FormField
-              label="Manba nomi"
-              htmlFor="lead-sourceName"
-              error={errors.sourceName?.message}
-              required
-              hint="Masalan: Ko‘rgazma, Flayer, YouTube. Mavjud bo‘lsa o‘sha tanlanadi, aks holda ro‘yxatga qo‘shiladi"
-            >
-              <Input
-                id="lead-sourceName"
-                autoFocus
-                invalid={Boolean(errors.sourceName)}
-                aria-describedby={describedBy('sourceName')}
-                {...register('sourceName')}
-              />
-            </FormField>
-          )}
           <FormField label="Qiziqqan kurs" htmlFor="lead-courseId" error={errors.courseId?.message}>
             <Select id="lead-courseId" invalid={Boolean(errors.courseId)} {...register('courseId')}>
               <option value="">Hali tanlanmagan</option>

@@ -383,5 +383,8 @@ export const queryKeys = {
     marketingSources: ['lookups', 'marketing-sources'] as const,
     paymentForm: ['lookups', 'payment-form'] as const,
     salaryForm: ['lookups', 'salary-form'] as const,
+    /** "Boshqa"/erkin maydonlar uchun markaz yozgan nomlar */
+    customLabelsAll: ['lookups', 'custom-labels'] as const,
+    customLabels: (field: string) => ['lookups', 'custom-labels', field] as const,
   },
 };

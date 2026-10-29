@@ -22,6 +22,8 @@ const roomFieldsSchema = z.object({
 });
 
 export const createRoomSchema = roomFieldsSchema.extend({
+  /** Berilmasa nomdan yasaladi (guruh formasidan faqat nom bilan qo'shish) */
+  key: roomFieldsSchema.shape.key.optional(),
   capacity: roomFieldsSchema.shape.capacity.default(15),
   equipment: roomFieldsSchema.shape.equipment.default([]),
   isActive: roomFieldsSchema.shape.isActive.default(true),

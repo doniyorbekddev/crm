@@ -34,6 +34,11 @@ interface ComboboxProps {
   createLabel?: (query: string) => string;
   /** Hali hech narsa yozilmaganda yaratish bandida ko'rinadigan maslahat */
   createHint?: string;
+  /**
+   * Erkin matnli maydonlar uchun (serverda yozuv yaratmaydigan `onCreate`): Tab yoki tashqariga bosilganda
+   * yozilgan yangi qiymat yo'qolmaydi — o'zi qabul qilinadi.
+   */
+  commitOnBlur?: boolean;
   className?: string;
 }
 
@@ -57,6 +62,7 @@ export function Combobox({
   onCreate,
   createLabel = (text) => `“${text}” qo‘shish`,
   createHint = 'Yangisini qo‘shish uchun nomini yozing',
+  commitOnBlur = false,
   className,
   ...aria
 }: ComboboxProps) {
@@ -111,11 +117,21 @@ export function Combobox({
     }
   };
 
+  /** Maydondan chiqilganda: erkin matn rejimida yozilgani qabul qilinadi, aks holda ro'yxat shunchaki yopiladi */
+  const leave = () => {
+    if (commitOnBlur && canCreate) void create();
+    else close();
+  };
+  const leaveRef = useRef(leave);
+  useEffect(() => {
+    leaveRef.current = leave;
+  });
+
   useEffect(() => {
     if (!open) return undefined;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (!wrapperRef.current?.contains(target) && !listRef.current?.contains(target)) close();
+      if (!wrapperRef.current?.contains(target) && !listRef.current?.contains(target)) leaveRef.current();
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
@@ -149,8 +165,8 @@ export function Combobox({
       // Faqat ro'yxat yopiladi — tashqi Modal/Drawer ochiq qoladi
       event.stopPropagation();
       close();
-    } else if (event.key === 'Tab') {
-      close();
+    } else if (event.key === 'Tab' && open) {
+      leave();
     }
   };
 

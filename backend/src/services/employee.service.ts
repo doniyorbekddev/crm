@@ -7,6 +7,7 @@ import { AppError } from '../utils/AppError.js';
 import { currentBusinessMonth } from '../utils/dates.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import { customLabelFor } from '../validators/common.validator.js';
 import type { CreateEmployeeInput, EmployeeListQuery, UpdateEmployeeInput } from '../validators/employee.validator.js';
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
@@ -24,6 +25,8 @@ export interface EmployeeDto {
   email: string | null;
   department: string | null;
   position: EmployeePosition;
+  /** position = OTHER bo'lganda markaz yozgan lavozim nomi */
+  positionTitle: string | null;
   /** salary.view ruxsati bo‘lmasa null */
   baseSalary: number | null;
   /** Oylik KPI bonus fondi — baseSalary bilan bir xil ruxsat */
@@ -80,6 +83,7 @@ const employeeSelect = {
   email: true,
   department: true,
   position: true,
+  positionTitle: true,
   baseSalary: true,
   kpiBonusPool: true,
   status: true,
@@ -125,6 +129,7 @@ async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = tr
       email: record.email,
       department: record.department,
       position: record.position,
+      positionTitle: record.positionTitle,
       baseSalary: salaryVisible ? record.baseSalary.toNumber() : null,
       kpiBonusPool: salaryVisible ? record.kpiBonusPool.toNumber() : null,
       status: record.status,
@@ -234,6 +239,7 @@ export const employeeService = {
         OR: [
           { firstName: { contains: term, mode: 'insensitive' } },
           { lastName: { contains: term, mode: 'insensitive' } },
+          { positionTitle: { contains: term, mode: 'insensitive' } },
           ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : []),
         ],
       });
@@ -276,6 +282,7 @@ export const employeeService = {
           lastName: input.lastName,
           phone: input.phone ?? null,
           position: input.position,
+          positionTitle: customLabelFor(input.position, input.positionTitle),
           baseSalary: input.baseSalary,
           status: input.status,
           hireDate: input.hireDate,
@@ -345,6 +352,10 @@ export const employeeService = {
           ...(input.lastName === undefined ? {} : { lastName: input.lastName }),
           ...(input.phone === undefined ? {} : { phone: input.phone }),
           ...(input.position === undefined ? {} : { position: input.position }),
+          // Lavozim yoki uning nomi o'zgarsa — nom faqat "Boshqa" lavozimda saqlanadi
+          ...(input.position === undefined && input.positionTitle === undefined
+            ? {}
+            : { positionTitle: customLabelFor(input.position ?? existing.position, input.positionTitle) }),
           ...(input.baseSalary === undefined ? {} : { baseSalary: input.baseSalary }),
           ...(input.hireDate === undefined ? {} : { hireDate: input.hireDate }),
           ...(input.email === undefined ? {} : { email: input.email }),

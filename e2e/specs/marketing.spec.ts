@@ -11,10 +11,13 @@ test('buxgalter reklama xarajatini kanalga bog‘laydi, analitikada ROI ustunlar
   await page.getByRole('listbox').getByRole('option', { name: 'Reklama', exact: true }).click();
 
   // Manba maydoni faqat reklama kategoriyasida chiqadi
-  const source = dialog.getByLabel('Reklama manbasi');
+  const source = dialog.getByRole('combobox', { name: 'Reklama manbasi' });
   await expect(source).toBeVisible();
-  const sourceName = (await source.locator('option').nth(1).innerText()).trim();
-  await source.selectOption({ index: 1 });
+  await source.click();
+  const firstSource = page.getByRole('listbox').getByRole('option').first();
+  const sourceName = (await firstSource.innerText()).trim();
+  await firstSource.click();
+  await expect(source).toHaveValue(sourceName);
   await dialog.getByLabel('Summa (so‘m)').fill('150000');
   await dialog.getByLabel('Izoh').fill(description);
   await dialog.getByRole('button', { name: 'Saqlash', exact: true }).click();

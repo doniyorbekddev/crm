@@ -14,7 +14,8 @@ import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { nameField } from '@/lib/validation';
 import { parentsService } from '@/services/parents.service';
-import type { ParentItem, ParentPayload, ParentRelation } from '@/types/parent';
+import type { ParentItem, ParentPayload, RelationChoice } from '@/types/parent';
+import { relationPayload } from '@/utils/parentLabels';
 import { RelationFields } from './RelationFields';
 
 const schema = z.object({
@@ -53,7 +54,7 @@ interface ParentFormModalProps {
 
 export function ParentFormModal({ parent, student, onClose, onSaved }: ParentFormModalProps) {
   const [formError, setFormError] = useState<string | null>(null);
-  const [relation, setRelation] = useState<ParentRelation>('GUARDIAN');
+  const [relation, setRelation] = useState<RelationChoice>({ relation: 'GUARDIAN', relationLabel: null });
   const [isPrimary, setIsPrimary] = useState(false);
 
   const {
@@ -79,7 +80,7 @@ export function ParentFormModal({ parent, student, onClose, onSaved }: ParentFor
         ? parentsService.update(parent.id, toPayload(values))
         : parentsService.create({
             ...toPayload(values),
-            ...(student ? { students: [{ studentId: student.id, relation, isPrimary }] } : {}),
+            ...(student ? { students: [{ studentId: student.id, ...relationPayload(relation), isPrimary }] } : {}),
           }),
     onSuccess: (result) => {
       toast.success(result.message);
@@ -143,9 +144,9 @@ export function ParentFormModal({ parent, student, onClose, onSaved }: ParentFor
         {student && !parent && (
           <RelationFields
             idPrefix="parent-form"
-            relation={relation}
+            value={relation}
             isPrimary={isPrimary}
-            onRelationChange={setRelation}
+            onChange={setRelation}
             onPrimaryChange={setIsPrimary}
           />
         )}

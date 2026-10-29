@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import type { Prisma, WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
+import { sameDictionaryName, uniqueDictionaryKey } from '../utils/dictionaryName.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { ConflictCheckInput, CreateRoomInput, RoomListQuery, UpdateRoomInput } from '../validators/room.validator.js';
 import { auditService } from './audit.service.js';
@@ -71,16 +72,22 @@ export const roomService = {
 
   async create(actor: AuthUser, input: CreateRoomInput, client: ClientInfo): Promise<RoomDto> {
     const branchId = resolveBranchId(await getBranchAccess(actor));
-    const existing = await prisma.room.findFirst({ where: { branchId, key: input.key }, select: { id: true } });
-    if (existing) {
+    const siblings = await prisma.room.findMany({ where: { branchId }, select: { key: true, name: true, isActive: true } });
+    if (input.key && siblings.some((room) => room.key === input.key)) {
       throw AppError.conflict('Bu kalit bilan xona allaqachon mavjud');
     }
+    // Bir filialda bir xil nomli ikki faol xona chalkashtiradi ("A1" va "a1")
+    const twin = siblings.find((room) => room.isActive && sameDictionaryName(room.name, input.name));
+    if (twin) {
+      throw AppError.conflict('Bunday nomli xona bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
+    }
+    const key = input.key ?? uniqueDictionaryKey(input.name, new Set(siblings.map((room) => room.key)), { fallback: 'ROOM', maxLength: 30 });
 
     const room = await prisma.$transaction(async (tx) => {
       const created = await tx.room.create({
         data: {
           branchId,
-          key: input.key,
+          key,
           name: input.name,
           capacity: input.capacity,
           equipment: input.equipment,

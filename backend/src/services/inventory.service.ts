@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import type { Prisma, StockMovementType } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
+import { sameDictionaryName, uniqueDictionaryKey } from '../utils/dictionaryName.js';
 import { toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import { auditService } from './audit.service.js';
@@ -188,6 +189,25 @@ export interface TransferResult {
   in: StockMovementDto;
 }
 
+/**
+ * Kalitsiz (faqat nom bilan) turkum: bir xil nomli faol turkum — 409, yashiringani qayta yoqiladi,
+ * aks holda kalit nomdan yasaladi va ro'yxat oxiriga qo'yiladi.
+ */
+async function newCategoryByName(input: { name: string; isActive: boolean }) {
+  const existing = await prisma.productCategory.findMany({ select: { key: true, name: true, isActive: true, sortOrder: true } });
+  const twin = existing.find((row) => sameDictionaryName(row.name, input.name));
+  if (twin?.isActive) {
+    throw AppError.conflict('Bunday nomli turkum bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
+  }
+  if (twin) return { key: twin.key, name: twin.name, isActive: true, sortOrder: twin.sortOrder };
+  return {
+    key: uniqueDictionaryKey(input.name, new Set(existing.map((row) => row.key)), { fallback: 'category', lowercase: true }),
+    name: input.name,
+    isActive: input.isActive,
+    sortOrder: Math.min(1000, Math.max(0, ...existing.map((row) => row.sortOrder)) + 1),
+  };
+}
+
 export const inventoryService = {
   async categories(includeInactive = false) {
     const rows = await prisma.productCategory.findMany({
@@ -205,12 +225,13 @@ export const inventoryService = {
     }));
   },
 
-  async saveCategory(actor: AuthUser, input: { key: string; name: string; isActive: boolean; sortOrder: number }, client: ClientInfo) {
+  async saveCategory(actor: AuthUser, input: { key?: string | undefined; name: string; isActive: boolean; sortOrder: number }, client: ClientInfo) {
+    const target = input.key ? { ...input, key: input.key } : await newCategoryByName(input);
     const saved = await prisma.$transaction(async (tx) => {
       const record = await tx.productCategory.upsert({
-        where: { key: input.key },
-        update: { name: input.name, isActive: input.isActive, sortOrder: input.sortOrder },
-        create: input,
+        where: { key: target.key },
+        update: { name: target.name, isActive: target.isActive, sortOrder: target.sortOrder },
+        create: target,
         select: { id: true, key: true, name: true, isActive: true, sortOrder: true },
       });
       await auditService.recordInTransaction(tx, {
@@ -218,7 +239,7 @@ export const inventoryService = {
         action: 'inventory.category_saved',
         entityType: 'settings',
         entityId: record.id,
-        metadata: { key: input.key, name: input.name, isActive: input.isActive },
+        metadata: { key: target.key, name: target.name, isActive: target.isActive },
         ...client,
       });
       return record;

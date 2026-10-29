@@ -7,6 +7,7 @@ import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import { customLabelFor } from '../validators/common.validator.js';
 import type {
   CreateParentInput,
   LinkStudentInput,
@@ -35,6 +36,8 @@ export interface ParentStudentLinkDto {
   status: StudentStatus;
   group: { id: string; name: string } | null;
   relation: ParentRelation;
+  /** relation = OTHER bo'lganda markaz yozgan nom */
+  relationLabel: string | null;
   isPrimary: boolean;
 }
 
@@ -62,6 +65,8 @@ export interface StudentParentDto {
   email: string | null;
   notes: string | null;
   relation: ParentRelation;
+  /** relation = OTHER bo'lganda markaz yozgan nom */
+  relationLabel: string | null;
   isPrimary: boolean;
 }
 
@@ -103,6 +108,7 @@ function parentSelect(access: ParentAccess) {
       select: {
         id: true,
         relation: true,
+        relationLabel: true,
         isPrimary: true,
         student: {
           select: {
@@ -141,6 +147,7 @@ function toDto(parent: ParentRecord): ParentDto {
       status: link.student.status,
       group: link.student.group,
       relation: link.relation,
+      relationLabel: link.relationLabel,
       isPrimary: link.isPrimary,
     })),
   };
@@ -348,6 +355,7 @@ export const parentService = {
       select: {
         id: true,
         relation: true,
+        relationLabel: true,
         isPrimary: true,
         parent: { select: { id: true, firstName: true, lastName: true, phone: true, telegram: true, email: true, notes: true } },
       },
@@ -362,6 +370,7 @@ export const parentService = {
       email: link.parent.email,
       notes: link.parent.notes,
       relation: link.relation,
+      relationLabel: link.relationLabel,
       isPrimary: link.isPrimary,
     }));
   },
@@ -384,7 +393,13 @@ export const parentService = {
       });
       for (const link of input.students) {
         const created = await tx.studentParent.create({
-          data: { parentId: parent.id, studentId: link.studentId, relation: link.relation, isPrimary: link.isPrimary },
+          data: {
+            parentId: parent.id,
+            studentId: link.studentId,
+            relation: link.relation,
+            relationLabel: customLabelFor(link.relation, link.relationLabel),
+            isPrimary: link.isPrimary,
+          },
           select: { id: true },
         });
         await syncPrimary(tx, link.studentId, link.isPrimary ? created.id : undefined);
@@ -471,7 +486,13 @@ export const parentService = {
 
     await prisma.$transaction(async (tx) => {
       const link = await tx.studentParent.create({
-        data: { parentId, studentId: input.studentId, relation: input.relation, isPrimary: input.isPrimary },
+        data: {
+          parentId,
+          studentId: input.studentId,
+          relation: input.relation,
+          relationLabel: customLabelFor(input.relation, input.relationLabel),
+          isPrimary: input.isPrimary,
+        },
         select: { id: true },
       });
       await syncPrimary(tx, input.studentId, input.isPrimary ? link.id : undefined);
@@ -498,7 +519,8 @@ export const parentService = {
       await tx.studentParent.update({
         where: { id: linkId },
         data: {
-          ...(input.relation === undefined ? {} : { relation: input.relation }),
+          // Qarindoshlik almashsa o'z nomi ham birga yangilanadi (OTHER bo'lmasa tozalanadi)
+          ...(input.relation === undefined ? {} : { relation: input.relation, relationLabel: customLabelFor(input.relation, input.relationLabel) }),
           ...(input.isPrimary === false ? { isPrimary: false } : {}),
         },
       });

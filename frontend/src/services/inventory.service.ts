@@ -40,6 +40,11 @@ export const inventoryService = {
     return response.data.data;
   },
 
+  /** Mahsulot formasidan faqat nom bilan turkum qo'shish (kalit serverda yasaladi; bir xil nom — 409) */
+  async createCategory(name: string): Promise<ProductCategory> {
+    return (await api.put<ApiSuccessResponse<ProductCategory>>('/products/categories', { name })).data.data;
+  },
+
   async saveCategory(payload: { key: string; name: string; isActive: boolean; sortOrder: number }): Promise<MessageResult<ProductCategory>> {
     return withMessage(await api.put<ApiSuccessResponse<ProductCategory>>('/products/categories', payload));
   },

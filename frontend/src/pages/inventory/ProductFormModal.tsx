@@ -4,12 +4,17 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Combobox } from '@/components/ui/Combobox';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Select } from '@/components/ui/Select';
+import { SuggestInput } from '@/components/ui/SuggestInput';
+import { useCustomLabels } from '@/hooks/useCustomLabels';
+import { useInlineCreate } from '@/hooks/useInlineCreate';
 import { getErrorMessage } from '@/lib/api';
 import { inventoryService } from '@/services/inventory.service';
 import type { Product, ProductCategory } from '@/types/inventory';
+
+const DEFAULT_UNITS = ['dona', 'quti', 'to‘plam', 'kg', 'litr', 'metr'];
 
 /** Mahsulot kartochkasi. Qoldiq bu yerda o'zgartirilmaydi — u faqat harakat orqali o'zgaradi. */
 export function ProductFormModal({
@@ -32,6 +37,10 @@ export function ProductFormModal({
   const [minQuantity, setMinQuantity] = useState(String(product?.minQuantity ?? 0));
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [formError, setFormError] = useState<string | null>(null);
+  const createCategory = useInlineCreate({ create: inventoryService.createCategory, invalidate: [['inventory', 'categories']], noun: 'turkumi' });
+  const usedUnits = useCustomLabels('product-unit');
+  // Odatiy birliklar har doim bor; markazda ishlatilganlari birinchi
+  const unitSuggestions = [...usedUnits, ...DEFAULT_UNITS.filter((value) => !usedUnits.includes(value))];
 
   const save = useMutation({
     mutationFn: () =>
@@ -90,17 +99,22 @@ export function ProductFormModal({
         </label>
         <label className="block">
           <span className="mb-1 block text-body text-fg-muted">Turkum</span>
-          <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="Turkum">
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
+          <Combobox
+            aria-label="Turkum"
+            options={categories
+              .filter((category) => category.isActive || category.id === categoryId)
+              .map((category) => ({ value: category.id, label: category.name }))}
+            value={categoryId || null}
+            onChange={(value) => setCategoryId(value ?? '')}
+            placeholder="Tanlang yoki yozing"
+            onCreate={createCategory}
+            createLabel={(text) => `“${text}” turkumini qo‘shish`}
+            createHint="Yangi turkum qo‘shish uchun nomini yozing"
+          />
         </label>
         <label className="block">
           <span className="mb-1 block text-body text-fg-muted">O‘lchov birligi</span>
-          <Input value={unit} placeholder="dona" onChange={(event) => setUnit(event.target.value)} />
+          <SuggestInput aria-label="O‘lchov birligi" value={unit} onChange={setUnit} suggestions={unitSuggestions} placeholder="dona" />
         </label>
         <label className="block">
           <span className="mb-1 block text-body text-fg-muted">Sotish narxi</span>

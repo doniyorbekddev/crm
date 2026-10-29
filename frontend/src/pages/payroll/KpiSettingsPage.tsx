@@ -26,6 +26,7 @@ import { employeesService } from '@/services/employees.service';
 import { salaryService } from '@/services/salary.service';
 import type { EmployeePosition } from '@/types/employee';
 import type { KpiDefinition, KpiDefinitionPayload, KpiMetric } from '@/types/payroll';
+import { withCustomLabel } from '@/utils/customLabel';
 import { EMPLOYEE_POSITION_LABELS } from '@/utils/employeeLabels';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
@@ -198,7 +199,7 @@ export default function KpiSettingsPage() {
                           {employee.firstName} {employee.lastName}
                         </Link>
                         <span className="block text-caption text-fg-muted">
-                          {EMPLOYEE_POSITION_LABELS[employee.position]} · belgilangan maosh {formatMoney(employee.baseSalary ?? 0)}
+                          {withCustomLabel(EMPLOYEE_POSITION_LABELS, employee.position, employee.positionTitle)} · belgilangan maosh {formatMoney(employee.baseSalary ?? 0)}
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-3">

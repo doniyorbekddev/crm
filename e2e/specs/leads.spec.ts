@@ -10,13 +10,19 @@ test('manager yangi lead qo‘shadi, profili ochiladi, statusini o‘zgartiradi 
   await dialog.getByLabel('Ism').fill('Sardor');
   await dialog.getByLabel('Familiya').fill(lastName);
   await dialog.getByLabel('Lidning telefon raqami').fill(uniquePhone());
-  await dialog.getByLabel('Manba').selectOption({ index: 1 });
+  // Ro'yxatda yo'q manba — shu yerning o'zida yoziladi va lead bilan birga saqlanadi
+  const sourceName = `Ko‘rgazma ${uniqueLetters()}`;
+  const source = dialog.getByLabel('Manba');
+  await source.fill(sourceName);
+  await page.getByRole('listbox').getByRole('option', { name: /yangi manba/ }).click();
+  await expect(source).toHaveValue(sourceName);
   await dialog.getByRole('button', { name: 'Saqlash', exact: true }).click();
   await expect(dialog).toBeHidden();
 
   // Saqlangach yangi leadning profili ochiladi
   await expect(page).toHaveURL(/\/leads\/[^/]+$/);
   await expect(page.getByRole('heading', { level: 1, name: `Sardor ${lastName}` })).toBeVisible();
+  await expect(page.getByText(sourceName, { exact: true })).toBeVisible();
 
   // Sotuv manageri leadni bir qadamda yangilaydi (spec 58: tez yangilash)
   const status = page.getByRole('combobox', { name: 'Statusni o‘zgartirish' });

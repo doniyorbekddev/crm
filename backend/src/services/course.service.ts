@@ -4,6 +4,7 @@ import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import { customLabelFor } from '../validators/common.validator.js';
 import type { CourseListQuery, CreateCourseInput, UpdateCourseInput } from '../validators/course.validator.js';
 import { auditService } from './audit.service.js';
 
@@ -11,6 +12,7 @@ const courseSelect = {
   id: true,
   name: true,
   category: true,
+  categoryLabel: true,
   description: true,
   durationMonths: true,
   price: true,
@@ -34,6 +36,8 @@ export interface CourseDto {
   id: string;
   name: string;
   category: CourseCategory;
+  /** category = OTHER bo'lganda markaz yozgan nom */
+  categoryLabel: string | null;
   description: string | null;
   durationMonths: number;
   price: number;
@@ -50,6 +54,7 @@ function toCourseDto(course: CourseRecord): CourseDto {
     id: course.id,
     name: course.name,
     category: course.category,
+    categoryLabel: course.categoryLabel,
     description: course.description,
     durationMonths: course.durationMonths,
     price: course.price.toNumber(),
@@ -137,6 +142,7 @@ export const courseService = {
         data: {
           name: input.name,
           category: input.category,
+          categoryLabel: customLabelFor(input.category, input.categoryLabel),
           description: input.description ?? null,
           durationMonths: input.durationMonths,
           price: input.price,
@@ -173,6 +179,7 @@ export const courseService = {
         data: {
           name: input.name,
           category: input.category,
+          categoryLabel: customLabelFor(input.category, input.categoryLabel),
           description: input.description ?? null,
           durationMonths: input.durationMonths,
           price: input.price,

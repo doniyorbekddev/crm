@@ -2,16 +2,18 @@ import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { CustomizableSelect } from '@/components/ui/CustomizableSelect';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import { useCustomLabels } from '@/hooks/useCustomLabels';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
@@ -37,6 +39,7 @@ const courseFormSchema = z
   .object({
     name: z.string().trim().min(2, 'Kamida 2 belgi').max(150, 'Nom juda uzun'),
     category: z.enum(['PROGRAMMING', 'LANGUAGE', 'DESIGN', 'COMPUTER_LITERACY', 'SCHOOL_PREPARATION', 'OTHER']),
+    categoryLabel: z.string().trim().max(60, 'Yo‘nalish nomi juda uzun'),
     status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']),
     durationMonths: numberField('Davomiylikni kiriting'),
     price: numberField('Narxni kiriting'),
@@ -55,6 +58,7 @@ function toPayload(values: CourseFormValues): CoursePayload {
   return {
     name: values.name,
     category: values.category,
+    ...(values.category === 'OTHER' && values.categoryLabel ? { categoryLabel: values.categoryLabel } : {}),
     status: values.status,
     durationMonths: Number(values.durationMonths),
     price: Number(values.price),
@@ -82,6 +86,7 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
   const defaultValues: CourseFormValues = {
     name: course?.name ?? '',
     category: course?.category ?? 'OTHER',
+    categoryLabel: course?.categoryLabel ?? '',
     status: course?.status ?? 'ACTIVE',
     durationMonths: course ? String(course.durationMonths) : '6',
     price: course ? String(course.price) : '',
@@ -94,9 +99,12 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
     register,
     handleSubmit,
     setError,
+    setValue,
     control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(courseFormSchema), defaultValues });
+  const categoryLabel = useWatch({ control, name: 'categoryLabel' });
+  const categorySuggestions = useCustomLabels('course-category');
 
   const price = useWatch({ control, name: 'price' });
   const discount = useWatch({ control, name: 'discountAmount' });
@@ -112,7 +120,7 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['name', 'price', 'discountAmount', 'durationMonths', 'teacherId'])) {
+      if (!applyFieldErrors(error, setError, ['name', 'categoryLabel', 'price', 'discountAmount', 'durationMonths', 'teacherId'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -160,14 +168,32 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
           </FormField>
         </div>
 
-        <FormField label="Yo‘nalish" htmlFor="course-category">
-          <Select id="course-category" {...register('category')}>
-            {COURSE_CATEGORY_ORDER.map((category) => (
-              <option key={category} value={category}>
-                {COURSE_CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </Select>
+        <FormField
+          label="Yo‘nalish"
+          htmlFor="course-category"
+          error={errors.categoryLabel?.message}
+          hint={errors.categoryLabel ? undefined : 'Ro‘yxatda yo‘q bo‘lsa — o‘zingiz yozing (masalan: Robototexnika)'}
+        >
+          <Controller
+            control={control}
+            name="category"
+            render={({ field }) => (
+              <CustomizableSelect
+                id="course-category"
+                order={COURSE_CATEGORY_ORDER}
+                labels={COURSE_CATEGORY_LABELS}
+                otherCode="OTHER"
+                code={field.value}
+                customLabel={field.value === 'OTHER' ? categoryLabel || null : null}
+                suggestions={categorySuggestions}
+                invalid={Boolean(errors.categoryLabel)}
+                onChange={(code, label) => {
+                  field.onChange(code);
+                  setValue('categoryLabel', label ?? '', { shouldValidate: Boolean(label) });
+                }}
+              />
+            )}
+          />
         </FormField>
         <FormField label="Holat" htmlFor="course-status" hint="Faqat faol kurslar formalarda tanlanadi">
           <Select id="course-status" {...register('status')}>

@@ -4878,7 +4878,24 @@
 "Tanlangan davrda kategoriyalar bo‘yicha yozuv yo‘q": "За выбранный период записей по категориям нет",
 "Yangi kategoriya qo‘shish uchun nomini yozing": "Чтобы добавить новую категорию, введите название",
 "Yangisini qo‘shish uchun nomini yozing": "Чтобы добавить, введите название",
-"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "Скрытую категорию нельзя выбрать в новой записи; в старых записях и отчётах она сохраняется"
+"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "Скрытую категорию нельзя выбрать в новой записи; в старых записях и отчётах она сохраняется",
+"Manba qo‘shildi": "Источник добавлен",
+"Manbani tanlang yoki yozing": "Выберите или введите источник",
+"Markazda qo‘shilgan": "Добавлено в центре",
+"Masalan: Ko‘rgazma, Flayer, YouTube": "Например: Выставка, Флаер, YouTube",
+"Maydon noto‘g‘ri": "Неверное поле",
+"Ro‘yxatda yo‘q bo‘lsa — o‘zingiz yozing": "Нет в списке — введите сами",
+"Ro‘yxatda yo‘q bo‘lsa — o‘zingiz yozing (masalan: Robototexnika)": "Нет в списке — введите сами (например: Робототехника)",
+"Taklif yo‘q — yozing": "Нет подсказок — введите",
+"Tanlang yoki o‘zingiz yozing": "Выберите или введите своё",
+"To‘qnashuv avtomatik tekshiriladi. Yangi xona: nomini yozib, Enter": "Конфликты проверяются автоматически. Новый кабинет: введите название и нажмите Enter",
+"Yangi — lead bilan birga saqlanadi": "Новый — сохранится вместе с лидом",
+"Yangi kanal qo‘shish uchun nomini yozing": "Введите название, чтобы добавить канал",
+"Yangi kategoriya uchun nomini yozing": "Введите название новой категории",
+"Yangi turkum qo‘shish uchun nomini yozing": "Введите название, чтобы добавить группу товаров",
+"Yangi xona qo‘shish uchun nomini yozing": "Введите название, чтобы добавить кабинет",
+"Yo‘nalish nomi juda uzun": "Название направления слишком длинное",
+"Yo‘q bo‘lsa — o‘zingiz yozing (KPI “Boshqa” lavozim qoidasi bilan)": "Нет в списке — введите сами (KPI по правилу должности «Другое»)"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5505,6 +5522,10 @@
 "“{0}” kategoriyasi qo‘shildi": "Категория «{0}» добавлена",
 "“{0}” kategoriyasini qo‘shish": "Добавить категорию «{0}»",
 "{0} ta o‘quvchi — bugun qo‘ng‘iroq qiling": "{0} учеников — позвоните сегодня",
-"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} учеников · пора отправить напоминание"
+"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} учеников · пора отправить напоминание",
+"“{0}” — o‘zim qo‘shaman": "«{0}» — добавить своё",
+"“{0}” manbasini qo‘shish": "Добавить источник «{0}»",
+"“{0}” turkumini qo‘shish": "Добавить группу товаров «{0}»",
+"“{0}” xonasini qo‘shish": "Добавить кабинет «{0}»"
 }
 }
