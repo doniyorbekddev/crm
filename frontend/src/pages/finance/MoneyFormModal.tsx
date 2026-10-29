@@ -2,11 +2,12 @@ import { MoneyController } from '@/components/form/MoneyController';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { Combobox } from '@/components/ui/Combobox';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -16,11 +17,13 @@ import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
+import { cn } from '@/lib/cn';
 import { expensesService, financeService, incomesService } from '@/services/finance.service';
 import { lookupsService } from '@/services/lookups.service';
 import { formatMoney } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { useFinanceCategories } from './useFinanceCategories';
 
 const schema = z.object({
   categoryId: z.string().min(1, 'Kategoriyani tanlang'),
@@ -45,10 +48,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
   const [formError, setFormError] = useState<string | null>(null);
   const service = kind === 'income' ? incomesService : expensesService;
 
-  const categoriesQuery = useQuery({
-    queryKey: kind === 'income' ? queryKeys.incomes.categories : queryKeys.expenses.categories,
-    queryFn: service.categories,
-  });
+  const { query: categoriesQuery, create: createCategory } = useFinanceCategories(kind);
   const accountsQuery = useQuery({
     queryKey: queryKeys.finance.accounts({}),
     queryFn: () => financeService.accounts(),
@@ -68,6 +68,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
     handleSubmit,
     control,
     setError,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -124,6 +125,15 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
   });
 
   const categories = (categoriesQuery.data ?? []).filter((category) => category.isActive);
+  const categoryOptions = categories.map((category) => ({ value: category.id, label: category.name }));
+  /** Eng ko'p ishlatilgan kategoriyalar — bir bosishda tanlash (ro'yxat uzun bo'lganda) */
+  const frequent =
+    categories.length > 5
+      ? [...categories]
+          .filter((category) => category.usage > 0)
+          .sort((a, b) => b.usage - a.usage)
+          .slice(0, 4)
+      : [];
 
   return (
     <Modal
@@ -155,22 +165,56 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
 
       <form id="money-form" onSubmit={onSubmit} noValidate className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Kategoriya" htmlFor="money-category" error={errors.categoryId?.message} required>
-            <Select
-              id="money-category"
-              invalid={Boolean(errors.categoryId)}
-              aria-describedby={errors.categoryId ? fieldErrorId('money-category') : undefined}
-              disabled={categoriesQuery.isPending}
-              {...register('categoryId')}
+          <div className="sm:col-span-2">
+            <FormField
+              label="Kategoriya"
+              htmlFor="money-category"
+              error={errors.categoryId?.message}
+              hint={errors.categoryId ? undefined : 'Ro‘yxatda yo‘q bo‘lsa — nomini yozib, Enter bosing'}
+              required
             >
-              <option value="">Tanlang…</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <Combobox
+                    id="money-category"
+                    options={categoryOptions}
+                    value={field.value || null}
+                    onChange={(value) => field.onChange(value ?? '')}
+                    placeholder={categoriesQuery.isPending ? 'Yuklanmoqda…' : 'Tanlang yoki yozing'}
+                    emptyText="Kategoriya yo‘q"
+                    loading={categoriesQuery.isPending}
+                    invalid={Boolean(errors.categoryId)}
+                    aria-describedby={errors.categoryId ? fieldErrorId('money-category') : undefined}
+                    onCreate={createCategory}
+                    createLabel={(text) => `“${text}” kategoriyasini qo‘shish`}
+                    createHint="Yangi kategoriya qo‘shish uchun nomini yozing"
+                  />
+                )}
+              />
+              {frequent.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Ko‘p ishlatiladigan kategoriyalar">
+                  {frequent.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      aria-pressed={selectedCategoryId === category.id}
+                      onClick={() => setValue('categoryId', category.id, { shouldValidate: true, shouldDirty: true })}
+                      className={cn(
+                        'focus-ring rounded-pill px-2.5 py-1 text-caption ring-1 transition-colors ring-inset',
+                        selectedCategoryId === category.id
+                          ? 'bg-primary-subtle font-medium text-primary ring-primary/40'
+                          : 'text-fg-muted ring-border hover:bg-surface-muted hover:text-fg',
+                      )}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </FormField>
+          </div>
           <FormField label="Summa (so‘m)" htmlFor="money-amount" error={errors.amount?.message} required>
             <MoneyController control={control} name="amount" id="money-amount" autoFocus invalid={Boolean(errors.amount)} />
           </FormField>

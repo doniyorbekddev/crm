@@ -7,7 +7,8 @@ export interface SelectOption {
 }
 
 /** Katta-kichik harf va apostrof turlariga befarq qidiruv (o‘ / o' / oʻ) */
-const normalize = (text: string) => text.toLocaleLowerCase().replace(/[‘’ʻʼ`']/g, "'");
+export const normalizeOptionText = (text: string) => text.toLocaleLowerCase().replace(/[‘’ʻʼ`']/g, "'").replace(/\s+/g, ' ').trim();
+const normalize = normalizeOptionText;
 
 export function filterOptions<Option extends SelectOption>(options: readonly Option[], query: string): Option[] {
   const needle = normalize(query.trim());

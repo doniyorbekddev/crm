@@ -7,7 +7,8 @@ test('buxgalter reklama xarajatini kanalga bog‘laydi, analitikada ROI ustunlar
 
   await page.getByRole('button', { name: 'Xarajat qo‘shish' }).click();
   const dialog = page.getByRole('dialog', { name: 'Xarajat qo‘shish' });
-  await dialog.getByLabel('Kategoriya').selectOption({ label: 'Reklama' });
+  await dialog.getByRole('combobox', { name: 'Kategoriya' }).fill('Rekl');
+  await page.getByRole('listbox').getByRole('option', { name: 'Reklama', exact: true }).click();
 
   // Manba maydoni faqat reklama kategoriyasida chiqadi
   const source = dialog.getByLabel('Reklama manbasi');

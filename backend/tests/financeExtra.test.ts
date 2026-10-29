@@ -172,6 +172,38 @@ describe.skipIf(!hasTestDatabase)('Moliya — qo‘shimcha holatlar (integratsio
       expect((await request(app).post('/api/incomes').set(bearer(token)).send({ categoryId: events.id, amount: 100_000, method: 'CASH' })).status).toBe(422);
     });
 
+    it('faqat nom bilan kategoriya qo‘shadi: kalit nomdan yasaladi, oxiriga qo‘yiladi, nom takrorlanmaydi', async () => {
+      const created = await request(app).post('/api/expenses/categories').set(bearer(token)).send({ name: '  Ofis   ta’miri ' });
+      expect(created.status).toBe(201);
+      const rows = created.body.data as Array<{ id: string; key: string; name: string; sortOrder: number; isActive: boolean }>;
+      const row = rows.find((item) => item.name === 'Ofis ta’miri')!;
+      expect(row).toMatchObject({ key: 'OFIS_TAMIRI', isActive: true });
+      expect(row.sortOrder).toBe(Math.max(...rows.filter((item) => item.id !== row.id).map((item) => item.sortOrder)) + 1);
+
+      // Katta-kichik harf va apostrof turi farq qilmaydi
+      const duplicate = await request(app).post('/api/expenses/categories').set(bearer(token)).send({ name: "ofis ta'miri" });
+      expect(duplicate.status).toBe(409);
+      expect(duplicate.body.errors).toEqual([expect.objectContaining({ field: 'name' })]);
+
+      // Boshqa nom, lekin kalit band — qo'shimcha raqam oladi
+      const sameKey = await request(app).post('/api/expenses/categories').set(bearer(token)).send({ name: 'Ofis tamiri!' });
+      expect(sameKey.status).toBe(201);
+      expect(sameKey.body.data.find((item: { name: string }) => item.name === 'Ofis tamiri!')).toMatchObject({ key: 'OFIS_TAMIRI_2' });
+
+      // Yashirilgan kategoriya qayta qo'shilsa — yangisi yaratilmaydi, o'sha qayta yoqiladi
+      await request(app).put(`/api/expenses/categories/${row.id}`).set(bearer(token)).send({ isActive: false });
+      const revived = await request(app).post('/api/expenses/categories').set(bearer(token)).send({ name: 'OFIS TA’MIRI' });
+      expect(revived.status).toBe(201);
+      const matches = (revived.body.data as typeof rows).filter((item) => item.name.toLowerCase() === 'ofis ta’miri');
+      expect(matches).toEqual([expect.objectContaining({ id: row.id, isActive: true })]);
+
+      // Qayta nomlashda ham boshqa kategoriya nomi band
+      const rent = await expenseCategory('RENT');
+      expect((await request(app).put(`/api/expenses/categories/${rent.id}`).set(bearer(token)).send({ name: 'ofis ta’miri' })).status).toBe(409);
+      // O'z nomini (faqat harf o'lchamini) o'zgartirish mumkin
+      expect((await request(app).put(`/api/expenses/categories/${row.id}`).set(bearer(token)).send({ name: 'Ofis Ta’miri' })).status).toBe(200);
+    });
+
     it('tushumni bekor qiladi, usul va matn bo‘yicha filtrlaydi, noma’lum o‘quvchini rad etadi', async () => {
       const books = await incomeCategory('BOOKS');
       const cashIncome = await request(app).post('/api/incomes').set(bearer(token)).send({ categoryId: books.id, amount: 100_000, method: 'CASH', description: 'Darslik' });

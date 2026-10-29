@@ -35,7 +35,7 @@ function moneyService(resource: 'incomes' | 'expenses') {
       return response.data.data;
     },
 
-    async createCategory(payload: { key: string; name: string; sortOrder?: number }): Promise<MessageResult<FinanceCategory[]>> {
+    async createCategory(payload: { name: string; key?: string; sortOrder?: number }): Promise<MessageResult<FinanceCategory[]>> {
       const response = await api.post<ApiSuccessResponse<FinanceCategory[]>>(`/${resource}/categories`, payload);
       return { data: response.data.data, message: response.data.message };
     },

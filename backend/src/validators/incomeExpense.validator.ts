@@ -60,19 +60,29 @@ export const voidMoneySchema = z.object({
     .max(255, 'Sabab 255 belgidan oshmasligi kerak'),
 });
 
+/** Ortiqcha bo'shliqlar bitta bo'shliqqa — "Ofis  xarajati" va "Ofis xarajati" bir nom */
+const categoryNameSchema = z
+  .string('Nom kiriting')
+  .trim()
+  .transform((value) => value.replace(/\s+/g, ' '))
+  .pipe(z.string().min(2, 'Kamida 2 belgi').max(100, 'Nom juda uzun'));
+
 export const categorySchema = z.object({
+  /** Ixtiyoriy: berilmasa nomdan yasaladi (formadan to'g'ridan-to'g'ri qo'shishda faqat nom yoziladi) */
   key: z
     .string('Kalit kiriting')
     .trim()
     .min(2, 'Kamida 2 belgi')
     .max(50)
-    .regex(/^[A-Z0-9_]+$/, 'Kalit faqat katta harf, raqam va pastki chiziqdan iborat bo‘lsin'),
-  name: z.string('Nom kiriting').trim().min(2, 'Kamida 2 belgi').max(100, 'Nom juda uzun'),
-  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+    .regex(/^[A-Z0-9_]+$/, 'Kalit faqat katta harf, raqam va pastki chiziqdan iborat bo‘lsin')
+    .optional(),
+  name: categoryNameSchema,
+  /** Berilmasa ro'yxat oxiriga qo'yiladi */
+  sortOrder: z.coerce.number().int().min(0).max(999).optional(),
 });
 
 export const updateCategorySchema = z.object({
-  name: z.string().trim().min(2, 'Kamida 2 belgi').max(100).optional(),
+  name: categoryNameSchema.optional(),
   sortOrder: z.coerce.number().int().min(0).max(999).optional(),
   isActive: z.boolean().optional(),
 });

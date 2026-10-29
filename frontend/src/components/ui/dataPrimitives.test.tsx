@@ -32,6 +32,76 @@ describe('Combobox', () => {
     );
   }
 
+  function Creatable({ onCreate }: { onCreate: (label: string) => Promise<string | null> }) {
+    const [value, setValue] = useState<string | null>(null);
+    const [options, setOptions] = useState([{ value: 'rent', label: 'Ijara' }, { value: 'tax', label: 'Soliq' }]);
+    return (
+      <>
+        <Combobox
+          aria-label="Kategoriya"
+          options={options}
+          value={value}
+          onChange={setValue}
+          createLabel={(text) => `“${text}” kategoriyasini qo‘shish`}
+          onCreate={async (label) => {
+            const id = await onCreate(label);
+            if (id) setOptions((current) => [...current, { value: id, label }]);
+            return id;
+          }}
+        />
+        <p data-testid="value">{value ?? 'yo‘q'}</p>
+      </>
+    );
+  }
+
+  it('yaratish: ro‘yxat oxirida maslahat; yangi nom yozilsa Enter qo‘shadi va tanlaydi; mavjud nom takror taklif qilinmaydi', async () => {
+    const onCreate = vi.fn(async () => 'transport');
+    render(<Creatable onCreate={onCreate} />);
+    const input = screen.getByRole('combobox', { name: 'Kategoriya' });
+    await userEvent.click(input);
+    // Hali yozilmagan — faqat maslahat (tanlanadigan band emas)
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(2);
+    expect(screen.getByRole('listbox')).toHaveTextContent('Yangisini qo‘shish uchun nomini yozing');
+
+    // Aynan mavjud nom (apostrof/harf o'lchami farqi bilan ham) — yaratish taklif qilinmaydi
+    await userEvent.type(input, 'ijara');
+    expect(screen.queryByRole('option', { name: /qo‘shish/ })).not.toBeInTheDocument();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, '  Transport ');
+    const createOption = screen.getByRole('option', { name: /“Transport” kategoriyasini qo‘shish/ });
+    expect(input).toHaveAttribute('aria-activedescendant', createOption.id);
+    await userEvent.keyboard('{Enter}');
+    expect(onCreate).toHaveBeenCalledWith('Transport');
+    expect(await screen.findByTestId('value')).toHaveTextContent('transport');
+    expect(input).toHaveValue('Transport');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('yaratish: ↓ bilan oxirgi bandga o‘tiladi; xato bo‘lsa ro‘yxat ochiq qoladi va hech narsa tanlanmaydi', async () => {
+    const onCreate = vi.fn(async () => {
+      throw new Error('band');
+    });
+    render(<Creatable onCreate={onCreate} />);
+    const input = screen.getByRole('combobox', { name: 'Kategoriya' });
+    await userEvent.type(input, 'S');
+    // "S" — "Soliq" mos, lekin 2 belgidan qisqa: yaratish yo'q
+    expect(screen.queryByRole('option', { name: /qo‘shish/ })).not.toBeInTheDocument();
+    await userEvent.type(input, 'ol');
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual(['Soliq', expect.stringContaining('“Sol” kategoriyasini qo‘shish')]);
+    // Yozilganda birinchi band faol; ↓ — yaratish bandi; yana ↓ — boshiga
+    await userEvent.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute('aria-activedescendant', options[1]!.id);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute('aria-activedescendant', options[0]!.id);
+    await userEvent.keyboard('{ArrowUp}');
+    await userEvent.click(screen.getByRole('option', { name: /“Sol”/ }));
+    expect(onCreate).toHaveBeenCalledWith('Sol');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(screen.getByTestId('value')).toHaveTextContent('yo‘q');
+  });
+
   it('yozib filtrlash, ↓ + Enter bilan tanlash; o‘chirilgan band o‘tkazib yuboriladi', async () => {
     render(<Example />);
     const input = screen.getByRole('combobox', { name: 'Guruh' });

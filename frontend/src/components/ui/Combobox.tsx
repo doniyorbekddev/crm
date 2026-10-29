@@ -1,11 +1,11 @@
-import { Check, ChevronDown, Loader2, X } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnchorPosition } from '@/hooks/useAnchorPosition';
 import { cn } from '@/lib/cn';
 import { controlClass, controlInvalidClass } from './controlStyles';
-import { filterOptions, nextEnabledIndex } from './optionList';
+import { filterOptions, nextEnabledIndex, normalizeOptionText } from './optionList';
 import type { SelectOption } from './optionList';
 
 interface ComboboxProps {
@@ -25,6 +25,15 @@ interface ComboboxProps {
   autoFocus?: boolean;
   /** Server qidiruvi: berilsa ichki filtr ishlamaydi — `options` ni chaqiruvchi yangilaydi */
   onSearchChange?: (query: string) => void;
+  /**
+   * Ro'yxat oxirida "＋ yangi qo'shish" bandi: yozilgan matn bilan chaqiriladi, yaratilgan qiymatni qaytaradi
+   * (u darhol tanlanadi). Xato bo'lsa ro'yxat ochiq qoladi — xabarni chaqiruvchi ko'rsatadi.
+   */
+  onCreate?: (label: string) => Promise<string | null>;
+  /** Yaratish bandi matni, masalan `q => \`“${q}” kategoriyasini qo‘shish\`` */
+  createLabel?: (query: string) => string;
+  /** Hali hech narsa yozilmaganda yaratish bandida ko'rinadigan maslahat */
+  createHint?: string;
   className?: string;
 }
 
@@ -45,6 +54,9 @@ export function Combobox({
   loading = false,
   autoFocus = false,
   onSearchChange,
+  onCreate,
+  createLabel = (text) => `“${text}” qo‘shish`,
+  createHint = 'Yangisini qo‘shish uchun nomini yozing',
   className,
   ...aria
 }: ComboboxProps) {
@@ -57,8 +69,15 @@ export function Combobox({
   const listRef = useRef<HTMLUListElement>(null);
   const style = useAnchorPosition(wrapperRef, open);
 
+  const [creating, setCreating] = useState(false);
+
   const selected = options.find((option) => option.value === value) ?? null;
   const visible = onSearchChange ? [...options] : filterOptions(options, query);
+  const typed = query.trim().replace(/\s+/g, ' ');
+  // Aynan shu nom bor bo'lsa yaratish taklif qilinmaydi — mavjudini tanlash kerak
+  const canCreate = Boolean(onCreate) && typed.length >= 2 && !options.some((option) => normalizeOptionText(option.label) === normalizeOptionText(typed));
+  /** Yaratish bandi klaviaturada oddiy band kabi: ro'yxatdagi oxirgi indeks */
+  const createIndex = canCreate ? visible.length : -1;
 
   const openList = () => {
     if (disabled || open) return;
@@ -75,6 +94,21 @@ export function Combobox({
     if (option.disabled) return;
     onChange(option.value);
     close();
+  };
+  const create = async () => {
+    if (!onCreate || !canCreate || creating) return;
+    setCreating(true);
+    try {
+      const created = await onCreate(typed);
+      if (created) {
+        onChange(created);
+        close();
+      }
+    } catch {
+      // Xabar chaqiruvchida; ro'yxat ochiq qoladi, matnni tuzatib qayta urinish mumkin
+    } finally {
+      setCreating(false);
+    }
   };
 
   useEffect(() => {
@@ -98,11 +132,19 @@ export function Combobox({
         openList();
         return;
       }
-      setActive(nextEnabledIndex(visible, active, event.key === 'ArrowDown' ? 1 : -1));
+      // Yaratish bandi ro'yxat oxiridagi oddiy band kabi aylanadi
+      const navigable = createIndex >= 0 ? [...visible, { value: '', label: typed }] : visible;
+      setActive(nextEnabledIndex(navigable, active, event.key === 'ArrowDown' ? 1 : -1));
     } else if (event.key === 'Enter' && open) {
       event.preventDefault();
+      if (active === createIndex && createIndex >= 0) {
+        void create();
+        return;
+      }
       const option = visible[active];
       if (option) select(option);
+      // Mos band yo'q, lekin yangi nom yozilgan — Enter uni qo'shadi
+      else if (canCreate && visible.length === 0) void create();
     } else if (event.key === 'Escape' && open) {
       // Faqat ro'yxat yopiladi — tashqi Modal/Drawer ochiq qoladi
       event.stopPropagation();
@@ -170,9 +212,11 @@ export function Combobox({
             className="z-dropdown animate-menu-in overflow-y-auto rounded-control border border-border bg-surface-elevated py-1 shadow-highlight shadow-md"
           >
             {visible.length === 0 ? (
-              <li role="presentation" className="px-3 py-2 text-body text-fg-muted">
-                {loading ? 'Yuklanmoqda…' : emptyText}
-              </li>
+              !canCreate && (
+                <li role="presentation" className="px-3 py-2 text-body text-fg-muted">
+                  {loading ? 'Yuklanmoqda…' : emptyText}
+                </li>
+              )
             ) : (
               visible.map((option, index) => (
                 <li
@@ -197,6 +241,32 @@ export function Combobox({
                 </li>
               ))
             )}
+            {onCreate &&
+              (canCreate ? (
+                <li
+                  id={`${listId}-${createIndex}`}
+                  role="option"
+                  aria-selected={false}
+                  aria-busy={creating || undefined}
+                  onClick={() => void create()}
+                  onMouseEnter={() => setActive(createIndex)}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-2 border-t border-border px-3 py-2 text-body font-medium text-primary',
+                    active === createIndex && 'bg-primary-subtle',
+                  )}
+                >
+                  {creating ? <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> : <Plus className="size-4 shrink-0" aria-hidden />}
+                  <span className="min-w-0 flex-1 truncate">{createLabel(typed)}</span>
+                  <kbd className="shrink-0 font-mono text-caption text-fg-subtle">Enter</kbd>
+                </li>
+              ) : (
+                typed.length < 2 && (
+                  <li role="presentation" className="flex items-center gap-2 border-t border-border px-3 py-2 text-caption text-fg-muted">
+                    <Plus className="size-3.5 shrink-0" aria-hidden />
+                    {createHint}
+                  </li>
+                )
+              ))}
           </ul>,
           document.body,
         )}

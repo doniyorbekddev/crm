@@ -8,7 +8,12 @@ test.describe('Moliya', () => {
 
     await page.getByRole('button', { name: 'Xarajat qo‘shish' }).click();
     const dialog = page.getByRole('dialog', { name: 'Xarajat qo‘shish' });
-    await dialog.getByLabel('Kategoriya').selectOption({ index: 1 });
+    // Ro'yxatda yo'q kategoriya — formadan chiqmasdan qo'shiladi va darhol tanlanadi
+    const categoryName = `E2E kategoriya ${uniqueLetters()}`;
+    const category = dialog.getByRole('combobox', { name: 'Kategoriya' });
+    await category.fill(categoryName);
+    await page.getByRole('listbox').getByRole('option', { name: new RegExp(`${categoryName}.*kategoriyasini qo‘shish`) }).click();
+    await expect(category).toHaveValue(categoryName);
     await dialog.getByLabel('Summa (so‘m)').fill('75000');
     await dialog.getByLabel('Izoh').fill(description);
     await dialog.getByRole('button', { name: 'Saqlash', exact: true }).click();
@@ -17,6 +22,7 @@ test.describe('Moliya', () => {
     const row = page.locator('tr, li').filter({ hasText: description }).first();
     await expect(row).toBeVisible();
     await expect(row).toContainText(/75[\s,.]000 so‘m/);
+    await expect(row).toContainText(categoryName);
   });
 
   test('rahbar foyda-zarar hisobotini, direktor paneli va analitikani ochadi', async ({ page }) => {

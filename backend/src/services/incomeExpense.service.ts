@@ -619,6 +619,43 @@ export const expenseService = {
 // Kategoriyalar va budjet
 // ---------------------------------------------------------------------
 
+/** Nomlarni solishtirish: katta-kichik harf, apostrof turi (‘ ’ ʻ ʼ ') va bo'shliqlar farq qilmaydi */
+function categoryNameKey(name: string): string {
+  return name.toLocaleLowerCase('uz').replace(/[‘’ʻʼ`']/g, "'").replace(/\s+/g, ' ').trim();
+}
+
+function sameCategoryName(a: string, b: string): boolean {
+  return categoryNameKey(a) === categoryNameKey(b);
+}
+
+/** "Ofis ta’miri" → "OFIS_TAMIRI"; band bo'lsa "_2", "_3"… (kalit faqat ichki identifikator) */
+export function uniqueCategoryKey(name: string, taken: ReadonlySet<string>): string {
+  const base =
+    name
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[‘’ʻʼ`']/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40) || 'CATEGORY';
+  if (!taken.has(base)) return base;
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${base}_${suffix}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+async function categoryRows(kind: 'income' | 'expense') {
+  const select = { id: true, key: true, name: true, isActive: true, sortOrder: true } as const;
+  return kind === 'income' ? prisma.incomeCategory.findMany({ select }) : prisma.expenseCategory.findMany({ select });
+}
+
+async function updateCategoryRow(kind: 'income' | 'expense', id: string, data: { isActive: boolean }): Promise<void> {
+  if (kind === 'income') await prisma.incomeCategory.update({ where: { id }, data });
+  else await prisma.expenseCategory.update({ where: { id }, data });
+}
+
 export const financeCategoryService = {
   async incomeCategories(): Promise<CategoryDto[]> {
     const categories = await prisma.incomeCategory.findMany({
@@ -674,15 +711,35 @@ export const financeCategoryService = {
     input: CategoryInput,
     client: ClientInfo,
   ): Promise<CategoryDto[]> {
-    const data = { key: input.key, name: input.name, sortOrder: input.sortOrder };
-    const existing =
-      kind === 'income'
-        ? await prisma.incomeCategory.findUnique({ where: { key: input.key }, select: { id: true } })
-        : await prisma.expenseCategory.findUnique({ where: { key: input.key }, select: { id: true } });
-    if (existing) {
+    const existing = await categoryRows(kind);
+    if (input.key && existing.some((row) => row.key === input.key)) {
       throw AppError.conflict('Bunday kalitli kategoriya mavjud', [{ field: 'key', message: 'Kalit band' }]);
     }
 
+    // Bir xil nom ikki marta bo'lmasin ("Ijara" va "ijara", "Ta'mir" va "Ta’mir" — bitta kategoriya)
+    const twin = existing.find((row) => sameCategoryName(row.name, input.name));
+    if (twin?.isActive) {
+      throw AppError.conflict('Bunday nomli kategoriya bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
+    }
+    if (twin) {
+      // Yashirilgan kategoriyani qayta yaratish o'rniga qayta yoqamiz — eski yozuvlar o'z kategoriyasida qoladi
+      await updateCategoryRow(kind, twin.id, { isActive: true });
+      await auditService.record({
+        userId: actor.id,
+        action: 'finance.category_updated',
+        entityType: kind,
+        entityId: twin.id,
+        metadata: { kind, name: twin.name, isActive: true },
+        ...client,
+      });
+      return kind === 'income' ? this.incomeCategories() : this.expenseCategories();
+    }
+
+    const data = {
+      key: input.key ?? uniqueCategoryKey(input.name, new Set(existing.map((row) => row.key))),
+      name: input.name,
+      sortOrder: input.sortOrder ?? Math.min(999, Math.max(0, ...existing.map((row) => row.sortOrder)) + 1),
+    };
     const created =
       kind === 'income'
         ? await prisma.incomeCategory.create({ data, select: { id: true } })
@@ -692,7 +749,7 @@ export const financeCategoryService = {
       action: 'finance.category_created',
       entityType: kind,
       entityId: created.id,
-      metadata: { kind, key: input.key, name: input.name },
+      metadata: { kind, key: data.key, name: data.name },
       ...client,
     });
 
@@ -715,6 +772,13 @@ export const financeCategoryService = {
     }
     if (category.isSystem && input.isActive === false) {
       throw AppError.unprocessable('Tizim kategoriyasini o‘chirib bo‘lmaydi');
+    }
+    if (input.name !== undefined) {
+      const newName = input.name;
+      const twin = (await categoryRows(kind)).find((row) => row.id !== id && sameCategoryName(row.name, newName));
+      if (twin) {
+        throw AppError.conflict('Bunday nomli kategoriya bor', [{ field: 'name', message: `“${twin.name}” allaqachon mavjud` }]);
+      }
     }
 
     const data = {
