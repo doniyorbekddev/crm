@@ -4864,7 +4864,21 @@
 "Yo‘nalishlar bo‘yicha": "По направлениям",
 "O‘qiyotganlar (faol va muzlatilgan)": "Обучающиеся (активные и замороженные)",
 "O‘quvchisi bor kurslar": "Курсы с учениками",
-"Jonli ko‘rsatkichlar": "Показатели в реальном времени"
+"Jonli ko‘rsatkichlar": "Показатели в реальном времени",
+"Bekor qilish uchun qayta bosing": "Нажмите ещё раз, чтобы сбросить",
+"Birinchi kategoriyani yuqorida qo‘shing": "Добавьте первую категорию выше",
+"Birinchi xodimni qo‘shish": "Добавить первого сотрудника",
+"Bosing — ro‘yxat filtrlanadi": "Нажмите — список отфильтруется",
+"Kechikkan to‘lov yo‘q": "Просроченных платежей нет",
+"Ko‘p ishlatiladigan kategoriyalar": "Часто используемые категории",
+"Nomi o‘zgartirildi": "Название изменено",
+"Nomini o‘zgartirish": "Переименовать",
+"Ro‘yxatda yo‘q bo‘lsa — nomini yozib, Enter bosing": "Если нет в списке — введите название и нажмите Enter",
+"Tanlang yoki yozing": "Выберите или введите",
+"Tanlangan davrda kategoriyalar bo‘yicha yozuv yo‘q": "За выбранный период записей по категориям нет",
+"Yangi kategoriya qo‘shish uchun nomini yozing": "Чтобы добавить новую категорию, введите название",
+"Yangisini qo‘shish uchun nomini yozing": "Чтобы добавить, введите название",
+"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "Скрытую категорию нельзя выбрать в новой записи; в старых записях и отчётах она сохраняется"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -5487,6 +5501,10 @@
 "Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Сумма долей доп. групп не должна превышать 100% (в других {0}%)",
 "{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "Если {0} {1} потерял(а) телефон и коды восстановления. Все сеансы будут закрыты; затем можно войти по паролю и снова включить 2FA.",
 "{0} ta qarzdor o‘quvchi": "{0} учеников с долгом",
-"{0} ta shartnoma bo‘yicha": "по {0} договорам"
+"{0} ta shartnoma bo‘yicha": "по {0} договорам",
+"“{0}” kategoriyasi qo‘shildi": "Категория «{0}» добавлена",
+"“{0}” kategoriyasini qo‘shish": "Добавить категорию «{0}»",
+"{0} ta o‘quvchi — bugun qo‘ng‘iroq qiling": "{0} учеников — позвоните сегодня",
+"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} учеников · пора отправить напоминание"
 }
 }

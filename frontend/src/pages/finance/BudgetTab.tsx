@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { Input } from '@/components/ui/Input';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TBody, TD, TH, THead, TR, Table, TableContainer } from '@/components/ui/Table';
@@ -121,6 +121,7 @@ export function BudgetTab() {
     .filter((line) => plannedOf(line) > 0 || line.actual > 0)
     .map((line) => ({ name: line.categoryName, planned: plannedOf(line), actual: line.actual, over: line.actual > plannedOf(line) }));
   const hasDraft = Object.keys(draft).length > 0;
+  const isOpenMonth = year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth() + 1);
 
   return (
     <div className="space-y-4">
@@ -182,7 +183,8 @@ export function BudgetTab() {
                 hint={plannedTotal > 0 ? `${Math.round(((budget?.totalActual ?? 0) / plannedTotal) * 100)}% bajarildi` : undefined}
               />
               <Summary
-                label={difference > 0 ? 'Rejadan oshgan' : 'Tejalgan'}
+                // Oy hali tugamagan bo'lsa "tejalgan" emas — hali sarflash mumkin bo'lgan qoldiq
+                label={difference > 0 ? 'Rejadan oshgan' : isOpenMonth ? 'Qolgan limit' : 'Tejalgan'}
                 value={`${difference > 0 ? '+' : ''}${formatMoney(Math.abs(difference))}`}
                 tone={difference > 0 ? 'danger' : plannedTotal > 0 ? 'success' : 'default'}
               />
@@ -250,14 +252,15 @@ export function BudgetTab() {
                       </TD>
                       <TD className="text-right">
                         {canManage ? (
-                          <Input
-                            inputMode="numeric"
-                            aria-label={`${line.categoryName} rejasi`}
-                            className="ml-auto w-36 text-right"
-                            value={draft[line.categoryId] ?? (line.planned ? String(line.planned) : '')}
-                            placeholder="0"
-                            onChange={(event) => setDraft((current) => ({ ...current, [line.categoryId]: event.target.value.replace(/\D/g, '') }))}
-                          />
+                          <div className="ml-auto w-44">
+                            <CurrencyInput
+                              aria-label={`${line.categoryName} rejasi`}
+                              className="text-right"
+                              value={draft[line.categoryId] !== undefined ? (draft[line.categoryId] === '' ? null : Number(draft[line.categoryId])) : line.planned || null}
+                              placeholder="0"
+                              onValueChange={(value) => setDraft((current) => ({ ...current, [line.categoryId]: value === null ? '' : String(value) }))}
+                            />
+                          </div>
                         ) : (
                           <span className="whitespace-nowrap tabular-nums text-fg">{formatMoney(line.planned)}</span>
                         )}

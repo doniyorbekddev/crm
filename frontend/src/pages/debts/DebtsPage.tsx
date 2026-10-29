@@ -116,11 +116,16 @@ export default function DebtsPage() {
           <Link to={`/students/${debt.studentId}`} className="focus-ring rounded-sm font-medium text-fg hover:text-primary hover:underline">
             {debt.firstName} {debt.lastName}
           </Link>
-          <p className="flex items-center gap-1 text-caption text-fg-muted">
-            <Phone className="size-3" aria-hidden />
+          {/* Qarz bo'yicha qo'ng'iroq — bosilsa telefon ochiladi; ota-ona raqami alohida qatorda (o'ralib ketmasin) */}
+          <a href={`tel:${debt.phone}`} className="flex items-center gap-1 text-caption whitespace-nowrap text-fg-muted hover:text-primary">
+            <Phone className="size-3 shrink-0" aria-hidden />
             {formatPhone(debt.phone)}
-            {debt.parentPhone && ` · ota-ona: ${formatPhone(debt.parentPhone)}`}
-          </p>
+          </a>
+          {debt.parentPhone && (
+            <a href={`tel:${debt.parentPhone}`} className="block text-caption whitespace-nowrap text-fg-muted hover:text-primary">
+              ota-ona: {formatPhone(debt.parentPhone)}
+            </a>
+          )}
         </>
       ),
     },
@@ -236,6 +241,7 @@ export default function DebtsPage() {
     }] : []),
   ];
   const debtTable = useTableColumns('debts', debtTableColumns);
+  const collectedPercent = summary && summary.totalContracts > 0 ? Math.round((summary.totalPaid / summary.totalContracts) * 1000) / 10 : 0;
   const density = useTableDensity();
 
   return (
@@ -243,23 +249,34 @@ export default function DebtsPage() {
       <PageHeader title="Qarzdorlik" description="Shartnoma bo‘yicha qolgan summalar va oxirgi to‘lovlar" />
 
       {summary && (
-        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+        // Qarz oraliqlari (1 mln dan ortiq, qarzi yo'q) pastdagi tablarda soni bilan turibdi — bu yerda takrorlanmaydi
+        <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <StatCard size="sm" title="Umumiy qarz" value={formatMoney(summary.totalRemaining)} valueTone="danger" description={`${formatNumber(summary.students)} ta o‘quvchi`} />
           <StatCard
             size="sm"
             title="Muddati o‘tgan"
             value={formatMoney(summary.overdue.amount)}
             valueTone={summary.overdue.amount > 0 ? 'danger' : 'default'}
-            description={`${formatNumber(summary.overdue.students)} ta o‘quvchi · 7 kunda ${formatMoney(summary.upcoming.amount)}`}
+            description={summary.overdue.students > 0 ? `${formatNumber(summary.overdue.students)} ta o‘quvchi — bugun qo‘ng‘iroq qiling` : 'Kechikkan to‘lov yo‘q'}
           />
-          <StatCard size="sm" title="Yig‘ilgan to‘lov" value={formatMoney(summary.totalPaid)} description={`Shartnomalar: ${formatMoney(summary.totalContracts)}`} />
           <StatCard
             size="sm"
-            title="1 mln dan ortiq"
-            value={formatMoney(summary.byRange['1m-plus'].remaining)}
-            description={`${formatNumber(summary.byRange['1m-plus'].students)} ta o‘quvchi`}
+            title="7 kun ichida kutiladi"
+            value={formatMoney(summary.upcoming.amount)}
+            valueTone={summary.upcoming.amount > 0 ? 'warning' : 'default'}
+            description={`${formatNumber(summary.upcoming.students)} ta o‘quvchi · eslatma yuborish vaqti`}
           />
-          <StatCard size="sm" title="Qarzi yo‘q" value={formatNumber(summary.byRange.zero.students)} valueTone="success" description="to‘liq to‘lagan o‘quvchilar" />
+          <StatCard
+            size="sm"
+            title="Yig‘ilgan to‘lov"
+            value={formatMoney(summary.totalPaid)}
+            description={`${String(collectedPercent).replace(".", ",")}% · shartnoma ${formatMoney(summary.totalContracts)}`}
+            footer={
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted" aria-hidden>
+                <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-progress" style={{ width: `${Math.min(collectedPercent, 100)}%` }} />
+              </div>
+            }
+          />
         </div>
       )}
 

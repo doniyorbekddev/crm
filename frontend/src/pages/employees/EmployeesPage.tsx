@@ -265,6 +265,16 @@ export default function EmployeesPage() {
           icon: IdCard,
           title: 'Xodim topilmadi',
           description: canManage ? 'Administrator, buxgalter, farrosh kabi xodimlarni qo‘shing — maoshi Maoshlar bo‘limida hisoblanadi' : 'Filtrlarni o‘zgartirib ko‘ring',
+          // Filtrsiz bo'sh ro'yxat — birinchi xodimni shu yerning o'zidan qo'shish
+          ...(canManage && !search && !status && !position
+            ? {
+                action: (
+                  <Button className="mt-4" leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
+                    Birinchi xodimni qo‘shish
+                  </Button>
+                ),
+              }
+            : {}),
         }}
         toolbar={
           <FilterBar

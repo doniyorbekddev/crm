@@ -52,6 +52,9 @@ type Dialog =
 /** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
 const SORT_COLUMNS = { parent: 'name' } as const;
 
+/** Telegram maydoni erkin matn: havola faqat haqiqiy username bo'lsa (raqam yoki izoh — oddiy matn) */
+const TELEGRAM_USERNAME = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
+
 export default function ParentsPage() {
   const queryClient = useQueryClient();
   const canManage = usePermission(PERMISSIONS.PARENT_MANAGE);
@@ -130,6 +133,11 @@ export default function ParentsPage() {
         <>
           <p className="font-medium text-fg">
             {parent.firstName} {parent.lastName}
+            {parent.hasPortalAccount && (
+              <Badge tone="info" className="ml-2 align-middle">
+                Kabinet
+              </Badge>
+            )}
           </p>
           {parent.notes && <p className="max-w-[16rem] truncate text-caption text-fg-muted">{parent.notes}</p>}
         </>
@@ -144,7 +152,24 @@ export default function ParentsPage() {
           <a href={`tel:${parent.phone}`} className="text-fg hover:text-primary">
             {formatPhone(parent.phone)}
           </a>
-          <p className="text-caption text-fg-muted">{[parent.telegram, parent.email].filter(Boolean).join(' · ') || '—'}</p>
+          {(parent.telegram || parent.email) && (
+            <p className="flex items-center gap-1.5 text-caption text-fg-muted">
+              {parent.telegram &&
+                (TELEGRAM_USERNAME.test(parent.telegram) ? (
+                  <a href={`https://t.me/${parent.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" className="hover:text-primary">
+                    @{parent.telegram.replace(/^@/, '')}
+                  </a>
+                ) : (
+                  <span>{parent.telegram}</span>
+                ))}
+              {parent.telegram && parent.email && <span aria-hidden>·</span>}
+              {parent.email && (
+                <a href={`mailto:${parent.email}`} className="hover:text-primary">
+                  {parent.email}
+                </a>
+              )}
+            </p>
+          )}
         </>
       ),
     },

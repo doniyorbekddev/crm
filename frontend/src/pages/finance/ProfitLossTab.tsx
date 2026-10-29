@@ -82,7 +82,13 @@ export function ProfitLossTab({ range }: { range: FinanceRangeParams }) {
   const data = plQuery.data;
   const rows: StatementRow[] = [
     { kind: 'section', label: 'Tushum' },
-    { kind: 'line', label: 'O‘quvchi to‘lovlari', amount: data.revenue.studentPayments },
+    {
+      kind: 'line',
+      label: 'O‘quvchi to‘lovlari',
+      amount: data.revenue.studentPayments,
+      // Boshqa tushumlar ulushi bilan bir xil asos — sof tushum (server `percentOf` bilan mos)
+      ...(data.revenue.netRevenue > 0 ? { share: Math.round((data.revenue.studentPayments / data.revenue.netRevenue) * 100) } : {}),
+    },
     ...(data.revenue.refunds > 0 ? [{ kind: 'line' as const, label: 'Qaytarilgan to‘lovlar', amount: data.revenue.refunds, negative: true }] : []),
     ...data.revenue.otherIncome.map((line) => ({ kind: 'line' as const, label: line.name, amount: line.amount, share: line.share })),
     { kind: 'subtotal', label: 'Sof tushum', amount: data.revenue.netRevenue, previous: data.previous.netRevenue },

@@ -4829,7 +4829,21 @@
 "Yo‘nalishlar bo‘yicha": "By direction",
 "O‘qiyotganlar (faol va muzlatilgan)": "Studying (active and frozen)",
 "O‘quvchisi bor kurslar": "Courses with students",
-"Jonli ko‘rsatkichlar": "Live metrics"
+"Jonli ko‘rsatkichlar": "Live metrics",
+"Bekor qilish uchun qayta bosing": "Click again to clear",
+"Birinchi kategoriyani yuqorida qo‘shing": "Add the first category above",
+"Birinchi xodimni qo‘shish": "Add the first employee",
+"Bosing — ro‘yxat filtrlanadi": "Click to filter the list",
+"Kechikkan to‘lov yo‘q": "No overdue payments",
+"Ko‘p ishlatiladigan kategoriyalar": "Frequently used categories",
+"Nomi o‘zgartirildi": "Name updated",
+"Nomini o‘zgartirish": "Rename",
+"Ro‘yxatda yo‘q bo‘lsa — nomini yozib, Enter bosing": "Not in the list? Type a name and press Enter",
+"Tanlang yoki yozing": "Select or type",
+"Tanlangan davrda kategoriyalar bo‘yicha yozuv yo‘q": "No records by category in the selected period",
+"Yangi kategoriya qo‘shish uchun nomini yozing": "Type a name to add a new category",
+"Yangisini qo‘shish uchun nomini yozing": "Type a name to add a new one",
+"Yashirilgan kategoriya yangi yozuvda tanlanmaydi, eski yozuvlar va hisobotlarda saqlanadi": "A hidden category can't be chosen for new entries; it stays in past entries and reports"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -5451,6 +5465,10 @@
 "Qo‘shimcha guruhlar ulushi jami 100% dan oshmasin (boshqalarda {0}%)": "Extra group shares must not exceed 100% in total (others: {0}%)",
 "{0} {1} telefon va tiklash kodlarini yo‘qotgan bo‘lsa. Uning barcha sessiyalari yopiladi; keyin u parol bilan kirib, 2FA ni qayta yoqishi mumkin.": "If {0} {1} lost both the phone and the recovery codes. All sessions will be closed; they can then sign in with the password and enable 2FA again.",
 "{0} ta qarzdor o‘quvchi": "{0} students in debt",
-"{0} ta shartnoma bo‘yicha": "across {0} contracts"
+"{0} ta shartnoma bo‘yicha": "across {0} contracts",
+"“{0}” kategoriyasi qo‘shildi": "Category “{0}” added",
+"“{0}” kategoriyasini qo‘shish": "Add category “{0}”",
+"{0} ta o‘quvchi — bugun qo‘ng‘iroq qiling": "{0} students — call today",
+"{0} ta o‘quvchi · eslatma yuborish vaqti": "{0} students · time to send a reminder"
 }
 }

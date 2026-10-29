@@ -50,6 +50,8 @@ interface StatCardProps {
   to?: string;
   /** O'ng yuqoridagi amal (menyu). `to` bilan birga ishlatilmaydi. */
   action?: ReactNode;
+  /** Karta pastida to'liq kenglikdagi qo'shimcha (masalan, bajarilish chizig'i) */
+  footer?: ReactNode;
   className?: string;
 }
 
@@ -61,7 +63,7 @@ function normalizeTrend(trend: string | StatTrend): StatTrend {
 }
 
 /** KPI kartasi: bitta ko'rsatkich, uning o'zgarishi va izohi. Biznes ma'lumoti tashqaridan beriladi. */
-export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', valueTone = 'default', size = 'md', loading = false, to, action, className }: StatCardProps) {
+export function StatCard({ title, value, description, trend, icon: Icon, tone = 'neutral', valueTone = 'default', size = 'md', loading = false, to, action, footer, className }: StatCardProps) {
   const resolved = trend ? normalizeTrend(trend) : null;
   const good = resolved ? (resolved.direction === 'flat' ? null : (resolved.direction === 'up') === (resolved.positive ?? true)) : null;
   const TrendIcon = resolved?.direction === 'up' ? ArrowUpRight : resolved?.direction === 'down' ? ArrowDownRight : Minus;
@@ -112,6 +114,7 @@ export function StatCard({ title, value, description, trend, icon: Icon, tone = 
               {description && <span className="min-w-0">{description}</span>}
             </div>
           )}
+          {footer && <div className="mt-2">{footer}</div>}
         </>
       )}
       {Icon && action}

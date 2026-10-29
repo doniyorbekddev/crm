@@ -1,7 +1,7 @@
 import { DataTable } from '@/components/ui/DataTable';
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Ban, HandCoins, Paperclip, Plus, Repeat, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
+import { BadgeCheck, Ban, HandCoins, Paperclip, Plus, Repeat, Tags, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { IconButton } from '@/components/ui/IconButton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
@@ -31,6 +32,10 @@ import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_TONES } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { AttachmentsModal } from './AttachmentsModal';
+import { CategoryShareCard } from './CategoryShareCard';
+import { PERIOD_PRESETS, matchPreset, presetRange } from './periodPresets';
+import type { PeriodPreset } from './periodPresets';
+import { CategoriesModal } from './CategoriesModal';
 import { MoneyFormModal } from './MoneyFormModal';
 import { RecurringExpensesModal } from './RecurringExpensesModal';
 import { VoidReasonModal } from './VoidReasonModal';
@@ -64,6 +69,7 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     | { type: 'reject'; entry: MoneyEntry }
     | { type: 'pay'; entry: MoneyEntry }
     | { type: 'recurring' }
+    | { type: 'categories' }
     | { type: 'attachments'; entry: MoneyEntry }
     | null
   >(null);
@@ -73,13 +79,20 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   const [voidError, setVoidError] = useState<string | null>(null);
   const branchParam = useBranchParam();
 
-  const filters = {
+  const periodFilters = {
     ...branchParam,
     ...(search ? { search } : {}),
-    ...(categoryId ? { categoryId } : {}),
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
+  const filters = { ...periodFilters, ...(categoryId ? { categoryId } : {}) };
+  const preset = matchPreset(from, to);
+  const applyPreset = (value: PeriodPreset) =>
+    changeFilter(() => {
+      const range = presetRange(value);
+      setFrom(range.from);
+      setTo(range.to);
+    });
   const params: MoneyListParams = { ...filters, ...(!isIncome && status ? { status } : {}), page, limit: PAGE_SIZE };
   const keys = isIncome ? queryKeys.incomes : queryKeys.expenses;
 
@@ -88,8 +101,10 @@ export function MoneyPage({ kind }: MoneyPageProps) {
     queryFn: () => service.list(params),
     placeholderData: keepPreviousData,
   });
-  const statsQuery = useQuery({ queryKey: keys.stats(filters), queryFn: () => service.stats(filters) });
+  // Ulush kartasi kategoriya filtridan mustaqil: tanlangan kategoriya umumiy ichida ajralib ko'rinadi
+  const statsQuery = useQuery({ queryKey: keys.stats(periodFilters), queryFn: () => service.stats(periodFilters) });
   const categoriesQuery = useQuery({ queryKey: keys.categories, queryFn: service.categories, staleTime: 60_000 });
+  const categoryName = (id: string) => categoriesQuery.data?.find((category) => category.id === id)?.name ?? 'Kategoriya';
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: keys.all });
@@ -187,6 +202,9 @@ export function MoneyPage({ kind }: MoneyPageProps) {
   };
 
   const stats = statsQuery.data;
+  const periodTitle =
+    preset === 'all' ? (isIncome ? 'Jami tushum' : 'Jami xarajat') : preset ? (PERIOD_PRESETS.find((item) => item.value === preset)?.label ?? '') : 'Tanlangan oraliq';
+  const selectedStat = categoryId ? (stats?.byCategory.find((row) => row.id === categoryId) ?? { name: categoryName(categoryId), total: 0, count: 0 }) : null;
   const title = isIncome ? 'Tushumlar' : 'Xarajatlar';
 
   return (
@@ -223,21 +241,24 @@ export function MoneyPage({ kind }: MoneyPageProps) {
       />
 
       {stats && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4 grid gap-3 lg:grid-cols-4">
           <Card className="p-4">
-            <p className="text-caption text-fg-muted">Tanlangan davr</p>
-            <p className={cn('mt-1 text-h2', isIncome ? 'text-success' : 'text-danger')}>
-              {formatMoney(stats.total)}
+            <p className="truncate text-caption text-fg-muted">{selectedStat ? selectedStat.name : periodTitle}</p>
+            <p className={cn('mt-1 text-h2 whitespace-nowrap tabular-nums', isIncome ? 'text-success' : 'text-danger')}>
+              {formatMoney(selectedStat ? selectedStat.total : stats.total)}
             </p>
-            <p className="mt-1 text-caption text-fg-muted">{formatNumber(stats.count)} ta yozuv</p>
+            <p className="mt-1 text-caption text-fg-muted">
+              {formatNumber(selectedStat ? selectedStat.count : stats.count)} ta yozuv
+              {selectedStat && stats.total > 0 && ` · umumiyning ${Math.round((selectedStat.total / stats.total) * 100)}%`}
+            </p>
           </Card>
-          {stats.byCategory.slice(0, 3).map((row) => (
-            <Card key={row.id} className="p-4">
-              <p className="truncate text-caption text-fg-muted">{row.name}</p>
-              <p className="mt-1 text-h2 text-fg">{formatMoney(row.total)}</p>
-              <p className="mt-1 text-caption text-fg-muted">{formatNumber(row.count)} ta yozuv</p>
-            </Card>
-          ))}
+          <CategoryShareCard
+            className="lg:col-span-3"
+            rows={stats.byCategory}
+            total={stats.total}
+            selectedId={categoryId}
+            onSelect={(id) => changeFilter(() => setCategoryId(id))}
+          />
         </div>
       )}
 
@@ -253,40 +274,70 @@ export function MoneyPage({ kind }: MoneyPageProps) {
             </TabList>
           </Tabs>
         )}
-        <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-          <SearchInput
-            value={searchInput}
-            onChange={(value) => changeFilter(() => setSearchInput(value))}
-            placeholder="Izoh, kategoriya yoki raqam"
-            className="sm:max-w-xs"
-          />
-          <Select
-            value={categoryId}
-            onChange={(event) => changeFilter(() => setCategoryId(event.target.value))}
-            aria-label="Kategoriya"
-            wrapperClassName="sm:w-52"
-          >
-            <option value="">Barcha kategoriyalar</option>
-            {(categoriesQuery.data ?? []).map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-          <Input
-            type="date"
-            value={from}
-            onChange={(event) => changeFilter(() => setFrom(event.target.value))}
-            aria-label="Boshlanish sanasi"
-            className="sm:w-44"
-          />
-          <Input
-            type="date"
-            value={to}
-            onChange={(event) => changeFilter(() => setTo(event.target.value))}
-            aria-label="Tugash sanasi"
-            className="sm:w-44"
-          />
+        <div className="flex flex-col gap-2 border-b border-border p-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <SearchInput
+              value={searchInput}
+              onChange={(value) => changeFilter(() => setSearchInput(value))}
+              placeholder="Izoh, kategoriya yoki raqam"
+              className="sm:max-w-xs"
+            />
+            <div className="flex gap-2">
+              <Select
+                value={categoryId}
+                onChange={(event) => changeFilter(() => setCategoryId(event.target.value))}
+                aria-label="Kategoriya"
+                wrapperClassName="min-w-0 flex-1 sm:w-52 sm:flex-none"
+              >
+                <option value="">Barcha kategoriyalar</option>
+                {(categoriesQuery.data ?? []).map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+              <IconButton label="Kategoriyalar" variant="secondary" size="lg" className="size-10 shrink-0" onClick={() => setDialog({ type: 'categories' })}>
+                <Tags aria-hidden />
+              </IconButton>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+            <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Davr">
+              {PERIOD_PRESETS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  aria-pressed={preset === item.value}
+                  onClick={() => applyPreset(item.value)}
+                  className={cn(
+                    'focus-ring h-8 shrink-0 rounded-pill px-3 text-caption font-medium whitespace-nowrap transition-colors',
+                    preset === item.value ? 'bg-primary-subtle text-primary ring-1 ring-primary/30 ring-inset' : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+              {preset === null && <span className="flex h-8 shrink-0 items-center rounded-pill bg-surface-muted px-3 text-caption font-medium text-fg">Oraliq</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-2 lg:ml-auto lg:flex">
+              <Input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(event) => changeFilter(() => setFrom(event.target.value))}
+                aria-label="Boshlanish sanasi"
+                className="lg:w-44"
+              />
+              <Input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(event) => changeFilter(() => setTo(event.target.value))}
+                aria-label="Tugash sanasi"
+                className="lg:w-44"
+              />
+            </div>
+          </div>
         </div>
 
         {listQuery.isPending ? (
@@ -469,6 +520,8 @@ export function MoneyPage({ kind }: MoneyPageProps) {
         onConfirm={() => dialog?.type === 'pay' && pay.mutate(dialog.entry.id)}
         onCancel={() => setDialog(null)}
       />
+
+      {dialog?.type === 'categories' && <CategoriesModal kind={kind} canManage={canManage} onClose={() => setDialog(null)} />}
 
       {dialog?.type === 'recurring' && <RecurringExpensesModal onClose={() => setDialog(null)} onChanged={refresh} />}
 
