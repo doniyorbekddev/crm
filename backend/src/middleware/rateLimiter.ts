@@ -1,4 +1,5 @@
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import type { Request } from 'express';
 import { isTest } from '../config/env.js';
 import { sendError } from '../utils/apiResponse.js';
 
@@ -94,5 +95,39 @@ export const heavyLimiter = rateLimit({
   skip: skipLimits,
   handler: (_req, res) => {
     sendError(res, 429, 'Juda ko‘p so‘rov yuborildi. Bir daqiqadan keyin qayta urinib ko‘ring.');
+  },
+});
+
+/** Kirgan foydalanuvchi bo'yicha hisob (bir IP ortida butun markaz — qabulxona Wi-Fi'si — turadi) */
+function userKey(req: Request): string {
+  return req.user ? `user:${req.user.id}` : ipKeyGenerator(req.ip ?? '');
+}
+
+/**
+ * Xodim davomati QR'i (`authenticate` dan keyin qo'yiladi):
+ *  - skanerlash/tekshirish: xodim boshiga daqiqasiga 20 ta — tokenni taxmin qilib urinishga qarshi;
+ *  - QR yaratish: qurilma boshiga daqiqasiga 60 ta (ekran 30 soniyada va har ishlatilganda yangilanadi).
+ */
+export const staffScanLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: userKey,
+  skip: skipLimits,
+  handler: (_req, res) => {
+    sendError(res, 429, 'Juda ko‘p urinish. Bir daqiqadan keyin qayta skanerlang.');
+  },
+});
+
+export const staffQrIssueLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: userKey,
+  skip: skipLimits,
+  handler: (_req, res) => {
+    sendError(res, 429, 'QR kod juda tez-tez so‘ralmoqda. Birozdan keyin qayta urinib ko‘ring.');
   },
 });

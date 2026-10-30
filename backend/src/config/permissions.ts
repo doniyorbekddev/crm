@@ -55,6 +55,12 @@ export const PERMISSIONS = {
   EMPLOYEE_SENSITIVE: 'employee.sensitive',
   STAFF_DOCUMENT_VIEW: 'staff_document.view',
   STAFF_DOCUMENT_MANAGE: 'staff_document.manage',
+  /// Xodim davomati (QR): rahbar paneli va hisobotlar
+  STAFF_ATTENDANCE_VIEW: 'staff_attendance.view',
+  /// Jadvallar, tuzatishlar, ruxsat so'rovlarini hal qilish
+  STAFF_ATTENDANCE_MANAGE: 'staff_attendance.manage',
+  /// Qabulxonadagi QR ekranini ochish
+  STAFF_ATTENDANCE_DISPLAY: 'staff_attendance.display',
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
@@ -194,6 +200,13 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
     module: 'employees',
     description: 'Xodimning maxfiy ma’lumotini (pasport, tug‘ilgan sana, manzil, favqulodda aloqa) ko‘rish',
   },
+  { key: PERMISSIONS.STAFF_ATTENDANCE_VIEW, module: 'staff_attendance', description: 'Xodimlar davomati paneli, hisobotlar va eksport' },
+  {
+    key: PERMISSIONS.STAFF_ATTENDANCE_MANAGE,
+    module: 'staff_attendance',
+    description: 'Xodimlar ish jadvali, davomatni sabab bilan tuzatish, ruxsat so‘rovlarini tasdiqlash',
+  },
+  { key: PERMISSIONS.STAFF_ATTENDANCE_DISPLAY, module: 'staff_attendance', description: 'Qabulxonadagi davomat QR ekranini ochish' },
   {
     key: PERMISSIONS.STAFF_DOCUMENT_VIEW,
     module: 'hr',
@@ -310,6 +323,8 @@ export const ROLE_KEYS = {
   CALL_CENTER: 'CALL_CENTER',
   TEACHER: 'TEACHER',
   ACCOUNTANT: 'ACCOUNTANT',
+  /// Qabulxona qurilmasi — faqat davomat QR ekrani
+  RECEPTION: 'RECEPTION',
   /// Kabinet rollari — xodim emas, faqat o'z ma'lumotini ko'radi
   STUDENT: 'STUDENT',
   PARENT: 'PARENT',
@@ -491,5 +506,11 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.INVENTORY_VIEW,
       PERMISSIONS.INVENTORY_MANAGE,
     ],
+  },
+  {
+    key: ROLE_KEYS.RECEPTION,
+    name: 'Qabulxona (QR ekran)',
+    description: 'Qabulxonadagi planshet yoki ekran uchun: faqat xodimlar davomati QR kodini ko‘rsatadi',
+    permissions: [PERMISSIONS.STAFF_ATTENDANCE_DISPLAY],
   },
 ];

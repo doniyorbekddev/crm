@@ -110,6 +110,14 @@ const AUTH_ONLY = new Set([
   'POST /api/tasks/:id/comments',
   // "Ishlarim": requireStaff; har bo'lim servisda o'z ruxsati bilan, faqat o'z ishlari
   'GET /api/my-work',
+  // O'z davomati (QR): requireStaff; xodim faqat sessiyadan aniqlanadi, davomati yuritilmaydigan hisobga 403
+  'GET /api/staff-attendance/me/today',
+  'GET /api/staff-attendance/me/month',
+  'GET /api/staff-attendance/me/requests',
+  'POST /api/staff-attendance/me/requests',
+  'POST /api/staff-attendance/me/requests/:id/cancel',
+  'POST /api/staff-attendance/scan/preview',
+  'POST /api/staff-attendance/scan',
   // Filial tanlash paneli: branch.view_all bo'lmasa — faqat o'z filiali
   'GET /api/branches',
   // Ruxsat hujjat bog'langan yozuvga qarab servisda (begona/yo'q hujjat — 404)

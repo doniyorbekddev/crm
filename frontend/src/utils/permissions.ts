@@ -22,6 +22,7 @@ const MODULE_LABELS: Record<string, string> = {
   role: 'Rollar',
   settings: 'Sozlamalar',
   audit: 'Audit log',
+  staff_attendance: 'Xodimlar davomati',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
   convert: 'O‘quvchiga aylantirish',
   mark: 'Belgilash',
   export: 'Eksport',
+  display: 'QR ekran',
 };
 
 /** Bazadagi `Permission.module` qiymatlari uchun nomlar */
@@ -54,6 +56,7 @@ const PERMISSION_MODULE_LABELS: Record<string, string> = {
   roles: 'Rollar',
   settings: 'Sozlamalar',
   audit: 'Audit log',
+  staff_attendance: 'Xodimlar davomati',
 };
 
 export function permissionModuleLabel(module: string): string {

@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { PageLoader } from "@/components/PageLoader";
 import RouteErrorPage from "@/pages/RouteErrorPage";
 import { PERMISSIONS } from "@/utils/permissionKeys";
@@ -8,6 +8,7 @@ import {
   PermissionGate,
   PortalRoute,
   ProtectedRoute,
+  StaffHome,
   StaffRoute,
 } from "./guards";
 
@@ -171,11 +172,44 @@ export const router = createBrowserRouter([
             element: <StaffRoute />,
             children: [
               {
+                // Qabulxona QR ekrani — menyusiz, to'liq ekran (planshet/monitor)
+                element: (
+                  <PermissionGate permission={PERMISSIONS.STAFF_ATTENDANCE_DISPLAY} />
+                ),
+                children: [
+                  {
+                    path: "reception-qr",
+                    lazy: lazyComponent(
+                      () => import("@/pages/staff-attendance/ReceptionQrPage"),
+                    ),
+                  },
+                ],
+              },
+              {
                 lazy: lazyComponent(() => import("@/layouts/AppLayout")),
                 children: [
                   {
                     index: true,
-                    element: <Navigate to="/dashboard" replace />,
+                    element: <StaffHome />,
+                  },
+                  {
+                    path: "my-attendance",
+                    lazy: lazyComponent(
+                      () => import("@/pages/staff-attendance/MyAttendancePage"),
+                    ),
+                  },
+                  {
+                    element: (
+                      <PermissionGate permission={PERMISSIONS.STAFF_ATTENDANCE_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "staff-attendance",
+                        lazy: lazyComponent(
+                          () => import("@/pages/staff-attendance/StaffAttendancePage"),
+                        ),
+                      },
+                    ],
                   },
                   {
                     path: "profile",

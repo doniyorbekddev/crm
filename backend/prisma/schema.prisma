@@ -229,6 +229,8 @@ enum NotificationType {
   RISK_INCREASED
   /// Vazifa: biriktirildi, izoh qoldirildi, muddati o'tib rahbarga ko'tarildi (CRM 4.0, 2-faza)
   TASK_UPDATE
+  /// Xodim davomati: keldi/ketdi tasdig'i, kechikish, chiqish belgilanmagan, ruxsat so'rovi
+  STAFF_ATTENDANCE
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.
@@ -383,6 +385,14 @@ model User {
   approvalsRequested     ApprovalRequest[] @relation("ApprovalRequestedBy")
   approvalsDecided       ApprovalRequest[] @relation("ApprovalDecidedBy")
   automationRulesCreated AutomationRule[]  @relation("AutomationCreatedBy")
+
+  // Xodim davomati (QR)
+  staffSchedules          StaffWorkSchedule[]         @relation("StaffScheduleUser")
+  staffScheduleExceptions StaffScheduleException[]    @relation("StaffExceptionUser")
+  staffAttendanceDays     StaffAttendanceDay[]        @relation("StaffDayUser")
+  staffPermissionRequests StaffPermissionRequest[]    @relation("StaffRequestUser")
+  staffRequestsDecided    StaffPermissionRequest[]    @relation("StaffRequestDecidedBy")
+  staffCorrectionsMade    StaffAttendanceCorrection[] @relation("StaffCorrectionBy")
 
   @@index([branchId])
   @@index([roleId])
@@ -4174,4 +4184,236 @@ model ApprovalRequest {
   @@index([status, createdAt])
   @@index([branchId, status])
   @@map("approval_requests")
+}
+
+// =====================================================================
+// XODIM DAVOMATI (QR)
+// Xodim o'z CRM hisobi bilan qabulxonadagi dinamik QR'ni skanerlaydi. Hodisalar (keldi, tanaffus,
+// ketdi) o'zgarmaydi — tuzatish asl hodisani bekor qilib, yangisini sabab bilan qo'shadi.
+// Maoshga hech qanday ta'siri yo'q: faqat ma'lumot uchun.
+// =====================================================================
+
+/// Ish jadvali turi: belgilangan soatlar yoki o'qituvchining dars jadvali
+enum StaffScheduleMode {
+  FIXED
+  LESSONS
+}
+
+enum StaffAttendanceEventType {
+  CHECK_IN
+  BREAK_START
+  BREAK_END
+  CHECK_OUT
+}
+
+enum StaffAttendanceEventSource {
+  QR
+  CORRECTION
+}
+
+/// Kun holati (hodisalardan hisoblanadi, tez o'qish uchun saqlanadi)
+enum StaffWorkPhase {
+  WORKING
+  ON_BREAK
+  CHECKED_OUT
+}
+
+enum StaffScheduleExceptionType {
+  /// Shu kuni ishlamaydi
+  DAY_OFF
+  /// Shu kuni boshqa soatlarda ishlaydi
+  CUSTOM_HOURS
+}
+
+/// Ruxsat so'rovi turi
+enum StaffPermissionType {
+  /// Kun(lar) davomida kelmaydi
+  ABSENCE
+  /// Kechroq keladi (`time` gacha)
+  LATE_ARRIVAL
+  /// Ertaroq ketadi (`time` dan)
+  EARLY_LEAVE
+}
+
+/// Xodimning ish jadvali. Har o'zgarish yangi versiya (`effectiveFrom`) — o'tgan kunlar eski jadval bilan baholanadi.
+model StaffWorkSchedule {
+  id                 String            @id @default(cuid())
+  userId             String
+  mode               StaffScheduleMode @default(FIXED)
+  /// FIXED: ish kunlari (LESSONS rejimida dars kunlari guruhlardan olinadi)
+  workDays           WeekDay[]
+  /// "HH:mm" — FIXED rejimida majburiy
+  startTime          String?           @db.VarChar(5)
+  endTime            String?           @db.VarChar(5)
+  /// Rejadagi tanaffus, daqiqa (ish vaqtidan ayiriladi)
+  breakMinutes       Int               @default(0) @db.SmallInt
+  /// Kechikish hisoblanmaydigan daqiqalar
+  graceMinutes       Int               @default(10) @db.SmallInt
+  /// Ish boshlanganidan shuncha daqiqa o'tib kelmagan bo'lsa — "Kelmagan"
+  absentAfterMinutes Int               @default(120) @db.SmallInt
+  /// LESSONS: birinchi darsdan necha daqiqa oldin kelishi kerak
+  lessonLeadMinutes  Int               @default(15) @db.SmallInt
+  effectiveFrom      DateTime          @db.Date
+  note               String?           @db.VarChar(255)
+  createdById        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  user User @relation("StaffScheduleUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, effectiveFrom])
+  @@map("staff_work_schedules")
+}
+
+/// Markaz bo'yicha dam olish (bayram) kunlari
+model StaffHoliday {
+  id          String   @id @default(cuid())
+  date        DateTime @unique @db.Date
+  name        String   @db.VarChar(100)
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@map("staff_holidays")
+}
+
+/// Bitta xodimning bitta kundagi vaqtinchalik o'zgarishi (dam olish yoki boshqa soatlar)
+model StaffScheduleException {
+  id          String                     @id @default(cuid())
+  userId      String
+  date        DateTime                   @db.Date
+  type        StaffScheduleExceptionType
+  startTime   String?                    @db.VarChar(5)
+  endTime     String?                    @db.VarChar(5)
+  reason      String                     @db.VarChar(255)
+  createdById String?
+  createdAt   DateTime                   @default(now())
+
+  user User @relation("StaffExceptionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+  @@map("staff_schedule_exceptions")
+}
+
+/// Xodimning bir ish kuni. Qiymatlar hodisalardan hisoblanadi; chiqish belgilanmasa — o'ylab topilmaydi, tekshiruvga tushadi.
+model StaffAttendanceDay {
+  id                        String          @id @default(cuid())
+  userId                    String
+  /// O'quv markaz (Asia/Tashkent) sanasi
+  date                      DateTime        @db.Date
+  branchId                  String          @default("branch_main")
+  phase                     StaffWorkPhase?
+  checkInAt                 DateTime?
+  checkOutAt                DateTime?
+  /// Yopilgan tanaffuslar jami, soniya
+  breakSeconds              Int             @default(0)
+  /// Davom etayotgan tanaffus boshlanishi
+  breakStartedAt            DateTime?
+  lateNotifiedAt            DateTime?
+  missingCheckoutNotifiedAt DateTime?
+  absenceNotifiedAt         DateTime?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  user        User                        @relation("StaffDayUser", fields: [userId], references: [id], onDelete: Restrict)
+  events      StaffAttendanceEvent[]
+  corrections StaffAttendanceCorrection[]
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([phase])
+  @@map("staff_attendance_days")
+}
+
+/// Davomat hodisasi. O'zgartirilmaydi va o'chirilmaydi: tuzatishda `voidedAt` qo'yiladi va yangi hodisa qo'shiladi.
+model StaffAttendanceEvent {
+  id           String                     @id @default(cuid())
+  dayId        String
+  userId       String
+  type         StaffAttendanceEventType
+  /// Server vaqti (QR) yoki tuzatishda rahbar kiritgan vaqt
+  occurredAt   DateTime
+  source       StaffAttendanceEventSource
+  /// Bir QR token — ko'pi bilan bitta hodisa
+  qrTokenId    String?                    @unique
+  correctionId String?
+  voidedAt     DateTime?
+  voidedById   String?
+  /// Bekor qilgan tuzatish
+  voidedByCorrectionId String?
+  ip           String?                    @db.VarChar(64)
+  userAgent    String?                    @db.VarChar(500)
+  createdAt    DateTime                   @default(now())
+
+  day        StaffAttendanceDay         @relation(fields: [dayId], references: [id], onDelete: Restrict)
+  qrToken    StaffQrToken?              @relation(fields: [qrTokenId], references: [id], onDelete: SetNull)
+  correction StaffAttendanceCorrection? @relation("CorrectionAddedEvents", fields: [correctionId], references: [id], onDelete: SetNull)
+
+  @@index([dayId, occurredAt])
+  @@index([userId, occurredAt])
+  @@map("staff_attendance_events")
+}
+
+/// Rahbar tuzatishi — o'zgarmas tarix: asl holat, yangi holat, sabab, kim va qachon
+model StaffAttendanceCorrection {
+  id          String   @id @default(cuid())
+  dayId       String
+  createdById String?
+  reason      String   @db.VarChar(255)
+  /// Tuzatishdan oldingi va keyingi hodisalar ro'yxati
+  before      Json
+  after       Json
+  createdAt   DateTime @default(now())
+
+  day       StaffAttendanceDay     @relation(fields: [dayId], references: [id], onDelete: Restrict)
+  createdBy User?                  @relation("StaffCorrectionBy", fields: [createdById], references: [id], onDelete: SetNull)
+  events    StaffAttendanceEvent[] @relation("CorrectionAddedEvents")
+
+  @@index([dayId, createdAt])
+  @@map("staff_attendance_corrections")
+}
+
+/// Qabulxona QR tokeni. Tokenning o'zi saqlanmaydi — faqat SHA-256 hash. Qisqa muddatli va bir martalik.
+model StaffQrToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique @db.VarChar(64)
+  branchId    String    @default("branch_main")
+  /// QR ekranini ochgan hisob (qabulxona qurilmasi yoki administrator)
+  issuedById  String?
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedById    String?
+  createdAt   DateTime  @default(now())
+
+  events StaffAttendanceEvent[]
+
+  @@index([expiresAt])
+  @@map("staff_qr_tokens")
+}
+
+/// Xodimning ruxsat so'rovi (kelmaslik, kech kelish, erta ketish). Tasdiqlangani davomatda "sababli" bo'ladi.
+model StaffPermissionRequest {
+  id           String              @id @default(cuid())
+  userId       String
+  type         StaffPermissionType
+  startDate    DateTime            @db.Date
+  endDate      DateTime            @db.Date
+  /// LATE_ARRIVAL: shu vaqtgacha keladi; EARLY_LEAVE: shu vaqtdan ketadi ("HH:mm")
+  time         String?             @db.VarChar(5)
+  reason       String              @db.VarChar(255)
+  status       LeaveStatus         @default(PENDING)
+  requestedById String?
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?             @db.VarChar(255)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  user      User  @relation("StaffRequestUser", fields: [userId], references: [id], onDelete: Restrict)
+  decidedBy User? @relation("StaffRequestDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, startDate])
+  @@index([status, startDate])
+  @@map("staff_permission_requests")
 }

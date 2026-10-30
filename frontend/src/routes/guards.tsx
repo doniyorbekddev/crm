@@ -80,3 +80,13 @@ export function PermissionGate({ permission }: { permission: string | readonly s
   const allowed = usePermission(permission);
   return allowed ? <Outlet /> : <ForbiddenState />;
 }
+
+/**
+ * Bosh sahifa: odatda dashboard. Qabulxona qurilmasi hisobi (faqat QR ekran ruxsati, dashboard yo'q)
+ * to'g'ridan-to'g'ri QR ekranga tushadi — planshetda har safar menyu kezmaslik uchun.
+ */
+export function StaffHome() {
+  const canDashboard = usePermission(PERMISSIONS.DASHBOARD_VIEW);
+  const canDisplay = usePermission(PERMISSIONS.STAFF_ATTENDANCE_DISPLAY);
+  return <Navigate to={!canDashboard && canDisplay ? '/reception-qr' : '/dashboard'} replace />;
+}

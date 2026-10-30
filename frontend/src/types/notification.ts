@@ -25,6 +25,7 @@ export type NotificationType =
   | 'ATTENDANCE_LATE'
   | 'RISK_INCREASED'
   | 'TASK_UPDATE'
+  | 'STAFF_ATTENDANCE'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';

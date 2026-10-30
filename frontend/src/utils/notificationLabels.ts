@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Fingerprint,
   Award,
   BadgeCheck,
   BookOpen,
@@ -50,6 +51,7 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'ATTENDANCE_LATE',
   'RISK_INCREASED',
   'TASK_UPDATE',
+  'STAFF_ATTENDANCE',
   'SYSTEM',
 ];
 
@@ -75,6 +77,7 @@ export const NOTIFICATION_TYPE_CATEGORY: Record<NotificationType, NotificationCa
   ATTENDANCE_LATE: 'ATTENDANCE',
   RISK_INCREASED: 'ATTENDANCE',
   TASK_UPDATE: 'SYSTEM',
+  STAFF_ATTENDANCE: 'SYSTEM',
   NEW_PAYMENT: 'PAYMENT',
   DEBT_REMINDER: 'PAYMENT',
   PAYMENT_DUE_SOON: 'PAYMENT',
@@ -127,6 +130,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   ATTENDANCE_LATE: 'Darsga kechikdi',
   RISK_INCREASED: 'O‘quvchi xavfi oshdi',
   TASK_UPDATE: 'Vazifa',
+  STAFF_ATTENDANCE: 'Xodim davomati',
   SYSTEM: 'Tizim',
 };
 
@@ -157,6 +161,7 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   ATTENDANCE_LATE: CalendarX,
   RISK_INCREASED: AlertTriangle,
   TASK_UPDATE: ListTodo,
+  STAFF_ATTENDANCE: Fingerprint,
   SYSTEM: Info,
 };
 
@@ -184,6 +189,7 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   ATTENDANCE_LATE: 'bg-warning-subtle text-warning',
   RISK_INCREASED: 'bg-danger-subtle text-danger',
   TASK_UPDATE: 'bg-info-subtle text-info',
+  STAFF_ATTENDANCE: 'bg-primary-subtle text-primary',
   DEBT_REMINDER: 'bg-danger-subtle text-danger',
   TRIAL_LESSON_REMINDER: 'bg-warning-subtle text-warning',
   EXPENSE_APPROVAL: 'bg-warning-subtle text-warning',

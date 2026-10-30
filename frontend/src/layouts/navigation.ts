@@ -1,4 +1,4 @@
-import { Activity, BadgePercent, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
+import { Activity, BadgePercent, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -30,6 +30,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/executive', label: 'Direktor paneli', icon: Gauge, permission: PERMISSIONS.ANALYTICS_VIEW },
       { to: '/alerts', label: 'Ogohlantirishlar', icon: Siren, permission: PERMISSIONS.ALERT_VIEW },
       { to: '/my-work', label: 'Ishlarim', icon: Inbox },
+      { to: '/my-attendance', label: 'Davomatim', icon: Fingerprint },
       { to: '/tasks', label: 'Vazifalar', icon: ListTodo },
     ],
   },
@@ -83,6 +84,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/teachers', label: 'O‘qituvchilar', icon: UserCog, permission: PERMISSIONS.TEACHER_VIEW },
       { to: '/parents', label: 'Ota-onalar', icon: UsersRound, permission: PERMISSIONS.PARENT_VIEW },
       { to: '/employees', label: 'Xodimlar', icon: IdCard, permission: PERMISSIONS.EMPLOYEE_VIEW },
+      { to: '/staff-attendance', label: 'Xodimlar davomati', icon: ScanLine, permission: PERMISSIONS.STAFF_ATTENDANCE_VIEW },
       { to: '/feedback', label: 'Fikr-mulohaza', icon: MessageSquareHeart, permission: PERMISSIONS.FEEDBACK_VIEW },
     ],
   },
