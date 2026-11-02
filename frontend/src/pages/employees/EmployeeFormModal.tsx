@@ -21,6 +21,7 @@ import { applyFieldErrors } from '@/lib/forms';
 import { queryKeys } from '@/lib/queryKeys';
 import { nameField, optionalPhoneField } from '@/lib/validation';
 import { employeesService } from '@/services/employees.service';
+import { orgService } from '@/services/org.service';
 import type { Employee, EmployeePayload } from '@/types/employee';
 import { EMPLOYEE_POSITION_LABELS, EMPLOYEE_POSITION_ORDER, EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_ORDER } from '@/utils/employeeLabels';
 
@@ -35,6 +36,8 @@ const schema = z
     hireDate: z.string().min(1, 'Ishga kirgan sanani kiriting'),
     status: z.enum(EMPLOYEE_STATUS_ORDER),
     terminationDate: z.string(),
+    probationEndDate: z.string(),
+    managerId: z.string(),
     userId: z.string(),
     note: z.string().trim().max(500, 'Izoh juda uzun'),
     email: z.string().trim().refine((value) => value === '' || z.email().safeParse(value).success, 'Email noto‘g‘ri formatda'),
@@ -51,6 +54,10 @@ const schema = z
   .refine((values) => values.contractEndDate === '' || values.contractStartDate === '' || values.contractEndDate >= values.contractStartDate, {
     path: ['contractEndDate'],
     message: 'Tugash sanasi boshlanishdan keyin bo‘lsin',
+  })
+  .refine((values) => values.probationEndDate === '' || values.probationEndDate >= values.hireDate, {
+    path: ['probationEndDate'],
+    message: 'Sinov muddati ishga kirgan sanadan keyin tugaydi',
   })
   .refine((values) => values.status !== 'RESIGNED' || values.terminationDate !== '', {
     path: ['terminationDate'],
@@ -70,6 +77,9 @@ function toPayload(values: FormValues, includeSalary: boolean, includeSensitive:
     hireDate: values.hireDate,
     status: values.status,
     terminationDate: values.terminationDate || null,
+    // Bo'shatilsa — null yuboriladi va server tozalaydi
+    probationEndDate: values.probationEndDate || null,
+    managerId: values.managerId || null,
     note: values.note || null,
     userId: values.userId || null,
     email: values.email || null,
@@ -107,6 +117,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
   const [formError, setFormError] = useState<string | null>(null);
 
   const candidatesQuery = useQuery({ queryKey: queryKeys.employees.candidates, queryFn: employeesService.candidates });
+  const peopleQuery = useQuery({ queryKey: queryKeys.org.people, queryFn: orgService.people, staleTime: 60_000 });
 
   const {
     register,
@@ -127,6 +138,8 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
       hireDate: employee?.hireDate ?? new Date().toISOString().slice(0, 10),
       status: employee?.status ?? 'ACTIVE',
       terminationDate: employee?.terminationDate ?? '',
+      probationEndDate: employee?.probationEndDate ?? '',
+      managerId: employee?.manager?.id ?? '',
       userId: employee?.user?.id ?? '',
       note: employee?.note ?? '',
       email: employee?.email ?? '',
@@ -157,7 +170,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'position', 'positionTitle', 'baseSalary', 'hireDate', 'terminationDate', 'userId'])) {
+      if (!applyFieldErrors(error, setError, ['firstName', 'lastName', 'phone', 'position', 'positionTitle', 'baseSalary', 'hireDate', 'terminationDate', 'probationEndDate', 'managerId', 'userId'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -260,6 +273,25 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
               <Input id="employee-terminationDate" type="date" invalid={Boolean(errors.terminationDate)} {...register('terminationDate')} />
             </FormField>
           )}
+          <FormField label="Sinov muddati tugaydi" htmlFor="employee-probationEndDate" error={errors.probationEndDate?.message} hint="Oddiy xodim — 1 oy, rahbar — 3 oy">
+            <Input id="employee-probationEndDate" type="date" invalid={Boolean(errors.probationEndDate)} {...register('probationEndDate')} />
+          </FormField>
+          <FormField label="Kimga hisobot beradi" htmlFor="employee-managerId" error={errors.managerId?.message} hint="Tanlanmasa — markaz rahbariga">
+            <Select id="employee-managerId" {...register('managerId')}>
+              <option value="">Markaz rahbari (CEO)</option>
+              {[
+                // Hozirgi rahbar ro'yxatda bo'lmasa ham (masalan, nofaol) — saqlashda tasodifan o'chib ketmasin
+                ...(employee?.manager && !(peopleQuery.data ?? []).some((person) => person.id === employee.manager?.id) ? [{ ...employee.manager, roleName: 'hozirgi' }] : []),
+                ...(peopleQuery.data ?? []),
+              ]
+                .filter((person) => person.id !== employee?.user?.id)
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.firstName} {person.lastName} · {person.roleName}
+                  </option>
+                ))}
+            </Select>
+          </FormField>
           <FormField label="Tizim akkaunti" htmlFor="employee-userId" error={errors.userId?.message} hint="Ixtiyoriy — maosh xabarlari shu akkauntga boradi">
             <Select id="employee-userId" {...register('userId')}>
               <option value="">Bog‘lanmagan</option>

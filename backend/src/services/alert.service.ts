@@ -231,7 +231,7 @@ function linkFor(entityType: string | null, entityId: string | null): string | n
  */
 async function openTaskCounts(alertIds: string[]): Promise<Map<string, number>> {
   if (alertIds.length === 0) return new Map();
-  const rows = await prisma.task.groupBy({ by: ['alertId'], where: { alertId: { in: alertIds }, status: 'OPEN' }, _count: { _all: true } });
+  const rows = await prisma.task.groupBy({ by: ['alertId'], where: { alertId: { in: alertIds }, status: { in: ['OPEN', 'IN_PROGRESS', 'REVIEW'] } }, _count: { _all: true } });
   return new Map(rows.filter((row) => row.alertId !== null).map((row) => [row.alertId!, row._count._all]));
 }
 

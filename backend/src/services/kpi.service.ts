@@ -376,10 +376,14 @@ async function taskCompletion(db: Db, userId: string, year: number, month: numbe
   const { start, end } = businessMonthRange(year, month);
   const tasks = await db.task.findMany({
     where: { assigneeId: userId, dueAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } },
-    select: { status: true, dueAt: true, completedAt: true },
+    select: { status: true, dueAt: true, completedAt: true, submittedAt: true },
   });
   if (tasks.length === 0) return { actual: null, basis: 'Muddati shu oyda bo‘lgan vazifa yo‘q' };
-  const onTime = tasks.filter((task) => task.status === 'DONE' && task.completedAt && task.dueAt && task.completedAt <= task.dueAt).length;
+  // Tekshiruvli vazifada ijrochining vaqti — topshirgan payti (qabul qiluvchining kechikishi unga yozilmaydi)
+  const onTime = tasks.filter((task) => {
+    const finishedAt = task.submittedAt ?? task.completedAt;
+    return task.status === 'DONE' && finishedAt && task.dueAt && finishedAt <= task.dueAt;
+  }).length;
   return { actual: percent(onTime, tasks.length), basis: `${formatCount(onTime)} / ${formatCount(tasks.length)} vazifa` };
 }
 

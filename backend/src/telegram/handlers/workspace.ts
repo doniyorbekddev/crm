@@ -187,6 +187,7 @@ const STAFF_TYPES: ReadonlyArray<{ type: NotificationType; label: string; permis
   { type: 'RISK_INCREASED', label: 'O‘quvchi xavfi oshdi', permission: PERMISSIONS.ATTENDANCE_MARK },
   { type: 'TASK_UPDATE', label: 'Vazifalar', permission: PERMISSIONS.TASK_CREATE },
   { type: 'STAFF_ATTENDANCE', label: 'Xodim davomati', permission: null },
+  { type: 'HR_UPDATE', label: 'Jamoa va HR', permission: null },
   { type: 'NEGATIVE_FEEDBACK', label: 'Past baholi fikr', permission: PERMISSIONS.FEEDBACK_VIEW },
   { type: 'EXPENSE_APPROVAL', label: 'Xarajat tasdig‘i', permission: PERMISSIONS.EXPENSE_APPROVE },
   { type: 'DAILY_DIGEST', label: 'Kunlik xulosa', permission: PERMISSIONS.DASHBOARD_VIEW },

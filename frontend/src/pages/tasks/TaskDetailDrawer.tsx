@@ -14,7 +14,9 @@ import { getErrorMessage } from '@/lib/api';
 import { taskService } from '@/services/task.service';
 import { formatDateTime } from '@/utils/format';
 import { TaskFormModal } from './TaskFormModal';
-import { TASK_PRIORITY_LABELS, TASK_PRIORITY_TONES, TASK_SOURCE_LABELS, TASK_STATUS_LABELS, personName } from './taskLabels';
+import { useAuthStore } from '@/store/auth.store';
+import type { TaskDetail, TaskStatus } from '@/types/task';
+import { TASK_PRIORITY_LABELS, TASK_PRIORITY_TONES, TASK_SOURCE_LABELS, isWorking, personName, taskStatusBadge } from './taskLabels';
 
 interface TaskDetailDrawerProps {
   taskId: string | null;
@@ -67,11 +69,17 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
       ) : task ? (
         <div className="space-y-5">
           <div className="flex flex-wrap gap-2">
-            <Badge tone={task.status === 'OPEN' ? (task.overdue ? 'red' : 'blue') : task.status === 'DONE' ? 'green' : 'gray'}>{task.overdue ? 'Muddati o‘tgan' : TASK_STATUS_LABELS[task.status]}</Badge>
+            <Badge tone={taskStatusBadge(task).tone}>{taskStatusBadge(task).label}</Badge>
             <Badge tone={TASK_PRIORITY_TONES[task.priority]}>{TASK_PRIORITY_LABELS[task.priority]}</Badge>
             <Badge tone="gray">{TASK_SOURCE_LABELS[task.source]}</Badge>
           </div>
           {task.description && <p className="whitespace-pre-line text-body text-fg-muted">{task.description}</p>}
+          {task.expectedResult && (
+            <div className="rounded-md border border-border p-3">
+              <p className="text-caption text-fg-subtle">Kutilgan natija</p>
+              <p className="mt-1 whitespace-pre-line text-body text-fg">{task.expectedResult}</p>
+            </div>
+          )}
           <dl className="grid grid-cols-2 gap-3 text-body">
             <div>
               <dt className="text-caption text-fg-subtle">Ijrochi</dt>
@@ -89,8 +97,15 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
               <dt className="text-caption text-fg-subtle">Yaratilgan</dt>
               <dd className="text-fg">{formatDateTime(task.createdAt)}</dd>
             </div>
+            {task.submittedAt && (
+              <div>
+                <dt className="text-caption text-fg-subtle">Topshirilgan</dt>
+                <dd className="text-fg">{formatDateTime(task.submittedAt)}</dd>
+              </div>
+            )}
           </dl>
-          {task.can.edit && task.status === 'OPEN' && (
+          <StatusActions task={task} onDone={refresh} />
+          {task.can.edit && isWorking(task.status) && (
             <div>
               <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
                 Tahrirlash
@@ -103,7 +118,7 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
             </Link>
           )}
 
-          {task.can.assign && task.status === 'OPEN' && (
+          {task.can.assign && isWorking(task.status) && (
             <section aria-label="Qayta biriktirish" className="flex items-end gap-2">
               <Select aria-label="Yangi ijrochi" wrapperClassName="flex-1" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
                 <option value="">Boshqa xodimga biriktirish…</option>
@@ -165,5 +180,78 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
       ) : null}
       {editing && task && <TaskFormModal open task={task} canAssign={false} onClose={() => setEditing(false)} />}
     </Drawer>
+  );
+}
+
+/**
+ * Holat tugmalari: ijrochi — boshlash va topshirish (yoki o'z vazifasini yopish); bergan xodim yoki rahbar —
+ * qabul qilish, izoh bilan qaytarish, bekor qilish va qayta ochish. Server qoidani baribir tekshiradi.
+ */
+function StatusActions({ task, onDone }: { task: TaskDetail; onDone: () => void }) {
+  const userId = useAuthStore((state) => state.user?.id);
+  const [note, setNote] = useState('');
+  const [returning, setReturning] = useState(false);
+  const change = useMutation({
+    mutationFn: ({ status, comment }: { status: TaskStatus; comment?: string }) => taskService.setStatus(task.id, status, comment),
+    onSuccess: (result) => {
+      toast.success(result.message);
+      setNote('');
+      setReturning(false);
+      onDone();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+  const mine = task.assignee.id === userId;
+  const decides = !task.needsReview || (task.can.edit && !mine);
+  const run = (status: TaskStatus, comment?: string) => change.mutate({ status, ...(comment ? { comment } : {}) });
+
+  const buttons: Array<{ label: string; status: TaskStatus; variant?: 'secondary' | 'ghost' }> = [];
+  if (isWorking(task.status) && task.can.changeStatus) {
+    if (mine && task.status === 'OPEN') buttons.push({ label: 'Boshlash', status: 'IN_PROGRESS', variant: 'secondary' });
+    if (mine && task.needsReview) buttons.push({ label: 'Tekshiruvga topshirish', status: 'REVIEW' });
+    else if (decides) buttons.push({ label: 'Bajarildi', status: 'DONE' });
+    if (decides) buttons.push({ label: 'Bekor qilish', status: 'CANCELLED', variant: 'ghost' });
+  }
+  if (task.status === 'REVIEW' && task.can.review) buttons.push({ label: 'Qabul qilish', status: 'DONE' });
+  if ((task.status === 'DONE' || task.status === 'CANCELLED') && decides && task.can.changeStatus) buttons.push({ label: 'Qayta ochish', status: 'OPEN', variant: 'secondary' });
+  const canReturn = task.status === 'REVIEW' && task.can.review;
+  if (buttons.length === 0 && !canReturn) {
+    return task.status === 'REVIEW' && mine ? <p className="text-caption text-fg-subtle">Tekshiruvga topshirilgan — vazifani bergan xodim qabul qiladi.</p> : null;
+  }
+
+  return (
+    <section aria-label="Holatni o‘zgartirish" className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {buttons.map((button) => (
+          <Button key={button.label} size="sm" variant={button.variant} loading={change.isPending && change.variables?.status === button.status} onClick={() => run(button.status)}>
+            {button.label}
+          </Button>
+        ))}
+        {canReturn && !returning && (
+          <Button size="sm" variant="secondary" onClick={() => setReturning(true)}>
+            Qaytarish
+          </Button>
+        )}
+      </div>
+      {returning && (
+        <form
+          className="space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (note.trim()) run('IN_PROGRESS', note.trim());
+          }}
+        >
+          <Textarea aria-label="Qaytarish sababi" rows={2} maxLength={1000} placeholder="Nima qayta ishlanishi kerak?" value={note} onChange={(event) => setNote(event.target.value)} autoFocus />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={!note.trim()} loading={change.isPending}>
+              Qaytarish
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setReturning(false)}>
+              Bekor
+            </Button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

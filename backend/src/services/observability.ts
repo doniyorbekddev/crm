@@ -17,7 +17,7 @@ registerGauge('crm_exam_attempts_in_progress', 'Hozir davom etayotgan onlayn imt
 ]);
 
 registerGauge('crm_tasks_open', 'Ochiq xodim ishlari (muddati o‘tganlar alohida)', async () => {
-  const [open, overdue] = await Promise.all([prisma.task.count({ where: { status: 'OPEN' } }), prisma.task.count({ where: { status: 'OPEN', dueAt: { lt: new Date() } } })]);
+  const [open, overdue] = await Promise.all([prisma.task.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'REVIEW'] } } }), prisma.task.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] }, dueAt: { lt: new Date() } } })]);
   return [
     { labels: { state: 'open' }, value: open },
     { labels: { state: 'overdue' }, value: overdue },

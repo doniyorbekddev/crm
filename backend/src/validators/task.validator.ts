@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 const priority = z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT'], 'Ustuvorlik noto‘g‘ri');
-const status = z.enum(['OPEN', 'DONE', 'CANCELLED'], 'Holat noto‘g‘ri');
+const status = z.enum(['OPEN', 'IN_PROGRESS', 'REVIEW', 'DONE', 'CANCELLED'], 'Holat noto‘g‘ri');
+const expectedResult = z.string().trim().max(1000, 'Kutilgan natija 1000 belgidan oshmasin');
 const title = z.string('Sarlavha majburiy').trim().min(2, 'Sarlavha kamida 2 belgi').max(200, 'Sarlavha 200 belgidan oshmasin');
 const description = z.string().trim().max(2000, 'Tavsif 2000 belgidan oshmasin');
 const dueAt = z.coerce.date('Muddat noto‘g‘ri');
@@ -23,6 +24,10 @@ export const taskListQuerySchema = z.object({
   priority: priority.optional(),
   assigneeId: z.string().trim().min(1).max(50).optional(),
   overdue: booleanFlag.optional(),
+  /** Faqat yopilmaganlar (Yangi, Jarayonda, Tekshiruvda) */
+  active: booleanFlag.optional(),
+  /** Men qabul qilishim kerak bo'lganlar (tekshiruvda, ijrochisi boshqa) */
+  review: booleanFlag.optional(),
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -32,6 +37,7 @@ export type TaskListQuery = z.infer<typeof taskListQuerySchema>;
 export const taskCreateSchema = z.object({
   title,
   description: description.optional(),
+  expectedResult: expectedResult.optional(),
   /** Berilmasa — o'zi uchun */
   assigneeId: z.string().trim().min(1).max(50).optional(),
   dueAt: dueAt.optional(),
@@ -48,10 +54,13 @@ export const taskUpdateSchema = z
     status: status.optional(),
     title: title.optional(),
     description: description.nullable().optional(),
+    expectedResult: expectedResult.nullable().optional(),
     dueAt: dueAt.nullable().optional(),
     priority: priority.optional(),
+    /** Holat o'zgarishiga izoh (masalan, tekshiruvdan qaytarish sababi) — vazifa izohlariga yoziladi */
+    note: z.string().trim().min(1).max(1000, 'Izoh 1000 belgidan oshmasin').optional(),
   })
-  .refine((value) => Object.values(value).some((field) => field !== undefined), 'O‘zgartiriladigan maydon yo‘q');
+  .refine((value) => Object.entries(value).some(([key, field]) => key !== 'note' && field !== undefined), 'O‘zgartiriladigan maydon yo‘q');
 export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>;
 
 export const taskAssignSchema = z.object({

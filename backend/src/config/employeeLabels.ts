@@ -9,6 +9,12 @@ export const EMPLOYEE_POSITION_LABELS: Record<EmployeePosition, string> = {
   CLEANER: 'Farrosh',
   SECURITY: 'Qo‘riqchi',
   OTHER: 'Boshqa',
+  RECEPTIONIST: 'Qabulxona / kassir',
+  MARKETING_MANAGER: 'Marketing menejeri',
+  CONTENT_CREATOR: 'Video kontent yaratuvchi',
+  OPERATIONS_MANAGER: 'Operatsion menejer',
+  STUDENT_SUCCESS_MANAGER: 'O‘quvchilar muvaffaqiyati menejeri',
+  ACADEMIC_COORDINATOR: 'Akademik koordinator',
 };
 
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {

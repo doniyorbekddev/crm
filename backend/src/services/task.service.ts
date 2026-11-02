@@ -22,7 +22,25 @@ import { taskNotificationButtons } from '../telegram/taskButtons.js';
  *  - `task.create` — vazifa yaratish (o'zi uchun); boshqaga berish va qayta biriktirish — `task.assign`;
  *  - holatni ijrochi, muallif yoki rahbar o'zgartiradi; matn/muddat/ustuvorlikni — muallif yoki rahbar.
  * Ko'ra olmaydigan vazifa uchun javob har doim 404 (mavjudligi oshkor qilinmaydi).
+ *
+ * Holatlar (ORG §3.7): Yangi (`OPEN`) → Jarayonda → Tekshiruvda → Bajarildi; muddati o'tgani — "Overdue" (hisoblanadi).
+ * Boshqa xodim bergan vazifani ijrochi o'zi yopmaydi — tekshiruvga topshiradi, muallif yoki rahbar qabul qiladi
+ * yoki izoh bilan qaytaradi. O'zi uchun yoki avtomatik yaratilgan vazifada tekshiruvchi yo'q — ijrochi to'g'ridan yopadi.
  */
+
+/** Hali yopilmagan holatlar */
+export const ACTIVE_TASK_STATUSES = ['OPEN', 'IN_PROGRESS', 'REVIEW'] as const satisfies readonly TaskStatus[];
+/** Ijrochi ishlayotgan holatlar — muddat va eskalatsiya shular bo'yicha */
+export const WORKING_TASK_STATUSES = ['OPEN', 'IN_PROGRESS'] as const satisfies readonly TaskStatus[];
+
+export function isActiveTask(status: TaskStatus): boolean {
+  return (ACTIVE_TASK_STATUSES as readonly TaskStatus[]).includes(status);
+}
+
+/** Muddati o'tgan: ijrochi hali ishlayapti va muddat o'tgan. Tekshiruvga topshirilgani — muddatida deb hisoblanadi */
+export function isTaskOverdue(task: { status: TaskStatus; dueAt: Date | null }, now: Date): boolean {
+  return (WORKING_TASK_STATUSES as readonly TaskStatus[]).includes(task.status) && task.dueAt !== null && task.dueAt < now;
+}
 
 type Tx = Prisma.TransactionClient;
 type Person = { id: string; firstName: string; lastName: string };
@@ -36,6 +54,10 @@ export interface TaskDto {
   source: TaskSource;
   dueAt: string | null;
   overdue: boolean;
+  expectedResult: string | null;
+  /** Boshqa xodim bergan — yopishdan oldin u (yoki rahbar) qabul qiladi */
+  needsReview: boolean;
+  submittedAt: string | null;
   link: string | null;
   entityType: string | null;
   entityId: string | null;
@@ -69,7 +91,7 @@ export interface TaskDetailDto extends TaskDto {
   comments: TaskCommentDto[];
   assignments: TaskAssignmentDto[];
   /** Joriy foydalanuvchi nima qila oladi — tugmalarni ko'rsatish uchun */
-  can: { edit: boolean; assign: boolean; changeStatus: boolean };
+  can: { edit: boolean; assign: boolean; changeStatus: boolean; review: boolean };
 }
 
 const person = { select: { id: true, firstName: true, lastName: true } } as const;
@@ -89,6 +111,8 @@ const taskSelect = {
   escalatedAt: true,
   createdAt: true,
   completedAt: true,
+  expectedResult: true,
+  submittedAt: true,
   assigneeId: true,
   createdById: true,
   assignee: { select: { id: true, firstName: true, lastName: true, branchId: true } },
@@ -125,7 +149,10 @@ function toDto(row: TaskRow, commentCount: number, now = new Date()): TaskDto {
     priority: row.priority,
     source: row.source,
     dueAt: row.dueAt?.toISOString() ?? null,
-    overdue: row.status === 'OPEN' && row.dueAt !== null && row.dueAt < now,
+    overdue: isTaskOverdue(row, now),
+    expectedResult: row.expectedResult,
+    needsReview: hasReviewer(row),
+    submittedAt: row.submittedAt?.toISOString() ?? null,
     link: row.link,
     entityType: row.entityType,
     entityId: row.entityId,
@@ -176,6 +203,11 @@ async function findVisible(actor: AuthUser, scope: Scope, id: string): Promise<T
   return row;
 }
 
+/** Tekshiruvchi bor: vazifani boshqa xodim bergan (o'zi uchun va avtomatik vazifalarda yo'q) */
+function hasReviewer(row: { createdById: string | null; assigneeId: string }): boolean {
+  return row.createdById !== null && row.createdById !== row.assigneeId;
+}
+
 function isManagerOf(row: TaskRow, scope: Scope): boolean {
   return scope.viewAll && (scope.access.canViewAll || row.assignee.branchId === scope.access.branchId);
 }
@@ -198,6 +230,62 @@ async function resolveAssignee(db: Tx | typeof prisma, scope: Scope, assigneeId:
 
 const PRIORITY_MARK: Record<TaskPriority, string> = { LOW: '', NORMAL: '', HIGH: '❗ ', URGENT: '🔥 ' };
 
+/**
+ * So'ralgan holatni qoidaga keltiradi.
+ *  - Tekshiruvchisi bor vazifada ijrochining "bajarildi"si — tekshiruvga topshirish (Telegram tugmasi va eski mijozlar shunday ishlaydi);
+ *  - qabul qilish, qaytarish, bekor qilish va qayta ochish — muallif yoki rahbar (o'z vazifasida — ijrochining o'zi);
+ *  - tekshiruvga faqat ijrochi topshiradi.
+ */
+function resolveStatus(task: TaskRow, requested: TaskStatus, who: { reviewer: boolean }): TaskStatus {
+  const reviewed = hasReviewer(task);
+  // Ijrochi o'z ishini o'zi qabul qilmaydi — hatto rahbar huquqi bo'lsa ham
+  const decides = who.reviewer || !reviewed;
+  if (requested === task.status) return requested;
+  if (requested === 'DONE') {
+    if (decides) return 'DONE';
+    if (task.status === 'REVIEW') throw AppError.unprocessable('Vazifa tekshiruvda — uni bergan xodim qabul qiladi');
+    if (!isActiveTask(task.status)) throw AppError.unprocessable('Vazifa yopilgan');
+    return 'REVIEW';
+  }
+  if (requested === 'REVIEW') {
+    if (!reviewed) throw AppError.unprocessable('Bu vazifada tekshiruvchi yo‘q — uni to‘g‘ridan-to‘g‘ri yopish mumkin');
+    if (!(WORKING_TASK_STATUSES as readonly TaskStatus[]).includes(task.status)) throw AppError.unprocessable('Faqat ochiq vazifa tekshiruvga topshiriladi');
+    return 'REVIEW';
+  }
+  if (requested === 'CANCELLED') {
+    if (!decides) throw AppError.forbidden('Vazifani faqat uni bergan xodim yoki rahbar bekor qiladi');
+    return 'CANCELLED';
+  }
+  // OPEN / IN_PROGRESS: tekshiruvdan qaytarish va yopilganini qayta ochish — qaror egasi
+  if ((task.status === 'REVIEW' || !isActiveTask(task.status)) && !decides) {
+    throw AppError.forbidden(task.status === 'REVIEW' ? 'Tekshiruvdagi vazifani uni bergan xodim qaytaradi' : 'Yopilgan vazifani uni bergan xodim qayta ochadi');
+  }
+  return requested;
+}
+
+/** Holat o'zgarganda kimga xabar boradi: topshirildi → muallifga; qabul qilindi / qaytarildi → ijrochiga */
+function statusNotice(
+  task: TaskRow,
+  next: TaskStatus,
+  actor: AuthUser,
+  note: string | undefined,
+): { userId: string; title: string; message: string } | null {
+  const suffix = note ? `: ${note.slice(0, 200)}` : '';
+  if (next === 'REVIEW' && task.createdById && task.createdById !== actor.id) {
+    return { userId: task.createdById, title: 'Vazifa tekshiruvga topshirildi', message: `${task.title} — ${fullName(actor)}${suffix}` };
+  }
+  if (next === 'DONE' && task.createdById && task.createdById !== actor.id) {
+    return { userId: task.createdById, title: 'Vazifa bajarildi', message: `${task.title} — ${fullName(actor)}` };
+  }
+  if (task.assigneeId === actor.id) return null;
+  if (next === 'DONE') return { userId: task.assigneeId, title: 'Vazifa qabul qilindi', message: `✅ ${task.title} — ${fullName(actor)}${suffix}` };
+  if (task.status === 'REVIEW' && (next === 'IN_PROGRESS' || next === 'OPEN')) {
+    return { userId: task.assigneeId, title: 'Vazifa qaytarildi', message: `↩️ ${task.title} — ${fullName(actor)}${suffix}` };
+  }
+  if (next === 'CANCELLED') return { userId: task.assigneeId, title: 'Vazifa bekor qilindi', message: `${task.title} — ${fullName(actor)}${suffix}` };
+  return null;
+}
+
 function fullName(user: { firstName: string; lastName: string }): string {
   return `${user.firstName} ${user.lastName}`.trim();
 }
@@ -213,7 +301,10 @@ export const taskService = {
     if (query.status) filters.push({ status: query.status });
     if (query.priority) filters.push({ priority: query.priority });
     if (query.assigneeId) filters.push({ assigneeId: query.assigneeId });
-    if (query.overdue) filters.push({ status: 'OPEN', dueAt: { lt: now } });
+    if (query.overdue) filters.push({ status: { in: [...WORKING_TASK_STATUSES] }, dueAt: { lt: now } });
+    if (query.active) filters.push({ status: { in: [...ACTIVE_TASK_STATUSES] } });
+    // Men tekshirishim kerak bo'lganlar: men bergan (yoki rahbar sifatida ko'radigan) va topshirilgan
+    if (query.review) filters.push({ status: 'REVIEW', NOT: { assigneeId: actor.id } });
     if (query.search) filters.push({ OR: [{ title: { contains: query.search, mode: 'insensitive' } }, { description: { contains: query.search, mode: 'insensitive' } }] });
     const where: Prisma.TaskWhereInput = { AND: filters };
 
@@ -227,7 +318,7 @@ export const taskService = {
         select: taskSelect,
       }),
       prisma.task.count({ where }),
-      prisma.task.count({ where: { AND: [owner, { status: 'OPEN' }] } }),
+      prisma.task.count({ where: { AND: [owner, { status: { in: [...ACTIVE_TASK_STATUSES] } }] } }),
     ]);
     const counts = await commentCounts(prisma, rows.map((row) => row.id));
     return { items: rows.map((row) => toDto(row, counts.get(row.id) ?? 0, now)), openCount, total, page: query.page, limit: query.limit };
@@ -250,7 +341,12 @@ export const taskService = {
       ...toDto(row, comments.length),
       comments: comments.map((comment) => ({ ...comment, createdAt: comment.createdAt.toISOString() })),
       assignments: assignments.map((item) => ({ id: item.id, from: item.fromUser, to: item.toUser, changedBy: item.changedBy, note: item.note, createdAt: item.createdAt.toISOString() })),
-      can: { edit: manager || author, assign: scope.canAssign && (manager || author), changeStatus: manager || author || row.assigneeId === actor.id },
+      can: {
+        edit: manager || author,
+        assign: scope.canAssign && (manager || author),
+        changeStatus: manager || author || row.assigneeId === actor.id,
+        review: row.status === 'REVIEW' && (manager || author) && row.assigneeId !== actor.id,
+      },
     };
   },
 
@@ -266,6 +362,7 @@ export const taskService = {
         data: {
           title: input.title,
           description: input.description ?? null,
+          expectedResult: input.expectedResult ?? null,
           assigneeId,
           dueAt: input.dueAt ?? null,
           priority: input.priority,
@@ -312,39 +409,61 @@ export const taskService = {
     const task = await findVisible(actor, scope, id);
     const manager = isManagerOf(task, scope);
     const author = task.createdById === actor.id;
-    const editsFields = input.title !== undefined || input.description !== undefined || input.dueAt !== undefined || input.priority !== undefined;
+    const editsFields =
+      input.title !== undefined || input.description !== undefined || input.dueAt !== undefined || input.priority !== undefined || input.expectedResult !== undefined;
     if (editsFields && !manager && !author) throw AppError.forbidden('Vazifani faqat uni bergan xodim yoki rahbar tahrirlaydi');
     if (input.status !== undefined && !manager && !author && task.assigneeId !== actor.id) throw AppError.forbidden('Bu vazifa holatini o‘zgartirishga ruxsat yo‘q');
+    const nextStatus = input.status === undefined ? undefined : resolveStatus(task, input.status, { reviewer: (manager || author) && task.assigneeId !== actor.id });
+    const statusChanges = nextStatus !== undefined && nextStatus !== task.status;
 
     const data: Prisma.TaskUpdateInput = {};
     if (input.title !== undefined) data.title = input.title;
     if (input.description !== undefined) data.description = input.description;
+    if (input.expectedResult !== undefined) data.expectedResult = input.expectedResult;
     if (input.dueAt !== undefined) {
       data.dueAt = input.dueAt;
       // Muddat surilsa — yangi muddat bo'yicha qayta eskalatsiya qilinishi mumkin
       data.escalatedAt = null;
     }
     if (input.priority !== undefined) data.priority = input.priority;
-    if (input.status !== undefined && input.status !== task.status) {
-      data.status = input.status;
-      data.completedAt = input.status === 'DONE' ? new Date() : null;
+    const changedAt = new Date();
+    if (statusChanges) {
+      const now = changedAt;
+      data.status = nextStatus;
+      data.completedAt = nextStatus === 'DONE' ? now : null;
+      // Topshirilgan vaqt qabul qilinganda ham saqlanadi (KPI "muddatida" shu bo'yicha); qaytarilsa yoki qayta ochilsa — tozalanadi
+      if (nextStatus === 'REVIEW') data.submittedAt = now;
+      else if (nextStatus !== 'DONE') data.submittedAt = null;
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      if (statusChanges) {
+        // Shartli yangilash: ikki kishi bir vaqtda holatni o'zgartirsa, ikkinchisi eski holat ustidan yozmaydi
+        const claimed = await tx.task.updateMany({ where: { id, status: task.status }, data: { status: nextStatus } });
+        if (claimed.count === 0) throw AppError.conflict('Vazifa hozirgina o‘zgartirildi — sahifani yangilang');
+      }
       const row = await tx.task.update({ where: { id }, data, select: taskSelect });
-      if (input.status !== undefined && input.status !== task.status) {
-        await auditService.recordInTransaction(tx, { userId: actor.id, action: 'task.status_changed', entityType: 'task', entityId: id, metadata: { from: task.status, to: input.status }, ...client });
-        // Topshiriq bergan xodim natijani bilsin (o'zi yopmagan bo'lsa)
-        if (input.status === 'DONE' && task.createdById && task.createdById !== actor.id) {
+      if (statusChanges) {
+        await auditService.recordInTransaction(tx, {
+          userId: actor.id,
+          action: 'task.status_changed',
+          entityType: 'task',
+          entityId: id,
+          metadata: { from: task.status, to: nextStatus, ...(input.note ? { note: input.note } : {}) },
+          ...client,
+        });
+        if (input.note) await tx.taskComment.create({ data: { taskId: id, authorId: actor.id, content: input.note } });
+        const notice = statusNotice(task, nextStatus, actor, input.note);
+        if (notice) {
           await notificationService.createInTransaction(tx, {
-            userId: task.createdById,
+            userId: notice.userId,
             type: 'TASK_UPDATE',
-            title: 'Vazifa bajarildi',
-            message: `${task.title} — ${fullName(actor)}`,
+            title: notice.title,
+            message: notice.message,
             entityType: 'task',
             entityId: id,
             actionUrl: '/tasks',
-            dedupeKey: `task:${id}:done:${row.completedAt?.getTime() ?? 0}`,
+            dedupeKey: `task:${id}:${nextStatus.toLowerCase()}:${notice.userId}:${changedAt.getTime()}`,
           });
         }
       }
@@ -354,8 +473,8 @@ export const taskService = {
           action: 'task.updated',
           entityType: 'task',
           entityId: id,
-          before: { title: task.title, description: task.description, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority },
-          after: { title: row.title, description: row.description, dueAt: row.dueAt?.toISOString() ?? null, priority: row.priority },
+          before: { title: task.title, description: task.description, expectedResult: task.expectedResult, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority },
+          after: { title: row.title, description: row.description, expectedResult: row.expectedResult, dueAt: row.dueAt?.toISOString() ?? null, priority: row.priority },
           ...client,
         });
       }
@@ -375,13 +494,16 @@ export const taskService = {
     if (!scope.canAssign) throw AppError.forbidden('Vazifani biriktirishga ruxsat yo‘q');
     const task = await findVisible(actor, scope, id);
     if (!isManagerOf(task, scope) && task.createdById !== actor.id) throw AppError.forbidden('Bu vazifani qayta biriktirishga ruxsat yo‘q');
-    if (task.status !== 'OPEN') throw AppError.unprocessable('Faqat ochiq vazifa qayta biriktiriladi');
+    if (!(WORKING_TASK_STATUSES as readonly TaskStatus[]).includes(task.status)) throw AppError.unprocessable('Faqat ochiq vazifa qayta biriktiriladi');
     if (task.assigneeId === input.assigneeId) throw AppError.unprocessable('Vazifa allaqachon shu xodimda');
 
     const updated = await prisma.$transaction(async (tx) => {
       const assignee = await resolveAssignee(tx, scope, input.assigneeId);
       // Shartli yangilash: ikki rahbar bir vaqtda biriktirsa, ikkinchisi eski holat ustidan yozmaydi
-      const claimed = await tx.task.updateMany({ where: { id, assigneeId: task.assigneeId, status: 'OPEN' }, data: { assigneeId: assignee.id, escalatedAt: null } });
+      const claimed = await tx.task.updateMany({
+        where: { id, assigneeId: task.assigneeId, status: { in: [...WORKING_TASK_STATUSES] } },
+        data: { assigneeId: assignee.id, escalatedAt: null },
+      });
       if (claimed.count === 0) throw AppError.conflict('Vazifa hozirgina o‘zgartirildi — sahifani yangilang');
       const record = await tx.taskAssignment.create({ data: { taskId: id, fromUserId: task.assigneeId, toUserId: assignee.id, changedById: actor.id, note: input.note ?? null }, select: { id: true } });
       if (assignee.id !== actor.id) {

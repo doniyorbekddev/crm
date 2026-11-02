@@ -36,6 +36,7 @@ export interface TeacherDto {
   specialization: string | null;
   experienceYears: number | null;
   hireDate: string | null;
+  probationEndDate: string | null;
   bio: string | null;
   isActive: boolean;
   /** HR holati: faol, ta’tilda, to‘xtatilgan, ishdan ketgan */
@@ -152,6 +153,7 @@ const profileSelect = {
   specialization: true,
   experienceYears: true,
   hireDate: true,
+  probationEndDate: true,
   bio: true,
   isActive: true,
   employmentStatus: true,
@@ -332,6 +334,7 @@ async function buildTeacherDtos(profiles: ProfileRecord[], reference: Date, sala
       specialization: profile.specialization,
       experienceYears: profile.experienceYears,
       hireDate: profile.hireDate ? toDateOnly(profile.hireDate) : null,
+      probationEndDate: profile.probationEndDate ? toDateOnly(profile.probationEndDate) : null,
       bio: profile.bio,
       isActive: profile.isActive,
       employmentStatus: profile.employmentStatus,
@@ -596,6 +599,7 @@ export const teacherService = {
           specialization: input.specialization ?? null,
           experienceYears: input.experienceYears ?? null,
           hireDate: input.hireDate ? new Date(`${input.hireDate}T00:00:00.000Z`) : null,
+          probationEndDate: input.probationEndDate ? new Date(`${input.probationEndDate}T00:00:00.000Z`) : null,
           bio: input.bio ?? null,
         },
         select: { id: true },
@@ -637,6 +641,11 @@ export const teacherService = {
             : profile.employmentStatus
           : 'RESIGNED');
     const hireDate = input.hireDate ? new Date(`${input.hireDate}T00:00:00.000Z`) : null;
+    const probationEndDate =
+      input.probationEndDate === undefined ? profile.probationEndDate : input.probationEndDate ? new Date(`${input.probationEndDate}T00:00:00.000Z`) : null;
+    if (probationEndDate && hireDate && probationEndDate < hireDate) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'probationEndDate', message: 'Sinov muddati ishga olingan sanadan keyin tugaydi' }]);
+    }
     let terminationDate: Date | null =
       input.terminationDate !== undefined
         ? new Date(`${input.terminationDate}T00:00:00.000Z`)
@@ -664,6 +673,7 @@ export const teacherService = {
           specialization: input.specialization ?? null,
           experienceYears: input.experienceYears ?? null,
           hireDate,
+          probationEndDate,
           bio: input.bio ?? null,
           employmentStatus: status,
           terminationDate,

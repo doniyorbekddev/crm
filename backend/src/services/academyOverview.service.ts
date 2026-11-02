@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { dateColumn } from '../utils/dates.js';
 import { llmAvailable } from './ai/llm.js';
 import { ALL_BRANCHES, type BranchScope, inBranch, viaGroup, viaStudent } from './branchScope.js';
 
@@ -72,7 +73,8 @@ export const academyOverviewService = {
       }),
       prisma.course.count({ where: { status: 'ACTIVE' } }),
       prisma.group.groupBy({ by: ['status'], where: { status: { in: ['ACTIVE', 'PLANNED'] }, ...inBranch(scope) }, _count: { _all: true } }),
-      prisma.attendance.groupBy({ by: ['status'], where: { date: { gte: since, lte: now }, student: activeStudent }, _count: { _all: true } }),
+      // `date` — o'quv markaz kuni (@db.Date): hozirgi vaqt bilan emas, bugungi markaz sanasi bilan solishtiriladi (aks holda 00:00–05:00 orasida bugungi davomat tushib qoladi)
+      prisma.attendance.groupBy({ by: ['status'], where: { date: { gte: dateColumn(since), lte: dateColumn(now) }, student: activeStudent }, _count: { _all: true } }),
       prisma.homework.count({ where: { status: 'PUBLISHED', deadline: { gte: now }, ...viaGroup(scope) } }),
       prisma.homeworkSubmission.groupBy({
         by: ['status'],

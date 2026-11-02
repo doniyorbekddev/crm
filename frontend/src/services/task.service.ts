@@ -24,13 +24,17 @@ export const taskService = {
     return { data: response.data.data, message: response.data.message };
   },
 
-  async update(id: string, payload: { title?: string; description?: string | null; dueAt?: string | null; priority?: TaskPriority; status?: TaskStatus }): Promise<MessageResult<TaskItem>> {
+  async update(
+    id: string,
+    payload: { title?: string; description?: string | null; expectedResult?: string | null; dueAt?: string | null; priority?: TaskPriority; status?: TaskStatus; note?: string },
+  ): Promise<MessageResult<TaskItem>> {
     const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 
-  async setStatus(id: string, status: TaskStatus): Promise<MessageResult<TaskItem>> {
-    const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, { status });
+  /** `note` — holat o'zgarishiga izoh (masalan, qaytarish sababi), vazifa izohlariga yoziladi */
+  async setStatus(id: string, status: TaskStatus, note?: string): Promise<MessageResult<TaskItem>> {
+    const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, note ? { status, note } : { status });
     return { data: response.data.data, message: response.data.message };
   },
 

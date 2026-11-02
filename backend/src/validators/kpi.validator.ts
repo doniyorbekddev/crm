@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { optionalField } from './common.validator.js';
+import { EMPLOYEE_POSITIONS } from './employee.validator.js';
 import { monthSchema, yearSchema } from './salary.validator.js';
 
 export const KPI_METRICS = [
@@ -12,7 +13,7 @@ export const KPI_METRICS = [
   'MANUAL',
 ] as const;
 
-export const EMPLOYEE_POSITIONS = ['ADMINISTRATOR', 'MANAGER', 'SALES_MANAGER', 'CALL_CENTER', 'ACCOUNTANT', 'CLEANER', 'SECURITY', 'OTHER'] as const;
+export { EMPLOYEE_POSITIONS };
 
 /** "2026-10-01" → UTC kun (@db.Date) */
 const dateOnly = z

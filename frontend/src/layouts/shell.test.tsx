@@ -83,11 +83,11 @@ beforeEach(() => {
 });
 
 describe('navigatsiya tuzilmasi', () => {
-  it('8 guruh; har marshrut bitta guruhda va takrorlanmaydi', () => {
-    expect(NAV_SECTIONS.map((section) => section.title)).toEqual(['Umumiy', 'Sotuv', 'O‘quv jarayoni', 'Moliya', 'Odamlar', 'Analitika', 'Avtomatlashtirish', 'Tizim']);
+  it('9 guruh; har marshrut bitta guruhda va takrorlanmaydi', () => {
+    expect(NAV_SECTIONS.map((section) => section.title)).toEqual(['Umumiy', 'Sotuv', 'O‘quv jarayoni', 'Moliya', 'Odamlar', 'Tashkilot', 'Analitika', 'Avtomatlashtirish', 'Tizim']);
     const routes = NAV_SECTIONS.flatMap((section) => section.items.map((item) => item.to));
-    expect(routes).toHaveLength(51);
-    expect(new Set(routes).size).toBe(51);
+    expect(routes).toHaveLength(52);
+    expect(new Set(routes).size).toBe(52);
     expect(new Set(NAV_SECTIONS.map((section) => section.id)).size).toBe(NAV_SECTIONS.length);
     for (const section of NAV_SECTIONS) expect(section.items.length, section.title).toBeLessThanOrEqual(10);
   });

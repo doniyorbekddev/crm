@@ -57,7 +57,7 @@ export const escalationService = {
         UPDATE "tasks" SET "escalatedAt" = ${now}
         WHERE "id" IN (
           SELECT "id" FROM "tasks"
-          WHERE "status" = 'OPEN' AND "escalatedAt" IS NULL AND "dueAt" < ${new Date(stamp - TASK_GRACE_HOURS * HOUR_MS)}
+          WHERE "status" IN ('OPEN', 'IN_PROGRESS') AND "escalatedAt" IS NULL AND "dueAt" < ${new Date(stamp - TASK_GRACE_HOURS * HOUR_MS)}
           ORDER BY "dueAt" ASC LIMIT ${BATCH} FOR UPDATE SKIP LOCKED
         )
         RETURNING "id"

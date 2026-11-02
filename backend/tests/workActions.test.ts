@@ -44,7 +44,11 @@ describe.skipIf(!hasTestDatabase)('Xabar → amal va eskalatsiya', () => {
     expect((await request(app).get('/api/alerts').query({ status: 'mine' }).set(bearer(accountant))).body.data).toHaveLength(1);
     expect((await request(app).get('/api/alerts').query({ status: 'mine' }).set(bearer(owner))).body.data).toHaveLength(0);
 
-    const done = await request(app).patch(`/api/tasks/${created.body.data.id}`).set(bearer(accountant)).send({ status: 'DONE' });
+    // Ijrochi topshiradi (vazifa hali ochiq — tekshiruvda), rahbar qabul qiladi
+    const submitted = await request(app).patch(`/api/tasks/${created.body.data.id}`).set(bearer(accountant)).send({ status: 'DONE' });
+    expect(submitted.body.data.status).toBe('REVIEW');
+    expect((await request(app).get('/api/alerts').set(bearer(owner))).body.data[0].openTasks).toBe(1);
+    const done = await request(app).patch(`/api/tasks/${created.body.data.id}`).set(bearer(owner)).send({ status: 'DONE' });
     expect(done.body.data.status).toBe('DONE');
     expect((await request(app).get('/api/alerts').set(bearer(owner))).body.data[0].openTasks).toBe(0);
 

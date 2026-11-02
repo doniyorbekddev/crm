@@ -278,6 +278,11 @@ export const queryKeys = {
     me: ['teachers', 'me'] as const,
     salaryRules: (id: string) => ['teachers', 'salary-rules', id] as const,
   },
+  org: {
+    all: ['org'] as const,
+    structure: ['org', 'structure'] as const,
+    people: ['org', 'people'] as const,
+  },
   employees: {
     all: ['employees'] as const,
     list: (params: EmployeeListParams) => ['employees', 'list', params] as const,

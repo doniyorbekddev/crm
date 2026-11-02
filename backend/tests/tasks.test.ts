@@ -70,13 +70,20 @@ describe.skipIf(!hasTestDatabase)('Vazifa 2.0', () => {
 
     // Ijrochi matnni tahrirlay olmaydi, holatni o'zgartira oladi
     expect((await request(app).patch(`/api/tasks/${id}`).set(bearer(teacher)).send({ title: 'Boshqa nom' })).status).toBe(403);
-    const done = await request(app).patch(`/api/tasks/${id}`).set(bearer(teacher)).send({ status: 'DONE' });
+    // ORG §3.7: boshqa xodim bergan vazifada ijrochining "bajarildi"si — tekshiruvga topshirish
+    const submitted = await request(app).patch(`/api/tasks/${id}`).set(bearer(teacher)).send({ status: 'DONE' });
+    expect(submitted.status).toBe(200);
+    expect(submitted.body).toMatchObject({ message: 'Tekshiruvga topshirildi', data: { status: 'REVIEW', overdue: false, completedAt: null } });
+    expect(submitted.body.data.submittedAt).not.toBeNull();
+    expect(await prisma.notification.findMany({ where: { userId: adminUser.id, type: 'TASK_UPDATE' }, select: { title: true } })).toEqual([{ title: 'Vazifa tekshiruvga topshirildi' }]);
+
+    // Rahbar qabul qiladi — ijrochi natijani biladi
+    const done = await request(app).patch(`/api/tasks/${id}`).set(bearer(admin)).send({ status: 'DONE' });
     expect(done.status).toBe(200);
     expect(done.body.data).toMatchObject({ status: 'DONE', overdue: false });
     expect(done.body.data.completedAt).not.toBeNull();
-
-    const toCreator = await prisma.notification.findMany({ where: { userId: adminUser.id, type: 'TASK_UPDATE' }, select: { title: true } });
-    expect(toCreator).toEqual([{ title: 'Vazifa bajarildi' }]);
+    expect(done.body.data.submittedAt).toBe(submitted.body.data.submittedAt);
+    expect(await prisma.notification.findMany({ where: { userId: teacherUser.id, title: 'Vazifa qabul qilindi' }, select: { title: true } })).toHaveLength(1);
   });
 
   it('doira: begona xodim ko‘rmaydi (404); `task.view_all` faqat o‘z filiali xodimlarinikini ko‘radi', async () => {
@@ -129,7 +136,7 @@ describe.skipIf(!hasTestDatabase)('Vazifa 2.0', () => {
       expect.objectContaining({ from: null, to: expect.objectContaining({ id: firstUser.id }), changedBy: expect.objectContaining({ id: adminUser.id }) }),
       expect.objectContaining({ from: expect.objectContaining({ id: firstUser.id }), to: expect.objectContaining({ id: secondUser.id }), note: 'Birinchi ta’tilda' }),
     ]);
-    expect(detail.body.data.can).toEqual({ edit: true, assign: true, changeStatus: true });
+    expect(detail.body.data.can).toEqual({ edit: true, assign: true, changeStatus: true, review: false });
     // Avvalgi ijrochi endi ko'rmaydi
     expect((await request(app).get(`/api/tasks/${id}`).set(bearer(first))).status).toBe(404);
     expect(await prisma.notification.count({ where: { userId: secondUser.id, title: 'Sizga vazifa biriktirildi' } })).toBe(1);

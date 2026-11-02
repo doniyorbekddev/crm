@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ClipboardList, MessageSquare, Plus, X } from 'lucide-react';
+import { Check, ClipboardList, MessageSquare, Play, Plus, Send, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,16 +16,19 @@ import { useCreateIntent } from '@/hooks/useCreateIntent';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/lib/api';
 import { taskService } from '@/services/task.service';
-import type { TaskPriority, TaskStatus } from '@/types/task';
+import type { TaskItem, TaskPriority, TaskStatus } from '@/types/task';
 import { formatDateTime } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { useAuthStore } from '@/store/auth.store';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { TaskFormModal } from './TaskFormModal';
-import { TASK_PRIORITY_LABELS, TASK_PRIORITY_TONES, TASK_STATUS_LABELS as STATUS_LABELS } from './taskLabels';
+import { TASK_PRIORITY_LABELS, TASK_PRIORITY_TONES, isWorking, taskStatusBadge } from './taskLabels';
 import { useInitialParam } from '@/hooks/useInitialParam';
 
 const PAGE_SIZE = 20;
 type Scope = 'mine' | 'created' | 'all';
+/** `active` — yopilmaganlar; `review` — men qabul qilishim kerak bo'lganlar */
+type StatusFilter = TaskStatus | 'active' | 'review' | '';
 
 /** Xodim vazifalari (CRM 4.0 "Vazifa 2.0"): qo'lda, avtomatlashtirish yoki ogohlantirishdan yaratilgan ishlar */
 export default function TasksPage() {
@@ -33,7 +36,8 @@ export default function TasksPage() {
   const canSeeAll = usePermission(PERMISSIONS.TASK_VIEW_ALL);
   const canCreate = usePermission(PERMISSIONS.TASK_CREATE);
   const canAssign = usePermission(PERMISSIONS.TASK_ASSIGN);
-  const [status, setStatus] = useState<TaskStatus | ''>('OPEN');
+  const userId = useAuthStore((state) => state.user?.id);
+  const [status, setStatus] = useState<StatusFilter>(useInitialParam<'review' | 'active'>('status', ['review', 'active'], 'active'));
   // Havola orqali kelganda: /tasks?scope=all&overdue=1 (ruxsat bo'lmasa server baribir o'zinikini qaytaradi)
   const [scope, setScope] = useState<Scope>(useInitialParam<Scope>('scope', ['mine', 'created', 'all'], 'mine'));
   const [overdueOnly, setOverdueOnly] = useState(useInitialParam<'1' | ''>('overdue', ['1'], '') === '1');
@@ -42,7 +46,15 @@ export default function TasksPage() {
   const [creating, setCreating] = useState(false);
   useCreateIntent(() => setCreating(true), canCreate);
   const [openId, setOpenId] = useState<string | null>(null);
-  const params = { ...(status ? { status } : {}), ...(priority ? { priority } : {}), ...(overdueOnly ? { overdue: true } : {}), scope, page, limit: PAGE_SIZE };
+  const params = {
+    ...(status === 'active' ? { active: true } : status === 'review' ? { review: true } : status ? { status } : {}),
+    ...(priority ? { priority } : {}),
+    ...(overdueOnly ? { overdue: true } : {}),
+    // Qabul qilinadiganlar — men bergan (yoki rahbar sifatida hammasi) ichidan
+    scope: status === 'review' && scope === 'mine' ? ('created' as const) : scope,
+    page,
+    limit: PAGE_SIZE,
+  };
   const query = useQuery({ queryKey: ['tasks', params], queryFn: () => taskService.list(params) });
   const update = useMutation({
     mutationFn: ({ id, next }: { id: string; next: TaskStatus }) => taskService.setStatus(id, next),
@@ -68,8 +80,12 @@ export default function TasksPage() {
         }
       />
       <div className="mb-4 flex flex-wrap gap-2">
-        <Select aria-label="Holat" value={status} onChange={(event) => { setStatus(event.target.value as TaskStatus | ''); setPage(1); }} wrapperClassName="w-40">
-          <option value="OPEN">Ochiq</option>
+        <Select aria-label="Holat" value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }} wrapperClassName="w-48">
+          <option value="active">Ochiqlar</option>
+          <option value="review">Qabul qilishim kerak</option>
+          <option value="OPEN">Yangi</option>
+          <option value="IN_PROGRESS">Jarayonda</option>
+          <option value="REVIEW">Tekshiruvda</option>
           <option value="DONE">Bajarilgan</option>
           <option value="CANCELLED">Bekor qilingan</option>
           <option value="">Hammasi</option>
@@ -122,10 +138,11 @@ export default function TasksPage() {
                     ) : (
                       task.title
                     )}
-                    <Badge tone={task.status === 'OPEN' ? (task.overdue ? 'red' : 'blue') : task.status === 'DONE' ? 'green' : 'gray'}>{task.overdue ? 'Muddati o‘tgan' : STATUS_LABELS[task.status]}</Badge>
+                    <Badge tone={taskStatusBadge(task).tone}>{taskStatusBadge(task).label}</Badge>
                     {(task.priority === 'HIGH' || task.priority === 'URGENT') && <Badge tone={TASK_PRIORITY_TONES[task.priority]}>{TASK_PRIORITY_LABELS[task.priority]}</Badge>}
                   </p>
                   {task.description && <p className="mt-1 text-body text-fg-muted">{task.description}</p>}
+                  {task.expectedResult && <p className="mt-1 text-caption text-fg-muted">Kutilgan natija: {task.expectedResult}</p>}
                   <p className="mt-1 text-caption text-fg-subtle">
                     {task.dueAt ? `Muddat: ${formatDateTime(task.dueAt)}` : 'Muddatsiz'}
                     {task.rule ? ` · qoida: ${task.rule.name}` : ''}
@@ -137,16 +154,7 @@ export default function TasksPage() {
                     Tafsilot{task.commentCount ? ` · ${task.commentCount} izoh` : ''}
                   </button>
                 </div>
-                {task.status === 'OPEN' && (
-                  <div className="flex shrink-0 gap-2">
-                    <Button size="sm" leftIcon={<Check className="size-4" aria-hidden />} onClick={() => update.mutate({ id: task.id, next: 'DONE' })}>
-                      Bajarildi
-                    </Button>
-                    <Button size="sm" variant="ghost" aria-label={`${task.title} — bekor qilish`} onClick={() => update.mutate({ id: task.id, next: 'CANCELLED' })}>
-                      <X className="size-4" aria-hidden />
-                    </Button>
-                  </div>
-                )}
+                <TaskRowActions task={task} mine={task.assignee.id === userId} onChange={(next) => update.mutate({ id: task.id, next })} onOpen={() => setOpenId(task.id)} />
               </li>
             ))}
           </ul>
@@ -159,6 +167,46 @@ export default function TasksPage() {
       )}
       {creating && <TaskFormModal open onClose={() => setCreating(false)} canAssign={canAssign} />}
       <TaskDetailDrawer taskId={openId} onClose={() => setOpenId(null)} />
+    </div>
+  );
+}
+
+/**
+ * Qatordagi tezkor amallar. Qaror server tomonda: bu yerda faqat mos tugmalar ko'rsatiladi.
+ *  - ijrochi: boshlash, bajarildi (boshqa xodim bergan bo'lsa — "Topshirish");
+ *  - bergan xodim / rahbar: tekshiruvdagini qabul qilish (qaytarish — tafsilotda, izoh bilan), bekor qilish.
+ */
+function TaskRowActions({ task, mine, onChange, onOpen }: { task: TaskItem; mine: boolean; onChange: (next: TaskStatus) => void; onOpen: () => void }) {
+  const submits = mine && task.needsReview;
+  if (task.status === 'REVIEW') {
+    if (mine) return null;
+    return (
+      <div className="flex shrink-0 gap-2">
+        <Button size="sm" leftIcon={<Check className="size-4" aria-hidden />} onClick={() => onChange('DONE')}>
+          Qabul qilish
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onOpen}>
+          Qaytarish
+        </Button>
+      </div>
+    );
+  }
+  if (!isWorking(task.status)) return null;
+  return (
+    <div className="flex shrink-0 gap-2">
+      {mine && task.status === 'OPEN' && (
+        <Button size="sm" variant="secondary" leftIcon={<Play className="size-4" aria-hidden />} onClick={() => onChange('IN_PROGRESS')}>
+          Boshlash
+        </Button>
+      )}
+      <Button size="sm" leftIcon={submits ? <Send className="size-4" aria-hidden /> : <Check className="size-4" aria-hidden />} onClick={() => onChange(submits ? 'REVIEW' : 'DONE')}>
+        {submits ? 'Topshirish' : 'Bajarildi'}
+      </Button>
+      {!submits && (
+        <Button size="sm" variant="ghost" aria-label={`${task.title} — bekor qilish`} onClick={() => onChange('CANCELLED')}>
+          <X className="size-4" aria-hidden />
+        </Button>
+      )}
     </div>
   );
 }

@@ -186,6 +186,11 @@ export default function EmployeesPage() {
         <>
           <Badge tone={EMPLOYEE_STATUS_TONES[employee.status]}>{EMPLOYEE_STATUS_LABELS[employee.status]}</Badge>
           {employee.onLeaveToday && <Badge tone="yellow" className="ml-1">Bugun ta’tilda</Badge>}
+          {employee.probationDaysLeft !== null && (
+            <Badge tone="blue" className="ml-1">
+              {employee.probationDaysLeft === 0 ? 'Sinov bugun tugaydi' : `Sinovda · ${employee.probationDaysLeft} kun`}
+            </Badge>
+          )}
         </>
       ),
     },

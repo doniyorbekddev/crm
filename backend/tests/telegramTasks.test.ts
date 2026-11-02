@@ -73,7 +73,7 @@ describe.skipIf(!hasTestDatabase)('Telegram — vazifalar', () => {
     await prisma.$disconnect();
   });
 
-  it('vazifa berilganda xabar tugmalar bilan keladi; "Bajarildi" bosilsa vazifa yopiladi va rahbar xabar oladi', async () => {
+  it('vazifa berilganda xabar tugmalar bilan keladi; "Bajarildi" bosilsa vazifa tekshiruvga topshiriladi va rahbar xabar oladi', async () => {
     const bot = captureBot();
     const { user: teacher } = await linkedStaff('TEACHER', TEACHER_CHAT);
     const { token: admin, user: adminUser } = await createUserWithToken(app, { role: 'ADMIN' });
@@ -104,15 +104,17 @@ describe.skipIf(!hasTestDatabase)('Telegram — vazifalar', () => {
     expect(bot.lastData()).toContain(`tk_dn:${id}`);
     expect(bot.lastData()).not.toContain(`tk_tm:${id}`);
 
+    // Rahbar bergan vazifa: ijrochining tugmasi — tekshiruvga topshirish (ORG §3.7)
     await press(`tk_dn:${id}`, TEACHER_CHAT);
-    expect(bot.last().text).toContain('Bajarildi deb belgilandi');
-    expect((await prisma.task.findUniqueOrThrow({ where: { id } })).status).toBe('DONE');
-    expect(await prisma.notification.count({ where: { userId: adminUser.id, title: 'Vazifa bajarildi' } })).toBe(1);
+    expect(bot.last().text).toContain('Tekshiruvga topshirildi');
+    expect((await prisma.task.findUniqueOrThrow({ where: { id } })).status).toBe('REVIEW');
+    expect(await prisma.notification.count({ where: { userId: adminUser.id, title: 'Vazifa tekshiruvga topshirildi' } })).toBe(1);
     expect(await prisma.auditLog.count({ where: { action: 'task.status_changed', entityId: id, userId: teacher.id } })).toBe(1);
 
-    // Ikkinchi marta bosish — xato emas, qayta yozilmaydi
+    // Ikkinchi marta bosish — xato emas, qayta yozilmaydi, o'zi qabul qila olmaydi
     await press(`tk_dn:${id}`, TEACHER_CHAT);
-    expect(bot.last().text).toContain('allaqachon yopilgan');
+    expect(bot.last().text).toContain('tekshiruvda');
+    expect((await prisma.task.findUniqueOrThrow({ where: { id } })).status).toBe('REVIEW');
     expect(await prisma.auditLog.count({ where: { action: 'task.status_changed', entityId: id } })).toBe(1);
   });
 

@@ -5,10 +5,16 @@ export const EMPLOYEE_POSITION_ORDER = [
   'ADMINISTRATOR',
   'MANAGER',
   'SALES_MANAGER',
+  'RECEPTIONIST',
   'CALL_CENTER',
+  'MARKETING_MANAGER',
+  'CONTENT_CREATOR',
   'ACCOUNTANT',
   'CLEANER',
   'SECURITY',
+  'OPERATIONS_MANAGER',
+  'STUDENT_SUCCESS_MANAGER',
+  'ACADEMIC_COORDINATOR',
   'OTHER',
 ] as const satisfies readonly EmployeePosition[];
 
@@ -21,6 +27,12 @@ export const EMPLOYEE_POSITION_LABELS: Record<EmployeePosition, string> = {
   CLEANER: 'Farrosh',
   SECURITY: 'Qo‘riqchi',
   OTHER: 'Boshqa',
+  RECEPTIONIST: 'Qabulxona / kassir',
+  MARKETING_MANAGER: 'Marketing menejeri',
+  CONTENT_CREATOR: 'Video kontent yaratuvchi',
+  OPERATIONS_MANAGER: 'Operatsion menejer',
+  STUDENT_SUCCESS_MANAGER: 'O‘quvchilar muvaffaqiyati menejeri',
+  ACADEMIC_COORDINATOR: 'Akademik koordinator',
 };
 
 export const EMPLOYEE_STATUS_ORDER = ['ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'RESIGNED'] as const satisfies readonly EmployeeStatus[];

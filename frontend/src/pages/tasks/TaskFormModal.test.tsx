@@ -46,24 +46,26 @@ describe('TaskFormModal', () => {
     expect(taskService.assignees).not.toHaveBeenCalled();
   });
 
-  it('tahrirlash: maydonlar to‘ldirilgan; bo‘shatilgan tavsif va muddat `null` bo‘lib ketadi; ijrochi bu yerda o‘zgartirilmaydi', async () => {
+  it('tahrirlash: maydonlar to‘ldirilgan; bo‘shatilgan tavsif, kutilgan natija va muddat `null` bo‘lib ketadi; ijrochi bu yerda o‘zgartirilmaydi', async () => {
     const user = userEvent.setup();
-    const task = { id: 't1', title: 'Eski nom', description: 'Eski tavsif', dueAt: '2026-10-09T05:00:00.000Z', priority: 'URGENT' as const };
+    const task = { id: 't1', title: 'Eski nom', description: 'Eski tavsif', expectedResult: 'Eski natija', dueAt: '2026-10-09T05:00:00.000Z', priority: 'URGENT' as const };
     wrap(<TaskFormModal open canAssign task={task} onClose={() => undefined} />);
 
     expect(screen.getByRole('dialog', { name: 'Vazifani tahrirlash' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Sarlavha/)).toHaveValue('Eski nom');
     expect(screen.getByLabelText('Muddat')).toHaveValue(toLocalInput(task.dueAt));
     expect(screen.getByLabelText('Ustuvorlik')).toHaveValue('URGENT');
+    expect(screen.getByLabelText('Kutilgan natija')).toHaveValue('Eski natija');
     expect(screen.queryByLabelText('Ijrochi')).not.toBeInTheDocument();
 
     await user.clear(screen.getByLabelText(/Sarlavha/));
     await user.type(screen.getByLabelText(/Sarlavha/), 'Yangi nom');
     await user.clear(screen.getByLabelText('Tavsif'));
     await user.clear(screen.getByLabelText('Muddat'));
+    await user.clear(screen.getByLabelText('Kutilgan natija'));
     await user.click(screen.getByRole('button', { name: 'Saqlash' }));
 
-    await waitFor(() => expect(taskService.update).toHaveBeenCalledWith('t1', { title: 'Yangi nom', description: null, dueAt: null, priority: 'URGENT' }));
+    await waitFor(() => expect(taskService.update).toHaveBeenCalledWith('t1', { title: 'Yangi nom', description: null, expectedResult: null, dueAt: null, priority: 'URGENT' }));
     expect(taskService.create).not.toHaveBeenCalled();
   });
 

@@ -23,7 +23,7 @@ interface TaskFormModalProps {
   /** Standart `POST /tasks` o'rniga boshqa manba (masalan ogohlantirishdan vazifa) */
   submit?: (payload: TaskCreatePayload) => Promise<{ message: string }>;
   /** Berilsa — tahrirlash rejimi: sarlavha, tavsif, muddat va ustuvorlik o'zgartiriladi (ijrochi alohida biriktiriladi) */
-  task?: Pick<TaskItem, 'id' | 'title' | 'description' | 'dueAt' | 'priority'>;
+  task?: Pick<TaskItem, 'id' | 'title' | 'description' | 'dueAt' | 'priority' | 'expectedResult'>;
 }
 
 /** ISO vaqt → `datetime-local` qiymati (qurilma vaqti bo'yicha) */
@@ -41,6 +41,7 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(task?.title ?? initial?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? initial?.description ?? '');
+  const [expectedResult, setExpectedResult] = useState(task?.expectedResult ?? '');
   const [assigneeId, setAssigneeId] = useState('');
   const [dueAt, setDueAt] = useState(toLocalInput(task?.dueAt));
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? initial?.priority ?? 'NORMAL');
@@ -52,7 +53,15 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
   const create = useMutation({
     mutationFn: (payload: TaskCreatePayload) => {
       // Tahrirlashda bo'shatilgan tavsif va muddat ham yuboriladi (null — olib tashlash)
-      if (task) return taskService.update(task.id, { title: payload.title, description: payload.description ?? null, dueAt: payload.dueAt ?? null, ...(payload.priority ? { priority: payload.priority } : {}) });
+      if (task) {
+        return taskService.update(task.id, {
+          title: payload.title,
+          description: payload.description ?? null,
+          expectedResult: payload.expectedResult ?? null,
+          dueAt: payload.dueAt ?? null,
+          ...(payload.priority ? { priority: payload.priority } : {}),
+        });
+      }
       return submit ? submit(payload) : taskService.create(payload);
     },
     onSuccess: (result) => {
@@ -72,6 +81,7 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
       title: title.trim(),
       priority,
       ...(description.trim() ? { description: description.trim() } : {}),
+      ...(expectedResult.trim() ? { expectedResult: expectedResult.trim() } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(dueAt ? { dueAt: new Date(dueAt).toISOString() } : {}),
       ...(initial?.link ? { link: initial.link } : {}),
@@ -110,6 +120,9 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
         </FormField>
         <FormField label="Tavsif" htmlFor="task-description">
           <Textarea id="task-description" rows={3} maxLength={2000} value={description} onChange={(event) => setDescription(event.target.value)} />
+        </FormField>
+        <FormField label="Kutilgan natija" htmlFor="task-expected" hint="Vazifa qachon bajarilgan hisoblanadi">
+          <Textarea id="task-expected" rows={2} maxLength={1000} value={expectedResult} onChange={(event) => setExpectedResult(event.target.value)} />
         </FormField>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Muddat" htmlFor="task-due">

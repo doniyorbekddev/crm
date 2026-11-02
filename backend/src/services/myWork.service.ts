@@ -7,6 +7,7 @@ import { addDays, businessDateString, dateColumn, startOfBusinessDay } from '../
 import { getBranchAccess } from './branchAccess.js';
 import { NEGATIVE_RATING, NPS_DETRACTOR_MAX } from './feedback.service.js';
 import { permissionService } from './permission.service.js';
+import { WORKING_TASK_STATUSES } from './task.service.js';
 
 /**
  * "Ishlarim" markazi (CRM 4.0, 2-faza): xodimning **o'zi qilishi kerak bo'lgan** ishlari bitta joyda.
@@ -63,7 +64,8 @@ export const myWorkService = {
     // 1. Vazifalar — har bir xodimda
     sections.push(
       (async () => {
-        const where = { assigneeId: actor.id, status: 'OPEN' as const };
+        // Tekshiruvga topshirilgani ijrochining ishi emas (u qabul qiluvchida) — shuning uchun faqat ishlanayotganlar
+        const where = { assigneeId: actor.id, status: { in: [...WORKING_TASK_STATUSES] } };
         const [count, overdue, rows] = await Promise.all([
           prisma.task.count({ where }),
           prisma.task.count({ where: { ...where, dueAt: { lt: now } } }),

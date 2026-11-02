@@ -790,6 +790,12 @@ export const router = createBrowserRouter([
                           () => import("@/pages/employees/EmployeesPage"),
                         ),
                       },
+                      {
+                        path: "org-structure",
+                        lazy: lazyComponent(
+                          () => import("@/pages/org/OrgStructurePage"),
+                        ),
+                      },
                     ],
                   },
                   {

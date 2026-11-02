@@ -9,6 +9,7 @@ import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import { customLabelFor } from '../validators/common.validator.js';
 import type { CreateEmployeeInput, EmployeeListQuery, UpdateEmployeeInput } from '../validators/employee.validator.js';
+import { PERMISSIONS } from '../config/permissions.js';
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 
@@ -34,6 +35,11 @@ export interface EmployeeDto {
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
+  /** Sinov muddati tugash sanasi va qolgan kunlar (sinov tugagan yoki yo'q bo'lsa — daysLeft null) */
+  probationEndDate: string | null;
+  probationDaysLeft: number | null;
+  /** Kimga hisobot beradi (null — markaz rahbari) */
+  manager: { id: string; firstName: string; lastName: string } | null;
   contractNumber: string | null;
   contractStartDate: string | null;
   contractEndDate: string | null;
@@ -89,6 +95,8 @@ const employeeSelect = {
   status: true,
   hireDate: true,
   terminationDate: true,
+  probationEndDate: true,
+  manager: { select: { id: true, firstName: true, lastName: true } },
   contractNumber: true,
   contractStartDate: true,
   contractEndDate: true,
@@ -135,6 +143,12 @@ async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = tr
       status: record.status,
       hireDate: toDateOnly(record.hireDate),
       terminationDate: record.terminationDate ? toDateOnly(record.terminationDate) : null,
+      probationEndDate: record.probationEndDate ? toDateOnly(record.probationEndDate) : null,
+      probationDaysLeft:
+        record.probationEndDate && record.probationEndDate >= today && record.status !== 'RESIGNED'
+          ? Math.round((record.probationEndDate.getTime() - today.getTime()) / DAY_MS)
+          : null,
+      manager: record.manager,
       contractNumber: record.contractNumber,
       contractStartDate: record.contractStartDate ? toDateOnly(record.contractStartDate) : null,
       contractEndDate: record.contractEndDate ? toDateOnly(record.contractEndDate) : null,
@@ -193,6 +207,29 @@ async function assertUserLinkable(userId: string, exceptEmployeeId?: string): Pr
     throw AppError.conflict('Bu foydalanuvchi o‘qituvchi — maoshi o‘qituvchilar bo‘limida hisoblanadi', [
       { field: 'userId', message: 'O‘qituvchi akkaunti' },
     ]);
+  }
+}
+
+/** Rahbar — faol xodim hisobi (o'quvchi/ota-ona kabineti emas) va xodimning o'zi emas */
+async function assertManager(managerId: string, employeeUserId: string | null): Promise<void> {
+  if (employeeUserId && managerId === employeeUserId) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'managerId', message: 'Xodim o‘ziga hisobot bermaydi' }]);
+  }
+  const manager = await prisma.user.findFirst({
+    where: {
+      id: managerId,
+      deletedAt: null,
+      status: 'ACTIVE',
+      role: { permissions: { none: { permission: { key: { in: [PERMISSIONS.PORTAL_STUDENT, PERMISSIONS.PORTAL_PARENT] } } } } },
+    },
+    select: { id: true },
+  });
+  if (!manager) throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'managerId', message: 'Rahbar topilmadi' }]);
+}
+
+function assertProbation(hireDate: Date, probationEndDate: Date | null): void {
+  if (probationEndDate && probationEndDate < hireDate) {
+    throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'probationEndDate', message: 'Sinov muddati ishga kirgan sanadan keyin tugaydi' }]);
   }
 }
 
@@ -273,7 +310,9 @@ export const employeeService = {
 
   async create(actor: AuthUser, input: CreateEmployeeInput, client: ClientInfo): Promise<EmployeeDto> {
     assertDates(input.status, input.hireDate, input.terminationDate ?? null);
+    assertProbation(input.hireDate, input.probationEndDate ?? null);
     if (input.userId) await assertUserLinkable(input.userId);
+    if (input.managerId) await assertManager(input.managerId, input.userId ?? null);
 
     const id = await prisma.$transaction(async (tx) => {
       const employee = await tx.employee.create({
@@ -288,6 +327,8 @@ export const employeeService = {
           hireDate: input.hireDate,
           branchId: resolveBranchId(await getBranchAccess(actor)),
           terminationDate: input.terminationDate ?? null,
+          probationEndDate: input.probationEndDate ?? null,
+          managerId: input.managerId ?? null,
           email: input.email ?? null,
           department: input.department ?? null,
           contractNumber: input.contractNumber ?? null,
@@ -335,9 +376,13 @@ export const employeeService = {
           ? null
           : existing.terminationDate;
     assertDates(status, hireDate, terminationDate);
+    assertProbation(hireDate, input.probationEndDate !== undefined ? input.probationEndDate : existing.probationEndDate);
     if (input.userId) await assertUserLinkable(input.userId, id);
+    if (input.managerId) await assertManager(input.managerId, input.userId !== undefined ? input.userId : (existing.user?.id ?? null));
 
     const before = {
+      managerId: existing.manager?.id ?? null,
+      probationEndDate: existing.probationEndDate ? toDateOnly(existing.probationEndDate) : null,
       position: existing.position,
       baseSalary: existing.baseSalary.toNumber(),
       status: existing.status,
@@ -358,6 +403,8 @@ export const employeeService = {
             : { positionTitle: customLabelFor(input.position ?? existing.position, input.positionTitle) }),
           ...(input.baseSalary === undefined ? {} : { baseSalary: input.baseSalary }),
           ...(input.hireDate === undefined ? {} : { hireDate: input.hireDate }),
+          ...(input.probationEndDate === undefined ? {} : { probationEndDate: input.probationEndDate }),
+          ...(input.managerId === undefined ? {} : { managerId: input.managerId }),
           ...(input.email === undefined ? {} : { email: input.email }),
           ...(input.department === undefined ? {} : { department: input.department }),
           ...(input.contractNumber === undefined ? {} : { contractNumber: input.contractNumber }),
@@ -382,6 +429,8 @@ export const employeeService = {
         metadata: { name: `${existing.firstName} ${existing.lastName}` },
         before,
         after: {
+          managerId: input.managerId !== undefined ? input.managerId : before.managerId,
+          probationEndDate: input.probationEndDate !== undefined ? (input.probationEndDate ? toDateOnly(input.probationEndDate) : null) : before.probationEndDate,
           position: input.position ?? existing.position,
           baseSalary: input.baseSalary ?? before.baseSalary,
           status,

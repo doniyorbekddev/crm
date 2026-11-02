@@ -27,6 +27,7 @@ const schema = z.object({
     .refine((value) => value === '' || /^\d{1,2}$/.test(value), 'Tajriba 0–60 yil oralig‘ida bo‘lsin')
     .refine((value) => value === '' || Number(value) <= 60, 'Tajriba 60 yildan oshmasligi kerak'),
   hireDate: z.string(),
+  probationEndDate: z.string(),
   bio: z.string().trim().max(1000, 'Izoh 1000 belgidan oshmasligi kerak'),
   employmentStatus: z.enum(EMPLOYEE_STATUS_ORDER),
   terminationDate: z.string(),
@@ -39,6 +40,7 @@ function toPayload(values: FormValues): TeacherProfilePayload {
     ...(values.specialization ? { specialization: values.specialization } : {}),
     ...(values.experienceYears ? { experienceYears: Number(values.experienceYears) } : {}),
     ...(values.hireDate ? { hireDate: values.hireDate } : {}),
+    probationEndDate: values.probationEndDate || null,
     ...(values.bio ? { bio: values.bio } : {}),
   };
 }
@@ -72,6 +74,7 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
       specialization: teacher?.specialization ?? '',
       experienceYears: teacher?.experienceYears === null || teacher?.experienceYears === undefined ? '' : String(teacher.experienceYears),
       hireDate: teacher?.hireDate ?? '',
+      probationEndDate: teacher?.probationEndDate ?? '',
       bio: teacher?.bio ?? '',
       employmentStatus: (teacher?.employmentStatus ?? 'ACTIVE') as EmployeeStatus,
       terminationDate: teacher?.terminationDate ?? '',
@@ -95,7 +98,7 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
       onSaved();
     },
     onError: (error) => {
-      if (!applyFieldErrors(error, setError, ['userId', 'specialization', 'experienceYears', 'hireDate', 'employmentStatus', 'terminationDate'])) {
+      if (!applyFieldErrors(error, setError, ['userId', 'specialization', 'experienceYears', 'hireDate', 'probationEndDate', 'employmentStatus', 'terminationDate'])) {
         setFormError(getErrorMessage(error));
       }
     },
@@ -186,6 +189,9 @@ export function TeacherFormModal({ mode, teacher, onClose, onSaved }: TeacherFor
           </FormField>
           <FormField label="Ishga olingan sana" htmlFor="teacher-hireDate" error={errors.hireDate?.message}>
             <Input id="teacher-hireDate" type="date" {...register('hireDate')} />
+          </FormField>
+          <FormField label="Sinov muddati tugaydi" htmlFor="teacher-probationEndDate" error={errors.probationEndDate?.message} hint="Demo darsdan keyin odatda 1 oy">
+            <Input id="teacher-probationEndDate" type="date" {...register('probationEndDate')} />
           </FormField>
           {mode === 'edit' && (
             <FormField label="Holat" htmlFor="teacher-status" error={errors.employmentStatus?.message} hint="Faol va ta’tildagi o‘qituvchi guruh va maosh uchun faol hisoblanadi">

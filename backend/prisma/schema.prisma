@@ -231,6 +231,8 @@ enum NotificationType {
   TASK_UPDATE
   /// Xodim davomati: keldi/ketdi tasdig'i, kechikish, chiqish belgilanmagan, ruxsat so'rovi
   STAFF_ATTENDANCE
+  /// ORG tizimi: sinov muddati, onboarding/offboarding, nomzodlar, taqdirlash, attestatsiya
+  HR_UPDATE
 }
 
 /// Bildirishnoma muhimligi — ro‘yxatda ajralib turishi va saralanishi uchun.
@@ -301,78 +303,79 @@ model User {
   // O'quv markaz modullari
   preferences               UserPreference[]
   teacherProfile            TeacherProfile?
-  taughtSessions            AttendanceSession[]    @relation("SessionTeacher")
-  markedSessions            AttendanceSession[]    @relation("SessionMarkedBy")
-  xpAwards                  XpTransaction[]        @relation("XpAwardedBy")
-  createdSalaryRules        TeacherSalaryRule[]    @relation("SalaryRuleCreatedBy")
-  approvedSalaries          TeacherSalaryPeriod[]  @relation("SalaryApprovedBy")
-  salaryPaymentsCreated     TeacherSalaryPayment[] @relation("SalaryPaymentCreatedBy")
-  createdTransactions       Transaction[]          @relation("TransactionCreatedBy")
-  voidedTransactions        Transaction[]          @relation("TransactionVoidedBy")
-  incomesResponsible        Income[]               @relation("IncomeResponsible")
-  expensesResponsible       Expense[]              @relation("ExpenseResponsible")
-  createdBudgets            Budget[]               @relation("BudgetCreatedBy")
-  createdHomework           Homework[]             @relation("HomeworkTeacher")
-  recurringHomeworksCreated RecurringHomework[]    @relation("RecurringHomeworkCreatedBy")
-  gradedSubmissions         HomeworkSubmission[]   @relation("SubmissionGradedBy")
-  createdExams              Exam[]                 @relation("ExamTeacher")
-  gradedExamResults         ExamResult[]           @relation("ExamResultGradedBy")
-  salesTargets              SalesTarget[]          @relation("SalesTargetUser")
-  createdSalesTargets       SalesTarget[]          @relation("SalesTargetCreatedBy")
-  resolvedAlerts            Alert[]                @relation("AlertResolvedBy")
-  alertsRead                Alert[]                @relation("AlertReadBy")
-  taughtPayments            Payment[]              @relation("PaymentTeacher")
-  commissionEntries         CommissionEntry[]      @relation("CommissionTeacher")
+  taughtSessions            AttendanceSession[]      @relation("SessionTeacher")
+  markedSessions            AttendanceSession[]      @relation("SessionMarkedBy")
+  xpAwards                  XpTransaction[]          @relation("XpAwardedBy")
+  createdSalaryRules        TeacherSalaryRule[]      @relation("SalaryRuleCreatedBy")
+  approvedSalaries          TeacherSalaryPeriod[]    @relation("SalaryApprovedBy")
+  salaryPaymentsCreated     TeacherSalaryPayment[]   @relation("SalaryPaymentCreatedBy")
+  createdTransactions       Transaction[]            @relation("TransactionCreatedBy")
+  voidedTransactions        Transaction[]            @relation("TransactionVoidedBy")
+  incomesResponsible        Income[]                 @relation("IncomeResponsible")
+  expensesResponsible       Expense[]                @relation("ExpenseResponsible")
+  createdBudgets            Budget[]                 @relation("BudgetCreatedBy")
+  createdHomework           Homework[]               @relation("HomeworkTeacher")
+  recurringHomeworksCreated RecurringHomework[]      @relation("RecurringHomeworkCreatedBy")
+  gradedSubmissions         HomeworkSubmission[]     @relation("SubmissionGradedBy")
+  createdExams              Exam[]                   @relation("ExamTeacher")
+  gradedExamResults         ExamResult[]             @relation("ExamResultGradedBy")
+  salesTargets              SalesTarget[]            @relation("SalesTargetUser")
+  createdSalesTargets       SalesTarget[]            @relation("SalesTargetCreatedBy")
+  resolvedAlerts            Alert[]                  @relation("AlertResolvedBy")
+  alertsRead                Alert[]                  @relation("AlertReadBy")
+  taughtPayments            Payment[]                @relation("PaymentTeacher")
+  commissionEntries         CommissionEntry[]        @relation("CommissionTeacher")
   paymentTeacherShares      PaymentTeacherShare[]
-  createdCommissions        CommissionEntry[]      @relation("CommissionCreatedBy")
-  unlockedSalaries          TeacherSalaryPeriod[]  @relation("SalaryUnlockedBy")
-  submittedSalaries         TeacherSalaryPeriod[]  @relation("SalarySubmittedBy")
-  rejectedSalaries          TeacherSalaryPeriod[]  @relation("SalaryRejectedBy")
-  createdKpis               KpiDefinition[]        @relation("KpiDefinitionCreatedBy")
-  kpiManualResults          KpiManualResult[]      @relation("KpiManualResultCreatedBy")
+  createdCommissions        CommissionEntry[]        @relation("CommissionCreatedBy")
+  unlockedSalaries          TeacherSalaryPeriod[]    @relation("SalaryUnlockedBy")
+  submittedSalaries         TeacherSalaryPeriod[]    @relation("SalarySubmittedBy")
+  rejectedSalaries          TeacherSalaryPeriod[]    @relation("SalaryRejectedBy")
+  createdKpis               KpiDefinition[]          @relation("KpiDefinitionCreatedBy")
+  kpiManualResults          KpiManualResult[]        @relation("KpiManualResultCreatedBy")
   addedGroupMemberships     StudentGroupMembership[] @relation("GroupMembershipAddedBy")
   removedGroupMemberships   StudentGroupMembership[] @relation("GroupMembershipRemovedBy")
-  createdAdjustments        PayrollAdjustment[]    @relation("AdjustmentCreatedBy")
-  approvedAdjustments       PayrollAdjustment[]    @relation("AdjustmentApprovedBy")
-  voidedAdjustments         PayrollAdjustment[]    @relation("AdjustmentVoidedBy")
-  employee                  Employee?              @relation("EmployeeUser")
-  createdEmployees          Employee[]             @relation("EmployeeCreatedBy")
-  createdRefunds            PaymentRefund[]        @relation("PaymentRefundCreatedBy")
-  closedFinancialPeriods    FinancialPeriod[]      @relation("FinancialPeriodClosedBy")
-  reopenedFinancialPeriods  FinancialPeriod[]      @relation("FinancialPeriodReopenedBy")
-  approvedExpenses          Expense[]              @relation("ExpenseApprovedBy")
-  rejectedExpenses          Expense[]              @relation("ExpenseRejectedBy")
-  createdRecurringExpenses  RecurringExpense[]     @relation("RecurringExpenseCreatedBy")
-  groupChanges              StudentGroupChange[]   @relation("GroupChangeBy")
+  createdAdjustments        PayrollAdjustment[]      @relation("AdjustmentCreatedBy")
+  approvedAdjustments       PayrollAdjustment[]      @relation("AdjustmentApprovedBy")
+  voidedAdjustments         PayrollAdjustment[]      @relation("AdjustmentVoidedBy")
+  employee                  Employee?                @relation("EmployeeUser")
+  createdEmployees          Employee[]               @relation("EmployeeCreatedBy")
+  managedEmployees          Employee[]               @relation("EmployeeManager")
+  createdRefunds            PaymentRefund[]          @relation("PaymentRefundCreatedBy")
+  closedFinancialPeriods    FinancialPeriod[]        @relation("FinancialPeriodClosedBy")
+  reopenedFinancialPeriods  FinancialPeriod[]        @relation("FinancialPeriodReopenedBy")
+  approvedExpenses          Expense[]                @relation("ExpenseApprovedBy")
+  rejectedExpenses          Expense[]                @relation("ExpenseRejectedBy")
+  createdRecurringExpenses  RecurringExpense[]       @relation("RecurringExpenseCreatedBy")
+  groupChanges              StudentGroupChange[]     @relation("GroupChangeBy")
   statusChanges             StudentStatusChange[]
   /// Portal hisobi qaysi o'quvchiga tegishli (o'quvchi kabineti)
-  studentAccount            Student?               @relation("StudentPortalAccount")
+  studentAccount            Student?                 @relation("StudentPortalAccount")
   /// Portal hisobi qaysi ota-onaga tegishli (ota-ona kabineti)
-  parentAccount             Parent?                @relation("ParentPortalAccount")
+  parentAccount             Parent?                  @relation("ParentPortalAccount")
   telegramLinks             TelegramLink[]
   markedTopics              StudentTopicProgress[]
   leadAssignmentRule        LeadAssignmentRule?
   createdQuestions          Question[]
   gradedAttempts            ExamAttempt[]
-  issuedCertificates        Certificate[]          @relation("CertificateIssuer")
-  revokedCertificates       Certificate[]          @relation("CertificateRevoker")
-  grantedDiscounts          StudentDiscount[]      @relation("DiscountGrantedBy")
-  revokedDiscounts          StudentDiscount[]      @relation("DiscountRevokedBy")
-  createdPromoCodes         PromoCode[]            @relation("PromoCodeCreatedBy")
-  rewardedReferrals         Referral[]             @relation("ReferralRewardedBy")
-  receivedFeedback          Feedback[]             @relation("FeedbackTeacher")
-  requestedLeaves           EmployeeLeave[]        @relation("LeaveRequestedBy")
-  stockMovements            StockMovement[]        @relation("StockMovementCreatedBy")
+  issuedCertificates        Certificate[]            @relation("CertificateIssuer")
+  revokedCertificates       Certificate[]            @relation("CertificateRevoker")
+  grantedDiscounts          StudentDiscount[]        @relation("DiscountGrantedBy")
+  revokedDiscounts          StudentDiscount[]        @relation("DiscountRevokedBy")
+  createdPromoCodes         PromoCode[]              @relation("PromoCodeCreatedBy")
+  rewardedReferrals         Referral[]               @relation("ReferralRewardedBy")
+  receivedFeedback          Feedback[]               @relation("FeedbackTeacher")
+  requestedLeaves           EmployeeLeave[]          @relation("LeaveRequestedBy")
+  stockMovements            StockMovement[]          @relation("StockMovementCreatedBy")
   aiQueries                 AiQuery[]
-  aiAnalysesCreated         AiAnalysis[]           @relation("AiAnalysisCreatedBy")
-  aiAnalysesDecided         AiAnalysis[]           @relation("AiAnalysisDecidedBy")
-  savedAutomations          AutomationRule[]       @relation("AutomationUpdatedBy")
-  createdPaymentIntents     PaymentIntent[]        @relation("PaymentIntentCreatedBy")
-  decidedLeaves             EmployeeLeave[]        @relation("LeaveDecidedBy")
-  handledFeedback           Feedback[]             @relation("FeedbackHandledBy")
-  taughtLessons             Lesson[]               @relation("LessonTeacher")
-  createdLessons            Lesson[]               @relation("LessonCreatedBy")
-  createdRubrics            Rubric[]               @relation("RubricCreatedBy")
+  aiAnalysesCreated         AiAnalysis[]             @relation("AiAnalysisCreatedBy")
+  aiAnalysesDecided         AiAnalysis[]             @relation("AiAnalysisDecidedBy")
+  savedAutomations          AutomationRule[]         @relation("AutomationUpdatedBy")
+  createdPaymentIntents     PaymentIntent[]          @relation("PaymentIntentCreatedBy")
+  decidedLeaves             EmployeeLeave[]          @relation("LeaveDecidedBy")
+  handledFeedback           Feedback[]               @relation("FeedbackHandledBy")
+  taughtLessons             Lesson[]                 @relation("LessonTeacher")
+  createdLessons            Lesson[]                 @relation("LessonCreatedBy")
+  createdRubrics            Rubric[]                 @relation("RubricCreatedBy")
 
   branch                 Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
   tasksAssigned          Task[]            @relation("TaskAssignee")
@@ -986,22 +989,22 @@ model Group {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  course            Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  roomRef           Room?                @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  teacher           User?                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  students          Student[]
-  memberships       StudentGroupMembership[]
-  attendances       Attendance[]
-  sessions          AttendanceSession[]
-  homework          Homework[]
-  recurringHomework RecurringHomework[]
-  exams             Exam[]
-  payments          Payment[]
+  course               Course                   @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  roomRef              Room?                    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  teacher              User?                    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  students             Student[]
+  memberships          StudentGroupMembership[]
+  attendances          Attendance[]
+  sessions             AttendanceSession[]
+  homework             Homework[]
+  recurringHomework    RecurringHomework[]
+  exams                Exam[]
+  payments             Payment[]
   paymentTeacherShares PaymentTeacherShare[]
-  certificates      Certificate[]
-  feedback          Feedback[]
-  changesFrom       StudentGroupChange[] @relation("GroupChangeFrom")
-  changesTo         StudentGroupChange[] @relation("GroupChangeTo")
+  certificates         Certificate[]
+  feedback             Feedback[]
+  changesFrom          StudentGroupChange[]     @relation("GroupChangeFrom")
+  changesTo            StudentGroupChange[]     @relation("GroupChangeTo")
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -1180,19 +1183,19 @@ model StudentStatusChange {
 /// ro'yxat, davomat, vazifa, imtihon. Moliyaviy majburiyat (shartnoma, qarz) yaratmaydi.
 /// Bitta guruhda faol (leftAt = null) a'zolik bittadan oshmaydi — bazadagi partial unique index.
 model StudentGroupMembership {
-  id          String    @id @default(cuid())
-  studentId   String
-  groupId     String
-  joinedAt    DateTime  @default(now())
+  id              String    @id @default(cuid())
+  studentId       String
+  groupId         String
+  joinedAt        DateTime  @default(now())
   /// Guruhdan chiqqan vaqt — yozuv o'chirilmaydi, tarix saqlanadi
-  leftAt      DateTime?
-  reason      String?   @db.VarChar(255)
-  leftReason  String?   @db.VarChar(255)
+  leftAt          DateTime?
+  reason          String?   @db.VarChar(255)
+  leftReason      String?   @db.VarChar(255)
   /// PMT: shu guruh o'qituvchisiga o'quvchi oylik to'lovidan beriladigan ulush (0–100%). Qolgani asosiy guruh o'qituvchisiga.
   /// Faqat keyingi to'lovlarga ta'sir qiladi — bo'linish to'lov paytida payment_teacher_shares ga qotiriladi.
-  commissionShare Decimal @default(0) @db.Decimal(5, 2)
-  addedById   String?
-  removedById String?
+  commissionShare Decimal   @default(0) @db.Decimal(5, 2)
+  addedById       String?
+  removedById     String?
 
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   group     Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -1258,14 +1261,14 @@ model Payment {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  transaction       Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  student           Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  course            Course            @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  manager           User?             @relation("PaymentManager", fields: [managerId], references: [id], onDelete: SetNull)
-  accountant        User?             @relation("PaymentAccountant", fields: [accountantId], references: [id], onDelete: SetNull)
-  deletedBy         User?             @relation("PaymentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  group             Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  teacher           User?             @relation("PaymentTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  transaction       Transaction?          @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  student           Student               @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course            Course                @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  manager           User?                 @relation("PaymentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  accountant        User?                 @relation("PaymentAccountant", fields: [accountantId], references: [id], onDelete: SetNull)
+  deletedBy         User?                 @relation("PaymentDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  group             Group?                @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  teacher           User?                 @relation("PaymentTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   commissionEntries CommissionEntry[]
   refunds           PaymentRefund[]
   teacherShares     PaymentTeacherShare[]
@@ -1412,33 +1415,33 @@ model TelegramLink {
 /// Yetkazish navbati (outbox): tashqi kanalga yuborish asosiy so'rovni kutib qoldirmaydi,
 /// xatolik bo'lsa qayta urinish mumkin va har bir urinish iz qoldiradi.
 model NotificationDelivery {
-  id             String          @id @default(cuid())
-  notificationId String?
-  channel        DeliveryChannel
-  status         DeliveryStatus  @default(PENDING)
+  id                String          @id @default(cuid())
+  notificationId    String?
+  channel           DeliveryChannel
+  status            DeliveryStatus  @default(PENDING)
   /// Takrorlanmaslik kaliti: <dedupeKey>:<channel>
-  dedupeKey      String?         @unique @db.VarChar(200)
+  dedupeKey         String?         @unique @db.VarChar(200)
   /// Ommaviy xabar bo'lsa — qaysi biri (statistika uchun)
-  broadcastId    String?
-  telegramLinkId String?
+  broadcastId       String?
+  telegramLinkId    String?
   /// SMS kanali: qabul qiluvchi raqami (998XXXXXXXXX)
-  phone          String?         @db.VarChar(20)
+  phone             String?         @db.VarChar(20)
   /// SMS provayderi (Eskiz) qaytargan xabar identifikatori
-  providerMessageId String?      @db.VarChar(64)
-  title          String          @db.VarChar(200)
-  body           String
+  providerMessageId String?         @db.VarChar(64)
+  title             String          @db.VarChar(200)
+  body              String
   /// "photo" | "document" — bo'lsa xabar media bilan (izoh = body)
-  mediaKind      String?         @db.VarChar(10)
-  mediaFileId    String?         @db.VarChar(200)
+  mediaKind         String?         @db.VarChar(10)
+  mediaFileId       String?         @db.VarChar(200)
   /// URL tugmalar (broadcast): [{ text, url }]
-  buttons        Json?
-  attempts       Int             @default(0) @db.SmallInt
-  lastError      String?         @db.VarChar(500)
+  buttons           Json?
+  attempts          Int             @default(0) @db.SmallInt
+  lastError         String?         @db.VarChar(500)
   /// Keyingi urinish vaqti (exponential backoff)
-  nextAttemptAt  DateTime        @default(now())
-  sentAt         DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  nextAttemptAt     DateTime        @default(now())
+  sentAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   notification Notification?      @relation(fields: [notificationId], references: [id], onDelete: SetNull)
   telegramLink TelegramLink?      @relation(fields: [telegramLinkId], references: [id], onDelete: SetNull)
@@ -1988,6 +1991,8 @@ model TeacherProfile {
   specialization   String?        @db.VarChar(150)
   experienceYears  Int?           @db.SmallInt
   hireDate         DateTime?      @db.Date
+  /// Sinov muddati tugaydigan kun (demo darsdan keyin odatda 1 oy)
+  probationEndDate DateTime?      @db.Date
   bio              String?
   isActive         Boolean        @default(true)
   /// HR holati; isActive shundan kelib chiqadi (faol yoki ta’tilda — true)
@@ -2374,14 +2379,14 @@ model Parent {
 }
 
 model StudentParent {
-  id        String         @id @default(cuid())
-  studentId String
-  parentId  String
-  relation  ParentRelation @default(GUARDIAN)
+  id            String         @id @default(cuid())
+  studentId     String
+  parentId      String
+  relation      ParentRelation @default(GUARDIAN)
   /// relation = OTHER bo'lganda: "Buvi", "Aka", "Tog'a"
-  relationLabel String?       @db.VarChar(40)
-  isPrimary Boolean        @default(false)
-  createdAt DateTime       @default(now())
+  relationLabel String?        @db.VarChar(40)
+  isPrimary     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
@@ -3142,6 +3147,15 @@ enum EmployeePosition {
   CLEANER
   SECURITY
   OTHER
+  /// ORG tizimi: qabulxona va kassa
+  RECEPTIONIST
+  MARKETING_MANAGER
+  /// Video kontent: tasvirga olish, montaj, joylash
+  CONTENT_CREATOR
+  /// Kelajakdagi lavozimlar (hozircha vakant bo'lishi mumkin)
+  OPERATIONS_MANAGER
+  STUDENT_SUCCESS_MANAGER
+  ACADEMIC_COORDINATOR
 }
 
 enum EmployeeStatus {
@@ -3172,6 +3186,10 @@ model Employee {
   status            EmployeeStatus   @default(ACTIVE)
   hireDate          DateTime         @db.Date
   terminationDate   DateTime?        @db.Date
+  /// Sinov muddati tugaydigan kun (sinovsiz bo'lsa null) — tugashidan oldin rahbarga eslatma
+  probationEndDate  DateTime?        @db.Date
+  /// Kimga hisobot beradi (null — markaz rahbari / CEO)
+  managerId         String?
   /// Mehnat shartnomasi
   contractNumber    String?          @unique @db.VarChar(50)
   contractStartDate DateTime?        @db.Date
@@ -3191,6 +3209,7 @@ model Employee {
 
   user          User?                 @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
   createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  manager       User?                 @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
   salaryPeriods TeacherSalaryPeriod[]
   documents     Document[]
   leaves        EmployeeLeave[]
@@ -3203,6 +3222,8 @@ model Employee {
   @@index([position])
   @@index([department])
   @@index([contractEndDate])
+  @@index([probationEndDate])
+  @@index([managerId])
   @@map("employees")
 }
 
@@ -3835,9 +3856,14 @@ enum AutomationSchedule {
 
 /// Avtomatlashtirish yoki xodim yaratgan ish (TZ §51 "Create Task")
 enum TaskStatus {
+  /// Yangi (hali boshlanmagan)
   OPEN
   DONE
   CANCELLED
+  /// Ijrochi ishni boshladi
+  IN_PROGRESS
+  /// Ijrochi topshirdi — vazifa bergan xodim yoki rahbar qabul qiladi yoki qaytaradi
+  REVIEW
 }
 
 /// Xodim uchun ish: kim, nima, qachongacha. Qoida yaratgan bo'lsa `ruleId` va `dedupeKey` bor —
@@ -3858,6 +3884,10 @@ model Task {
   dedupeKey      String?      @unique @db.VarChar(200)
   createdById    String?
   completedAt    DateTime?
+  /// Kutilgan natija — "bajarildi" qachon hisoblanishi (ORG §3.7)
+  expectedResult String?      @db.VarChar(1000)
+  /// Ijrochi tekshiruvga topshirgan vaqt
+  submittedAt    DateTime?
   priority       TaskPriority @default(NORMAL)
   /// Vazifa qayerdan paydo bo'lgan (qo'lda, qoida, ogohlantirish, bildirishnoma, eskalatsiya)
   source         TaskSource   @default(MANUAL)
@@ -4327,23 +4357,23 @@ model StaffAttendanceDay {
 
 /// Davomat hodisasi. O'zgartirilmaydi va o'chirilmaydi: tuzatishda `voidedAt` qo'yiladi va yangi hodisa qo'shiladi.
 model StaffAttendanceEvent {
-  id           String                     @id @default(cuid())
-  dayId        String
-  userId       String
-  type         StaffAttendanceEventType
+  id                   String                     @id @default(cuid())
+  dayId                String
+  userId               String
+  type                 StaffAttendanceEventType
   /// Server vaqti (QR) yoki tuzatishda rahbar kiritgan vaqt
-  occurredAt   DateTime
-  source       StaffAttendanceEventSource
+  occurredAt           DateTime
+  source               StaffAttendanceEventSource
   /// Bir QR token — ko'pi bilan bitta hodisa
-  qrTokenId    String?                    @unique
-  correctionId String?
-  voidedAt     DateTime?
-  voidedById   String?
+  qrTokenId            String?                    @unique
+  correctionId         String?
+  voidedAt             DateTime?
+  voidedById           String?
   /// Bekor qilgan tuzatish
   voidedByCorrectionId String?
-  ip           String?                    @db.VarChar(64)
-  userAgent    String?                    @db.VarChar(500)
-  createdAt    DateTime                   @default(now())
+  ip                   String?                    @db.VarChar(64)
+  userAgent            String?                    @db.VarChar(500)
+  createdAt            DateTime                   @default(now())
 
   day        StaffAttendanceDay         @relation(fields: [dayId], references: [id], onDelete: Restrict)
   qrToken    StaffQrToken?              @relation(fields: [qrTokenId], references: [id], onDelete: SetNull)
@@ -4375,16 +4405,16 @@ model StaffAttendanceCorrection {
 
 /// Qabulxona QR tokeni. Tokenning o'zi saqlanmaydi — faqat SHA-256 hash. Qisqa muddatli va bir martalik.
 model StaffQrToken {
-  id          String    @id @default(cuid())
-  tokenHash   String    @unique @db.VarChar(64)
-  branchId    String    @default("branch_main")
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique @db.VarChar(64)
+  branchId   String    @default("branch_main")
   /// QR ekranini ochgan hisob (qabulxona qurilmasi yoki administrator)
-  issuedById  String?
-  issuedAt    DateTime  @default(now())
-  expiresAt   DateTime
-  usedAt      DateTime?
-  usedById    String?
-  createdAt   DateTime  @default(now())
+  issuedById String?
+  issuedAt   DateTime  @default(now())
+  expiresAt  DateTime
+  usedAt     DateTime?
+  usedById   String?
+  createdAt  DateTime  @default(now())
 
   events StaffAttendanceEvent[]
 
@@ -4394,21 +4424,21 @@ model StaffQrToken {
 
 /// Xodimning ruxsat so'rovi (kelmaslik, kech kelish, erta ketish). Tasdiqlangani davomatda "sababli" bo'ladi.
 model StaffPermissionRequest {
-  id           String              @id @default(cuid())
-  userId       String
-  type         StaffPermissionType
-  startDate    DateTime            @db.Date
-  endDate      DateTime            @db.Date
+  id            String              @id @default(cuid())
+  userId        String
+  type          StaffPermissionType
+  startDate     DateTime            @db.Date
+  endDate       DateTime            @db.Date
   /// LATE_ARRIVAL: shu vaqtgacha keladi; EARLY_LEAVE: shu vaqtdan ketadi ("HH:mm")
-  time         String?             @db.VarChar(5)
-  reason       String              @db.VarChar(255)
-  status       LeaveStatus         @default(PENDING)
+  time          String?             @db.VarChar(5)
+  reason        String              @db.VarChar(255)
+  status        LeaveStatus         @default(PENDING)
   requestedById String?
-  decidedById  String?
-  decidedAt    DateTime?
-  decisionNote String?             @db.VarChar(255)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  decidedById   String?
+  decidedAt     DateTime?
+  decisionNote  String?             @db.VarChar(255)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   user      User  @relation("StaffRequestUser", fields: [userId], references: [id], onDelete: Restrict)
   decidedBy User? @relation("StaffRequestDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)

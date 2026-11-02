@@ -435,7 +435,7 @@ async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveS
   const pendingUsers = await prisma.user.count({ where: { deletedAt: null, status: 'PENDING', ...inBranch(scope) } });
   const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL', ...inBranch(scope) } });
   // Ish qatlami (CRM 4.0, 2-faza): muddati o'tgan vazifalar va tasdiq kutayotgan so'rovlar
-  const overdueTasks = await prisma.task.count({ where: { status: 'OPEN', dueAt: { lt: now }, ...(scope.branchId ? { assignee: { branchId: scope.branchId } } : {}) } });
+  const overdueTasks = await prisma.task.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] }, dueAt: { lt: now }, ...(scope.branchId ? { assignee: { branchId: scope.branchId } } : {}) } });
   const pendingApprovals = await prisma.approvalRequest.count({ where: { status: 'PENDING', ...inBranch(scope) } });
 
   const rows: ExecutiveSummaryDto['attention'] = [

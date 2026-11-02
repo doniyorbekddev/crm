@@ -1,6 +1,6 @@
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
-import { taskService } from '../../services/task.service.js';
+import { isActiveTask, taskService } from '../../services/task.service.js';
 import type { TaskDto } from '../../services/task.service.js';
 import type { CommandScope } from '../../services/telegramCommand.service.js';
 import { escapeHtml } from '../../services/telegram.service.js';
@@ -9,6 +9,14 @@ import { fmtDateTime } from '../format.js';
 import { callback, paginationRow, withNavigation } from '../keyboards.js';
 import { TASK_ACTIONS } from '../taskButtons.js';
 import type { BotContext, HandlerResult } from '../types.js';
+
+const STATUS_LINE: Record<TaskDto['status'], string> = {
+  OPEN: '',
+  IN_PROGRESS: '🔄 Jarayonda',
+  REVIEW: '📤 Tekshiruvda',
+  DONE: '✅ Bajarilgan',
+  CANCELLED: '🚫 Bekor qilingan',
+};
 
 /**
  * Xodim vazifalari botda (CRM 4.0, 2-faza): ro'yxat, tafsilot, "Bajarildi", muddatni ertaga surish.
@@ -37,7 +45,7 @@ async function guarded(context: BotContext, run: () => Promise<HandlerResult>): 
 }
 
 async function showList(context: BotContext, actor: AuthUser, page: number): Promise<HandlerResult> {
-  const result = await taskService.list(actor, { scope: 'mine', status: 'OPEN', page, limit: PAGE_SIZE });
+  const result = await taskService.list(actor, { scope: 'mine', active: true, page, limit: PAGE_SIZE });
   if (result.total === 0) {
     await context.render('📋 <b>Vazifalarim</b>\n\nOchiq vazifa yo‘q.', withNavigation([]));
     return { action: TASK_ACTIONS.list };
@@ -61,13 +69,15 @@ async function showTask(context: BotContext, actor: AuthUser, id: string, note?:
     dueLine(task),
     `Ijrochi: ${escapeHtml(`${task.assignee.firstName} ${task.assignee.lastName}`)}`,
     ...(task.createdBy ? [`Berdi: ${escapeHtml(`${task.createdBy.firstName} ${task.createdBy.lastName}`)}`] : []),
-    ...(task.status === 'OPEN' ? [] : [task.status === 'DONE' ? '✅ Bajarilgan' : '🚫 Bekor qilingan']),
+    ...(task.status === 'OPEN' ? [] : [STATUS_LINE[task.status]]),
     ...(task.comments.length > 0 ? ['', `💬 Oxirgi izoh: ${escapeHtml(task.comments.at(-1)!.content.slice(0, 200))}`] : []),
   ].join('\n');
 
   const actions: InlineButton[] = [];
-  if (task.status === 'OPEN' && task.can.changeStatus) actions.push({ text: '✅ Bajarildi', data: callback(TASK_ACTIONS.done, task.id) });
-  if (task.status === 'OPEN' && task.can.edit) actions.push({ text: '⏰ Ertaga', data: callback(TASK_ACTIONS.tomorrow, task.id) });
+  const working = task.status === 'OPEN' || task.status === 'IN_PROGRESS';
+  if (working && task.can.changeStatus) actions.push({ text: task.needsReview && !task.can.edit ? '📤 Topshirish' : '✅ Bajarildi', data: callback(TASK_ACTIONS.done, task.id) });
+  if (task.status === 'REVIEW' && task.can.review) actions.push({ text: '✅ Qabul qilish', data: callback(TASK_ACTIONS.done, task.id) });
+  if (working && task.can.edit) actions.push({ text: '⏰ Ertaga', data: callback(TASK_ACTIONS.tomorrow, task.id) });
   await context.render(text, withNavigation(actions.length > 0 ? [actions] : [], callback(TASK_ACTIONS.list)));
   return { action: TASK_ACTIONS.open };
 }
@@ -89,9 +99,11 @@ export async function handleTaskAction(context: BotContext, scope: CommandScope,
       return guarded(context, async () => {
         // Ikki marta bosilsa (yoki web'da allaqachon yopilgan bo'lsa) — xato emas, holat ko'rsatiladi
         const current = await taskService.getById(actor, arg);
-        if (current.status !== 'OPEN') return showTask(context, actor, arg, 'ℹ️ Bu vazifa allaqachon yopilgan.');
-        await taskService.update(actor, arg, { status: 'DONE' }, client);
-        await showTask(context, actor, arg, '✅ Bajarildi deb belgilandi.');
+        if (current.status === 'REVIEW' && !current.can.review) return showTask(context, actor, arg, 'ℹ️ Vazifa tekshiruvda — uni bergan xodim qabul qiladi.');
+        if (!isActiveTask(current.status)) return showTask(context, actor, arg, 'ℹ️ Bu vazifa allaqachon yopilgan.');
+        // Boshqa xodim bergan vazifada "bajarildi" — tekshiruvga topshirish
+        const result = await taskService.update(actor, arg, { status: 'DONE' }, client);
+        await showTask(context, actor, arg, result.status === 'REVIEW' ? '📤 Tekshiruvga topshirildi.' : '✅ Bajarildi deb belgilandi.');
         return { action: TASK_ACTIONS.done };
       });
     case TASK_ACTIONS.tomorrow:

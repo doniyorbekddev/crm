@@ -1,4 +1,4 @@
-export type TaskStatus = 'OPEN' | 'DONE' | 'CANCELLED';
+export type TaskStatus = 'OPEN' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 export type TaskSource = 'MANUAL' | 'AUTOMATION' | 'ALERT' | 'NOTIFICATION' | 'ESCALATION';
 
@@ -17,6 +17,11 @@ export interface TaskItem {
   source: TaskSource;
   dueAt: string | null;
   overdue: boolean;
+  /** Kutilgan natija — qachon "bajarildi" hisoblanadi */
+  expectedResult: string | null;
+  /** Boshqa xodim bergan: ijrochi topshiradi, bergan xodim (yoki rahbar) qabul qiladi */
+  needsReview: boolean;
+  submittedAt: string | null;
   link: string | null;
   entityType: string | null;
   entityId: string | null;
@@ -49,7 +54,7 @@ export interface TaskAssignment {
 export interface TaskDetail extends TaskItem {
   comments: TaskComment[];
   assignments: TaskAssignment[];
-  can: { edit: boolean; assign: boolean; changeStatus: boolean };
+  can: { edit: boolean; assign: boolean; changeStatus: boolean; review: boolean };
 }
 
 export interface TaskList {
@@ -65,6 +70,10 @@ export interface TaskListParams {
   scope?: 'mine' | 'created' | 'all';
   priority?: TaskPriority;
   overdue?: boolean;
+  /** Faqat yopilmaganlar (Yangi, Jarayonda, Tekshiruvda) */
+  active?: boolean;
+  /** Men qabul qilishim kerak bo'lganlar */
+  review?: boolean;
   search?: string;
   page?: number;
   limit?: number;
@@ -73,6 +82,7 @@ export interface TaskListParams {
 export interface TaskCreatePayload {
   title: string;
   description?: string;
+  expectedResult?: string;
   assigneeId?: string;
   dueAt?: string;
   priority?: TaskPriority;

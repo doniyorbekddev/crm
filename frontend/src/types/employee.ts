@@ -8,7 +8,13 @@ export type EmployeePosition =
   | 'ACCOUNTANT'
   | 'CLEANER'
   | 'SECURITY'
-  | 'OTHER';
+  | 'OTHER'
+  | 'RECEPTIONIST'
+  | 'MARKETING_MANAGER'
+  | 'CONTENT_CREATOR'
+  | 'OPERATIONS_MANAGER'
+  | 'STUDENT_SUCCESS_MANAGER'
+  | 'ACADEMIC_COORDINATOR';
 
 export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'RESIGNED';
 
@@ -29,6 +35,11 @@ export interface Employee {
   status: EmployeeStatus;
   hireDate: string;
   terminationDate: string | null;
+  /** Sinov muddati tugash sanasi va qolgan kunlar (sinov tugagan yoki yo'q bo'lsa null) */
+  probationEndDate: string | null;
+  probationDaysLeft: number | null;
+  /** Kimga hisobot beradi (null — markaz rahbari) */
+  manager: { id: string; firstName: string; lastName: string } | null;
   contractNumber: string | null;
   contractStartDate: string | null;
   contractEndDate: string | null;
@@ -80,6 +91,8 @@ export interface EmployeePayload {
   hireDate: string;
   status: EmployeeStatus;
   terminationDate: string | null;
+  probationEndDate?: string | null;
+  managerId?: string | null;
   note: string | null;
   userId: string | null;
   email?: string | null;

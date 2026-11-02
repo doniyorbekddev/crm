@@ -53,6 +53,14 @@ export function optionalField<T extends z.ZodType>(schema: T) {
   return z.preprocess((value) => (value === '' || value === null ? undefined : value), schema.optional());
 }
 
+/**
+ * Tozalanadigan maydon: berilmasa — o'zgarmaydi (`undefined`), `null` yoki bo'sh satr — tozalash (`null`).
+ * `optionalField` dan farqi: u `null` ni "o'zgartirmaslik" deb tushunadi.
+ */
+export function clearableField<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => (value === '' ? null : value), schema.nullable().optional());
+}
+
 /** Ma'lumotnoma yozuvi nomi (manba, turkum…): bo'shliqlar yig'iladi */
 export const dictionaryEntryNameSchema = z
   .string('Nomini kiriting')

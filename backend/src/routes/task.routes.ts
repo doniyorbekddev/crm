@@ -36,7 +36,9 @@ taskRouter.get('/:id', async (req, res) => {
 taskRouter.patch('/:id', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const input = taskUpdateSchema.parse(req.body);
-  sendSuccess(res, await taskService.update(requireAuthUser(req), id, input, getClientInfo(req)), { message: input.status === 'DONE' ? 'Bajarildi' : 'Saqlandi' });
+  const task = await taskService.update(requireAuthUser(req), id, input, getClientInfo(req));
+  const message = input.status === undefined ? 'Saqlandi' : task.status === 'DONE' ? 'Bajarildi' : task.status === 'REVIEW' ? 'Tekshiruvga topshirildi' : 'Saqlandi';
+  sendSuccess(res, task, { message });
 });
 
 taskRouter.post('/:id/assign', requirePermission(PERMISSIONS.TASK_ASSIGN), async (req, res) => {

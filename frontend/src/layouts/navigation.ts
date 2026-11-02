@@ -1,4 +1,4 @@
-import { Activity, BadgePercent, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
+import { Activity, BadgePercent, Network, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -87,6 +87,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/staff-attendance', label: 'Xodimlar davomati', icon: ScanLine, permission: PERMISSIONS.STAFF_ATTENDANCE_VIEW },
       { to: '/feedback', label: 'Fikr-mulohaza', icon: MessageSquareHeart, permission: PERMISSIONS.FEEDBACK_VIEW },
     ],
+  },
+  {
+    // ORG tizimi: markaz boshqaruv standarti (tuzilma, murojaatlar, HR jarayonlari, bilimlar, aktivlar)
+    id: 'org',
+    title: 'Tashkilot',
+    items: [{ to: '/org-structure', label: 'Tashkiliy tuzilma', icon: Network, permission: PERMISSIONS.EMPLOYEE_VIEW }],
   },
   {
     id: 'analytics',

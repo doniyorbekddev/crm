@@ -63,6 +63,8 @@ export interface TeacherItem {
   specialization: string | null;
   experienceYears: number | null;
   hireDate: string | null;
+  /** Sinov muddati tugash sanasi */
+  probationEndDate: string | null;
   bio: string | null;
   isActive: boolean;
   /** HR holati */
@@ -254,6 +256,8 @@ export interface TeacherProfilePayload {
   specialization?: string;
   experienceYears?: number;
   hireDate?: string;
+  /** Berilmasa — o'zgarmaydi; `null` — tozalanadi */
+  probationEndDate?: string | null;
   bio?: string;
   isActive?: boolean;
   employmentStatus?: EmployeeStatus;

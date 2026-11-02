@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalField, paginationQuerySchema } from './common.validator.js';
+import { clearableField, optionalField, paginationQuerySchema } from './common.validator.js';
 import { EMPLOYEE_STATUSES } from './employee.validator.js';
 
 export const SALARY_TYPES = ['FIXED', 'PER_LESSON', 'PER_STUDENT', 'PERCENTAGE', 'MIXED'] as const;
@@ -38,6 +38,11 @@ const profileFieldsSchema = z.object({
       .max(60, 'Tajriba 60 yildan oshmasligi kerak'),
   ),
   hireDate: optionalField(dateOnlySchema),
+  /**
+   * Sinov muddati tugash sanasi (ORG §3.2: demo darsdan keyin 1 oy).
+   * Boshqa maydonlardan farqli: berilmasa — o'zgarmaydi (holatni almashtirish kabi qisqa so'rovlar uni o'chirib yubormasin), `null` — tozalash.
+   */
+  probationEndDate: clearableField(dateOnlySchema),
   bio: optionalField(z.string().trim().max(1000, 'Izoh 1000 belgidan oshmasligi kerak')),
 });
 

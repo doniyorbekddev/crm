@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { customLabelField, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
+import { clearableField, customLabelField, nameSchema, optionalField, paginationQuerySchema, phoneSchema } from './common.validator.js';
 
 export const EMPLOYEE_POSITIONS = [
   'ADMINISTRATOR',
@@ -10,6 +10,12 @@ export const EMPLOYEE_POSITIONS = [
   'CLEANER',
   'SECURITY',
   'OTHER',
+  'RECEPTIONIST',
+  'MARKETING_MANAGER',
+  'CONTENT_CREATOR',
+  'OPERATIONS_MANAGER',
+  'STUDENT_SUCCESS_MANAGER',
+  'ACADEMIC_COORDINATOR',
 ] as const;
 export const EMPLOYEE_STATUSES = ['ACTIVE', 'ON_LEAVE', 'SUSPENDED', 'RESIGNED'] as const;
 
@@ -47,6 +53,10 @@ const employeeFields = {
   hireDate: dateOnlySchema('Ishga kirgan sana'),
   status: z.enum(EMPLOYEE_STATUSES, 'Holat noto‘g‘ri'),
   terminationDate: optionalField(dateOnlySchema('Ishdan ketgan sana')),
+  /** Sinov muddati tugaydigan kun (ORG §3.2: oddiy xodim 1 oy, rahbar 3 oy) */
+  probationEndDate: clearableField(dateOnlySchema('Sinov muddati tugash sanasi')),
+  /** Kimga hisobot beradi — bo'sh bo'lsa markaz rahbariga (CEO) */
+  managerId: clearableField(idSchema),
   note: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
   /** Tizim akkaunti (bildirishnoma uchun) — ixtiyoriy */
   userId: optionalField(idSchema),
