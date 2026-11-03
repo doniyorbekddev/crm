@@ -4,6 +4,7 @@ import { notificationService } from '../services/notification.service.js';
 import type { NotificationInput } from '../services/notification.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 import { notifyOverdueComplaints } from '../services/org/complaints.service.js';
+import { notifyReviewSeason } from '../services/org/performance.service.js';
 import { WORKING_TASK_STATUSES } from '../services/task.service.js';
 import { taskNotificationButtons } from '../telegram/taskButtons.js';
 import { businessToday, daysBetween, fullName, permissionHolders, toDateOnly } from '../services/org/common.js';
@@ -115,7 +116,8 @@ async function runOnce(): Promise<void> {
       const probation = await notifyProbationEnds(now);
       const complaints = await notifyOverdueComplaints(now);
       const tasks = await notifyTasksDueSoon(now);
-      if (probation + complaints + tasks > 0) logger.info({ probation, complaints, tasks }, 'ORG eslatmalari yuborildi');
+      const reviews = await notifyReviewSeason(now);
+      if (probation + complaints + tasks + reviews > 0) logger.info({ probation, complaints, tasks, reviews }, 'ORG eslatmalari yuborildi');
     });
     reportJobSuccess('org');
   } catch (error) {

@@ -24,6 +24,7 @@ import { lookupsService } from '@/services/lookups.service';
 import { formatMoney } from '@/utils/format';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { orgService } from '@/services/org.service';
 import { useFinanceCategories } from './useFinanceCategories';
 
 const schema = z.object({
@@ -35,6 +36,7 @@ const schema = z.object({
   description: z.string().trim().max(255, 'Izoh juda uzun'),
   vendor: z.string().trim().max(150, 'Yetkazib beruvchi nomi juda uzun'),
   sourceId: z.string(),
+  departmentId: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -83,8 +85,21 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
       description: '',
       vendor: '',
       sourceId: '',
+      departmentId: '',
     },
   });
+  // Bo'lim (ORG §10): oylik limit va shu oydagi sarf — limitdan oshsa rahbar tasdig'i
+  const departmentsQuery = useQuery({ queryKey: queryKeys.org.departments, queryFn: () => orgService.departments(), enabled: isExpense, staleTime: 300_000, retry: false });
+  const now = new Date();
+  const spendingQuery = useQuery({
+    queryKey: ['org', 'spending', now.getFullYear(), now.getMonth() + 1],
+    queryFn: () => orgService.departmentSpending(now.getFullYear(), now.getMonth() + 1),
+    enabled: isExpense && (departmentsQuery.data?.length ?? 0) > 0,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const departmentId = useWatch({ control, name: 'departmentId' });
+  const departmentSpending = spendingQuery.data?.rows.find((row) => row.id === departmentId);
   // Reklama xarajati kanalga bog'lanadi — manba bo'yicha ROI shu yerdan chiqadi
   const selectedCategoryId = useWatch({ control, name: 'categoryId' });
   const isMarketing = isExpense && (categoriesQuery.data ?? []).some((item) => item.id === selectedCategoryId && item.key === 'ADVERTISEMENT');
@@ -96,7 +111,8 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
   });
   const amount = Number(useWatch({ control, name: 'amount' }) || 0);
   const threshold = settingsQuery.data?.approvalThreshold ?? 0;
-  const needsApproval = isExpense && !canApprove && threshold > 0 && amount >= threshold;
+  const overLimit = Boolean(departmentSpending?.limit) && departmentSpending!.spent + amount > departmentSpending!.limit!;
+  const needsApproval = isExpense && !canApprove && ((threshold > 0 && amount >= threshold) || overLimit);
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
@@ -109,6 +125,7 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
         ...(values.description ? { description: values.description } : {}),
         ...(isExpense && values.vendor ? { vendor: values.vendor } : {}),
         ...(isMarketing && values.sourceId ? { sourceId: values.sourceId } : {}),
+        ...(isExpense && values.departmentId ? { departmentId: values.departmentId } : {}),
       }),
     onSuccess: (result) => {
       toast.success(result.message);
@@ -280,9 +297,28 @@ export function MoneyFormModal({ kind, onClose, onSaved }: MoneyFormModalProps) 
           </FormField>
         )}
 
+        {isExpense && (departmentsQuery.data?.length ?? 0) > 0 && (
+          <FormField
+            label="Bo‘lim"
+            htmlFor="money-department"
+            hint={departmentSpending?.limit ? `Shu oy: ${formatMoney(departmentSpending.spent)} / limit ${formatMoney(departmentSpending.limit)}` : 'Ixtiyoriy — bo‘lim xarajatlari hisobiga kiradi'}
+          >
+            <Select id="money-department" {...register('departmentId')}>
+              <option value="">Tanlanmagan</option>
+              {(departmentsQuery.data ?? []).map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        )}
+
         {needsApproval && (
           <Alert tone="warning">
-            Summa tasdiq chegarasidan ({formatMoney(threshold)}) katta — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.
+            {overLimit
+              ? 'Bo‘limning oylik xarajat limiti oshadi — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.'
+              : `Summa tasdiq chegarasidan (${formatMoney(threshold)}) katta — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.`}
           </Alert>
         )}
 

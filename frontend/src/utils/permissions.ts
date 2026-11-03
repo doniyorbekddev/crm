@@ -28,6 +28,7 @@ const MODULE_LABELS: Record<string, string> = {
   hiring: 'Ishga qabul qilish',
   asset: 'Aktivlar',
   knowledge: 'Bilimlar bazasi',
+  performance: 'Baholash va rivojlanish',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -70,6 +71,7 @@ const PERMISSION_MODULE_LABELS: Record<string, string> = {
   hiring: 'Ishga qabul qilish',
   assets: 'Aktivlar',
   knowledge: 'Bilimlar bazasi',
+  performance: 'Baholash va rivojlanish',
 };
 
 export function permissionModuleLabel(module: string): string {

@@ -1,7 +1,7 @@
 # Ruxsatlar (RBAC) — rol × ruxsat matritsasi
 
 > **Avtomatik yaratilgan** — manba: `backend/src/config/permissions.ts`. Qo‘lda tahrirlamang — `npm run docs:permissions --workspace backend` bilan qayta yarating.
-> Sana: 2026-11-03. Ruxsatlar: 109 ta, tizim rollari: 10 ta.
+> Sana: 2026-11-03. Ruxsatlar: 112 ta, tizim rollari: 10 ta.
 
 ## Qanday ishlaydi
 
@@ -14,9 +14,9 @@
 
 | Kalit | Nomi | Tavsif | Ruxsatlar soni |
 |---|---|---|---|
-| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 106 |
-| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 105 |
-| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 93 |
+| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 109 |
+| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 108 |
+| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 95 |
 | `SALES_MANAGER` | Sales Manager | Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish | 24 |
 | `CALL_CENTER` | Call Center | Leadlar, qo‘ng‘iroqlar va follow-up | 16 |
 | `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 20 |
@@ -81,6 +81,9 @@ Qisqartmalar: SA = Super Admin · OWN = Direktor (Owner) · ADM = Admin · SM = 
 | assets | `asset.view` | Markaz jihozlari (aktivlar) reyestrini ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ | · |
 | assets | `asset.manage` | Aktiv qo‘shish, mas’ulga biriktirish, ko‘chirish, ta’mirlash va hisobdan chiqarish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ | · |
 | knowledge | `knowledge.manage` | Bilimlar bazasi hujjatlarini yozish, e’lon qilish va arxivlash | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| performance | `performance.view` | Xodimlar baholash natijalari, taqdirlashlar va ko‘tarilish tavsiyalarini ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| performance | `performance.manage` | Choraklik baholash yozish, taqdirlash va lavozimga ko‘tarishni tavsiya qilish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| performance | `performance.approve` | Baholashni va lavozimga ko‘tarilishni tasdiqlash (yakuniy qaror) | ✅ | ✅ | · | · | · | · | · | · | · | · |
 | hr | `staff_document.view` | O‘qituvchi va xodim hujjatlarini (shartnoma, pasport, sertifikat) ko‘rish va yuklab olish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | hr | `staff_document.manage` | O‘qituvchi va xodim hujjatlarini yuklash, tahrirlash va o‘chirish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | roles | `role.manage` | Rollar va permissionlarni boshqarish | ✅ | · | · | · | · | · | · | · | · | · |

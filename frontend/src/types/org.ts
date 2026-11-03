@@ -311,3 +311,78 @@ export interface EmploymentHistoryEntry {
   createdBy: OrgPerson | null;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------- natija va rivojlanish
+export type ReviewCriterion = 'quality' | 'discipline' | 'teamwork' | 'initiative' | 'results';
+export type PerformanceRating = 'BELOW' | 'MEETS' | 'EXCEEDS';
+export type ReviewStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED';
+
+export interface PerformanceReview {
+  id: string;
+  year: number;
+  quarter: number;
+  positionKey: string;
+  positionTitle: string;
+  kpiAverage: number | null;
+  attendanceRate: number | null;
+  scores: Record<ReviewCriterion, number>;
+  overallScore: number;
+  rating: PerformanceRating;
+  strengths: string | null;
+  improvements: string | null;
+  goals: string | null;
+  recommendPromotion: boolean;
+  status: ReviewStatus;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  user: OrgPerson;
+  reviewer: OrgPerson | null;
+  approvedBy: OrgPerson | null;
+}
+
+export type AwardType = 'EMPLOYEE_OF_MONTH' | 'EMPLOYEE_OF_QUARTER' | 'SPECIAL' | 'TRAINING';
+
+export interface StaffAward {
+  id: string;
+  type: AwardType;
+  year: number;
+  period: number | null;
+  title: string;
+  reason: string;
+  amount: number | null;
+  salaryPeriodId: string | null;
+  createdAt: string;
+  user: OrgPerson;
+  createdBy: OrgPerson | null;
+}
+
+export interface CareerStatus {
+  employeeId: string;
+  name: string;
+  position: { key: string; title: string };
+  next: { key: string; title: string; requirements: string | null; minimumKpiScore: number | null; minimumMonths: number | null } | null;
+  monthsInPosition: number;
+  kpiAverage: number | null;
+  meetsKpi: boolean;
+  meetsTenure: boolean;
+  eligible: boolean;
+  pendingPromotion: boolean;
+}
+
+export interface Promotion {
+  id: string;
+  employee: OrgPerson;
+  from: { key: string; title: string };
+  to: { key: string; title: string };
+  reason: string;
+  kpiAverage: number | null;
+  monthsInPosition: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  effectiveDate: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  createdAt: string;
+  recommendedBy: OrgPerson | null;
+  decidedBy: OrgPerson | null;
+}

@@ -1,4 +1,4 @@
-import { Activity, BadgePercent, Boxes, Briefcase, Library, MessageSquareWarning, Network, UserPlus, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
+import { Activity, Award, BadgePercent, Boxes, Sprout, Briefcase, Library, MessageSquareWarning, Network, UserPlus, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -99,6 +99,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/complaints', label: 'Murojaatlar', icon: MessageSquareWarning },
       { to: '/knowledge', label: 'Bilimlar bazasi', icon: Library },
       { to: '/assets', label: 'Aktivlar', icon: Boxes, permission: PERMISSIONS.ASSET_VIEW },
+      { to: '/performance', label: 'Baholash va rivojlanish', icon: Award, permission: PERMISSIONS.PERFORMANCE_VIEW },
+      { to: '/my-growth', label: 'Mening rivojlanishim', icon: Sprout },
     ],
   },
   {

@@ -344,6 +344,13 @@ model User {
   employee                  Employee?                  @relation("EmployeeUser")
   createdEmployees          Employee[]                 @relation("EmployeeCreatedBy")
   managedEmployees          Employee[]                 @relation("EmployeeManager")
+  performanceReviews        PerformanceReview[]        @relation("PerformanceReviewSubject")
+  performanceReviewed       PerformanceReview[]        @relation("PerformanceReviewer")
+  performanceApproved       PerformanceReview[]        @relation("PerformanceReviewApprovedBy")
+  staffAwards               StaffAward[]               @relation("StaffAwardRecipient")
+  staffAwardsCreated        StaffAward[]               @relation("StaffAwardCreatedBy")
+  promotionsRecommended     PromotionRecommendation[]  @relation("PromotionRecommendedBy")
+  promotionsDecided         PromotionRecommendation[]  @relation("PromotionDecidedBy")
   departmentsHeaded         Department[]               @relation("DepartmentHead")
   employmentHistory         EmploymentHistory[]        @relation("EmploymentHistorySubject")
   employmentApprovals       EmploymentHistory[]        @relation("EmploymentHistoryApprovedBy")
@@ -2325,6 +2332,8 @@ model Expense {
   vendor             String?       @db.VarChar(150)
   /// Reklama xarajati qaysi lead manbasiga (kanalga) tegishli — manba bo‘yicha ROI uchun
   sourceId           String?
+  /// Bo'lim (oylik xarajat limiti shu bo'yicha tekshiriladi, ORG §10)
+  departmentId       String?
   /// Takroriy xarajatning to‘lov kuni
   dueDate            DateTime?     @db.Date
   approvedById       String?
@@ -2350,6 +2359,7 @@ model Expense {
   recurringExpense RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
   documents        Document[]
   source           Source?           @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  department       Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -2359,6 +2369,7 @@ model Expense {
   @@index([spentAt])
   @@index([categoryId, spentAt])
   @@index([sourceId, spentAt])
+  @@index([departmentId, spentAt])
   @@index([createdAt])
   @@map("expenses")
 }
@@ -3250,17 +3261,19 @@ model Employee {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
-  user          User?                 @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
-  createdBy     User?                 @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  manager       User?                 @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
-  salaryPeriods TeacherSalaryPeriod[]
-  documents     Document[]
-  leaves        EmployeeLeave[]
-  kpiResults    KpiManualResult[]
-  candidate     Candidate?
-  history       EmploymentHistory[]
-  departmentRef Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  hrChecklists  HrChecklist[]
+  user               User?                     @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy          User?                     @relation("EmployeeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  manager            User?                     @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  salaryPeriods      TeacherSalaryPeriod[]
+  documents          Document[]
+  leaves             EmployeeLeave[]
+  kpiResults         KpiManualResult[]
+  candidate          Candidate?
+  history            EmploymentHistory[]
+  performanceReviews PerformanceReview[]
+  promotions         PromotionRecommendation[]
+  departmentRef      Department?               @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  hrChecklists       HrChecklist[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -4977,6 +4990,7 @@ model Department {
   branch    Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict)
   positions Position[]
   employees Employee[]
+  expenses  Expense[]
 
   @@unique([branchId, name])
   @@index([branchId, isActive])
@@ -5071,4 +5085,127 @@ model EmploymentHistory {
   @@index([employeeId, effectiveDate])
   @@index([userId, effectiveDate])
   @@map("employment_history")
+}
+
+// =====================================================================
+// ORG tizimi · 3-bosqich (Performance & Finance)
+// =====================================================================
+
+enum PerformanceReviewStatus {
+  DRAFT
+  /// Baholovchi yakunladi — markaz rahbari tasdiqlaydi
+  SUBMITTED
+  APPROVED
+}
+
+enum PerformanceRating {
+  BELOW
+  MEETS
+  EXCEEDS
+}
+
+/// Choraklik baholash va attestatsiya (ORG §5.1): KPI o'rtachasi, davomat, mezonlar bo'yicha baho va xulosa
+model PerformanceReview {
+  id                 String                  @id @default(cuid())
+  userId             String
+  employeeId         String?
+  year               Int
+  quarter            Int                     @db.SmallInt
+  positionKey        String                  @db.VarChar(40)
+  positionTitle      String                  @db.VarChar(120)
+  /// Chorakdagi oylik KPI bajarilishining o'rtachasi, % (xodim kartasi va KPI bo'lsa)
+  kpiAverage         Decimal?                @db.Decimal(5, 2)
+  /// Chorakdagi xodim davomati, % (jadval bo'lsa)
+  attendanceRate     Decimal?                @db.Decimal(5, 2)
+  /// Mezonlar bo'yicha baho (1–5): sifat, intizom, jamoaviylik, tashabbus, natija
+  scores             Json
+  /// Mezonlar o'rtachasi (1–5)
+  overallScore       Decimal                 @db.Decimal(3, 2)
+  rating             PerformanceRating
+  strengths          String?                 @db.VarChar(2000)
+  improvements       String?                 @db.VarChar(2000)
+  /// Keyingi chorak maqsadlari
+  goals              String?                 @db.VarChar(2000)
+  recommendPromotion Boolean                 @default(false)
+  status             PerformanceReviewStatus @default(DRAFT)
+  reviewerId         String?
+  submittedAt        DateTime?
+  approvedById       String?
+  approvedAt         DateTime?
+  branchId           String                  @default("branch_main")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  user       User      @relation("PerformanceReviewSubject", fields: [userId], references: [id], onDelete: Restrict)
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  reviewer   User?     @relation("PerformanceReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  approvedBy User?     @relation("PerformanceReviewApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, year, quarter])
+  @@index([year, quarter, status])
+  @@index([branchId, status])
+  @@map("performance_reviews")
+}
+
+enum StaffAwardType {
+  EMPLOYEE_OF_MONTH
+  EMPLOYEE_OF_QUARTER
+  /// Qo'shimcha natijaviy mukofot
+  SPECIAL
+  /// Malaka oshirish (kurs, sertifikat)
+  TRAINING
+}
+
+/// Rag'batlantirish (ORG §6.2): oy/chorak xodimi, mukofot, malaka oshirish — mezon va sabab bilan
+model StaffAward {
+  id             String         @id @default(cuid())
+  userId         String
+  type           StaffAwardType
+  year           Int
+  /// Oy (1–12) yoki chorak (1–4) — turiga qarab; boshqalarida bo'sh
+  period         Int?           @db.SmallInt
+  title          String         @db.VarChar(150)
+  reason         String         @db.VarChar(1000)
+  /// Pul mukofoti (bo'lsa) va u qo'shilgan maosh davri
+  amount         Decimal?       @db.Decimal(14, 2)
+  salaryPeriodId String?
+  createdById    String?
+  branchId       String         @default("branch_main")
+  createdAt      DateTime       @default(now())
+
+  user      User  @relation("StaffAwardRecipient", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy User? @relation("StaffAwardCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([userId, year])
+  @@index([type, year, period])
+  @@map("staff_awards")
+}
+
+/// Lavozimga ko'tarilish tavsiyasi (ORG §13): talablar bajarilishi bilan; yakuniy tasdiq — markaz rahbari
+model PromotionRecommendation {
+  id               String         @id @default(cuid())
+  employeeId       String
+  fromPositionKey  String         @db.VarChar(40)
+  toPositionKey    String         @db.VarChar(40)
+  reason           String         @db.VarChar(1000)
+  /// Tavsiya paytidagi ko'rsatkichlar (tarix uchun)
+  kpiAverage       Decimal?       @db.Decimal(5, 2)
+  monthsInPosition Int            @db.SmallInt
+  status           ApprovalStatus @default(PENDING)
+  effectiveDate    DateTime?      @db.Date
+  recommendedById  String?
+  decidedById      String?
+  decidedAt        DateTime?
+  decisionNote     String?        @db.VarChar(500)
+  branchId         String         @default("branch_main")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  recommendedBy User?    @relation("PromotionRecommendedBy", fields: [recommendedById], references: [id], onDelete: SetNull)
+  decidedBy     User?    @relation("PromotionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([employeeId, status])
+  @@map("promotion_recommendations")
 }

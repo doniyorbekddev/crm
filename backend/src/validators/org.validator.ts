@@ -307,3 +307,59 @@ export type ChecklistItemInput = z.infer<typeof checklistItemSchema>;
 
 export const handoverSchema = z.object({ assigneeId: z.string('Kimga topshirilishini tanlang').trim().min(1, 'Kimga topshirilishini tanlang').max(50) });
 export const cancelSchema = z.object({ note: z.string('Sababni yozing').trim().min(3, 'Sababni yozing').max(500) });
+
+// ---------------------------------------------------------------- natija va rivojlanish (§5.1, §6.2, §13)
+
+const score = z.coerce.number('Baho raqam bo‘lsin').int('Baho butun son').min(1, 'Baho 1–5').max(5, 'Baho 1–5');
+const yearField = z.coerce.number().int().min(2020).max(2100);
+const quarterField = z.coerce.number().int().min(1, 'Chorak 1–4').max(4, 'Chorak 1–4');
+
+export const reviewListQuerySchema = z.object({
+  year: yearField,
+  quarter: quarterField.optional(),
+  status: z.enum(['DRAFT', 'SUBMITTED', 'APPROVED'], 'Holat noto‘g‘ri').optional(),
+});
+
+export const reviewPrefillQuerySchema = z.object({ userId: id, year: yearField, quarter: quarterField });
+
+export const reviewSchema = z.object({
+  userId: id,
+  year: yearField,
+  quarter: quarterField,
+  scores: z.object({ quality: score, discipline: score, teamwork: score, initiative: score, results: score }),
+  strengths: optionalField(z.string().trim().max(2000, 'Juda uzun')),
+  improvements: optionalField(z.string().trim().max(2000, 'Juda uzun')),
+  goals: optionalField(z.string().trim().max(2000, 'Juda uzun')),
+  recommendPromotion: z.boolean().default(false),
+  /** true — yakunlab tasdiqqa yuborish; false — qoralama */
+  submit: z.boolean().default(false),
+});
+export type ReviewInput = z.infer<typeof reviewSchema>;
+
+export const awardSchema = z
+  .object({
+    userId: id,
+    type: z.enum(['EMPLOYEE_OF_MONTH', 'EMPLOYEE_OF_QUARTER', 'SPECIAL', 'TRAINING'], 'Turini tanlang'),
+    year: yearField,
+    period: optionalField(z.coerce.number().int().min(1).max(12)),
+    title: z.string('Nomini kiriting').trim().min(3, 'Kamida 3 belgi').max(150, '150 belgidan oshmasin'),
+    reason: z.string('Mezon va sababni yozing').trim().min(5, 'Mezon va sababni yozing').max(1000, '1000 belgidan oshmasin'),
+    amount: optionalField(z.coerce.number().int('Butun son').min(1000, 'Eng kam summa — 1 000 so‘m').max(999_999_999)),
+    /** Pul mukofotini joriy oy maoshiga bonus sifatida qo'shish */
+    addToPayroll: z.boolean().default(false),
+  })
+  .refine((value) => value.type !== 'EMPLOYEE_OF_QUARTER' || !value.period || value.period <= 4, { path: ['period'], message: 'Chorak 1–4' });
+export type AwardInput = z.infer<typeof awardSchema>;
+
+export const promotionSchema = z.object({
+  employeeId: id,
+  toPositionKey: z.string('Lavozimni tanlang').trim().min(1).max(40),
+  reason: z.string('Tavsiya sababini yozing').trim().min(5, 'Tavsiya sababini yozing').max(1000, '1000 belgidan oshmasin'),
+  effectiveDate: optionalField(dateOnly('Kuchga kirish sanasi')),
+});
+export type PromotionInput = z.infer<typeof promotionSchema>;
+
+export const promotionDecisionSchema = z.object({
+  decision: z.enum(['APPROVED', 'REJECTED'], 'Qaror noto‘g‘ri'),
+  note: optionalField(z.string().trim().max(500, '500 belgidan oshmasin')),
+});

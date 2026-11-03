@@ -12,6 +12,7 @@ import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 import { closeApproval, openExpenseApproval } from './approval.service.js';
 import { moneyUz } from '../utils/money.js';
+import { businessDateString, businessMonthRange } from '../utils/dates.js';
 
 /**
  * Xarajatni tasdiqlash (promt 21-bo‘lim): chegara summadan katta xarajat rahbar tasdiqlamaguncha
@@ -40,6 +41,25 @@ export async function requiresApproval(actor: AuthUser | null, amount: number, d
   if (!actor) return true;
   const permissions = await permissionService.getRolePermissions(actor.roleId);
   return !permissions.has(PERMISSIONS.EXPENSE_APPROVE);
+}
+
+/**
+ * Bo'lim oylik limiti (ORG §10): shu oydagi bo'lim xarajatlari (rad etilganlarsiz) + yangi summa limitdan oshsa,
+ * tasdiqlash ruxsati bo'lmagan xodimning xarajati rahbar tasdig'iga ketadi. Limit yo'q — tekshirilmaydi.
+ */
+export async function departmentLimitCheck(
+  db: Prisma.TransactionClient | typeof prisma,
+  departmentId: string,
+  amount: number,
+  spentAt: Date,
+): Promise<{ limit: number | null; spent: number; exceeds: boolean; name: string }> {
+  const department = await db.department.findUnique({ where: { id: departmentId }, select: { name: true, monthlyExpenseLimit: true } });
+  if (!department) return { limit: null, spent: 0, exceeds: false, name: '' };
+  const limit = department.monthlyExpenseLimit?.toNumber() ?? null;
+  const { start, end } = businessMonthRange(...(businessDateString(spentAt).split('-').slice(0, 2).map(Number) as [number, number]));
+  const sum = await db.expense.aggregate({ where: { departmentId, spentAt: { gte: start, lt: end }, status: { not: 'REJECTED' } }, _sum: { amount: true } });
+  const spent = sum._sum.amount?.toNumber() ?? 0;
+  return { limit, spent, exceeds: limit !== null && limit > 0 && spent + amount > limit, name: department.name };
 }
 
 /** Tasdiqlash ruxsati bor faol xodimlarga bildirishnoma */

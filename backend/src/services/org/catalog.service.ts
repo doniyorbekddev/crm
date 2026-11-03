@@ -2,6 +2,7 @@ import { prisma } from '../../config/database.js';
 import type { EmploymentChangeType, PositionEmploymentType, Prisma, PrismaClient, TaskPriority } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
+import { businessMonthRange } from '../../utils/dates.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
 import type { DepartmentSaveInput, PositionUpdateInput, ResponsibilityInput } from '../../validators/org.validator.js';
 import { auditService } from '../audit.service.js';
@@ -259,6 +260,33 @@ export const orgCatalogService = {
     }
   },
 
+  /** Bo'limlar bo'yicha oylik sarf va limit (ORG §10): rad etilganlarsiz; kutilayotgan — tasdiq kutayotganlar */
+  async spending(actor: AuthUser, year: number, month: number): Promise<{ rows: Array<{ id: string; name: string; limit: number | null; spent: number; pending: number; remaining: number | null; percent: number | null }>; unassigned: number }> {
+    const access = await getBranchAccess(actor);
+    const { start, end } = businessMonthRange(year, month);
+    const [departments, grouped, unassigned] = await Promise.all([
+      prisma.department.findMany({ where: { ...branchFilter(access), isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true, monthlyExpenseLimit: true } }),
+      prisma.expense.groupBy({ by: ['departmentId', 'status'], where: { ...branchFilter(access), departmentId: { not: null }, spentAt: { gte: start, lt: end }, status: { not: 'REJECTED' } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { ...branchFilter(access), departmentId: null, spentAt: { gte: start, lt: end }, status: { not: 'REJECTED' } }, _sum: { amount: true } }),
+    ]);
+    const rows = departments.map((department) => {
+      const own = grouped.filter((row) => row.departmentId === department.id);
+      const spent = own.reduce((sum, row) => sum + (row._sum.amount?.toNumber() ?? 0), 0);
+      const pending = own.filter((row) => row.status === 'PENDING').reduce((sum, row) => sum + (row._sum.amount?.toNumber() ?? 0), 0);
+      const limit = department.monthlyExpenseLimit?.toNumber() ?? null;
+      return {
+        id: department.id,
+        name: department.name,
+        limit,
+        spent,
+        pending,
+        remaining: limit !== null ? limit - spent : null,
+        percent: limit ? Math.round((spent / limit) * 1000) / 10 : null,
+      };
+    });
+    return { rows, unassigned: unassigned._sum.amount?.toNumber() ?? 0 };
+  },
+
   async findDepartment(access: Awaited<ReturnType<typeof getBranchAccess>>, id: string): Promise<{ id: string; branchId: string }> {
     const row = await prisma.department.findFirst({ where: { id, ...branchFilter(access) }, select: { id: true, branchId: true } });
     if (!row) throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'departmentId', message: 'Bo‘lim topilmadi' }]);
@@ -283,6 +311,7 @@ export const orgCatalogService = {
   },
 
   async updatePosition(actor: AuthUser, key: string, input: PositionUpdateInput, client: ClientInfo): Promise<PositionDto> {
+    await ensureOrgCatalog(prisma);
     const access = await getBranchAccess(actor);
     const before = await prisma.position.findUnique({ where: { key }, select: { id: true, title: true, nextPositionId: true, minimumKpiScore: true, departmentId: true } });
     if (!before) throw AppError.notFound('Lavozim topilmadi');
@@ -323,6 +352,7 @@ export const orgCatalogService = {
   },
 
   async saveResponsibility(actor: AuthUser, key: string, id: string | null, input: ResponsibilityInput, client: ClientInfo): Promise<PositionDto> {
+    await ensureOrgCatalog(prisma);
     const position = await prisma.position.findUnique({ where: { key }, select: { id: true } });
     if (!position) throw AppError.notFound('Lavozim topilmadi');
     if (id) {

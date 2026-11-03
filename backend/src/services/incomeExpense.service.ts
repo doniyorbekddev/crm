@@ -19,7 +19,9 @@ import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.j
 import type { BranchAccess } from './branchAccess.js';
 import { accountIdForMethod, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
-import { getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
+import { departmentLimitCheck, getApprovalThreshold, notifyApprovers, requiresApproval } from './expenseWorkflow.service.js';
+import { PERMISSIONS } from '../config/permissions.js';
+import { permissionService } from './permission.service.js';
 import { businessMonthRange } from '../utils/dates.js';
 import { sameDictionaryName, uniqueDictionaryKey } from '../utils/dictionaryName.js';
 
@@ -41,6 +43,8 @@ export interface MoneyEntryDto {
   category: { id: string; key: string; name: string };
   /** Reklama xarajati bog‘langan lead manbasi (kanal) */
   source: { id: string; name: string } | null;
+  /** Xarajat bo'limi (ORG §10) */
+  department: { id: string; name: string } | null;
   account: { id: string; name: string } | null;
   responsible: { id: string; firstName: string; lastName: string } | null;
   student: { id: string; firstName: string; lastName: string } | null;
@@ -143,6 +147,7 @@ const expenseSelect = {
   rejectReason: true,
   category: { select: { id: true, key: true, name: true } },
   source: { select: { id: true, name: true } },
+  department: { select: { id: true, name: true } },
   account: { select: { id: true, name: true } },
   responsible: { select: { id: true, firstName: true, lastName: true } },
   approvedBy: { select: { id: true, firstName: true, lastName: true } },
@@ -167,6 +172,7 @@ function toIncomeDto(income: IncomeRecord): MoneyEntryDto {
     voidReason: income.transaction.voidReason,
     category: income.category,
     source: null,
+    department: null,
     account: income.account,
     responsible: income.responsible,
     student: income.student,
@@ -196,6 +202,7 @@ function toExpenseDto(expense: ExpenseRecord): MoneyEntryDto {
     voidReason: expense.transaction?.voidReason ?? null,
     category: expense.category,
     source: expense.source,
+    department: expense.department,
     account: expense.account,
     responsible: expense.responsible,
     student: null,
@@ -487,8 +494,16 @@ export const expenseService = {
     }
 
     const occurredAt = toOccurredAt(input.date);
-    // Chegara summadan katta va tasdiqlash ruxsati yo'q — rahbar tasdig'i kutiladi, pul yechilmaydi
-    if (await requiresApproval(actor, input.amount)) {
+    const departmentId = input.departmentId ?? null;
+    let overLimit = false;
+    if (departmentId) {
+      const department = await prisma.department.findFirst({ where: { id: departmentId, branchId, isActive: true }, select: { id: true } });
+      if (!department) throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'departmentId', message: 'Bo‘lim topilmadi' }]);
+      // Bo'lim limitidan oshsa — tasdiqlash ruxsati bo'lmagan xodimga summa chegarasidan qat'i nazar tasdiq kerak
+      overLimit = (await departmentLimitCheck(prisma, departmentId, input.amount, occurredAt)).exceeds && !(await permissionService.getRolePermissions(actor.roleId)).has(PERMISSIONS.EXPENSE_APPROVE);
+    }
+    // Chegara summadan katta (yoki bo'lim limiti oshadi) va tasdiqlash ruxsati yo'q — rahbar tasdig'i kutiladi, pul yechilmaydi
+    if (overLimit || (await requiresApproval(actor, input.amount))) {
       const pendingId = await prisma.$transaction(async (tx) => {
         const accountId = input.accountId ? await resolveAccountId(tx, input.accountId, input.method) : null;
         const expense = await tx.expense.create({
@@ -501,6 +516,7 @@ export const expenseService = {
             description: input.description ?? null,
             vendor: input.vendor ?? null,
             sourceId,
+            departmentId,
             responsibleId: actor.id,
             branchId,
             status: 'PENDING',
@@ -517,7 +533,7 @@ export const expenseService = {
           action: 'expense.requested',
           entityType: 'expense',
           entityId: expense.id,
-          metadata: { number: expense.number, amount: input.amount, category: category.name, vendor: input.vendor ?? null },
+          metadata: { number: expense.number, amount: input.amount, category: category.name, vendor: input.vendor ?? null, ...(overLimit ? { departmentLimitExceeded: true } : {}) },
           ...client,
         });
         return expense.id;
@@ -550,6 +566,7 @@ export const expenseService = {
           description: input.description ?? null,
           vendor: input.vendor ?? null,
           sourceId,
+          departmentId,
           responsibleId: actor.id,
           branchId,
           transactionId: transaction.id,

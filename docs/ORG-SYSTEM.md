@@ -101,3 +101,20 @@ turlari ustiga qurildi (KPI va maosh qoidalari o'zgarmadi), "Overdue" holati saq
 
 `db:sync-permissions` faqat **yangi** ruxsatlarni tizim rollariga qo'shadi. Sotuv menejeri rolidagi `discount.grant`
 eski ruxsat bo'lgani uchun avtomatik qo'shilmaydi — Rollar sahifasida qo'lda yoqiladi (Shodiya 0–5% ni o'zi berishi uchun).
+
+### 3-bosqich — Performance & Finance (migratsiya `20261103130000_org_performance`)
+
+- **Bo'lim xarajat limiti (§10):** xarajatga bo'lim bog'lanadi; shu oydagi bo'lim sarfi (rad etilganlarsiz) + yangi summa
+  oylik limitdan oshsa, tasdiqlash huquqi bo'lmagan xodimning xarajati rahbar tasdig'iga ketadi (mavjud xarajat tasdig'i
+  oqimi — pul yechilmaydi). Bo'limlar bo'yicha oylik sarf/limit/kutilayotgan hisobot; xarajat formasida qoldiq ko'rinadi.
+- **Choraklik baholash (§5.1):** KPI o'rtachasi (chorak oylari) va xodim davomati avtomatik; 5 mezon 1–5 (sifat,
+  intizom, jamoaviylik, tashabbus, natija) → o'rtacha va xulosa (talabdan past / mos / yuqori). Qoralama → tasdiqqa →
+  CEO tasdiqlaydi; o'zini baholash va o'zinikini tasdiqlash taqiqlangan; tasdiqlangani o'zgarmaydi. Xodim faqat
+  tasdiqlanganini ko'radi. Chorak boshida baholovchilarga eslatma (spek §9 "KPI ko'rib chiqish vaqti").
+- **Taqdirlash (§6.2):** oy/chorak xodimi (davrga bitta), natijaviy mukofot, malaka oshirish — mezon va sabab bilan;
+  pul mukofoti maosh servisi orqali bonus tuzatmasi (PERFORMANCE) sifatida qo'shiladi — tasdiqlangan oyga qo'shilmaydi,
+  maosh tasdiqlash tartibi o'zgarmaydi.
+- **Karyera (§13):** katalogdagi keyingi lavozim, eng kam KPI (oxirgi 3 oy) va lavozimdagi muddat bo'yicha "ko'tarilishga
+  tayyor" holati; tavsiya → CEO tasdig'i → xodim kartasi yangilanadi, ish tarixiga "lavozimga ko'tarildi" (tasdiqlagan bilan).
+  "Mening rivojlanishim" sahifasi — xodimning o'z yo'li, talablar bajarilishi, baholashlar va taqdirlashlari.
+- Ruxsatlar: `performance.view`, `performance.manage`, `performance.approve` (CEO — Admin rolidan chiqarilgan).

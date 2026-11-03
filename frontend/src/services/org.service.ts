@@ -23,9 +23,14 @@ import type {
   KnowledgeItem,
   KnowledgePayload,
   KnowledgeStatus,
+  CareerStatus,
   OrgStaffUser,
   OrgStructure,
+  PerformanceReview,
   Position,
+  Promotion,
+  ReviewCriterion,
+  StaffAward,
 } from '@/types/org';
 
 function withMessage<T>(response: { data: ApiSuccessResponse<T> }): MessageResult<T> {
@@ -56,6 +61,8 @@ export const orgService = {
       id ? await api.put<ApiSuccessResponse<Position>>(`/org/positions/${key}/responsibilities/${id}`, payload) : await api.post<ApiSuccessResponse<Position>>(`/org/positions/${key}/responsibilities`, payload),
     );
   },
+  departmentSpending: (year: number, month: number) =>
+    get<{ rows: Array<{ id: string; name: string; limit: number | null; spent: number; pending: number; remaining: number | null; percent: number | null }>; unassigned: number }>('/org/departments/spending', { year, month }),
   employeeHistory: (employeeId: string) => get<EmploymentHistoryEntry[]>(`/org/employees/${employeeId}/history`),
 
   // ---- murojaatlar
@@ -107,6 +114,29 @@ export const orgService = {
   },
   async acknowledge(id: string): Promise<MessageResult<KnowledgeDetail>> {
     return withMessage(await api.post<ApiSuccessResponse<KnowledgeDetail>>(`/org/knowledge/${id}/acknowledge`, {}));
+  },
+
+  // ---- natija va rivojlanish
+  myGrowth: () => get<{ reviews: PerformanceReview[]; awards: StaffAward[]; career: CareerStatus | null }>('/org/performance/me'),
+  reviews: (params: { year: number; quarter?: number }) => get<PerformanceReview[]>('/org/performance/reviews', params),
+  reviewPrefill: (userId: string, year: number, quarter: number) => get<{ kpiAverage: number | null; attendanceRate: number | null; position: { key: string; title: string } }>('/org/performance/reviews/prefill', { userId, year, quarter }),
+  async saveReview(payload: { userId: string; year: number; quarter: number; scores: Record<ReviewCriterion, number>; strengths?: string; improvements?: string; goals?: string; recommendPromotion: boolean; submit: boolean }): Promise<MessageResult<PerformanceReview>> {
+    return withMessage(await api.post<ApiSuccessResponse<PerformanceReview>>('/org/performance/reviews', payload));
+  },
+  async approveReview(id: string): Promise<MessageResult<PerformanceReview>> {
+    return withMessage(await api.post<ApiSuccessResponse<PerformanceReview>>(`/org/performance/reviews/${id}/approve`, {}));
+  },
+  awards: (year: number) => get<StaffAward[]>('/org/performance/awards', { year }),
+  async addAward(payload: Record<string, unknown>): Promise<MessageResult<StaffAward>> {
+    return withMessage(await api.post<ApiSuccessResponse<StaffAward>>('/org/performance/awards', payload));
+  },
+  careers: () => get<CareerStatus[]>('/org/performance/careers'),
+  promotions: (status?: string) => get<Promotion[]>('/org/performance/promotions', status ? { status } : undefined),
+  async recommend(payload: { employeeId: string; toPositionKey: string; reason: string }): Promise<MessageResult<Promotion>> {
+    return withMessage(await api.post<ApiSuccessResponse<Promotion>>('/org/performance/promotions', payload));
+  },
+  async decidePromotion(id: string, decision: 'APPROVED' | 'REJECTED', note?: string): Promise<MessageResult<Promotion>> {
+    return withMessage(await api.post<ApiSuccessResponse<Promotion>>(`/org/performance/promotions/${id}/decide`, { decision, ...(note ? { note } : {}) }));
   },
 
   // ---- HR

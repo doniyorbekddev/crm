@@ -32,6 +32,14 @@ export default function OrgCatalogPage() {
   const canManage = usePermission(PERMISSIONS.ORG_MANAGE);
   const departments = useQuery({ queryKey: queryKeys.org.departments, queryFn: () => orgService.departments() });
   const positions = useQuery({ queryKey: queryKeys.org.positions, queryFn: orgService.positions });
+  const canSeeExpenses = usePermission(PERMISSIONS.EXPENSE_VIEW);
+  const now = new Date();
+  const spending = useQuery({
+    queryKey: ['org', 'spending', now.getFullYear(), now.getMonth() + 1],
+    queryFn: () => orgService.departmentSpending(now.getFullYear(), now.getMonth() + 1),
+    enabled: canSeeExpenses,
+    retry: false,
+  });
   const [department, setDepartment] = useState<Department | 'new' | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [responsibility, setResponsibility] = useState<{ position: Position; item: Responsibility | null } | null>(null);
@@ -66,6 +74,7 @@ export default function OrgCatalogPage() {
                       Rahbar: {item.head ? personName(item.head) : 'markaz rahbari'} · {item.employees} xodim · {item.positions} lavozim
                       {item.monthlyExpenseLimit !== null ? ` · oylik xarajat limiti: ${formatMoney(item.monthlyExpenseLimit)}` : ''}
                     </p>
+                    <SpendingLine row={spending.data?.rows.find((row) => row.id === item.id)} />
                   </div>
                   {canManage && (
                     <Button size="sm" variant="ghost" aria-label={`${item.name} — tahrirlash`} onClick={() => setDepartment(item)}>
@@ -381,5 +390,17 @@ function ResponsibilityModal({ position, item, onClose }: { position: Position; 
         </FormField>
       </div>
     </Modal>
+  );
+}
+
+function SpendingLine({ row }: { row: { spent: number; pending: number; limit: number | null; percent: number | null } | undefined }) {
+  if (!row || (row.spent === 0 && row.limit === null)) return null;
+  const over = row.limit !== null && row.spent > row.limit;
+  return (
+    <p className={over ? 'text-caption text-danger' : 'text-caption text-fg-subtle'}>
+      Shu oy sarf: {formatMoney(row.spent)}
+      {row.limit !== null ? ` / ${formatMoney(row.limit)} (${row.percent ?? 0}%)` : ''}
+      {row.pending > 0 ? ` · tasdiq kutmoqda: ${formatMoney(row.pending)}` : ''}
+    </p>
   );
 }

@@ -11,6 +11,7 @@ import { complaintService } from '../services/org/complaints.service.js';
 import { hrService } from '../services/org/hr.service.js';
 import { knowledgeService } from '../services/org/knowledge.service.js';
 import { orgStructureService } from '../services/org/structure.service.js';
+import { performanceService } from '../services/org/performance.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
@@ -19,6 +20,7 @@ import {
   assetEventSchema,
   assetListQuerySchema,
   assetUpdateSchema,
+  awardSchema,
   cancelSchema,
   candidateHireSchema,
   candidateListQuerySchema,
@@ -38,7 +40,12 @@ import {
   knowledgeSaveSchema,
   knowledgeStatusSchema,
   positionUpdateSchema,
+  promotionDecisionSchema,
+  promotionSchema,
   responsibilitySchema,
+  reviewListQuerySchema,
+  reviewPrefillQuerySchema,
+  reviewSchema,
   staffAppealSchema,
 } from '../validators/org.validator.js';
 
@@ -72,6 +79,10 @@ orgRouter.post('/departments', can(PERMISSIONS.ORG_MANAGE), async (req, res) => 
 orgRouter.put('/departments/:id', can(PERMISSIONS.ORG_MANAGE), async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   sendSuccess(res, await orgCatalogService.saveDepartment(requireAuthUser(req), id, departmentSaveSchema.parse(req.body), getClientInfo(req)), { message: 'Bo‘lim saqlandi' });
+});
+orgRouter.get('/departments/spending', can(PERMISSIONS.EXPENSE_VIEW), async (req, res) => {
+  const { year, month } = z.object({ year: z.coerce.number().int().min(2020).max(2100), month: z.coerce.number().int().min(1).max(12) }).parse(req.query);
+  sendSuccess(res, await orgCatalogService.spending(requireAuthUser(req), year, month));
 });
 orgRouter.get('/positions', can(PERMISSIONS.EMPLOYEE_VIEW), async (req, res) => {
   sendSuccess(res, await orgCatalogService.positions(requireAuthUser(req)));
@@ -247,4 +258,47 @@ orgRouter.post('/checklists/:id/cancel', can(PERMISSIONS.EMPLOYEE_MANAGE), async
   const { id } = idParamSchema.parse(req.params);
   const { note } = cancelSchema.parse(req.body);
   sendSuccess(res, await hrService.cancel(requireAuthUser(req), id, note, getClientInfo(req)), { message: 'Ro‘yxat bekor qilindi' });
+});
+
+// ---------------------------------------------------------------- natija va rivojlanish
+/** Xodimning o'zi: tasdiqlangan baholashlar, taqdirlashlar, karyera yo'li */
+orgRouter.get('/performance/me', staff, async (req, res) => {
+  sendSuccess(res, await performanceService.mine(requireAuthUser(req)));
+});
+orgRouter.get('/performance/reviews', can(PERMISSIONS.PERFORMANCE_VIEW), async (req, res) => {
+  sendSuccess(res, await performanceService.reviews(requireAuthUser(req), reviewListQuerySchema.parse(req.query)));
+});
+orgRouter.get('/performance/reviews/prefill', can(PERMISSIONS.PERFORMANCE_MANAGE), async (req, res) => {
+  const { userId, year, quarter } = reviewPrefillQuerySchema.parse(req.query);
+  sendSuccess(res, await performanceService.prefill(requireAuthUser(req), userId, year, quarter));
+});
+orgRouter.post('/performance/reviews', can(PERMISSIONS.PERFORMANCE_MANAGE), async (req, res) => {
+  const input = reviewSchema.parse(req.body);
+  sendSuccess(res, await performanceService.saveReview(requireAuthUser(req), input, getClientInfo(req)), { message: input.submit ? 'Baholash tasdiqqa yuborildi' : 'Qoralama saqlandi' });
+});
+orgRouter.post('/performance/reviews/:id/approve', can(PERMISSIONS.PERFORMANCE_APPROVE), async (req, res) => {
+  const { id } = idParamSchema.parse(req.params);
+  sendSuccess(res, await performanceService.approveReview(requireAuthUser(req), id, getClientInfo(req)), { message: 'Baholash tasdiqlandi' });
+});
+orgRouter.get('/performance/awards', can(PERMISSIONS.PERFORMANCE_VIEW), async (req, res) => {
+  const { year } = z.object({ year: z.coerce.number().int().min(2020).max(2100) }).parse(req.query);
+  sendSuccess(res, await performanceService.awards(requireAuthUser(req), year));
+});
+orgRouter.post('/performance/awards', can(PERMISSIONS.PERFORMANCE_MANAGE), async (req, res) => {
+  sendCreated(res, await performanceService.addAward(requireAuthUser(req), awardSchema.parse(req.body), getClientInfo(req)), 'Xodim taqdirlandi');
+});
+orgRouter.get('/performance/careers', can(PERMISSIONS.PERFORMANCE_VIEW), async (req, res) => {
+  sendSuccess(res, await performanceService.careers(requireAuthUser(req)));
+});
+orgRouter.get('/performance/promotions', can(PERMISSIONS.PERFORMANCE_VIEW), async (req, res) => {
+  const { status } = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).optional() }).parse(req.query);
+  sendSuccess(res, await performanceService.promotions(requireAuthUser(req), status));
+});
+orgRouter.post('/performance/promotions', can(PERMISSIONS.PERFORMANCE_MANAGE), async (req, res) => {
+  sendCreated(res, await performanceService.recommend(requireAuthUser(req), promotionSchema.parse(req.body), getClientInfo(req)), 'Tavsiya yuborildi');
+});
+orgRouter.post('/performance/promotions/:id/decide', can(PERMISSIONS.PERFORMANCE_APPROVE), async (req, res) => {
+  const { id } = idParamSchema.parse(req.params);
+  const { decision, note } = promotionDecisionSchema.parse(req.body);
+  sendSuccess(res, await performanceService.decidePromotion(requireAuthUser(req), id, decision, note, getClientInfo(req)), { message: decision === 'APPROVED' ? 'Lavozimga ko‘tarildi' : 'Tavsiya rad etildi' });
 });

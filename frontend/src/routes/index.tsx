@@ -208,6 +208,21 @@ export const router = createBrowserRouter([
                     lazy: lazyComponent(() => import("@/pages/org/KnowledgePage")),
                   },
                   {
+                    path: "my-growth",
+                    lazy: lazyComponent(() => import("@/pages/org/MyGrowthPage")),
+                  },
+                  {
+                    element: (
+                      <PermissionGate permission={PERMISSIONS.PERFORMANCE_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "performance",
+                        lazy: lazyComponent(() => import("@/pages/org/PerformancePage")),
+                      },
+                    ],
+                  },
+                  {
                     element: (
                       <PermissionGate permission={PERMISSIONS.ASSET_VIEW} />
                     ),

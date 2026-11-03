@@ -77,6 +77,11 @@ export const PERMISSIONS = {
   ASSET_VIEW: 'asset.view',
   ASSET_MANAGE: 'asset.manage',
   KNOWLEDGE_MANAGE: 'knowledge.manage',
+  /// Choraklik baholash, taqdirlash va lavozimga ko'tarish tavsiyalari
+  PERFORMANCE_VIEW: 'performance.view',
+  PERFORMANCE_MANAGE: 'performance.manage',
+  /// Attestatsiya va lavozimga ko'tarishni tasdiqlash — markaz rahbari
+  PERFORMANCE_APPROVE: 'performance.approve',
 
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
@@ -239,6 +244,9 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.ASSET_VIEW, module: 'assets', description: 'Markaz jihozlari (aktivlar) reyestrini ko‘rish' },
   { key: PERMISSIONS.ASSET_MANAGE, module: 'assets', description: 'Aktiv qo‘shish, mas’ulga biriktirish, ko‘chirish, ta’mirlash va hisobdan chiqarish' },
   { key: PERMISSIONS.KNOWLEDGE_MANAGE, module: 'knowledge', description: 'Bilimlar bazasi hujjatlarini yozish, e’lon qilish va arxivlash' },
+  { key: PERMISSIONS.PERFORMANCE_VIEW, module: 'performance', description: 'Xodimlar baholash natijalari, taqdirlashlar va ko‘tarilish tavsiyalarini ko‘rish' },
+  { key: PERMISSIONS.PERFORMANCE_MANAGE, module: 'performance', description: 'Choraklik baholash yozish, taqdirlash va lavozimga ko‘tarishni tavsiya qilish' },
+  { key: PERMISSIONS.PERFORMANCE_APPROVE, module: 'performance', description: 'Baholashni va lavozimga ko‘tarilishni tasdiqlash (yakuniy qaror)' },
   {
     key: PERMISSIONS.STAFF_DOCUMENT_VIEW,
     module: 'hr',
@@ -410,6 +418,7 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.DISCOUNT_APPROVE,
   PERMISSIONS.HIRING_DECIDE,
   PERMISSIONS.COMPLAINT_CONFIDENTIAL,
+  PERMISSIONS.PERFORMANCE_APPROVE,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */
