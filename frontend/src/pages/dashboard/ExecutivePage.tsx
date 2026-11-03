@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react';
 import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
 import type { DateRangeValue } from '@/components/DateRangePicker';
 import { PageHeader } from '@/components/PageHeader';
+import { ReportingPeriodPicker } from '@/components/ReportingPeriodPicker';
 import { WidgetLayoutPanel } from '@/components/WidgetLayoutPanel';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { usePreference } from '@/hooks/usePreference';
+import { useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { dashboardService } from '@/services/dashboard.service';
@@ -95,6 +97,15 @@ function readLegacyHidden(): string[] {
 
 export default function ExecutivePage() {
   const [range, setRange] = useState<DateRangeValue>({ preset: 'this_month', custom: { from: '', to: '' } });
+  // Oy tanlagichi (?period=) — boshqa sahifalar bilan bir xil; sana oralig'i tanlansa oy tanlovi bekor bo'ladi
+  const reporting = useReportingPeriod();
+  // Oy tanlansa oraliq tanlagichi "Shu oy" ga qaytadi — joriy oyga qaytilganda ham to'g'ri davr ko'rinadi
+  const selectedMonth = reporting.explicit ? `${reporting.period.year}-${reporting.period.month}` : null;
+  const [seenMonth, setSeenMonth] = useState(selectedMonth);
+  if (seenMonth !== selectedMonth) {
+    setSeenMonth(selectedMonth);
+    if (selectedMonth) setRange({ preset: 'this_month', custom: { from: '', to: '' } });
+  }
   const [widgetsOpen, setWidgetsOpen] = useState(false);
   const { value: storedLayout, loaded: layoutLoaded, save: saveLayout } = usePreference('executive.layout', parseWidgetLayout);
 
@@ -111,7 +122,7 @@ export default function ExecutivePage() {
     }
   }, [layoutLoaded, storedLayout, saveLayout]);
 
-  const params = executiveParams(range);
+  const params = reporting.explicit ? (reporting.isCurrent ? {} : { year: reporting.period.year, month: reporting.period.month }) : executiveParams(range);
   const summaryQuery = useQuery({
     queryKey: queryKeys.dashboard.executivePeriod(params ?? {}),
     queryFn: () => dashboardService.executive(params ?? {}),
@@ -129,7 +140,15 @@ export default function ExecutivePage() {
       documentTitle="Direktor paneli"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={range} onChange={setRange} presets={EXECUTIVE_PRESETS} />
+          <ReportingPeriodPicker />
+          <DateRangePicker
+            value={range}
+            onChange={(value) => {
+              setRange(value);
+              if (reporting.explicit) reporting.resetToCurrent();
+            }}
+            presets={EXECUTIVE_PRESETS}
+          />
           <Button variant="secondary" leftIcon={<LayoutGrid className="size-4" aria-hidden />} aria-expanded={widgetsOpen} onClick={() => setWidgetsOpen((open) => !open)}>
             Vidjetlar
           </Button>

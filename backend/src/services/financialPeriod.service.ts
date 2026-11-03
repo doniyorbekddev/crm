@@ -8,11 +8,16 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type { ClosePeriodInput, PeriodListQuery, ReopenPeriodInput } from '../validators/finance.validator.js';
 import { auditService } from './audit.service.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
+import { generateMonthSnapshots } from './monthSnapshot.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Moliyaviy oylar (promt 26-bo‘lim): oy yopilgandan keyin shu oy sanasi bilan pul yozuvi
  * qo‘shilmaydi va bekor qilinmaydi. Tuzatish ochiq oyda teskari yozuv (qaytarish, yangi xarajat) bilan.
  * Qayta ochish — alohida ruxsat (finance.reopen) va sabab bilan, auditga yoziladi.
+ *
+ * Qulflash (tarixiy ma'lumot, 7-bosqich): yopilgan oy LOCKED qilinadi — qayta ochib ham, davomatni ruxsat bilan
+ * tuzatib ham, snapshot qo'shib ham bo'lmaydi. Avtomatik qulflanmaydi; qulflash va ochish — `finance.lock`, sabab bilan.
  */
 
 type Db = Prisma.TransactionClient;
@@ -41,6 +46,8 @@ export interface FinancialPeriodDto {
   reopenedAt: string | null;
   reopenedBy: PersonRef | null;
   reopenReason: string | null;
+  lockedAt: string | null;
+  lockedBy: PersonRef | null;
 }
 
 const monthIndex = (year: number, month: number) => year * 12 + month;
@@ -52,6 +59,11 @@ export async function assertFinancialPeriodOpen(db: Db, date: Date): Promise<voi
   if (period?.status === 'CLOSED') {
     throw AppError.conflict(
       `${formatSalaryPeriod(year, month)} moliyaviy oyi yopilgan — bu sana bilan pul yozuvini qo‘shib yoki bekor qilib bo‘lmaydi. Tuzatishni ochiq oyda qaytarish yoki yangi yozuv bilan kiriting`,
+    );
+  }
+  if (period?.status === 'LOCKED') {
+    throw AppError.conflict(
+      `${formatSalaryPeriod(year, month)} moliyaviy oyi qulflangan — bu sana bilan pul yozuvini qo‘shib yoki bekor qilib bo‘lmaydi. Tuzatishni ochiq oyda qaytarish yoki yangi yozuv bilan kiriting`,
     );
   }
 }
@@ -108,6 +120,8 @@ const periodSelect = {
   reopenReason: true,
   closedBy: { select: { id: true, firstName: true, lastName: true } },
   reopenedBy: { select: { id: true, firstName: true, lastName: true } },
+  lockedAt: true,
+  lockedBy: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.FinancialPeriodSelect;
 
 type PeriodRecord = Prisma.FinancialPeriodGetPayload<{ select: typeof periodSelect }>;
@@ -128,6 +142,8 @@ function toDto(year: number, month: number, record: PeriodRecord | undefined, to
     reopenedAt: record?.reopenedAt?.toISOString() ?? null,
     reopenedBy: record?.reopenedBy ?? null,
     reopenReason: record?.reopenReason ?? null,
+    lockedAt: record?.lockedAt?.toISOString() ?? null,
+    lockedBy: record?.lockedBy ?? null,
   };
 }
 
@@ -152,8 +168,8 @@ export const financialPeriodService = {
       where: { year_month: { year: input.year, month: input.month } },
       select: { status: true },
     });
-    if (existing?.status === 'CLOSED') {
-      throw AppError.conflict('Bu oy allaqachon yopilgan');
+    if (existing && existing.status !== 'OPEN') {
+      throw AppError.conflict(existing.status === 'LOCKED' ? 'Bu oy qulflangan' : 'Bu oy allaqachon yopilgan');
     }
 
     const label = formatSalaryPeriod(input.year, input.month);
@@ -177,6 +193,14 @@ export const financialPeriodService = {
       });
     });
 
+    // Yopilgan oy hisobotlari qotib qolishi uchun oy oxiri snapshoti (borlari o'zgarmaydi). Xato yopishni bekor qilmaydi —
+    // fon vazifasi keyin to'ldiradi.
+    try {
+      await generateMonthSnapshots(input.year, input.month, { generatedById: actor.id });
+    } catch (error) {
+      logger.warn({ err: error, year: input.year, month: input.month }, 'Yopilgan oy snapshotini olib bo‘lmadi');
+    }
+
     return this.one(input.year, input.month);
   },
 
@@ -185,6 +209,9 @@ export const financialPeriodService = {
       where: { year_month: { year: input.year, month: input.month } },
       select: { status: true, summary: true },
     });
+    if (existing?.status === 'LOCKED') {
+      throw AppError.conflict('Bu oy qulflangan — avval qulfni oching');
+    }
     if (existing?.status !== 'CLOSED') {
       throw AppError.conflict('Bu oy yopilmagan');
     }
@@ -204,6 +231,51 @@ export const financialPeriodService = {
       });
     });
 
+    return this.one(input.year, input.month);
+  },
+
+  /** Yopilgan oyni qulflash: endi qayta ochilmaydi va tuzatilmaydi (faqat qulfni ochib) */
+  async lock(actor: AuthUser, input: ReopenPeriodInput, client: ClientInfo): Promise<FinancialPeriodDto> {
+    const existing = await prisma.financialPeriod.findUnique({ where: { year_month: { year: input.year, month: input.month } }, select: { status: true } });
+    if (existing?.status === 'LOCKED') throw AppError.conflict('Bu oy allaqachon qulflangan');
+    if (existing?.status !== 'CLOSED') throw AppError.conflict('Faqat yopilgan oyni qulflash mumkin');
+
+    await prisma.$transaction(async (tx) => {
+      // Holat sharti bilan — parallel so'rovlar ikki marta qulflay olmaydi
+      const { count } = await tx.financialPeriod.updateMany({
+        where: { year: input.year, month: input.month, status: 'CLOSED' },
+        data: { status: 'LOCKED', lockedAt: new Date(), lockedById: actor.id },
+      });
+      if (count === 0) throw AppError.conflict('Oy holati o‘zgardi — sahifani yangilang');
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'finance.period_locked',
+        entityType: 'financialPeriod',
+        entityId: `${input.year}-${String(input.month).padStart(2, '0')}`,
+        metadata: { period: formatSalaryPeriod(input.year, input.month), reason: input.reason },
+        ...client,
+      });
+    });
+    return this.one(input.year, input.month);
+  },
+
+  /** Qulfni ochish: oy yana "yopilgan" holatga qaytadi (sabab bilan, auditga) */
+  async unlock(actor: AuthUser, input: ReopenPeriodInput, client: ClientInfo): Promise<FinancialPeriodDto> {
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.financialPeriod.updateMany({
+        where: { year: input.year, month: input.month, status: 'LOCKED' },
+        data: { status: 'CLOSED', lockedAt: null, lockedById: null },
+      });
+      if (count === 0) throw AppError.conflict('Bu oy qulflanmagan');
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'finance.period_unlocked',
+        entityType: 'financialPeriod',
+        entityId: `${input.year}-${String(input.month).padStart(2, '0')}`,
+        metadata: { period: formatSalaryPeriod(input.year, input.month), reason: input.reason },
+        ...client,
+      });
+    });
     return this.one(input.year, input.month);
   },
 

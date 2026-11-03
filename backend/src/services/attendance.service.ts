@@ -20,6 +20,7 @@ import { isRosterLimited } from './teachingAccess.js';
 import { branchScopeOf, inBranch } from './branchScope.js';
 import type { BranchScope } from './branchScope.js';
 import { businessDateString } from '../utils/dates.js';
+import { assertAttendanceEditable, recordAttendanceCorrection } from './closedPeriodGuard.js';
 
 /** JS `getUTCDay()` (0 = yakshanba) → Prisma WeekDay */
 const WEEK_DAYS: readonly WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -422,6 +423,7 @@ export const attendanceService = {
     const group = await findVisibleGroup(access, groupId);
 
     if (input.topicId) await assertTopicForGroup(input.topicId, groupId);
+    const correction = await assertAttendanceEditable(actor, input.date, input.correctionReason);
 
     const ids = input.records.map((record) => record.studentId);
     if (new Set(ids).size !== ids.length) {
@@ -573,6 +575,10 @@ export const attendanceService = {
       // standart 5 soniya chegarasi yetmay qolishi mumkin.
       { timeout: 30_000 },
     );
+
+    if (correction) {
+      await recordAttendanceCorrection(actor, correction, { type: 'group', id: groupId, details: { group: group.name, date: toDateOnly(input.date), count: input.records.length } }, client);
+    }
 
     // Mavzuli dars — o'zlashtirish (davomat manbasi) yangilanadi
     const topicId = input.topicId ?? (sessionId ? (await prisma.attendanceSession.findUnique({ where: { id: sessionId }, select: { topicId: true } }))?.topicId : null);

@@ -23,6 +23,8 @@ export const markAttendanceSchema = z.object({
   date: dateOnlySchema,
   /** Shu darsda o'tilgan kurs mavzusi (ixtiyoriy) — kelganlar progressi yangilanadi */
   topicId: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().trim().min(1).max(50).optional()),
+  /** Yopilgan moliyaviy oy davomatini tuzatish sababi (tarixiy ma'lumot, qaror 3) */
+  correctionReason: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().trim().max(255, 'Sabab 255 belgidan oshmasligi kerak').optional()),
   records: z
     .array(
       z.object({

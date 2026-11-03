@@ -68,6 +68,9 @@ async function main(): Promise<void> {
     await tx.gamificationProfile.deleteMany({});
     await tx.streak.deleteMany({});
     await tx.studentProgressSnapshot.deleteMany({});
+    // Tarixiy snapshot va chegirma so'rovlari o'quvchini o'chirishni bloklaydi (Restrict) — demo o'quvchilar bilan birga ketadi
+    await tx.studentMonthSnapshot.deleteMany({});
+    await tx.discountRequest.deleteMany({});
     await tx.homeworkSubmission.deleteMany({});
     await tx.examResult.deleteMany({});
     await tx.attendance.deleteMany({});

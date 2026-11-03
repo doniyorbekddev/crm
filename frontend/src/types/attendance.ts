@@ -71,6 +71,8 @@ export interface MarkAttendancePayload {
   date: string;
   /** O‘tilgan kurs mavzusi (LMS) — kelganlarda "o‘rganilmoqda" bo‘ladi */
   topicId?: string;
+  /** Yopilgan moliyaviy oy davomatini tuzatish sababi */
+  correctionReason?: string;
   records: Array<{ studentId: string; status: AttendanceStatus; note?: string }>;
 }
 

@@ -32,6 +32,7 @@ export const PERMISSIONS = {
 
   ATTENDANCE_VIEW: 'attendance.view',
   ATTENDANCE_MARK: 'attendance.mark',
+  ATTENDANCE_CORRECT_CLOSED: 'attendance.correct_closed',
 
   PAYMENT_VIEW: 'payment.view',
   PAYMENT_CREATE: 'payment.create',
@@ -68,6 +69,7 @@ export const PERMISSIONS = {
   FINANCE_MANAGE: 'finance.manage',
   FINANCE_CLOSE: 'finance.close',
   FINANCE_REOPEN: 'finance.reopen',
+  FINANCE_LOCK: 'finance.lock',
   INCOME_VIEW: 'income.view',
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',

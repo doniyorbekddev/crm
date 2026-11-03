@@ -15,6 +15,7 @@ import type {
   KpiSettingsInput,
 } from '../validators/kpi.validator.js';
 import { auditService } from './audit.service.js';
+import { activeStudentsAt, droppedBetween } from './history.service.js';
 
 type Db = Prisma.TransactionClient;
 
@@ -361,13 +362,15 @@ async function attendanceRate(db: Db, branchId: string, year: number, month: num
 
 async function studentRetention(db: Db, branchId: string, year: number, month: number): Promise<MetricValue> {
   const { start, end } = businessMonthRange(year, month);
-  const dropped = await db.student.count({
-    where: { deletedAt: null, branchId, status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
-  });
-  // Oy davomida o'qiganlar: oy oxirigacha qo'shilgan, hozir faol yoki holati shu oy (yoki keyin) o'zgargan
-  const base = await db.student.count({
-    where: { deletedAt: null, branchId, createdAt: { lt: end }, OR: [{ status: 'ACTIVE' }, { statusChangedAt: { gte: start } }] },
-  });
+  // Tarixiy ma'lumot (D4/D5): ketganlar — shu oydagi DROPPED ga o'tish hodisasi; o'qiganlar — oy boshida faol bo'lganlar
+  // va oy davomida qo'shilganlar. Keyingi oy o'zgarishlari o'tgan oy KPI sini o'zgartirmaydi.
+  const scope = { branchId };
+  const [dropped, activeAtStart, joined] = await Promise.all([
+    droppedBetween(start, end, scope),
+    activeStudentsAt(start, scope),
+    db.student.count({ where: { deletedAt: null, branchId, createdAt: { gte: start, lt: end } } }),
+  ]);
+  const base = activeAtStart + joined;
   if (base === 0) return { actual: null, basis: 'Oyda o‘quvchi yo‘q' };
   return { actual: Math.round((100 - percent(dropped, base)) * 10) / 10, basis: `${formatCount(dropped)} ta ketgan / ${formatCount(base)} ta o‘quvchi` };
 }

@@ -37,6 +37,7 @@ export const PERMISSIONS = {
 
   ATTENDANCE_VIEW: 'attendance.view',
   ATTENDANCE_MARK: 'attendance.mark',
+  ATTENDANCE_CORRECT_CLOSED: 'attendance.correct_closed',
 
   PAYMENT_VIEW: 'payment.view',
   PAYMENT_CREATE: 'payment.create',
@@ -104,6 +105,7 @@ export const PERMISSIONS = {
   FINANCE_MANAGE: 'finance.manage',
   FINANCE_CLOSE: 'finance.close',
   FINANCE_REOPEN: 'finance.reopen',
+  FINANCE_LOCK: 'finance.lock',
   INCOME_VIEW: 'income.view',
   INCOME_MANAGE: 'income.manage',
   EXPENSE_VIEW: 'expense.view',
@@ -203,6 +205,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
 
   { key: PERMISSIONS.ATTENDANCE_VIEW, module: 'attendance', description: 'Davomatni ko‘rish' },
   { key: PERMISSIONS.ATTENDANCE_MARK, module: 'attendance', description: 'Davomat belgilash' },
+  { key: PERMISSIONS.ATTENDANCE_CORRECT_CLOSED, module: 'attendance', description: 'Yopilgan moliyaviy oy davomatini tuzatish (sabab bilan)' },
 
   { key: PERMISSIONS.PAYMENT_VIEW, module: 'payments', description: 'To‘lovlarni ko‘rish' },
   { key: PERMISSIONS.PAYMENT_CREATE, module: 'payments', description: 'To‘lov qabul qilish' },
@@ -277,6 +280,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.FINANCE_MANAGE, module: 'finance', description: 'Hisoblar va tranzaksiyalarni boshqarish' },
   { key: PERMISSIONS.FINANCE_CLOSE, module: 'finance', description: 'Moliyaviy oyni yopish' },
   { key: PERMISSIONS.FINANCE_REOPEN, module: 'finance', description: 'Yopilgan moliyaviy oyni qayta ochish (sabab bilan)' },
+  { key: PERMISSIONS.FINANCE_LOCK, module: 'finance', description: 'Yopilgan oyni qulflash va qulfini ochish, oy oxiri snapshotini to‘ldirish' },
   { key: PERMISSIONS.INCOME_VIEW, module: 'finance', description: 'Tushumlarni ko‘rish' },
   { key: PERMISSIONS.INCOME_MANAGE, module: 'finance', description: 'Tushum qo‘shish va bekor qilish' },
   { key: PERMISSIONS.EXPENSE_VIEW, module: 'finance', description: 'Xarajatlarni ko‘rish' },
@@ -405,6 +409,9 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   PERMISSIONS.SALARY_UNLOCK,
   // Yopilgan moliyaviy oyni ochish — faqat Owner / Super Admin
   PERMISSIONS.FINANCE_REOPEN,
+  // Oyni qulflash va yopilgan oy davomatini tuzatish — tarixiy hisobotni o'zgartiradi (qaror 3)
+  PERMISSIONS.FINANCE_LOCK,
+  PERMISSIONS.ATTENDANCE_CORRECT_CLOSED,
   // Katta xarajatni tasdiqlash — faqat Owner / Super Admin
   PERMISSIONS.EXPENSE_APPROVE,
   // Ogohlantirish chegaralarini sozlash — faqat Owner / Super Admin

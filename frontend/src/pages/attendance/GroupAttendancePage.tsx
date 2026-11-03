@@ -12,11 +12,14 @@ import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Textarea } from '@/components/ui/Textarea';
 import { usePermission } from '@/hooks/usePermission';
-import { getErrorMessage } from '@/lib/api';
+import { getErrorMessage, getFieldErrors } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { attendanceService } from '@/services/attendance.service';
@@ -51,6 +54,8 @@ export default function GroupAttendancePage() {
   const [draft, setDraft] = useState<Record<string, AttendanceStatus>>({});
   const [topicId, setTopicId] = useState('');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  // Yopilgan moliyaviy oy davomati: server sabab so'raganda shu oyna ochiladi (ruxsati borlar uchun)
+  const [correction, setCorrection] = useState<{ open: boolean; reason: string }>({ open: false, reason: '' });
 
   const sheetQuery = useQuery({
     queryKey: queryKeys.attendance.sheet(groupId, date),
@@ -72,10 +77,11 @@ export default function GroupAttendancePage() {
   const dirty = pendingCount > 0;
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (correctionReason?: string) =>
       attendanceService.mark(groupId, {
         date,
         ...(topicId ? { topicId } : {}),
+        ...(correctionReason ? { correctionReason } : {}),
         // Mavzu tanlansa, faqat o'zgarganlar emas — barcha belgilangan o'quvchilar yuboriladi (progress uchun)
         records:
           topicId && sheet
@@ -86,6 +92,7 @@ export default function GroupAttendancePage() {
       }),
     onSuccess: (result) => {
       toast.success(result.message);
+      setCorrection({ open: false, reason: '' });
       setDraft({});
       setTopicId('');
       setSavedAt(new Date());
@@ -98,7 +105,13 @@ export default function GroupAttendancePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.students.all });
     },
     // Xato bo'lsa qoralama saqlanib qoladi — o'qituvchi qayta urinadi, belgilar yo'qolmaydi
-    onError: (error) => toast.error(getErrorMessage(error)),
+    onError: (error) => {
+      if (getFieldErrors(error).some((detail) => detail.field === 'correctionReason')) {
+        setCorrection((current) => ({ ...current, open: true }));
+        return;
+      }
+      toast.error(getErrorMessage(error));
+    },
   });
   const submit = () => {
     // Ikki marta bosish ikkinchi so'rov yubormaydi
@@ -384,6 +397,39 @@ export default function GroupAttendancePage() {
             </ul>
           </section>
         </Card>
+      )}
+
+      {correction.open && (
+        <Modal
+          open
+          title="Yopilgan oy davomatini tuzatish"
+          description={formatDate(date)}
+          onClose={() => setCorrection({ open: false, reason: '' })}
+          closeDisabled={save.isPending}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setCorrection({ open: false, reason: '' })} disabled={save.isPending}>
+                Bekor qilish
+              </Button>
+              <Button loading={save.isPending} disabled={correction.reason.trim().length < 5} onClick={() => save.mutate(correction.reason.trim())}>
+                Tuzatishni saqlash
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Alert tone="warning">Bu sana yopilgan moliyaviy oyga tushadi. Tuzatish sababi bilan audit jurnaliga yoziladi.</Alert>
+            <FormField label="Tuzatish sababi" htmlFor="attendance-correction-reason" required>
+              <Textarea
+                id="attendance-correction-reason"
+                rows={3}
+                autoFocus
+                value={correction.reason}
+                onChange={(event) => setCorrection((current) => ({ ...current, reason: event.target.value }))}
+              />
+            </FormField>
+          </div>
+        </Modal>
       )}
 
       <ConfirmDialog

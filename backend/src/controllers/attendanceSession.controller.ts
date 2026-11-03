@@ -8,6 +8,7 @@ import {
   attendanceRankingQuerySchema,
   attendanceStatsQuerySchema,
   createSessionSchema,
+  removeSessionSchema,
   sessionListQuerySchema,
   updateSessionSchema,
 } from '../validators/attendanceSession.validator.js';
@@ -39,7 +40,8 @@ export const attendanceSessionController = {
 
   async remove(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
-    await attendanceSessionService.remove(requireAuthUser(req), id, getClientInfo(req));
+    const input = removeSessionSchema.parse(req.body ?? {});
+    await attendanceSessionService.remove(requireAuthUser(req), id, getClientInfo(req), input);
     sendSuccess(res, null, { message: 'Dars seansi o‘chirildi' });
   },
 };

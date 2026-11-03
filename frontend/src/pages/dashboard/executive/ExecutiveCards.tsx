@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import type { ExecutiveSummary } from '@/types/dashboard';
 import { formatDate, formatMoney, formatNumber } from '@/utils/format';
 import { ProgressBar, StatRow } from '../parts';
+import { DEBT_SOURCE_HINTS } from './kpis';
 
 /** Avtomatik xulosalar: oldingi davr bilan solishtirish natijalari (matn backenddan) */
 export function InsightsCard({ data }: { data: ExecutiveSummary }) {
@@ -188,7 +189,7 @@ export function PeriodSummaryCard({ data }: { data: ExecutiveSummary }) {
           <StatRow label="Yangi leadlar" value={formatNumber(month.newLeads)} hint={`oldin: ${formatNumber(previous.newLeads)}`} />
           <StatRow label="Sotuvlar" value={formatNumber(month.wonLeads)} hint={`oldin: ${formatNumber(previous.wonLeads)}`} />
           <StatRow label="Konversiya" value={`${month.conversionRate}%`} />
-          <StatRow label="Qarzdorlik" value={formatMoney(month.totalDebt)} />
+          <StatRow label="Qarzdorlik" value={formatMoney(month.totalDebt)} hint={DEBT_SOURCE_HINTS[month.debtSource]} />
         </div>
         <div className="divide-y divide-border border-t border-border lg:border-t-0">
           <StatRow label="Yangi o‘quvchilar" value={formatNumber(month.newStudents)} hint={`oldin: ${formatNumber(previous.newStudents)}`} />

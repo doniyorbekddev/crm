@@ -12,6 +12,8 @@ import {
 import type { ExecutiveQuery } from '../validators/dashboard.validator.js';
 import { ALL_BRANCHES, type BranchScope, inBranch, viaGroup, viaUser } from './branchScope.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
+import { activeStudentsAt, droppedBetween, lostLeadsBetween, newStudentsBetween } from './history.service.js';
+import { debtForMonth } from './monthSnapshot.service.js';
 import { refundTotal } from './revenue.js';
 
 /**
@@ -77,6 +79,10 @@ export interface ExecutiveMonthDto extends ExecutivePeriodMetricsDto {
   label: string;
   activeStudents: number;
   totalDebt: number;
+  /** Qarz qayerdan: LIVE — hozirgi; SNAPSHOT — oy oxiri snapshoti; ESTIMATED — taxminiy tiklangan */
+  debtSource: 'LIVE' | 'SNAPSHOT' | 'ESTIMATED';
+  /** Qarzdor o'quvchilar soni (tugagan davr — davr oxirida) */
+  debtors: number;
   /** Davr oylari uchun hisoblangan maoshlar */
   salaryAccrued: number;
   salaryPaid: number;
@@ -322,13 +328,10 @@ async function periodMetrics(start: Date, end: Date, scope: BranchScope): Promis
   const wonLeads = await prisma.lead.count({
     where: { deletedAt: null, status: 'WON', convertedAt: { gte: start, lt: end }, ...inBranch(scope) },
   });
-  const lostLeads = await prisma.lead.count({
-    where: { deletedAt: null, status: 'LOST', updatedAt: { gte: start, lt: end }, ...inBranch(scope) },
-  });
-  const newStudents = await prisma.student.count({ where: { deletedAt: null, createdAt: { gte: start, lt: end }, ...inBranch(scope) } });
-  const droppedStudents = await prisma.student.count({
-    where: { deletedAt: null, status: 'DROPPED', statusChangedAt: { gte: start, lt: end }, ...inBranch(scope) },
-  });
+  // Tarixiy ta'riflar (tarixiy ma'lumot auditi D4, D6, D7): hodisa sanasi bo'yicha — keyingi o'zgarishlar eski oyni o'zgartirmaydi
+  const lostLeads = await lostLeadsBetween(start, end, scope);
+  const newStudents = await newStudentsBetween(start, end, scope);
+  const droppedStudents = await droppedBetween(start, end, scope);
   const attendance = await attendanceRate(start, end, scope);
   const closed = wonLeads + lostLeads;
 
@@ -368,12 +371,21 @@ function monthsBetween(start: Date, end: Date): Array<{ year: number; month: num
   return months;
 }
 
-async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetricsDto, scope: BranchScope): Promise<ExecutiveMonthDto> {
-  const activeStudents = await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } });
-  const debt = await prisma.debt.aggregate({
-    where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } },
-    _sum: { remainingAmount: true },
-  });
+/**
+ * Davr holati: joriy davr — hozirgi holat; tugagan davr — **davr oxiridagi** holat (tarixiy ma'lumot auditi D1, D2):
+ * faol o'quvchilar holat tarixidan, qarz — oy snapshotidan yoki (snapshot yo'q bo'lsa) taxminiy tiklangan.
+ */
+async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetricsDto, scope: BranchScope, now: Date): Promise<ExecutiveMonthDto> {
+  const past = period.end.getTime() <= now.getTime();
+  const activeStudents = past ? await activeStudentsAt(period.end, scope) : await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } });
+  const historicalDebt = past ? await debtForMonth(period.year, period.month, period.end, scope) : null;
+  const debt = historicalDebt
+    ? { _sum: { remainingAmount: null }, _count: { _all: historicalDebt.debtors } }
+    : await prisma.debt.aggregate({
+        where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } },
+        _sum: { remainingAmount: true },
+        _count: { _all: true },
+      });
   const salary = await prisma.teacherSalaryPeriod.aggregate({
     where: { OR: monthsBetween(period.start, period.end), ...salaryPeriodInBranch(scope) },
     _sum: { totalAmount: true, paidAmount: true },
@@ -385,7 +397,9 @@ async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetric
     month: period.month,
     label: period.label,
     activeStudents,
-    totalDebt: debt._sum.remainingAmount?.toNumber() ?? 0,
+    totalDebt: historicalDebt ? historicalDebt.total : (debt._sum.remainingAmount?.toNumber() ?? 0),
+    debtSource: historicalDebt ? historicalDebt.source : 'LIVE',
+    debtors: debt._count._all,
     salaryAccrued: salary._sum.totalAmount?.toNumber() ?? 0,
     salaryPaid: salary._sum.paidAmount?.toNumber() ?? 0,
   };
@@ -461,10 +475,13 @@ function scale(value: number, bad: number, good: number): number {
  * Markaz sog‘lomlik bahosi. Har bir yo‘nalish 0–100 ball, vazn bilan o‘rtacha olinadi.
  * Ma’lumoti yo‘q yo‘nalish (masalan, davrda davomat belgilanmagan) bahoga kirmaydi.
  */
-async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: number, scope: BranchScope): Promise<ExecutiveHealthDto> {
-  const debtors = await prisma.debt.count({
-    where: { remainingAmount: { gt: 0 }, student: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } },
-  });
+/** `pastDebtors` — tugagan davr oxiridagi qarzdorlar (snapshot yoki tiklangan); joriy davrda `null` — hozirgi holat */
+async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: number, scope: BranchScope, pastDebtors: number | null): Promise<ExecutiveHealthDto> {
+  const debtors =
+    pastDebtors ??
+    (await prisma.debt.count({
+      where: { remainingAmount: { gt: 0 }, student: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } },
+    }));
   const debtShare = percentOf(debtors, activeStudents);
   const retentionBase = activeStudents + metrics.droppedStudents;
   const dropRate = percentOf(metrics.droppedStudents, retentionBase);
@@ -631,9 +648,9 @@ export const executiveService = {
       periodMetrics(period.previousStart, period.previousEnd, scope),
       attentionBlock(now, scope),
     ]);
-    const month = await monthBlock(period, current, scope);
+    const month = await monthBlock(period, current, scope, now);
     const trend = await trendBlock(new Date(period.end.getTime() - 1), scope);
-    const health = await healthBlock(current, month.activeStudents, scope);
+    const health = await healthBlock(current, month.activeStudents, scope, month.debtSource === 'LIVE' ? null : month.debtors);
     const forecast = period.kind === 'current-month' ? await forecastBlock(now, current, scope) : null;
 
     const changes: ExecutiveSummaryDto['changes'] = {

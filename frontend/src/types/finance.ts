@@ -240,7 +240,7 @@ export interface BudgetPayload {
   lines: Array<{ categoryId: string; plannedAmount: number }>;
 }
 
-export type FinancialPeriodStatus = 'OPEN' | 'CLOSED';
+export type FinancialPeriodStatus = 'OPEN' | 'CLOSED' | 'LOCKED';
 
 export interface FinancialPeriod {
   year: number;
@@ -255,6 +255,21 @@ export interface FinancialPeriod {
   reopenedAt: string | null;
   reopenedBy: { id: string; firstName: string; lastName: string } | null;
   reopenReason: string | null;
+  lockedAt: string | null;
+  lockedBy: { id: string; firstName: string; lastName: string } | null;
+}
+
+/** Oy oxiri snapshoti (tarixiy hisobot uchun qotirilgan holat) */
+export interface MonthSnapshotSummary {
+  year: number;
+  month: number;
+  label: string;
+  students: number;
+  active: number;
+  debtors: number;
+  totalDebt: number;
+  estimated: boolean;
+  generatedAt: string | null;
 }
 
 export interface ExpenseApprovalSettings {

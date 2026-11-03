@@ -5,6 +5,13 @@ import type { StatTone, StatTrend } from '@/components/ui/StatCard';
 import type { ExecutiveChangeKey, ExecutiveSummary } from '@/types/dashboard';
 import { formatMoney, formatNumber } from '@/utils/format';
 
+/** Qarz manbasi: tugagan oy uchun oy oxiri holati (snapshot yoki tarixdan taxminiy tiklangan) */
+export const DEBT_SOURCE_HINTS = {
+  LIVE: 'hozirgi holat',
+  SNAPSHOT: 'oy oxiri holati',
+  ESTIMATED: 'taxminiy (oy oxiri)',
+} as const;
+
 interface KpiDefinition {
   key: string;
   label: string;
@@ -53,7 +60,7 @@ export function buildKpis(data: ExecutiveSummary): KpiDefinition[] {
       key: 'debt',
       label: 'Qarzdorlik',
       value: formatMoney(kpi.totalDebt),
-      hint: 'hozirgi holat',
+      hint: DEBT_SOURCE_HINTS[month.debtSource],
       icon: HandCoins,
       to: '/debts',
       tone: kpi.totalDebt > 0 ? 'danger' : 'neutral',

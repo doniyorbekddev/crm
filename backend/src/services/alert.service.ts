@@ -17,6 +17,7 @@ import { computeTargetProgress } from './target.service.js';
 import { scheduleDueStats } from './paymentSchedule.service.js';
 import { moneyUz } from '../utils/money.js';
 import { getBranchAccess } from './branchAccess.js';
+import { droppedBetween } from './history.service.js';
 
 /**
  * Avtomatik ogohlantirishlar.
@@ -623,8 +624,8 @@ const conversionDropRule: Rule = async (now, settings) => {
 /** Joriy oyda ketgan o‘quvchilar o‘tgan oyning shu davriga nisbatan ko‘paydi */
 const dropoutIncreaseRule: Rule = async (now, settings) => {
   const { current, previous } = monthToDateWindows(now);
-  const dropped = (range: { gte: Date; lt: Date }) =>
-    prisma.student.count({ where: { deletedAt: null, status: 'DROPPED', statusChangedAt: range } });
+  // Ketish hodisasi bo'yicha (tarixiy ma'lumot D4): keyin qaytgan o'quvchi ham o'sha oyda ketgan hisoblanadi
+  const dropped = (range: { gte: Date; lt: Date }) => droppedBetween(range.gte, range.lt, { branchId: null });
   const droppedNow = await dropped(current);
   const droppedBefore = await dropped(previous);
   if (droppedNow < settings.dropoutIncreaseMin || droppedNow <= droppedBefore) return [];

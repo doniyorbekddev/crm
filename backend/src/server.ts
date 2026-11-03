@@ -22,6 +22,7 @@ import { startRetentionJob } from './jobs/retention.job.js';
 import { startEscalationJob } from './jobs/escalation.job.js';
 import { startStaffAttendanceJob } from './jobs/staffAttendance.job.js';
 import { startOrgJob } from './jobs/org.job.js';
+import { startMonthSnapshotJob } from './jobs/monthSnapshot.job.js';
 import { telegramService } from './services/telegram.service.js';
 import { BOT_COMMAND_MENU } from './services/telegramCommand.service.js';
 import { startTelegramPolling } from './telegram/polling.js';
@@ -57,6 +58,8 @@ const stopEscalation = startEscalationJob();
 const stopStaffAttendance = startStaffAttendanceJob();
 // ORG tizimi: sinov muddati tugashi va boshqa HR eslatmalari (soatiga)
 const stopOrg = startOrgJob();
+// Oy oxiri snapshoti: o'tgan oy hisobotlari keyingi o'zgarishlardan qotib qolsin (soatiga tekshiradi)
+const stopMonthSnapshot = startMonthSnapshotJob();
 // Rahbar uchun kunlik xulosa (belgilangan soatdan keyin, kuniga bir marta)
 const stopDailyDigest = startDailyDigestJob();
 // Haftalik hisobot o'quvchi va ota-onaga (yakshanba kechqurun)
@@ -102,6 +105,7 @@ function shutdown(signal: NodeJS.Signals): void {
   stopEscalation();
   stopStaffAttendance();
   stopOrg();
+  stopMonthSnapshot();
   stopTelegramPolling();
   stopDailyDigest();
   stopWeeklyReport();

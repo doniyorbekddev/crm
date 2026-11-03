@@ -35,6 +35,10 @@ financeRouter.post('/transactions/:id/void', financeManage, financeController.vo
 financeRouter.get('/periods', financeView, financialPeriodController.list);
 financeRouter.post('/periods/close', requirePermission(PERMISSIONS.FINANCE_CLOSE), financialPeriodController.close);
 financeRouter.post('/periods/reopen', requirePermission(PERMISSIONS.FINANCE_REOPEN), financialPeriodController.reopen);
+financeRouter.post('/periods/lock', requirePermission(PERMISSIONS.FINANCE_LOCK), financialPeriodController.lock);
+financeRouter.post('/periods/unlock', requirePermission(PERMISSIONS.FINANCE_LOCK), financialPeriodController.unlock);
+financeRouter.get('/periods/snapshot', financeView, financialPeriodController.snapshot);
+financeRouter.post('/periods/snapshot', requirePermission(PERMISSIONS.FINANCE_LOCK), financialPeriodController.generateSnapshot);
 
 financeRouter.get('/budget', financeView, budgetController.get);
 financeRouter.put('/budget', requirePermission(PERMISSIONS.BUDGET_MANAGE), budgetController.save);

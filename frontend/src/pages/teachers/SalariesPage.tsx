@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/Select';
 import { useExport } from '@/hooks/useExport';
 import { useInitialParam } from '@/hooks/useInitialParam';
 import { usePermission } from '@/hooks/usePermission';
+import { useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { getErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
@@ -51,8 +52,10 @@ export default function SalariesPage() {
   const canViewBranches = usePermission(PERMISSIONS.BRANCH_VIEW_ALL);
   const { exporting, run: runExport } = useExport();
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  // Boshlang'ich oy — havoladagi hisobot davri (?period=), bo'lmasa joriy oy (o'quv markaz vaqti bo'yicha)
+  const initialPeriod = useReportingPeriod().period;
+  const [year, setYear] = useState(initialPeriod.year);
+  const [month, setMonth] = useState(initialPeriod.month);
   const [branchId, setBranchId] = useState('');
   const [status, setStatus] = useState<SalaryPeriodStatus | ''>(
     useInitialParam<SalaryPeriodStatus | ''>('status', ['PENDING', 'CALCULATED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_PAID', 'PAID'], ''),

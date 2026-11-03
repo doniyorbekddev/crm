@@ -2,10 +2,11 @@ import { prisma } from '../config/database.js';
 import { formatStudentNumber } from '../config/studentLabels.js';
 import type { AttendanceStatus, WeekDay } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
-import { businessDateString } from '../utils/dates.js';
+import { businessDateString, businessMonthRange } from '../utils/dates.js';
 import type { ExportTable } from '../utils/tableExport.js';
 import { findVisibleGroup, getAttendanceAccess } from './attendance.service.js';
 import { ACTIVE_MEMBERSHIP, studentInGroup } from './groupMembership.js';
+import { studentStatesAt } from './history.service.js';
 
 /**
  * Guruhning oylik davomat jurnali — qog'oz jurnal ko'rinishi: o'quvchilar × dars kunlari.
@@ -53,6 +54,26 @@ function finish(totals: Totals): Totals {
   return totals;
 }
 
+/**
+ * `at` paytida guruhda bo'lganlar (tarixiy ma'lumot D15): asosiy guruhi shu va faol bo'lgan (holat va guruh tarixidan)
+ * yoki qo'shimcha a'zo bo'lgan. Nomzodlar — hozirgi a'zolar va shu guruhga tegishli keyingi o'tkazmalar.
+ */
+async function membersAt(groupId: string, at: Date): Promise<{ ids: string[]; extra: Set<string> }> {
+  const [current, moved, memberships] = await Promise.all([
+    prisma.student.findMany({ where: { groupId, deletedAt: null }, select: { id: true } }),
+    prisma.studentGroupChange.findMany({ where: { changedAt: { gte: at }, OR: [{ fromGroupId: groupId }, { toGroupId: groupId }] }, select: { studentId: true } }),
+    prisma.studentGroupMembership.findMany({
+      where: { groupId, joinedAt: { lt: at }, OR: [{ leftAt: null }, { leftAt: { gte: at } }] },
+      select: { studentId: true },
+    }),
+  ]);
+  const candidates = [...new Set([...current.map((row) => row.id), ...moved.map((row) => row.studentId)])];
+  const states = await studentStatesAt(at, { branchId: null }, candidates);
+  const primary = states.filter((state) => state.groupId === groupId && (MARKABLE as readonly string[]).includes(state.status)).map((state) => state.id);
+  const extra = new Set(memberships.map((row) => row.studentId));
+  return { ids: [...new Set([...primary, ...extra])], extra };
+}
+
 export const attendanceJournalService = {
   async month(actor: AuthUser, groupId: string, year: number, month: number): Promise<AttendanceJournalDto> {
     const access = await getAttendanceAccess(actor);
@@ -64,11 +85,16 @@ export const attendanceJournalService = {
 
     const start = new Date(Date.UTC(year, month - 1, 1));
     const end = new Date(Date.UTC(year, month, 1));
+    // O'tgan oy: tarkib oy oxiridagi holat bo'yicha (keyin qo'shilganlar ko'rinmaydi, keyin chiqqanlar "sobiq" emas)
+    const monthEnd = businessMonthRange(year, month).end;
+    const membership = monthEnd.getTime() <= Date.now() ? await membersAt(groupId, monthEnd) : null;
     const [sessions, records, roster] = await Promise.all([
       prisma.attendanceSession.findMany({ where: { groupId, date: { gte: start, lt: end } }, select: { date: true, status: true } }),
       prisma.attendance.findMany({ where: { groupId, date: { gte: start, lt: end } }, select: { studentId: true, date: true, status: true } }),
       prisma.student.findMany({
-        where: { ...studentInGroup(groupId), deletedAt: null, status: { in: [...MARKABLE] } },
+        where: membership
+          ? { id: { in: membership.ids }, deletedAt: null }
+          : { ...studentInGroup(groupId), deletedAt: null, status: { in: [...MARKABLE] } },
         select: { id: true, number: true, firstName: true, lastName: true, groupId: true },
       }),
     ]);
@@ -94,9 +120,9 @@ export const attendanceJournalService = {
     const former = formerIds.length
       ? await prisma.student.findMany({ where: { id: { in: formerIds } }, select: { id: true, number: true, firstName: true, lastName: true, groupId: true } })
       : [];
-    const extra = new Set(
-      (await prisma.studentGroupMembership.findMany({ where: { groupId, ...ACTIVE_MEMBERSHIP }, select: { studentId: true } })).map((row) => row.studentId),
-    );
+    const extra = membership
+      ? membership.extra
+      : new Set((await prisma.studentGroupMembership.findMany({ where: { groupId, ...ACTIVE_MEMBERSHIP }, select: { studentId: true } })).map((row) => row.studentId));
 
     const rows = new Map<string, AttendanceJournalDto['students'][number]>();
     for (const [list, isFormer] of [[roster, false], [former, true]] as const) {

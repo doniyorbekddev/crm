@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, CashFlowStatement, ExpenseApprovalSettings, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MoneyEntry, ProfitLoss, MoneyListParams, MoneyPayload, MoneyStats, RecurringExpense, RecurringExpensePayload, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
+import type { Budget, BudgetPayload, CashFlowParams, CashFlowPoint, CashFlowStatement, ExpenseApprovalSettings, FinanceAccount, FinanceCategory, FinanceRangeParams, FinanceSummary, FinancialPeriod, MonthSnapshotSummary, MoneyEntry, ProfitLoss, MoneyListParams, MoneyPayload, MoneyStats, RecurringExpense, RecurringExpensePayload, Transaction, TransactionListParams, TransferPayload } from '@/types/finance';
 
 /** Tushum va xarajat API'lari bir xil — bitta fabrikadan ikkita servis */
 function moneyService(resource: 'incomes' | 'expenses') {
@@ -176,6 +176,26 @@ export const financeService = {
 
   async reopenPeriod(payload: { year: number; month: number; reason: string }): Promise<MessageResult<FinancialPeriod>> {
     const response = await api.post<ApiSuccessResponse<FinancialPeriod>>('/finance/periods/reopen', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async lockPeriod(payload: { year: number; month: number; reason: string }): Promise<MessageResult<FinancialPeriod>> {
+    const response = await api.post<ApiSuccessResponse<FinancialPeriod>>('/finance/periods/lock', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async unlockPeriod(payload: { year: number; month: number; reason: string }): Promise<MessageResult<FinancialPeriod>> {
+    const response = await api.post<ApiSuccessResponse<FinancialPeriod>>('/finance/periods/unlock', payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  async periodSnapshot(year: number, month: number): Promise<MonthSnapshotSummary> {
+    const response = await api.get<ApiSuccessResponse<MonthSnapshotSummary>>('/finance/periods/snapshot', { params: { year, month } });
+    return response.data.data;
+  },
+
+  async generatePeriodSnapshot(payload: { year: number; month: number }): Promise<MessageResult<{ created: number; existing: number; estimated: boolean }>> {
+    const response = await api.post<ApiSuccessResponse<{ created: number; existing: number; estimated: boolean }>>('/finance/periods/snapshot', payload);
     return { data: response.data.data, message: response.data.message };
   },
 };

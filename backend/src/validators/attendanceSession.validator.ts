@@ -46,11 +46,20 @@ const sessionFieldsSchema = z.object({
   /** Kurs dasturidagi mavzu (LMS) — o'tilgan dars bo'lsa kelganlar progressi yangilanadi */
   topicId: z.string().trim().min(1).max(50).nullable().optional(),
   status: z.enum(SESSION_STATUSES, 'Holat noto‘g‘ri'),
+  /** Yopilgan moliyaviy oy davomatini tuzatish sababi (tarixiy ma'lumot, qaror 3) */
+  correctionReason: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().trim().max(255, 'Sabab 255 belgidan oshmasligi kerak').optional()),
+});
+
+/** Seansni o'chirish: yopilgan oyda sabab kerak */
+export const removeSessionSchema = z.object({
+  /** Yopilgan moliyaviy oy davomatini tuzatish sababi (tarixiy ma'lumot, qaror 3) */
+  correctionReason: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().trim().max(255, 'Sabab 255 belgidan oshmasligi kerak').optional()),
 });
 
 export const createSessionSchema = sessionFieldsSchema.extend({ status: sessionFieldsSchema.shape.status.default('HELD') });
 // Standart qiymat faqat yaratishda — `.partial()` ichida ham `.default()` ishlab, yuborilmagan maydonni qaytarib yozardi
 export const updateSessionSchema = sessionFieldsSchema.omit({ groupId: true, date: true }).partial();
+export type RemoveSessionInput = z.infer<typeof removeSessionSchema>;
 
 export const attendanceStatsQuerySchema = z
   .object({

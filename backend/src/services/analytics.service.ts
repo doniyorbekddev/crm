@@ -10,6 +10,7 @@ import type { ExportTable } from '../utils/tableExport.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { refundTotal, refundsBy } from './revenue.js';
 import { ALL_BRANCHES, inBranch, viaUser, type BranchScope } from './branchScope.js';
+import { snapshotMoment, studentStatesAt } from './history.service.js';
 
 /**
  * Kengaytirilgan analitika: unit economics, rentabellik, kohortlar va lead manbalari.
@@ -277,11 +278,12 @@ export const analyticsService = {
 
     const names = new Map<string, { name: string; subtitle: string | null }>();
     const active = new Map<string, number>();
+    // Faol o'quvchilar — davr oxiridagi holat (joriy davr uchun hozirgi), keyingi o'zgarishlar o'tgan davrni o'zgartirmaydi
+    const activeStates = (await studentStatesAt(snapshotMoment(end), scope)).filter((state) => state.status === 'ACTIVE');
     if (dimension === 'course') {
       const courses = await prisma.course.findMany({ select: { id: true, name: true } });
       for (const course of courses) names.set(course.id, { name: course.name, subtitle: null });
-      const counts = await prisma.student.groupBy({ by: ['courseId'], where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) }, _count: { _all: true } });
-      for (const row of counts) active.set(row.courseId, row._count._all);
+      for (const state of activeStates) active.set(state.courseId, (active.get(state.courseId) ?? 0) + 1);
     } else {
       const groups = await prisma.group.findMany({
         where: inBranch(scope),
@@ -293,12 +295,10 @@ export const analyticsService = {
           teacher: { select: { firstName: true, lastName: true } },
         },
       });
-      const counts = await prisma.student.groupBy({
-        by: ['groupId'],
-        where: { deletedAt: null, status: 'ACTIVE', groupId: { not: null }, ...inBranch(scope) },
-        _count: { _all: true },
-      });
-      const activeByGroup = new Map(counts.map((row) => [row.groupId ?? NONE, row._count._all]));
+      const activeByGroup = new Map<string, number>();
+      for (const state of activeStates) {
+        if (state.groupId) activeByGroup.set(state.groupId, (activeByGroup.get(state.groupId) ?? 0) + 1);
+      }
 
       if (dimension === 'group') {
         for (const group of groups) {
@@ -385,6 +385,15 @@ export const analyticsService = {
     const paidByStudent = new Map(paid.map((row) => [row.studentId, row._sum.amount?.toNumber() ?? 0]));
     const refunded = ids.length === 0 ? new Map<string, number>() : await refundsBy('studentId', undefined, { studentId: { in: ids }, ...inBranch(scope) });
 
+    // Har oy oxiridagi holat tarixdan (qaytgan o'quvchi qaytgan oydan boshlab yana "qolgan"); joriy oy uchun — hozir
+    const statusAt = new Map<number, Map<string, string>>();
+    for (let offset = -1; offset < months - 1; offset += 1) {
+      const moment = new Date(Math.min(startOfBusinessMonth(now, offset).getTime(), now.getTime()));
+      if (statusAt.has(moment.getTime())) continue;
+      const states = await studentStatesAt(moment, scope, ids);
+      statusAt.set(moment.getTime(), new Map(states.map((state) => [state.id, state.status])));
+    }
+
     const rows: CohortRowDto[] = [];
     for (let index = months - 1; index >= 0; index -= 1) {
       const cohortStart = startOfBusinessMonth(now, index);
@@ -396,9 +405,8 @@ export const analyticsService = {
       for (let offset = 0; offset <= index; offset += 1) {
         // Oy oxiri; joriy oy uchun — hozirgi payt
         const moment = new Date(Math.min(startOfBusinessMonth(now, index - offset - 1).getTime(), now.getTime()));
-        const retained = members.filter(
-          (student) => !(student.status === 'DROPPED' && student.statusChangedAt !== null && student.statusChangedAt < moment),
-        ).length;
+        const states = statusAt.get(moment.getTime());
+        const retained = members.filter((student) => states?.get(student.id) !== 'DROPPED').length;
         retention.push(members.length === 0 ? null : percentOf(retained, members.length));
       }
 

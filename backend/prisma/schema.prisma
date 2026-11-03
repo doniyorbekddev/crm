@@ -344,6 +344,8 @@ model User {
   employee                  Employee?                  @relation("EmployeeUser")
   createdEmployees          Employee[]                 @relation("EmployeeCreatedBy")
   managedEmployees          Employee[]                 @relation("EmployeeManager")
+  studentSnapshotsGenerated StudentMonthSnapshot[]     @relation("StudentSnapshotGeneratedBy")
+  financialPeriodsLocked    FinancialPeriod[]          @relation("FinancialPeriodLockedBy")
   performanceReviews        PerformanceReview[]        @relation("PerformanceReviewSubject")
   performanceReviewed       PerformanceReview[]        @relation("PerformanceReviewer")
   performanceApproved       PerformanceReview[]        @relation("PerformanceReviewApprovedBy")
@@ -1134,6 +1136,7 @@ model Student {
   certificates      Certificate[]
   discounts         StudentDiscount[]
   discountRequests  DiscountRequest[]
+  monthSnapshots    StudentMonthSnapshot[]
   complaints        Complaint[]
   feedback          Feedback[]
   stockMovements    StockMovement[]
@@ -3402,6 +3405,8 @@ model EmployeeLeave {
 enum FinancialPeriodStatus {
   OPEN
   CLOSED
+  /// Yakuniy qotirilgan oy: qayta ochilmaydi (faqat alohida "qulfni yechish" — sabab va audit bilan)
+  LOCKED
 }
 
 /// To‘lovni (qisman) qaytarish. Kvitansiya o‘chirilmaydi: qaytarilgan pul alohida yozuv,
@@ -3443,11 +3448,14 @@ model FinancialPeriod {
   reopenedAt   DateTime?
   reopenedById String?
   reopenReason String?               @db.VarChar(255)
+  lockedAt     DateTime?
+  lockedById   String?
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
   closedBy   User? @relation("FinancialPeriodClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
   reopenedBy User? @relation("FinancialPeriodReopenedBy", fields: [reopenedById], references: [id], onDelete: SetNull)
+  lockedBy   User? @relation("FinancialPeriodLockedBy", fields: [lockedById], references: [id], onDelete: SetNull)
 
   @@unique([year, month])
   @@map("financial_periods")
@@ -5208,4 +5216,38 @@ model PromotionRecommendation {
   @@index([status, createdAt])
   @@index([employeeId, status])
   @@map("promotion_recommendations")
+}
+
+// =====================================================================
+// Tarixiy ma'lumot va oylik hisobot (HISTORICAL-DATA-AUDIT, 7-faza)
+// =====================================================================
+
+/// O'quvchining oy oxiridagi holati: holat, asosiy guruh va moliyaviy holat. Keyin o'quvchi guruh almashsa, ketsa
+/// yoki qarzini to'lasa ham shu oy hisobotlari aynan shu raqamni ko'rsatadi. Yozuv faqat qo'shiladi — mavjudi jimgina
+/// almashtirilmaydi (qayta yaratish — faqat qulflanmagan oyda, ruxsat va audit bilan).
+model StudentMonthSnapshot {
+  id             String        @id @default(cuid())
+  studentId      String
+  year           Int
+  month          Int           @db.SmallInt
+  branchId       String
+  status         StudentStatus
+  groupId        String?
+  courseId       String
+  /// Oy oxiridagi shartnoma summasi (chegirmalardan keyin), to'langan (qaytarishlarsiz) va qarz
+  contractAmount Decimal       @db.Decimal(14, 2)
+  paidAmount     Decimal       @db.Decimal(14, 2)
+  debtAmount     Decimal       @db.Decimal(14, 2)
+  /// Oy tugaganidan ancha keyin tarixdan tiklangan (masalan, oktyabr 2026) — "taxminiy"
+  estimated      Boolean       @default(false)
+  generatedById  String?
+  createdAt      DateTime      @default(now())
+
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  generatedBy User?   @relation("StudentSnapshotGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, year, month])
+  @@index([year, month, branchId])
+  @@index([year, month, groupId])
+  @@map("student_month_snapshots")
 }

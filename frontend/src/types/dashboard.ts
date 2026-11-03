@@ -165,6 +165,9 @@ export interface ExecutiveMonth extends ExecutiveMetrics {
   label: string;
   activeStudents: number;
   totalDebt: number;
+  /** LIVE — hozirgi holat; SNAPSHOT — oy oxiri snapshoti; ESTIMATED — tarixdan taxminiy tiklangan */
+  debtSource: 'LIVE' | 'SNAPSHOT' | 'ESTIMATED';
+  debtors: number;
   salaryAccrued: number;
   salaryPaid: number;
 }

@@ -8,9 +8,11 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type {
   CreateSessionInput,
   SessionListQuery,
+  RemoveSessionInput,
   UpdateSessionInput,
 } from '../validators/attendanceSession.validator.js';
 import { auditService } from './audit.service.js';
+import { assertAttendanceEditable, recordAttendanceCorrection } from './closedPeriodGuard.js';
 import { permissionService } from './permission.service.js';
 import { masteryService } from './mastery.service.js';
 import { isRosterLimited } from './teachingAccess.js';
@@ -162,6 +164,7 @@ export const attendanceSessionService = {
     const access = await getSessionAccess(actor);
     const group = await assertGroupVisible(access, input.groupId);
     if (input.topicId) await assertTopicForGroup(input.topicId, input.groupId);
+    const correction = await assertAttendanceEditable(actor, input.date, input.correctionReason);
 
     const existing = await prisma.attendanceSession.findUnique({
       where: { groupId_date: { groupId: input.groupId, date: input.date } },
@@ -200,6 +203,9 @@ export const attendanceSessionService = {
       metadata: { group: group.name, date: toDateOnly(input.date), status: input.status },
       ...client,
     });
+    if (correction) {
+      await recordAttendanceCorrection(actor, correction, { type: 'attendanceSession', id: session.id, details: { group: group.name, date: toDateOnly(input.date), status: input.status } }, client);
+    }
 
     return toDto(session);
   },
@@ -208,6 +214,7 @@ export const attendanceSessionService = {
     const access = await getSessionAccess(actor);
     const session = await findVisibleSession(access, id);
     if (input.topicId) await assertTopicForGroup(input.topicId, session.group.id);
+    const correction = await assertAttendanceEditable(actor, session.date, input.correctionReason);
 
     const updated = await prisma.attendanceSession.update({
       where: { id },
@@ -232,17 +239,21 @@ export const attendanceSessionService = {
       metadata: { group: session.group.name, date: toDateOnly(session.date), status: updated.status },
       ...client,
     });
+    if (correction) {
+      await recordAttendanceCorrection(actor, correction, { type: 'attendanceSession', id, details: { group: session.group.name, date: toDateOnly(session.date), status: updated.status } }, client);
+    }
 
     return toDto(updated);
   },
 
   /** Seansni o‘chirish — faqat davomat belgilanmagan bo‘lsa */
-  async remove(actor: AuthUser, id: string, client: ClientInfo): Promise<void> {
+  async remove(actor: AuthUser, id: string, client: ClientInfo, input: RemoveSessionInput = {}): Promise<void> {
     const access = await getSessionAccess(actor);
     const session = await findVisibleSession(access, id);
     if (session._count.attendances > 0) {
       throw AppError.conflict('Bu seansda davomat belgilangan — avval davomatni tozalang');
     }
+    const correction = await assertAttendanceEditable(actor, session.date, input.correctionReason);
 
     await prisma.attendanceSession.delete({ where: { id } });
     await auditService.record({
@@ -253,6 +264,9 @@ export const attendanceSessionService = {
       metadata: { group: session.group.name, date: toDateOnly(session.date) },
       ...client,
     });
+    if (correction) {
+      await recordAttendanceCorrection(actor, correction, { type: 'attendanceSession', id, details: { group: session.group.name, date: toDateOnly(session.date), deleted: true } }, client);
+    }
   },
 
   /**

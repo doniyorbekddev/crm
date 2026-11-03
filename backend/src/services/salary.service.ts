@@ -32,6 +32,7 @@ import { notificationService } from './notification.service.js';
 import { permissionService } from './permission.service.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { evaluateEmployeeKpi, type KpiEvaluationDto } from './kpi.service.js';
+import { activeStudentsInGroupsAt } from './history.service.js';
 
 /** Maosh xarajati shu kategoriyaga yoziladi (seedda ham bor) */
 const SALARY_EXPENSE_CATEGORY = 'TEACHER_SALARY';
@@ -495,7 +496,7 @@ export interface WorkloadDto {
 /**
  * O‘qituvchining oylik yuklamasi:
  * - o‘tkazilgan darslar (HELD seanslar — seansda o‘qituvchi ko‘rsatilmagan bo‘lsa guruh o‘qituvchisi hisobga olinadi)
- * - guruhlaridagi faol o‘quvchilar soni
+ * - guruhlaridagi faol o‘quvchilar soni (o‘tgan oy uchun — oy oxiridagi holat)
  * - guruhlari o‘quvchilaridan shu oyda tushgan to‘lovlar (ulush uchun)
  */
 export async function loadWorkload(
@@ -514,9 +515,13 @@ export async function loadWorkload(
     },
   });
 
-  const studentsCount = await tx.student.count({
-    where: { deletedAt: null, status: 'ACTIVE', group: { teacherId: teacherUserId } },
-  });
+  // O'tgan oy — o'sha oy oxiridagi holat va guruh bo'yicha (tarixiy ma'lumot, qaror 2); joriy oy — hozirgi holat.
+  // Tasdiqlangan (qulflangan) maosh bu yerga umuman kelmaydi.
+  const monthEnd = businessMonthRange(year, month).end;
+  const studentsCount =
+    monthEnd.getTime() <= Date.now()
+      ? await activeStudentsInGroupsAt(monthEnd, (await tx.group.findMany({ where: { teacherId: teacherUserId }, select: { id: true } })).map((group) => group.id))
+      : await tx.student.count({ where: { deletedAt: null, status: 'ACTIVE', group: { teacherId: teacherUserId } } });
 
   // Tushum to'lov paytida yozilgan o'qituvchi bo'yicha (o'quvchining hozirgi guruhi emas).
   // PMT: boshqa o'qituvchiga qotirilgan ulush ayriladi, shu o'qituvchiga berilgan ulush qo'shiladi

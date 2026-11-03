@@ -8,7 +8,10 @@ import { ATTENDANCE_STATUS_LABELS, STUDENT_STATUS_LABELS, formatStudentNumber } 
 import { formatSalaryPeriod } from '../config/salaryLabels.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { SalaryType, StudentStatus } from '../generated/prisma/client.js';
-import { addDays, startOfBusinessDay } from '../utils/dates.js';
+import { addDays, dateColumn, startOfBusinessDay } from '../utils/dates.js';
+import { droppedByGroupBetween } from './history.service.js';
+import { studentPositionsAt } from './monthSnapshot.service.js';
+import type { StudentPositionRow } from './monthSnapshot.service.js';
 import type { ReportGroupBy, ReportQuery, ReportType } from '../validators/report.validator.js';
 import { ALL_BRANCHES, branchSql, inBranch, viaGroup } from './branchScope.js';
 import type { BranchScope } from './branchScope.js';
@@ -340,6 +343,16 @@ async function managersReport(query: ReportQuery, scope: BranchScope = ALL_BRANC
   };
 }
 
+/**
+ * Tugagan davr uchun o'quvchilar holati davr oxirida (tarixiy ma'lumot D8); joriy davr — `null` (hozirgi holat ishlatiladi).
+ * Davr oxiri hali kelmagan bo'lsa hozirgi holat to'g'ri javob.
+ */
+async function pastPositions(end: Date, scope: BranchScope): Promise<StudentPositionRow[] | null> {
+  if (end.getTime() > Date.now()) return null;
+  const rows = await studentPositionsAt(end);
+  return scope.branchId ? rows.filter((row) => row.branchId === scope.branchId) : rows;
+}
+
 async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES): Promise<Pick<ReportDto, 'columns' | 'rows' | 'kpis'>> {
   const { start, end } = resolveRange(query);
   const courses = await prisma.course.findMany({
@@ -352,9 +365,10 @@ async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCH
   const [students, active, fresh, groups, revenue, debts] = await Promise.all([
     prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope) }, _count: { _all: true } }),
     prisma.student.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), status: 'ACTIVE' }, _count: { _all: true } }),
+    // Yangi o'quvchi — o'qish boshlangan sana bo'yicha (tarixiy ma'lumot, qaror 1)
     prisma.student.groupBy({
       by: ['courseId'],
-      where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), createdAt: { gte: start, lt: end } },
+      where: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope), startDate: { gte: dateColumn(start), lt: dateColumn(end) } },
       _count: { _all: true },
     }),
     prisma.group.groupBy({ by: ['courseId'], where: { courseId: { in: ids }, ...inBranch(scope) }, _count: { _all: true } }),
@@ -375,8 +389,25 @@ async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCH
   const countOf = (list: ReadonlyArray<{ courseId: string; _count: { _all: number } }>, id: string) =>
     list.find((row) => row.courseId === id)?._count._all ?? 0;
   const debtByCourse = new Map<string, number>();
-  for (const debt of debts) {
-    debtByCourse.set(debt.student.courseId, (debtByCourse.get(debt.student.courseId) ?? 0) + debt.remainingAmount.toNumber());
+  const studentsByCourse = new Map<string, number>();
+  const activeByCourse = new Map<string, number>();
+  const past = await pastPositions(end, scope);
+  if (past) {
+    // Tugagan davr: o'quvchilar soni, faollar va qarz — davr oxiridagi holat (keyingi to'lov/o'zgarish ta'sir qilmaydi)
+    for (const row of past) {
+      studentsByCourse.set(row.courseId, (studentsByCourse.get(row.courseId) ?? 0) + 1);
+      if (row.status === 'ACTIVE') activeByCourse.set(row.courseId, (activeByCourse.get(row.courseId) ?? 0) + 1);
+      const remaining = Number(row.contract) - Number(row.paid);
+      if (remaining > 0) debtByCourse.set(row.courseId, (debtByCourse.get(row.courseId) ?? 0) + remaining);
+    }
+  } else {
+    for (const course of courses) {
+      studentsByCourse.set(course.id, countOf(students, course.id));
+      activeByCourse.set(course.id, countOf(active, course.id));
+    }
+    for (const debt of debts) {
+      debtByCourse.set(debt.student.courseId, (debtByCourse.get(debt.student.courseId) ?? 0) + debt.remainingAmount.toNumber());
+    }
   }
 
   const rows: Array<Record<string, ReportCell>> = courses.map((course) => ({
@@ -384,8 +415,8 @@ async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCH
     status: course.status,
     price: course.finalPrice.toNumber(),
     groups: countOf(groups, course.id),
-    students: countOf(students, course.id),
-    activeStudents: countOf(active, course.id),
+    students: studentsByCourse.get(course.id) ?? 0,
+    activeStudents: activeByCourse.get(course.id) ?? 0,
     newStudents: countOf(fresh, course.id),
     revenue: (revenue.find((row) => row.courseId === course.id)?._sum.amount?.toNumber() ?? 0) - (courseRefunds.get(course.id) ?? 0),
     debt: debtByCourse.get(course.id) ?? 0,
@@ -443,8 +474,14 @@ async function groupsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHE
     }),
   ]);
 
+  const past = await pastPositions(end, scope);
+  const activeAtEnd = new Map<string, number>();
+  for (const row of past ?? []) {
+    if (row.status === 'ACTIVE' && row.groupId) activeAtEnd.set(row.groupId, (activeAtEnd.get(row.groupId) ?? 0) + 1);
+  }
+
   const rows: Array<Record<string, ReportCell>> = groups.map((group) => {
-    const studentCount = students.find((row) => row.groupId === group.id)?._count._all ?? 0;
+    const studentCount = past ? (activeAtEnd.get(group.id) ?? 0) : (students.find((row) => row.groupId === group.id)?._count._all ?? 0);
     const marks = attendance.filter((row) => row.groupId === group.id);
     const total = marks.reduce((sum, row) => sum + row._count._all, 0);
     const present = marks.filter((row) => row.status !== 'ABSENT').reduce((sum, row) => sum + row._count._all, 0);
@@ -879,11 +916,8 @@ async function teachersReport(query: ReportQuery, scope: BranchScope = ALL_BRANC
   // Barcha o'qituvchilar uchun ~10 ta so'rov (avval har bir o'qituvchiga ~11 ta edi)
   const [active, dropped, sessions, attendance, exams, homework, revenueByTeacher, salaries] = await Promise.all([
     prisma.student.groupBy({ by: ['groupId'], where: { groupId: { in: groupIds }, deletedAt: null, ...inBranch(scope), status: 'ACTIVE' }, _count: { _all: true } }),
-    prisma.student.groupBy({
-      by: ['groupId'],
-      where: { groupId: { in: groupIds }, deletedAt: null, ...inBranch(scope), status: 'DROPPED', statusChangedAt: { gte: start, lt: end } },
-      _count: { _all: true },
-    }),
+    // Ketganlar — davrdagi DROPPED ga o'tish hodisasi, ketgan paytdagi guruh bo'yicha (tarixiy ma'lumot D4)
+    droppedByGroupBetween(start, end, scope, groupIds),
     prisma.attendanceSession.groupBy({
       by: ['teacherId', 'groupId'],
       where: {
@@ -969,13 +1003,18 @@ async function teachersReport(query: ReportQuery, scope: BranchScope = ALL_BRANC
     const entry = bucket(group.teacherId);
     if (entry) entry.groups += 1;
   }
-  for (const row of active) {
+  // Tugagan davr — faol o'quvchilar davr oxiridagi holat va guruh bo'yicha
+  const past = await pastPositions(end, scope);
+  const activeRows = past
+    ? past.filter((row) => row.status === 'ACTIVE' && row.groupId !== null && teacherOfGroup.has(row.groupId)).map((row) => ({ groupId: row.groupId, _count: { _all: 1 } }))
+    : active;
+  for (const row of activeRows) {
     const entry = bucket(row.groupId ? teacherOfGroup.get(row.groupId) : null);
     if (entry) entry.students += row._count._all;
   }
-  for (const row of dropped) {
-    const entry = bucket(row.groupId ? teacherOfGroup.get(row.groupId) : null);
-    if (entry) entry.dropped += row._count._all;
+  for (const [groupId, count] of dropped) {
+    const entry = bucket(teacherOfGroup.get(groupId));
+    if (entry) entry.dropped += count;
   }
   for (const row of sessions) {
     // Seansda o'qituvchi ko'rsatilgan bo'lsa — o'sha; kurs filtri bo'lsa, faqat filtrdagi guruhlar
