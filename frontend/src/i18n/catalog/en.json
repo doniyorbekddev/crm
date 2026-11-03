@@ -5589,7 +5589,33 @@
 "Choraklik baholash natijasi": "Quarterly review result",
 "Choraklik baholash vaqti": "Quarterly review time",
 "Choraklik baholash yozish, taqdirlash va lavozimga ko‘tarishni tavsiya qilish": "Write quarterly reviews, give awards and recommend promotions",
-"Chorakni tanlang": "Choose a quarter"
+"Chorakni tanlang": "Choose a quarter",
+"Akademik ko‘rsatkichlar": "Academic metrics",
+"Baholangan xodim": "Employees evaluated",
+"CEOga ko‘tarilgan": "Escalated to CEO",
+"Davomat (oy)": "Attendance (month)",
+"Faol guruh": "Active groups",
+"Kechikkanlar:": "Late:",
+"Ko‘rsatkich yo‘q": "No metrics",
+"Ko‘tarilish": "Promotion",
+"Limitdan oshgan:": "Over limit:",
+"Maosh (shu oy)": "Payroll (this month)",
+"Markaz holati bitta oynada: jamoa, ish, natija va pul": "The centre at a glance: team, work, results and money",
+"Marketing (shu oy)": "Marketing (this month)",
+"Moliya, sotuv va akademik raqamlar “Direktor paneli” bilan bir xil hisoblanadi. Panel har 2 daqiqada yangilanadi.": "Finance, sales and academic figures are computed the same as on the “Director panel”. The panel refreshes every 2 minutes.",
+"Nomzod (taklif bosqichi)": "Candidate (offer stage)",
+"Ochiq murojaatlar": "Open requests",
+"Qaroringizni kutmoqda": "Awaiting your decision",
+"Sizga panel bloklari uchun ruxsat berilmagan": "You have no access to the panel blocks",
+"Sotuv (shu oy)": "Sales (this month)",
+"Tashkilot paneli": "Organization panel",
+"To‘lovlar va qarzdorlik": "Payments and debt",
+"Vakant lavozim": "Vacant positions",
+"Xarajatlar (shu oy)": "Expenses (this month)",
+"Yangi / ketgan": "New / left",
+"O‘rtacha bajarilish": "Average achievement",
+"Shu oy bajarildi": "Done this month",
+"Shu oy tushum": "Revenue this month"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -6258,6 +6284,8 @@
 "Lavozimga ko‘tarildi{0}": "Promoted{0}",
 "Summa tasdiq chegarasidan ({0}) katta — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.": "The amount exceeds the approval threshold ({0}) — nothing leaves the cash desk until approved and paid.",
 "O‘rtacha KPI (3 oy): {0}{1}": "Average KPI (3 months): {0}{1}",
-"Shu oy: {0} / limit {1}": "This month: {0} / limit {1}"
+"Shu oy: {0} / limit {1}": "This month: {0} / limit {1}",
+"Jamoa: {0} xodim ishda, {1} vazifa muddati o‘tgan, {2} ochiq murojaat{3}, {4} ta tasdiq kutmoqda": "Team: {0} staff at work, {1} tasks overdue, {2} open requests{3}, {4} awaiting approval",
+"KPI natijalari · {0}": "KPI results · {0}"
 }
 }

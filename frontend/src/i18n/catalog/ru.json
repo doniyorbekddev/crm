@@ -5624,7 +5624,33 @@
 "Choraklik baholash natijasi": "Результат квартальной оценки",
 "Choraklik baholash vaqti": "Время квартальной оценки",
 "Choraklik baholash yozish, taqdirlash va lavozimga ko‘tarishni tavsiya qilish": "Писать квартальные оценки, награждать и рекомендовать к повышению",
-"Chorakni tanlang": "Выберите квартал"
+"Chorakni tanlang": "Выберите квартал",
+"Akademik ko‘rsatkichlar": "Учебные показатели",
+"Baholangan xodim": "Оценено сотрудников",
+"CEOga ko‘tarilgan": "Передано CEO",
+"Davomat (oy)": "Посещаемость (месяц)",
+"Faol guruh": "Активные группы",
+"Kechikkanlar:": "Опоздавшие:",
+"Ko‘rsatkich yo‘q": "Нет показателей",
+"Ko‘tarilish": "Повышение",
+"Limitdan oshgan:": "Превысили лимит:",
+"Maosh (shu oy)": "Зарплата (этот месяц)",
+"Markaz holati bitta oynada: jamoa, ish, natija va pul": "Состояние центра в одном окне: команда, работа, результаты и деньги",
+"Marketing (shu oy)": "Маркетинг (этот месяц)",
+"Moliya, sotuv va akademik raqamlar “Direktor paneli” bilan bir xil hisoblanadi. Panel har 2 daqiqada yangilanadi.": "Финансы, продажи и учебные показатели считаются так же, как в «Панели директора». Панель обновляется каждые 2 минуты.",
+"Nomzod (taklif bosqichi)": "Кандидат (этап предложения)",
+"Ochiq murojaatlar": "Открытые обращения",
+"Qaroringizni kutmoqda": "Ждёт вашего решения",
+"Sizga panel bloklari uchun ruxsat berilmagan": "У вас нет доступа к блокам панели",
+"Sotuv (shu oy)": "Продажи (этот месяц)",
+"Tashkilot paneli": "Панель организации",
+"To‘lovlar va qarzdorlik": "Оплаты и задолженность",
+"Vakant lavozim": "Вакантные должности",
+"Xarajatlar (shu oy)": "Расходы (этот месяц)",
+"Yangi / ketgan": "Новые / ушедшие",
+"O‘rtacha bajarilish": "Среднее выполнение",
+"Shu oy bajarildi": "Выполнено за месяц",
+"Shu oy tushum": "Поступления за месяц"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -6294,6 +6320,8 @@
 "Lavozimga ko‘tarildi{0}": "Повышен в должности{0}",
 "Summa tasdiq chegarasidan ({0}) katta — rahbar tasdiqlab, to‘lov qilinmaguncha kassadan yechilmaydi.": "Сумма выше порога одобрения ({0}) — до одобрения руководителя и оплаты из кассы не списывается.",
 "O‘rtacha KPI (3 oy): {0}{1}": "Средний KPI (3 мес.): {0}{1}",
-"Shu oy: {0} / limit {1}": "За месяц: {0} / лимит {1}"
+"Shu oy: {0} / limit {1}": "За месяц: {0} / лимит {1}",
+"Jamoa: {0} xodim ishda, {1} vazifa muddati o‘tgan, {2} ochiq murojaat{3}, {4} ta tasdiq kutmoqda": "Команда: {0} сотр. на работе, {1} задач просрочено, {2} открытых обращений{3}, {4} ждут одобрения",
+"KPI natijalari · {0}": "Результаты KPI · {0}"
 }
 }

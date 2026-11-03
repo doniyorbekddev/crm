@@ -133,6 +133,8 @@ const AUTH_ONLY = new Set([
   'POST /api/org/checklists/:id/items/:itemId',
   // O'z natijalari va karyera yo'li (faqat actor.id bo'yicha)
   'GET /api/org/performance/me',
+  // CEO paneli: har blok o'z ruxsati bilan — ruxsatsiz rolga barcha bloklar null (pastdagi orgOverview testi)
+  'GET /api/org/overview',
   // Filial tanlash paneli: branch.view_all bo'lmasa — faqat o'z filiali
   'GET /api/branches',
   // Ruxsat hujjat bog'langan yozuvga qarab servisda (begona/yo'q hujjat — 404)

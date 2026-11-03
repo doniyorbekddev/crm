@@ -386,3 +386,21 @@ export interface Promotion {
   recommendedBy: OrgPerson | null;
   decidedBy: OrgPerson | null;
 }
+
+// ---------------------------------------------------------------- CEO paneli
+export interface OrgOverview {
+  date: string;
+  attendance: { expected: number; working: number; onTime: number; late: number; notArrived: number; absent: number; excused: number; review: number; lateNames: string[] } | null;
+  team: { employees: number; teachers: number; onLeave: number; onProbation: number; withoutAccount: number; vacancies: number } | null;
+  tasks: { open: number; inProgress: number; review: number; overdue: number; doneThisMonth: number; overdueItems: Array<{ id: string; title: string; assignee: string; dueAt: string }> } | null;
+  kpi: { month: string; evaluated: number; averageAchievement: number | null; below: Array<{ name: string; achievement: number }> } | null;
+  academic: { activeStudents: number; activeGroups: number; attendanceRate: number; newStudents: number; droppedStudents: number } | null;
+  sales: { newLeads: number; wonLeads: number; conversionRate: number } | null;
+  marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
+  payments: { revenue: number; totalDebt: number } | null;
+  payroll: { accrued: number; paid: number; remaining: number } | null;
+  expenses: { total: number; pendingApprovals: number; overLimit: Array<{ name: string; spent: number; limit: number }> } | null;
+  complaints: { open: number; newCount: number; overdue: number; escalated: number; critical: number } | null;
+  assets: { count: number; value: number; underRepair: number } | null;
+  approvals: { expenses: number; discounts: number; reviews: number; promotions: number; candidates: number } | null;
+}

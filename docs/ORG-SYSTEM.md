@@ -118,3 +118,34 @@ eski ruxsat bo'lgani uchun avtomatik qo'shilmaydi — Rollar sahifasida qo'lda y
   tayyor" holati; tavsiya → CEO tasdig'i → xodim kartasi yangilanadi, ish tarixiga "lavozimga ko'tarildi" (tasdiqlagan bilan).
   "Mening rivojlanishim" sahifasi — xodimning o'z yo'li, talablar bajarilishi, baholashlar va taqdirlashlari.
 - Ruxsatlar: `performance.view`, `performance.manage`, `performance.approve` (CEO — Admin rolidan chiqarilgan).
+
+### 4-bosqich — Automation & Intelligence (migratsiyasiz)
+
+- **Tashkilot paneli (§15, spek §10):** bitta oynada — rahbar qarorini kutayotganlar (xarajat, chegirma, baholash,
+  ko'tarilish, taklif bosqichidagi nomzod), bugungi davomat va istisnolar (kechikkanlar ismi bilan), jamoa (xodim,
+  o'qituvchi, ta'tilda, sinovda, CRM hisobi yo'q, vakant), vazifalar (holatlar, muddati o'tganlar ro'yxati), KPI (o'tgan oy
+  o'rtachasi, 70% dan pastlar), akademik, sotuv, marketing (xarajat, CPL, CAC, ROI), to'lov va qarzdorlik, maosh,
+  xarajatlar (limitdan oshgan bo'limlar), murojaatlar (jiddiy, muddati o'tgan, CEOda), aktivlar. Har blok o'z ruxsati
+  bilan qaytariladi (ruxsatsiz blok — `null`, maxfiy murojaatlar soni faqat ularni ko'radiganlarga). Moliya, sotuv va
+  akademik raqamlar direktor paneli va analitika hisoblaridan olinadi.
+- **Kunlik xulosa (§3.6):** jamoa qatori — ishga kelganlar, muddati o'tgan vazifalar, ochiq/jiddiy murojaatlar,
+  tasdiq kutayotganlar.
+
+## 4. Ataylab qilinmagan / keyingi qadamlar
+
+- **Telegram guruhlari (§3.8)** — CRM ularni boshqarmaydi; offboardingda "guruhlardan chiqarildi" — qo'lda band.
+- **Mehnat qonunchiligi bo'yicha hujjatlar** (shartnoma, buyruq) — onboardingda band sifatida, hujjatning o'zi
+  "Xodim hujjatlari" bo'limiga yuklanadi; avtomatik hujjat yaratilmaydi.
+- **KPI vaznlari, reja va bonus summalari (§5.2, §6.1)** — hujjat ularni "alohida tasdiqlanadi" deydi: KPI qoidalari
+  mavjud KPI sahifasida CEO tomonidan kiritiladi, kod ularni o'ylab topmaydi.
+- **Xodim o'zi xarajat so'rovi kiritishi (§10)** — xarajat hozircha moliya huquqi bor xodim orqali kiritiladi (bo'lim
+  limiti va tasdiq oqimi ishlaydi); har bir xodimga alohida so'rov formasi kerak bo'lsa — keyingi qadam.
+- **Bir nechta filial uchun alohida katalog** — lavozimlar katalogi umumiy, bo'limlar filial bo'yicha.
+
+## 5. Deploydan keyin qilinadigan ishlar
+
+1. `db:sync-permissions` (deploy skriptida avtomatik) — yangi ruxsatlar va standart bo'lim/lavozimlar katalogi.
+2. Rollar sahifasida Sotuv menejeri roliga `discount.grant` ni yoqish (eski ruxsat — avtomatik qo'shilmaydi).
+3. Guli (qabulxona) rolida `complaint.create`/`complaint.view` borligini tekshirish (Admin rolida bor).
+4. Lavozimlar katalogida karyera yo'llari (keyingi lavozim, eng kam KPI va muddat) va bo'limlarning oylik limitini kiritish.
+5. Bilimlar bazasiga lavozim yo'riqnomalari va ichki qoidalarni joylash ("tanishish majburiy" bilan).

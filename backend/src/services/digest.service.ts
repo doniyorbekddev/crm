@@ -32,6 +32,8 @@ export interface DailyDigestDto {
   openAlerts: number;
   criticalAlerts: number;
   importantAlerts: Array<{ id: string; title: string; severity: AlertSeverity }>;
+  /** Jamoa (ORG §3.6, §15): ishga kelganlar, muddati o'tgan vazifalar, ochiq murojaatlar, rahbar qarorini kutayotganlar */
+  team: { checkedIn: number; overdueTasks: number; openComplaints: number; criticalComplaints: number; pendingApprovals: number };
 }
 
 export interface DigestMessage {
@@ -121,6 +123,16 @@ export const digestService = {
 
     const openAlerts = await prisma.alert.count({ where: { resolvedAt: null } });
     const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL' } });
+    const [checkedIn, overdueTasks, openComplaints, criticalComplaints, pendingExpenses, pendingDiscounts, pendingReviews, pendingPromotions] = await Promise.all([
+      prisma.staffAttendanceDay.count({ where: { date: new Date(`${day}T00:00:00.000Z`), checkInAt: { not: null } } }),
+      prisma.task.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] }, dueAt: { lt: now } } }),
+      prisma.complaint.count({ where: { status: { in: ['NEW', 'UNDER_REVIEW'] } } }),
+      prisma.complaint.count({ where: { status: { in: ['NEW', 'UNDER_REVIEW'] }, severity: 'CRITICAL' } }),
+      prisma.expense.count({ where: { status: 'PENDING' } }),
+      prisma.discountRequest.count({ where: { status: 'PENDING' } }),
+      prisma.performanceReview.count({ where: { status: 'SUBMITTED' } }),
+      prisma.promotionRecommendation.count({ where: { status: 'PENDING' } }),
+    ]);
     const importantAlerts = await prisma.alert.findMany({
       where: { resolvedAt: null, severity: { in: ['CRITICAL', 'WARNING'] } },
       orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
@@ -143,6 +155,7 @@ export const digestService = {
       openAlerts,
       criticalAlerts,
       importantAlerts,
+      team: { checkedIn, overdueTasks, openComplaints, criticalComplaints, pendingApprovals: pendingExpenses + pendingDiscounts + pendingReviews + pendingPromotions },
     };
   },
 
@@ -157,6 +170,7 @@ export const digestService = {
       ...(digest.attendanceRate === null ? [] : [`Davomat: ${digest.attendanceRate}%`]),
       `Qarzdorlik: ${formatSum(digest.totalDebt)} (${digest.debtors} ta)`,
       `Kritik ogohlantirish: ${digest.criticalAlerts}`,
+      `Jamoa: ${digest.team.checkedIn} xodim ishda, ${digest.team.overdueTasks} vazifa muddati o‘tgan, ${digest.team.openComplaints} ochiq murojaat${digest.team.criticalComplaints ? ` (${digest.team.criticalComplaints} jiddiy)` : ''}, ${digest.team.pendingApprovals} ta tasdiq kutmoqda`,
     ];
     const top = digest.importantAlerts.slice(0, 3).map((alert) => alert.title);
     return {

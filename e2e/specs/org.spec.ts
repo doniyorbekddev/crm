@@ -84,3 +84,22 @@ test('lavozimlar katalogi va tashkiliy tuzilma: hujjatdagi mas’uliyatlar, rahb
   await expect(page.getByText(USERS.owner.name).first()).toBeVisible();
   await expect(page.getByText('Kelajakdagi lavozimlar')).toBeVisible();
 });
+
+test('tashkilot paneli va baholash: CEO bloklari, choraklik baholash sahifasi, xodimning rivojlanish sahifasi', async ({ browser, page }) => {
+  await login(page, 'owner');
+  await page.goto('/org-overview');
+  await expect(page.getByRole('heading', { level: 1, name: 'Tashkilot paneli' })).toBeVisible();
+  await expect(page.getByText('Qaroringizni kutmoqda')).toBeVisible();
+  await expect(page.getByText('Vazifalar').first()).toBeVisible();
+  await page.goto('/performance');
+  await expect(page.getByRole('heading', { level: 1, name: 'Baholash va rivojlanish' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Karyera' }).click();
+  await expect(page).toHaveURL(/tab=career/);
+
+  const teacherContext = await browser.newContext();
+  const teacher = await teacherContext.newPage();
+  await login(teacher, 'teacher');
+  await teacher.goto('/my-growth');
+  await expect(teacher.getByRole('heading', { level: 1, name: 'Mening rivojlanishim' })).toBeVisible();
+  await teacherContext.close();
+});

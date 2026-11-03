@@ -1,4 +1,4 @@
-import { Activity, Award, BadgePercent, Boxes, Sprout, Briefcase, Library, MessageSquareWarning, Network, UserPlus, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
+import { Activity, Award, BadgePercent, Boxes, LayoutDashboard, Sprout, Briefcase, Library, MessageSquareWarning, Network, UserPlus, BarChart3, Bell, BookOpen, Building2, CalendarCheck, CalendarClock, ClipboardCheck, ClipboardList, Coins, Crosshair, DoorOpen, FileCheck, FileSpreadsheet, Fingerprint, Gauge, Gift, GraduationCap, HandCoins, HelpCircle, History, IdCard, Inbox, Landmark, Layers, LineChart, ListTodo, Megaphone, MessageSquareHeart, Package, PieChart, PiggyBank, Presentation, ScanLine, ScrollText, ShieldCheck, Siren, Sparkles, Target, TrendingDown, TrendingUp, Trophy, UserCog, UserRound, Users, UsersRound, Wallet, Wallet2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 
@@ -93,6 +93,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: 'org',
     title: 'Tashkilot',
     items: [
+      { to: '/org-overview', label: 'Tashkilot paneli', icon: LayoutDashboard, permission: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.EMPLOYEE_VIEW, PERMISSIONS.STAFF_ATTENDANCE_VIEW] },
       { to: '/org-structure', label: 'Tashkiliy tuzilma', icon: Network, permission: PERMISSIONS.EMPLOYEE_VIEW },
       { to: '/org-catalog', label: 'Lavozimlar va bo‘limlar', icon: Briefcase, permission: PERMISSIONS.EMPLOYEE_VIEW },
       { to: '/hr-process', label: 'HR jarayonlari', icon: UserPlus, permission: [PERMISSIONS.HIRING_MANAGE, PERMISSIONS.EMPLOYEE_MANAGE] },

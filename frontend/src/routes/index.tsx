@@ -208,6 +208,10 @@ export const router = createBrowserRouter([
                     lazy: lazyComponent(() => import("@/pages/org/KnowledgePage")),
                   },
                   {
+                    path: "org-overview",
+                    lazy: lazyComponent(() => import("@/pages/org/OrgOverviewPage")),
+                  },
+                  {
                     path: "my-growth",
                     lazy: lazyComponent(() => import("@/pages/org/MyGrowthPage")),
                   },

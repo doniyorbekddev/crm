@@ -12,6 +12,7 @@ import { hrService } from '../services/org/hr.service.js';
 import { knowledgeService } from '../services/org/knowledge.service.js';
 import { orgStructureService } from '../services/org/structure.service.js';
 import { performanceService } from '../services/org/performance.service.js';
+import { orgOverviewService } from '../services/org/overview.service.js';
 import { sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
@@ -62,6 +63,11 @@ const staff = requireStaff();
 const keyParam = z.object({ key: z.string().trim().min(1).max(40) });
 const itemParams = z.object({ id: z.string().trim().min(1).max(50), itemId: z.string().trim().min(1).max(50) });
 const versionParams = z.object({ id: z.string().trim().min(1).max(50), version: z.coerce.number().int().min(1) });
+
+// ---------------------------------------------------------------- CEO paneli (har blok o'z ruxsati bilan — servisda)
+orgRouter.get('/overview', staff, async (req, res) => {
+  sendSuccess(res, await orgOverviewService.get(requireAuthUser(req)));
+});
 
 // ---------------------------------------------------------------- tuzilma va katalog
 orgRouter.get('/structure', can(PERMISSIONS.EMPLOYEE_VIEW), async (req, res) => {

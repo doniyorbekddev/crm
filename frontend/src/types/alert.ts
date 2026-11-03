@@ -143,4 +143,6 @@ export interface DailyDigest {
   openAlerts: number;
   criticalAlerts: number;
   importantAlerts: Array<{ id: string; title: string; severity: AlertSeverity }>;
+  /** Jamoa: ishga kelganlar, muddati o'tgan vazifalar, ochiq murojaatlar, tasdiq kutayotganlar */
+  team?: { checkedIn: number; overdueTasks: number; openComplaints: number; criticalComplaints: number; pendingApprovals: number };
 }

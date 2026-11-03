@@ -24,6 +24,7 @@ import type {
   KnowledgePayload,
   KnowledgeStatus,
   CareerStatus,
+  OrgOverview,
   OrgStaffUser,
   OrgStructure,
   PerformanceReview,
@@ -44,6 +45,7 @@ async function get<T>(url: string, params?: Record<string, unknown>): Promise<T>
 
 export const orgService = {
   structure: () => get<OrgStructure>('/org/structure'),
+  overview: () => get<OrgOverview>('/org/overview'),
   /** Faol xodim hisoblari — rahbar va mas'ul tanlash uchun */
   people: () => get<OrgStaffUser[]>('/org/people'),
 
