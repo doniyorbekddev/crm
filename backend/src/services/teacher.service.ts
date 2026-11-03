@@ -12,6 +12,7 @@ import type {
   UpdateTeacherProfileInput,
 } from '../validators/teacher.validator.js';
 import { auditService } from './audit.service.js';
+import { TEACHER_POSITION_KEY, recordEmployment } from './org/catalog.service.js';
 import { permissionService } from './permission.service.js';
 import type { SalaryPeriodDto, SalaryRuleDto } from './salary.service.js';
 import { monthRange, salaryService, toSalaryRuleDto } from './salary.service.js';
@@ -604,6 +605,15 @@ export const teacherService = {
         },
         select: { id: true },
       });
+      await recordEmployment(tx, {
+        userId: user.id,
+        type: 'HIRED',
+        positionKey: TEACHER_POSITION_KEY,
+        positionTitle: input.specialization ? `O‘qituvchi · ${input.specialization}` : 'O‘qituvchi',
+        department: 'O‘quv bo‘limi',
+        effectiveDate: input.hireDate ? new Date(`${input.hireDate}T00:00:00.000Z`) : new Date(`${businessDateString(new Date())}T00:00:00.000Z`),
+        createdById: actor.id,
+      });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'teacher.profile_created',
@@ -680,6 +690,17 @@ export const teacherService = {
           isActive,
         },
       });
+      if (status !== profile.employmentStatus) {
+        await recordEmployment(tx, {
+          userId: profile.user.id,
+          type: status === 'RESIGNED' ? 'TERMINATED' : 'STATUS_CHANGED',
+          positionKey: TEACHER_POSITION_KEY,
+          positionTitle: profile.specialization ? `O‘qituvchi · ${profile.specialization}` : 'O‘qituvchi',
+          department: 'O‘quv bo‘limi',
+          effectiveDate: terminationDate ?? new Date(`${businessDateString(new Date())}T00:00:00.000Z`),
+          createdById: actor.id,
+        });
+      }
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action:

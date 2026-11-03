@@ -23,6 +23,11 @@ const MODULE_LABELS: Record<string, string> = {
   settings: 'Sozlamalar',
   audit: 'Audit log',
   staff_attendance: 'Xodimlar davomati',
+  org: 'Tashkiliy tuzilma',
+  complaint: 'Murojaatlar',
+  hiring: 'Ishga qabul qilish',
+  asset: 'Aktivlar',
+  knowledge: 'Bilimlar bazasi',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -37,6 +42,9 @@ const ACTION_LABELS: Record<string, string> = {
   mark: 'Belgilash',
   export: 'Eksport',
   display: 'QR ekran',
+  approve: 'Tasdiqlash',
+  confidential: 'Maxfiylarni ko‘rish',
+  decide: 'Yakuniy qaror',
 };
 
 /** Bazadagi `Permission.module` qiymatlari uchun nomlar */
@@ -57,6 +65,11 @@ const PERMISSION_MODULE_LABELS: Record<string, string> = {
   settings: 'Sozlamalar',
   audit: 'Audit log',
   staff_attendance: 'Xodimlar davomati',
+  org: 'Tashkiliy tuzilma',
+  complaints: 'Murojaatlar',
+  hiring: 'Ishga qabul qilish',
+  assets: 'Aktivlar',
+  knowledge: 'Bilimlar bazasi',
 };
 
 export function permissionModuleLabel(module: string): string {

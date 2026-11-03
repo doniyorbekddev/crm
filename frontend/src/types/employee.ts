@@ -40,6 +40,7 @@ export interface Employee {
   probationDaysLeft: number | null;
   /** Kimga hisobot beradi (null — markaz rahbari) */
   manager: { id: string; firstName: string; lastName: string } | null;
+  departmentId: string | null;
   contractNumber: string | null;
   contractStartDate: string | null;
   contractEndDate: string | null;
@@ -93,6 +94,8 @@ export interface EmployeePayload {
   terminationDate: string | null;
   probationEndDate?: string | null;
   managerId?: string | null;
+  /** Lavozim/bo'lim/holat o'zgarishi sababi — ish tarixiga */
+  changeReason?: string;
   note: string | null;
   userId: string | null;
   email?: string | null;

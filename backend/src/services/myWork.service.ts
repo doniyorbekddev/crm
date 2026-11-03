@@ -122,10 +122,14 @@ export const myWorkService = {
     }
 
     // 3. Tasdiqlar — tasdiqlash huquqi borlarga
-    if (permissions.has(PERMISSIONS.EXPENSE_APPROVE)) {
+    const approvalTypes = [
+      ...(permissions.has(PERMISSIONS.EXPENSE_APPROVE) ? (['EXPENSE'] as const) : []),
+      ...(permissions.has(PERMISSIONS.DISCOUNT_APPROVE) ? (['DISCOUNT'] as const) : []),
+    ];
+    if (approvalTypes.length > 0) {
       sections.push(
         (async () => {
-          const where = { status: 'PENDING' as const, type: 'EXPENSE' as const, ...branch };
+          const where = { status: 'PENDING' as const, type: { in: approvalTypes }, ...branch };
           const [count, rows] = await Promise.all([
             prisma.approvalRequest.count({ where }),
             prisma.approvalRequest.findMany({
@@ -140,7 +144,8 @@ export const myWorkService = {
             title: 'Tasdiq kutayotganlar',
             count,
             overdue: 0,
-            link: '/expenses',
+            // Har bandning o'z havolasi bor; bo'lim havolasi — asosiy tasdiq sahifasi
+            link: approvalTypes.includes('EXPENSE') ? '/expenses' : '/discounts?tab=requests',
             items: rows.map((row) => ({ id: row.id, title: row.title, subtitle: row.requestedBy ? `So‘radi: ${name(row.requestedBy)}` : null, dueAt: null, overdue: false, link: row.link })),
           };
         })(),

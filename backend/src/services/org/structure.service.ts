@@ -4,6 +4,7 @@ import type { EmployeePosition, EmployeeStatus } from '../../generated/prisma/cl
 import type { AuthUser } from '../../types/auth.js';
 import { branchFilter, getBranchAccess } from '../branchAccess.js';
 import { employeesOnLeaveToday } from '../employeeLeave.service.js';
+import { ensureOrgCatalog, TEACHER_POSITION_KEY } from './catalog.service.js';
 import { businessToday, ceoUsers, daysBetween, fullName, staffRoleWhere, toDateOnly } from './common.js';
 import type { Person } from './common.js';
 
@@ -41,16 +42,10 @@ const POSITION_DEPARTMENT: Record<EmployeePosition, string> = {
   OTHER: DEPARTMENTS.SUPPORT,
 };
 
-const DEPARTMENT_ORDER: readonly string[] = Object.values(DEPARTMENTS);
-
 /** Hujjatdagi kelajakdagi lavozimlar — faol xodim bo'lmasa vakant */
 export const FUTURE_POSITIONS: readonly EmployeePosition[] = ['OPERATIONS_MANAGER', 'STUDENT_SUCCESS_MANAGER', 'ACADEMIC_COORDINATOR'];
 
 const WORKING: readonly EmployeeStatus[] = ['ACTIVE', 'ON_LEAVE'];
-
-export function departmentOf(position: EmployeePosition, department: string | null): string {
-  return department?.trim() || POSITION_DEPARTMENT[position];
-}
 
 export interface OrgMember {
   kind: 'employee' | 'teacher';
@@ -71,6 +66,9 @@ export interface OrgMember {
 
 export interface OrgDepartment {
   name: string;
+  /** Katalogdagi bo'lim (eski matnli bo'limlarda null) */
+  id: string | null;
+  head: Person | null;
   members: OrgMember[];
 }
 
@@ -104,7 +102,8 @@ export const orgStructureService = {
     const branch = branchFilter(access);
     const today = businessToday(now);
 
-    const [leaders, employees, teachers] = await Promise.all([
+    await ensureOrgCatalog(prisma);
+    const [leaders, employees, teachers, catalog, positions] = await Promise.all([
       ceoUsers(),
       prisma.employee.findMany({
         where: { ...branch, status: { in: [...WORKING] } },
@@ -117,6 +116,7 @@ export const orgStructureService = {
           position: true,
           positionTitle: true,
           department: true,
+          departmentRef: { select: { name: true } },
           status: true,
           hireDate: true,
           probationEndDate: true,
@@ -136,19 +136,29 @@ export const orgStructureService = {
           user: { select: { firstName: true, lastName: true } },
         },
       }),
+      prisma.department.findMany({
+        where: { ...branch, isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        select: { id: true, name: true, head: { select: { id: true, firstName: true, lastName: true } } },
+      }),
+      prisma.position.findMany({ select: { key: true, title: true, department: { select: { name: true } } } }),
     ]);
+    const positionInfo = new Map(positions.map((position) => [position.key, position]));
+    /** Bo'lim: kartadagi katalog bo'limi → eski matn → lavozimning katalogdagi bo'limi → standart taqsimot */
+    const departmentName = (key: EmployeePosition | typeof TEACHER_POSITION_KEY, own: string | null) =>
+      own?.trim() || positionInfo.get(key)?.department?.name || (key === TEACHER_POSITION_KEY ? DEPARTMENTS.ACADEMIC : POSITION_DEPARTMENT[key]);
     const onLeave = await employeesOnLeaveToday(employees.map((employee) => employee.id), now);
 
     const groups = new Map<string, OrgMember[]>();
     const push = (department: string, member: OrgMember) => groups.set(department, [...(groups.get(department) ?? []), member]);
 
     for (const employee of employees) {
-      push(departmentOf(employee.position, employee.department), {
+      push(departmentName(employee.position, employee.departmentRef?.name ?? employee.department), {
         kind: 'employee',
         id: employee.id,
         userId: employee.userId,
         name: fullName(employee),
-        position: employee.position === 'OTHER' && employee.positionTitle ? employee.positionTitle : EMPLOYEE_POSITION_LABELS[employee.position],
+        position: employee.position === 'OTHER' && employee.positionTitle ? employee.positionTitle : (positionInfo.get(employee.position)?.title ?? EMPLOYEE_POSITION_LABELS[employee.position]),
         positionKey: employee.position,
         status: employee.status,
         manager: employee.manager,
@@ -159,7 +169,7 @@ export const orgStructureService = {
       });
     }
     for (const teacher of teachers) {
-      push(DEPARTMENTS.ACADEMIC, {
+      push(departmentName(TEACHER_POSITION_KEY, null), {
         kind: 'teacher',
         id: teacher.id,
         userId: teacher.userId,
@@ -175,12 +185,15 @@ export const orgStructureService = {
       });
     }
 
+    // Tartib: katalogdagi tartib; katalogda yo'q (eski matnli) bo'limlar — oxirida, alifbo bo'yicha
+    const order = catalog.map((department) => department.name);
     const rank = (name: string) => {
-      const index = DEPARTMENT_ORDER.indexOf(name);
-      return index === -1 ? DEPARTMENT_ORDER.length - 1 : index;
+      const index = order.indexOf(name);
+      return index === -1 ? order.length : index;
     };
+    const byName = new Map(catalog.map((department) => [department.name, department]));
     const departments = [...groups]
-      .map(([name, members]) => ({ name, members }))
+      .map(([name, members]) => ({ name, id: byName.get(name)?.id ?? null, head: byName.get(name)?.head ?? null, members }))
       .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
 
     const filled = new Set(employees.map((employee) => employee.position));

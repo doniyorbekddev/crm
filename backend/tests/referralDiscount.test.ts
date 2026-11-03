@@ -52,8 +52,9 @@ describe.skipIf(!hasTestDatabase)('Chegirma dvigateli va referal tizimi', () => 
     await prisma.$disconnect();
   });
 
+  // ORG §2.2: 5% dan yuqori chegirmani tasdiqsiz faqat tasdiqlash huquqi bor rahbar beradi — dvigatel hisobi shu bilan tekshiriladi
   it('qoida bo‘yicha chegirma shartnoma narxini va qarzdorlikni kamaytiradi', async () => {
-    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token } = await createUserWithToken(app, { role: 'OWNER' });
     const course = await createCourse('Frontend');
     const group = await createGroup({ courseId: course.id });
     const student = await createStudent(course.id, group.id);
@@ -95,7 +96,7 @@ describe.skipIf(!hasTestDatabase)('Chegirma dvigateli va referal tizimi', () => 
   });
 
   it('birga qo‘llanmaydigan qoida mavjud chegirma ustiga berilmaydi', async () => {
-    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token } = await createUserWithToken(app, { role: 'OWNER' });
     const course = await createCourse('Dizayn');
     const student = await createStudent(course.id, null);
     await createRule({ key: 'family', value: 10 });
@@ -109,7 +110,7 @@ describe.skipIf(!hasTestDatabase)('Chegirma dvigateli va referal tizimi', () => 
   });
 
   it('bekor qilingan chegirma summani shartnomaga qaytaradi, yozuv esa qoladi', async () => {
-    const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    const { token } = await createUserWithToken(app, { role: 'OWNER' });
     const course = await createCourse('Matematika');
     const student = await createStudent(course.id, null);
     await createRule({ value: 10 });
@@ -173,7 +174,7 @@ describe.skipIf(!hasTestDatabase)('Chegirma dvigateli va referal tizimi', () => 
   });
 
   it('chegirma berish huquqi yo‘q xodim rad etiladi', async () => {
-    const { token } = await createUserWithToken(app, { role: 'SALES_MANAGER' });
+    const { token } = await createUserWithToken(app, { role: 'ACCOUNTANT' });
     const course = await createCourse('Chizmachilik');
     const student = await createStudent(course.id, null);
     await createRule({ value: 10 });

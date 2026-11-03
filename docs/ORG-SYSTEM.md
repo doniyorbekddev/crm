@@ -40,3 +40,64 @@ avvaldan bor imkoniyat, yangi qo'shilgani va ataylab qilinmagani.
 4. **Automation & Intelligence** — CEO dashboard'ning jamoa bloki, hisobotlarga jamoa bo'limi.
 
 Har bosqich: migratsiya faqat qo'shuvchi, backend + frontend testlari, tsc/eslint, E2E.
+
+Texnik spetsifikatsiya (`ORG-SYSTEM-TECHNICAL-SPECIFICATION.md`) bilan solishtirish: mavjud modellar takrorlanmadi —
+`User` (kirish hisobi) va `Employee` / `TeacherProfile` (HR profili) alohida qoldi, lavozim katalogi mavjud lavozim
+turlari ustiga qurildi (KPI va maosh qoidalari o'zgarmadi), "Overdue" holati saqlanmaydi — hisoblanadi.
+
+## 3. Bajarilgan ishlar
+
+### 1-bosqich — Foundation (commit `2ba2522`, migratsiya `20261103100000_org_foundation`)
+
+- **Vazifa holatlari (§3.7):** Yangi (`OPEN`) → Jarayonda → Tekshiruvda → Bajarildi / Bekor. Boshqa xodim bergan
+  vazifani ijrochi yopmaydi — topshiradi; bergan xodim yoki rahbar qabul qiladi yoki izoh bilan qaytaradi (izoh vazifa
+  izohlariga yoziladi). Ijrochi o'z ishini rahbar huquqi bo'lsa ham o'zi qabul qilmaydi. "Kutilgan natija" maydoni.
+  Muddati o'tgan — faqat Yangi/Jarayonda (tekshiruvga topshirilgani muddatida hisoblanadi). KPI "o'z vaqtida" —
+  topshirilgan vaqt bo'yicha. Telegram tugmasi ham shu qoida bilan ishlaydi. Holat o'zgarishi shartli yangilanadi
+  (bir vaqtdagi ikki o'zgarish — 409).
+- **Lavozimlar (§2, §16):** qabulxona/kassir, marketing menejeri, video kontent yaratuvchi, operatsion menejer,
+  o'quvchilar muvaffaqiyati menejeri, akademik koordinator.
+- **Kimga hisobot beradi** (bo'sh — CEO) va **sinov muddati** (xodim va o'qituvchi); tugashiga 7 kun qolganda va
+  tugagan kuni rahbarga bir martadan eslatma (soatlik job, `HR_UPDATE`).
+- **Tashkiliy tuzilma** sahifasi: rahbar → bo'limlar → xodimlar va o'qituvchilar, sinov/ta'til/CRM hisobi yo'q belgilari,
+  vakant kelajakdagi lavozimlar.
+- Tuzatish: akademiya holati kartasi 00:00–05:00 orasida bugungi davomatni hisobga olmasdi.
+
+### 2-bosqich — Operations (migratsiyalar `20261103110000_org_operations`, `20261103120000_org_structure_catalog`)
+
+- **Bo'limlar va lavozimlar katalogi (spek §5.2–5.6, §5.19):** bo'lim (rahbari, yuqori bo'lim, oylik xarajat limiti),
+  lavozim (bo'limi, tavsifi, bandlik turi, standart sinov muddati — rahbarlik lavozimlarida 3 oy, karyera yo'li: keyingi
+  lavozim, talablar, eng kam KPI va muddat), mas'uliyatlar. Standart bo'lim va lavozimlar ORG hujjatidagi mas'uliyatlar
+  bilan yaratiladi — faqat yo'q bo'lsa (deployda `db:sync-permissions` ichida). Eski "Bo'lim" matnlari migratsiyada
+  katalogga ko'chirildi va bog'landi. Tuzilmani faqat CEO o'zgartiradi (`org.manage`).
+- **Ish tarixi:** ishga olish, lavozim, bo'lim va holat o'zgarishlari sababi bilan (o'zgarmas) — xodim va o'qituvchi uchun.
+- **Murojaatlar (§7):** Yangi → Ko'rib chiqilmoqda → Hal etildi (yechim majburiy) → Yopildi; mas'ulga yo'naltirish,
+  rahbarga ko'tarish, izohlar, o'zgarmas tarix. Javob muddati: kritik 4 soat, muhim 24, oddiy 72; muddati o'tgani bir
+  marta eslatiladi. Xavfsizlik va "kritik" — yaratilishi bilan CEOga. Xodimning o'z murojaati (nizo) — maxfiy: Admin ham
+  ko'rmaydi, kim haqida bo'lsa — u ham; faqat CEO (`complaint.confidential`).
+- **Chegirma vakolati (§2.2):** o'quvchining umumiy chegirmasi chegaradan (standart 5%) oshsa, `discount.approve`
+  bo'lmagan xodimning chegirmasi sababi bilan so'rovga aylanadi (202); CEO tasdiqlaganda o'sha paytdagi shartnoma bo'yicha
+  qayta hisoblanib beriladi (kim so'radi, kim tasdiqladi saqlanadi), rad etish — sabab bilan. Chegara va "qoidalar
+  oldindan tasdiqlangan" sozlamasini faqat tasdiqlovchi o'zgartiradi. "Ishlarim"da tasdiqlar bo'limiga qo'shildi.
+  Sotuv menejeri roliga `discount.grant` qo'shildi (yangi o'rnatishlar uchun; production — pastga qarang).
+- **Ishga qabul qilish (§3.1):** nomzod: Yangi → Suhbat → Demo dars → Taklif → CEO qarori (ishga olish / rad etish —
+  `hiring.decide`). Ishga olinganda xodim kartasi lavozimning sinov muddati bilan yaratiladi va onboarding ochiladi.
+- **Onboarding (§3.3) va offboarding (§12):** bandlar mas'ul bilan; tizim bandlari CRM ma'lumotidan tekshiriladi
+  (ochiq vazifa/follow-up/murojaat, xodimdagi jihozlar, CRM kirishi, shartnoma) — qo'lda belgilab bo'lmaydi.
+  Offboardingda ishlarni bir tugma bilan topshirish (tarix bilan), CRM kirishini bekor qilish (hisob bloklanadi,
+  sessiyalar yopiladi, Telegram bot ham faol hisob talab qiladi); yakunlanganda xodim "ishdan ketgan" bo'ladi.
+- **Aktivlar (§11):** inventar raqami (filialda takrorlanmas), xarid sanasi va qiymati, holat, texnik holati, joy, mas'ul;
+  biriktirish/qaytarish, ko'chirish, ta'mir (xarajati bilan), hisobdan chiqarish — o'zgarmas tarix. Sotiladigan tovar
+  ombori alohida qoldi.
+- **Bilimlar bazasi (§14):** turkumlar (lavozim yo'riqnomasi, qoida, video, skript, dars standarti, material),
+  auditoriya rollar bo'yicha, qoralama → e'lon → arxiv, har tahrir — yangi versiya (eski matn o'qiladi),
+  "tanishish majburiy" — tasdiq va yangi versiyada qayta so'rov.
+- **Eslatmalar (spek §9):** vazifa muddati yaqinlashdi (24 soat qolganda, bir marta).
+- Yangi bildirishnoma turlari: `COMPLAINT_UPDATE`, `APPROVAL_REQUEST`. Yangi ruxsatlar: `org.manage`,
+  `complaint.view/create/manage/confidential`, `hiring.manage/decide`, `asset.view/manage`, `knowledge.manage`,
+  `discount.approve` (CEO qarorlari — Admin rolidan chiqarilgan).
+
+### Production uchun eslatma
+
+`db:sync-permissions` faqat **yangi** ruxsatlarni tizim rollariga qo'shadi. Sotuv menejeri rolidagi `discount.grant`
+eski ruxsat bo'lgani uchun avtomatik qo'shilmaydi — Rollar sahifasida qo'lda yoqiladi (Shodiya 0–5% ni o'zi berishi uchun).

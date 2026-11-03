@@ -2,11 +2,14 @@ import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
 import type {
+  ApprovalStatus,
+  DiscountRequest,
   DiscountRule,
   DiscountRulePayload,
   DiscountSettings,
   DiscountSettingsDto,
   GrantDiscountPayload,
+  GrantDiscountResult,
   PromoCode,
   PromoCodePayload,
   StudentDiscountSummary,
@@ -57,8 +60,17 @@ export const discountsService = {
     return response.data.data;
   },
 
-  async grant(studentId: string, payload: GrantDiscountPayload): Promise<MessageResult<StudentDiscountSummary>> {
-    return withMessage(await api.post<ApiSuccessResponse<StudentDiscountSummary>>(`/discounts/students/${studentId}`, payload));
+  async grant(studentId: string, payload: GrantDiscountPayload): Promise<MessageResult<GrantDiscountResult>> {
+    return withMessage(await api.post<ApiSuccessResponse<GrantDiscountResult>>(`/discounts/students/${studentId}`, payload));
+  },
+
+  async requests(status?: ApprovalStatus): Promise<{ items: DiscountRequest[]; pending: number; canApprove: boolean }> {
+    const response = await api.get<ApiSuccessResponse<{ items: DiscountRequest[]; pending: number; canApprove: boolean }>>('/discounts/requests', { params: status ? { status } : {} });
+    return response.data.data;
+  },
+
+  async decideRequest(id: string, decision: 'approve' | 'reject' | 'cancel', note?: string): Promise<MessageResult<DiscountRequest>> {
+    return withMessage(await api.post<ApiSuccessResponse<DiscountRequest>>(`/discounts/requests/${id}/${decision}`, note ? { note } : {}));
   },
 
   async revoke(discountId: string, reason: string): Promise<MessageResult<StudentDiscountSummary>> {

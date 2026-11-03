@@ -38,6 +38,7 @@ const schema = z
     terminationDate: z.string(),
     probationEndDate: z.string(),
     managerId: z.string(),
+    changeReason: z.string().trim().max(500, 'Sabab juda uzun'),
     userId: z.string(),
     note: z.string().trim().max(500, 'Izoh juda uzun'),
     email: z.string().trim().refine((value) => value === '' || z.email().safeParse(value).success, 'Email noto‘g‘ri formatda'),
@@ -80,6 +81,7 @@ function toPayload(values: FormValues, includeSalary: boolean, includeSensitive:
     // Bo'shatilsa — null yuboriladi va server tozalaydi
     probationEndDate: values.probationEndDate || null,
     managerId: values.managerId || null,
+    ...(values.changeReason ? { changeReason: values.changeReason } : {}),
     note: values.note || null,
     userId: values.userId || null,
     email: values.email || null,
@@ -118,6 +120,9 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
 
   const candidatesQuery = useQuery({ queryKey: queryKeys.employees.candidates, queryFn: employeesService.candidates });
   const peopleQuery = useQuery({ queryKey: queryKeys.org.people, queryFn: orgService.people, staleTime: 60_000 });
+  // Katalog: bo'lim nomlari tavsiyaga, lavozimning standart sinov muddati — yangi xodimga
+  const catalogDepartments = useQuery({ queryKey: queryKeys.org.departments, queryFn: () => orgService.departments(), staleTime: 300_000 });
+  const catalogPositions = useQuery({ queryKey: queryKeys.org.positions, queryFn: orgService.positions, staleTime: 300_000 });
 
   const {
     register,
@@ -140,6 +145,7 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
       terminationDate: employee?.terminationDate ?? '',
       probationEndDate: employee?.probationEndDate ?? '',
       managerId: employee?.manager?.id ?? '',
+      changeReason: '',
       userId: employee?.user?.id ?? '',
       note: employee?.note ?? '',
       email: employee?.email ?? '',
@@ -158,7 +164,18 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
   const positionTitle = useWatch({ control, name: 'positionTitle' });
   const positionSuggestions = useCustomLabels('employee-position');
   const usedDepartments = useCustomLabels('employee-department');
-  const departmentSuggestions = [...new Set([...usedDepartments, ...departments])];
+  const departmentSuggestions = [...new Set([...(catalogDepartments.data ?? []).map((item) => item.name), ...usedDepartments, ...departments])];
+  const position = useWatch({ control, name: 'position' });
+  const hireDate = useWatch({ control, name: 'hireDate' });
+  const probationEndDate = useWatch({ control, name: 'probationEndDate' });
+  const probationMonths = catalogPositions.data?.find((item) => item.key === position)?.probationMonths ?? 0;
+  const suggestedProbation = (() => {
+    if (!hireDate || probationMonths <= 0) return '';
+    const date = new Date(`${hireDate}T00:00:00Z`);
+    date.setUTCMonth(date.getUTCMonth() + probationMonths);
+    return date.toISOString().slice(0, 10);
+  })();
+  const positionChanged = Boolean(employee) && position !== employee?.position;
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>
@@ -276,6 +293,19 @@ export function EmployeeFormModal({ employee, departments = [], onClose, onSaved
           <FormField label="Sinov muddati tugaydi" htmlFor="employee-probationEndDate" error={errors.probationEndDate?.message} hint="Oddiy xodim — 1 oy, rahbar — 3 oy">
             <Input id="employee-probationEndDate" type="date" invalid={Boolean(errors.probationEndDate)} {...register('probationEndDate')} />
           </FormField>
+          {!employee && suggestedProbation && !probationEndDate && (
+            <p className="self-end text-caption text-fg-muted">
+              Lavozim bo‘yicha sinov: {probationMonths} oy.{' '}
+              <button type="button" className="font-medium text-primary hover:underline" onClick={() => setValue('probationEndDate', suggestedProbation)}>
+                {suggestedProbation} deb qo‘yish
+              </button>
+            </p>
+          )}
+          {positionChanged && (
+            <FormField label="Lavozim o‘zgarishi sababi" htmlFor="employee-changeReason" error={errors.changeReason?.message} hint="Ish tarixiga yoziladi">
+              <Input id="employee-changeReason" {...register('changeReason')} />
+            </FormField>
+          )}
           <FormField label="Kimga hisobot beradi" htmlFor="employee-managerId" error={errors.managerId?.message} hint="Tanlanmasa — markaz rahbariga">
             <Select id="employee-managerId" {...register('managerId')}>
               <option value="">Markaz rahbari (CEO)</option>

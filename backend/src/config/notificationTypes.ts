@@ -41,6 +41,8 @@ export const NOTIFICATION_PRIORITY: Record<NotificationType, NotificationPriorit
   TASK_UPDATE: NotificationPriority.NORMAL,
   STAFF_ATTENDANCE: NotificationPriority.NORMAL,
   HR_UPDATE: NotificationPriority.NORMAL,
+  COMPLAINT_UPDATE: NotificationPriority.HIGH,
+  APPROVAL_REQUEST: NotificationPriority.HIGH,
 };
 
 /**
@@ -104,6 +106,8 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   TASK_UPDATE: 'SYSTEM',
   STAFF_ATTENDANCE: 'SYSTEM',
   HR_UPDATE: 'SYSTEM',
+  COMPLAINT_UPDATE: 'SYSTEM',
+  APPROVAL_REQUEST: 'SYSTEM',
 };
 
 /** Toifaga kiruvchi turlar (ro'yxat filtri va bot sozlamalari uchun) */

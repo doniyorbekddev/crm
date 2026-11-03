@@ -11,6 +11,9 @@ import { customLabelFor } from '../validators/common.validator.js';
 import type { CreateEmployeeInput, EmployeeListQuery, UpdateEmployeeInput } from '../validators/employee.validator.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import { auditService } from './audit.service.js';
+import { departmentByName, recordEmployment } from './org/catalog.service.js';
+import { EMPLOYEE_POSITION_LABELS } from '../config/employeeLabels.js';
+import { businessDateString } from '../utils/dates.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
 
 /**
@@ -40,6 +43,8 @@ export interface EmployeeDto {
   probationDaysLeft: number | null;
   /** Kimga hisobot beradi (null — markaz rahbari) */
   manager: { id: string; firstName: string; lastName: string } | null;
+  /** Bo'lim katalogidagi yozuv (`department` — uning nomi) */
+  departmentId: string | null;
   contractNumber: string | null;
   contractStartDate: string | null;
   contractEndDate: string | null;
@@ -97,6 +102,8 @@ const employeeSelect = {
   terminationDate: true,
   probationEndDate: true,
   manager: { select: { id: true, firstName: true, lastName: true } },
+  departmentId: true,
+  branchId: true,
   contractNumber: true,
   contractStartDate: true,
   contractEndDate: true,
@@ -149,6 +156,7 @@ async function withCurrentSalaries(records: EmployeeRecord[], salaryVisible = tr
           ? Math.round((record.probationEndDate.getTime() - today.getTime()) / DAY_MS)
           : null,
       manager: record.manager,
+      departmentId: record.departmentId,
       contractNumber: record.contractNumber,
       contractStartDate: record.contractStartDate ? toDateOnly(record.contractStartDate) : null,
       contractEndDate: record.contractEndDate ? toDateOnly(record.contractEndDate) : null,
@@ -225,6 +233,25 @@ async function assertManager(managerId: string, employeeUserId: string | null): 
     select: { id: true },
   });
   if (!manager) throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'managerId', message: 'Rahbar topilmadi' }]);
+}
+
+/**
+ * Bo'limni aniqlaydi: katalogdagi ID (filial doirasida) yoki erkin matn (eski mijozlar) — nomi bo'yicha topiladi yoki yaratiladi.
+ * `undefined` — o'zgarmaydi; `null` — bo'limsiz.
+ */
+async function resolveDepartment(
+  db: Prisma.TransactionClient,
+  branchId: string,
+  input: { departmentId?: string | null | undefined; department?: string | undefined },
+): Promise<{ id: string | null; name: string | null } | undefined> {
+  if (input.departmentId !== undefined) {
+    if (input.departmentId === null) return { id: null, name: null };
+    const found = await db.department.findFirst({ where: { id: input.departmentId, branchId }, select: { id: true, name: true } });
+    if (!found) throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'departmentId', message: 'Bo‘lim topilmadi' }]);
+    return found;
+  }
+  if (input.department !== undefined) return departmentByName(db, branchId, input.department);
+  return undefined;
 }
 
 function assertProbation(hireDate: Date, probationEndDate: Date | null): void {
@@ -314,7 +341,9 @@ export const employeeService = {
     if (input.userId) await assertUserLinkable(input.userId);
     if (input.managerId) await assertManager(input.managerId, input.userId ?? null);
 
+    const branchId = resolveBranchId(await getBranchAccess(actor));
     const id = await prisma.$transaction(async (tx) => {
+      const department = await resolveDepartment(tx, branchId, input);
       const employee = await tx.employee.create({
         data: {
           firstName: input.firstName,
@@ -325,12 +354,13 @@ export const employeeService = {
           baseSalary: input.baseSalary,
           status: input.status,
           hireDate: input.hireDate,
-          branchId: resolveBranchId(await getBranchAccess(actor)),
+          branchId,
           terminationDate: input.terminationDate ?? null,
           probationEndDate: input.probationEndDate ?? null,
           managerId: input.managerId ?? null,
           email: input.email ?? null,
-          department: input.department ?? null,
+          department: department?.name ?? null,
+          departmentId: department?.id ?? null,
           contractNumber: input.contractNumber ?? null,
           contractStartDate: input.contractStartDate ?? null,
           contractEndDate: input.contractEndDate ?? null,
@@ -357,6 +387,17 @@ export const employeeService = {
           hireDate: toDateOnly(input.hireDate),
         },
         ...client,
+      });
+      await recordEmployment(tx, {
+        employeeId: employee.id,
+        userId: input.userId ?? null,
+        type: 'HIRED',
+        positionKey: input.position,
+        positionTitle: customLabelFor(input.position, input.positionTitle) ?? EMPLOYEE_POSITION_LABELS[input.position],
+        department: department?.name ?? null,
+        effectiveDate: input.hireDate,
+        changeReason: input.changeReason ?? null,
+        createdById: actor.id,
       });
       return employee.id;
     });
@@ -390,6 +431,7 @@ export const employeeService = {
     };
 
     await prisma.$transaction(async (tx) => {
+      const department = await resolveDepartment(tx, existing.branchId, input);
       await tx.employee.update({
         where: { id },
         data: {
@@ -406,7 +448,7 @@ export const employeeService = {
           ...(input.probationEndDate === undefined ? {} : { probationEndDate: input.probationEndDate }),
           ...(input.managerId === undefined ? {} : { managerId: input.managerId }),
           ...(input.email === undefined ? {} : { email: input.email }),
-          ...(input.department === undefined ? {} : { department: input.department }),
+          ...(department === undefined ? {} : { department: department.name, departmentId: department.id }),
           ...(input.contractNumber === undefined ? {} : { contractNumber: input.contractNumber }),
           ...(input.contractStartDate === undefined ? {} : { contractStartDate: input.contractStartDate }),
           ...(input.contractEndDate === undefined ? {} : { contractEndDate: input.contractEndDate }),
@@ -421,6 +463,28 @@ export const employeeService = {
           terminationDate,
         },
       });
+      // Ish tarixi: lavozim, bo'lim va holat o'zgarishlari (har biri alohida yozuv, sababi bilan)
+      const position = input.position ?? existing.position;
+      const title = customLabelFor(position, input.positionTitle ?? existing.positionTitle ?? undefined) ?? EMPLOYEE_POSITION_LABELS[position];
+      const departmentName = department === undefined ? existing.department : department.name;
+      const today = new Date(`${businessDateString(new Date())}T00:00:00.000Z`);
+      const changes: Array<{ type: 'POSITION_CHANGED' | 'DEPARTMENT_CHANGED' | 'TERMINATED' | 'STATUS_CHANGED'; date: Date }> = [];
+      if (input.position !== undefined && input.position !== existing.position) changes.push({ type: 'POSITION_CHANGED', date: today });
+      if (department !== undefined && department.id !== existing.departmentId) changes.push({ type: 'DEPARTMENT_CHANGED', date: today });
+      if (status !== existing.status) changes.push(status === 'RESIGNED' ? { type: 'TERMINATED', date: terminationDate ?? today } : { type: 'STATUS_CHANGED', date: today });
+      for (const change of changes) {
+        await recordEmployment(tx, {
+          employeeId: id,
+          userId: input.userId !== undefined ? input.userId : (existing.user?.id ?? null),
+          type: change.type,
+          positionKey: position,
+          positionTitle: title,
+          department: departmentName,
+          effectiveDate: change.date,
+          changeReason: input.changeReason ?? null,
+          createdById: actor.id,
+        });
+      }
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'employee.updated',

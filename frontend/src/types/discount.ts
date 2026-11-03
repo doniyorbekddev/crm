@@ -6,7 +6,31 @@ export interface DiscountSettings {
   /** Bitta o‘quvchiga berilishi mumkin bo‘lgan umumiy chegirma foizi */
   maxPercent: number;
   allowStacking: boolean;
+  /** Chegirma vakolati: umumiy chegirma shundan oshsa — rahbar tasdig'i (ORG §2.2) */
+  approvalThresholdPercent?: number;
+  /** Rahbar sozlagan qoida va promo kodlar oldindan tasdiqlangan */
+  rulesPreapproved?: boolean;
 }
+
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface DiscountRequest {
+  id: string;
+  status: ApprovalStatus;
+  student: { id: string; firstName: string; lastName: string };
+  label: string;
+  amount: number;
+  percent: number;
+  reason: string;
+  requestedBy: { id: string; firstName: string; lastName: string } | null;
+  decidedBy: { id: string; firstName: string; lastName: string } | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  createdAt: string;
+}
+
+/** Chegara ichida — darhol beriladi; undan yuqori — rahbar tasdig'iga yuboriladi */
+export type GrantDiscountResult = StudentDiscountSummary | { pending: true; request: DiscountRequest };
 
 export interface DiscountSettingsDto extends DiscountSettings {
   updatedAt: string | null;

@@ -21,6 +21,7 @@ import { discountsService } from '@/services/discounts.service';
 import type { DiscountRule, DiscountType, DiscountValueType } from '@/types/discount';
 import { formatDate, formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { DiscountAuthority } from './DiscountAuthority';
 
 const TYPE_LABELS: Record<DiscountType, string> = {
   FAMILY: 'Oila',
@@ -206,6 +207,8 @@ export default function DiscountsPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <DiscountAuthority settings={settings} />
 
       <Card className="mb-6">
         <CardHeader>

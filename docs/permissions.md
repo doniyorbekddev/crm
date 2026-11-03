@@ -1,7 +1,7 @@
 # Ruxsatlar (RBAC) — rol × ruxsat matritsasi
 
 > **Avtomatik yaratilgan** — manba: `backend/src/config/permissions.ts`. Qo‘lda tahrirlamang — `npm run docs:permissions --workspace backend` bilan qayta yarating.
-> Sana: 2026-10-30. Ruxsatlar: 98 ta, tizim rollari: 10 ta.
+> Sana: 2026-11-03. Ruxsatlar: 109 ta, tizim rollari: 10 ta.
 
 ## Qanday ishlaydi
 
@@ -14,15 +14,15 @@
 
 | Kalit | Nomi | Tavsif | Ruxsatlar soni |
 |---|---|---|---|
-| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 95 |
-| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 94 |
-| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 86 |
-| `SALES_MANAGER` | Sales Manager | Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish | 22 |
-| `CALL_CENTER` | Call Center | Leadlar, qo‘ng‘iroqlar va follow-up | 15 |
-| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 19 |
+| `SUPER_ADMIN` | Super Admin | Tizimning to‘liq egasi: xodimlar, rollar, sozlamalar va barcha ma’lumotlar | 106 |
+| `OWNER` | Direktor (Owner) | O‘quv markaz egasi: barcha moliya, analitika va hisobotlar, xodimlarni boshqarishdan tashqari | 105 |
+| `ADMIN` | Admin | Leadlar, o‘quvchilar, kurslar, to‘lovlar, sotuv va hisobotlar | 93 |
+| `SALES_MANAGER` | Sales Manager | Leadlar bilan ishlash, qo‘ng‘iroq va follow-up, o‘quvchiga aylantirish | 24 |
+| `CALL_CENTER` | Call Center | Leadlar, qo‘ng‘iroqlar va follow-up | 16 |
+| `TEACHER` | O‘qituvchi | O‘z guruhlari, o‘quvchilari va davomat | 20 |
 | `STUDENT` | O‘quvchi (kabinet) | Faqat o‘z davomati, uy vazifasi, imtihonlari, XP va to‘lovlari | 1 |
 | `PARENT` | Ota-ona (kabinet) | Faqat o‘z farzandlarining ma’lumotlari | 1 |
-| `ACCOUNTANT` | Buxgalter | To‘lovlar, qarzdorlik va moliyaviy hisobotlar | 29 |
+| `ACCOUNTANT` | Buxgalter | To‘lovlar, qarzdorlik va moliyaviy hisobotlar | 33 |
 | `RECEPTION` | Qabulxona (QR ekran) | Qabulxonadagi planshet yoki ekran uchun: faqat xodimlar davomati QR kodini ko‘rsatadi | 1 |
 
 ## Matritsa
@@ -71,6 +71,16 @@ Qisqartmalar: SA = Super Admin · OWN = Direktor (Owner) · ADM = Admin · SM = 
 | staff_attendance | `staff_attendance.view` | Xodimlar davomati paneli, hisobotlar va eksport | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | staff_attendance | `staff_attendance.manage` | Xodimlar ish jadvali, davomatni sabab bilan tuzatish, ruxsat so‘rovlarini tasdiqlash | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | staff_attendance | `staff_attendance.display` | Qabulxonadagi davomat QR ekranini ochish | ✅ | ✅ | ✅ | · | · | · | · | · | · | ✅ |
+| org | `org.manage` | Bo‘limlar, lavozimlar katalogi, mas’uliyatlar va karyera yo‘llarini boshqarish | ✅ | ✅ | · | · | · | · | · | · | · | · |
+| complaints | `complaint.view` | Filialdagi murojaat va shikoyatlarni ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ | · |
+| complaints | `complaint.create` | O‘quvchi, ota-ona va boshqalarning murojaatini kiritish | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | · | · | ✅ | · |
+| complaints | `complaint.manage` | Murojaatni mas’ulga yo‘naltirish, hal etish, yopish va rahbarga ko‘tarish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| complaints | `complaint.confidential` | Maxfiy murojaatlarni (xodimlar nizosi, xavfsizlik) va rahbarlarning o‘zi haqidagi murojaatlarni ko‘rish | ✅ | ✅ | · | · | · | · | · | · | · | · |
+| hiring | `hiring.manage` | Nomzodlar: suhbat, demo dars, onboarding va offboarding ro‘yxatlari | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| hiring | `hiring.decide` | Nomzodni ishga olish yoki rad etish bo‘yicha yakuniy qaror | ✅ | ✅ | · | · | · | · | · | · | · | · |
+| assets | `asset.view` | Markaz jihozlari (aktivlar) reyestrini ko‘rish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ | · |
+| assets | `asset.manage` | Aktiv qo‘shish, mas’ulga biriktirish, ko‘chirish, ta’mirlash va hisobdan chiqarish | ✅ | ✅ | ✅ | · | · | · | · | · | ✅ | · |
+| knowledge | `knowledge.manage` | Bilimlar bazasi hujjatlarini yozish, e’lon qilish va arxivlash | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | hr | `staff_document.view` | O‘qituvchi va xodim hujjatlarini (shartnoma, pasport, sertifikat) ko‘rish va yuklab olish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | hr | `staff_document.manage` | O‘qituvchi va xodim hujjatlarini yuklash, tahrirlash va o‘chirish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | roles | `role.manage` | Rollar va permissionlarni boshqarish | ✅ | · | · | · | · | · | · | · | · | · |
@@ -121,7 +131,8 @@ Qisqartmalar: SA = Super Admin · OWN = Direktor (Owner) · ADM = Admin · SM = 
 | feedback | `feedback.manage` | Fikr qo‘shish va salbiy fikrni ishlangan deb belgilash (past baho bildirishnomasi shu ruxsat bo‘yicha boradi) | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | discounts | `discount.view` | Chegirma qoidalari va berilgan chegirmalarni ko‘rish | ✅ | ✅ | ✅ | ✅ | · | · | · | · | ✅ | · |
 | discounts | `discount.manage` | Chegirma qoidalari va promo kodlarni boshqarish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
-| discounts | `discount.grant` | O‘quvchiga chegirma berish va bekor qilish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
+| discounts | `discount.grant` | O‘quvchiga chegirma berish va bekor qilish | ✅ | ✅ | ✅ | ✅ | · | · | · | · | · | · |
+| discounts | `discount.approve` | Chegaradan (standart 5%) yuqori chegirmani tasdiqlash yoki tasdiqsiz berish | ✅ | ✅ | · | · | · | · | · | · | · | · |
 | referrals | `referral.view` | Do‘st taklif qilish (referal) ro‘yxati va hisobotini ko‘rish | ✅ | ✅ | ✅ | ✅ | · | · | · | · | ✅ | · |
 | referrals | `referral.reward` | Taklif uchun bonus berish | ✅ | ✅ | ✅ | · | · | · | · | · | · | · |
 | branches | `branch.view_all` | Barcha filiallar ma’lumotini ko‘rish (bo‘lmasa — faqat o‘z filiali) | ✅ | ✅ | · | · | · | · | · | · | · | · |

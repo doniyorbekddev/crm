@@ -1,6 +1,6 @@
 import { headerSort } from '@/utils/tableSort';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarOff, FolderLock, IdCard, Pencil, Plus } from 'lucide-react';
+import { CalendarOff, FolderLock, History, IdCard, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable } from '@/components/ui/DataTable';
 import { FilterBar, FilterField } from '@/components/ui/FilterBar';
@@ -30,6 +30,7 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 import { SALARY_STATUS_LABELS, SALARY_STATUS_TONES } from '@/utils/teacherLabels';
 import { StaffDocumentsModal } from '@/pages/hr/StaffDocumentsModal';
 import { EmployeeFormModal } from './EmployeeFormModal';
+import { EmploymentHistoryModal } from './EmploymentHistoryModal';
 import { LeavesModal } from './LeavesModal';
 import { ColumnSettings } from '@/components/ColumnSettings';
 import { useTableColumns } from '@/hooks/useTableColumns';
@@ -42,6 +43,7 @@ type Dialog =
   | { type: 'edit'; employee: Employee }
   | { type: 'documents'; employee: Employee }
   | { type: 'leaves'; employee: Employee }
+  | { type: 'history'; employee: Employee }
   | null;
 
 /** Ustun kaliti → API `sortBy` (sarlavha bosilganda server saralaydi) */
@@ -228,6 +230,7 @@ export default function EmployeesPage() {
             items={[
               ...(canManage ? [{ label: 'Tahrirlash', icon: Pencil, onSelect: () => setDialog({ type: 'edit', employee }) }] : []),
               { label: 'Ta’tillar', icon: CalendarOff, onSelect: () => setDialog({ type: 'leaves', employee }) },
+              { label: 'Ish tarixi', icon: History, onSelect: () => setDialog({ type: 'history', employee }) },
               ...(canViewDocuments
                 ? [{ label: 'Hujjatlar', icon: FolderLock, onSelect: () => setDialog({ type: 'documents', employee }) }]
                 : []),
@@ -337,6 +340,7 @@ export default function EmployeesPage() {
         <EmployeeFormModal employee={dialog.employee} departments={departments} onClose={() => setDialog(null)} onSaved={saved} />
       )}
       {dialog?.type === 'leaves' && <LeavesModal employee={dialog.employee} onClose={() => setDialog(null)} />}
+      {dialog?.type === 'history' && <EmploymentHistoryModal employee={dialog.employee} onClose={() => setDialog(null)} />}
       {dialog?.type === 'documents' && (
         <StaffDocumentsModal
           owner="employee"

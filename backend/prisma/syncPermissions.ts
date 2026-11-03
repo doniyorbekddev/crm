@@ -19,6 +19,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { ensureOrgCatalog } from '../src/services/org/catalogDefaults.js';
 import { seedLeadSources, seedRolesAndPermissions } from './coreSeed.js';
 
 config({ quiet: true });
@@ -45,6 +46,12 @@ async function main(): Promise<void> {
   await seedLeadSources(prisma, () => undefined);
   const sourcesAfter = await prisma.source.count();
   console.log(`✔ Lead manbalari: ${sourcesBefore} → ${sourcesAfter}`);
+
+  // ORG tizimi: standart bo'limlar va lavozimlar katalogi (mas'uliyatlari bilan) — faqat yo'qlari yaratiladi,
+  // markaz o'zgartirgan nom va matnlarga tegilmaydi
+  const positionsBefore = await prisma.position.count();
+  await ensureOrgCatalog(prisma);
+  console.log(`✔ Lavozimlar katalogi: ${positionsBefore} → ${await prisma.position.count()}`);
 }
 
 main()

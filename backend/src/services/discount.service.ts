@@ -4,7 +4,9 @@ import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { moneyUz } from '../utils/money.js';
 import type { ClientInfo } from '../utils/requestContext.js';
+import { PERMISSIONS } from '../config/permissions.js';
 import { auditService } from './audit.service.js';
+import { permissionService } from './permission.service.js';
 import { assertContractUnchanged, lockStudentContract } from './debtLock.js';
 
 /**
@@ -29,11 +31,20 @@ export interface DiscountSettings {
   maxPercent: number;
   /** Bir nechta chegirmani birga qo'llashga ruxsat */
   allowStacking: boolean;
+  /**
+   * Chegirma vakolati (ORG §2.2): o'quvchining umumiy chegirmasi shu foizdan oshsa, `discount.approve`
+   * huquqi bo'lmagan xodimning chegirmasi rahbar tasdig'iga yuboriladi.
+   */
+  approvalThresholdPercent: number;
+  /** Rahbar sozlagan qoida va promo kodlar oldindan tasdiqlangan hisoblanadimi (faqat qo'lda chegirma tasdiqqa ketadi) */
+  rulesPreapproved: boolean;
 }
 
 export const DEFAULT_DISCOUNT_SETTINGS: DiscountSettings = {
   maxPercent: 30,
   allowStacking: true,
+  approvalThresholdPercent: 5,
+  rulesPreapproved: false,
 };
 
 export interface DiscountSettingsDto extends DiscountSettings {
@@ -44,9 +55,12 @@ export async function loadDiscountSettings(): Promise<DiscountSettings> {
   const row = await prisma.setting.findUnique({ where: { key: DISCOUNT_SETTINGS_KEY }, select: { value: true } });
   const saved = (row?.value ?? {}) as Partial<DiscountSettings>;
   const maxPercent = typeof saved.maxPercent === 'number' ? saved.maxPercent : DEFAULT_DISCOUNT_SETTINGS.maxPercent;
+  const threshold = typeof saved.approvalThresholdPercent === 'number' ? saved.approvalThresholdPercent : DEFAULT_DISCOUNT_SETTINGS.approvalThresholdPercent;
   return {
     maxPercent: Math.min(Math.max(maxPercent, 0), 100),
     allowStacking: typeof saved.allowStacking === 'boolean' ? saved.allowStacking : DEFAULT_DISCOUNT_SETTINGS.allowStacking,
+    approvalThresholdPercent: Math.min(Math.max(threshold, 0), 100),
+    rulesPreapproved: typeof saved.rulesPreapproved === 'boolean' ? saved.rulesPreapproved : DEFAULT_DISCOUNT_SETTINGS.rulesPreapproved,
   };
 }
 
@@ -229,7 +243,7 @@ function amountFor(base: number, valueType: DiscountValueType, value: number): n
   return valueType === 'PERCENT' ? Math.round((base * value) / 100) : Math.round(value);
 }
 
-interface ResolvedDiscount {
+export interface ResolvedDiscount {
   label: string;
   type: DiscountType;
   valueType: DiscountValueType;
@@ -237,6 +251,14 @@ interface ResolvedDiscount {
   ruleId: string | null;
   promoCodeId: string | null;
   stackable: boolean;
+}
+
+/** `evaluate()` natijasi: hisoblangan summa va shartnomaning shu paytdagi holati */
+export interface EvaluatedDiscount {
+  resolved: ResolvedDiscount;
+  amount: number;
+  basePrice: number;
+  newContractPrice: number;
 }
 
 export interface GrantDiscountInput {
@@ -344,7 +366,17 @@ export const discountService = {
     return { ...(await loadDiscountSettings()), updatedAt: row?.updatedAt.toISOString() ?? null };
   },
 
-  async saveSettings(actor: AuthUser, input: DiscountSettings, client: ClientInfo): Promise<DiscountSettingsDto> {
+  /**
+   * Berilmagan maydonlar (eski mijozlar faqat foiz chegarasini yuboradi) avvalgi qiymatda qoladi.
+   * Tasdiq chegarasi — rahbar qarori: uni faqat `discount.approve` huquqi bor xodim o'zgartiradi.
+   */
+  async saveSettings(actor: AuthUser, patch: Partial<DiscountSettings>, client: ClientInfo): Promise<DiscountSettingsDto> {
+    const current = await loadDiscountSettings();
+    const input: DiscountSettings = { ...current, ...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) };
+    const authorityChanged = input.approvalThresholdPercent !== current.approvalThresholdPercent || input.rulesPreapproved !== current.rulesPreapproved;
+    if (authorityChanged && !(await permissionService.getRolePermissions(actor.roleId)).has(PERMISSIONS.DISCOUNT_APPROVE)) {
+      throw AppError.forbidden('Tasdiq chegarasini faqat chegirmani tasdiqlash huquqi bor rahbar o‘zgartiradi');
+    }
     await prisma.$transaction(async (tx) => {
       await tx.setting.upsert({
         where: { key: DISCOUNT_SETTINGS_KEY },
@@ -356,7 +388,8 @@ export const discountService = {
         action: 'discount.settings_updated',
         entityType: 'settings',
         entityId: DISCOUNT_SETTINGS_KEY,
-        metadata: { ...input },
+        before: { ...current },
+        after: { ...input },
         ...client,
       });
     });
@@ -532,7 +565,7 @@ export const discountService = {
     studentId: string,
     input: GrantDiscountInput,
     now: Date = new Date(),
-  ): Promise<{ resolved: ResolvedDiscount; amount: number; basePrice: number; newContractPrice: number }> {
+  ): Promise<EvaluatedDiscount> {
     const [student, settings, resolved] = await Promise.all([
       loadStudentForDiscount(studentId),
       loadDiscountSettings(),
@@ -571,60 +604,75 @@ export const discountService = {
   },
 
   async grant(actor: AuthUser, studentId: string, input: GrantDiscountInput, client: ClientInfo): Promise<StudentDiscountSummary> {
-    const { resolved, amount, basePrice, newContractPrice } = await this.evaluate(studentId, input);
+    const evaluated = await this.evaluate(studentId, input);
+    await prisma.$transaction((tx) => this.applyInTransaction(tx, { grantedById: actor.id, approvedById: null }, studentId, input, evaluated, client));
+    return this.forStudent(studentId);
+  },
+
+  /**
+   * Hisoblangan chegirmani yozadi (qulf ostida qayta tekshirib). To'g'ridan berishda ham, rahbar tasdiqlaganda ham
+   * shu yo'l — qoida bitta joyda. `grantedById` — chegirmani bergan (so'ragan) xodim, `approvedById` — tasdiqlagan rahbar.
+   */
+  async applyInTransaction(
+    tx: Prisma.TransactionClient,
+    by: { grantedById: string; approvedById: string | null },
+    studentId: string,
+    input: GrantDiscountInput,
+    evaluated: EvaluatedDiscount,
+    client: ClientInfo,
+  ): Promise<string> {
+    const { resolved, amount, basePrice, newContractPrice } = evaluated;
     // `evaluate` cheklovlarni shu qiymatlar bilan tekshirgan: qulf ostida ular o'zgargan bo'lsa, hisob eskirgan
     const expected = { contractPrice: newContractPrice + amount, discountTotal: basePrice - (newContractPrice + amount) };
-
-    await prisma.$transaction(async (tx) => {
-      // Parallel to'lov yoki ikkinchi chegirma bilan poyga bo'lmasligi uchun: avval qulf, keyin qayta tekshiruv
-      const locked = await lockStudentContract(tx, studentId);
-      assertContractUnchanged(locked, expected);
-      const paid = locked.debt?.paidAmount ?? 0;
-      if (resolved.promoCodeId) {
-        // Limit shartli yangilanishda tekshiriladi — ikki so'rov bir vaqtda oxirgi o'rinni egallay olmaydi
-        const claimed = await tx.$executeRaw`
-          UPDATE "promo_codes" SET "usedCount" = "usedCount" + 1, "updatedAt" = ${new Date()}
-          WHERE "id" = ${resolved.promoCodeId} AND ("usageLimit" = 0 OR "usedCount" < "usageLimit")
-        `;
-        if (claimed === 0) throw AppError.unprocessable('Promo kod ishlatilish chegarasiga yetgan');
-      }
-      const created = await tx.studentDiscount.create({
-        data: {
-          studentId,
-          ruleId: resolved.ruleId,
-          promoCodeId: resolved.promoCodeId,
-          label: resolved.label,
-          type: resolved.type,
-          valueType: resolved.valueType,
-          value: resolved.value,
-          amount,
-          note: input.note?.trim() || null,
-          grantedById: actor.id,
-        },
-        select: { id: true },
-      });
-      await tx.student.update({
-        where: { id: studentId },
-        data: { contractPrice: newContractPrice, discountTotal: { increment: amount } },
-      });
-      await syncDebt(tx, studentId, newContractPrice, paid);
-      await auditService.recordInTransaction(tx, {
-        userId: actor.id,
-        action: 'discount.granted',
-        entityType: 'student',
-        entityId: studentId,
-        metadata: {
-          discountId: created.id,
-          label: resolved.label,
-          type: resolved.type,
-          amount,
-          contractPriceTo: newContractPrice,
-        },
-        ...client,
-      });
+    // Parallel to'lov yoki ikkinchi chegirma bilan poyga bo'lmasligi uchun: avval qulf, keyin qayta tekshiruv
+    const locked = await lockStudentContract(tx, studentId);
+    assertContractUnchanged(locked, expected);
+    const paid = locked.debt?.paidAmount ?? 0;
+    if (resolved.promoCodeId) {
+      // Limit shartli yangilanishda tekshiriladi — ikki so'rov bir vaqtda oxirgi o'rinni egallay olmaydi
+      const claimed = await tx.$executeRaw`
+        UPDATE "promo_codes" SET "usedCount" = "usedCount" + 1, "updatedAt" = ${new Date()}
+        WHERE "id" = ${resolved.promoCodeId} AND ("usageLimit" = 0 OR "usedCount" < "usageLimit")
+      `;
+      if (claimed === 0) throw AppError.unprocessable('Promo kod ishlatilish chegarasiga yetgan');
+    }
+    const created = await tx.studentDiscount.create({
+      data: {
+        studentId,
+        ruleId: resolved.ruleId,
+        promoCodeId: resolved.promoCodeId,
+        label: resolved.label,
+        type: resolved.type,
+        valueType: resolved.valueType,
+        value: resolved.value,
+        amount,
+        note: input.note?.trim() || null,
+        grantedById: by.grantedById,
+        approvedById: by.approvedById,
+      },
+      select: { id: true },
     });
-
-    return this.forStudent(studentId);
+    await tx.student.update({
+      where: { id: studentId },
+      data: { contractPrice: newContractPrice, discountTotal: { increment: amount } },
+    });
+    await syncDebt(tx, studentId, newContractPrice, paid);
+    await auditService.recordInTransaction(tx, {
+      userId: by.approvedById ?? by.grantedById,
+      action: 'discount.granted',
+      entityType: 'student',
+      entityId: studentId,
+      metadata: {
+        discountId: created.id,
+        label: resolved.label,
+        type: resolved.type,
+        amount,
+        contractPriceTo: newContractPrice,
+        ...(by.approvedById ? { requestedById: by.grantedById, approvedById: by.approvedById } : {}),
+      },
+      ...client,
+    });
+    return created.id;
   },
 
   /** Bekor qilish — yozuv qoladi, summa shartnomaga qaytariladi */

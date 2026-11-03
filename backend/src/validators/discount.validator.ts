@@ -10,6 +10,9 @@ export const REFERRAL_STATUSES = ['PENDING', 'CONVERTED', 'REWARDED', 'CANCELLED
 export const discountSettingsSchema = z.object({
   maxPercent: z.coerce.number().int().min(0, 'Foiz manfiy bo‘lmaydi').max(100, 'Foiz 100 dan oshmasin'),
   allowStacking: z.boolean(),
+  /** Berilmasa — avvalgi qiymat (eski mijozlar) */
+  approvalThresholdPercent: z.coerce.number().min(0, 'Foiz manfiy bo‘lmaydi').max(100, 'Foiz 100 dan oshmasin').optional(),
+  rulesPreapproved: z.boolean().optional(),
 });
 
 export const discountRuleSchema = z.object({
@@ -61,6 +64,18 @@ export const grantDiscountSchema = z
     message: 'Qoida, promo kod yoki qiymat ko‘rsatilsin',
     path: ['ruleKey'],
   });
+
+export const discountRequestListSchema = z.object({
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'], 'Holat noto‘g‘ri').optional(),
+});
+
+export const discountDecisionSchema = z.object({
+  note: optionalField(z.string().trim().max(255, 'Izoh juda uzun')),
+});
+
+export const discountRejectSchema = z.object({
+  note: z.string('Rad etish sababini yozing').trim().min(3, 'Rad etish sababini yozing').max(255, 'Izoh juda uzun'),
+});
 
 export const revokeDiscountSchema = z.object({
   reason: z.string('Sabab kiritilishi shart').trim().min(3, 'Sabab juda qisqa').max(255, 'Sabab juda uzun'),

@@ -62,6 +62,22 @@ export const PERMISSIONS = {
   /// Qabulxonadagi QR ekranini ochish
   STAFF_ATTENDANCE_DISPLAY: 'staff_attendance.display',
 
+  // ORG tizimi
+  /// Bo'limlar, lavozimlar katalogi, mas'uliyatlar va karyera yo'llari
+  ORG_MANAGE: 'org.manage',
+  COMPLAINT_VIEW: 'complaint.view',
+  COMPLAINT_CREATE: 'complaint.create',
+  COMPLAINT_MANAGE: 'complaint.manage',
+  /// Maxfiy murojaatlar (xodimlar nizosi, xavfsizlik) va o'zi haqidagi murojaatlar
+  COMPLAINT_CONFIDENTIAL: 'complaint.confidential',
+  /// Nomzodlar voronkasi (suhbat, demo dars)
+  HIRING_MANAGE: 'hiring.manage',
+  /// Ishga olish yoki rad etish bo'yicha yakuniy qaror
+  HIRING_DECIDE: 'hiring.decide',
+  ASSET_VIEW: 'asset.view',
+  ASSET_MANAGE: 'asset.manage',
+  KNOWLEDGE_MANAGE: 'knowledge.manage',
+
   ROLE_MANAGE: 'role.manage',
   SETTINGS_MANAGE: 'settings.manage',
   /** Telegram orqali ommaviy xabar yuborish */
@@ -129,6 +145,8 @@ export const PERMISSIONS = {
   DISCOUNT_VIEW: 'discount.view',
   DISCOUNT_MANAGE: 'discount.manage',
   DISCOUNT_GRANT: 'discount.grant',
+  /** Chegaradan (standart 5%) yuqori chegirmani tasdiqlash yoki o'zi berish */
+  DISCOUNT_APPROVE: 'discount.approve',
   REFERRAL_VIEW: 'referral.view',
   REFERRAL_REWARD: 'referral.reward',
 
@@ -207,6 +225,20 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
     description: 'Xodimlar ish jadvali, davomatni sabab bilan tuzatish, ruxsat so‘rovlarini tasdiqlash',
   },
   { key: PERMISSIONS.STAFF_ATTENDANCE_DISPLAY, module: 'staff_attendance', description: 'Qabulxonadagi davomat QR ekranini ochish' },
+  { key: PERMISSIONS.ORG_MANAGE, module: 'org', description: 'Bo‘limlar, lavozimlar katalogi, mas’uliyatlar va karyera yo‘llarini boshqarish' },
+  { key: PERMISSIONS.COMPLAINT_VIEW, module: 'complaints', description: 'Filialdagi murojaat va shikoyatlarni ko‘rish' },
+  { key: PERMISSIONS.COMPLAINT_CREATE, module: 'complaints', description: 'O‘quvchi, ota-ona va boshqalarning murojaatini kiritish' },
+  { key: PERMISSIONS.COMPLAINT_MANAGE, module: 'complaints', description: 'Murojaatni mas’ulga yo‘naltirish, hal etish, yopish va rahbarga ko‘tarish' },
+  {
+    key: PERMISSIONS.COMPLAINT_CONFIDENTIAL,
+    module: 'complaints',
+    description: 'Maxfiy murojaatlarni (xodimlar nizosi, xavfsizlik) va rahbarlarning o‘zi haqidagi murojaatlarni ko‘rish',
+  },
+  { key: PERMISSIONS.HIRING_MANAGE, module: 'hiring', description: 'Nomzodlar: suhbat, demo dars, onboarding va offboarding ro‘yxatlari' },
+  { key: PERMISSIONS.HIRING_DECIDE, module: 'hiring', description: 'Nomzodni ishga olish yoki rad etish bo‘yicha yakuniy qaror' },
+  { key: PERMISSIONS.ASSET_VIEW, module: 'assets', description: 'Markaz jihozlari (aktivlar) reyestrini ko‘rish' },
+  { key: PERMISSIONS.ASSET_MANAGE, module: 'assets', description: 'Aktiv qo‘shish, mas’ulga biriktirish, ko‘chirish, ta’mirlash va hisobdan chiqarish' },
+  { key: PERMISSIONS.KNOWLEDGE_MANAGE, module: 'knowledge', description: 'Bilimlar bazasi hujjatlarini yozish, e’lon qilish va arxivlash' },
   {
     key: PERMISSIONS.STAFF_DOCUMENT_VIEW,
     module: 'hr',
@@ -296,6 +328,11 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.DISCOUNT_VIEW, module: 'discounts', description: 'Chegirma qoidalari va berilgan chegirmalarni ko‘rish' },
   { key: PERMISSIONS.DISCOUNT_MANAGE, module: 'discounts', description: 'Chegirma qoidalari va promo kodlarni boshqarish' },
   { key: PERMISSIONS.DISCOUNT_GRANT, module: 'discounts', description: 'O‘quvchiga chegirma berish va bekor qilish' },
+  {
+    key: PERMISSIONS.DISCOUNT_APPROVE,
+    module: 'discounts',
+    description: 'Chegaradan (standart 5%) yuqori chegirmani tasdiqlash yoki tasdiqsiz berish',
+  },
   { key: PERMISSIONS.REFERRAL_VIEW, module: 'referrals', description: 'Do‘st taklif qilish (referal) ro‘yxati va hisobotini ko‘rish' },
   { key: PERMISSIONS.REFERRAL_REWARD, module: 'referrals', description: 'Taklif uchun bonus berish' },
 
@@ -368,6 +405,11 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   // Admin o‘z filiali doirasida ishlaydi (bitta filial bo‘lsa farqi bilinmaydi).
   PERMISSIONS.BRANCH_VIEW_ALL,
   PERMISSIONS.BRANCH_MANAGE,
+  // ORG tizimi: strategik va yakuniy qarorlar — markaz rahbari (ORG §1, §2.2, §3.1)
+  PERMISSIONS.ORG_MANAGE,
+  PERMISSIONS.DISCOUNT_APPROVE,
+  PERMISSIONS.HIRING_DECIDE,
+  PERMISSIONS.COMPLAINT_CONFIDENTIAL,
 ];
 
 /** Owner/Admin uchun moliyaviy ruxsatlar to'plami */
@@ -431,13 +473,16 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.PARENT_VIEW,
       PERMISSIONS.REFERRAL_VIEW,
       PERMISSIONS.DISCOUNT_VIEW,
+      // ORG §2.2: 0–5% chegirmani o'zi beradi, undan yuqorisi rahbar tasdig'iga ketadi
+      PERMISSIONS.DISCOUNT_GRANT,
+      PERMISSIONS.COMPLAINT_CREATE,
     ],
   },
   {
     key: ROLE_KEYS.CALL_CENTER,
     name: 'Call Center',
     description: 'Leadlar, qo‘ng‘iroqlar va follow-up',
-    permissions: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.TASK_CREATE, ...LEAD_WORK_PERMISSIONS],
+    permissions: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.TASK_CREATE, ...LEAD_WORK_PERMISSIONS, PERMISSIONS.COMPLAINT_CREATE],
   },
   {
     key: ROLE_KEYS.TEACHER,
@@ -463,6 +508,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.COMMISSION_VIEW_OWN,
       PERMISSIONS.FEEDBACK_VIEW,
       PERMISSIONS.AI_ACADEMIC,
+      PERMISSIONS.COMPLAINT_CREATE,
     ],
   },
   {
@@ -505,6 +551,10 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.REFERRAL_VIEW,
       PERMISSIONS.INVENTORY_VIEW,
       PERMISSIONS.INVENTORY_MANAGE,
+      PERMISSIONS.ASSET_VIEW,
+      PERMISSIONS.ASSET_MANAGE,
+      PERMISSIONS.COMPLAINT_VIEW,
+      PERMISSIONS.COMPLAINT_CREATE,
     ],
   },
   {

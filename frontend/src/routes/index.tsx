@@ -198,6 +198,39 @@ export const router = createBrowserRouter([
                       () => import("@/pages/staff-attendance/MyAttendancePage"),
                     ),
                   },
+                  // ORG tizimi: murojaat va bilimlar bazasi — har bir xodimga (ko'rinish doirasi serverda)
+                  {
+                    path: "complaints",
+                    lazy: lazyComponent(() => import("@/pages/org/ComplaintsPage")),
+                  },
+                  {
+                    path: "knowledge",
+                    lazy: lazyComponent(() => import("@/pages/org/KnowledgePage")),
+                  },
+                  {
+                    element: (
+                      <PermissionGate permission={PERMISSIONS.ASSET_VIEW} />
+                    ),
+                    children: [
+                      {
+                        path: "assets",
+                        lazy: lazyComponent(() => import("@/pages/org/AssetsPage")),
+                      },
+                    ],
+                  },
+                  {
+                    element: (
+                      <PermissionGate
+                        permission={[PERMISSIONS.HIRING_MANAGE, PERMISSIONS.EMPLOYEE_MANAGE]}
+                      />
+                    ),
+                    children: [
+                      {
+                        path: "hr-process",
+                        lazy: lazyComponent(() => import("@/pages/org/HrProcessPage")),
+                      },
+                    ],
+                  },
                   {
                     element: (
                       <PermissionGate permission={PERMISSIONS.STAFF_ATTENDANCE_VIEW} />
@@ -795,6 +828,10 @@ export const router = createBrowserRouter([
                         lazy: lazyComponent(
                           () => import("@/pages/org/OrgStructurePage"),
                         ),
+                      },
+                      {
+                        path: "org-catalog",
+                        lazy: lazyComponent(() => import("@/pages/org/OrgCatalogPage")),
                       },
                     ],
                   },

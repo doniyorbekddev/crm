@@ -42,6 +42,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
     queryFn: () => discountsService.forStudent(studentId),
     enabled: canView,
   });
+  const settingsQuery = useQuery({ queryKey: queryKeys.discounts.settings, queryFn: discountsService.settings, enabled: canGrant && open, staleTime: 60_000 });
   const rulesQuery = useQuery({
     queryKey: queryKeys.discounts.rules(false),
     queryFn: () => discountsService.rules(false),
@@ -56,11 +57,13 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
 
   const grant = useMutation({
     mutationFn: () => {
+      // Sabab har doim yuboriladi: chegaradan (5%) oshsa rahbar tasdig'i uchun majburiy
+      const reason = note.trim() ? { note: note.trim() } : {};
       const payload: GrantDiscountPayload =
         mode === 'rule'
-          ? { ruleKey }
+          ? { ruleKey, ...reason }
           : mode === 'promo'
-            ? { promoCode: promoCode.trim() }
+            ? { promoCode: promoCode.trim(), ...reason }
             : { valueType: 'AMOUNT', value: Number(amount), note: note.trim() };
       return discountsService.grant(studentId, payload);
     },
@@ -225,17 +228,16 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
             )}
 
             {mode === 'custom' && (
-              <>
-                <label className="block">
-                  <span className="mb-1 block text-body text-fg-muted">Summa (so‘m)</span>
-                  <Input type="number" min={0} value={amount} onChange={(event) => setAmount(event.target.value)} />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-body text-fg-muted">Sabab</span>
-                  <Input value={note} placeholder="Masalan: direktor ruxsati bilan" onChange={(event) => setNote(event.target.value)} />
-                </label>
-              </>
+              <label className="block">
+                <span className="mb-1 block text-body text-fg-muted">Summa (so‘m)</span>
+                <Input type="number" min={0} value={amount} onChange={(event) => setAmount(event.target.value)} />
+              </label>
             )}
+            <label className="block">
+              <span className="mb-1 block text-body text-fg-muted">{mode === 'custom' ? 'Sabab' : 'Sabab (chegaradan oshsa majburiy)'}</span>
+              <Input value={note} placeholder="Masalan: ikkinchi farzand" onChange={(event) => setNote(event.target.value)} />
+            </label>
+            <p className="text-caption text-fg-subtle">Umumiy chegirma {settingsQuery.data?.approvalThresholdPercent ?? 5}% dan oshsa, chegirma rahbar tasdig‘idan keyin beriladi.</p>
           </div>
         </Modal>
       )}

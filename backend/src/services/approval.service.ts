@@ -1,4 +1,4 @@
-import type { ApprovalStatus, Prisma } from '../generated/prisma/client.js';
+import type { ApprovalStatus, ApprovalType, Prisma } from '../generated/prisma/client.js';
 
 /**
  * Umumiy tasdiq so'rovi (CRM 4.0, 2-faza). Birinchi tur — xarajat tasdig'i.
@@ -31,6 +31,20 @@ export async function openExpenseApproval(
       branchId: expense.branchId ?? null,
       requestedById,
     },
+  });
+}
+
+/** Umumiy tasdiq ko'zgusi (chegirma va keyingi turlar) — asl so'rov yaratilgan tranzaksiyada chaqiriladi */
+export async function openApproval(
+  tx: Tx,
+  input: { type: ApprovalType; entityType: string; entityId: string; title: string; amount: number | null; link: string; branchId: string | null },
+  requestedById: string | null,
+): Promise<void> {
+  const title = input.title.slice(0, 200);
+  await tx.approvalRequest.upsert({
+    where: { entityType_entityId: { entityType: input.entityType, entityId: input.entityId } },
+    update: { status: 'PENDING', title, amount: input.amount, decidedById: null, decidedAt: null, reason: null, requestedById },
+    create: { type: input.type, entityType: input.entityType, entityId: input.entityId, title, amount: input.amount, link: input.link, branchId: input.branchId, requestedById },
   });
 }
 

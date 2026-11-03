@@ -32,3 +32,282 @@ export interface OrgStructure {
   vacancies: Array<{ position: EmployeePosition; label: string }>;
   summary: { members: number; employees: number; teachers: number; onProbation: number; onLeave: number; withoutAccount: number };
 }
+
+// ---------------------------------------------------------------- murojaatlar
+export type ComplaintSource = 'STUDENT' | 'PARENT' | 'STAFF' | 'OTHER';
+export type ComplaintCategory = 'SERVICE' | 'TEACHER' | 'PAYMENT' | 'SCHEDULE' | 'SAFETY' | 'STAFF_CONFLICT' | 'SUGGESTION' | 'OTHER';
+export type ComplaintSeverity = 'NORMAL' | 'HIGH' | 'CRITICAL';
+export type ComplaintStatus = 'NEW' | 'UNDER_REVIEW' | 'RESOLVED' | 'CLOSED';
+
+export interface Complaint {
+  id: string;
+  number: number;
+  source: ComplaintSource;
+  category: ComplaintCategory;
+  severity: ComplaintSeverity;
+  status: ComplaintStatus;
+  title: string;
+  description: string;
+  contactName: string | null;
+  contactPhone: string | null;
+  confidential: boolean;
+  dueAt: string | null;
+  overdue: boolean;
+  escalatedAt: string | null;
+  resolution: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  student: { id: string; firstName: string; lastName: string } | null;
+  subjectUser: OrgPerson | null;
+  reporter: OrgPerson | null;
+  assignee: OrgPerson | null;
+}
+
+export interface ComplaintDetail extends Complaint {
+  events: Array<{ id: string; type: 'CREATED' | 'ASSIGNED' | 'STATUS_CHANGED' | 'ESCALATED' | 'COMMENT'; fromStatus: ComplaintStatus | null; toStatus: ComplaintStatus | null; note: string | null; actor: OrgPerson | null; createdAt: string }>;
+  can: { manage: boolean; work: boolean; close: boolean; escalate: boolean };
+}
+
+export interface ComplaintList {
+  items: Complaint[];
+  total: number;
+  counts: Record<ComplaintStatus, number> & { overdue: number; escalated: number };
+}
+
+export interface ComplaintPayload {
+  source: ComplaintSource;
+  category: ComplaintCategory;
+  severity: ComplaintSeverity;
+  title: string;
+  description: string;
+  studentId?: string;
+  contactName?: string;
+  contactPhone?: string;
+  subjectUserId?: string;
+  assigneeId?: string;
+  confidential?: boolean;
+}
+
+// ---------------------------------------------------------------- aktivlar
+export type AssetStatus = 'IN_USE' | 'IN_STORAGE' | 'UNDER_REPAIR' | 'WRITTEN_OFF' | 'LOST';
+export type AssetEventType = 'CREATED' | 'UPDATED' | 'ASSIGNED' | 'MOVED' | 'STATUS_CHANGED' | 'REPAIR';
+
+export interface Asset {
+  id: string;
+  inventoryNumber: string;
+  name: string;
+  category: string;
+  serialNumber: string | null;
+  purchaseDate: string | null;
+  purchaseCost: number | null;
+  status: AssetStatus;
+  condition: string | null;
+  room: { id: string; name: string } | null;
+  location: string | null;
+  responsible: OrgPerson | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetDetail extends Asset {
+  events: Array<{ id: string; type: AssetEventType; fromValue: string | null; toValue: string | null; cost: number | null; note: string | null; actor: OrgPerson | null; occurredAt: string }>;
+  repairCost: number;
+  repairCount: number;
+}
+
+export interface AssetList {
+  items: Asset[];
+  total: number;
+  summary: { count: number; value: number; byStatus: Record<AssetStatus, number> };
+  categories: string[];
+}
+
+export type AssetEventPayload =
+  | { type: 'ASSIGNED'; responsibleId?: string; condition?: string; note?: string }
+  | { type: 'MOVED'; roomId?: string; location?: string; note?: string }
+  | { type: 'STATUS_CHANGED'; status: AssetStatus; note?: string }
+  | { type: 'REPAIR'; cost?: number; note: string };
+
+// ---------------------------------------------------------------- bilimlar bazasi
+export type KnowledgeCategory = 'JOB_DESCRIPTION' | 'POLICY' | 'VIDEO_GUIDE' | 'SALES_SCRIPT' | 'LESSON_STANDARD' | 'MATERIAL' | 'OTHER';
+export type KnowledgeStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  category: KnowledgeCategory;
+  status: KnowledgeStatus;
+  position: EmployeePosition | null;
+  version: number;
+  requiresAck: boolean;
+  acknowledged: boolean;
+  audience: Array<{ id: string; name: string }>;
+  publishedAt: string | null;
+  updatedAt: string;
+  updatedBy: OrgPerson | null;
+}
+
+export interface KnowledgeDetail extends KnowledgeItem {
+  body: string;
+  videoUrl: string | null;
+  versions: Array<{ version: number; title: string; changeNote: string | null; editor: OrgPerson | null; createdAt: string }>;
+  acknowledgements: Array<{ user: OrgPerson; acknowledgedAt: string }> | null;
+  can: { manage: boolean };
+}
+
+export interface KnowledgePayload {
+  title: string;
+  category: KnowledgeCategory;
+  body: string;
+  videoUrl: string | null;
+  audienceRoleIds: string[];
+  position: EmployeePosition | null;
+  requiresAck: boolean;
+  changeNote?: string;
+}
+
+// ---------------------------------------------------------------- HR jarayonlari
+export type CandidateStage = 'NEW' | 'INTERVIEW' | 'DEMO' | 'OFFER' | 'HIRED' | 'REJECTED' | 'WITHDRAWN';
+
+export interface Candidate {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  position: EmployeePosition | null;
+  isTeacher: boolean;
+  positionTitle: string | null;
+  positionLabel: string;
+  source: string | null;
+  stage: CandidateStage;
+  interviewAt: string | null;
+  demoAt: string | null;
+  score: number | null;
+  notes: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  employeeId: string | null;
+  decidedBy: OrgPerson | null;
+  createdBy: OrgPerson | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CandidateDetail extends Candidate {
+  events: Array<{ id: string; fromStage: CandidateStage | null; toStage: CandidateStage | null; note: string | null; actor: OrgPerson | null; createdAt: string }>;
+  can: { manage: boolean; decide: boolean };
+}
+
+export interface CandidatePayload {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+  position?: EmployeePosition;
+  isTeacher: boolean;
+  positionTitle?: string;
+  source?: string;
+  interviewAt?: string | null;
+  demoAt?: string | null;
+  score?: number | null;
+  notes?: string;
+}
+
+export type ChecklistKind = 'ONBOARDING' | 'OFFBOARDING';
+export type ChecklistStatus = 'OPEN' | 'COMPLETED' | 'CANCELLED';
+
+export interface ChecklistItem {
+  id: string;
+  key: string | null;
+  title: string;
+  responsible: OrgPerson | null;
+  done: boolean;
+  doneAt: string | null;
+  doneBy: OrgPerson | null;
+  note: string | null;
+  system: boolean;
+}
+
+export interface Checklist {
+  id: string;
+  kind: ChecklistKind;
+  status: ChecklistStatus;
+  employeeId: string | null;
+  userId: string | null;
+  subjectName: string;
+  reason: string | null;
+  lastWorkingDay: string | null;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  createdBy: OrgPerson | null;
+  completedBy: OrgPerson | null;
+  progress: { done: number; total: number };
+  items: ChecklistItem[];
+}
+
+export interface ChecklistDetail extends Checklist {
+  facts: {
+    openWork: { tasks: number; followUps: number; complaints: number };
+    assets: Array<{ id: string; inventoryNumber: string; name: string }>;
+    account: { exists: boolean; active: boolean };
+    contractSigned: boolean;
+  };
+}
+
+// ---------------------------------------------------------------- tuzilma katalogi
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  parentId: string | null;
+  head: OrgPerson | null;
+  monthlyExpenseLimit: number | null;
+  isActive: boolean;
+  sortOrder: number;
+  employees: number;
+  positions: number;
+}
+
+export interface Responsibility {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  expectedResult: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface Position {
+  id: string;
+  key: string;
+  title: string;
+  department: { id: string; name: string } | null;
+  description: string | null;
+  employmentType: 'FULL_TIME' | 'PART_TIME' | 'HOURLY';
+  probationMonths: number;
+  nextPosition: { id: string; key: string; title: string } | null;
+  careerRequirements: string | null;
+  minimumKpiScore: number | null;
+  minimumMonths: number | null;
+  isActive: boolean;
+  holders: number;
+  responsibilities: Responsibility[];
+}
+
+export interface EmploymentHistoryEntry {
+  id: string;
+  type: 'HIRED' | 'POSITION_CHANGED' | 'DEPARTMENT_CHANGED' | 'PROMOTED' | 'STATUS_CHANGED' | 'TERMINATED';
+  positionKey: string;
+  positionTitle: string;
+  department: string | null;
+  effectiveDate: string;
+  changeReason: string | null;
+  approvedBy: OrgPerson | null;
+  createdBy: OrgPerson | null;
+  createdAt: string;
+}

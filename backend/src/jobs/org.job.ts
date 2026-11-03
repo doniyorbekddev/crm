@@ -3,6 +3,9 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { notificationService } from '../services/notification.service.js';
 import type { NotificationInput } from '../services/notification.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { notifyOverdueComplaints } from '../services/org/complaints.service.js';
+import { WORKING_TASK_STATUSES } from '../services/task.service.js';
+import { taskNotificationButtons } from '../telegram/taskButtons.js';
 import { businessToday, daysBetween, fullName, permissionHolders, toDateOnly } from '../services/org/common.js';
 import { addDays } from '../utils/dates.js';
 import { logger } from '../utils/logger.js';
@@ -13,7 +16,7 @@ const INTERVAL_MS = 60 * 60_000;
 export const PROBATION_NOTICE_DAYS = 7;
 
 /**
- * ORG tizimi fon tekshiruvlari (soatiga bir marta).
+ * ORG tizimi fon tekshiruvlari (soatiga bir marta): sinov muddati, muddati o'tgan murojaatlar, muddati yaqin vazifalar.
  *
  * Sinov muddati (ORG §3.2): tugashiga 7 kun qolganda va tugagan kuni rahbarga (xodim kartasini boshqaradiganlarga)
  * bir martadan eslatma — qaror (davom ettirish yoki to'xtatish) o'z vaqtida qabul qilinsin.
@@ -64,6 +67,43 @@ export async function notifyProbationEnds(now: Date): Promise<number> {
   return sent;
 }
 
+/** Vazifa muddatiga shuncha soat qolganda ijrochiga eslatma (spetsifikatsiya §9) */
+export const TASK_DUE_SOON_HOURS = 24;
+const HOUR_MS = 3_600_000;
+
+/**
+ * Muddati yaqinlashgan vazifalar: ijrochi ishlayotgan (Yangi / Jarayonda) va muddatgacha 24 soatdan kam qolgan.
+ * Faqat uzoqroq muddat bilan berilgan vazifalarga (berilganda muddat allaqachon yaqin bo'lsa, birinchi xabar yetarli).
+ * Takror yo'q: `dedupeKey` muddat bilan — muddat surilsa, yangi muddat uchun yana bir marta.
+ */
+export async function notifyTasksDueSoon(now: Date): Promise<number> {
+  const horizon = new Date(now.getTime() + TASK_DUE_SOON_HOURS * HOUR_MS);
+  const rows = await prisma.task.findMany({
+    where: { status: { in: [...WORKING_TASK_STATUSES] }, dueAt: { gt: now, lte: horizon } },
+    select: { id: true, title: true, dueAt: true, createdAt: true, assigneeId: true },
+    take: 500,
+  });
+  const due = rows.filter((row) => row.dueAt!.getTime() - row.createdAt.getTime() > TASK_DUE_SOON_HOURS * HOUR_MS);
+  if (due.length === 0) return 0;
+  const notifications: NotificationInput[] = due.map((row) => {
+    const hours = Math.max(1, Math.round((row.dueAt!.getTime() - now.getTime()) / HOUR_MS));
+    return {
+      userId: row.assigneeId,
+      type: 'TASK_UPDATE',
+      title: 'Vazifa muddati yaqinlashdi',
+      message: `⏰ ${row.title} — ${hours} soat qoldi`,
+      entityType: 'task',
+      entityId: row.id,
+      actionUrl: '/tasks',
+      buttons: taskNotificationButtons(row.id),
+      dedupeKey: `task:${row.id}:due-soon:${row.dueAt!.getTime()}`,
+    };
+  });
+  // `createMany` takroriy kalitni o'tkazib yuboradi — avval yuborilganlari qayta yaratilmaydi
+  await prisma.$transaction((tx) => notificationService.createManyInTransaction(tx, notifications));
+  return due.length;
+}
+
 let running = false;
 
 async function runOnce(): Promise<void> {
@@ -71,8 +111,11 @@ async function runOnce(): Promise<void> {
   running = true;
   try {
     await withJobLease('org', async () => {
-      const probation = await notifyProbationEnds(new Date());
-      if (probation > 0) logger.info({ probation }, 'ORG eslatmalari yuborildi');
+      const now = new Date();
+      const probation = await notifyProbationEnds(now);
+      const complaints = await notifyOverdueComplaints(now);
+      const tasks = await notifyTasksDueSoon(now);
+      if (probation + complaints + tasks > 0) logger.info({ probation, complaints, tasks }, 'ORG eslatmalari yuborildi');
     });
     reportJobSuccess('org');
   } catch (error) {

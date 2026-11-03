@@ -57,6 +57,10 @@ const employeeFields = {
   probationEndDate: clearableField(dateOnlySchema('Sinov muddati tugash sanasi')),
   /** Kimga hisobot beradi — bo'sh bo'lsa markaz rahbariga (CEO) */
   managerId: clearableField(idSchema),
+  /** Bo'lim katalogidan; berilmasa va `department` matni kelsa — shu nomdagi bo'lim topiladi yoki yaratiladi */
+  departmentId: clearableField(idSchema),
+  /** Lavozim, bo'lim yoki holat o'zgarishining sababi — ish tarixiga yoziladi */
+  changeReason: optionalField(z.string().trim().max(500, 'Sabab 500 belgidan oshmasin')),
   note: optionalField(z.string().trim().max(500, 'Izoh juda uzun')),
   /** Tizim akkaunti (bildirishnoma uchun) — ixtiyoriy */
   userId: optionalField(idSchema),

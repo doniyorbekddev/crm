@@ -17,6 +17,12 @@ discountRouter.get('/promo-codes', requirePermission(PERMISSIONS.DISCOUNT_VIEW),
 discountRouter.post('/promo-codes', requirePermission(PERMISSIONS.DISCOUNT_MANAGE), discountController.createPromoCode);
 discountRouter.patch('/promo-codes/:id', requirePermission(PERMISSIONS.DISCOUNT_MANAGE), discountController.setPromoCodeActive);
 
+// Chegirma vakolati (ORG §2.2): chegaradan yuqori chegirma so'rovlari
+discountRouter.get('/requests', requirePermission(PERMISSIONS.DISCOUNT_VIEW), discountController.requests);
+discountRouter.post('/requests/:id/approve', requirePermission(PERMISSIONS.DISCOUNT_APPROVE), discountController.approveRequest);
+discountRouter.post('/requests/:id/reject', requirePermission(PERMISSIONS.DISCOUNT_APPROVE), discountController.rejectRequest);
+discountRouter.post('/requests/:id/cancel', requirePermission(PERMISSIONS.DISCOUNT_GRANT), discountController.cancelRequest);
+
 // O'quvchi bo'yicha chegirmalar
 discountRouter.get('/students/:id', requirePermission(PERMISSIONS.DISCOUNT_VIEW), discountController.forStudent);
 discountRouter.post('/students/:id', requirePermission(PERMISSIONS.DISCOUNT_GRANT), discountController.grant);

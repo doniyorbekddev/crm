@@ -1,11 +1,15 @@
 import type { Request, Response } from 'express';
 import { discountService } from '../services/discount.service.js';
+import { discountApprovalService } from '../services/org/discountApproval.service.js';
 import { referralService } from '../services/referral.service.js';
 import { buildPaginationMeta, sendCreated, sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
 import {
   cancelReferralSchema,
+  discountDecisionSchema,
+  discountRejectSchema,
+  discountRequestListSchema,
   discountRuleQuerySchema,
   discountRuleSchema,
   discountSettingsSchema,
@@ -65,12 +69,38 @@ export const discountController = {
     sendSuccess(res, await discountService.forStudent(id));
   },
 
+  /** Chegara ichida — darhol (200, o'quvchining chegirmalari); undan yuqori — rahbar tasdig'iga (202, so'rov) */
   async grant(req: Request, res: Response): Promise<void> {
     const { id } = idParamSchema.parse(req.params);
     const input = grantDiscountSchema.parse(req.body);
-    sendSuccess(res, await discountService.grant(requireAuthUser(req), id, input, getClientInfo(req)), {
-      message: 'Chegirma berildi',
-    });
+    const outcome = await discountApprovalService.grantOrRequest(requireAuthUser(req), id, input, getClientInfo(req));
+    if (outcome.status === 'GRANTED') {
+      sendSuccess(res, outcome.summary, { message: 'Chegirma berildi' });
+      return;
+    }
+    sendSuccess(res, { pending: true, request: outcome.request }, { statusCode: 202, message: 'Chegirma rahbar tasdig‘iga yuborildi' });
+  },
+
+  async requests(req: Request, res: Response): Promise<void> {
+    const { status } = discountRequestListSchema.parse(req.query);
+    sendSuccess(res, await discountApprovalService.list(requireAuthUser(req), status));
+  },
+
+  async approveRequest(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { note } = discountDecisionSchema.parse(req.body);
+    sendSuccess(res, await discountApprovalService.approve(requireAuthUser(req), id, note, getClientInfo(req)), { message: 'Chegirma tasdiqlandi va berildi' });
+  },
+
+  async rejectRequest(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const { note } = discountRejectSchema.parse(req.body);
+    sendSuccess(res, await discountApprovalService.reject(requireAuthUser(req), id, note, getClientInfo(req)), { message: 'So‘rov rad etildi' });
+  },
+
+  async cancelRequest(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await discountApprovalService.cancel(requireAuthUser(req), id, getClientInfo(req)), { message: 'So‘rov bekor qilindi' });
   },
 
   async revoke(req: Request, res: Response): Promise<void> {

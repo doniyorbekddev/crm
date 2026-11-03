@@ -27,6 +27,8 @@ export type NotificationType =
   | 'TASK_UPDATE'
   | 'STAFF_ATTENDANCE'
   | 'HR_UPDATE'
+  | 'COMPLAINT_UPDATE'
+  | 'APPROVAL_REQUEST'
   | 'SYSTEM';
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';

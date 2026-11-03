@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
-  Fingerprint, Network,
+  Fingerprint,
+  Network,
+  ShieldCheck,
   Award,
   BadgeCheck,
   BookOpen,
@@ -53,6 +55,8 @@ export const NOTIFICATION_TYPE_ORDER: readonly NotificationType[] = [
   'TASK_UPDATE',
   'STAFF_ATTENDANCE',
   'HR_UPDATE',
+  'COMPLAINT_UPDATE',
+  'APPROVAL_REQUEST',
   'SYSTEM',
 ];
 
@@ -80,6 +84,8 @@ export const NOTIFICATION_TYPE_CATEGORY: Record<NotificationType, NotificationCa
   TASK_UPDATE: 'SYSTEM',
   STAFF_ATTENDANCE: 'SYSTEM',
   HR_UPDATE: 'SYSTEM',
+  COMPLAINT_UPDATE: 'SYSTEM',
+  APPROVAL_REQUEST: 'SYSTEM',
   NEW_PAYMENT: 'PAYMENT',
   DEBT_REMINDER: 'PAYMENT',
   PAYMENT_DUE_SOON: 'PAYMENT',
@@ -134,6 +140,8 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   TASK_UPDATE: 'Vazifa',
   STAFF_ATTENDANCE: 'Xodim davomati',
   HR_UPDATE: 'Jamoa va HR',
+  COMPLAINT_UPDATE: 'Murojaatlar',
+  APPROVAL_REQUEST: 'Tasdiq so‘rovlari',
   SYSTEM: 'Tizim',
 };
 
@@ -166,6 +174,8 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   TASK_UPDATE: ListTodo,
   STAFF_ATTENDANCE: Fingerprint,
   HR_UPDATE: Network,
+  COMPLAINT_UPDATE: MessageSquareWarning,
+  APPROVAL_REQUEST: ShieldCheck,
   SYSTEM: Info,
 };
 
@@ -195,6 +205,8 @@ export const NOTIFICATION_TYPE_CLASSES: Record<NotificationType, string> = {
   TASK_UPDATE: 'bg-info-subtle text-info',
   STAFF_ATTENDANCE: 'bg-primary-subtle text-primary',
   HR_UPDATE: 'bg-primary-subtle text-primary',
+  COMPLAINT_UPDATE: 'bg-warning-subtle text-warning',
+  APPROVAL_REQUEST: 'bg-warning-subtle text-warning',
   DEBT_REMINDER: 'bg-danger-subtle text-danger',
   TRIAL_LESSON_REMINDER: 'bg-warning-subtle text-warning',
   EXPENSE_APPROVAL: 'bg-warning-subtle text-warning',

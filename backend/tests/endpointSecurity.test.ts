@@ -118,6 +118,19 @@ const AUTH_ONLY = new Set([
   'POST /api/staff-attendance/me/requests/:id/cancel',
   'POST /api/staff-attendance/scan/preview',
   'POST /api/staff-attendance/scan',
+  // ORG tizimi — requireStaff; ko'rinish servisda: murojaatlar — o'zi kiritgan/biriktirilgan (yoki `complaint.view`),
+  // bilimlar bazasi — o'z roliga ochilgan e'lon qilingan hujjatlar, ro'yxat bandi — faqat uning mas'uli (yoki rahbar)
+  'GET /api/org/complaints',
+  'POST /api/org/complaints/appeal',
+  'GET /api/org/complaints/:id',
+  'POST /api/org/complaints/:id/status',
+  'POST /api/org/complaints/:id/escalate',
+  'POST /api/org/complaints/:id/comments',
+  'GET /api/org/knowledge',
+  'GET /api/org/knowledge/:id',
+  'GET /api/org/knowledge/:id/versions/:version',
+  'POST /api/org/knowledge/:id/acknowledge',
+  'POST /api/org/checklists/:id/items/:itemId',
   // Filial tanlash paneli: branch.view_all bo'lmasa — faqat o'z filiali
   'GET /api/branches',
   // Ruxsat hujjat bog'langan yozuvga qarab servisda (begona/yo'q hujjat — 404)
