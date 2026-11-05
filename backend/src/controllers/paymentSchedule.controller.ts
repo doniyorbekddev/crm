@@ -3,7 +3,7 @@ import { paymentScheduleService } from '../services/paymentSchedule.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { getClientInfo, requireAuthUser } from '../utils/requestContext.js';
 import { idParamSchema } from '../validators/common.validator.js';
-import { generateScheduleSchema, replaceScheduleSchema } from '../validators/paymentSchedule.validator.js';
+import { cancelChargesSchema, generateScheduleSchema, replaceScheduleSchema } from '../validators/paymentSchedule.validator.js';
 
 export const paymentScheduleController = {
   async get(req: Request, res: Response): Promise<void> {
@@ -24,6 +24,14 @@ export const paymentScheduleController = {
     const input = replaceScheduleSchema.parse(req.body);
     sendSuccess(res, await paymentScheduleService.replace(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: 'To‘lov jadvali saqlandi',
+    });
+  },
+
+  async cancel(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = cancelChargesSchema.parse(req.body);
+    sendSuccess(res, await paymentScheduleService.cancel(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'Oy majburiyatlari bekor qilindi',
     });
   },
 };

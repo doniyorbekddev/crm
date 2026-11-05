@@ -29,8 +29,12 @@ export interface DashboardFinanceBlock {
 }
 
 export interface DashboardDebtBlock {
+  /** Shartnoma qoldig'i (kelgusi oylar ham) */
   totalRemaining: number;
   debtors: number;
+  /** Muddati kelgan, to'lanmagan oy majburiyatlari — "qarz" */
+  dueTotal: number;
+  dueDebtors: number;
 }
 
 export interface DashboardTasksBlock {

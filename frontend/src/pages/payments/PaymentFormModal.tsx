@@ -26,6 +26,8 @@ import type { StudentItem, StudentListParams } from '@/types/student';
 import { formatMoney, formatPhone } from '@/utils/format';
 import { createIdempotencyKey } from '@/utils/idempotency';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
+import { AUTO_ALLOCATION, AllocationPicker, manualAllocations, manualTotal } from './AllocationPicker';
+import type { AllocationValue } from './AllocationPicker';
 
 const paymentFormSchema = z.object({
   amount: z.string().refine((value) => /^\d{4,9}$/.test(value) && Number(value) >= 1000, 'Eng kam to‘lov — 1 000 so‘m'),
@@ -36,13 +38,15 @@ const paymentFormSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
-function toPayload(studentId: string, values: PaymentFormValues): PaymentPayload {
+function toPayload(studentId: string, values: PaymentFormValues, allocation: AllocationValue): PaymentPayload {
   return {
     studentId,
     amount: Number(values.amount),
     method: values.method,
     ...(values.paidAt ? { paidAt: new Date(`${values.paidAt}T12:00:00`).toISOString() } : {}),
     ...(values.comment ? { comment: values.comment } : {}),
+    // Avtomatik — server eng eski ochiq oydan biriktiradi
+    ...(allocation.mode === 'manual' ? { allocations: manualAllocations(allocation) } : {}),
   };
 }
 
@@ -59,6 +63,8 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
   // Forma ochilishi uchun bitta kalit: ikki marta bosish yoki qayta urinish ikkinchi to'lov yaratmaydi
   const [idempotencyKey] = useState(createIdempotencyKey);
   const [duplicate, setDuplicate] = useState<{ message: string; values: PaymentFormValues } | null>(null);
+  const [allocation, setAllocation] = useState<AllocationValue>(AUTO_ALLOCATION);
+  const [allocationError, setAllocationError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput.trim(), 400);
 
@@ -93,7 +99,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
     mutationFn: ({ values, confirmDuplicate }: { values: PaymentFormValues; confirmDuplicate: boolean }) => {
       if (!selected) throw new Error('O‘quvchi tanlanmagan');
       return paymentsService.create({
-        ...toPayload(selected.id, values),
+        ...toPayload(selected.id, values, allocation),
         idempotencyKey,
         ...(confirmDuplicate ? { confirmDuplicate: true } : {}),
       });
@@ -109,6 +115,11 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
         setDuplicate({ message: getErrorMessage(error), values: variables.values });
         return;
       }
+      const allocationIssue = getFieldErrors(error).find((detail) => detail.field === 'allocations');
+      if (allocationIssue) {
+        setAllocationError(allocationIssue.message);
+        return;
+      }
       if (!applyFieldErrors(error, setError, ['amount', 'method'])) {
         setFormError(getErrorMessage(error));
       }
@@ -118,6 +129,11 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
   const onSubmit = handleSubmit((values) => {
     setFormError(null);
     setDuplicate(null);
+    setAllocationError(null);
+    if (allocation.mode === 'manual' && manualTotal(allocation) !== Number(values.amount)) {
+      setAllocationError('Oylarga taqsimlangan summa to‘lov summasiga teng bo‘lishi kerak');
+      return;
+    }
     save.mutate({ values, confirmDuplicate: false });
   });
 
@@ -237,6 +253,8 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
                 onClick={() => {
                   setSelected(null);
                   setDuplicate(null);
+                  setAllocation(AUTO_ALLOCATION);
+                  setAllocationError(null);
                 }}
                 disabled={save.isPending}
               >
@@ -269,7 +287,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
                 ))}
               </Select>
             </FormField>
-            <FormField label="To‘lov sanasi" htmlFor="payment-paidAt" error={errors.paidAt?.message}>
+            <FormField label="To‘lov sanasi" htmlFor="payment-paidAt" error={errors.paidAt?.message} hint="Pul kelib tushgan kun — kassa shu oyga yoziladi">
               <Input id="payment-paidAt" type="date" {...register('paidAt')} />
             </FormField>
             <div className="sm:col-span-2">
@@ -278,6 +296,18 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
               </FormField>
             </div>
           </div>
+
+          <AllocationPicker
+            studentId={selected.id}
+            amount={Number(amount || 0)}
+            value={allocation}
+            onChange={(next) => {
+              setAllocation(next);
+              setAllocationError(null);
+            }}
+            error={allocationError}
+            disabled={save.isPending}
+          />
 
           {afterPayment < 0 && <Alert tone="warning">Summa qolgan qarzdan ko‘p — server bunday to‘lovni qabul qilmaydi.</Alert>}
         </form>

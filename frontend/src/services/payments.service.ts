@@ -11,7 +11,10 @@ import type {
   PaymentListParams,
   PaymentPayload,
   PaymentStats,
-  PaymentStatsParams, RefundPayload } from '@/types/payment';
+  PaymentStatsParams,
+  ReallocatePayload,
+  RefundPayload,
+} from '@/types/payment';
 
 export const paymentsService = {
   async list(params: PaymentListParams): Promise<Paginated<PaymentItem>> {
@@ -35,6 +38,12 @@ export const paymentsService = {
 
   async refund(id: string, payload: RefundPayload): Promise<MessageResult<PaymentItem>> {
     const response = await api.post<ApiSuccessResponse<PaymentItem>>(`/payments/${id}/refunds`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** To'lovning oylarga taqsimotini tuzatish (sabab bilan) */
+  async reallocate(id: string, payload: ReallocatePayload): Promise<MessageResult<PaymentItem>> {
+    const response = await api.put<ApiSuccessResponse<PaymentItem>>(`/payments/${id}/allocations`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 

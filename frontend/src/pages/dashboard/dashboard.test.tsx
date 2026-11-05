@@ -18,7 +18,7 @@ const SUMMARY: DashboardSummary = {
   leads: { todayNew: 4, monthNew: 31, monthNewGrowth: 12, open: 12, monthWon: 9, monthLost: 3, conversionRate: 75 },
   tasks: { todayFollowUps: 5, overdueFollowUps: 2, todayCalls: 7 },
   finance: { todayRevenue: 1_500_000, monthRevenue: 24_000_000, prevMonthRevenue: 30_000_000, monthGrowth: -20 },
-  debts: { totalRemaining: 8_400_000, debtors: 6 },
+  debts: { totalRemaining: 8_400_000, debtors: 6, dueTotal: 2_100_000, dueDebtors: 4 },
   money: null,
   students: { active: 120, monthNew: 8, monthNewGrowth: -20, frozen: 2 },
 };
@@ -85,7 +85,10 @@ describe('DashboardKpis', () => {
     expect(revenue).toHaveAttribute('href', '/payments');
     // Oylik o'sish manfiy — qizil, pastga
     expect(within(revenue).getByText('20%')).toHaveClass('text-danger');
-    expect(within(finance).getByRole('link', { name: /Umumiy qarzdorlik/ })).toHaveTextContent('6 ta qarzdor');
+    // Qarz — muddati kelgan oy majburiyatlari; shartnoma qoldig'i izohda
+    const debtCard = within(finance).getByRole('link', { name: /Muddati kelgan qarz/ });
+    expect(debtCard).toHaveTextContent('4 ta qarzdor');
+    expect(debtCard).toHaveTextContent('shartnoma qoldig‘i');
     // Moliya ruxsati yo'q (money: null) — foyda va kassa kartalari yo'q
     expect(within(finance).queryByText('Oylik sof foyda')).not.toBeInTheDocument();
 

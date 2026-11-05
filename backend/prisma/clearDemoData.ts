@@ -80,7 +80,8 @@ async function main(): Promise<void> {
     await tx.studentGroupChange.deleteMany({});
     await tx.commissionEntry.deleteMany({});
 
-    // Moliyaviy daftar izlari: avval yozuv, keyin tranzaksiya
+    // Moliyaviy daftar izlari: avval yozuv, keyin tranzaksiya (to'lov biriktirishlari to'lov va qaytarishni bloklaydi)
+    await tx.paymentAllocation.deleteMany({});
     const refundTransactions = (await tx.paymentRefund.findMany({ select: { transactionId: true } })).map((row) => row.transactionId);
     await tx.paymentRefund.deleteMany({});
     const paymentTransactions = (await tx.payment.findMany({ select: { transactionId: true } }))

@@ -39,6 +39,23 @@ export const replaceScheduleSchema = z.object({
     ),
 });
 
+/** "2026-10" — hisob oyi */
+export const periodKeySchema = z
+  .string('Oyni tanlang')
+  .trim()
+  .regex(/^(20\d{2})-(0[1-9]|1[0-2])$/, 'Oy noto‘g‘ri (format: 2026-10)');
+
+/** Oy majburiyatlarini bekor qilish (masalan, o'quvchi ketgach kelgusi oylar) — sabab majburiy */
+export const cancelChargesSchema = z.object({
+  months: z
+    .array(periodKeySchema, 'Oylarni tanlang')
+    .min(1, 'Kamida bitta oy')
+    .max(MAX_INSTALLMENTS, `Ko‘pi bilan ${MAX_INSTALLMENTS} ta oy`)
+    .refine((items) => new Set(items).size === items.length, 'Oylar takrorlanmasin'),
+  reason: z.string('Sababni yozing').trim().min(5, 'Sababni yozing (kamida 5 belgi)').max(255, 'Sabab juda uzun'),
+});
+
+export type CancelChargesInput = z.infer<typeof cancelChargesSchema>;
 export type GenerateScheduleInput = z.infer<typeof generateScheduleSchema>;
 export type ReplaceScheduleInput = z.infer<typeof replaceScheduleSchema>;
 export type DebtDueFilter = (typeof DEBT_DUE_FILTERS)[number];

@@ -7,6 +7,7 @@ import type { AuthUser } from '../types/auth.js';
 import { addDays, businessDateString, startOfBusinessDay, startOfBusinessMonth } from '../utils/dates.js';
 import type { ChartPeriod, ChartQuery, ManagerStatsQuery } from '../validators/dashboard.validator.js';
 import { attendanceAnalyticsService } from './attendanceAnalytics.service.js';
+import { dueDebtTotals } from './billingLedger.service.js';
 import { ALL_BRANCHES, type BranchScope, branchScopeOf, inBranch, viaStudent, viaUser } from './branchScope.js';
 import { getLeadAccess, leadScopeCondition } from './leadAccess.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
@@ -48,8 +49,12 @@ export interface DashboardFinanceBlock {
 }
 
 export interface DashboardDebtBlock {
+  /** Shartnoma qoldig'i (kelgusi oylar ham) */
   totalRemaining: number;
   debtors: number;
+  /** Muddati kelgan, to'lanmagan oy majburiyatlari — "qarz" */
+  dueTotal: number;
+  dueDebtors: number;
 }
 
 export interface DashboardTasksBlock {
@@ -322,9 +327,12 @@ async function debtsBlock(branch: BranchScope): Promise<DashboardDebtBlock> {
     _sum: { remainingAmount: true },
     _count: { _all: true },
   });
+  const due = await dueDebtTotals(businessDateString(new Date()), branch.branchId);
   return {
     totalRemaining: aggregate._sum.remainingAmount?.toNumber() ?? 0,
     debtors: aggregate._count._all,
+    dueTotal: due.total,
+    dueDebtors: due.debtors,
   };
 }
 

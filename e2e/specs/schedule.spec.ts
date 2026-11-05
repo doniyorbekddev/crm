@@ -37,7 +37,10 @@ async function api(request: APIRequestContext) {
 
 test('buxgalter muddati o‘tgan to‘lovni qarzdorlikda topadi, profilda jadvalni ko‘radi va qayta tuzadi', async ({ page, request }) => {
   const client = await api(request);
-  const debtor = (await client.debtors()).find((item) => item.remaining >= 100_000 && item.total > 2000);
+  // To'lov qilmagan va ro'yxat oxiridagi o'quvchi: to'lov spetsifikatsiyasi boshidagisiga to'laydi (to'lov oyga
+  // biriktiriladi — o'sha oyni olib tashlaydigan jadval rad etiladi)
+  const candidates = (await client.debtors()).filter((item) => item.paid === 0 && item.remaining >= 100_000 && item.total > 2000);
+  const debtor = candidates[candidates.length - 1];
   expect(debtor, 'seed bazasida qarzdor o‘quvchi bo‘lishi kerak').toBeDefined();
   if (!debtor) return;
 
@@ -48,7 +51,8 @@ test('buxgalter muddati o‘tgan to‘lovni qarzdorlikda topadi, profilda jadval
   ]);
 
   await login(page, 'accountant');
-  await page.goto('/debts');
+  // Shartnoma balansi ko'rinishi (standart ko'rinish — muddati kelgan oy qarzlari)
+  await page.goto('/debts?view=contract');
   await page.getByRole('tab', { name: /^Muddati o‘tgan/ }).click();
   await page.getByPlaceholder('Ism, telefon yoki ST-raqam').fill(debtor.code);
   const row = page.getByRole('row').filter({ hasText: `${debtor.firstName} ${debtor.lastName}` });

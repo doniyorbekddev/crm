@@ -1,12 +1,14 @@
+import { distributePaid } from './billingLedger.js';
+
 /**
  * To‘lov jadvali hisob-kitobi (sof funksiyalar).
  *
- * Qism holati bazada saqlanmaydi: o‘quvchining jami to‘lagan summasi (`Debt.paidAmount`, qaytarishlar
- * ayirilgan) qismlarga muddat tartibida taqsimlanadi. Shunda to‘lov bekor qilinsa yoki qaytarilsa
- * jadval o‘zi to‘g‘ri holatga keladi.
+ * Qism holati bazada saqlanmaydi: avval oyga aniq biriktirilgan to'lovlar (`payment_allocations`), keyin qolgan
+ * to'langan summa (`Debt.paidAmount`, qaytarishlar ayirilgan) qismlarga muddat tartibida taqsimlanadi
+ * (`billingLedger.distributePaid`). Shunda to‘lov bekor qilinsa yoki qaytarilsa jadval o‘zi to‘g‘ri holatga keladi.
  */
 
-export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'DUE_TODAY' | 'UPCOMING' | 'OVERDUE';
+export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'DUE_TODAY' | 'UPCOMING' | 'OVERDUE' | 'CANCELLED';
 
 export const MAX_INSTALLMENTS = 36;
 
@@ -21,6 +23,8 @@ export interface PlannedInstallment {
 export interface ScheduleRow extends PlannedInstallment {
   id: string;
   note: string | null;
+  /** Bekor qilingan oy majburiyati — hisobga kirmaydi */
+  cancelled?: boolean;
 }
 
 export interface AllocatedInstallment extends ScheduleRow {
@@ -83,32 +87,43 @@ export function buildMonthlyPlan(total: number, count: number, firstDueDate: str
   }));
 }
 
-/** To‘langan summani qismlarga muddat tartibida taqsimlaydi va har bir qism holatini aniqlaydi */
+/**
+ * To‘langan summani qismlarga taqsimlaydi va har bir qism holatini aniqlaydi. `explicitByMonth` — oyga aniq
+ * biriktirilgan sof summa ("2026-10" → so'm); bo'lmasa hammasi muddat tartibida.
+ */
 export function allocateSchedule(
   rows: ScheduleRow[],
   paidAmount: number,
   today: string,
+  explicitByMonth: ReadonlyMap<string, number> = new Map(),
 ): { installments: AllocatedInstallment[]; totals: ScheduleTotals } {
   const ordered = [...rows].sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.sequence - b.sequence);
-  let pool = Math.max(paidAmount, 0);
+  const distributed = new Map(
+    distributePaid(
+      ordered.map((row) => ({ ...row, cancelled: row.cancelled ?? false })),
+      Math.max(paidAmount, 0),
+      explicitByMonth,
+    ).rows.map((item) => [item.row.id, item]),
+  );
 
-  const installments = ordered.map((row): AllocatedInstallment => {
-    const paid = Math.min(row.amount, pool);
-    pool -= paid;
-    const remaining = Math.max(row.amount - paid, 0);
+  const all = ordered.map((row): AllocatedInstallment => {
+    const item = distributed.get(row.id);
+    if (!item) return { ...row, paid: 0, remaining: 0, status: 'CANCELLED', overdueDays: 0 };
+    const { paid, remaining } = item;
     if (remaining === 0) return { ...row, paid, remaining, status: 'PAID', overdueDays: 0 };
     if (row.dueDate < today) return { ...row, paid, remaining, status: 'OVERDUE', overdueDays: daysBetween(row.dueDate, today) };
     if (row.dueDate === today) return { ...row, paid, remaining, status: 'DUE_TODAY', overdueDays: 0 };
     return { ...row, paid, remaining, status: paid > 0 ? 'PARTIAL' : 'UPCOMING', overdueDays: 0 };
   });
 
+  const installments = all.filter((item) => item.status !== 'CANCELLED');
   const next = installments.find((item) => item.remaining > 0 && item.status !== 'OVERDUE');
   const sum = (items: AllocatedInstallment[], pick: (item: AllocatedInstallment) => number) =>
     items.reduce((total, item) => total + pick(item), 0);
   const overdue = installments.filter((item) => item.status === 'OVERDUE');
 
   return {
-    installments,
+    installments: all,
     totals: {
       scheduledTotal: sum(installments, (item) => item.amount),
       dueToDate: sum(

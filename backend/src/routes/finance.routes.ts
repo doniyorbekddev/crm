@@ -1,3 +1,4 @@
+import { billingController } from '../controllers/billing.controller.js';
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import {
@@ -24,6 +25,7 @@ financeRouter.use(authenticate);
 financeRouter.get('/summary', financeView, financeController.summary);
 financeRouter.get('/cash-flow', financeView, financeController.cashFlow);
 financeRouter.get('/cash-flow/statement', financeView, financeController.cashFlowStatement);
+financeRouter.get('/billing-report', financeView, billingController.report);
 financeRouter.get('/profit-loss', financeView, financeController.profitLoss);
 financeRouter.get('/accounts', financeView, financeController.accounts);
 financeRouter.post('/accounts', financeManage, financeController.createAccount);

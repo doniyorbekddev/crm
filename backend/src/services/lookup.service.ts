@@ -45,6 +45,8 @@ export interface PaymentFormLookups {
   groups: Array<{ id: string; name: string; courseId: string }>;
   /** To‘lovni lead egasi (manager) kesimida filtrlash uchun */
   managers: Array<{ id: string; firstName: string; lastName: string; roleName: string }>;
+  /** Guruh o'qituvchilari — qarzdorlikni o'qituvchi kesimida filtrlash uchun */
+  teachers: Array<{ id: string; firstName: string; lastName: string }>;
 }
 
 export interface SalaryFormLookups {
@@ -266,6 +268,12 @@ export const lookupService = {
       select: staffSelect,
     });
 
-    return { courses, groups, managers: managers.map(toStaff) };
+    const teachers = await prisma.user.findMany({
+      where: { taughtGroups: { some: {} } },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    return { courses, groups, managers: managers.map(toStaff), teachers };
   },
 };

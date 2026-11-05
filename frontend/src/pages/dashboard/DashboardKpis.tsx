@@ -152,10 +152,10 @@ export function DashboardKpis({ summary }: { summary: DashboardSummary }) {
             <StatCard
               size="sm"
               icon={HandCoins}
-              title="Umumiy qarzdorlik"
-              value={formatMoney(debts.totalRemaining)}
-              description={`${formatNumber(debts.debtors)} ta qarzdor`}
-              tone={debts.totalRemaining > 0 ? 'danger' : 'success'}
+              title="Muddati kelgan qarz"
+              value={formatMoney(debts.dueTotal)}
+              description={`${formatNumber(debts.dueDebtors)} ta qarzdor · shartnoma qoldig‘i ${formatMoney(debts.totalRemaining)}`}
+              tone={debts.dueTotal > 0 ? 'danger' : 'success'}
               to="/debts"
             />
           )}

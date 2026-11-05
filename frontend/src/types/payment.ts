@@ -31,6 +31,15 @@ export interface PaymentItem {
   /** Qaytarilgan jami summa */
   refundedAmount: number;
   refunds: PaymentRefund[];
+  /** Qaysi oy(lar) uchun (sof). Bo'sh — eski to'lov, oylarga muddat tartibida tushgan */
+  allocations: PaymentAllocation[];
+  unallocatedAmount: number;
+}
+
+export interface PaymentAllocation {
+  /** "2026-10" */
+  period: string;
+  amount: number;
 }
 
 export interface PaymentRefund {
@@ -87,6 +96,13 @@ export interface PaymentPayload {
   idempotencyKey?: string;
   /** Yaqinda xuddi shu summa qabul qilingan bo‘lsa ham saqlash */
   confirmDuplicate?: boolean;
+  /** Qaysi oy(lar) uchun; berilmasa server eng eski ochiq oydan biriktiradi */
+  allocations?: PaymentAllocation[];
+}
+
+export interface ReallocatePayload {
+  allocations: PaymentAllocation[];
+  reason: string;
 }
 
 export interface DebtItem {
@@ -137,4 +153,5 @@ export interface PaymentFormLookups {
   courses: Array<{ id: string; name: string }>;
   groups: Array<{ id: string; name: string; courseId: string }>;
   managers: Array<{ id: string; firstName: string; lastName: string; roleName: string }>;
+  teachers: Array<{ id: string; firstName: string; lastName: string }>;
 }

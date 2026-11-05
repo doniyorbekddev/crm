@@ -38,6 +38,8 @@ export const PERMISSIONS = {
   PAYMENT_CREATE: 'payment.create',
   PAYMENT_DELETE: 'payment.delete',
   PAYMENT_REFUND: 'payment.refund',
+  PAYMENT_REALLOCATE: 'payment.reallocate',
+  PAYMENT_CANCEL_CHARGE: 'payment.cancel_charge',
 
   DEBT_VIEW: 'debt.view',
 

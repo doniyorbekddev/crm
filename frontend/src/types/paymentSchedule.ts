@@ -1,4 +1,7 @@
-export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'DUE_TODAY' | 'UPCOMING' | 'OVERDUE';
+export type InstallmentStatus = 'PAID' | 'PARTIAL' | 'DUE_TODAY' | 'UPCOMING' | 'OVERDUE' | 'CANCELLED';
+
+/** Oy majburiyati holati */
+export type ChargeStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'CANCELLED';
 
 /** Qarzdorlar ro‘yxatida to‘lov jadvali bo‘yicha filtr */
 export type DebtDueFilter = 'all' | 'overdue' | 'upcoming';
@@ -13,6 +16,25 @@ export interface Installment {
   status: InstallmentStatus;
   overdueDays: number;
   note: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  /** Moliyaviy oyi yopilgan — qayta tuzishda o'zgarmaydi */
+  locked: boolean;
+}
+
+/** Oylik majburiyat: shu oyga tushgan qismlar yig'indisi */
+export interface ScheduleMonth {
+  /** "2026-10" */
+  key: string;
+  year: number;
+  month: number;
+  amount: number;
+  paid: number;
+  remaining: number;
+  cancelledAmount: number;
+  /** Shu oyga aniq biriktirilgan to'lov */
+  allocated: number;
+  status: ChargeStatus;
 }
 
 export interface PaymentSchedule {
@@ -27,6 +49,12 @@ export interface PaymentSchedule {
   overdueDays: number;
   nextDue: { dueDate: string; amount: number } | null;
   installments: Installment[];
+  months: ScheduleMonth[];
+}
+
+export interface CancelChargesPayload {
+  months: string[];
+  reason: string;
 }
 
 export interface GenerateSchedulePayload {

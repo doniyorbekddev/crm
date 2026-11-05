@@ -383,6 +383,9 @@ model User {
   knowledgeVersions         KnowledgeArticleVersion[]  @relation("KnowledgeVersionEditor")
   knowledgeAcknowledgements KnowledgeAcknowledgement[] @relation("KnowledgeAcknowledgedBy")
   createdRefunds            PaymentRefund[]            @relation("PaymentRefundCreatedBy")
+  cancelledInstallments     PaymentInstallment[]       @relation("InstallmentCancelledBy")
+  createdAllocations        PaymentAllocation[]        @relation("AllocationCreatedBy")
+  voidedAllocations         PaymentAllocation[]        @relation("AllocationVoidedBy")
   closedFinancialPeriods    FinancialPeriod[]          @relation("FinancialPeriodClosedBy")
   reopenedFinancialPeriods  FinancialPeriod[]          @relation("FinancialPeriodReopenedBy")
   approvedExpenses          Expense[]                  @relation("ExpenseApprovedBy")
@@ -1128,6 +1131,7 @@ model Student {
   progressSnapshots StudentProgressSnapshot[]
   incomes           Income[]
   installments      PaymentInstallment[]
+  allocations       PaymentAllocation[]
   groupChanges      StudentGroupChange[]
   groupMemberships  StudentGroupMembership[]
   statusChanges     StudentStatusChange[]
@@ -1191,16 +1195,21 @@ model Debt {
 /// To‘lov jadvali: shartnoma summasining muddatli qismlari. Holat saqlanmaydi — Debt.paidAmount
 /// qismlarga muddat tartibida taqsimlanib hisoblanadi (bekor qilish va qaytarish jadvalga o‘zi ta’sir qiladi).
 model PaymentInstallment {
-  id        String   @id @default(cuid())
-  studentId String
-  sequence  Int      @db.SmallInt
-  dueDate   DateTime @db.Date
-  amount    Decimal  @db.Decimal(14, 2)
-  note      String?  @db.VarChar(255)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  studentId     String
+  sequence      Int       @db.SmallInt
+  dueDate       DateTime  @db.Date
+  amount        Decimal   @db.Decimal(14, 2)
+  note          String?   @db.VarChar(255)
+  /// Bekor qilingan oy majburiyati (masalan, o'quvchi ketgach kelgusi oylar): qator saqlanadi, hisobga kirmaydi
+  cancelledAt   DateTime?
+  cancelledById String?
+  cancelReason  String?   @db.VarChar(255)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  cancelledBy User?   @relation("InstallmentCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
 
   @@unique([studentId, sequence])
   @@index([studentId, dueDate])
@@ -1323,6 +1332,7 @@ model Payment {
   commissionEntries CommissionEntry[]
   refunds           PaymentRefund[]
   teacherShares     PaymentTeacherShare[]
+  allocations       PaymentAllocation[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -3424,10 +3434,11 @@ model PaymentRefund {
   createdById   String?
   createdAt     DateTime      @default(now())
 
-  payment     Payment           @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-  account     FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  transaction Transaction       @relation(fields: [transactionId], references: [id], onDelete: Restrict)
-  createdBy   User?             @relation("PaymentRefundCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  payment     Payment             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  account     FinancialAccount?   @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  transaction Transaction         @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  createdBy   User?               @relation("PaymentRefundCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  allocations PaymentAllocation[]
 
   @@index([paymentId])
   @@index([refundedAt])
@@ -5250,4 +5261,36 @@ model StudentMonthSnapshot {
   @@index([year, month, branchId])
   @@index([year, month, groupId])
   @@map("student_month_snapshots")
+}
+
+/// To'lovning qaysi oy majburiyati uchun ekanligi (to'lov sanasi `payments.paidAt` dan alohida). Faqat qo'shiladi:
+/// qaytarish — manfiy qator (`refundId`), qayta taqsimlash — eski qator `voidedAt` bilan belgilanadi, yangisi qo'shiladi.
+/// Biriktirilmagan (deploydan oldingi) to'lovlar oylarga hozirgidek muddat tartibida (FIFO) tushadi.
+model PaymentAllocation {
+  id          String    @id @default(cuid())
+  paymentId   String
+  studentId   String
+  periodYear  Int
+  periodMonth Int       @db.SmallInt
+  /// Qaytarishda manfiy
+  amount      Decimal   @db.Decimal(14, 2)
+  refundId    String?
+  /// Qachondan kuchga kiradi: to'lov sanasi, qaytarish sanasi yoki qayta taqsimlash payti ("T sanadagi holat" uchun)
+  effectiveAt DateTime
+  voidedAt    DateTime?
+  voidedById  String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  payment   Payment        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  student   Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  refund    PaymentRefund? @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  createdBy User?          @relation("AllocationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  voidedBy  User?          @relation("AllocationVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, periodYear, periodMonth])
+  @@index([paymentId])
+  @@index([refundId])
+  @@index([periodYear, periodMonth])
+  @@map("payment_allocations")
 }

@@ -8,9 +8,10 @@ import {
   createPaymentSchema,
   debtListQuerySchema,
   deletePaymentSchema,
-  refundPaymentSchema,
   paymentListQuerySchema,
   paymentStatsQuerySchema,
+  reallocatePaymentSchema,
+  refundPaymentSchema,
 } from '../validators/payment.validator.js';
 import { businessDateString } from '../utils/dates.js';
 import { sendTable } from '../utils/tableExport.js';
@@ -56,6 +57,14 @@ export const paymentController = {
     const input = refundPaymentSchema.parse(req.body);
     sendSuccess(res, await paymentService.refund(requireAuthUser(req), id, input, getClientInfo(req)), {
       message: 'Pul qaytarildi',
+    });
+  },
+
+  async reallocate(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    const input = reallocatePaymentSchema.parse(req.body);
+    sendSuccess(res, await paymentService.reallocate(requireAuthUser(req), id, input, getClientInfo(req)), {
+      message: 'To‘lov taqsimoti yangilandi',
     });
   },
 

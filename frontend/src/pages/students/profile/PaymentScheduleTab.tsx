@@ -1,6 +1,6 @@
 import { DataTable } from '@/components/ui/DataTable';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { CalendarClock, History, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { TableSkeleton } from '@/components/ui/Table';
 import { usePermission } from '@/hooks/usePermission';
-import { getErrorMessage } from '@/lib/api';
+import { getErrorMessage, getFieldErrors } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { paymentScheduleService } from '@/services/paymentSchedule.service';
@@ -22,6 +22,7 @@ import type { PaymentSchedule } from '@/types/paymentSchedule';
 import { formatDate, formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { INSTALLMENT_STATUS_LABELS, INSTALLMENT_STATUS_TONES } from '@/utils/scheduleLabels';
+import { StudentBillingHistoryModal } from '@/pages/debts/StudentBillingHistoryModal';
 
 const MAX_INSTALLMENTS = 36;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -55,7 +56,7 @@ function Tile({ label, value, hint, tone }: { label: string; value: string; hint
 export function PaymentScheduleTab({ studentId, startDate }: { studentId: string; startDate: string }) {
   const canManage = usePermission(PERMISSIONS.PAYMENT_CREATE);
   const queryClient = useQueryClient();
-  const [dialog, setDialog] = useState<'generate' | 'edit' | null>(null);
+  const [dialog, setDialog] = useState<'generate' | 'edit' | 'history' | null>(null);
 
   const query = useQuery({
     queryKey: queryKeys.students.paymentSchedule(studentId),
@@ -117,13 +118,18 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
             To‘lov jadvali
             {hasSchedule && <span className="ml-1 font-normal text-fg-muted">· {schedule.installments.length} ta qism</span>}
           </p>
-          {canManage && (
-            <div className="flex flex-wrap gap-2">
-              {hasSchedule && (
-                <Button size="sm" variant="secondary" leftIcon={<Pencil className="size-4" aria-hidden />} onClick={() => setDialog('edit')}>
-                  Tahrirlash
-                </Button>
-              )}
+          <div className="flex flex-wrap gap-2">
+            {hasSchedule && (
+              <Button size="sm" variant="ghost" leftIcon={<History className="size-4" aria-hidden />} onClick={() => setDialog('history')}>
+                Qarz tarixi
+              </Button>
+            )}
+            {canManage && hasSchedule && (
+              <Button size="sm" variant="secondary" leftIcon={<Pencil className="size-4" aria-hidden />} onClick={() => setDialog('edit')}>
+                Tahrirlash
+              </Button>
+            )}
+            {canManage && (
               <Button
                 size="sm"
                 variant={hasSchedule ? 'secondary' : 'primary'}
@@ -132,8 +138,8 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
               >
                 {hasSchedule ? 'Qayta tuzish' : 'Jadval tuzish'}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {!hasSchedule ? (
@@ -222,6 +228,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
         />
       )}
       {dialog === 'edit' && <EditScheduleModal studentId={studentId} schedule={schedule} onClose={() => setDialog(null)} onSaved={onSaved} />}
+      {dialog === 'history' && <StudentBillingHistoryModal studentId={studentId} onClose={() => setDialog(null)} />}
     </div>
   );
 }
@@ -251,7 +258,7 @@ function GenerateScheduleModal({ studentId, contractTotal, defaultCount, default
       toast.success(result.message);
       onSaved(result.data);
     },
-    onError: (mutationError) => setError(getErrorMessage(mutationError)),
+    onError: (mutationError) => setError(getFieldErrors(mutationError)[0]?.message ?? getErrorMessage(mutationError)),
   });
 
   return (
@@ -321,14 +328,17 @@ interface EditScheduleModalProps {
 }
 
 function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditScheduleModalProps) {
+  // Bekor qilingan va yopilgan oy qismlari tahrirlanmaydi — server ularni saqlaydi
+  const editable = schedule.installments.filter((item) => item.status !== 'CANCELLED' && !item.locked);
+  const keptTotal = schedule.installments.filter((item) => item.status !== 'CANCELLED' && item.locked).reduce((sum, item) => sum + item.amount, 0);
   const [rows, setRows] = useState<EditableRow[]>(() =>
-    schedule.installments.map((item) => ({ key: item.id, dueDate: item.dueDate, amount: String(item.amount), note: item.note ?? '' })),
+    editable.map((item) => ({ key: item.id, dueDate: item.dueDate, amount: String(item.amount), note: item.note ?? '' })),
   );
   const [nextKey, setNextKey] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
   const total = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-  const difference = schedule.contractTotal - total;
+  const difference = schedule.contractTotal - keptTotal - total;
   const ordered = rows.every((row, index) => index === 0 || (rows[index - 1]?.dueDate ?? '') <= row.dueDate);
   const complete = rows.length > 0 && rows.every((row) => DATE_PATTERN.test(row.dueDate) && Number(row.amount) >= 1000);
   const canSave = complete && ordered && difference === 0 && rows.length <= MAX_INSTALLMENTS;
@@ -363,14 +373,18 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
       toast.success(result.message);
       onSaved(result.data);
     },
-    onError: (mutationError) => setError(getErrorMessage(mutationError)),
+    onError: (mutationError) => setError(getFieldErrors(mutationError)[0]?.message ?? getErrorMessage(mutationError)),
   });
 
   return (
     <Modal
       open
       title="To‘lov jadvalini tahrirlash"
-      description={`Qismlar yig‘indisi shartnoma summasiga (${formatMoney(schedule.contractTotal)}) teng bo‘lishi kerak`}
+      description={
+        keptTotal > 0
+          ? `Yopilgan oylardan tashqari qismlar yig‘indisi ${formatMoney(schedule.contractTotal - keptTotal)} bo‘lishi kerak`
+          : `Qismlar yig‘indisi shartnoma summasiga (${formatMoney(schedule.contractTotal)}) teng bo‘lishi kerak`
+      }
       onClose={onClose}
       closeDisabled={save.isPending}
       footer={

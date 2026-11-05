@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
+import { billingController } from '../controllers/billing.controller.js';
 import { debtController, paymentController } from '../controllers/payment.controller.js';
 import { onlinePaymentController } from '../controllers/onlinePayment.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
@@ -29,6 +30,7 @@ paymentRouter.get('/:id', requirePermission(PERMISSIONS.PAYMENT_VIEW), paymentCo
 paymentRouter.post('/', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentController.create);
 paymentRouter.delete('/:id', requirePermission(PERMISSIONS.PAYMENT_DELETE), paymentController.remove);
 paymentRouter.post('/:id/refunds', requirePermission(PERMISSIONS.PAYMENT_REFUND), paymentController.refund);
+paymentRouter.put('/:id/allocations', requirePermission(PERMISSIONS.PAYMENT_REALLOCATE), paymentController.reallocate);
 
 export const debtRouter = Router();
 
@@ -36,3 +38,5 @@ debtRouter.use(authenticate);
 
 debtRouter.get('/', requirePermission(PERMISSIONS.DEBT_VIEW), debtController.list);
 debtRouter.get('/summary', requirePermission(PERMISSIONS.DEBT_VIEW), debtController.summary);
+debtRouter.get('/monthly', requirePermission(PERMISSIONS.DEBT_VIEW), billingController.monthly);
+debtRouter.get('/outstanding', requirePermission(PERMISSIONS.DEBT_VIEW), billingController.outstanding);

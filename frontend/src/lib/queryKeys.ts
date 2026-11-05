@@ -1,3 +1,4 @@
+import type { BillingReportParams, MonthlyDebtorsParams, OutstandingParams } from '@/types/billing';
 import type { ActivityParams } from '@/types/activity';
 import type { AlertListParams } from '@/types/alert';
 import type { AnalyticsRangeParams, ProfitabilityDimension } from '@/types/analytics';
@@ -231,6 +232,10 @@ export const queryKeys = {
     all: ['debts'] as const,
     list: (params: DebtListParams) => ['debts', 'list', params] as const,
     summary: (params: DebtSummaryParams) => ['debts', 'summary', params] as const,
+    monthly: (params: MonthlyDebtorsParams) => ['debts', 'monthly', params] as const,
+    outstanding: (params: OutstandingParams) => ['debts', 'outstanding', params] as const,
+    history: (studentId: string) => ['debts', 'history', studentId] as const,
+    report: (params: BillingReportParams) => ['debts', 'report', params] as const,
   },
   reports: {
     all: ['reports'] as const,

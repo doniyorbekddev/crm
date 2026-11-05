@@ -33,6 +33,13 @@ export function shiftPeriod(period: ReportingPeriod, months: number): ReportingP
 
 const index = (period: ReportingPeriod) => period.year * 12 + period.month;
 
+/** Oyning birinchi va oxirgi kuni ("2026-10-01" … "2026-10-31") — sana oralig'i bilan ishlaydigan sahifalar uchun */
+export function periodDateRange(period: ReportingPeriod): { from: string; to: string } {
+  const last = new Date(Date.UTC(period.year, period.month, 0)).getUTCDate();
+  const prefix = periodKey(period);
+  return { from: `${prefix}-01`, to: `${prefix}-${String(last).padStart(2, '0')}` };
+}
+
 /** `2026-10` → davr; noto'g'ri yoki kelajak oy — `null` */
 export function parsePeriod(value: string | null, now: Date = new Date()): ReportingPeriod | null {
   const match = value ? /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value) : null;

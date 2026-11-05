@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentReportingPeriod, parsePeriod, periodKey, shiftPeriod } from './useReportingPeriod';
+import { currentReportingPeriod, parsePeriod, periodDateRange, periodKey, shiftPeriod } from './useReportingPeriod';
 
 describe('hisobot davri', () => {
   it('joriy oy Toshkent vaqti bo‘yicha — UTC da hali oktyabr, markazda noyabr', () => {
@@ -22,5 +22,10 @@ describe('hisobot davri', () => {
     expect(shiftPeriod({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 });
     expect(shiftPeriod({ year: 2025, month: 12 }, 1)).toEqual({ year: 2026, month: 1 });
     expect(periodKey({ year: 2026, month: 3 })).toBe('2026-03');
+  });
+
+  it('oy sana oralig‘i: kabisa yili fevrali va dekabr', () => {
+    expect(periodDateRange({ year: 2028, month: 2 })).toEqual({ from: '2028-02-01', to: '2028-02-29' });
+    expect(periodDateRange({ year: 2026, month: 12 })).toEqual({ from: '2026-12-01', to: '2026-12-31' });
   });
 });

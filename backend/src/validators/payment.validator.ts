@@ -30,6 +30,21 @@ export const paymentListQuerySchema = paginationQuerySchema.extend({
   branchId: optionalField(idSchema),
 });
 
+/** To'lovning oyga biriktirilgan qismi: "2026-10" → summa */
+const allocationItemSchema = z.object({
+  period: z
+    .string('Oyni tanlang')
+    .trim()
+    .regex(/^(20\d{2})-(0[1-9]|1[0-2])$/, 'Oy noto‘g‘ri (format: 2026-10)'),
+  amount: z.coerce.number('Summa raqam bo‘lishi kerak').int('Summa butun son bo‘lishi kerak').min(1, 'Summa musbat bo‘lsin').max(999_999_999),
+});
+
+export const allocationListSchema = z
+  .array(allocationItemSchema)
+  .min(1, 'Kamida bitta oy')
+  .max(36, 'Ko‘pi bilan 36 ta oy')
+  .refine((items) => new Set(items.map((item) => item.period)).size === items.length, 'Oylar takrorlanmasin');
+
 export const createPaymentSchema = z.object({
   studentId: z.string('O‘quvchini tanlang').trim().min(1, 'O‘quvchini tanlang').max(50),
   amount: z.coerce
@@ -51,6 +66,17 @@ export const createPaymentSchema = z.object({
   idempotencyKey: optionalField(z.string().trim().regex(/^[A-Za-z0-9-]{16,64}$/, 'So‘rov kaliti noto‘g‘ri')),
   /** Yaqinda xuddi shu summa qabul qilingan bo‘lsa ham saqlash — foydalanuvchi alohida to‘lov ekanini tasdiqlagan */
   confirmDuplicate: z.boolean().default(false),
+  /**
+   * Qaysi oy(lar) qarzi uchun — yig'indisi to'lov summasiga teng bo'lishi kerak. Berilmasa server eng eski ochiq
+   * oydan boshlab biriktiradi (oldindan to'lov — keyingi oylarga).
+   */
+  allocations: allocationListSchema.optional(),
+});
+
+/** To'lov taqsimotini tuzatish — sabab majburiy */
+export const reallocatePaymentSchema = z.object({
+  allocations: allocationListSchema,
+  reason: z.string('Sababni yozing').trim().min(5, 'Sabab kamida 5 belgidan iborat bo‘lsin').max(255, 'Sabab 255 belgidan oshmasligi kerak'),
 });
 
 export const deletePaymentSchema = z.object({
@@ -100,6 +126,8 @@ export const paymentStatsQuerySchema = z.object({
 export type PaymentListQuery = z.infer<typeof paymentListQuerySchema>;
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type DeletePaymentInput = z.infer<typeof deletePaymentSchema>;
+export type ReallocatePaymentInput = z.infer<typeof reallocatePaymentSchema>;
+export type AllocationItemInput = z.infer<typeof allocationItemSchema>;
 export type RefundPaymentInput = z.infer<typeof refundPaymentSchema>;
 export type DebtListQuery = z.infer<typeof debtListQuerySchema>;
 export type PaymentStatsQuery = z.infer<typeof paymentStatsQuerySchema>;

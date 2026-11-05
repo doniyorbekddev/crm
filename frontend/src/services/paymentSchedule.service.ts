@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse } from '@/types/api';
-import type { GenerateSchedulePayload, PaymentSchedule, ReplaceSchedulePayload } from '@/types/paymentSchedule';
+import type { CancelChargesPayload, GenerateSchedulePayload, PaymentSchedule, ReplaceSchedulePayload } from '@/types/paymentSchedule';
 
 export const paymentScheduleService = {
   async get(studentId: string): Promise<PaymentSchedule> {
@@ -17,6 +17,12 @@ export const paymentScheduleService = {
 
   async replace(studentId: string, payload: ReplaceSchedulePayload): Promise<MessageResult<PaymentSchedule>> {
     const response = await api.put<ApiSuccessResponse<PaymentSchedule>>(`/students/${studentId}/payment-schedule`, payload);
+    return { data: response.data.data, message: response.data.message };
+  },
+
+  /** Oy majburiyatlarini bekor qilish (kelgusi, to'lanmagan oylar) — shartnoma kamayadi */
+  async cancel(studentId: string, payload: CancelChargesPayload): Promise<MessageResult<PaymentSchedule>> {
+    const response = await api.post<ApiSuccessResponse<PaymentSchedule>>(`/students/${studentId}/payment-schedule/cancel`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 };

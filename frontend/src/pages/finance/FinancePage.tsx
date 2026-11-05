@@ -1,30 +1,37 @@
 import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
-import { BarChart3, Lock, ScrollText, Target, TrendingUp } from 'lucide-react';
+import { BarChart3, CalendarRange, Lock, ScrollText, Target, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker, dateRangeParams } from '@/components/DateRangePicker';
 import type { DateRangeValue } from '@/components/DateRangePicker';
 import { PageHeader } from '@/components/PageHeader';
+import { ReportingPeriodPicker } from '@/components/ReportingPeriodPicker';
 import { usePermission } from '@/hooks/usePermission';
+import { periodDateRange, useReportingPeriod } from '@/hooks/useReportingPeriod';
 import type { FinanceRangeParams } from '@/types/finance';
 import { PERMISSIONS } from '@/utils/permissionKeys';
+import { BillingReportTab } from './BillingReportTab';
 import { BudgetTab } from './BudgetTab';
 import { FinancialPeriodsTab } from './FinancialPeriodsTab';
 import { FinanceOverview } from './FinanceOverview';
 import { ProfitLossTab } from './ProfitLossTab';
 import { TransactionsTab } from './TransactionsTab';
 
-type Tab = 'overview' | 'pnl' | 'transactions' | 'budget' | 'periods';
+type Tab = 'overview' | 'pnl' | 'billing' | 'transactions' | 'budget' | 'periods';
 
 export default function FinancePage() {
   const canViewBudget = usePermission(PERMISSIONS.FINANCE_VIEW);
   const [tab, setTab] = useState<Tab>('overview');
   const [rangeValue, setRangeValue] = useState<DateRangeValue>({ preset: 'this_month', custom: { from: '', to: '' } });
+  // Umumiy oy tanlagichi (`?period=`, sahifa yangilansa ham saqlanadi) tanlangan bo'lsa — o'sha oy; aks holda sana oralig'i
+  const { period, explicit, resetToCurrent } = useReportingPeriod();
+  const shownRange: DateRangeValue = explicit ? { preset: 'custom', custom: periodDateRange(period) } : rangeValue;
   // Oraliq to'liq tanlanmaguncha server standart davri (joriy oy) ko'rsatiladi
-  const range: FinanceRangeParams = dateRangeParams(rangeValue) ?? {};
+  const range: FinanceRangeParams = dateRangeParams(shownRange) ?? {};
 
   const tabs: ReadonlyArray<{ value: Tab; label: string; icon: typeof BarChart3 }> = [
     { value: 'overview', label: 'Panel', icon: BarChart3 },
     ...(canViewBudget ? ([{ value: 'pnl', label: 'Foyda va zarar', icon: TrendingUp }] as const) : []),
+    ...(canViewBudget ? ([{ value: 'billing', label: 'Oylik hisob', icon: CalendarRange }] as const) : []),
     { value: 'transactions', label: 'Moliyaviy daftar', icon: ScrollText },
     ...(canViewBudget ? ([{ value: 'budget', label: 'Budjet', icon: Target }] as const) : []),
     ...(canViewBudget ? ([{ value: 'periods', label: 'Oylarni yopish', icon: Lock }] as const) : []),
@@ -49,13 +56,24 @@ export default function FinancePage() {
           </TabList>
         </Tabs>
 
-        {tab !== 'budget' && tab !== 'periods' && (
-          <DateRangePicker value={rangeValue} onChange={setRangeValue} className="sm:ml-auto" />
+        {tab !== 'budget' && tab !== 'periods' && tab !== 'billing' && (
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <ReportingPeriodPicker />
+            <DateRangePicker
+              value={shownRange}
+              onChange={(next) => {
+                // Qo'lda oraliq tanlansa oy tanlovi bekor bo'ladi
+                if (explicit) resetToCurrent();
+                setRangeValue(next);
+              }}
+            />
+          </div>
         )}
       </div>
 
       {tab === 'overview' && <FinanceOverview range={range} />}
       {tab === 'pnl' && <ProfitLossTab range={range} />}
+      {tab === 'billing' && <BillingReportTab />}
       {tab === 'transactions' && <TransactionsTab range={range} />}
       {tab === 'budget' && <BudgetTab />}
       {tab === 'periods' && <FinancialPeriodsTab />}

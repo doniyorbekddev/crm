@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PERMISSIONS } from '../config/permissions.js';
 import { attendanceAnalyticsController } from '../controllers/attendanceSession.controller.js';
 import { parentController } from '../controllers/parent.controller.js';
+import { billingController } from '../controllers/billing.controller.js';
 import { paymentScheduleController } from '../controllers/paymentSchedule.controller.js';
 import { curriculumController } from '../controllers/curriculum.controller.js';
 import { portalController } from '../controllers/portal.controller.js';
@@ -32,8 +33,10 @@ studentRouter.get('/:id/parents', requirePermission(PERMISSIONS.PARENT_VIEW), pa
 studentRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), studentController.attendanceHistory);
 studentRouter.get('/:id/attendance/calendar', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceAnalyticsController.calendar);
 studentRouter.get('/:id/payment-schedule', requireAnyPermission(PERMISSIONS.DEBT_VIEW, PERMISSIONS.PAYMENT_VIEW), paymentScheduleController.get);
+studentRouter.get('/:id/billing-history', requireAnyPermission(PERMISSIONS.DEBT_VIEW, PERMISSIONS.PAYMENT_VIEW), billingController.studentHistory);
 studentRouter.post('/:id/payment-schedule/generate', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.generate);
 studentRouter.put('/:id/payment-schedule', requirePermission(PERMISSIONS.PAYMENT_CREATE), paymentScheduleController.replace);
+studentRouter.post('/:id/payment-schedule/cancel', requirePermission(PERMISSIONS.PAYMENT_CANCEL_CHARGE), paymentScheduleController.cancel);
 studentRouter.get('/:id/group-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.groupHistory);
 studentRouter.get('/:id/status-history', requirePermission(PERMISSIONS.STUDENT_VIEW), studentController.statusHistory);
 studentRouter.get('/:id/curriculum', requirePermission(PERMISSIONS.STUDENT_VIEW), curriculumController.studentProgress);

@@ -13,10 +13,10 @@ import { queryKeys } from '@/lib/queryKeys';
 import { activityService } from '@/services/activity.service';
 import { dashboardService } from '@/services/dashboard.service';
 import { leadsService } from '@/services/leads.service';
-import { debtsService } from '@/services/payments.service';
+import { billingService } from '@/services/billing.service';
 import type { ManagerPeriod } from '@/types/dashboard';
 import type { LeadListParams } from '@/types/lead';
-import type { DebtListParams } from '@/types/payment';
+import type { OutstandingParams } from '@/types/billing';
 import { formatDateTime, formatMoney, formatNumber, formatPhone, formatRelativeTime } from '@/utils/format';
 import { LEAD_STATUS_LABELS, leadFullName } from '@/utils/leadLabels';
 import { CardLink, ListSkeleton, ProgressBar } from './parts';
@@ -28,7 +28,7 @@ const MANAGER_PERIODS: ReadonlyArray<{ value: ManagerPeriod; label: string }> = 
 ];
 
 const RECENT_LEADS: LeadListParams = { page: 1, limit: 6, sortBy: 'createdAt', sortOrder: 'desc' };
-const TOP_DEBTS: DebtListParams = { page: 1, limit: 6, sortBy: 'remaining', sortOrder: 'desc' };
+const TOP_DEBTS: OutstandingParams = { page: 1, limit: 6, sortBy: 'debt', sortOrder: 'desc' };
 
 /** Eng so'nggi qo'shilgan leadlar — leadlar ro'yxati API'sidan (xodim ko'ra oladiganlari) */
 export function RecentLeadsCard() {
@@ -69,9 +69,9 @@ export function RecentLeadsCard() {
   );
 }
 
-/** Eng katta qarzdorlar — qarzdorlik ro'yxati API'sidan */
+/** Eng katta qarzdorlar — muddati kelgan oy qarzlari bo'yicha (qarzdorlik sahifasi bilan bir xil) */
 export function OutstandingDebtsCard() {
-  const query = useQuery({ queryKey: queryKeys.debts.list(TOP_DEBTS), queryFn: () => debtsService.list(TOP_DEBTS) });
+  const query = useQuery({ queryKey: queryKeys.debts.outstanding(TOP_DEBTS), queryFn: () => billingService.outstanding(TOP_DEBTS) });
   return (
     <Card className="h-full">
       <CardHeader>
@@ -88,20 +88,22 @@ export function OutstandingDebtsCard() {
         ) : (
           <ul className="divide-y divide-border">
             {query.data.items.map((debt) => (
-              <li key={debt.studentId}>
-                <Link to={`/students/${debt.studentId}`} className="block px-5 py-3 outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">
+              <li key={debt.student.id}>
+                <Link to={`/students/${debt.student.id}`} className="block px-5 py-3 outline-none transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 truncate text-body font-medium text-fg">
-                      {debt.firstName} {debt.lastName}
+                      {debt.student.firstName} {debt.student.lastName}
                     </p>
-                    <p className="shrink-0 text-body font-medium text-danger tabular-nums">{formatMoney(debt.remaining)}</p>
+                    <p className="shrink-0 text-body font-medium text-danger tabular-nums">{formatMoney(debt.debt)}</p>
                   </div>
                   <p className="mt-0.5 truncate text-caption text-fg-muted">
-                    {debt.course.name}
-                    {debt.group ? ` · ${debt.group.name}` : ''}
+                    {debt.student.course.name}
+                    {debt.student.group ? ` · ${debt.student.group.name}` : ''}
                   </p>
-                  {debt.schedule && debt.schedule.overdueDays > 0 && (
-                    <p className="mt-0.5 text-caption text-warning">{formatNumber(debt.schedule.overdueDays)} kun kechikkan</p>
+                  {debt.overdueDays > 0 && (
+                    <p className="mt-0.5 text-caption text-warning">
+                      {formatNumber(debt.overdueDays)} kun kechikkan · {debt.months.length} oy
+                    </p>
                   )}
                 </Link>
               </li>

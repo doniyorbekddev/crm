@@ -9,6 +9,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import type {
   CreatePaymentInput,
   DeletePaymentInput,
+  ReallocatePaymentInput,
   RefundPaymentInput,
   PaymentListQuery,
   PaymentStatsQuery,
@@ -26,6 +27,8 @@ import { addDays, businessDateString, startOfBusinessDay } from '../utils/dates.
 import { commissionService } from './commission.service.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
 import { moneyUz } from '../utils/money.js';
+import { periodKeyOf } from '../utils/billingLedger.js';
+import { allocateRefund, paymentAllocationNet, planAllocations, writeAllocations } from './paymentAllocation.service.js';
 
 /** Daftardagi kategoriya nomi — moliyaviy panel shu nom bo'yicha ajratadi */
 const STUDENT_PAYMENT_CATEGORY = 'O‘quvchi to‘lovi';
@@ -72,6 +75,7 @@ const paymentSelect = {
       createdBy: { select: { id: true, firstName: true, lastName: true } },
     },
   },
+  allocations: { where: { voidedAt: null }, select: { periodYear: true, periodMonth: true, amount: true } },
 } satisfies Prisma.PaymentSelect;
 
 export function formatRefundNumber(value: number): string {
@@ -115,6 +119,10 @@ export interface PaymentDto {
     reason: string;
     createdBy: { id: string; firstName: string; lastName: string } | null;
   }>;
+  /** Qaysi oy(lar) uchun (sof — qaytarishlar ayrilgan). Bo'sh — eski to'lov, oylarga muddat tartibida tushgan */
+  allocations: Array<{ period: string; amount: number }>;
+  /** Hech qaysi oyga biriktirilmagan qism (eski to'lov yoki jadval sig'imidan ortgan) */
+  unallocatedAmount: number;
 }
 
 export interface PaymentStatsDto {
@@ -157,7 +165,23 @@ function toPaymentDto(payment: PaymentRecord): PaymentDto {
       reason: refund.reason,
       createdBy: refund.createdBy,
     })),
+    ...allocationSummary(payment),
   };
+}
+
+function allocationSummary(payment: PaymentRecord): Pick<PaymentDto, 'allocations' | 'unallocatedAmount'> {
+  const byPeriod = new Map<string, number>();
+  for (const row of payment.allocations) {
+    const key = periodKeyOf(row.periodYear, row.periodMonth);
+    byPeriod.set(key, (byPeriod.get(key) ?? 0) + row.amount.toNumber());
+  }
+  const allocations = [...byPeriod]
+    .filter(([, amount]) => amount > 0)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([period, amount]) => ({ period, amount }));
+  const net = payment.amount.toNumber() - payment.refunds.reduce((sum, refund) => sum + refund.amount.toNumber(), 0);
+  const allocated = allocations.reduce((sum, item) => sum + item.amount, 0);
+  return { allocations, unallocatedAmount: Math.max(net - allocated, 0) };
 }
 
 /** "2026-10-01" → shu kun boshlanishi / ertangi kun boshlanishi (UTC) */
@@ -439,6 +463,9 @@ export const paymentService = {
         ]);
       }
 
+      // Oy(lar)ga taqsimot — qarz qatori qulfi ostida, sig'im va yig'indi tekshiriladi
+      const allocationPlan = await planAllocations(tx, student.id, input.amount, input.allocations);
+
       const paymentDay = startOfBusinessDay(input.paidAt ?? new Date());
       const recent = await tx.payment.findFirst({
         where: {
@@ -495,6 +522,11 @@ export const paymentService = {
         branchId: student.branchId,
       });
       await tx.payment.update({ where: { id: payment.id }, data: { transactionId: transaction.id } });
+      await writeAllocations(
+        tx,
+        { paymentId: payment.id, studentId: student.id, effectiveAt: payment.paidAt, createdById: actor?.id ?? null },
+        allocationPlan,
+      );
       await commissionService.accrueForPayment(
         tx,
         { id: payment.id, studentId: student.id, amount: input.amount, paidAt: payment.paidAt, teacherId: payment.teacherId },
@@ -527,6 +559,8 @@ export const paymentService = {
           amount: input.amount,
           method: input.method,
           remaining,
+          allocations: allocationPlan.map((item) => ({ period: item.key, amount: item.amount })),
+          allocationMode: input.allocations ? 'manual' : 'auto',
           // Foydalanuvchi takror ogohlantirishini ko'rib, alohida to'lov ekanini tasdiqlagan
           ...(duplicateOf ? { duplicateOf } : {}),
         },
@@ -701,6 +735,16 @@ export const paymentService = {
         select: { id: true, number: true },
       });
       await tx.transaction.update({ where: { id: transaction.id }, data: { entityId: refund.id } });
+      // Oylar taqsimoti: avval biriktirilmagan qism, keyin shu to'lovning eng kech oyi
+      const refundAllocations = await allocateRefund(tx, {
+        paymentId: id,
+        studentId: payment.studentId,
+        refundId: refund.id,
+        amount: input.amount,
+        netBefore: payment.amount.toNumber() - refundedBefore,
+        refundedAt,
+        createdById: actor?.id ?? null,
+      });
 
       const { remaining } = await recalculateDebt(tx, payment.studentId);
       await commissionService.reverseForRefund(
@@ -726,6 +770,58 @@ export const paymentService = {
           reason: input.reason,
           refundedTotal: refundedBefore + input.amount,
           remaining,
+          allocations: refundAllocations.map((item) => ({ period: item.key, amount: item.amount })),
+        },
+        ...client,
+      });
+    });
+
+    return loadPaymentDto(id);
+  },
+
+  /**
+   * To'lov taqsimotini tuzatish (operator noto'g'ri oy tanlagan bo'lsa). Kassa va to'lov sanasi o'zgarmaydi — faqat
+   * qaysi oy uchun ekanligi. Eski qatorlar o'chirilmaydi (`voidedAt`), yangilari hozirgi paytdan kuchga kiradi —
+   * o'tgan sana holatidagi hisobotlar o'zgarmaydi. Qaytarilgan to'lovda va yopilgan oy to'lovida mumkin emas.
+   */
+  async reallocate(actor: AuthUser, id: string, input: ReallocatePaymentInput, client: ClientInfo): Promise<PaymentDto> {
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      select: { id: true, number: true, studentId: true, amount: true, paidAt: true, deletedAt: true, branchId: true },
+    });
+    if (!payment) {
+      throw AppError.notFound('To‘lov topilmadi');
+    }
+    assertBranchAccess(await getBranchAccess(actor), payment.branchId);
+    if (payment.deletedAt) {
+      throw AppError.conflict('Bekor qilingan to‘lov taqsimotini o‘zgartirib bo‘lmaydi');
+    }
+    await assertFinancialPeriodOpen(prisma, payment.paidAt);
+
+    await prisma.$transaction(async (tx) => {
+      await lockPaymentForChange(tx, { id, studentId: payment.studentId });
+      if ((await tx.paymentRefund.count({ where: { paymentId: id } })) > 0) {
+        throw AppError.conflict('To‘lovning bir qismi qaytarilgan — taqsimotini o‘zgartirib bo‘lmaydi');
+      }
+      const before = await paymentAllocationNet(tx, id);
+      const now = new Date();
+      // Eski taqsimot bekor belgilanadi (o'chirilmaydi); sig'im shu to'lovsiz hisoblanadi
+      await tx.paymentAllocation.updateMany({ where: { paymentId: id, voidedAt: null }, data: { voidedAt: now, voidedById: actor.id } });
+      const plan = await planAllocations(tx, payment.studentId, payment.amount.toNumber(), input.allocations, {
+        id,
+        net: payment.amount.toNumber(),
+      });
+      await writeAllocations(tx, { paymentId: id, studentId: payment.studentId, effectiveAt: now, createdById: actor.id }, plan);
+      await auditService.recordInTransaction(tx, {
+        userId: actor.id,
+        action: 'payment.reallocated',
+        entityType: 'payment',
+        entityId: id,
+        metadata: {
+          receipt: formatPaymentNumber(payment.number),
+          before: [...before].filter(([, amount]) => amount > 0).map(([period, amount]) => ({ period, amount })),
+          after: plan.map((item) => ({ period: item.key, amount: item.amount })),
+          reason: input.reason,
         },
         ...client,
       });

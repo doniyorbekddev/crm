@@ -43,6 +43,10 @@ export const PERMISSIONS = {
   PAYMENT_CREATE: 'payment.create',
   PAYMENT_DELETE: 'payment.delete',
   PAYMENT_REFUND: 'payment.refund',
+  /** To'lovning oylarga taqsimotini tuzatish (sabab bilan, audit) */
+  PAYMENT_REALLOCATE: 'payment.reallocate',
+  /** Oy majburiyatini bekor qilish (masalan, ketgan o'quvchining kelgusi oylari) — shartnoma kamayadi */
+  PAYMENT_CANCEL_CHARGE: 'payment.cancel_charge',
 
   DEBT_VIEW: 'debt.view',
 
@@ -211,6 +215,12 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: PERMISSIONS.PAYMENT_CREATE, module: 'payments', description: 'To‘lov qabul qilish' },
   { key: PERMISSIONS.PAYMENT_DELETE, module: 'payments', description: 'To‘lovni bekor qilish' },
   { key: PERMISSIONS.PAYMENT_REFUND, module: 'payments', description: 'To‘lovni (qisman) qaytarish' },
+  { key: PERMISSIONS.PAYMENT_REALLOCATE, module: 'payments', description: 'To‘lovning oylarga taqsimotini tuzatish (sabab bilan)' },
+  {
+    key: PERMISSIONS.PAYMENT_CANCEL_CHARGE,
+    module: 'payments',
+    description: 'Oy to‘lov majburiyatini bekor qilish (shartnoma summasi kamayadi, sabab bilan)',
+  },
 
   { key: PERMISSIONS.DEBT_VIEW, module: 'debts', description: 'Qarzdorlikni ko‘rish' },
 
@@ -412,6 +422,7 @@ const ADMIN_EXCLUDED: readonly PermissionKey[] = [
   // Oyni qulflash va yopilgan oy davomatini tuzatish — tarixiy hisobotni o'zgartiradi (qaror 3)
   PERMISSIONS.FINANCE_LOCK,
   PERMISSIONS.ATTENDANCE_CORRECT_CLOSED,
+  PERMISSIONS.PAYMENT_CANCEL_CHARGE,
   // Katta xarajatni tasdiqlash — faqat Owner / Super Admin
   PERMISSIONS.EXPENSE_APPROVE,
   // Ogohlantirish chegaralarini sozlash — faqat Owner / Super Admin
@@ -554,6 +565,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
       PERMISSIONS.PAYMENT_CREATE,
       PERMISSIONS.PAYMENT_DELETE,
       PERMISSIONS.PAYMENT_REFUND,
+      PERMISSIONS.PAYMENT_REALLOCATE,
       PERMISSIONS.FINANCE_CLOSE,
       PERMISSIONS.DEBT_VIEW,
       PERMISSIONS.REPORT_VIEW,
