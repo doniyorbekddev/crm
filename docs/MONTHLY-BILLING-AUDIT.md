@@ -137,6 +137,9 @@ Spetsifikatsiya testlari: `backend/tests/monthlyBilling.test.ts` (12 holat 6 tes
 - Moliya sahifasi umumiy oy tanlagichiga ulandi (`?period=` — Panel, Foyda-zarar, Daftar, Oylik hisob bir oyni ko'radi; qo'lda sana oralig'i
   tanlansa oy tanlovi bekor bo'ladi).
 
+- "Muddati kelgan qarzlar" ga ham oy tanlagichi: o'tgan oy tanlansa — o'sha oy oxiridagi holat (`/debts/outstanding?period=`), kim qaysi
+  oylardan qarzdor edi; to'lov oynasida muddati o'tgan oylar "qarz" belgisi bilan.
+
 **Qolganlar / cheklovlar**
 - Direktor paneli, To'lov xulosasi va oy oxiri snapshoti hali shartnoma qoldig'ini qarz deb ko'rsatadi (snapshot jadvali shunday tuzilgan).
 - Production'dagi 26 ta jadval ≠ shartnoma avtomatik tuzatilmadi — profilda "Qayta tuzish" bilan (biriktirilgan oylar saqlanadi).

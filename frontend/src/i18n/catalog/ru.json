@@ -5783,7 +5783,21 @@
 "Shartnoma balansi": "Баланс договора",
 "Shartnomaning hali muddati kelmagan qismi": "Часть договора, срок которой ещё не наступил",
 "/ to‘lov": "/ платёж",
-"kun kechikkan ·": "дн. просрочки ·"
+"kun kechikkan ·": "дн. просрочки ·",
+"· avtomatik": "· автоматически",
+"Avtomatik belgilash qiymati noto‘g‘ri": "Неверное значение автоматической отметки",
+"Avtomatik davomat": "Автоматическая посещаемость",
+"Avtomatik davomat yozilmadi": "Автоматическая отметка не записана",
+"Har dars kuni birinchi darsdan oldin “keldi”, oxirgi dars tugaganda “ketdi” tizim o‘zi yozadi. Bekor qilingan dars, bayram va ruxsat kunlari yozilmaydi.": "В каждый учебный день система сама отмечает «пришёл» перед первым уроком и «ушёл» после окончания последнего. Отменённые уроки, праздники и дни отгулов не отмечаются.",
+"holati: shu kungacha muddati kelgan va to‘lanmagan oylar. Keyin kelgan to‘lovlar hisobga olinmagan.": "— состояние: месяцы, срок которых наступил к этому дню и не оплачены. Последующие платежи не учитываются.",
+"Ish kunlari boshlanish vaqtida “keldi”, tugash vaqtida “ketdi” tizim o‘zi yozadi. Bayram, dam olish va ruxsat kunlari yozilmaydi.": "В рабочие дни система сама отмечает «пришёл» во время начала и «ушёл» во время окончания. Праздники, выходные и дни отгулов не отмечаются.",
+"qarz": "долг",
+"QR skanerlansa — QR vaqti olinadi; kelmagan kunni rahbar tuzatish bilan bekor qiladi.": "Если отсканирован QR — берётся время QR; день отсутствия руководитель отменяет исправлением.",
+"Barcha o‘qituvchilarga qo‘llash": "Применить ко всем учителям",
+"Har dars kuni birinchi darsdan 15 daqiqa oldin “keldi”, oxirgi dars tugaganda “ketdi”. Belgilangan soatli jadvali bor o‘qituvchilarga tegilmaydi.": "В каждый учебный день «пришёл» — за 15 минут до первого урока, «ушёл» — по окончании последнего. Учителей с фиксированным графиком это не затрагивает.",
+"Har o‘qituvchiga bugundan “dars jadvali bo‘yicha, avtomatik” jadval saqlanadi (eski kunlar o‘zgarmaydi). Belgilangan soatli jadvali borlar tegilmaydi.": "Каждому учителю с сегодняшнего дня сохраняется график «по расписанию уроков, автоматически» (прошлые дни не меняются). Учителей с фиксированным графиком это не затрагивает.",
+"Qo‘llash": "Применить",
+"O‘qituvchilar — dars jadvali bo‘yicha avtomatik davomat": "Учителя — автоматическая посещаемость по расписанию уроков"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -6486,6 +6500,9 @@
 "qoldiq {0}": "остаток {0}",
 "Qoldiq {0}": "Остаток {0}",
 "{0} ta qarzdor · {1} ta muddati kelmagan ({2})": "должников: {0} · срок не наступил: {1} ({2})",
-"{0} ta qarzdor · shartnoma qoldig‘i {1}": "должников: {0} · остаток по договорам {1}"
+"{0} ta qarzdor · shartnoma qoldig‘i {1}": "должников: {0} · остаток по договорам {1}",
+"Dars jadvali bo‘yicha (darsdan {0} daq oldin){1}": "По расписанию уроков (за {0} мин до урока){1}",
+"({0} tasida belgilangan soatli jadval bor — tegilmadi)": "(у {0} фиксированный график — не изменено)",
+"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "График по расписанию уроков сохранён для учителей: {0}{1}"
 }
 }

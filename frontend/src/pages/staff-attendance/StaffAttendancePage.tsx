@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
@@ -444,18 +445,49 @@ function SchedulesTab({ canManage, rows, loading, error, onRetry }: { canManage:
     onError: onFail,
   });
   const removeException = useMutation({ mutationFn: staffAttendanceService.removeException, onSuccess: onDone, onError: onFail });
+  const [confirmLessons, setConfirmLessons] = useState(false);
+  const applyLessons = useMutation({
+    mutationFn: () => staffAttendanceService.applyTeacherLessonSchedules({ autoMark: true, lessonLeadMinutes: 15 }),
+    onSuccess: (response) => (onDone(response), setConfirmLessons(false)),
+    onError: onFail,
+  });
   const scheduleText = (row: ScheduleRow) => {
     const schedule = row.schedule;
     if (!schedule) return 'Belgilanmagan — kelish kutilmaydi';
-    if (schedule.mode === 'LESSONS') return `Dars jadvali bo‘yicha (darsdan ${schedule.lessonLeadMinutes} daq oldin)`;
+    const auto = schedule.autoMark ? ' · avtomatik' : '';
+    if (schedule.mode === 'LESSONS') return `Dars jadvali bo‘yicha (darsdan ${schedule.lessonLeadMinutes} daq oldin)${auto}`;
     const days = WEEK_DAY_SHORT.filter((day) => schedule.workDays.includes(day.key))
       .map((day) => day.label)
       .join(', ');
-    return `${days} · ${schedule.startTime}–${schedule.endTime}`;
+    return `${days} · ${schedule.startTime}–${schedule.endTime}${auto}`;
   };
 
   return (
     <div className="space-y-6">
+      {canManage && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="text-label font-semibold text-fg">O‘qituvchilar — dars jadvali bo‘yicha avtomatik davomat</p>
+            <p className="text-caption text-fg-muted">
+              Har dars kuni birinchi darsdan 15 daqiqa oldin “keldi”, oxirgi dars tugaganda “ketdi”. Belgilangan soatli jadvali bor o‘qituvchilarga
+              tegilmaydi.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => setConfirmLessons(true)}>
+            Barcha o‘qituvchilarga qo‘llash
+          </Button>
+        </Card>
+      )}
+      <ConfirmDialog
+        open={confirmLessons}
+        title="Barcha o‘qituvchilarga qo‘llash"
+        description="Har o‘qituvchiga bugundan “dars jadvali bo‘yicha, avtomatik” jadval saqlanadi (eski kunlar o‘zgarmaydi). Belgilangan soatli jadvali borlar tegilmaydi."
+        confirmLabel="Qo‘llash"
+        tone="primary"
+        loading={applyLessons.isPending}
+        onConfirm={() => applyLessons.mutate()}
+        onCancel={() => setConfirmLessons(false)}
+      />
       <Card>
         {error ? (
           <ErrorState error={error} onRetry={onRetry} />

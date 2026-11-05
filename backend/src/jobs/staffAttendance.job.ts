@@ -2,6 +2,7 @@ import { prisma } from '../config/database.js';
 import { notificationService } from '../services/notification.service.js';
 import type { NotificationInput } from '../services/notification.service.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
+import { recordAutoAttendance } from '../services/staffAttendance/auto.service.js';
 import { attendanceManagers, clockTime, fullName, toDateString } from '../services/staffAttendance/common.js';
 import { loadPlanner, loadSubjects } from '../services/staffAttendance/planning.js';
 import { businessDateString } from '../utils/dates.js';
@@ -16,6 +17,7 @@ const MISSING_CHECKOUT_AFTER = '22:00';
 
 /**
  * Xodim davomati bo'yicha fon tekshiruvi (har 5 daqiqada):
+ *  - **avtomatik davomat**: jadvalida `autoMark` yoqilganlarga "keldi"/"ketdi" (`recordAutoAttendance`) — ogohlantirishlardan oldin;
  *  - **chiqish belgilanmagan**: kech soat 22:00 dan keyin (yoki keyingi kuni) xodimga va rahbarlarga bir marta;
  *  - **kelmagan**: ish boshlanishi + `absentAfterMinutes` o'tib ham kelmagan, sababsiz — rahbarlarga bir marta.
  * Takrorlanmasligi kun yozuvidagi belgi (`…NotifiedAt`) bilan, shartli yangilash orqali kafolatlanadi.
@@ -124,8 +126,10 @@ async function runOnce(): Promise<void> {
   try {
     await withJobLease('staffAttendance', async () => {
       const now = new Date();
+      const auto = await recordAutoAttendance(now);
       const missing = await notifyMissingCheckouts(now);
       const absent = await notifyAbsences(now);
+      if (auto.checkIns > 0 || auto.checkOuts > 0) logger.info(auto, 'Avtomatik davomat yozildi');
       if (missing > 0 || absent > 0) logger.info({ missing, absent }, 'Xodim davomati ogohlantirishlari yuborildi');
     });
     reportJobSuccess('staffAttendance');

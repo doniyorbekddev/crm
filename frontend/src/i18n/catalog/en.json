@@ -5748,7 +5748,21 @@
 "Shartnoma balansi": "Contract balance",
 "Shartnomaning hali muddati kelmagan qismi": "The part of the contract that is not yet due",
 "/ to‘lov": "/ payment",
-"kun kechikkan ·": "days overdue ·"
+"kun kechikkan ·": "days overdue ·",
+"· avtomatik": "· automatic",
+"Avtomatik belgilash qiymati noto‘g‘ri": "Invalid automatic marking value",
+"Avtomatik davomat": "Automatic attendance",
+"Avtomatik davomat yozilmadi": "Automatic attendance was not recorded",
+"Har dars kuni birinchi darsdan oldin “keldi”, oxirgi dars tugaganda “ketdi” tizim o‘zi yozadi. Bekor qilingan dars, bayram va ruxsat kunlari yozilmaydi.": "On each teaching day the system records \"arrived\" before the first lesson and \"left\" when the last lesson ends. Cancelled lessons, holidays and approved days off are skipped.",
+"holati: shu kungacha muddati kelgan va to‘lanmagan oylar. Keyin kelgan to‘lovlar hisobga olinmagan.": "status: months due by this day and unpaid. Later payments are not included.",
+"Ish kunlari boshlanish vaqtida “keldi”, tugash vaqtida “ketdi” tizim o‘zi yozadi. Bayram, dam olish va ruxsat kunlari yozilmaydi.": "On working days the system records \"arrived\" at the start time and \"left\" at the end time. Holidays, days off and approved absences are skipped.",
+"qarz": "debt",
+"QR skanerlansa — QR vaqti olinadi; kelmagan kunni rahbar tuzatish bilan bekor qiladi.": "If a QR code is scanned, the QR time is used; a manager cancels an absent day with a correction.",
+"Barcha o‘qituvchilarga qo‘llash": "Apply to all teachers",
+"Har dars kuni birinchi darsdan 15 daqiqa oldin “keldi”, oxirgi dars tugaganda “ketdi”. Belgilangan soatli jadvali bor o‘qituvchilarga tegilmaydi.": "On each teaching day \"arrived\" is 15 minutes before the first lesson and \"left\" is when the last lesson ends. Teachers with a fixed-hours schedule are not changed.",
+"Har o‘qituvchiga bugundan “dars jadvali bo‘yicha, avtomatik” jadval saqlanadi (eski kunlar o‘zgarmaydi). Belgilangan soatli jadvali borlar tegilmaydi.": "Each teacher gets a \"by lesson schedule, automatic\" schedule from today (past days do not change). Teachers with a fixed-hours schedule are not changed.",
+"Qo‘llash": "Apply",
+"O‘qituvchilar — dars jadvali bo‘yicha avtomatik davomat": "Teachers — automatic attendance by lesson schedule"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -6450,6 +6464,9 @@
 "qoldiq {0}": "remaining {0}",
 "Qoldiq {0}": "Remaining {0}",
 "{0} ta qarzdor · {1} ta muddati kelmagan ({2})": "{0} debtors · {1} not yet due ({2})",
-"{0} ta qarzdor · shartnoma qoldig‘i {1}": "{0} debtors · contract balance {1}"
+"{0} ta qarzdor · shartnoma qoldig‘i {1}": "{0} debtors · contract balance {1}",
+"Dars jadvali bo‘yicha (darsdan {0} daq oldin){1}": "By lesson schedule ({0} min before the lesson){1}",
+"({0} tasida belgilangan soatli jadval bor — tegilmadi)": "({0} have a fixed-hours schedule — not changed)",
+"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "Lesson-based schedule saved for {0} teachers{1}"
 }
 }

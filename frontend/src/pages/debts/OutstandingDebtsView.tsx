@@ -2,12 +2,15 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { HandCoins, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ReportingPeriodPicker } from '@/components/ReportingPeriodPicker';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable } from '@/components/ui/DataTable';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Select } from '@/components/ui/Select';
 import { StatCard } from '@/components/ui/StatCard';
 import { useDebounce } from '@/hooks/useDebounce';
+import { periodKey, useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { queryKeys } from '@/lib/queryKeys';
 import { billingService } from '@/services/billing.service';
@@ -26,17 +29,35 @@ const SORT_OPTIONS = [
   { value: 'name:asc', label: 'Ism (A–Z)' },
 ] as const;
 
-/** B. Barcha oylardan qolgan, muddati kelgan qarzlar (shartnomaning hali kelmagan qismi — alohida) */
+/**
+ * B. Barcha oylardan qolgan, muddati kelgan qarzlar (shartnomaning hali kelmagan qismi — alohida). O'tgan oy tanlansa —
+ * o'sha oy oxiridagi holat: kim qaysi oylardan qarzdor edi (keyingi to'lovlar ta'sir qilmaydi).
+ */
 export function OutstandingDebtsView() {
+  const { period, isCurrent } = useReportingPeriod();
   const [filters, setFilters] = useState<BillingFilterState>(EMPTY_BILLING_FILTERS);
   const search = useDebounce(filters.search.trim(), 400);
   const [sort, setSort] = useState<string>('debt:desc');
   const [page, setPage] = useState(1);
+  const [seenPeriod, setSeenPeriod] = useState(periodKey(period));
   const { actions, modals } = useBillingRowActions();
+
+  // Oy almashganda birinchi sahifaga qaytiladi (effektsiz — render paytida)
+  if (seenPeriod !== periodKey(period)) {
+    setSeenPeriod(periodKey(period));
+    setPage(1);
+  }
   const density = useTableDensity();
 
   const [sortBy, sortOrder] = sort.split(':') as [OutstandingParams['sortBy'], OutstandingParams['sortOrder']];
-  const params: OutstandingParams = { ...toBillingParams(filters, search), sortBy, sortOrder, page, limit: PAGE_SIZE };
+  const params: OutstandingParams = {
+    ...toBillingParams(filters, search),
+    ...(isCurrent ? {} : { period: periodKey(period) }),
+    sortBy,
+    sortOrder,
+    page,
+    limit: PAGE_SIZE,
+  };
   const query = useQuery({ queryKey: queryKeys.debts.outstanding(params), queryFn: () => billingService.outstanding(params), placeholderData: keepPreviousData });
   const summary = query.data?.summary;
 
@@ -113,6 +134,14 @@ export function OutstandingDebtsView() {
 
   return (
     <>
+      <div className="mb-4">
+        <ReportingPeriodPicker />
+      </div>
+      {summary?.historical && (
+        <Alert tone="info" className="mb-4">
+          {formatDate(summary.asOfDate)} holati: shu kungacha muddati kelgan va to‘lanmagan oylar. Keyin kelgan to‘lovlar hisobga olinmagan.
+        </Alert>
+      )}
       {summary && (
         <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <StatCard size="sm" title="Muddati kelgan qarz" value={formatMoney(summary.debt)} valueTone={summary.debt > 0 ? 'danger' : 'default'} description={`${formatNumber(summary.students)} ta o‘quvchi`} />

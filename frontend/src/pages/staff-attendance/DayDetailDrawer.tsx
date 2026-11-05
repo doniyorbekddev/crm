@@ -19,7 +19,16 @@ import { staffAttendanceService } from '@/services/staffAttendance.service';
 import type { CorrectionInput, StaffAction } from '@/types/staffAttendance';
 import { formatDateTime } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
-import { displayDate, REQUEST_STATUS_LABELS, REQUEST_STATUS_TONES, REQUEST_TYPE_LABELS, shortDuration, STAFF_EVENT_LABELS, tashkentTime } from '@/utils/staffAttendanceLabels';
+import {
+  displayDate,
+  EVENT_SOURCE_LABELS,
+  REQUEST_STATUS_LABELS,
+  REQUEST_STATUS_TONES,
+  REQUEST_TYPE_LABELS,
+  shortDuration,
+  STAFF_EVENT_LABELS,
+  tashkentTime,
+} from '@/utils/staffAttendanceLabels';
 import { planText, StaffStatusBadge } from './StaffStatus';
 
 type CorrectionKind = CorrectionInput['action'];
@@ -110,7 +119,7 @@ export function DayDetailDrawer({ userId, date, onClose }: { userId: string; dat
                       <span className="font-semibold tabular-nums">{event.time}</span> — {STAFF_EVENT_LABELS[event.type]}
                     </span>
                     <span className="flex flex-wrap items-center gap-1">
-                      <Badge tone={event.source === 'QR' ? 'info' : 'accent'}>{event.source === 'QR' ? 'QR' : 'Tuzatish'}</Badge>
+                      <Badge tone={event.source === 'QR' ? 'info' : event.source === 'AUTO' ? 'neutral' : 'accent'}>{EVENT_SOURCE_LABELS[event.source]}</Badge>
                       {event.voided && <Badge tone="neutral">bekor qilingan</Badge>}
                       {event.fromOwnDisplay && (
                         <Badge tone="warning" title="QR ekranini xodimning o‘zi ochgan — tekshirib qo‘ying">

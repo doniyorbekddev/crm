@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -26,6 +27,7 @@ export function ScheduleModal({ row, onClose, onSaved }: { row: ScheduleRow; onC
   const [graceMinutes, setGraceMinutes] = useState(String(current?.graceMinutes ?? 10));
   const [absentAfterMinutes, setAbsentAfterMinutes] = useState(String(current?.absentAfterMinutes ?? 120));
   const [lessonLeadMinutes, setLessonLeadMinutes] = useState(String(current?.lessonLeadMinutes ?? 15));
+  const [autoMark, setAutoMark] = useState(current?.autoMark ?? false);
   const [effectiveFrom, setEffectiveFrom] = useState(tashkentDate());
 
   const save = useMutation({
@@ -38,6 +40,7 @@ export function ScheduleModal({ row, onClose, onSaved }: { row: ScheduleRow; onC
         graceMinutes: Number(graceMinutes) || 0,
         absentAfterMinutes: Number(absentAfterMinutes) || 0,
         lessonLeadMinutes: Number(lessonLeadMinutes) || 0,
+        autoMark,
         effectiveFrom,
       }),
     onSuccess: (response) => {
@@ -133,6 +136,16 @@ export function ScheduleModal({ row, onClose, onSaved }: { row: ScheduleRow; onC
         ) : (
           <div className="grid gap-4 sm:grid-cols-3">{number('lessonLeadMinutes', 'Darsdan oldin, daqiqa', lessonLeadMinutes, setLessonLeadMinutes, 'Shuncha oldin kelishi kerak')}</div>
         )}
+
+        <div className="rounded-card border border-border p-3">
+          <Checkbox label="Avtomatik davomat" checked={autoMark} onChange={(event) => setAutoMark(event.target.checked)} />
+          <p className="mt-1 text-caption text-fg-muted">
+            {mode === 'LESSONS'
+              ? 'Har dars kuni birinchi darsdan oldin “keldi”, oxirgi dars tugaganda “ketdi” tizim o‘zi yozadi. Bekor qilingan dars, bayram va ruxsat kunlari yozilmaydi.'
+              : 'Ish kunlari boshlanish vaqtida “keldi”, tugash vaqtida “ketdi” tizim o‘zi yozadi. Bayram, dam olish va ruxsat kunlari yozilmaydi.'}{' '}
+            QR skanerlansa — QR vaqti olinadi; kelmagan kunni rahbar tuzatish bilan bekor qiladi.
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           {number('graceMinutes', 'Kechikish imtiyozi, daqiqa', graceMinutes, setGraceMinutes, 'Shu daqiqagacha kechikish hisoblanmaydi')}

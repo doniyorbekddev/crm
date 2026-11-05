@@ -21,6 +21,7 @@ import {
   requestListQuerySchema,
   scanSchema,
   scheduleSchema,
+  teacherLessonSchedulesSchema,
   userDateParamsSchema,
   userParamsSchema,
   yearQuerySchema,
@@ -121,6 +122,14 @@ export const staffAttendanceController = {
     const input = scheduleSchema.parse(req.body);
     sendSuccess(res, await staffAttendanceAdminService.saveSchedule(requireAuthUser(req), userId, input, getClientInfo(req)), {
       message: 'Ish jadvali saqlandi',
+    });
+  },
+
+  async applyTeacherLessonSchedules(req: Request, res: Response): Promise<void> {
+    const input = teacherLessonSchedulesSchema.parse(req.body);
+    const result = await staffAttendanceAdminService.applyTeacherLessonSchedules(requireAuthUser(req), input, getClientInfo(req));
+    sendSuccess(res, result, {
+      message: `${result.applied} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi${result.skipped > 0 ? ` (${result.skipped} tasida belgilangan soatli jadval bor — tegilmadi)` : ''}`,
     });
   },
 

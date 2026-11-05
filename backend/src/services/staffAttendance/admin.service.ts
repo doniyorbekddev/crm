@@ -89,6 +89,7 @@ export interface ScheduleInput {
   graceMinutes: number;
   absentAfterMinutes: number;
   lessonLeadMinutes: number;
+  autoMark: boolean;
   effectiveFrom?: string | undefined;
   note?: string | undefined;
 }
@@ -309,6 +310,48 @@ export const staffAttendanceAdminService = {
     }));
   },
 
+  /**
+   * Barcha o'qituvchilarga (doiradagi, `kind = TEACHER`) dars jadvali bo'yicha jadval. Hozir belgilangan soatli (FIXED) jadvali
+   * borlar tegilmaydi — ofisda belgilangan soatda ishlaydigan o'qituvchi alohida qoladi. Har biri oddiy saqlash kabi auditga yoziladi.
+   */
+  async applyTeacherLessonSchedules(
+    actor: AuthUser,
+    input: { autoMark: boolean; lessonLeadMinutes: number; effectiveFrom?: string | undefined },
+    client: ClientInfo,
+    now: Date = new Date(),
+  ): Promise<{ applied: number; skipped: number }> {
+    const today = businessDateString(now);
+    const teachers = (await scopedSubjects(actor)).filter((subject) => subject.kind === 'TEACHER');
+    const planner = await loadPlanner(teachers, today, today);
+    let applied = 0;
+    let skipped = 0;
+    for (const teacher of teachers) {
+      const current = planner.schedule(teacher.id, today);
+      if (current?.mode === 'FIXED') {
+        skipped += 1;
+        continue;
+      }
+      await this.saveSchedule(
+        actor,
+        teacher.id,
+        {
+          mode: 'LESSONS',
+          workDays: [],
+          breakMinutes: current?.breakMinutes ?? 0,
+          graceMinutes: current?.graceMinutes ?? 10,
+          absentAfterMinutes: current?.absentAfterMinutes ?? 120,
+          lessonLeadMinutes: input.lessonLeadMinutes,
+          autoMark: input.autoMark,
+          effectiveFrom: input.effectiveFrom,
+        },
+        client,
+        now,
+      );
+      applied += 1;
+    }
+    return { applied, skipped };
+  },
+
   async saveSchedule(actor: AuthUser, userId: string, input: ScheduleInput, client: ClientInfo, now: Date = new Date()) {
     const subject = await scopedSubject(actor, userId);
     if (input.mode === 'FIXED') {
@@ -329,6 +372,7 @@ export const staffAttendanceAdminService = {
       graceMinutes: input.graceMinutes,
       absentAfterMinutes: input.absentAfterMinutes,
       lessonLeadMinutes: input.lessonLeadMinutes,
+      autoMark: input.autoMark,
       note: input.note ?? null,
     };
     return prisma.$transaction(async (tx) => {
@@ -346,7 +390,9 @@ export const staffAttendanceAdminService = {
         ip: client.ip,
         userAgent: client.userAgent,
         metadata: { userId: subject.id, effectiveFrom },
-        before: before ? { mode: before.mode, workDays: before.workDays, startTime: before.startTime, endTime: before.endTime, effectiveFrom: toDateString(before.effectiveFrom) } : {},
+        before: before
+          ? { mode: before.mode, workDays: before.workDays, startTime: before.startTime, endTime: before.endTime, autoMark: before.autoMark, effectiveFrom: toDateString(before.effectiveFrom) }
+          : {},
         after: { ...data, effectiveFrom },
       });
       return { id: saved.id, effectiveFrom };

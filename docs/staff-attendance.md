@@ -119,3 +119,17 @@ Davomat **faqat ma'lumot** uchun. Maosh formulalari, komissiya foizlari, tasdiql
 4. "Xodimlar davomati → Ish jadvallari" bo'limida har xodimga jadval belgilanadi: administrator va operatorlarga "Belgilangan soatlar", o'qituvchilarga "Dars jadvali bo'yicha". Jadvalsiz xodimdan kelish kutilmaydi.
 5. Xodim `Employee` yozuviga hisobi bog'langan bo'lishi kerak; o'qituvchida `TeacherProfile` bor. Shundan keyin xodim "Davomatim" sahifasida ko'rinadi.
 6. Bayram kunlari kiritiladi.
+
+## Avtomatik davomat (2026-11-05)
+
+Foydalanuvchi qarori: avtomatik, QR ixtiyoriy; Guli va Shodiya — dushanba–shanba 08:00–17:30; qolgan o'qituvchilar — dars jadvali
+bo'yicha, birinchi darsdan 15 daqiqa oldin "keldi", oxirgi dars tugaganda "ketdi".
+
+- Jadvalda `autoMark` (migratsiya `20261105090000_staff_auto_attendance`, hodisa manbasi `AUTO`). Jadval oynasida "Avtomatik davomat".
+- Fon vazifasi (har 5 daqiqa, `recordAutoAttendance`): reja (FIXED soatlari yoki LESSONS — birinchi dars − `lessonLeadMinutes`, oxirgi dars
+  tugashi) vaqti kelganda hodisa yoziladi. "Kech kelaman"/"erta ketaman" ruxsati — o'sha vaqt.
+- Yozilmaydi: dam olish kuni, bayram, "dam olish" istisnosi, ta'til, "kelmayman" ruxsati, bekor qilingan dars.
+- QR ustun: xodim skanerlagan (yoki rahbar tuzatgan) turdagi hodisa avtomatik yozilmaydi. Rahbar avtomatik hodisani bekor qilsa (VOID) —
+  qayta yozilmaydi. Tanaffusda qolgan yoki jadvaldan keyin QR hodisasi bo'lgan kun "ketdi" siz qoladi (tekshiruv).
+- O'tgan kunga yangi "keldi" yozilmaydi (yoqilganda tarix o'ylab topilmaydi); kechagi kun faqat "ketdi" bilan yopiladi.
+- Kun tafsilotida manba "Avtomatik" yorlig'i bilan ko'rinadi. Testlar: `backend/tests/staffAutoAttendance.test.ts`.

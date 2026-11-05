@@ -111,3 +111,10 @@ export function shiftDate(value: string, days: number): string {
 export function qrLink(origin: string, token: string): string {
   return `${origin}/my-attendance?qr=${encodeURIComponent(token)}`;
 }
+
+/** Davomat hodisasi qayerdan kelgani */
+export const EVENT_SOURCE_LABELS: Record<'QR' | 'CORRECTION' | 'AUTO', string> = {
+  QR: 'QR',
+  CORRECTION: 'Tuzatish',
+  AUTO: 'Avtomatik',
+};

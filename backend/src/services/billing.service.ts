@@ -210,6 +210,10 @@ export interface OutstandingDebtDto {
 }
 
 export interface OutstandingSummaryDto {
+  /** Qaysi kun holati ("2026-10-31" — o'tgan oy oxiri yoki bugun) */
+  asOfDate: string;
+  /** O'tgan oy oxiridagi holat ko'rsatilyaptimi */
+  historical: boolean;
   students: number;
   debt: number;
   upcoming: number;
@@ -384,12 +388,16 @@ export const billingService = {
     now: Date = new Date(),
   ): Promise<{ items: OutstandingDebtDto[]; total: number; summary: OutstandingSummaryDto }> {
     const { students, inputs } = await loadStudents(query, scope);
-    const today = businessDateString(now);
+    // O'tgan oy — o'sha oy oxiridagi holat: keyingi to'lovlar, bekor qilishlar va taqsimot tuzatishlari ta'sir qilmaydi
+    const asOf = query.period ? periodEndMoment(query.period, now) : null;
+    const today = businessDateString(asOf ?? now);
     const all = students
-      .map((student) => outstandingOf(student, ledgerOf(inputs.get(student.id)!), today))
+      .map((student) => outstandingOf(student, ledgerOf(inputs.get(student.id)!, asOf), today))
       .filter((row): row is OutstandingDebtDto => row !== null);
     const bucket = (rows: OutstandingDebtDto[]) => ({ students: rows.length, debt: sum(rows, (row) => row.debt) });
     const summary: OutstandingSummaryDto = {
+      asOfDate: today,
+      historical: asOf !== null,
       students: all.length,
       debt: sum(all, (row) => row.debt),
       upcoming: sum(all, (row) => row.upcoming),

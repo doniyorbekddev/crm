@@ -278,6 +278,8 @@ export interface ScheduleVersion {
   graceMinutes: number;
   absentAfterMinutes: number;
   lessonLeadMinutes: number;
+  /** Avtomatik davomat (yo'q bo'lsa — o'chiq) */
+  autoMark?: boolean;
 }
 
 export interface PlanContext {

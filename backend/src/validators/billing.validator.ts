@@ -33,6 +33,8 @@ export const monthlyDebtorsQuerySchema = paginationQuerySchema.extend({
 /** B. Barcha oylardan qolgan (muddati kelgan) qarzlar */
 export const outstandingDebtsQuerySchema = paginationQuerySchema.extend({
   ...billingFilter,
+  /** O'tgan oy berilsa — o'sha oy oxiridagi holat (berilmasa yoki joriy oy — bugungi holat) */
+  period: periodKey.optional(),
   sortBy: z.enum(['debt', 'oldest', 'name']).default('debt'),
 });
 

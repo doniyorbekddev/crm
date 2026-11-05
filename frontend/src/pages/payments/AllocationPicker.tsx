@@ -59,6 +59,18 @@ export function AllocationPicker({ studentId, amount, value, onChange, error, di
   if (scheduleQuery.isError) return null;
 
   const open = scheduleQuery.data.months.filter((month) => month.remaining > 0 && month.status !== 'CANCELLED');
+  // Muddati o'tgan (yoki bugun) to'lanmagan qismi bor oylar — qarz
+  const overdue = new Set(
+    scheduleQuery.data.installments
+      .filter((item) => (item.status === 'OVERDUE' || item.status === 'DUE_TODAY') && item.remaining > 0)
+      .map((item) => item.dueDate.slice(0, 7)),
+  );
+  const monthName = (key: string) => (
+    <span className="flex items-center gap-1.5 text-body text-fg">
+      {periodKeyLabel(key)}
+      {overdue.has(key) && <Badge tone="red">qarz</Badge>}
+    </span>
+  );
   const preview = previewAutoAllocation(
     open.map((month) => ({ key: month.key, remaining: month.remaining })),
     amount,
@@ -104,7 +116,7 @@ export function AllocationPicker({ studentId, amount, value, onChange, error, di
                   const closes = month !== undefined && item.amount >= month.remaining;
                   return (
                     <li key={item.key} className="flex items-center justify-between gap-2 text-body">
-                      <span className="text-fg">{periodKeyLabel(item.key)}</span>
+                      {monthName(item.key)}
                       <span className="flex items-center gap-2">
                         <span className="font-medium text-fg">{formatMoney(item.amount)}</span>
                         <Badge tone={closes ? 'green' : 'yellow'}>{closes ? 'yopiladi' : `qoldiq ${formatMoney((month?.remaining ?? 0) - item.amount)}`}</Badge>
@@ -118,7 +130,7 @@ export function AllocationPicker({ studentId, amount, value, onChange, error, di
             <div className="space-y-2">
               {open.map((month) => (
                 <div key={month.key} className="grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-[1fr_auto_10rem]">
-                  <span className="text-body text-fg">{periodKeyLabel(month.key)}</span>
+                  {monthName(month.key)}
                   <span className="text-caption text-fg-muted sm:text-right">qoldiq {formatMoney(month.remaining)}</span>
                   <CurrencyInput
                     aria-label={`${periodKeyLabel(month.key)} uchun summa`}

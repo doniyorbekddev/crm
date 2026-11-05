@@ -158,6 +158,7 @@ export async function loadPlanner(subjects: ReadonlyArray<Pick<StaffSubject, 'id
         graceMinutes: version.graceMinutes,
         absentAfterMinutes: version.absentAfterMinutes,
         lessonLeadMinutes: version.lessonLeadMinutes,
+        autoMark: version.autoMark,
         effectiveFrom: toDate(version.effectiveFrom),
       };
     },

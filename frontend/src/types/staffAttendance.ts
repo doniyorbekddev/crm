@@ -155,6 +155,8 @@ export interface StaffSchedule {
   graceMinutes: number;
   absentAfterMinutes: number;
   lessonLeadMinutes: number;
+  /** Jadval vaqti kelganda "keldi"/"ketdi" avtomatik yoziladi */
+  autoMark: boolean;
   effectiveFrom: string;
 }
 
@@ -176,6 +178,7 @@ export interface ScheduleInput {
   graceMinutes: number;
   absentAfterMinutes: number;
   lessonLeadMinutes: number;
+  autoMark: boolean;
   effectiveFrom?: string;
 }
 
@@ -184,7 +187,7 @@ export interface DayEvent {
   type: StaffAction;
   time: string;
   occurredAt: string;
-  source: 'QR' | 'CORRECTION';
+  source: 'QR' | 'CORRECTION' | 'AUTO';
   voided: boolean;
   recordedAt: string;
   ip: string | null;

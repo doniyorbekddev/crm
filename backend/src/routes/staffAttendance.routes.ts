@@ -42,6 +42,7 @@ staffAttendanceRouter.post('/requests/:id/decide', manage, controller.decideRequ
 staffAttendanceRouter.post('/users/:userId/requests', manage, controller.grantRequest);
 
 staffAttendanceRouter.get('/schedules', view, controller.schedules);
+staffAttendanceRouter.post('/schedules/teachers/lessons', manage, controller.applyTeacherLessonSchedules);
 staffAttendanceRouter.put('/schedules/:userId', manage, controller.saveSchedule);
 staffAttendanceRouter.get('/exceptions', view, controller.exceptions);
 staffAttendanceRouter.put('/schedules/:userId/exceptions', manage, controller.saveException);

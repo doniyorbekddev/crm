@@ -76,8 +76,17 @@ export const scheduleSchema = z.object({
   graceMinutes: minutes(120).default(10),
   absentAfterMinutes: minutes(720).default(120),
   lessonLeadMinutes: minutes(120).default(15),
+  /** Jadval vaqti kelganda "keldi"/"ketdi" avtomatik yoziladi */
+  autoMark: z.boolean('Avtomatik belgilash qiymati noto‘g‘ri').default(false),
   effectiveFrom: optionalField(dateSchema),
   note: optionalField(z.string().trim().max(255)),
+});
+
+/** Barcha o'qituvchilarga dars jadvali bo'yicha jadval (bir bosishda) */
+export const teacherLessonSchedulesSchema = z.object({
+  autoMark: z.boolean('Avtomatik belgilash qiymati noto‘g‘ri').default(true),
+  lessonLeadMinutes: minutes(120).default(15),
+  effectiveFrom: optionalField(dateSchema),
 });
 
 export const holidaySchema = z.object({

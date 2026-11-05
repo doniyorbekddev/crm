@@ -104,6 +104,11 @@ export const staffAttendanceService = {
     return (await api.put<ApiSuccessResponse<{ id: string; effectiveFrom: string }>>(`${BASE}/schedules/${userId}`, input)).data;
   },
 
+  /** Barcha o'qituvchilarga dars jadvali bo'yicha jadval (belgilangan soatli jadvali borlar tegilmaydi) */
+  async applyTeacherLessonSchedules(input: { autoMark: boolean; lessonLeadMinutes: number }): Promise<ApiSuccessResponse<{ applied: number; skipped: number }>> {
+    return (await api.post<ApiSuccessResponse<{ applied: number; skipped: number }>>(`${BASE}/schedules/teachers/lessons`, input)).data;
+  },
+
   async exceptions(from: string, to: string): Promise<ScheduleException[]> {
     return (await api.get<ApiSuccessResponse<ScheduleException[]>>(`${BASE}/exceptions`, { params: { from, to } })).data.data;
   },

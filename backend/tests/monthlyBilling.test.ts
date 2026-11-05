@@ -105,6 +105,15 @@ describe.skipIf(!hasTestDatabase)('Oylik moliyaviy davrlar va tarixiy qarzdorlik
     });
     expect((await monthly(accountant, P)).body.data.items).toHaveLength(0);
 
+    // O'tgan oy oxiridagi holat: to'lovdan keyin ham o'sha kuni qarzdor bo'lib ko'rinadi; bugun — faqat joriy oy
+    const lastMonthEnd = (await outstanding(accountant, { period: P })).body.data;
+    expect(lastMonthEnd.summary).toMatchObject({ historical: true, students: 1, debt: 600_000 });
+    expect(lastMonthEnd.items[0]).toMatchObject({ months: [{ period: P, remaining: 600_000 }] });
+    expect(lastMonthEnd.summary.asOfDate.slice(0, 7)).toBe(P);
+    const now = (await outstanding(accountant)).body.data;
+    expect(now.summary).toMatchObject({ historical: false, debt: 600_000 });
+    expect(now.items[0].months).toEqual([expect.objectContaining({ period: C, remaining: 600_000 })]);
+
     // 6. Joriy oy majburiyati o'zgarmadi
     expect(rowOf((await monthly(accountant, C)).body.data, aziz)).toMatchObject({ charge: 600_000, paid: 0, remaining: 600_000 });
 

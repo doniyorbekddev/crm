@@ -4325,6 +4325,8 @@ enum StaffAttendanceEventType {
 enum StaffAttendanceEventSource {
   QR
   CORRECTION
+  /// Jadval bo'yicha avtomatik (`StaffWorkSchedule.autoMark`)
+  AUTO
 }
 
 /// Kun holati (hodisalardan hisoblanadi, tez o'qish uchun saqlanadi)
@@ -4369,6 +4371,8 @@ model StaffWorkSchedule {
   absentAfterMinutes Int               @default(120) @db.SmallInt
   /// LESSONS: birinchi darsdan necha daqiqa oldin kelishi kerak
   lessonLeadMinutes  Int               @default(15) @db.SmallInt
+  /// Avtomatik davomat: jadval vaqti kelganda "keldi"/"ketdi" tizim o'zi yozadi (QR bo'lsa — QR vaqti)
+  autoMark           Boolean           @default(false)
   effectiveFrom      DateTime          @db.Date
   note               String?           @db.VarChar(255)
   createdById        String?

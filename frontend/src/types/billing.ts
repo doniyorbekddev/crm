@@ -71,6 +71,8 @@ export interface MonthlyDebtorsSummary {
 }
 
 export interface OutstandingParams extends BillingFilterParams {
+  /** O'tgan oy — o'sha oy oxiridagi holat */
+  period?: string;
   sortBy: 'debt' | 'oldest' | 'name';
   sortOrder: 'asc' | 'desc';
   page: number;
@@ -87,6 +89,8 @@ export interface OutstandingDebt {
 }
 
 export interface OutstandingSummary {
+  asOfDate: string;
+  historical: boolean;
   students: number;
   debt: number;
   upcoming: number;
