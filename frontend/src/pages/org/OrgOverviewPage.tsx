@@ -116,7 +116,12 @@ export default function OrgOverviewPage() {
             {data.payments && (
               <Widget icon={Wallet} title="To‘lovlar va qarzdorlik" link="/debts">
                 <Metric label="Shu oy tushum" value={formatMoney(data.payments.revenue)} />
-                <Metric label="Umumiy qarz" value={formatMoney(data.payments.totalDebt)} tone={data.payments.totalDebt ? 'warning' : undefined} />
+                <Metric
+                  label={`Muddati kelgan qarz · ${data.payments.dueDebtors} ta`}
+                  value={formatMoney(data.payments.dueDebt)}
+                  tone={data.payments.dueDebt ? 'warning' : undefined}
+                />
+                <Metric label="Shartnoma qoldig‘i" value={formatMoney(data.payments.totalDebt)} />
               </Widget>
             )}
             {data.payroll && (

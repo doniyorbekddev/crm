@@ -397,7 +397,8 @@ export interface OrgOverview {
   academic: { activeStudents: number; activeGroups: number; attendanceRate: number; newStudents: number; droppedStudents: number } | null;
   sales: { newLeads: number; wonLeads: number; conversionRate: number } | null;
   marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
-  payments: { revenue: number; totalDebt: number } | null;
+  /** `dueDebt` — muddati kelgan qarz; `totalDebt` — shartnoma qoldig'i */
+  payments: { revenue: number; totalDebt: number; dueDebt: number; dueDebtors: number } | null;
   payroll: { accrued: number; paid: number; remaining: number } | null;
   expenses: { total: number; pendingApprovals: number; overLimit: Array<{ name: string; spent: number; limit: number }> } | null;
   complaints: { open: number; newCount: number; overdue: number; escalated: number; critical: number } | null;

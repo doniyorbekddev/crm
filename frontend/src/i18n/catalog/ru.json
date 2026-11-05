@@ -6503,6 +6503,7 @@
 "{0} ta qarzdor · shartnoma qoldig‘i {1}": "должников: {0} · остаток по договорам {1}",
 "Dars jadvali bo‘yicha (darsdan {0} daq oldin){1}": "По расписанию уроков (за {0} мин до урока){1}",
 "({0} tasida belgilangan soatli jadval bor — tegilmadi)": "(у {0} фиксированный график — не изменено)",
-"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "График по расписанию уроков сохранён для учителей: {0}{1}"
+"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "График по расписанию уроков сохранён для учителей: {0}{1}",
+"Muddati kelgan qarz · {0} ta": "Наступивший долг · {0}"
 }
 }

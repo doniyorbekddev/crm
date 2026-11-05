@@ -32,6 +32,25 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     await prisma.complaint.create({ data: { source: 'PARENT', category: 'SAFETY', severity: 'CRITICAL', title: 'Jiddiy', description: 'Sinov', dueAt: new Date(Date.now() - 60_000) } });
     await prisma.complaint.create({ data: { source: 'STAFF', category: 'STAFF_CONFLICT', title: 'Maxfiy', description: 'Sinov', confidential: true } });
     await prisma.asset.create({ data: { inventoryNumber: 'A-1', name: 'Noutbuk', category: 'Kompyuter', purchaseCost: 5_000_000, status: 'UNDER_REPAIR' } });
+    // Qarz: 1 200 000 shartnoma, kecha muddati kelgan 400 000 qism — panelda qarz 400 000, shartnoma qoldig'i alohida
+    const course = await prisma.course.create({ data: { name: 'Qarz kursi', durationMonths: 3, price: 1_200_000, finalPrice: 1_200_000 } });
+    await prisma.student.create({
+      data: {
+        firstName: 'Qarzdor',
+        lastName: 'O‘quvchi',
+        phone: '+998901112233',
+        courseId: course.id,
+        contractPrice: 1_200_000,
+        startDate: new Date(Date.now() - 86_400_000),
+        debt: { create: { totalAmount: 1_200_000, remainingAmount: 1_200_000 } },
+        installments: {
+          create: [
+            { sequence: 1, dueDate: new Date(new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)), amount: 400_000 },
+            { sequence: 2, dueDate: new Date(new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10)), amount: 800_000 },
+          ],
+        },
+      },
+    });
 
     const full = (await request(app).get('/api/org/overview').set(bearer(owner))).body.data;
     for (const key of ['attendance', 'team', 'tasks', 'kpi', 'academic', 'sales', 'marketing', 'payments', 'payroll', 'expenses', 'complaints', 'assets', 'approvals']) {
@@ -40,6 +59,7 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(full.tasks).toMatchObject({ open: 1, review: 1, overdue: 1, overdueItems: [{ title: 'Kechikkan' }] });
     expect(full.complaints).toMatchObject({ open: 2, critical: 1, overdue: 1 });
     expect(full.assets).toMatchObject({ count: 1, value: 5_000_000, underRepair: 1 });
+    expect(full.payments).toMatchObject({ totalDebt: 1_200_000, dueDebt: 400_000, dueDebtors: 1 });
 
     const limited = (await request(app).get('/api/org/overview').set(bearer(accountant))).body.data;
     expect(limited.tasks).toBeNull();

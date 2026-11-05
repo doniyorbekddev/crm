@@ -1,3 +1,4 @@
+import { dueDebtTotals } from '../billingLedger.service.js';
 import { prisma } from '../../config/database.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import type { AuthUser } from '../../types/auth.js';
@@ -32,7 +33,8 @@ export interface OrgOverviewDto {
   academic: { activeStudents: number; activeGroups: number; attendanceRate: number; newStudents: number; droppedStudents: number } | null;
   sales: { newLeads: number; wonLeads: number; conversionRate: number } | null;
   marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
-  payments: { revenue: number; totalDebt: number } | null;
+  /** `dueDebt` — muddati kelgan, to'lanmagan oy majburiyatlari (qarz); `totalDebt` — shartnoma qoldig'i */
+  payments: { revenue: number; totalDebt: number; dueDebt: number; dueDebtors: number } | null;
   payroll: { accrued: number; paid: number; remaining: number } | null;
   expenses: { total: number; pendingApprovals: number; overLimit: Array<{ name: string; spent: number; limit: number }> } | null;
   complaints: { open: number; newCount: number; overdue: number; escalated: number; critical: number } | null;
@@ -59,6 +61,8 @@ export const orgOverviewService = {
     const monthFrom = `${today.slice(0, 8)}01`;
     // Direktor paneli bir marta yuklanadi — moliya, sotuv va akademik bloklar uchun
     const executive = has(PERMISSIONS.ANALYTICS_VIEW) ? await executiveService.summary({}, scope) : null;
+    // Qarz — qarzdorlik sahifasi bilan bir xil ma'noda: muddati kelgan, to'lanmagan oy majburiyatlari
+    const due = executive ? await dueDebtTotals(today, scope.branchId) : null;
 
     const [attendance, team, tasks, kpi, marketing, expenses, complaints, assets, approvals] = await Promise.all([
       safe(has(PERMISSIONS.STAFF_ATTENDANCE_VIEW), async () => {
@@ -188,7 +192,7 @@ export const orgOverviewService = {
         : null,
       sales: executive ? { newLeads: executive.month.newLeads, wonLeads: executive.month.wonLeads, conversionRate: executive.month.conversionRate } : null,
       marketing,
-      payments: executive ? { revenue: executive.month.revenue, totalDebt: executive.kpi.totalDebt } : null,
+      payments: executive ? { revenue: executive.month.revenue, totalDebt: executive.kpi.totalDebt, dueDebt: due?.total ?? 0, dueDebtors: due?.debtors ?? 0 } : null,
       payroll:
         executive && has(PERMISSIONS.SALARY_VIEW)
           ? { accrued: executive.month.salaryAccrued, paid: executive.month.salaryPaid, remaining: Math.max(executive.month.salaryAccrued - executive.month.salaryPaid, 0) }

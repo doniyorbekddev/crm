@@ -6467,6 +6467,7 @@
 "{0} ta qarzdor · shartnoma qoldig‘i {1}": "{0} debtors · contract balance {1}",
 "Dars jadvali bo‘yicha (darsdan {0} daq oldin){1}": "By lesson schedule ({0} min before the lesson){1}",
 "({0} tasida belgilangan soatli jadval bor — tegilmadi)": "({0} have a fixed-hours schedule — not changed)",
-"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "Lesson-based schedule saved for {0} teachers{1}"
+"{0} ta o‘qituvchiga dars jadvali bo‘yicha jadval saqlandi{1}": "Lesson-based schedule saved for {0} teachers{1}",
+"Muddati kelgan qarz · {0} ta": "Debt due · {0}"
 }
 }

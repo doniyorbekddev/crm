@@ -149,3 +149,17 @@ eski ruxsat bo'lgani uchun avtomatik qo'shilmaydi — Rollar sahifasida qo'lda y
 3. Guli (qabulxona) rolida `complaint.create`/`complaint.view` borligini tekshirish (Admin rolida bor).
 4. Lavozimlar katalogida karyera yo'llari (keyingi lavozim, eng kam KPI va muddat) va bo'limlarning oylik limitini kiritish.
 5. Bilimlar bazasiga lavozim yo'riqnomalari va ichki qoidalarni joylash ("tanishish majburiy" bilan).
+
+## 6. Texnik spetsifikatsiya bilan solishtirish (2026-11-05)
+
+`ORG-SYSTEM-TECHNICAL-SPECIFICATION.md` §4–§12 kod bilan qayta tekshirildi. Spetsifikatsiya "mos model bo'lsa — kengaytirish" deydi:
+Employee/User, Department, Position + PositionResponsibility, EmploymentHistory, KpiDefinition/KpiManualResult, maosh (mavjud payroll,
+tasdiqlash va qulflash), EmployeeLeave + StaffPermissionRequest, Task, Complaint(+Event), Asset(+Event), KnowledgeArticle(+Version,
+Acknowledgement), karyera (Position.nextPosition), audit log — hammasi mavjud. §9 bildirishnomalar (jumladan vazifa muddati yaqinlashdi,
+choraklik baholash vaqti) va Telegram yetkazish navbati (qayta urinish bilan) bor. §10 — Tashkilot panelida 14 vidjetning hammasi.
+
+Tuzatildi: Tashkilot panelidagi "To'lovlar va qarzdorlik" — qarz endi qarzdorlik sahifasi bilan bir xil ma'noda (muddati kelgan oy
+majburiyatlari, `payments.dueDebt`), shartnoma qoldig'i alohida qator.
+
+Farq: §5.8 `scope: own / department / all` umumiy maydon sifatida yo'q — filial doirasi, o'qituvchi o'z guruhlari va "o'zim" cheklovlari
+ishlaydi. Bo'lim rahbari faqat o'z bo'limini ko'rishi kerak bo'lsa — alohida biznes qarori bilan qo'shiladi.
