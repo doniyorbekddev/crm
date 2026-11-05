@@ -101,6 +101,10 @@ export async function handleTaskAction(context: BotContext, scope: CommandScope,
         const current = await taskService.getById(actor, arg);
         if (current.status === 'REVIEW' && !current.can.review) return showTask(context, actor, arg, 'ℹ️ Vazifa tekshiruvda — uni bergan xodim qabul qiladi.');
         if (!isActiveTask(current.status)) return showTask(context, actor, arg, 'ℹ️ Bu vazifa allaqachon yopilgan.');
+        // Dalil majburiy vazifa ijrochi tomonidan CRM'da (dalil bilan) topshiriladi
+        if (current.evidenceRequired && current.status !== 'REVIEW') {
+          return showTask(context, actor, arg, '📎 Bu vazifa uchun bajarilganlik dalili kerak — CRM’da “Vazifalar” bo‘limidan dalil bilan topshiring.');
+        }
         // Boshqa xodim bergan vazifada "bajarildi" — tekshiruvga topshirish
         const result = await taskService.update(actor, arg, { status: 'DONE' }, client);
         await showTask(context, actor, arg, result.status === 'REVIEW' ? '📤 Tekshiruvga topshirildi.' : '✅ Bajarildi deb belgilandi.');

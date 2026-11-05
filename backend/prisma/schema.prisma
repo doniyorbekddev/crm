@@ -3953,35 +3953,39 @@ enum TaskStatus {
 /// Xodim uchun ish: kim, nima, qachongacha. Qoida yaratgan bo'lsa `ruleId` va `dedupeKey` bor —
 /// bir holat uchun ikki marta yaratilmaydi.
 model Task {
-  id             String       @id @default(cuid())
-  title          String       @db.VarChar(200)
-  description    String?      @db.VarChar(2000)
-  status         TaskStatus   @default(OPEN)
-  assigneeId     String
-  dueAt          DateTime?
+  id                 String       @id @default(cuid())
+  title              String       @db.VarChar(200)
+  description        String?      @db.VarChar(2000)
+  status             TaskStatus   @default(OPEN)
+  assigneeId         String
+  dueAt              DateTime?
   /// Bog'liq ob'ekt: student / group / homework ...
-  entityType     String?      @db.VarChar(30)
-  entityId       String?      @db.VarChar(50)
+  entityType         String?      @db.VarChar(30)
+  entityId           String?      @db.VarChar(50)
   /// Web'da ochiladigan sahifa (masalan /students/<id>)
-  link           String?      @db.VarChar(200)
-  ruleId         String?
-  dedupeKey      String?      @unique @db.VarChar(200)
-  createdById    String?
-  completedAt    DateTime?
+  link               String?      @db.VarChar(200)
+  ruleId             String?
+  dedupeKey          String?      @unique @db.VarChar(200)
+  createdById        String?
+  completedAt        DateTime?
   /// Kutilgan natija — "bajarildi" qachon hisoblanishi (ORG §3.7)
-  expectedResult String?      @db.VarChar(1000)
+  expectedResult     String?      @db.VarChar(1000)
   /// Ijrochi tekshiruvga topshirgan vaqt
-  submittedAt    DateTime?
-  priority       TaskPriority @default(NORMAL)
+  submittedAt        DateTime?
+  /// Bajarilganlik dalili majburiy (ORG roadmap §5): ijrochi topshirishda izoh/havola yozadi
+  evidenceRequired   Boolean      @default(false)
+  /// Oxirgi topshirishdagi dalil (har biri izohlarda ham saqlanadi)
+  completionEvidence String?      @db.VarChar(2000)
+  priority           TaskPriority @default(NORMAL)
   /// Vazifa qayerdan paydo bo'lgan (qo'lda, qoida, ogohlantirish, bildirishnoma, eskalatsiya)
-  source         TaskSource   @default(MANUAL)
+  source             TaskSource   @default(MANUAL)
   /// Qaysi ogohlantirish / bildirishnomadan yaratilgan (bo'lsa)
-  alertId        String?
-  notificationId String?      @db.VarChar(50)
+  alertId            String?
+  notificationId     String?      @db.VarChar(50)
   /// Muddati o'tib, rahbarga ko'tarilgan vaqt (bir marta)
-  escalatedAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  escalatedAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   assignee      User             @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
   createdBy     User?            @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)

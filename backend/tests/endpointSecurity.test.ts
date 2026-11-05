@@ -135,6 +135,8 @@ const AUTH_ONLY = new Set([
   'GET /api/org/performance/me',
   // CEO paneli: har blok o'z ruxsati bilan — ruxsatsiz rolga barcha bloklar null (pastdagi orgOverview testi)
   'GET /api/org/overview',
+  // Umumiy kalendar — har bir xodimga (o'z filiali); sabablar faqat rahbarga (orgCalendar testi)
+  'GET /api/org/calendar',
   // Filial tanlash paneli: branch.view_all bo'lmasa — faqat o'z filiali
   'GET /api/branches',
   // Ruxsat hujjat bog'langan yozuvga qarab servisda (begona/yo'q hujjat — 404)

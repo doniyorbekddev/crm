@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { FormField, fieldErrorId } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -23,7 +24,7 @@ interface TaskFormModalProps {
   /** Standart `POST /tasks` o'rniga boshqa manba (masalan ogohlantirishdan vazifa) */
   submit?: (payload: TaskCreatePayload) => Promise<{ message: string }>;
   /** Berilsa — tahrirlash rejimi: sarlavha, tavsif, muddat va ustuvorlik o'zgartiriladi (ijrochi alohida biriktiriladi) */
-  task?: Pick<TaskItem, 'id' | 'title' | 'description' | 'dueAt' | 'priority' | 'expectedResult'>;
+  task?: Pick<TaskItem, 'id' | 'title' | 'description' | 'dueAt' | 'priority' | 'expectedResult'> & Partial<Pick<TaskItem, 'evidenceRequired'>>;
 }
 
 /** ISO vaqt → `datetime-local` qiymati (qurilma vaqti bo'yicha) */
@@ -42,6 +43,7 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
   const [title, setTitle] = useState(task?.title ?? initial?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? initial?.description ?? '');
   const [expectedResult, setExpectedResult] = useState(task?.expectedResult ?? '');
+  const [evidenceRequired, setEvidenceRequired] = useState(task?.evidenceRequired ?? false);
   const [assigneeId, setAssigneeId] = useState('');
   const [dueAt, setDueAt] = useState(toLocalInput(task?.dueAt));
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? initial?.priority ?? 'NORMAL');
@@ -59,6 +61,7 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
           description: payload.description ?? null,
           expectedResult: payload.expectedResult ?? null,
           dueAt: payload.dueAt ?? null,
+          ...(evidenceRequired !== (task.evidenceRequired ?? false) ? { evidenceRequired } : {}),
           ...(payload.priority ? { priority: payload.priority } : {}),
         });
       }
@@ -82,6 +85,7 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
       priority,
       ...(description.trim() ? { description: description.trim() } : {}),
       ...(expectedResult.trim() ? { expectedResult: expectedResult.trim() } : {}),
+      ...(evidenceRequired ? { evidenceRequired: true } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(dueAt ? { dueAt: new Date(dueAt).toISOString() } : {}),
       ...(initial?.link ? { link: initial.link } : {}),
@@ -124,6 +128,10 @@ export function TaskFormModal({ open, onClose, canAssign, initial, submit, task 
         <FormField label="Kutilgan natija" htmlFor="task-expected" hint="Vazifa qachon bajarilgan hisoblanadi">
           <Textarea id="task-expected" rows={2} maxLength={1000} value={expectedResult} onChange={(event) => setExpectedResult(event.target.value)} />
         </FormField>
+        <div>
+          <Checkbox label="Bajarilganlik dalili majburiy" checked={evidenceRequired} onChange={(event) => setEvidenceRequired(event.target.checked)} />
+          <p className="mt-1 text-caption text-fg-muted">Ijrochi topshirishda nima qilinganini va natija havolasini (fayl joyi, post, hujjat) yozadi.</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Muddat" htmlFor="task-due">
             <Input id="task-due" type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />

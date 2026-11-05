@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { digestService } from '../src/services/digest.service.js';
+import { groupUz } from '../src/utils/money.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 
@@ -60,6 +61,14 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(full.complaints).toMatchObject({ open: 2, critical: 1, overdue: 1 });
     expect(full.assets).toMatchObject({ count: 1, value: 5_000_000, underRepair: 1 });
     expect(full.payments).toMatchObject({ totalDebt: 1_200_000, dueDebt: 400_000, dueDebtors: 1 });
+    // Boshqaruv xulosasi: salbiylar oldin, har biri manba ko'rsatkichi va havola bilan
+    const keys = (full.summary as Array<{ key: string }>).map((item) => item.key);
+    expect(keys.slice(0, 3)).toEqual(['complaints_critical', 'tasks_overdue', 'due_debt']);
+    expect(full.summary.find((item: { key: string }) => item.key === 'due_debt')).toMatchObject({
+      tone: 'negative',
+      metric: { label: 'Muddati kelgan qarz', value: `${groupUz(400_000)} so‘m` },
+      link: '/debts',
+    });
 
     const limited = (await request(app).get('/api/org/overview').set(bearer(accountant))).body.data;
     expect(limited.tasks).toBeNull();
@@ -69,7 +78,9 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(limited.complaints).toMatchObject({ open: 1 });
 
     const none = (await request(app).get('/api/org/overview').set(bearer(teacher))).body.data;
-    expect(Object.entries(none).filter(([key, value]) => key !== 'date' && value !== null)).toEqual([]);
+    expect(Object.entries(none).filter(([key, value]) => key !== 'date' && key !== 'summary' && value !== null)).toEqual([]);
+    // Ruxsati yo'q — xulosa ham bo'sh (bloklardan yig'iladi)
+    expect(none.summary).toEqual([]);
   });
 
   it('kunlik xulosa: jamoa qatori (ishga kelganlar, muddati o‘tgan vazifa, murojaat, tasdiq kutayotganlar)', async () => {

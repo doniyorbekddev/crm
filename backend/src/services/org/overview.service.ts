@@ -1,3 +1,5 @@
+import { buildManagementSummary } from './managementSummary.js';
+import type { ManagementInsight } from './managementSummary.js';
 import { dueDebtTotals } from '../billingLedger.service.js';
 import { prisma } from '../../config/database.js';
 import { PERMISSIONS } from '../../config/permissions.js';
@@ -41,6 +43,8 @@ export interface OrgOverviewDto {
   assets: { count: number; value: number; underRepair: number } | null;
   /** Rahbar qarorini kutayotganlar (faqat tasdiqlash huquqi borlarga) */
   approvals: { expenses: number; discounts: number; reviews: number; promotions: number; candidates: number } | null;
+  /** Boshqaruv xulosasi — yuqoridagi bloklardan (har fikr manba ko'rsatkichi bilan) */
+  summary: ManagementInsight[];
 }
 
 async function safe<T>(enabled: boolean, load: () => Promise<T>): Promise<T | null> {
@@ -175,7 +179,7 @@ export const orgOverviewService = {
       }),
     ]);
 
-    return {
+    const dto: Omit<OrgOverviewDto, 'summary'> = {
       date: today,
       attendance,
       team,
@@ -202,5 +206,6 @@ export const orgOverviewService = {
       assets,
       approvals,
     };
+    return { ...dto, summary: buildManagementSummary({ ...dto, changes: executive ? executive.changes : null }) };
   },
 };

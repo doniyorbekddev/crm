@@ -6,6 +6,7 @@ import type { PermissionKey } from '../config/permissions.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { requirePermission, requireStaff } from '../middleware/requirePermission.js';
 import { assetService } from '../services/org/assets.service.js';
+import { orgCalendarService } from '../services/org/calendar.service.js';
 import { orgCatalogService } from '../services/org/catalog.service.js';
 import { complaintService } from '../services/org/complaints.service.js';
 import { hrService } from '../services/org/hr.service.js';
@@ -67,6 +68,15 @@ const versionParams = z.object({ id: z.string().trim().min(1).max(50), version: 
 // ---------------------------------------------------------------- CEO paneli (har blok o'z ruxsati bilan — servisda)
 orgRouter.get('/overview', staff, async (req, res) => {
   sendSuccess(res, await orgOverviewService.get(requireAuthUser(req)));
+});
+
+// ---------------------------------------------------------------- umumiy kalendar (har bir xodim; sabablar — rahbarga)
+orgRouter.get('/calendar', staff, async (req, res) => {
+  const { month } = z
+    .object({ month: z.string('Oyni tanlang').regex(/^(20\d{2})-(0[1-9]|1[0-2])$/, 'Oy noto‘g‘ri (format: 2026-11)') })
+    .parse(req.query);
+  const [year, monthNumber] = month.split('-').map(Number) as [number, number];
+  sendSuccess(res, await orgCalendarService.month(requireAuthUser(req), year, monthNumber));
 });
 
 // ---------------------------------------------------------------- tuzilma va katalog

@@ -22,6 +22,9 @@ export interface TaskItem {
   /** Boshqa xodim bergan: ijrochi topshiradi, bergan xodim (yoki rahbar) qabul qiladi */
   needsReview: boolean;
   submittedAt: string | null;
+  /** Topshirishda bajarilganlik dalili majburiy */
+  evidenceRequired: boolean;
+  completionEvidence: string | null;
   link: string | null;
   entityType: string | null;
   entityId: string | null;
@@ -86,6 +89,7 @@ export interface TaskCreatePayload {
   assigneeId?: string;
   dueAt?: string;
   priority?: TaskPriority;
+  evidenceRequired?: boolean;
   entityType?: string;
   entityId?: string;
   link?: string;

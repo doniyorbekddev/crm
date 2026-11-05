@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
-import { Banknote, Boxes, BriefcaseBusiness, ClipboardList, Fingerprint, GraduationCap, Megaphone, MessageSquareWarning, PiggyBank, ShieldCheck, Target, TrendingUp, Users, Wallet } from 'lucide-react';
+import { AlertTriangle, Banknote, Boxes, CheckCircle2, Info, BriefcaseBusiness, ClipboardList, Fingerprint, GraduationCap, Megaphone, MessageSquareWarning, PiggyBank, ShieldCheck, Target, TrendingUp, Users, Wallet } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { orgService } from '@/services/org.service';
+import type { ManagementInsight } from '@/types/org';
 import { formatDateTime, formatMoney } from '@/utils/format';
 
 /**
@@ -29,9 +30,11 @@ export default function OrgOverviewPage() {
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : data ? (
-        Object.entries(data).every(([key, value]) => key === 'date' || value === null) ? (
+        Object.entries(data).every(([key, value]) => key === 'date' || key === 'summary' || value === null) ? (
           <EmptyState icon={ShieldCheck} title="Ko‘rsatkich yo‘q" description="Sizga panel bloklari uchun ruxsat berilmagan" />
         ) : (
+          <>
+          {data.summary.length > 0 && <ManagementSummaryCard items={data.summary} />}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {data.approvals && (
               <Widget icon={ShieldCheck} title="Qaroringizni kutmoqda" link="/my-work">
@@ -161,6 +164,7 @@ export default function OrgOverviewPage() {
               </CardContent>
             </Card>
           </div>
+          </>
         )
       ) : null}
     </div>
@@ -199,5 +203,42 @@ function Metric({ label, value, tone }: { label: string; value: number | string;
         ) : null}
       </dd>
     </div>
+  );
+}
+
+const INSIGHT_ICONS = { negative: AlertTriangle, neutral: Info, positive: CheckCircle2 } as const;
+const INSIGHT_TONES = { negative: 'text-danger', neutral: 'text-fg-muted', positive: 'text-success' } as const;
+
+/**
+ * Boshqaruv xulosasi: panel raqamlaridan qoida bo'yicha yig'ilgan qisqa fikrlar. Har biri qaysi ko'rsatkichga tayanganini
+ * ko'rsatadi va tegishli sahifani ochadi — tekshirib, qarorni rahbar o'zi qabul qiladi.
+ */
+function ManagementSummaryCard({ items }: { items: ManagementInsight[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Boshqaruv xulosasi</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ul className="divide-y divide-border">
+          {items.map((item) => {
+            const Icon = INSIGHT_ICONS[item.tone];
+            return (
+              <li key={item.key}>
+                <Link to={item.link} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted">
+                  <Icon className={`mt-0.5 size-4 shrink-0 ${INSIGHT_TONES[item.tone]}`} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-body text-fg">{item.text}</span>
+                    <span className="block text-caption text-fg-muted">
+                      {item.area} · {item.metric.label}: {item.metric.value}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

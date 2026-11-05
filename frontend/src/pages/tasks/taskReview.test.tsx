@@ -41,6 +41,8 @@ function task(overrides: Partial<TaskItem>): TaskItem {
     expectedResult: '5 ta yozuv',
     needsReview: true,
     submittedAt: null,
+    evidenceRequired: false,
+    completionEvidence: null,
     link: null,
     entityType: null,
     entityId: null,
@@ -132,6 +134,22 @@ describe('Vazifa tekshiruvi', () => {
     await user.type(screen.getByLabelText('Qaytarish sababi'), '2 tasi tasdiqlanmagan');
     await user.click(submit);
     await waitFor(() => expect(taskService.setStatus).toHaveBeenCalledWith('t1', 'IN_PROGRESS', '2 tasi tasdiqlanmagan'));
+  });
+
+  it('dalil majburiy vazifa: ijrochi dalil yozmaguncha topshira olmaydi; dalil bilan yuboriladi', async () => {
+    loginAs('me');
+    vi.mocked(taskService.get).mockResolvedValue(detail({ evidenceRequired: true }));
+    const user = userEvent.setup();
+    wrap(<TaskDetailDrawer taskId="t1" onClose={() => undefined} />);
+
+    expect(await screen.findByText('Bajarilganlik dalili (majburiy)')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tekshiruvga topshirish' }));
+    expect(taskService.setStatus).not.toHaveBeenCalled();
+    const submit = screen.getByRole('button', { name: 'Dalil bilan topshirish' });
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByLabelText('Bajarilganlik dalili'), '5 ta yozuv: CRM leadlar ro‘yxati');
+    await user.click(submit);
+    await waitFor(() => expect(taskService.setStatus).toHaveBeenCalledWith('t1', 'REVIEW', undefined, '5 ta yozuv: CRM leadlar ro‘yxati'));
   });
 
   it('tafsilot: ijrochi tekshiruvdagi vazifani o‘zi qabul qila olmaydi — kutish xabari', async () => {

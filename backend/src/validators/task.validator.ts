@@ -42,6 +42,8 @@ export const taskCreateSchema = z.object({
   assigneeId: z.string().trim().min(1).max(50).optional(),
   dueAt: dueAt.optional(),
   priority: priority.default('NORMAL'),
+  /** Ijrochi topshirishda bajarilganlik dalilini (izoh yoki havola) yozishi shart */
+  evidenceRequired: z.boolean('Qiymat noto‘g‘ri').optional(),
   entityType: z.string().trim().min(1).max(30).optional(),
   entityId: z.string().trim().min(1).max(50).optional(),
   link: link.optional(),
@@ -57,10 +59,13 @@ export const taskUpdateSchema = z
     expectedResult: expectedResult.nullable().optional(),
     dueAt: dueAt.nullable().optional(),
     priority: priority.optional(),
+    evidenceRequired: z.boolean('Qiymat noto‘g‘ri').optional(),
+    /** Bajarilganlik dalili (tekshiruvga topshirish / yopishda): nima qilindi, natija havolasi */
+    evidence: z.string().trim().min(5, 'Dalilni yozing (kamida 5 belgi)').max(2000, 'Dalil 2000 belgidan oshmasin').optional(),
     /** Holat o'zgarishiga izoh (masalan, tekshiruvdan qaytarish sababi) — vazifa izohlariga yoziladi */
     note: z.string().trim().min(1).max(1000, 'Izoh 1000 belgidan oshmasin').optional(),
   })
-  .refine((value) => Object.entries(value).some(([key, field]) => key !== 'note' && field !== undefined), 'O‘zgartiriladigan maydon yo‘q');
+  .refine((value) => Object.entries(value).some(([key, field]) => key !== 'note' && key !== 'evidence' && field !== undefined), 'O‘zgartiriladigan maydon yo‘q');
 export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>;
 
 export const taskAssignSchema = z.object({

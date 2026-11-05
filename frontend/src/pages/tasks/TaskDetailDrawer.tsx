@@ -74,6 +74,12 @@ export function TaskDetailDrawer({ taskId, onClose }: TaskDetailDrawerProps) {
             <Badge tone="gray">{TASK_SOURCE_LABELS[task.source]}</Badge>
           </div>
           {task.description && <p className="whitespace-pre-line text-body text-fg-muted">{task.description}</p>}
+          {(task.evidenceRequired || task.completionEvidence) && (
+            <div className="rounded-card border border-border bg-surface-muted p-3">
+              <p className="text-caption font-medium text-fg-muted">{task.evidenceRequired ? 'Bajarilganlik dalili (majburiy)' : 'Bajarilganlik dalili'}</p>
+              <p className="mt-1 whitespace-pre-line text-body text-fg">{task.completionEvidence ?? 'Hali topshirilmagan'}</p>
+            </div>
+          )}
           {task.expectedResult && (
             <div className="rounded-md border border-border p-3">
               <p className="text-caption text-fg-subtle">Kutilgan natija</p>
@@ -191,12 +197,17 @@ function StatusActions({ task, onDone }: { task: TaskDetail; onDone: () => void 
   const userId = useAuthStore((state) => state.user?.id);
   const [note, setNote] = useState('');
   const [returning, setReturning] = useState(false);
+  const [submitting, setSubmitting] = useState<TaskStatus | null>(null);
+  const [evidence, setEvidence] = useState('');
   const change = useMutation({
-    mutationFn: ({ status, comment }: { status: TaskStatus; comment?: string }) => taskService.setStatus(task.id, status, comment),
+    mutationFn: ({ status, comment, proof }: { status: TaskStatus; comment?: string; proof?: string }) =>
+      proof ? taskService.setStatus(task.id, status, comment, proof) : taskService.setStatus(task.id, status, comment),
     onSuccess: (result) => {
       toast.success(result.message);
       setNote('');
       setReturning(false);
+      setSubmitting(null);
+      setEvidence('');
       onDone();
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -204,6 +215,9 @@ function StatusActions({ task, onDone }: { task: TaskDetail; onDone: () => void 
   const mine = task.assignee.id === userId;
   const decides = !task.needsReview || (task.can.edit && !mine);
   const run = (status: TaskStatus, comment?: string) => change.mutate({ status, ...(comment ? { comment } : {}) });
+  // Dalil majburiy vazifada ijrochi topshirishdan (yoki o'z vazifasini yopishdan) oldin dalil yozadi
+  const needsProof = (status: TaskStatus) => task.evidenceRequired && mine && (status === 'REVIEW' || (status === 'DONE' && task.status !== 'REVIEW'));
+  const press = (status: TaskStatus) => (needsProof(status) ? setSubmitting(status) : run(status));
 
   const buttons: Array<{ label: string; status: TaskStatus; variant?: 'secondary' | 'ghost' }> = [];
   if (isWorking(task.status) && task.can.changeStatus) {
@@ -223,7 +237,7 @@ function StatusActions({ task, onDone }: { task: TaskDetail; onDone: () => void 
     <section aria-label="Holatni o‘zgartirish" className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {buttons.map((button) => (
-          <Button key={button.label} size="sm" variant={button.variant} loading={change.isPending && change.variables?.status === button.status} onClick={() => run(button.status)}>
+          <Button key={button.label} size="sm" variant={button.variant} loading={change.isPending && change.variables?.status === button.status} onClick={() => press(button.status)}>
             {button.label}
           </Button>
         ))}
@@ -233,6 +247,33 @@ function StatusActions({ task, onDone }: { task: TaskDetail; onDone: () => void 
           </Button>
         )}
       </div>
+      {submitting && (
+        <form
+          className="space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (evidence.trim().length >= 5) change.mutate({ status: submitting, proof: evidence.trim() });
+          }}
+        >
+          <Textarea
+            aria-label="Bajarilganlik dalili"
+            rows={3}
+            maxLength={2000}
+            placeholder="Nima qilindi va natija qayerda: havola, fayl joyi, post…"
+            value={evidence}
+            onChange={(event) => setEvidence(event.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={evidence.trim().length < 5} loading={change.isPending}>
+              Dalil bilan topshirish
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSubmitting(null)}>
+              Bekor
+            </Button>
+          </div>
+        </form>
+      )}
       {returning && (
         <form
           className="space-y-2"

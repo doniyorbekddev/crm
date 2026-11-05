@@ -212,6 +212,10 @@ export const router = createBrowserRouter([
                     lazy: lazyComponent(() => import("@/pages/org/OrgOverviewPage")),
                   },
                   {
+                    path: "team-calendar",
+                    lazy: lazyComponent(() => import("@/pages/org/TeamCalendarPage")),
+                  },
+                  {
                     path: "my-growth",
                     lazy: lazyComponent(() => import("@/pages/org/MyGrowthPage")),
                   },

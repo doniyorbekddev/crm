@@ -20,6 +20,9 @@ const OVERVIEW: OrgOverview = {
   complaints: null,
   assets: null,
   approvals: { expenses: 1, discounts: 2, reviews: 0, promotions: 1, candidates: 0 },
+  summary: [
+    { key: 'tasks_overdue', tone: 'negative', area: 'Vazifalar', text: '2 ta vazifa muddati o‘tgan — mas’ullar bilan gaplashing', metric: { label: 'Muddati o‘tgan vazifalar', value: '2' }, link: '/tasks?scope=all' },
+  ],
 };
 vi.mock('@/services/org.service', () => ({ orgService: { overview: vi.fn(async () => OVERVIEW) } }));
 const { default: OrgOverviewPage } = await import('./OrgOverviewPage');
@@ -41,5 +44,9 @@ describe('Tashkilot paneli', () => {
     expect(within(approvals).getByText('Chegirma')).toBeInTheDocument();
     expect(screen.queryByText('Jamoa')).not.toBeInTheDocument();
     expect(screen.queryByText('Aktivlar')).not.toBeInTheDocument();
+    // Boshqaruv xulosasi: fikr, manba ko'rsatkichi va havola
+    const insight = screen.getByRole('link', { name: /2 ta vazifa muddati o‘tgan/ });
+    expect(insight).toHaveAttribute('href', '/tasks?scope=all');
+    expect(insight).toHaveTextContent('Muddati o‘tgan vazifalar: 2');
   });
 });

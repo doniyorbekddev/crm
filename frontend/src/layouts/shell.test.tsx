@@ -86,8 +86,8 @@ describe('navigatsiya tuzilmasi', () => {
   it('9 guruh; har marshrut bitta guruhda va takrorlanmaydi', () => {
     expect(NAV_SECTIONS.map((section) => section.title)).toEqual(['Umumiy', 'Sotuv', 'O‘quv jarayoni', 'Moliya', 'Odamlar', 'Tashkilot', 'Analitika', 'Avtomatlashtirish', 'Tizim']);
     const routes = NAV_SECTIONS.flatMap((section) => section.items.map((item) => item.to));
-    expect(routes).toHaveLength(60);
-    expect(new Set(routes).size).toBe(60);
+    expect(routes).toHaveLength(61);
+    expect(new Set(routes).size).toBe(61);
     expect(new Set(NAV_SECTIONS.map((section) => section.id)).size).toBe(NAV_SECTIONS.length);
     for (const section of NAV_SECTIONS) expect(section.items.length, section.title).toBeLessThanOrEqual(10);
   });
@@ -96,6 +96,7 @@ describe('navigatsiya tuzilmasi', () => {
     expect(findNavEntry('/students')?.item.label).toBe('O‘quvchilar');
     expect(findNavEntry('/students/abc123')?.section.title).toBe('O‘quv jarayoni');
     expect(findNavEntry('/settings/academy')?.item.label).toBe('Markaz ma’lumotlari');
+    expect(findNavEntry('/team-calendar')?.section.title).toBe('Tashkilot');
     // "/finance" va "/financexyz" aralashmaydi
     expect(findNavEntry('/financexyz')).toBeNull();
     expect(findNavEntry('/portal')).toBeNull();

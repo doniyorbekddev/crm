@@ -199,7 +199,12 @@ function TaskRowActions({ task, mine, onChange, onOpen }: { task: TaskItem; mine
           Boshlash
         </Button>
       )}
-      <Button size="sm" leftIcon={submits ? <Send className="size-4" aria-hidden /> : <Check className="size-4" aria-hidden />} onClick={() => onChange(submits ? 'REVIEW' : 'DONE')}>
+      <Button
+        size="sm"
+        leftIcon={submits ? <Send className="size-4" aria-hidden /> : <Check className="size-4" aria-hidden />}
+        // Dalil majburiy bo'lsa — tafsilotda dalil bilan topshiriladi
+        onClick={() => (mine && task.evidenceRequired ? onOpen() : onChange(submits ? 'REVIEW' : 'DONE'))}
+      >
         {submits ? 'Topshirish' : 'Bajarildi'}
       </Button>
       {!submits && (

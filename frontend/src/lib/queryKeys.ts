@@ -287,6 +287,7 @@ export const queryKeys = {
   org: {
     all: ['org'] as const,
     structure: ['org', 'structure'] as const,
+    calendar: (month: string) => ['org', 'calendar', month] as const,
     people: ['org', 'people'] as const,
     departments: ['org', 'departments'] as const,
     positions: ['org', 'positions'] as const,

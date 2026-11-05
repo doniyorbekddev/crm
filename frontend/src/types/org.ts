@@ -399,9 +399,43 @@ export interface OrgOverview {
   marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
   /** `dueDebt` — muddati kelgan qarz; `totalDebt` — shartnoma qoldig'i */
   payments: { revenue: number; totalDebt: number; dueDebt: number; dueDebtors: number } | null;
+  /** Boshqaruv xulosasi — bloklardan qoida bo'yicha, har fikr manba ko'rsatkichi bilan */
+  summary: ManagementInsight[];
   payroll: { accrued: number; paid: number; remaining: number } | null;
   expenses: { total: number; pendingApprovals: number; overLimit: Array<{ name: string; spent: number; limit: number }> } | null;
   complaints: { open: number; newCount: number; overdue: number; escalated: number; critical: number } | null;
   assets: { count: number; value: number; underRepair: number } | null;
   approvals: { expenses: number; discounts: number; reviews: number; promotions: number; candidates: number } | null;
+}
+
+/** Umumiy kalendar (bayram, ta'til, ruxsat, istisno) */
+export type CalendarItemKind = 'HOLIDAY' | 'LEAVE' | 'ABSENCE' | 'LATE_ARRIVAL' | 'EARLY_LEAVE' | 'DAY_OFF' | 'CUSTOM_HOURS';
+
+export interface CalendarItem {
+  id: string;
+  kind: CalendarItemKind;
+  title: string;
+  person: { id: string; name: string } | null;
+  startDate: string;
+  endDate: string;
+  detail: string | null;
+  /** Faqat rahbarga */
+  reason: string | null;
+}
+
+export interface CalendarMonth {
+  month: string;
+  from: string;
+  to: string;
+  canSeeReasons: boolean;
+  items: CalendarItem[];
+}
+
+export interface ManagementInsight {
+  key: string;
+  tone: 'negative' | 'neutral' | 'positive';
+  area: string;
+  text: string;
+  metric: { label: string; value: string };
+  link: string;
 }

@@ -32,6 +32,7 @@ import type {
   Promotion,
   ReviewCriterion,
   StaffAward,
+  CalendarMonth,
 } from '@/types/org';
 
 function withMessage<T>(response: { data: ApiSuccessResponse<T> }): MessageResult<T> {
@@ -46,6 +47,8 @@ async function get<T>(url: string, params?: Record<string, unknown>): Promise<T>
 export const orgService = {
   structure: () => get<OrgStructure>('/org/structure'),
   overview: () => get<OrgOverview>('/org/overview'),
+  /** Umumiy kalendar: "2026-11" */
+  calendar: (month: string) => get<CalendarMonth>('/org/calendar', { month }),
   /** Faol xodim hisoblari — rahbar va mas'ul tanlash uchun */
   people: () => get<OrgStaffUser[]>('/org/people'),
 

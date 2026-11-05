@@ -26,15 +26,27 @@ export const taskService = {
 
   async update(
     id: string,
-    payload: { title?: string; description?: string | null; expectedResult?: string | null; dueAt?: string | null; priority?: TaskPriority; status?: TaskStatus; note?: string },
+    payload: {
+      title?: string;
+      description?: string | null;
+      expectedResult?: string | null;
+      dueAt?: string | null;
+      priority?: TaskPriority;
+      evidenceRequired?: boolean;
+      status?: TaskStatus;
+      note?: string;
+    },
   ): Promise<MessageResult<TaskItem>> {
     const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, payload);
     return { data: response.data.data, message: response.data.message };
   },
 
-  /** `note` — holat o'zgarishiga izoh (masalan, qaytarish sababi), vazifa izohlariga yoziladi */
-  async setStatus(id: string, status: TaskStatus, note?: string): Promise<MessageResult<TaskItem>> {
-    const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, note ? { status, note } : { status });
+  /**
+   * `note` — holat o'zgarishiga izoh (masalan, qaytarish sababi), vazifa izohlariga yoziladi;
+   * `evidence` — bajarilganlik dalili (vazifada majburiy bo'lsa topshirishda)
+   */
+  async setStatus(id: string, status: TaskStatus, note?: string, evidence?: string): Promise<MessageResult<TaskItem>> {
+    const response = await api.patch<ApiSuccessResponse<TaskItem>>(`/tasks/${id}`, { status, ...(note ? { note } : {}), ...(evidence ? { evidence } : {}) });
     return { data: response.data.data, message: response.data.message };
   },
 

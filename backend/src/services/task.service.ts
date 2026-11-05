@@ -58,6 +58,9 @@ export interface TaskDto {
   /** Boshqa xodim bergan — yopishdan oldin u (yoki rahbar) qabul qiladi */
   needsReview: boolean;
   submittedAt: string | null;
+  /** Topshirishda bajarilganlik dalili majburiy */
+  evidenceRequired: boolean;
+  completionEvidence: string | null;
   link: string | null;
   entityType: string | null;
   entityId: string | null;
@@ -113,6 +116,8 @@ const taskSelect = {
   completedAt: true,
   expectedResult: true,
   submittedAt: true,
+  evidenceRequired: true,
+  completionEvidence: true,
   assigneeId: true,
   createdById: true,
   assignee: { select: { id: true, firstName: true, lastName: true, branchId: true } },
@@ -153,6 +158,8 @@ function toDto(row: TaskRow, commentCount: number, now = new Date()): TaskDto {
     expectedResult: row.expectedResult,
     needsReview: hasReviewer(row),
     submittedAt: row.submittedAt?.toISOString() ?? null,
+    evidenceRequired: row.evidenceRequired,
+    completionEvidence: row.completionEvidence,
     link: row.link,
     entityType: row.entityType,
     entityId: row.entityId,
@@ -363,6 +370,7 @@ export const taskService = {
           title: input.title,
           description: input.description ?? null,
           expectedResult: input.expectedResult ?? null,
+          evidenceRequired: input.evidenceRequired ?? false,
           assigneeId,
           dueAt: input.dueAt ?? null,
           priority: input.priority,
@@ -395,7 +403,7 @@ export const taskService = {
         action: 'task.created',
         entityType: 'task',
         entityId: task.id,
-        metadata: { title: input.title, assigneeId, priority: input.priority, source: origin.source ?? 'MANUAL' },
+        metadata: { title: input.title, assigneeId, priority: input.priority, source: origin.source ?? 'MANUAL', evidenceRequired: input.evidenceRequired ?? false },
         ...client,
       });
       return task.id;
@@ -410,11 +418,24 @@ export const taskService = {
     const manager = isManagerOf(task, scope);
     const author = task.createdById === actor.id;
     const editsFields =
-      input.title !== undefined || input.description !== undefined || input.dueAt !== undefined || input.priority !== undefined || input.expectedResult !== undefined;
+      input.title !== undefined ||
+      input.description !== undefined ||
+      input.dueAt !== undefined ||
+      input.priority !== undefined ||
+      input.expectedResult !== undefined ||
+      input.evidenceRequired !== undefined;
     if (editsFields && !manager && !author) throw AppError.forbidden('Vazifani faqat uni bergan xodim yoki rahbar tahrirlaydi');
     if (input.status !== undefined && !manager && !author && task.assigneeId !== actor.id) throw AppError.forbidden('Bu vazifa holatini o‘zgartirishga ruxsat yo‘q');
     const nextStatus = input.status === undefined ? undefined : resolveStatus(task, input.status, { reviewer: (manager || author) && task.assigneeId !== actor.id });
     const statusChanges = nextStatus !== undefined && nextStatus !== task.status;
+    // Dalil: ijrochi o'zi topshirganda yoki (tekshiruvchisiz vazifani) yopganda; qabul qiluvchidan talab qilinmaydi
+    const submits = statusChanges && (nextStatus === 'REVIEW' || (nextStatus === 'DONE' && task.status !== 'REVIEW' && task.assigneeId === actor.id));
+    const evidenceRequired = input.evidenceRequired ?? task.evidenceRequired;
+    if (submits && evidenceRequired && !input.evidence) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+        { field: 'evidence', message: 'Bu vazifa uchun bajarilganlik dalilini yozing: nima qilindi, natija havolasi yoki fayl joyi' },
+      ]);
+    }
 
     const data: Prisma.TaskUpdateInput = {};
     if (input.title !== undefined) data.title = input.title;
@@ -426,6 +447,8 @@ export const taskService = {
       data.escalatedAt = null;
     }
     if (input.priority !== undefined) data.priority = input.priority;
+    if (input.evidenceRequired !== undefined) data.evidenceRequired = input.evidenceRequired;
+    if (submits && input.evidence) data.completionEvidence = input.evidence;
     const changedAt = new Date();
     if (statusChanges) {
       const now = changedAt;
@@ -449,9 +472,10 @@ export const taskService = {
           action: 'task.status_changed',
           entityType: 'task',
           entityId: id,
-          metadata: { from: task.status, to: nextStatus, ...(input.note ? { note: input.note } : {}) },
+          metadata: { from: task.status, to: nextStatus, ...(input.note ? { note: input.note } : {}), ...(submits && input.evidence ? { evidence: input.evidence } : {}) },
           ...client,
         });
+        if (submits && input.evidence) await tx.taskComment.create({ data: { taskId: id, authorId: actor.id, content: `📎 Dalil: ${input.evidence}` } });
         if (input.note) await tx.taskComment.create({ data: { taskId: id, authorId: actor.id, content: input.note } });
         const notice = statusNotice(task, nextStatus, actor, input.note);
         if (notice) {
@@ -473,8 +497,22 @@ export const taskService = {
           action: 'task.updated',
           entityType: 'task',
           entityId: id,
-          before: { title: task.title, description: task.description, expectedResult: task.expectedResult, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority },
-          after: { title: row.title, description: row.description, expectedResult: row.expectedResult, dueAt: row.dueAt?.toISOString() ?? null, priority: row.priority },
+          before: {
+            title: task.title,
+            description: task.description,
+            expectedResult: task.expectedResult,
+            dueAt: task.dueAt?.toISOString() ?? null,
+            priority: task.priority,
+            evidenceRequired: task.evidenceRequired,
+          },
+          after: {
+            title: row.title,
+            description: row.description,
+            expectedResult: row.expectedResult,
+            dueAt: row.dueAt?.toISOString() ?? null,
+            priority: row.priority,
+            evidenceRequired: row.evidenceRequired,
+          },
           ...client,
         });
       }
