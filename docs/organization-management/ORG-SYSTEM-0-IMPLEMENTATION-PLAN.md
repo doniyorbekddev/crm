@@ -36,7 +36,7 @@ Har band alohida CEO tasdig'i bilan bajariladi. Kod va migratsiya hali **yozilma
 
 | № | Ish | Nima uchun shu o'rinda | Ta'siri | Migratsiya | Xavf |
 |---|---|---|---|---|---|
-| 1 | Production backupni tiklab sinash (`scripts/verify-backup.sh` serverda) | Boshqa har qanday ishdan oldin qaytish yo'li ishonchli bo'lishi kerak | Faqat o'qish, vaqtinchalik baza | Yo'q | R-02 |
+| 1 | ✅ Bajarildi 2026-11-06 — production backupni tiklab sinash (Mac'dagi izolyatsiyalangan klasterda, [BACKUP-RESTORE-TEST.md](BACKUP-RESTORE-TEST.md)) | Boshqa har qanday ishdan oldin qaytish yo'li ishonchli bo'lishi kerak | Faqat o'qish, vaqtinchalik baza | Yo'q | R-02 |
 | 2 | Production'da Sales roli ruxsatlarini ko'rib chiqish (`discount.grant`) | 5% chegirma vakolati shu ruxsatsiz ishlamaydi | Rollar sahifasida bitta belgi | Yo'q | R-03 |
 | 3 | Backup boshqa joyga ham yetib borayotganini tekshirish | Server yo'qolishi — eng katta xavf | Kuzatuv | Yo'q | R-01 |
 | 4 | Audit saqlash muddatiga pastki chegara | Kichik o'zgarish, tarixni himoya qiladi | Validator | Yo'q | R-09 |
