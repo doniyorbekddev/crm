@@ -1,6 +1,6 @@
 # Zaxira va tiklash (CRM 4.0, Faza 0)
 
-> Sana: 2026-10-05 · Bog'liq: [CRM-4.0-PHASE-0.md](CRM-4.0-PHASE-0.md) §6, [deployment.md](deployment.md) §5.
+> Sana: 2026-10-05 (yangilangan 2026-11-09: kunlik cron, `restore-db.sh` himoyasi, production tiklash natijasi) · Bog'liq: [CRM-4.0-PHASE-0.md](CRM-4.0-PHASE-0.md) §6, [deployment.md](deployment.md) §5.
 
 **Holat bir jumlada:** zaxira skripti yaxshilandi va tiklash lokal bazada sinab ko'rildi, lekin **production zaxirasi hali xavfsiz deb
 hisoblanmaydi** — tashqi nusxa sozlanmagan va production nusxasidan tiklash serverda sinalmagan (§7).
@@ -11,12 +11,27 @@ hisoblanmaydi** — tashqi nusxa sozlanmagan va production nusxasidan tiklash se
 
 | Nima | Qanday | Qayerda | Qachon |
 |---|---|---|---|
-| PostgreSQL bazasi | `pg_dump --clean --if-exists` → gzip | serverda `backups/crm-<sana>.sql.gz` | har kuni 03:00 (cron, `deploy/setup-server.sh`) va har deploy'da migratsiyadan oldin |
+| PostgreSQL bazasi | `scripts/backup-db.sh`: `pg_dump --clean --if-exists` → gzip | serverda `backups/crm-<sana>.sql.gz` | har kuni **22:00 UTC (03:00 Toshkent)** — cron, `deploy/setup-server.sh`; va har deploy'da migratsiyadan oldin |
 | Yuklangan fayllar (cheklar, hujjatlar; `crm_uploads` volume) | `tar` → gzip | serverda `backups/uploads-<sana>.tar.gz` | baza nusxasi bilan birga (**Faza 0 da qo'shildi**) |
 | Tashqi nusxa | `rsync` (`BACKUP_REMOTE` berilsa) | boshqa server | har zaxiradan keyin (**Faza 0 da qo'shildi; sozlash kerak**) |
 | Tiklab tekshirish | `scripts/verify-backup.sh` — vaqtinchalik bazaga tiklaydi, sanaydi, o'chiradi | serverda | qo'lda; hujjatda haftalik cron tavsiya qilingan, o'rnatuvchi skript uni **qo'shmaydi** |
 
-Saqlash muddati: baza nusxalari — `KEEP_DAYS` (skript standarti 30; o'rnatuvchi cron 14 beradi), fayl arxivlari — `UPLOADS_KEEP_DAYS` (7).
+Saqlash muddati: baza nusxalari — `KEEP_DAYS` (**30**; skript standarti ham, o'rnatuvchi cron ham), fayl arxivlari — `UPLOADS_KEEP_DAYS` (7).
+
+Kunlik cron qatori (`deploy/setup-server.sh`):
+
+```
+0 22 * * * cd <repo> && KEEP_DAYS=30 /usr/bin/bash ./scripts/backup-db.sh >> <repo>/backups/backup.log 2>&1
+```
+
+> **Production'ning hozirgi holati (2026-11-09).** Serverda kunlik cron hali git'dan tashqaridagi qo'lda yozilgan
+> `scripts/backup-db-safe.sh` ni ishga tushiradi. Vaqti va muddati bir xil (22:00 UTC, 30 kun), lekin u:
+> - dumpni **`--clean` siz** oladi;
+> - yuklangan fayllarni arxivlamaydi.
+>
+> Bunday kunlik nusxani yangi `restore-db.sh` **rad etadi** (§5-C ga qarang). Cron qatorini `backup-db.sh` ga almashtirish —
+> alohida tasdiqlanadigan server qadami ([BACKUP-SCRIPT-AUDIT.md](organization-management/BACKUP-SCRIPT-AUDIT.md) §7).
+> `setup-server.sh` eski qatorni ham taniydi va ikkinchi cron qo'shmaydi.
 
 Zaxiraga **kirmaydi:** `.env.production` (maxfiy kalitlar), Nginx/sertifikat sozlamalari, `code-runner` serveri.
 
@@ -38,7 +53,7 @@ Zaxiraga **kirmaydi:** `.env.production` (maxfiy kalitlar), Nginx/sertifikat soz
 1. **Tashqi nusxa (majburiy).** Boshqa provayder yoki kamida boshqa serverdagi manzil; zaxira serverida faqat yozish huquqli alohida
    foydalanuvchi. S3-mos saqlash ishlatilsa — versiyalash va o'chirishdan himoya (object lock) yoqilgan chelak.
 2. **3-2-1 qoidasi:** 3 nusxa, 2 xil joy, 1 tasi boshqa hududda.
-3. **Saqlash:** kunlik 14 kun, haftalik 8 hafta, oylik 12 oy (tashqi manzilda; serverda 14 kun yetarli).
+3. **Saqlash:** kunlik 14 kun, haftalik 8 hafta, oylik 12 oy (tashqi manzilda); serverda 30 kun (`KEEP_DAYS=30`).
 4. **Haftalik tiklash sinovi** (`verify-backup.sh`, dushanba 04:00) va **chorakda bir to'liq mashq** — toza serverda §5 bo'yicha tiklash, vaqtni o'lchash.
 5. **Kuzatuv:** zaxira jurnalida `XATOLIK` yoki oxirgi nusxa 26 soatdan eski bo'lsa — ogohlantirish.
 6. **Keyinroq (o'sishga qarab):** WAL arxivlash va PITR (`pgBackRest` yoki `wal-g`) — yo'qotishni daqiqalarga tushiradi.
@@ -80,6 +95,31 @@ cd /opt/sales-crm
 ./scripts/restore-db.sh backups/crm-<sana>.sql.gz        # "ha" deb tasdiqlash so'raydi; backend to'xtatiladi
 curl -s http://localhost:8080/api/health
 ```
+
+`restore-db.sh` himoyalari:
+- **Backend to'xtatilishidan oldin tekshiradi:**
+  - gzip arxivi butunligini;
+  - oddiy SQL formatini (custom `PGDMP` rad etiladi);
+  - yakunlovchi satrni;
+  - `_prisma_migrations` borligini;
+  - har `CREATE TABLE` dan oldin `DROP TABLE IF EXISTS` borligini.
+
+  Mos kelmasa backend'ga tegmasdan rad etadi.
+- **Tiklash bitta tranzaksiyada** (`--single-transaction`): xato bo'lsa baza avvalgi holatida qoladi.
+- **Tiklangandan keyin tekshiradi:** jadvallar soni, migratsiya yozuvlari dumpdagi bilan teng, tugallanmagan migratsiya yo'q.
+- **Backend'ni har qanday holatda** (xato, Ctrl+C) qayta ishga tushiradi va `healthy` bo'lishini kutadi (`RESTORE_BACKEND_WAIT`, 120 s).
+
+| Chiqish kodi | Ma'nosi |
+|---|---|
+| 0 | tiklandi, tekshirildi, backend ishlayapti |
+| 1 | rad etildi — baza va backend'ga tegilmagan |
+| 2 | tiklash xatosi — tranzaksiya bekor qilindi, baza avvalgi holatida, backend qayta ishga tushirildi |
+| 3 | backend qayta ishga tushmadi — **qo'lda aralashuv kerak** |
+| 4 | tiklandi, lekin tekshiruvdan o'tmadi |
+
+**C. `--clean` siz nusxa** (masalan, eski `backup-db-safe.sh` kunlik nusxasi). `restore-db.sh` uni rad etadi, chunki mavjud bazaga
+tiklab bo'lmaydi. Bunday nusxa faqat **bo'sh** bazaga tiklanadi (`verify-backup.sh` shunday qiladi). Ishchi bazani almashtirish kerak
+bo'lsa, eng yaqin `--clean` li nusxani (deploy oldidan olingan) tanlang.
 
 **B. Baza va fayllar (server yo'qolgan):**
 
@@ -128,7 +168,7 @@ Tartib bilan bajaring va natijani §9 ga yozing. `$DC` = `docker compose -f dock
   (`ssh backup@<zaxira-server> true`) — skript `BatchMode` da ishlaydi va savol bera olmaydi.
 - Zaxira serveridagi nusxalarni CRM serveri **o'chira olmasligi** kerak (kompromat bo'lgan server zaxirani ham yo'q qilmasin).
 
-**3. Saqlash muddati.** Serverda: `KEEP_DAYS` (cron 14 beradi), `UPLOADS_KEEP_DAYS` (7). Zaxira serverida — o'sha tomonda cron yoki
+**3. Saqlash muddati.** Serverda: `KEEP_DAYS` (cron 30 beradi), `UPLOADS_KEEP_DAYS` (7). Zaxira serverida — o'sha tomonda cron yoki
 lifecycle qoidasi (skript uzoqdagi eski nusxalarni o'chirmaydi), masalan kunlik 14, haftalik 8, oylik 12.
 
 **4. Haftalik tekshiruv cron'i:**
@@ -181,11 +221,12 @@ haqida ogohlantirish (monitoring) — Faza 1 ishi; fayl arxivlari qo'shilgach `b
 
 ## 9. Production tiklash natijasi
 
-**Hali bajarilmagan.** Birinchi mashqdan keyin to'ldiriladi.
-
 | Sana | Kim | Nusxa (fayl) | Manba (lokal / tashqi) | Qayerga tiklandi | Jadvallar / migratsiyalar | Fayllar soni | Ketgan vaqt (RTO) | Natija |
 |---|---|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — | — | ❌ NOT VERIFIED |
+| 2026-11-06 | Claude (CEO tasdig'i bilan) | `crm-2026-11-05_22-00-01.sql.gz` (kunlik) | tashqi — Mac `~/CRM-Backups`, SHA-256 server bilan bir xil | Mac'dagi izolyatsiyalangan vaqtinchalik PostgreSQL 17.11 (tarmoqsiz), **bo'sh bazaga** | 146 / 83, `prisma migrate status` up to date, schema farqi yo'q, 23 234 qator dump bilan teng | 2 (`uploads-2026-11-05_11-06`, faqat o'qib tekshirildi) | baza ~1 s | ✅ VERIFIED — [BACKUP-RESTORE-TEST.md](organization-management/BACKUP-RESTORE-TEST.md) |
+
+Sinov **bo'sh** bazaga o'tkazilgan. O'sha kunlik nusxa `--clean` siz, shuning uchun `restore-db.sh` bilan ishchi baza ustiga
+tiklanmaydi (§5-C).
 
 ## Ikkinchi joy: Mac'ga kunlik tortib olish (2026-10-21)
 

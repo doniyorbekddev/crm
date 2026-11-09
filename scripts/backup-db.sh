@@ -3,7 +3,8 @@
 # Zaxira nusxa (docker compose stack uchun): PostgreSQL bazasi + yuklangan fayllar.
 #
 # Qo'lda:   ./scripts/backup-db.sh
-# Cron:     0 3 * * * cd /opt/sales-crm && ./scripts/backup-db.sh >> /var/log/crm-backup.log 2>&1
+# Cron:     0 22 * * * cd <repo> && KEEP_DAYS=30 /usr/bin/bash ./scripts/backup-db.sh >> <repo>/backups/backup.log 2>&1
+#           (server vaqti UTC: 22:00 UTC = 03:00 Toshkent; o'rnatuvchi: deploy/setup-server.sh)
 #
 # Natija:   backups/crm-2026-09-12_03-00.sql.gz       (baza; KEEP_DAYS kundan eskilari o'chiriladi)
 #           backups/uploads-2026-09-12_03-00.tar.gz   (cheklar, hujjatlar; UPLOADS_KEEP_DAYS)

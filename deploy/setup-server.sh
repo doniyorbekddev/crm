@@ -64,14 +64,17 @@ say "Skriptlar bajariluvchi qilinmoqda"
 chmod +x "$APP_DIR"/deploy/*.sh "$APP_DIR"/scripts/*.sh
 
 # --- Kunlik zaxira cron -------------------------------------------------
-CRON_LINE="0 3 * * * cd $APP_DIR && KEEP_DAYS=14 ./scripts/backup-db.sh >> $APP_DIR/backups/backup.log 2>&1"
-if crontab -l 2>/dev/null | grep -Fq 'backup-db.sh'; then
-  say "Zaxira cron allaqachon mavjud"
+# Server vaqti UTC: 22:00 UTC = 03:00 Toshkent. KEEP_DAYS=30 — baza nusxalari 30 kun saqlanadi.
+# Skript git'dagi scripts/backup-db.sh: --clean --if-exists dump (restore-db.sh shuni talab qiladi) + yuklangan fayllar arxivi.
+CRON_LINE="0 22 * * * cd $APP_DIR && KEEP_DAYS=30 /usr/bin/bash ./scripts/backup-db.sh >> $APP_DIR/backups/backup.log 2>&1"
+# Eski qo'lda qo'yilgan backup-db-safe.sh ham hisobga olinadi — aks holda ikkinchi kunlik zaxira qo'shilib qolardi
+if crontab -l 2>/dev/null | grep -Eq 'scripts/backup-db(-safe)?\.sh'; then
+  say "Zaxira cron allaqachon mavjud (o'zgartirilmadi)"
 else
-  say "Kunlik zaxira cron qo'shilmoqda (03:00, 14 kun saqlanadi)"
+  say "Kunlik zaxira cron qo'shilmoqda (22:00 UTC = 03:00 Toshkent, 30 kun saqlanadi)"
   (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
 fi
-crontab -l | grep backup-db.sh || true
+crontab -l | grep -E 'scripts/backup-db(-safe)?\.sh' || true
 
 # --- SSH qattiqlashtirish (ehtiyotkorlik bilan) -------------------------
 KEYS_FILE="$HOME/.ssh/authorized_keys"
