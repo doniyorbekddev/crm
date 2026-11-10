@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { env } from '../../config/env.js';
 import { PERMISSIONS } from '../../config/permissions.js';
-import type { Prisma, StaffAttendanceDay } from '../../generated/prisma/client.js';
+import type { Prisma, StaffAttendanceDay, StaffAttendanceEventSource } from '../../generated/prisma/client.js';
 import { AppError } from '../../utils/AppError.js';
 import { evaluateDay, EMPTY_FACTS, foldEvents } from '../../utils/staffAttendance.js';
 import type { DayExcuse, DayPlan, StaffDayStatus, StaffArrival, StaffPhase } from '../../utils/staffAttendance.js';
@@ -112,6 +112,14 @@ export function evaluateRow(input: {
     reviewReason: result.reviewReason,
     corrected: (row?._count.corrections ?? 0) > 0,
   };
+}
+
+/**
+ * Kunda faqat avtomatik hodisalar bormi (2026-11-10 gacha jadval bo'yicha yozilgan, tasdiqlanmagan "keldi").
+ * Bunday kunda xodim QR bilan haqiqiy kelishini belgilay oladi: avtomatik hodisalar bekor qilinib, QR vaqti yoziladi.
+ */
+export function autoOnly(liveEvents: ReadonlyArray<{ source: StaffAttendanceEventSource }>): boolean {
+  return liveEvents.length > 0 && liveEvents.every((event) => event.source === 'AUTO');
 }
 
 /**

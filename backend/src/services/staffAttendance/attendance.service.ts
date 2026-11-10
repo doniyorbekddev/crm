@@ -11,6 +11,7 @@ import { notificationService } from '../notification.service.js';
 import type { NotificationInput } from '../notification.service.js';
 import {
   attendanceManagers,
+  autoOnly,
   clockTime,
   daySelect,
   durationText,
@@ -125,7 +126,7 @@ async function buildToday(subject: StaffSubject, now: Date): Promise<TodayDto> {
     subject: { id: subject.id, name: fullName(subject), position: subject.position },
     serverTime: now.toISOString(),
     day: evaluateRow({ userId: subject.id, date: today, today, now, plan: planner.plan(subject.id, today), excuse: planner.excuse(subject.id, today), row }),
-    actions: availableActions(row?.phase ?? null),
+    actions: autoOnly(events) ? ['CHECK_IN'] : availableActions(row?.phase ?? null),
     events: events.map((event) => ({ type: event.type, occurredAt: event.occurredAt.toISOString(), source: event.source })),
     openPreviousDay: open ? toDateString(open.date) : null,
   };
@@ -181,8 +182,9 @@ export const staffAttendanceService = {
     if (record.branchId !== subject.branchId) throw QR_ERRORS.WRONG_LOCATION();
     const row = await prisma.staffAttendanceDay.findUnique({
       where: { userId_date: { userId: subject.id, date: new Date(`${businessDateString(now)}T00:00:00Z`) } },
-      select: { phase: true },
+      select: { phase: true, events: { where: { voidedAt: null }, select: { source: true } } },
     });
+    if (row && autoOnly(row.events)) return { expiresAt: record.expiresAt.toISOString(), actions: ['CHECK_IN'], phase: null };
     return { expiresAt: record.expiresAt.toISOString(), actions: availableActions(row?.phase ?? null), phase: row?.phase ?? null };
   },
 
@@ -205,7 +207,15 @@ export const staffAttendanceService = {
       if (record.expiresAt <= now) throw QR_ERRORS.EXPIRED();
       if (record.branchId !== subject.branchId) throw QR_ERRORS.WRONG_LOCATION();
 
-      const day = await lockDay(tx, subject, today);
+      let day = await lockDay(tx, subject, today);
+      if (action === 'CHECK_IN' && day.phase !== null) {
+        // Eski avtomatik "keldi" QR'ni to'smasin: kunda faqat AUTO hodisalar bo'lsa, ular bekor qilinadi va QR vaqti yoziladi
+        const live = await tx.staffAttendanceEvent.findMany({ where: { dayId: day.id, voidedAt: null }, select: { id: true, source: true } });
+        if (autoOnly(live)) {
+          await tx.staffAttendanceEvent.updateMany({ where: { id: { in: live.map((event) => event.id) } }, data: { voidedAt: now, voidedById: subject.id } });
+          day = await recomputeDay(tx, day.id);
+        }
+      }
       const problem = transitionError(day.phase, action);
       if (problem) throw AppError.conflict(problem, [{ field: 'action', message: day.phase ?? 'NONE' }]);
 

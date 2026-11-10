@@ -138,12 +138,13 @@ export function ScheduleModal({ row, onClose, onSaved }: { row: ScheduleRow; onC
         )}
 
         <div className="rounded-card border border-border p-3">
-          <Checkbox label="Avtomatik davomat" checked={autoMark} onChange={(event) => setAutoMark(event.target.checked)} />
+          <Checkbox label="Ketishni avtomatik belgilash" checked={autoMark} onChange={(event) => setAutoMark(event.target.checked)} />
           <p className="mt-1 text-caption text-fg-muted">
             {mode === 'LESSONS'
-              ? 'Har dars kuni birinchi darsdan oldin “keldi”, oxirgi dars tugaganda “ketdi” tizim o‘zi yozadi. Bekor qilingan dars, bayram va ruxsat kunlari yozilmaydi.'
-              : 'Ish kunlari boshlanish vaqtida “keldi”, tugash vaqtida “ketdi” tizim o‘zi yozadi. Bayram, dam olish va ruxsat kunlari yozilmaydi.'}{' '}
-            QR skanerlansa — QR vaqti olinadi; kelmagan kunni rahbar tuzatish bilan bekor qiladi.
+              ? 'QR bilan kelib, ketishni belgilamagan kun 20:00 da (dars kechroq tugasa — dars tugaganda) oxirgi dars tugash vaqti bilan “ketdi” deb yopiladi.'
+              : 'QR bilan kelib, ketishni belgilamagan kun 20:00 da jadval tugash vaqti bilan “ketdi” deb yopiladi.'}{' '}
+            Undan oldin xodimga eslatma, 18:00 da rahbarga ro‘yxat boradi. Kelish har doim QR bilan belgilanadi — QR skanerlamagan xodim
+            “kelmadi” bo‘ladi.
           </p>
         </div>
 
