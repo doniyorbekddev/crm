@@ -318,6 +318,8 @@ export const queryKeys = {
     overview: (date: string) => ['staff-attendance', 'overview', date] as const,
     day: (userId: string, date: string) => ['staff-attendance', 'day', userId, date] as const,
     report: (from: string, to: string) => ['staff-attendance', 'report', from, to] as const,
+    teamMonth: (year: number, month: number) => ['staff-attendance', 'month', year, month] as const,
+    userMonth: (userId: string, year: number, month: number) => ['staff-attendance', 'user-month', userId, year, month] as const,
     requests: (status: string) => ['staff-attendance', 'requests', status] as const,
     schedules: ['staff-attendance', 'schedules'] as const,
     exceptions: (from: string, to: string) => ['staff-attendance', 'exceptions', from, to] as const,

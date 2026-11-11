@@ -62,6 +62,8 @@ export const REQUEST_STATUS_TONES: Record<RequestStatus, BadgeTone> = {
   CANCELLED: 'neutral',
 };
 
+export const MONTH_NAMES = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'] as const;
+
 export const WEEK_DAY_SHORT: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'MONDAY', label: 'Du' },
   { key: 'TUESDAY', label: 'Se' },

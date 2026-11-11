@@ -21,6 +21,8 @@ import type {
   StaffReport,
   StaffSummary,
   StaffToday,
+  StaffUserMonth,
+  TeamMonth,
 } from '@/types/staffAttendance';
 
 const BASE = '/staff-attendance';
@@ -74,6 +76,14 @@ export const staffAttendanceService = {
 
   async correct(userId: string, date: string, input: CorrectionInput): Promise<ApiSuccessResponse<DayDetail>> {
     return (await api.post<ApiSuccessResponse<DayDetail>>(`${BASE}/users/${userId}/days/${date}/corrections`, input)).data;
+  },
+
+  async teamMonth(year: number, month: number): Promise<TeamMonth> {
+    return (await api.get<ApiSuccessResponse<TeamMonth>>(`${BASE}/month`, { params: { year, month } })).data.data;
+  },
+
+  async userMonth(userId: string, year: number, month: number): Promise<StaffUserMonth> {
+    return (await api.get<ApiSuccessResponse<StaffUserMonth>>(`${BASE}/users/${userId}/month`, { params: { year, month } })).data.data;
   },
 
   async report(from: string, to: string): Promise<StaffReport> {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck2, CalendarClock, ClipboardList, Coffee, FileBarChart, LogOut, MonitorSmartphone, Plus, ShieldAlert, Timer, Trash2, UserCheck, Users, UserX } from 'lucide-react';
+import { CalendarCheck2, CalendarClock, CalendarDays, ClipboardList, Coffee, FileBarChart, LogOut, MonitorSmartphone, Plus, ShieldAlert, Timer, Trash2, UserCheck, Users, UserX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -40,13 +40,15 @@ import {
   WEEK_DAY_SHORT,
 } from '@/utils/staffAttendanceLabels';
 import { DayDetailDrawer } from './DayDetailDrawer';
+import { EmployeeMonthDrawer, formatYearMonth, MonthTab, parseYearMonth } from './MonthView';
 import { PermissionRequestModal } from './PermissionRequestModal';
 import { ScheduleModal } from './ScheduleModal';
 import { planText, StaffStatusBadge } from './StaffStatus';
 
-type TabKey = 'today' | 'report' | 'requests' | 'schedules';
+type TabKey = 'today' | 'month' | 'report' | 'requests' | 'schedules';
 const TABS: ReadonlyArray<{ value: TabKey; label: string; icon: typeof Users }> = [
   { value: 'today', label: 'Bugun', icon: CalendarCheck2 },
+  { value: 'month', label: 'Oylik jadval', icon: CalendarDays },
   { value: 'report', label: 'Hisobot', icon: FileBarChart },
   { value: 'requests', label: 'Ruxsat so‘rovlari', icon: ClipboardList },
   { value: 'schedules', label: 'Ish jadvallari', icon: CalendarClock },
@@ -172,7 +174,7 @@ function TodayTab({ onOpen }: { onOpen: (userId: string, date: string) => void }
 }
 
 // ------------------------------------------------------------------ Hisobot
-function ReportTab() {
+function ReportTab({ onOpenEmployee }: { onOpenEmployee: (userId: string, yearMonth: string) => void }) {
   const today = tashkentDate();
   const monthStart = `${today.slice(0, 8)}01`;
   const weekday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7;
@@ -254,7 +256,9 @@ function ReportTab() {
                 {query.data.rows.map((row) => (
                   <TR key={row.userId}>
                     <TD>
-                      <p className="font-medium text-fg">{row.name}</p>
+                      <button type="button" className="focus-ring rounded-sm text-left font-medium text-fg hover:underline" onClick={() => onOpenEmployee(row.userId, range.to.slice(0, 7))}>
+                        {row.name}
+                      </button>
                       <p className="text-caption text-fg-subtle">{row.position}</p>
                     </TD>
                     <TD className="tabular-nums">{row.summary.expectedDays}</TD>
@@ -648,12 +652,15 @@ function SchedulesTab({ canManage, rows, loading, error, onRetry }: { canManage:
   );
 }
 
-/** Xodimlar davomati — rahbar paneli: bugungi holat, hisobot, ruxsat so'rovlari va ish jadvallari */
+/** Xodimlar davomati — rahbar paneli: bugungi holat, oylik jadval, hisobot, ruxsat so'rovlari va ish jadvallari */
 export default function StaffAttendancePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (TABS.some((item) => item.value === searchParams.get('tab')) ? searchParams.get('tab') : 'today') as TabKey;
   const detailUser = searchParams.get('user');
   const detailDate = searchParams.get('date');
+  const employee = searchParams.get('employee');
+  const yearMonth = parseYearMonth(searchParams.get('ym'));
+  const dayOpen = Boolean(detailUser && detailDate && /^\d{4}-\d{2}-\d{2}$/.test(detailDate));
   const canManage = usePermission(PERMISSIONS.STAFF_ATTENDANCE_MANAGE);
   const canDisplay = usePermission(PERMISSIONS.STAFF_ATTENDANCE_DISPLAY);
   const schedules = useQuery({ queryKey: queryKeys.staffAttendance.schedules, queryFn: staffAttendanceService.schedules });
@@ -691,13 +698,32 @@ export default function StaffAttendancePage() {
       </Tabs>
 
       {tab === 'today' && <TodayTab onOpen={(userId, date) => update({ user: userId, date })} />}
-      {tab === 'report' && <ReportTab />}
+      {tab === 'month' && (
+        <MonthTab
+          value={yearMonth}
+          onChange={(value) => update({ ym: formatYearMonth(value) })}
+          onOpenDay={(userId, date) => update({ user: userId, date })}
+          onOpenEmployee={(userId) => update({ employee: userId })}
+        />
+      )}
+      {tab === 'report' && <ReportTab onOpenEmployee={(userId, ym) => update({ employee: userId, ym })} />}
       {tab === 'requests' && <RequestsTab canManage={canManage} people={schedules.data ?? []} />}
       {tab === 'schedules' && (
         <SchedulesTab canManage={canManage} rows={schedules.data ?? []} loading={schedules.isPending} error={schedules.error} onRetry={() => void schedules.refetch()} />
       )}
 
-      {detailUser && detailDate && /^\d{4}-\d{2}-\d{2}$/.test(detailDate) && (
+      {/* Kun oynasi yopilganda xodim oyi qaytadi (u ham URL'da qoladi) */}
+      {employee && !dayOpen && (
+        <EmployeeMonthDrawer
+          key={employee}
+          userId={employee}
+          value={yearMonth}
+          onChange={(value) => update({ ym: formatYearMonth(value) })}
+          onClose={() => update({ employee: null })}
+          onOpenDay={(userId, date) => update({ user: userId, date })}
+        />
+      )}
+      {dayOpen && detailUser && detailDate && (
         <DayDetailDrawer key={`${detailUser}:${detailDate}`} userId={detailUser} date={detailDate} onClose={() => update({ user: null, date: null })} />
       )}
     </div>

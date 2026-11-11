@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { staffAttendanceService } from '@/services/staffAttendance.service';
-import type { ScanResult, StaffDay } from '@/types/staffAttendance';
+import type { ScanResult, StaffDay, StaffSummary } from '@/types/staffAttendance';
 import { qrLink, shortDuration } from '@/utils/staffAttendanceLabels';
+import { cellKind, MonthTab, parseYearMonth } from './MonthView';
 import { tokenFromQr } from './QrScanner';
 import { ScanSheet } from './ScanSheet';
 import { planText, StaffStatusBadge } from './StaffStatus';
@@ -14,6 +15,7 @@ vi.mock('@/services/staffAttendance.service', () => ({
   staffAttendanceService: {
     preview: vi.fn(),
     scan: vi.fn(),
+    teamMonth: vi.fn(),
   },
 }));
 
@@ -128,5 +130,75 @@ describe('Kun holati', () => {
     expect(planText({ ...DAY, planKind: 'HOLIDAY', planNote: 'Bayram' })).toBe('Bayram: Bayram');
     expect(shortDuration(29_520)).toBe('8 s 12 daq');
     expect(shortDuration(null)).toBe('—');
+  });
+});
+
+const SUMMARY: StaffSummary = {
+  expectedDays: 3,
+  attendedDays: 2,
+  onTimeDays: 1,
+  lateDays: 1,
+  absentDays: 1,
+  excusedDays: 0,
+  earlyDepartureDays: 0,
+  reviewDays: 0,
+  scheduledSeconds: 86_400,
+  workedSeconds: 57_600,
+  breakSeconds: 0,
+  lateMinutes: 25,
+  earlyMinutes: 0,
+  attendancePercent: 67,
+};
+
+describe('Oylik jadval (rahbar)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('kun holati katak turiga to‘g‘ri aylanadi', () => {
+    expect(cellKind({ status: 'COMPLETED', arrival: 'PRESENT' })).toBe('ontime');
+    expect(cellKind({ status: 'WORKING', arrival: 'LATE' })).toBe('late');
+    expect(cellKind({ status: 'LATE', arrival: 'LATE' })).toBe('late');
+    expect(cellKind({ status: 'PENDING_REVIEW', arrival: 'PRESENT' })).toBe('review');
+    expect(cellKind({ status: 'ABSENT', arrival: null })).toBe('absent');
+    expect(cellKind({ status: 'EXCUSED', arrival: null })).toBe('excused');
+    expect(cellKind({ status: 'OFF', arrival: null })).toBe('off');
+    expect(parseYearMonth('2026-02')).toEqual({ year: 2026, month: 2 });
+    expect(parseYearMonth('2026-13').month).toBeGreaterThanOrEqual(1);
+  });
+
+  it('har xodimning kunlarini ko‘rsatadi; katak — kun oynasi, nom — xodim oyi', async () => {
+    const days: StaffDay[] = [
+      { ...DAY, date: '2026-10-28', status: 'COMPLETED', arrival: 'PRESENT', lateMinutes: 0 },
+      { ...DAY, date: '2026-10-29', status: 'LATE', arrival: 'LATE', lateMinutes: 25, checkOutAt: '2026-10-29T13:00:00.000Z' },
+      { ...DAY, date: '2026-10-30', status: 'ABSENT', arrival: null, lateMinutes: 0, checkInAt: null },
+    ];
+    vi.mocked(staffAttendanceService.teamMonth).mockResolvedValue({
+      year: 2026,
+      month: 10,
+      from: '2026-10-28',
+      to: '2026-10-30',
+      dates: days.map((day) => day.date),
+      rows: [{ userId: 'u1', name: 'Ali Valiyev', position: 'Operator', days, summary: SUMMARY }],
+      total: SUMMARY,
+    });
+    const onOpenDay = vi.fn();
+    const onOpenEmployee = vi.fn();
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MonthTab value={{ year: 2026, month: 10 }} onChange={vi.fn()} onOpenDay={onOpenDay} onOpenEmployee={onOpenEmployee} />
+      </QueryClientProvider>,
+    );
+
+    const late = await screen.findByRole('button', { name: /Ali Valiyev: 29\.10\.2026 · Kechikdi 25 daq/ });
+    expect(late).toHaveTextContent('25');
+    expect(screen.getByRole('button', { name: /30\.10\.2026 · Kelmadi/ })).toHaveTextContent('✕');
+    expect(screen.getByRole('button', { name: /28\.10\.2026 · O‘z vaqtida/ })).toHaveTextContent('✓');
+    expect(staffAttendanceService.teamMonth).toHaveBeenCalledWith(2026, 10);
+
+    await user.click(late);
+    expect(onOpenDay).toHaveBeenCalledWith('u1', '2026-10-29');
+    await user.click(screen.getByRole('button', { name: 'Ali Valiyev' }));
+    expect(onOpenEmployee).toHaveBeenCalledWith('u1');
   });
 });

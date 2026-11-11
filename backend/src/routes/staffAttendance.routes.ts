@@ -34,6 +34,8 @@ staffAttendanceRouter.post('/scan', staff, staffScanLimiter, controller.scan);
 staffAttendanceRouter.get('/overview', view, controller.overview);
 staffAttendanceRouter.get('/report', view, controller.report);
 staffAttendanceRouter.get('/report/export', view, heavyLimiter, controller.exportReport);
+staffAttendanceRouter.get('/month', view, controller.teamMonth);
+staffAttendanceRouter.get('/users/:userId/month', view, controller.userMonth);
 staffAttendanceRouter.get('/users/:userId/days/:date', view, controller.dayDetail);
 staffAttendanceRouter.post('/users/:userId/days/:date/corrections', manage, controller.correct);
 

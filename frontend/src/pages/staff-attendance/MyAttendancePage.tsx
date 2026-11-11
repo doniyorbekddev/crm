@@ -19,6 +19,7 @@ import { staffAttendanceService } from '@/services/staffAttendance.service';
 import type { StaffToday } from '@/types/staffAttendance';
 import {
   displayDate,
+  MONTH_NAMES,
   REQUEST_STATUS_LABELS,
   REQUEST_STATUS_TONES,
   REQUEST_TYPE_LABELS,
@@ -31,8 +32,6 @@ import { PermissionRequestModal } from './PermissionRequestModal';
 import { QrScanner } from './QrScanner';
 import { ScanSheet } from './ScanSheet';
 import { planText, StaffStatusBadge } from './StaffStatus';
-
-const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'];
 
 /** Hozirgacha ishlangan vaqt: server hisoblagan qiymat + ma'lumot kelganidan beri o'tgan vaqt (qurilma soatiga bog'liq emas) */
 function useLiveWorked(today: StaffToday, receivedAt: number): number | null {
@@ -188,7 +187,7 @@ export default function MyAttendancePage() {
           <section aria-labelledby="month-title" className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="month-title" className="text-h4 font-semibold text-fg">
-                {MONTHS[month.month - 1]} {month.year}
+                {MONTH_NAMES[month.month - 1]} {month.year}
               </h2>
               <div className="flex gap-1">
                 <Button variant="secondary" size="icon" aria-label="Oldingi oy" onClick={() => shiftMonth(-1)}>

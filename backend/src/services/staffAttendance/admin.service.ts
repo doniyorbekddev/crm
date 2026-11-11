@@ -2,14 +2,14 @@ import { prisma } from '../../config/database.js';
 import type { Prisma, StaffAttendanceEventType, StaffScheduleExceptionType, StaffScheduleMode, WeekDay } from '../../generated/prisma/client.js';
 import type { AuthUser } from '../../types/auth.js';
 import { AppError } from '../../utils/AppError.js';
-import { businessDateString } from '../../utils/dates.js';
+import { businessDateString, businessMonthRange } from '../../utils/dates.js';
 import type { ClientInfo } from '../../utils/requestContext.js';
 import { atBusinessTime, eachDate, parseTime } from '../../utils/staffAttendance.js';
 import { exportSubtitle } from '../../utils/tableExport.js';
 import type { ExportTable } from '../../utils/tableExport.js';
 import { auditService } from '../audit.service.js';
 import { branchScopeOf } from '../branchScope.js';
-import { ACTION_LABELS } from './attendance.service.js';
+import { ACTION_LABELS, monthFor } from './attendance.service.js';
 import { clockTime, daySelect, evaluateRow, fullName, lockDay, recomputeDay, toDateString } from './common.js';
 import type { StaffDayDto } from './common.js';
 import { findSubject, loadPlanner, loadSubjects } from './planning.js';
@@ -52,6 +52,17 @@ export interface OverviewDto {
   rows: StaffRowDto[];
   /** Oxirgi 31 kunda chiqishi belgilanmay qolgan kunlar */
   reviewQueue: Array<{ userId: string; name: string; date: string; checkInAt: string | null }>;
+}
+
+export interface TeamMonthDto {
+  year: number;
+  month: number;
+  from: string;
+  to: string;
+  /** Jadval ustunlari: oyning 1-kunidan bugungacha (o'tgan oy bo'lsa — oxirgi kunigacha) */
+  dates: string[];
+  rows: Array<{ userId: string; name: string; position: string; days: StaffDayDto[]; summary: StaffSummary }>;
+  total: StaffSummary;
 }
 
 const REVIEW_LOOKBACK_DAYS = 31;
@@ -246,6 +257,49 @@ export const staffAttendanceAdminService = {
       return { userId: subject.id, name: fullName(subject), position: subject.position, summary: summarize(days) };
     });
     return { from, to, rows: result, total: summarize(all) };
+  },
+
+  /**
+   * Oylik jadval: har xodimning oy kunlari (1-kundan bugungacha) holati bilan — kim qaysi kuni o'z vaqtida keldi,
+   * kechikdi, kelmadi yoki ketishini belgilamadi. Faqat o'qish; doira — filial (`scopedSubjects`).
+   */
+  async month(actor: AuthUser, year: number, month: number, now: Date = new Date()): Promise<TeamMonthDto> {
+    const today = businessDateString(now);
+    const { start, end } = businessMonthRange(year, month);
+    const from = businessDateString(start);
+    const lastDay = businessDateString(new Date(end.getTime() - 1));
+    const to = lastDay < today ? lastDay : today;
+    const subjects = await scopedSubjects(actor);
+    if (from > to) {
+      const empty = summarize([]);
+      return { year, month, from, to: lastDay, dates: [], rows: subjects.map((subject) => ({ userId: subject.id, name: fullName(subject), position: subject.position, days: [], summary: empty })), total: empty };
+    }
+    const [planner, rows] = await Promise.all([loadPlanner(subjects, from, to), rowsFor(subjects.map((subject) => subject.id), from, to)]);
+    const dates = eachDate(from, to);
+    const all: StaffDayDto[] = [];
+    const result = subjects.map((subject) => {
+      const days = dates.map((date) =>
+        evaluateRow({
+          userId: subject.id,
+          date,
+          today,
+          now,
+          plan: planner.plan(subject.id, date),
+          excuse: planner.excuse(subject.id, date),
+          row: rows.get(`${subject.id}:${date}`) ?? null,
+        }),
+      );
+      all.push(...days);
+      return { userId: subject.id, name: fullName(subject), position: subject.position, days, summary: summarize(days) };
+    });
+    return { year, month, from, to, dates, rows: result, total: summarize(all) };
+  },
+
+  /** Bitta xodimning oyi kunma-kun (rahbar uchun; xodimning "Mening davomatim"idagi bilan bir xil hisob) */
+  async userMonth(actor: AuthUser, userId: string, year: number, month: number, now: Date = new Date()) {
+    const subject = await scopedSubject(actor, userId);
+    const { days, summary } = await monthFor(subject, year, month, now);
+    return { userId: subject.id, name: fullName(subject), position: subject.position, year, month, days, summary };
   },
 
   async exportReport(actor: AuthUser, from: string, to: string, now: Date = new Date()): Promise<ExportTable> {

@@ -356,6 +356,36 @@ describe.skipIf(!hasTestDatabase)('Xodim davomati — QR (integratsion)', () => 
     await request(app).get('/api/staff-attendance/report?from=2026-10-26&to=2026-10-30').set(bearer(operator)).expect(403);
   });
 
+  it('oylik jadval: rahbar har xodimning oyini kunma-kun ko‘radi (kechikdi, kelmadi, dam olish)', async () => {
+    await scan(operator, 'CHECK_IN', undefined, 200);
+    await setTime('18:00');
+    await scan(operator, 'CHECK_OUT', undefined, 200);
+
+    const team = await request(app).get('/api/staff-attendance/month?year=2026&month=10').set(bearer(admin)).expect(200);
+    expect(team.body.data).toMatchObject({ year: 2026, month: 10, from: '2026-10-01', to: FRIDAY });
+    expect(team.body.data.dates).toHaveLength(30);
+    const row = team.body.data.rows.find((item: { userId: string }) => item.userId === operatorId);
+    const byDate = new Map(row.days.map((day: { date: string }) => [day.date, day]));
+    expect(byDate.get(FRIDAY)).toMatchObject({ status: 'LATE', arrival: 'LATE', lateMinutes: 20 });
+    expect(byDate.get('2026-10-29')).toMatchObject({ status: 'ABSENT', checkInAt: null });
+    expect(byDate.get('2026-10-25')).toMatchObject({ status: 'OFF', expected: false });
+    expect(row.summary).toMatchObject({ expectedDays: 22, attendedDays: 1, lateDays: 1, absentDays: 21 });
+
+    // Kelajak oy — ustun yo'q, xodimlar ro'yxati baribir chiqadi
+    const future = await request(app).get('/api/staff-attendance/month?year=2026&month=12').set(bearer(admin)).expect(200);
+    expect(future.body.data.dates).toEqual([]);
+    expect(future.body.data.rows.some((item: { userId: string }) => item.userId === operatorId)).toBe(true);
+
+    const single = await request(app).get(`/api/staff-attendance/users/${operatorId}/month?year=2026&month=10`).set(bearer(admin)).expect(200);
+    expect(single.body.data).toMatchObject({ userId: operatorId, name: 'Ali Valiyev', year: 2026, month: 10 });
+    expect(single.body.data.days[0]).toMatchObject({ date: FRIDAY, status: 'LATE', lateMinutes: 20 });
+    expect(single.body.data.summary).toMatchObject({ expectedDays: 22, attendedDays: 1, lateDays: 1 });
+
+    await request(app).get('/api/staff-attendance/month?year=2026&month=13').set(bearer(admin)).expect(422);
+    await request(app).get('/api/staff-attendance/month?year=2026&month=10').set(bearer(operator)).expect(403);
+    await request(app).get(`/api/staff-attendance/users/${operatorId}/month?year=2026&month=10`).set(bearer(operator)).expect(403);
+  });
+
   it('maoshga ta’sir yo‘q: davomat moliyaviy yozuv, maosh yoki komissiya yaratmaydi', async () => {
     const counts = async () => ({
       salaryPeriods: await prisma.teacherSalaryPeriod.count(),

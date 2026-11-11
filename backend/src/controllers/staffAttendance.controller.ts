@@ -89,6 +89,17 @@ export const staffAttendanceController = {
     sendSuccess(res, await staffAttendanceAdminService.report(requireAuthUser(req), from, to));
   },
 
+  async teamMonth(req: Request, res: Response): Promise<void> {
+    const { year, month } = monthQuerySchema.parse(req.query);
+    sendSuccess(res, await staffAttendanceAdminService.month(requireAuthUser(req), year, month));
+  },
+
+  async userMonth(req: Request, res: Response): Promise<void> {
+    const { userId } = userParamsSchema.parse(req.params);
+    const { year, month } = monthQuerySchema.parse(req.query);
+    sendSuccess(res, await staffAttendanceAdminService.userMonth(requireAuthUser(req), userId, year, month));
+  },
+
   async exportReport(req: Request, res: Response): Promise<void> {
     const { from, to, format } = exportQuerySchema.parse(req.query);
     rangeQuerySchema.parse({ from, to });

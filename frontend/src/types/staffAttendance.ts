@@ -246,3 +246,25 @@ export interface ScheduleException {
   endTime: string | null;
   reason: string;
 }
+
+/** Rahbar: oylik jadval (har xodimning oy kunlari) */
+export interface TeamMonth {
+  year: number;
+  month: number;
+  from: string;
+  to: string;
+  dates: string[];
+  rows: Array<{ userId: string; name: string; position: string; days: StaffDay[]; summary: StaffSummary }>;
+  total: StaffSummary;
+}
+
+/** Rahbar: bitta xodimning oyi (kunlar yangisidan eskisiga) */
+export interface StaffUserMonth {
+  userId: string;
+  name: string;
+  position: string;
+  year: number;
+  month: number;
+  days: StaffDay[];
+  summary: StaffSummary;
+}
