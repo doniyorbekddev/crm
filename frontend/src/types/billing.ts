@@ -94,6 +94,8 @@ export interface OutstandingSummary {
   students: number;
   debt: number;
   upcoming: number;
+  /** Qaysi oy uchun qarz (yig'indisi = `debt`) */
+  byMonth: Array<{ period: string; students: number; debt: number }>;
   byAge: Record<'upTo30' | 'upTo60' | 'over60', { students: number; debt: number }>;
 }
 

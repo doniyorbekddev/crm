@@ -67,8 +67,11 @@ test('buxgalter muddati kelgan oy qarzini topadi, to‘lovni shu oyga biriktirad
   const dialog = page.getByRole('dialog', { name: 'To‘lov qabul qilish' });
   await dialog.getByLabel('Summa (so‘m)').fill(String(first));
   await expect(dialog.getByRole('group', { name: 'Qaysi oy uchun' })).toContainText('yopiladi');
-  await dialog.getByRole('tab', { name: 'Oylarni tanlash' }).click();
-  await expect(dialog.getByLabel(/uchun summa$/).first()).toHaveValue(/\d/);
+  // Oy belgilansa summa shu oy qoldig'iga tenglanadi; muddati o'tgan oy "qarz · N kun kechikdi"
+  await expect(dialog.getByRole('group', { name: 'Qaysi oy uchun' })).toContainText('qarz · 20 kun kechikdi');
+  await dialog.getByLabel('Summa (so‘m)').fill('');
+  await dialog.getByRole('checkbox', { name: /uchun to‘lash$/ }).first().check();
+  await expect(dialog.getByLabel('Summa (so‘m)')).not.toHaveValue('');
   await dialog.getByRole('button', { name: 'To‘lovni saqlash' }).click();
   await expect(dialog).toBeHidden();
   await expect(row).toHaveCount(0);

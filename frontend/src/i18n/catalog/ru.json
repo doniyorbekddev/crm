@@ -5855,7 +5855,12 @@
 "Undan oldin xodimga eslatma, 18:00 da rahbarga ro‘yxat boradi. Kelish har doim QR bilan belgilanadi — QR skanerlamagan xodim “kelmadi” bo‘ladi.": "Перед этим сотруднику приходит напоминание, а в 18:00 руководителю — список. Приход всегда отмечается по QR — сотрудник, не отсканировавший QR, считается «не пришёл».",
 "Davomat yuritiladigan xodim yo‘q": "Нет сотрудников, по которым ведётся посещаемость",
 "Katakni bossangiz — o‘sha kunning hodisalari va tuzatish oynasi ochiladi. Xodim nomini bossangiz — uning oyi kunma-kun. Kechikish daqiqasi jadvaldagi kechikish muddati (grace) hisobga olingan holda.": "Нажмите на ячейку — откроются события этого дня и окно исправления. Нажмите на имя сотрудника — его месяц по дням. Минуты опоздания считаются с учётом допустимой задержки (grace) из графика.",
-"tekshiruv kerak": "нужна проверка"
+"tekshiruv kerak": "нужна проверка",
+"Bugun to‘lov kuni": "Сегодня день оплаты",
+"Muddati kelgan qarz yo‘q.": "Просроченного долга нет.",
+"Oyni belgilang — summa o‘zi to‘ladi. Belgilanmasa, to‘lov eng eski qarzdan yopiladi.": "Отметьте месяц — сумма заполнится сама. Если не отмечать, оплата закроет самый старый долг.",
+"Qaysi oy uchun qarz": "Долг по месяцам",
+"Summani oylarga o‘zim bo‘laman": "Распределить сумму по месяцам вручную"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -6583,6 +6588,9 @@
 "Tushum oldingi davrga nisbatan {0}% {1}": "Выручка к прошлому периоду {1} на {0}%",
 "O‘quvchilar davomati {0}% — me’yordan ({1}%) past": "Посещаемость учеников {0}% — ниже нормы ({1}%)",
 "Shu oy {0} ta yangi o‘quvchi qo‘shildi": "За месяц новых учеников: {0}",
-"Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "За месяц ушли учеников: {0} — проверьте причины"
+"Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "За месяц ушли учеников: {0} — проверьте причины",
+"{0} uchun to‘lash": "Оплатить за {0}",
+"Keyingi oylar ({0}) — oldindan to‘lov": "Следующие месяцы ({0}) — предоплата",
+"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "Сумма превышает остаток отмеченных месяцев на {0} — отметьте ещё месяц или уменьшите сумму"
 }
 }

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { ReportingPeriodPicker } from '@/components/ReportingPeriodPicker';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
 import type { DataTableColumn } from '@/components/ui/DataTable';
 import { Select } from '@/components/ui/Select';
@@ -14,7 +15,7 @@ import { periodKey, useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { queryKeys } from '@/lib/queryKeys';
 import { billingService } from '@/services/billing.service';
-import type { OutstandingDebt, OutstandingParams } from '@/types/billing';
+import type { OutstandingDebt, OutstandingParams, OutstandingSummary } from '@/types/billing';
 import { periodKeyLabel } from '@/utils/billingLabels';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { BillingFilters, EMPTY_BILLING_FILTERS, toBillingParams } from './BillingFilters';
@@ -156,6 +157,7 @@ export function OutstandingDebtsView() {
           <StatCard size="sm" title="Kelgusi to‘lovlar" value={formatMoney(summary.upcoming)} description="Shartnomaning hali muddati kelmagan qismi" />
         </div>
       )}
+      {summary && summary.byMonth.length > 0 && <DebtByMonth summary={summary} />}
       <DataTable
         label="Muddati kelgan qarzlar"
         columns={columns}
@@ -203,5 +205,51 @@ export function OutstandingDebtsView() {
       />
       {modals}
     </>
+  );
+}
+
+/** Umumiy qarz oylar bo'yicha: "Oktabr — 3 000 000 (5 o'quvchi)", "Noyabr — ...", jami. Har oy summasi to'liq oylik to'lov. */
+function DebtByMonth({ summary }: { summary: OutstandingSummary }) {
+  return (
+    <Card className="mb-4">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-body">
+          <caption className="border-b border-border px-4 py-3 text-left text-label text-fg">Qaysi oy uchun qarz</caption>
+          <thead>
+            <tr className="border-b border-border text-caption text-fg-muted">
+              <th scope="col" className="px-4 py-2 text-left font-medium">
+                Oy
+              </th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">
+                O‘quvchilar
+              </th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">
+                Qarz
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {summary.byMonth.map((month) => (
+              <tr key={month.period}>
+                <th scope="row" className="px-4 py-2 text-left font-normal text-fg">
+                  {periodKeyLabel(month.period)}
+                </th>
+                <td className="px-4 py-2 text-right tabular-nums text-fg-muted">{formatNumber(month.students)}</td>
+                <td className="px-4 py-2 text-right font-medium whitespace-nowrap text-danger tabular-nums">{formatMoney(month.debt)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-border">
+              <th scope="row" className="px-4 py-2 text-left font-semibold text-fg">
+                Jami qarzdorlik
+              </th>
+              <td className="px-4 py-2 text-right tabular-nums text-fg-muted">{formatNumber(summary.students)}</td>
+              <td className="px-4 py-2 text-right font-semibold whitespace-nowrap text-danger tabular-nums">{formatMoney(summary.debt)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </Card>
   );
 }

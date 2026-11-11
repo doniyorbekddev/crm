@@ -217,6 +217,8 @@ export interface OutstandingSummaryDto {
   students: number;
   debt: number;
   upcoming: number;
+  /** Qaysi oy uchun qarz: "2026-10" — shuncha (n o'quvchi), "2026-11" — shuncha; yig'indisi = `debt` */
+  byMonth: Array<{ period: string; students: number; debt: number }>;
   /** Eng eski qarz yoshi bo'yicha */
   byAge: { upTo30: { students: number; debt: number }; upTo60: { students: number; debt: number }; over60: { students: number; debt: number } };
 }
@@ -395,12 +397,22 @@ export const billingService = {
       .map((student) => outstandingOf(student, ledgerOf(inputs.get(student.id)!, asOf), today))
       .filter((row): row is OutstandingDebtDto => row !== null);
     const bucket = (rows: OutstandingDebtDto[]) => ({ students: rows.length, debt: sum(rows, (row) => row.debt) });
+    const months = new Map<string, { students: number; debt: number }>();
+    for (const row of all) {
+      for (const month of row.months) {
+        const entry = months.get(month.period) ?? { students: 0, debt: 0 };
+        entry.students += 1;
+        entry.debt += month.remaining;
+        months.set(month.period, entry);
+      }
+    }
     const summary: OutstandingSummaryDto = {
       asOfDate: today,
       historical: asOf !== null,
       students: all.length,
       debt: sum(all, (row) => row.debt),
       upcoming: sum(all, (row) => row.upcoming),
+      byMonth: [...months].sort((a, b) => a[0].localeCompare(b[0])).map(([period, value]) => ({ period, ...value })),
       byAge: {
         upTo30: bucket(all.filter((row) => row.overdueDays <= 30)),
         upTo60: bucket(all.filter((row) => row.overdueDays > 30 && row.overdueDays <= 60)),

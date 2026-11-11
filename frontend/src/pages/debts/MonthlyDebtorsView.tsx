@@ -12,9 +12,11 @@ import { Tab, TabList, Tabs } from '@/components/ui/Tabs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { periodKey, useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { useTableDensity } from '@/hooks/useTableDensity';
+import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { billingService } from '@/services/billing.service';
 import type { MonthlyDebtor, MonthlyDebtorsParams, MonthlyDebtStatusFilter } from '@/types/billing';
+import { dueCountdown } from '@/utils/billingLabels';
 import { formatDate, formatMoney, formatNumber, formatPhone } from '@/utils/format';
 import { CHARGE_STATUS_LABELS, CHARGE_STATUS_TONES } from '@/utils/scheduleLabels';
 import { BillingFilters, EMPTY_BILLING_FILTERS, toBillingParams } from './BillingFilters';
@@ -96,7 +98,21 @@ export function MonthlyDebtorsView() {
         </>
       ),
     },
-    { key: 'dueDate', label: 'Muddat', tdClassName: 'whitespace-nowrap', cell: (row) => formatDate(row.dueDate) },
+    {
+      key: 'dueDate',
+      label: 'Muddat',
+      tdClassName: 'whitespace-nowrap',
+      cell: (row) => {
+        // Oy tugamagan va qoldiq bor: "4 kun qoldi" / "6 kun kechikdi"
+        const countdown = !ended && row.remaining > 0 ? dueCountdown(row.dueDate) : null;
+        return (
+          <>
+            <p className="text-fg">{formatDate(row.dueDate)}</p>
+            {countdown && <p className={cn('text-caption', countdown.kind === 'upcoming' ? 'text-fg-muted' : 'text-danger')}>{countdown.text}</p>}
+          </>
+        );
+      },
+    },
     { key: 'charge', label: 'Majburiyat', align: 'right', tdClassName: 'whitespace-nowrap', cell: (row) => formatMoney(row.charge) },
     { key: 'paid', label: 'To‘langan', align: 'right', tdClassName: 'whitespace-nowrap', cell: (row) => formatMoney(row.paid) },
     {

@@ -86,6 +86,12 @@ describe.skipIf(!hasTestDatabase)('Oylik moliyaviy davrlar va tarixiy qarzdorlik
     expect(previous.body.data.summary).toMatchObject({ period: P, periodEnded: true, debtors: 1, remaining: 600_000 });
     const all = (await outstanding(accountant)).body.data;
     expect(all.items[0]).toMatchObject({ debt: 1_200_000, months: [{ period: P, remaining: 600_000 }, { period: C, remaining: 600_000 }], oldestDueDate: `${P}-01`, upcoming: 600_000 });
+    // Umumiy hisobot: qaysi oy uchun qancha qarz (oy summasi to'liq — kunma-kun emas), jami = oylar yig'indisi
+    expect(all.summary.byMonth).toEqual([
+      { period: P, students: 1, debt: 600_000 },
+      { period: C, students: 1, debt: 600_000 },
+    ]);
+    expect(all.summary.debt).toBe(1_200_000);
     // Oy tugagandan keyin olingan snapshot — oy oxiridagi holat
     const [year, month] = P.split('-').map(Number) as [number, number];
     await generateMonthSnapshots(year, month);
@@ -113,6 +119,7 @@ describe.skipIf(!hasTestDatabase)('Oylik moliyaviy davrlar va tarixiy qarzdorlik
     const now = (await outstanding(accountant)).body.data;
     expect(now.summary).toMatchObject({ historical: false, debt: 600_000 });
     expect(now.items[0].months).toEqual([expect.objectContaining({ period: C, remaining: 600_000 })]);
+    expect(now.summary.byMonth).toEqual([{ period: C, students: 1, debt: 600_000 }]);
 
     // 6. Joriy oy majburiyati o'zgarmadi
     expect(rowOf((await monthly(accountant, C)).body.data, aziz)).toMatchObject({ charge: 600_000, paid: 0, remaining: 600_000 });

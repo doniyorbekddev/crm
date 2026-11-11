@@ -26,7 +26,7 @@ import type { StudentItem, StudentListParams } from '@/types/student';
 import { formatMoney, formatPhone } from '@/utils/format';
 import { createIdempotencyKey } from '@/utils/idempotency';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ORDER } from '@/utils/paymentLabels';
-import { AUTO_ALLOCATION, AllocationPicker, manualAllocations, manualTotal } from './AllocationPicker';
+import { AUTO_ALLOCATION, AllocationPicker, allocationIssue, allocationPayload } from './AllocationPicker';
 import type { AllocationValue } from './AllocationPicker';
 
 const paymentFormSchema = z.object({
@@ -39,14 +39,15 @@ const paymentFormSchema = z.object({
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
 function toPayload(studentId: string, values: PaymentFormValues, allocation: AllocationValue): PaymentPayload {
+  const allocations = allocationPayload(allocation, Number(values.amount));
   return {
     studentId,
     amount: Number(values.amount),
     method: values.method,
     ...(values.paidAt ? { paidAt: new Date(`${values.paidAt}T12:00:00`).toISOString() } : {}),
     ...(values.comment ? { comment: values.comment } : {}),
-    // Avtomatik — server eng eski ochiq oydan biriktiradi
-    ...(allocation.mode === 'manual' ? { allocations: manualAllocations(allocation) } : {}),
+    // Oy belgilanmagan — server eng eski ochiq oydan biriktiradi
+    ...(allocations ? { allocations } : {}),
   };
 }
 
@@ -88,6 +89,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
     handleSubmit,
     control,
     setError,
+    setValue,
     formState: { errors },
   } = useForm({ resolver: zodResolver(paymentFormSchema), defaultValues });
 
@@ -130,8 +132,9 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
     setFormError(null);
     setDuplicate(null);
     setAllocationError(null);
-    if (allocation.mode === 'manual' && manualTotal(allocation) !== Number(values.amount)) {
-      setAllocationError('Oylarga taqsimlangan summa to‘lov summasiga teng bo‘lishi kerak');
+    const issue = allocationIssue(allocation, Number(values.amount));
+    if (issue) {
+      setAllocationError(issue);
       return;
     }
     save.mutate({ values, confirmDuplicate: false });
@@ -305,6 +308,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
               setAllocation(next);
               setAllocationError(null);
             }}
+            onSuggestAmount={(sum) => setValue('amount', String(sum), { shouldValidate: true, shouldDirty: true })}
             error={allocationError}
             disabled={save.isPending}
           />

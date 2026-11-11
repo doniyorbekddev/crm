@@ -19,6 +19,7 @@ import { cn } from '@/lib/cn';
 import { queryKeys } from '@/lib/queryKeys';
 import { paymentScheduleService } from '@/services/paymentSchedule.service';
 import type { PaymentSchedule } from '@/types/paymentSchedule';
+import { dueCountdown } from '@/utils/billingLabels';
 import { formatDate, formatMoney } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import { INSTALLMENT_STATUS_LABELS, INSTALLMENT_STATUS_TONES } from '@/utils/scheduleLabels';
@@ -101,7 +102,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
         <Tile
           label="Keyingi to‘lov"
           value={schedule.nextDue ? formatMoney(schedule.nextDue.amount) : '—'}
-          hint={schedule.nextDue ? formatDate(schedule.nextDue.dueDate) : hasSchedule ? 'Hammasi to‘langan' : 'Jadval tuzilmagan'}
+          hint={schedule.nextDue ? `${formatDate(schedule.nextDue.dueDate)} · ${dueCountdown(schedule.nextDue.dueDate).text}` : hasSchedule ? 'Hammasi to‘langan' : 'Jadval tuzilmagan'}
         />
       </div>
 
@@ -207,6 +208,9 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
                     <Badge tone={INSTALLMENT_STATUS_TONES[item.status]}>{INSTALLMENT_STATUS_LABELS[item.status]}</Badge>
                     {item.status === 'OVERDUE' && (
                       <p className="mt-0.5 text-caption text-danger">{item.overdueDays} kun kechikdi</p>
+                    )}
+                    {(item.status === 'UPCOMING' || (item.status === 'PARTIAL' && item.overdueDays === 0)) && item.remaining > 0 && (
+                      <p className="mt-0.5 text-caption text-fg-muted">{dueCountdown(item.dueDate).text}</p>
                     )}
                   </>
                 ),

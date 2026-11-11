@@ -5820,7 +5820,12 @@
 "Undan oldin xodimga eslatma, 18:00 da rahbarga ro‘yxat boradi. Kelish har doim QR bilan belgilanadi — QR skanerlamagan xodim “kelmadi” bo‘ladi.": "Before that the employee gets a reminder, and at 18:00 the manager gets a list. Arrival is always marked by QR — an employee who has not scanned the QR is marked “absent”.",
 "Davomat yuritiladigan xodim yo‘q": "No staff with attendance tracking",
 "Katakni bossangiz — o‘sha kunning hodisalari va tuzatish oynasi ochiladi. Xodim nomini bossangiz — uning oyi kunma-kun. Kechikish daqiqasi jadvaldagi kechikish muddati (grace) hisobga olingan holda.": "Click a cell to open that day’s events and the correction form. Click an employee’s name to see their month day by day. Late minutes take the schedule’s grace period into account.",
-"tekshiruv kerak": "needs review"
+"tekshiruv kerak": "needs review",
+"Bugun to‘lov kuni": "Payment is due today",
+"Muddati kelgan qarz yo‘q.": "No overdue debt.",
+"Oyni belgilang — summa o‘zi to‘ladi. Belgilanmasa, to‘lov eng eski qarzdan yopiladi.": "Tick a month and the amount fills in automatically. If none is ticked, the payment covers the oldest debt first.",
+"Qaysi oy uchun qarz": "Debt by month",
+"Summani oylarga o‘zim bo‘laman": "Split the amount across months manually"
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -6547,6 +6552,9 @@
 "Tushum oldingi davrga nisbatan {0}% {1}": "Revenue {1} by {0}% versus the previous period",
 "O‘quvchilar davomati {0}% — me’yordan ({1}%) past": "Student attendance is {0}% — below the {1}% norm",
 "Shu oy {0} ta yangi o‘quvchi qo‘shildi": "{0} new students joined this month",
-"Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "{0} students left this month — check the reasons"
+"Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "{0} students left this month — check the reasons",
+"{0} uchun to‘lash": "Pay for {0}",
+"Keyingi oylar ({0}) — oldindan to‘lov": "Later months ({0}) — prepayment",
+"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "The amount exceeds the ticked months’ balance by {0} — tick another month or lower the amount"
 }
 }
