@@ -5841,7 +5841,12 @@
 "Shartnoma jami:": "Contract total:",
 "Shu kun — har oyning to‘lov kuni": "This day is the payment day of every month",
 "Chegirma oylik narxdan katta bo‘lmasligi kerak": "The discount must not exceed the monthly price",
-"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "The discount lowers the monthly fee from the current month; the debt is recalculated."
+"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "The discount lowers the monthly fee from the current month; the debt is recalculated.",
+"Muzlatilgan — to‘lov yozilmaydi": "Frozen — no charges",
+"Oylik to‘lov modeliga o‘tkazildi": "Moved to the monthly fee model",
+"To‘lov hisobi 2026-yil oktyabrdan boshlanadi": "Billing starts in October 2026",
+"Muzlatishdan chiqarilganda bugundan keyingi oylar uchun to‘lov yana yoziladi. Muzlatilgan davrdagi oylar yozilmaydi.": "After unfreezing, charges resume for months from today. Months during the freeze are not charged.",
+"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Temporarily paused — not shown in the attendance journal. Unpaid months from today on are not charged."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",

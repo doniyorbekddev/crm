@@ -5,7 +5,8 @@ import { planMonthlyFeeMigration } from '../utils/monthlyFeeMigration.js';
 import type { MonthlyFeeMigrationPlan } from '../utils/monthlyFeeMigration.js';
 import { BILLING_START_MONTH } from '../utils/paymentSchedule.js';
 import { auditService } from './audit.service.js';
-import { syncContractTotal } from './paymentSchedule.service.js';
+import { FREEZE_CANCEL_REASON, syncContractTotal } from './paymentSchedule.service.js';
+import { businessDateString } from '../utils/dates.js';
 
 /**
  * Mavjud o'quvchilarni oylik to'lov modeliga o'tkazish (bir martalik, 2026-11). Har o'quvchi alohida tranzaksiyada:
@@ -34,6 +35,8 @@ async function loadStudent(client: Tx | typeof prisma, studentId: string) {
       id: true,
       firstName: true,
       lastName: true,
+      status: true,
+      statusChangedAt: true,
       contractPrice: true,
       debt: { select: { paidAmount: true } },
       installments: { select: { id: true, dueDate: true, amount: true, cancelledAt: true } },
@@ -59,6 +62,7 @@ function planFor(student: Awaited<ReturnType<typeof loadStudent>>, closedMonths:
     })),
     closedMonths,
     startMonth: BILLING_START_MONTH,
+    frozenFrom: student.status === 'FROZEN' ? businessDateString(student.statusChangedAt ?? new Date()) : null,
   });
   // Taqsimot o'zgardimi: joriy (bekor qilinmagan) qatorlarning sof yig'indisi to'lov × oy bo'yicha solishtiriladi
   const current = new Map<string, number>();
@@ -74,7 +78,7 @@ function planFor(student: Awaited<ReturnType<typeof loadStudent>>, closedMonths:
     monthly: student.contractPrice.toNumber(),
     paid: student.debt?.paidAmount.toNumber() ?? 0,
     plan,
-    changed: plan.cancel.length > 0 || plan.reprice.length > 0 || !sameAllocations,
+    changed: plan.cancel.length > 0 || plan.freeze.length > 0 || plan.reprice.length > 0 || !sameAllocations,
   };
 }
 
@@ -104,6 +108,12 @@ export async function migrateToMonthlyFee(options: { apply: boolean; actorId: st
         await tx.paymentInstallment.updateMany({
           where: { id: { in: plan.cancel.map((item) => item.id) }, cancelledAt: null },
           data: { cancelledAt: now, cancelledById: options.actorId, cancelReason: CANCEL_REASON },
+        });
+      }
+      if (plan.freeze.length > 0) {
+        await tx.paymentInstallment.updateMany({
+          where: { id: { in: plan.freeze.map((item) => item.id) }, cancelledAt: null },
+          data: { cancelledAt: now, cancelledById: options.actorId, cancelReason: FREEZE_CANCEL_REASON },
         });
       }
       for (const item of plan.reprice) {
@@ -138,6 +148,7 @@ export async function migrateToMonthlyFee(options: { apply: boolean; actorId: st
           totalBefore: plan.totalBefore,
           totalAfter: total,
           cancelledMonths: plan.cancel.map((item) => item.key),
+          frozenMonths: plan.freeze.map((item) => item.key),
           repriced: plan.reprice.length,
           untouched: plan.untouched,
           allocationsVoided: voided.count,

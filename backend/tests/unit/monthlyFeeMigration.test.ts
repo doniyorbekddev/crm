@@ -63,4 +63,30 @@ describe('Oylik to‘lov modeliga o‘tkazish rejasi', () => {
     expect(plan.totalAfter).toBe(340_000);
     expect(plan.unallocated).toBe(660_000);
   });
+
+  it('muzlatilgan: muzlatilgan kundan keyingi to‘lanmagan oylar yozilmaydi; oldingi oy qarz bo‘lib qoladi', () => {
+    const plan = planMonthlyFeeMigration({
+      monthly: 600_000,
+      installments: months(['2026-10', '2026-11', '2026-12'], 50_000),
+      payments: [],
+      closedMonths: new Set(),
+      startMonth: '2026-10',
+      frozenFrom: '2026-10-09',
+    });
+    expect(plan.freeze.map((item) => item.key)).toEqual(['2026-11', '2026-12']);
+    expect(plan.charges).toEqual([{ key: '2026-10', amount: 600_000 }]);
+    expect(plan.totalAfter).toBe(600_000);
+
+    // To'lov tushgan oy muzlatilgan davrda bo'lsa ham bekor qilinmaydi
+    const paid = planMonthlyFeeMigration({
+      monthly: 300_000,
+      installments: months(['2026-10', '2026-11'], 25_000),
+      payments: [{ id: 'p', paidAt: '2026-10-13T00:00:00.000Z', net: 400_000 }],
+      closedMonths: new Set(),
+      startMonth: '2026-10',
+      frozenFrom: '2026-10-01',
+    });
+    expect(paid.freeze).toEqual([]);
+    expect(paid.totalAfter).toBe(600_000);
+  });
 });

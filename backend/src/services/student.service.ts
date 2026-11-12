@@ -26,7 +26,8 @@ import { permissionService } from './permission.service.js';
 import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
-import { applyMonthlyFee, createDefaultSchedule } from './paymentSchedule.service.js';
+import { businessDateString } from '../utils/dates.js';
+import { applyMonthlyFee, createDefaultSchedule, freezeCharges, unfreezeCharges } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
@@ -859,7 +860,12 @@ export const studentService = {
       });
       // Kurs tugatildi — COURSE_COMPLETED nishonlari darhol (keyingi davomatni kutmasdan)
       if (input.status === 'COMPLETED' || input.status === 'GRADUATED') await gamificationHooks.onMilestone(tx, id);
-      return record;
+      // Muzlatilgan davrda to'lov yozilmaydi: muzlatilganda bugundan keyingi to'lanmagan oylar bekor qilinadi,
+      // qaytganda bugundan keyingilari tiklanadi
+      const today = businessDateString(new Date());
+      if (input.status === 'FROZEN') await freezeCharges(tx, id, today, actor.id);
+      else if (student.status === 'FROZEN') await unfreezeCharges(tx, id, today);
+      return record.status === 'FROZEN' || student.status === 'FROZEN' ? tx.student.findUniqueOrThrow({ where: { id }, select: studentSelect }) : record;
     });
 
     return toStudentDto(updated);

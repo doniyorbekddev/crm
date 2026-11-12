@@ -14,7 +14,7 @@ import { STUDENT_STATUS_LABELS, STUDENT_STATUS_ORDER } from '@/utils/studentLabe
 
 const STATUS_HINTS: Record<StudentStatus, string> = {
   ACTIVE: 'O‘quvchi darslarga qatnaydi va davomat jurnalida ko‘rinadi.',
-  FROZEN: 'Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi.',
+  FROZEN: 'Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.',
   COMPLETED: 'Kursni tugatgan, lekin hujjat topshirilmagan.',
   GRADUATED: 'Kursni to‘liq bitirgan.',
   ALUMNI: 'Bitirgan va markaz bilan aloqada qoladi — tavsiya va qayta yozilish uchun.',
@@ -62,6 +62,11 @@ export function StudentStatusModal({ student, onClose, onSaved }: StudentStatusM
       {formError && (
         <Alert tone="error" className="mb-4">
           {formError}
+        </Alert>
+      )}
+      {student.status === 'FROZEN' && status !== 'FROZEN' && (
+        <Alert tone="info" className="mb-4">
+          Muzlatishdan chiqarilganda bugundan keyingi oylar uchun to‘lov yana yoziladi. Muzlatilgan davrdagi oylar yozilmaydi.
         </Alert>
       )}
       <FormField label="Yangi holat" htmlFor="student-status" hint={STATUS_HINTS[status]}>

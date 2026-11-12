@@ -1,7 +1,14 @@
+import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
 import { migrateToMonthlyFee } from '../src/services/monthlyFeeMigration.service.js';
+import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
+import { businessDateString } from '../src/utils/dates.js';
+import { addMonthsClamped } from '../src/utils/paymentSchedule.js';
+
+const app = createApp();
 import { createCourse } from './helpers/fixtures.js';
 
 /** Eski model: shartnomaga oylik 600 000 yozilgan, jadval esa uni 12 oyga bo'lgan (50 000), to'lov oylarga yoyilgan */
@@ -89,5 +96,34 @@ describe.skipIf(!hasTestDatabase)('Oylik to‘lov modeliga o‘tkazish (integrat
     expect(again[0]!.changed).toBe(false);
     expect(await prisma.auditLog.count({ where: { action: 'billing.monthly_fee_migrated' } })).toBe(1);
     expect(await prisma.paymentAllocation.count({ where: { paymentId: payment.id, voidedAt: null } })).toBe(1);
+  });
+
+  it('muzlatilganda bugundan keyingi to‘lanmagan oylar yozilmaydi; faollashganda bugundan keyingilari tiklanadi', async () => {
+    const { token } = await createUserWithToken(app, { role: 'OWNER', email: 'owner@freeze.uz' });
+    const course = await createCourse('Frontend');
+    // O'tgan oyning 1-sanasidan, 6 oy × 500 000
+    const current = businessDateString(new Date()).slice(0, 7);
+    const previous = addMonthsClamped(`${current}-01`, -1).slice(0, 7);
+    const created = await request(app)
+      .post('/api/students')
+      .set(bearer(token))
+      .send({ firstName: 'Muzlat', lastName: 'Test', phone: '+998901119999', courseId: course.id, contractPrice: 500_000, startDate: `${previous}-01` });
+    expect(created.status).toBe(201);
+    const id = created.body.data.id as string;
+    expect(created.body.data.debt.total).toBe(3_000_000);
+
+    const frozen = await request(app).patch(`/api/students/${id}/status`).set(bearer(token)).send({ status: 'FROZEN', reason: 'Ta’tilga ketdi' });
+    expect(frozen.status).toBe(200);
+    // O'tgan oy va (1-sanasi o'tgan bo'lsa) joriy oy qarz bo'lib qoladi; bugundan keyingilari yozilmaydi
+    const dueToday = businessDateString(new Date()) === `${current}-01`;
+    expect(frozen.body.data.debt.total).toBe(dueToday ? 500_000 : 1_000_000);
+    const cancelled = await prisma.paymentInstallment.findMany({ where: { studentId: id, cancelledAt: { not: null } } });
+    expect(cancelled).toHaveLength(dueToday ? 5 : 4);
+    expect(cancelled.every((row) => row.cancelReason === 'Muzlatilgan — to‘lov yozilmaydi')).toBe(true);
+
+    const active = await request(app).patch(`/api/students/${id}/status`).set(bearer(token)).send({ status: 'ACTIVE' });
+    expect(active.status).toBe(200);
+    expect(active.body.data.debt.total).toBe(3_000_000);
+    expect(await prisma.paymentInstallment.count({ where: { studentId: id, cancelledAt: { not: null } } })).toBe(0);
   });
 });

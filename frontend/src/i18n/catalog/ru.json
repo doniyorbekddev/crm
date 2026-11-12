@@ -5876,7 +5876,12 @@
 "Shartnoma jami:": "Итого по договору:",
 "Shu kun — har oyning to‘lov kuni": "Этот день — день оплаты каждого месяца",
 "Chegirma oylik narxdan katta bo‘lmasligi kerak": "Скидка не должна превышать месячную цену",
-"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "Скидка уменьшает месячную оплату с текущего месяца, задолженность пересчитывается."
+"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "Скидка уменьшает месячную оплату с текущего месяца, задолженность пересчитывается.",
+"Muzlatilgan — to‘lov yozilmaydi": "Заморожен — оплата не начисляется",
+"Oylik to‘lov modeliga o‘tkazildi": "Переведён на модель месячной оплаты",
+"To‘lov hisobi 2026-yil oktyabrdan boshlanadi": "Учёт оплат начинается с октября 2026 года",
+"Muzlatishdan chiqarilganda bugundan keyingi oylar uchun to‘lov yana yoziladi. Muzlatilgan davrdagi oylar yozilmaydi.": "После разморозки оплата снова начисляется за месяцы начиная с сегодняшнего дня. Месяцы заморозки не начисляются.",
+"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Временно приостановлен — не отображается в журнале посещаемости. За неоплаченные месяцы начиная с сегодняшнего дня оплата не начисляется."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",

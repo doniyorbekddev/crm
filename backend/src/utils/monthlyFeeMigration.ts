@@ -30,11 +30,15 @@ export interface MonthlyFeeMigrationInput {
   payments: MigrationPayment[];
   closedMonths: ReadonlySet<string>;
   startMonth: string;
+  /** Muzlatilgan o'quvchi: shu sanadan (YYYY-MM-DD) keyingi muddatli, to'lov tushmagan oylar yozilmaydi */
+  frozenFrom?: string | null;
 }
 
 export interface MonthlyFeeMigrationPlan {
   /** Bekor qilinadigan qismlar (hisob boshlanishidan oldin) */
   cancel: Array<{ id: string; key: string; amount: number }>;
+  /** Muzlatilgan davr — bekor qilinadigan oylar (to'lov tushmagan) */
+  freeze: Array<{ id: string; key: string; amount: number }>;
   /** Summasi oylik to'lovga tenglanadigan qismlar */
   reprice: Array<{ id: string; key: string; from: number; to: number }>;
   /** Bir oyda bir nechta qism yoki yopilgan oy — tegilmadi */
@@ -86,6 +90,11 @@ export function planMonthlyFeeMigration(input: MonthlyFeeMigrationInput): Monthl
   const capacity = [...charges].sort((a, b) => a[0].localeCompare(b[0])).map(([key, amount]) => ({ key, left: amount }));
   const allocations: MonthlyFeeMigrationPlan['allocations'] = [];
   let unallocated = 0;
+  const firstDue = new Map<string, string>();
+  for (const item of active) {
+    const key = monthOf(item.dueDate);
+    if (!firstDue.has(key) || item.dueDate < firstDue.get(key)!) firstDue.set(key, item.dueDate);
+  }
   for (const payment of [...input.payments].sort((a, b) => a.paidAt.localeCompare(b.paidAt) || a.id.localeCompare(b.id))) {
     let left = Math.max(payment.net, 0);
     for (const month of capacity) {
@@ -99,9 +108,22 @@ export function planMonthlyFeeMigration(input: MonthlyFeeMigrationInput): Monthl
     unallocated += left;
   }
 
+  // Muzlatilgan: sanadan keyingi, hech narsa biriktirilmagan (yopilmagan) oylar bekor qilinadi
+  const freeze: MonthlyFeeMigrationPlan['freeze'] = [];
+  if (input.frozenFrom) {
+    const allocatedKeys = new Set(allocations.map((item) => item.key));
+    for (const [key] of [...charges]) {
+      if (input.closedMonths.has(key) || allocatedKeys.has(key) || (firstDue.get(key) ?? `${key}-01`) < input.frozenFrom) continue;
+      for (const item of byMonth.get(key) ?? []) freeze.push({ id: item.id, key, amount: item.amount });
+      charges.delete(key);
+    }
+    freeze.sort((a, b) => a.key.localeCompare(b.key));
+  }
+
   const sorted = [...charges].sort((a, b) => a[0].localeCompare(b[0])).map(([key, amount]) => ({ key, amount }));
   return {
     cancel,
+    freeze,
     reprice,
     untouched,
     allocations,

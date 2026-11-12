@@ -27,6 +27,7 @@ try {
   console.log(`  o‘quvchilar: ${rows.length}, o‘zgaradigan: ${changed.length}`);
   console.log(`  shartnoma jami: ${money(sum((row) => row.plan.totalBefore))} → ${money(sum((row) => row.plan.totalAfter))}`);
   console.log(`  bekor qilinadigan (oktyabrdan oldingi) oylar: ${sum((row) => row.plan.cancel.length)}, summasi o‘zgaradigan oylar: ${sum((row) => row.plan.reprice.length)}`);
+  console.log(`  muzlatilgan o‘quvchilar: ${changed.filter((row) => row.plan.freeze.length > 0).length}, yozilmaydigan oylar: ${sum((row) => row.plan.freeze.length)}`);
   console.log(`  tegilmagan oylar (bir oyda bir nechta qism / yopilgan oy): ${sum((row) => row.plan.untouched.length)}`);
   console.log(`  yangi oy taqsimotlari: ${sum((row) => row.plan.allocations.length)}, oylarga sig'magan to‘lov: ${money(sum((row) => row.plan.unallocated))}`);
   if (details) {
@@ -35,6 +36,7 @@ try {
       const months = plan.charges.map((item) => item.key.slice(2)).join(',');
       const extra = [
         plan.cancel.length ? `bekor: ${plan.cancel.map((item) => item.key).join(',')}` : '',
+        plan.freeze.length ? `muzlatilgan: ${plan.freeze.map((item) => item.key).join(',')}` : '',
         plan.untouched.length ? `tegilmadi: ${plan.untouched.join(',')}` : '',
         plan.unallocated ? `sig'madi: ${money(plan.unallocated)}` : '',
       ].filter(Boolean);

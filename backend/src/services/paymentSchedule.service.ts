@@ -222,6 +222,52 @@ export async function applyMonthlyFee(tx: Tx, studentId: string, monthly: number
   await syncContractTotal(tx, studentId);
 }
 
+/** Muzlatish vaqtida yozilmagan oylar shu sabab bilan bekor qilinadi — qayta faollashtirilganda aynan shular tiklanadi */
+export const FREEZE_CANCEL_REASON = 'Muzlatilgan — to‘lov yozilmaydi';
+
+/**
+ * O'quvchi muzlatildi: `from` (bugun) va undan keyingi muddatli, to'lov tushmagan oylar bekor qilinadi — muzlatilgan
+ * davrda qarz yozilmaydi. Muzlatishgacha muddati kelgan oylar qarz bo'lib qoladi; yopilgan oylar tegilmaydi.
+ */
+export async function freezeCharges(tx: Tx, studentId: string, from: string, actorId: string | null, now: Date = new Date()): Promise<number> {
+  const [inputs, closed] = await Promise.all([loadLedgerInputs(tx, [studentId]), closedMonthKeys(tx)]);
+  const paidByMonth = new Map(ledgerOf(inputs.get(studentId)!).months.map((month) => [month.key, month.paid]));
+  const ids = inputs
+    .get(studentId)!
+    .installments.filter((row) => !row.cancelled && row.dueDate >= from)
+    .filter((row) => {
+      const key = monthOfDate(row.dueDate);
+      return !closed.has(key) && (paidByMonth.get(key) ?? 0) <= 0;
+    })
+    .map((row) => row.id);
+  if (ids.length > 0) {
+    await tx.paymentInstallment.updateMany({
+      where: { id: { in: ids }, cancelledAt: null },
+      data: { cancelledAt: now, cancelledById: actorId, cancelReason: FREEZE_CANCEL_REASON },
+    });
+  }
+  await syncContractTotal(tx, studentId);
+  return ids.length;
+}
+
+/**
+ * Muzlatishdan qaytdi: muzlatish sababli bekor qilingan, muddati `from` (bugun) va undan keyingi oylar tiklanadi —
+ * to'lov shu kundan davom etadi. Muzlatilgan davrdagi oylar bekor bo'lib qoladi.
+ */
+export async function unfreezeCharges(tx: Tx, studentId: string, from: string): Promise<number> {
+  const closed = await closedMonthKeys(tx);
+  const rows = await tx.paymentInstallment.findMany({
+    where: { studentId, cancelReason: FREEZE_CANCEL_REASON, cancelledAt: { not: null }, dueDate: { gte: dateOnly(from) } },
+    select: { id: true, dueDate: true },
+  });
+  const ids = rows.filter((row) => !closed.has(monthOfDate(row.dueDate.toISOString().slice(0, 10)))).map((row) => row.id);
+  if (ids.length > 0) {
+    await tx.paymentInstallment.updateMany({ where: { id: { in: ids } }, data: { cancelledAt: null, cancelledById: null, cancelReason: null } });
+  }
+  await syncContractTotal(tx, studentId);
+  return ids.length;
+}
+
 /**
  * Yangi o‘quvchi uchun standart jadval: kurs davomiyligicha har oyga to'liq oylik to'lov, birinchi muddat — o‘qish
  * boshlangan kun (to'lov kuni). {@link BILLING_START_MONTH} dan oldingi oylar qo'shilmaydi.
