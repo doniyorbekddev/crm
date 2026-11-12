@@ -26,7 +26,7 @@ import { permissionService } from './permission.service.js';
 import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExport.js';
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
-import { createDefaultSchedule } from './paymentSchedule.service.js';
+import { applyMonthlyFee, createDefaultSchedule } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
@@ -388,7 +388,7 @@ export const studentService = {
       { key: 'group', label: 'Guruh', type: 'text' },
       { key: 'status', label: 'Holat', type: 'text' },
       { key: 'startDate', label: 'Boshlagan sana', type: 'date' },
-      { key: 'contractPrice', label: 'Shartnoma summasi', type: 'money' },
+      { key: 'contractPrice', label: 'Oylik to‘lov', type: 'money' },
       { key: 'paid', label: 'To‘langan', type: 'money' },
       { key: 'remaining', label: 'Qarz', type: 'money' },
     ];
@@ -465,9 +465,9 @@ export const studentService = {
         select: studentSelect,
       });
       await assignReferralCode(tx, student.id, student.number);
-      // Standart to'lov jadvali: kurs davomiyligi bo'yicha oylik qismlar (keyin qo'lda o'zgartiriladi)
+      // Standart to'lov jadvali: kurs davomiyligicha har oyga to'liq oylik to'lov (shartnoma jami summasi shundan)
       const course = await tx.course.findUniqueOrThrow({ where: { id: input.courseId }, select: { durationMonths: true } });
-      await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate: input.startDate });
+      await createDefaultSchedule(tx, { studentId: student.id, monthly: contractPrice, months: course.durationMonths, startDate: input.startDate });
       await recordGroupChange(tx, { studentId: student.id, fromGroupId: null, toGroupId: input.groupId ?? null, reason: 'O‘quvchi qo‘shildi', changedById: actor.id });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
@@ -477,7 +477,8 @@ export const studentService = {
         metadata: { number: student.number, courseId: input.courseId, contractPrice },
         ...client,
       });
-      return student;
+      // Qarz balansi jadval tuzilgach hisoblanadi (oylik × oylar) — javob yangi qiymat bilan
+      return tx.student.findUniqueOrThrow({ where: { id: student.id }, select: studentSelect });
     });
 
     return toStudentDto(created);
@@ -498,7 +499,6 @@ export const studentService = {
       // To'langan summa va joriy narx qulf ostida o'qiladi — parallel to'lov yoki chegirma bilan qarz
       // eskirgan qiymatda yozilib qolmaydi
       const locked = await lockStudentContract(tx, id);
-      const paid = locked.debt?.paidAmount ?? 0;
       const record = await tx.student.update({
         where: { id },
         data: {
@@ -521,16 +521,10 @@ export const studentService = {
         select: studentSelect,
       });
 
-      // Shartnoma narxi o‘zgarsa, qarzdorlik qayta hisoblanadi (to‘langan summa saqlanadi)
+      // Oylik to'lov o'zgarsa: joriy va kelgusi oylar yangi summaga o'tadi, shartnoma jami summasi va qarz qayta
+      // hisoblanadi (to'langan summa saqlanadi, o'tgan oylar o'zgarmaydi)
       if (contractPrice !== locked.contractPrice) {
-        await tx.debt.update({
-          where: { studentId: id },
-          data: {
-            totalAmount: contractPrice,
-            remainingAmount: Math.max(contractPrice - paid, 0),
-            status: debtStatusOf(contractPrice, paid),
-          },
-        });
+        await applyMonthlyFee(tx, id, contractPrice);
       }
 
       await recordGroupChange(tx, {
@@ -965,7 +959,7 @@ export const studentService = {
       // Lead taklif kodi bilan kelgan bo'lsa, taklif "aylandi" holatiga o'tadi (bonus keyin qo'lda beriladi)
       await referralService.onLeadConverted(tx, lead.id, student.id);
       const course = await tx.course.findUniqueOrThrow({ where: { id: courseId }, select: { durationMonths: true } });
-      await createDefaultSchedule(tx, { studentId: student.id, total: contractPrice, months: course.durationMonths, startDate });
+      await createDefaultSchedule(tx, { studentId: student.id, monthly: contractPrice, months: course.durationMonths, startDate });
       await recordGroupChange(tx, {
         studentId: student.id,
         fromGroupId: null,

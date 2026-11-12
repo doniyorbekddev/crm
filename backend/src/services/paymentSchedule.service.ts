@@ -3,7 +3,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import type { AuthUser } from '../types/auth.js';
 import { AppError } from '../utils/AppError.js';
 import { addDays, businessDateString } from '../utils/dates.js';
-import { allocateSchedule, buildMonthlyPlan, daysBetween } from '../utils/paymentSchedule.js';
+import { BILLING_START_MONTH, allocateSchedule, buildFixedMonthlyPlan, daysBetween } from '../utils/paymentSchedule.js';
 import type { AllocatedInstallment, PlannedInstallment } from '../utils/paymentSchedule.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CancelChargesInput, GenerateScheduleInput, ReplaceScheduleInput } from '../validators/paymentSchedule.validator.js';
@@ -48,6 +48,9 @@ function debtStatus(total: number, paid: number): 'UNPAID' | 'PARTIAL' | 'PAID' 
 
 export interface PaymentScheduleDto {
   studentId: string;
+  /** Oylik to'lov (`Student.contractPrice`) — har oy shu summa */
+  monthlyFee: number;
+  /** Shartnoma jami summasi = jadvaldagi bekor qilinmagan oylar yig'indisi */
   contractTotal: number;
   paid: number;
   scheduledTotal: number;
@@ -170,20 +173,73 @@ async function assertAllocationsFit(tx: Tx, studentId: string, field: string): P
   }
 }
 
-/** Yangi o‘quvchi uchun standart jadval: kurs davomiyligi bo‘yicha oylik, birinchi muddat — o‘qish boshlangan kun */
+/**
+ * Shartnoma jami summasi = jadvaldagi bekor qilinmagan oylar yig'indisi (`Student.contractPrice` — **oylik** to'lov).
+ * Jadval o'zgargan har safar qarz balansi (`Debt`) shu bilan qayta hisoblanadi; to'langan summa saqlanadi.
+ */
+export async function syncContractTotal(tx: Tx, studentId: string): Promise<number> {
+  const [sum, rows, debt, student] = await Promise.all([
+    tx.paymentInstallment.aggregate({ where: { studentId, cancelledAt: null }, _sum: { amount: true } }),
+    tx.paymentInstallment.count({ where: { studentId } }),
+    tx.debt.findUnique({ where: { studentId }, select: { paidAmount: true } }),
+    tx.student.findUnique({ where: { id: studentId }, select: { contractPrice: true } }),
+  ]);
+  // Jadvali umuman yo'q o'quvchi (eski yozuv) — shartnoma bitta oylik to'lovga teng
+  const total = rows === 0 ? (student?.contractPrice.toNumber() ?? 0) : (sum._sum.amount?.toNumber() ?? 0);
+  if (!debt) return total;
+  const paid = debt.paidAmount.toNumber();
+  await tx.debt.update({
+    where: { studentId },
+    data: { totalAmount: total, remainingAmount: Math.max(total - paid, 0), status: debtStatus(total, paid) },
+  });
+  return total;
+}
+
+/**
+ * Oylik to'lov o'zgardi (chegirma, narx tahriri, taklif bonusi): joriy va kelgusi oylar summasi yangi oylik to'lovga
+ * tenglanadi. O'tgan oylar (muddati o'tgan qarz) va yopilgan moliyaviy oylar o'zgarmaydi; bir oyda bir nechta qism
+ * bo'lsa (qo'lda tuzilgan) — tegilmaydi. Keyin shartnoma jami summasi qayta hisoblanadi.
+ */
+export async function applyMonthlyFee(tx: Tx, studentId: string, monthly: number, now: Date = new Date()): Promise<void> {
+  const current = currentBusinessMonth(now);
+  const fromKey = periodKeyOf(current.year, current.month);
+  const [rows, closed] = await Promise.all([
+    tx.paymentInstallment.findMany({ where: { studentId, cancelledAt: null }, select: { id: true, dueDate: true, amount: true } }),
+    closedMonthKeys(tx),
+  ]);
+  const byMonth = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const key = monthOfDate(row.dueDate.toISOString().slice(0, 10));
+    byMonth.set(key, [...(byMonth.get(key) ?? []), row]);
+  }
+  const ids = [...byMonth]
+    .filter(([key, list]) => key >= fromKey && !closed.has(key) && list.length === 1 && list[0]!.amount.toNumber() !== monthly)
+    .map(([, list]) => list[0]!.id);
+  if (ids.length > 0 && monthly > 0) {
+    await tx.paymentInstallment.updateMany({ where: { id: { in: ids } }, data: { amount: monthly } });
+    await assertAllocationsFit(tx, studentId, 'contractPrice');
+  }
+  await syncContractTotal(tx, studentId);
+}
+
+/**
+ * Yangi o‘quvchi uchun standart jadval: kurs davomiyligicha har oyga to'liq oylik to'lov, birinchi muddat — o‘qish
+ * boshlangan kun (to'lov kuni). {@link BILLING_START_MONTH} dan oldingi oylar qo'shilmaydi.
+ */
 export async function createDefaultSchedule(
   tx: Tx,
-  input: { studentId: string; total: number; months: number; startDate: Date },
+  input: { studentId: string; monthly: number; months: number; startDate: Date },
 ): Promise<number> {
-  const plan = buildMonthlyPlan(input.total, input.months, input.startDate.toISOString().slice(0, 10));
+  const plan = buildFixedMonthlyPlan(input.monthly, input.months, input.startDate.toISOString().slice(0, 10));
   await writeInstallments(tx, input.studentId, plan);
+  await syncContractTotal(tx, input.studentId);
   return plan.length;
 }
 
-async function loadStudent(id: string): Promise<{ id: string; total: number; paid: number }> {
+async function loadStudent(id: string): Promise<{ id: string; total: number; paid: number; monthly: number }> {
   const student = await prisma.student.findFirst({
     where: { id, deletedAt: null },
-    select: { id: true, debt: { select: { totalAmount: true, paidAmount: true } } },
+    select: { id: true, contractPrice: true, debt: { select: { totalAmount: true, paidAmount: true } } },
   });
   if (!student) {
     throw AppError.notFound('O‘quvchi topilmadi');
@@ -191,7 +247,12 @@ async function loadStudent(id: string): Promise<{ id: string; total: number; pai
   if (!student.debt) {
     throw AppError.unprocessable('Bu o‘quvchida shartnoma balansi yo‘q');
   }
-  return { id: student.id, total: student.debt.totalAmount.toNumber(), paid: student.debt.paidAmount.toNumber() };
+  return {
+    id: student.id,
+    total: student.debt.totalAmount.toNumber(),
+    paid: student.debt.paidAmount.toNumber(),
+    monthly: student.contractPrice.toNumber(),
+  };
 }
 
 const formatSum = (value: number) => groupUz(value);
@@ -292,6 +353,7 @@ export const paymentScheduleService = {
 
     return {
       studentId: student.id,
+      monthlyFee: student.monthly,
       contractTotal: student.total,
       paid: student.paid,
       scheduledTotal: totals.scheduledTotal,
@@ -306,32 +368,38 @@ export const paymentScheduleService = {
   },
 
   /**
-   * Shartnoma summasidan oylik teng qismlar — mavjud jadval almashtiriladi. Bekor qilingan qismlar va yopilgan
-   * oylar qismlari saqlanadi (yangi qismlar ularsiz qolgan summaga tuziladi).
+   * Oylik jadval: `count` oy, har oyga to'liq oylik to'lov (`contractPrice`), birinchi muddat — to'lov kuni. Mavjud
+   * jadval almashtiriladi; bekor qilingan qismlar va yopilgan oylar qismlari saqlanadi (o'sha oylar takrorlanmaydi).
+   * Shartnoma jami summasi jadvaldan qayta hisoblanadi.
    */
   async generate(actor: AuthUser, studentId: string, input: GenerateScheduleInput, client: ClientInfo): Promise<PaymentScheduleDto> {
     const student = await loadStudent(studentId);
-    if (student.total <= 0) {
-      throw AppError.unprocessable('Shartnoma summasi nol — to‘lov jadvali tuzilmaydi');
+    if (student.monthly <= 0) {
+      throw AppError.unprocessable('Oylik to‘lov nol — to‘lov jadvali tuzilmaydi');
     }
 
     await prisma.$transaction(async (tx) => {
       const kept = await keptInstallments(tx, studentId);
-      const total = student.total - kept.activeTotal;
-      if (total <= 0) {
-        throw AppError.unprocessable('Shartnoma summasi yopilgan oylar qismlari bilan qoplangan — yangi qism kerak emas');
+      const keptMonths = new Set(
+        (await tx.paymentInstallment.findMany({ where: { id: { in: kept.ids } }, select: { dueDate: true } })).map((row) => monthOfDate(row.dueDate.toISOString().slice(0, 10))),
+      );
+      const plan = buildFixedMonthlyPlan(student.monthly, input.count, input.firstDueDate).filter((item) => !keptMonths.has(monthOfDate(item.dueDate)));
+      if (plan.length === 0) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          { field: 'firstDueDate', message: 'Tanlangan oylar uchun yangi qism yo‘q (oktyabr 2026 dan oldingi yoki yopilgan oylar)' },
+        ]);
       }
-      const plan = buildMonthlyPlan(total, input.count, input.firstDueDate);
       assertPlanInOpenMonths(plan, kept.closed, 'firstDueDate');
       const replaced = await tx.paymentInstallment.count({ where: { studentId, id: { notIn: kept.ids } } });
       await writeInstallments(tx, studentId, plan, kept);
       await assertAllocationsFit(tx, studentId, 'firstDueDate');
+      const total = await syncContractTotal(tx, studentId);
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'payment_schedule.generated',
         entityType: 'student',
         entityId: studentId,
-        metadata: { count: plan.length, firstDueDate: input.firstDueDate, total: student.total, replaced, kept: kept.ids.length },
+        metadata: { count: plan.length, firstDueDate: input.firstDueDate, monthly: student.monthly, totalBefore: student.total, total, replaced, kept: kept.ids.length },
         ...client,
       });
     });
@@ -339,22 +407,27 @@ export const paymentScheduleService = {
     return this.get(studentId);
   },
 
-  /** Qo‘lda tuzilgan jadval: qismlar (+ saqlanadigan yopilgan oylar) yig‘indisi shartnoma summasiga teng bo‘lishi shart */
+  /**
+   * Qo‘lda tuzilgan jadval (masalan, bir oy boshqa summa). Shartnoma jami summasi = qismlar (+ saqlanadigan yopilgan
+   * oylar) yig'indisi; u to'langan summadan kam bo'lmasligi kerak.
+   */
   async replace(actor: AuthUser, studentId: string, input: ReplaceScheduleInput, client: ClientInfo): Promise<PaymentScheduleDto> {
     const student = await loadStudent(studentId);
 
     await prisma.$transaction(async (tx) => {
       const kept = await keptInstallments(tx, studentId);
       const total = input.installments.reduce((sum, item) => sum + item.amount, 0);
-      if (total + kept.activeTotal !== student.total) {
-        const expected = student.total - kept.activeTotal;
+      const early = input.installments.find((item) => monthOfDate(item.dueDate) < BILLING_START_MONTH);
+      if (early) {
+        throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
+          { field: 'installments', message: `To‘lov hisobi ${formatSalaryPeriod(parsePeriodKey(BILLING_START_MONTH).year, parsePeriodKey(BILLING_START_MONTH).month)} dan boshlanadi — undan oldingi oyga qism qo‘shilmaydi` },
+        ]);
+      }
+      if (total + kept.activeTotal < student.paid) {
         throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [
           {
             field: 'installments',
-            message:
-              kept.activeTotal > 0
-                ? `Qismlar yig‘indisi (${formatSum(total)} so‘m) yopilgan oylardan tashqari qolgan summaga (${formatSum(expected)} so‘m) teng bo‘lishi kerak`
-                : `Qismlar yig‘indisi (${formatSum(total)} so‘m) shartnoma summasiga (${formatSum(student.total)} so‘m) teng bo‘lishi kerak`,
+            message: `Jadval yig‘indisi (${formatSum(total + kept.activeTotal)} so‘m) to‘langan summadan (${formatSum(student.paid)} so‘m) kam bo‘lmasin`,
           },
         ]);
       }
@@ -366,12 +439,13 @@ export const paymentScheduleService = {
         kept,
       );
       await assertAllocationsFit(tx, studentId, 'installments');
+      const contractTotal = await syncContractTotal(tx, studentId);
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'payment_schedule.updated',
         entityType: 'student',
         entityId: studentId,
-        metadata: { count: input.installments.length, total, kept: kept.ids.length },
+        metadata: { count: input.installments.length, total, totalBefore: student.total, contractTotal, kept: kept.ids.length },
         ...client,
       });
     });
@@ -427,13 +501,8 @@ export const paymentScheduleService = {
         data: { cancelledAt, cancelledById: actor.id, cancelReason: input.reason },
       });
 
-      const contractPrice = Math.max(locked.contractPrice - cancelled, 0);
-      const paid = locked.debt.paidAmount;
-      await tx.student.update({ where: { id: studentId }, data: { contractPrice } });
-      await tx.debt.update({
-        where: { studentId },
-        data: { totalAmount: contractPrice, remainingAmount: Math.max(contractPrice - paid, 0), status: debtStatus(contractPrice, paid) },
-      });
+      // Oylik to'lov (contractPrice) o'zgarmaydi — shartnoma jami summasi bekor qilingan oylarsiz qayta hisoblanadi
+      const contractTotal = await syncContractTotal(tx, studentId);
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'payment_schedule.cancelled',
@@ -446,8 +515,8 @@ export const paymentScheduleService = {
           }),
           amount: cancelled,
           reason: input.reason,
-          contractBefore: locked.contractPrice,
-          contractAfter: contractPrice,
+          monthly: locked.contractPrice,
+          contractTotalAfter: contractTotal,
         },
         ...client,
       });

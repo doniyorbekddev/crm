@@ -102,7 +102,7 @@ export function TransferGroupModal({ student, onClose, onSaved }: TransferGroupM
         )}
         {courseChanges && target && (
           <Alert tone="info">
-            {`Bu guruh «${courseNameOf(lookupsQuery.data, target.courseId)}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Shartnoma narxi va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.`}
+            {`Bu guruh «${courseNameOf(lookupsQuery.data, target.courseId)}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Oylik to‘lov va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.`}
           </Alert>
         )}
 

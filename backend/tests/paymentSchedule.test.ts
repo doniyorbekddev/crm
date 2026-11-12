@@ -22,7 +22,11 @@ async function createRole(key: string, permissionKeys: string[]) {
   });
 }
 
-const STUDENT = { firstName: 'Aziza', lastName: 'Karimova', phone: '+998901234567', startDate: '2026-01-31' };
+// Oy oxiri (31) — keyingi oylarda oy oxiriga siljiydi. To'lov hisobi 2026-10 dan boshlanadi
+const STUDENT = { firstName: 'Aziza', lastName: 'Karimova', phone: '+998901234567', startDate: '2026-10-31' };
+/** Joriy va o'tgan oy (markaz vaqti), "YYYY-MM" */
+const CURRENT = businessDateString(new Date()).slice(0, 7);
+const PREVIOUS = addMonthsClamped(`${CURRENT}-01`, -1).slice(0, 7);
 
 async function setup() {
   const { token: owner } = await createUserWithToken(app, { role: 'OWNER', email: 'owner@test.uz' });
@@ -31,7 +35,7 @@ async function setup() {
   const created = await request(app)
     .post('/api/students')
     .set(bearer(owner))
-    .send({ ...STUDENT, courseId: course.id, contractPrice: 6_000_000 });
+    .send({ ...STUDENT, courseId: course.id, contractPrice: 1_000_000 });
   expect(created.status).toBe(201);
   return { owner, accountant, course, studentId: created.body.data.id as string };
 }
@@ -52,7 +56,7 @@ describe.skipIf(!hasTestDatabase)('To‘lov jadvali (integratsion)', () => {
     await prisma.$disconnect();
   });
 
-  it('yangi o‘quvchi va leaddan aylantirilgan o‘quvchiga kurs davomiyligi bo‘yicha oylik jadval tuziladi', async () => {
+  it('yangi o‘quvchi va leaddan aylantirilgan o‘quvchiga kurs davomiyligicha har oyga to‘liq oylik to‘lov; oktyabrdan oldingi oylar qo‘shilmaydi', async () => {
     const { owner, accountant, course, studentId } = await setup();
     const response = await getSchedule(accountant, studentId);
     expect(response.status).toBe(200);
@@ -67,11 +71,16 @@ describe.skipIf(!hasTestDatabase)('To‘lov jadvali (integratsion)', () => {
     const converted = await request(app)
       .post(`/api/leads/${lead.id}/convert`)
       .set(bearer(owner))
-      .send({ contractPrice: 3_000_000, startDate: '2026-09-01' });
+      .send({ contractPrice: 500_000, startDate: '2026-09-01' });
     expect(converted.status).toBe(201);
-    const convertedSchedule = await getSchedule(accountant, converted.body.data.id);
-    expect(convertedSchedule.body.data.installments).toHaveLength(6);
-    expect(convertedSchedule.body.data.installments[0]).toMatchObject({ dueDate: '2026-09-01', amount: 500_000, status: expect.any(String) });
+    // Sentyabr — hisob boshlanishidan oldin: jadvalga kirmaydi (6 oylik kursdan oktyabr–fevral qoladi), bo'linmaydi
+    const convertedSchedule = (await getSchedule(accountant, converted.body.data.id)).body.data;
+    expect(convertedSchedule.installments.map((item: { dueDate: string; amount: number }) => [item.dueDate, item.amount])).toEqual(
+      ['2026-10-01', '2026-11-01', '2026-12-01', '2027-01-01', '2027-02-01'].map((dueDate) => [dueDate, 500_000]),
+    );
+    expect(convertedSchedule).toMatchObject({ contractTotal: 2_500_000, scheduledTotal: 2_500_000, mismatch: false });
+    const convertedDebt = await prisma.debt.findUniqueOrThrow({ where: { studentId: converted.body.data.id } });
+    expect([convertedDebt.totalAmount.toNumber(), convertedDebt.remainingAmount.toNumber()]).toEqual([2_500_000, 2_500_000]);
   });
 
   it('to‘lovlar muddat tartibida taqsimlanadi; qarzdorlar ro‘yxati, xulosa va alert muddati o‘tganlarni ko‘rsatadi', async () => {
@@ -129,7 +138,7 @@ describe.skipIf(!hasTestDatabase)('To‘lov jadvali (integratsion)', () => {
     expect(await prisma.alert.count({ where: { type: 'PAYMENT_OVERDUE', resolvedAt: null } })).toBe(0);
   });
 
-  it('qayta tuzish, qo‘lda tahrirlash validatsiyasi, shartnoma o‘zgarsa nomuvofiqlik va audit', async () => {
+  it('qayta tuzish, qo‘lda tahrirlash validatsiyasi, oylik to‘lov o‘zgarsa joriy oydan qo‘llanadi va audit', async () => {
     const { owner, accountant, course, studentId } = await setup();
 
     const generated = await request(app)
@@ -138,16 +147,18 @@ describe.skipIf(!hasTestDatabase)('To‘lov jadvali (integratsion)', () => {
       .send({ count: 3, firstDueDate: '2026-10-31' });
     expect(generated.status).toBe(200);
     expect(generated.body.data.installments.map((item: { amount: number; dueDate: string }) => [item.dueDate, item.amount])).toEqual([
-      ['2026-10-31', 2_000_000],
-      ['2026-11-30', 2_000_000],
-      ['2026-12-31', 2_000_000],
+      ['2026-10-31', 1_000_000],
+      ['2026-11-30', 1_000_000],
+      ['2026-12-31', 1_000_000],
     ]);
+    // Shartnoma jami summasi — jadvaldan (3 oy × 1 000 000)
+    expect(generated.body.data).toMatchObject({ contractTotal: 3_000_000, scheduledTotal: 3_000_000, mismatch: false });
     const generatedAudit = await prisma.auditLog.findFirstOrThrow({ where: { action: 'payment_schedule.generated', entityId: studentId } });
-    expect(generatedAudit.metadata).toMatchObject({ count: 3, replaced: 6 });
+    expect(generatedAudit.metadata).toMatchObject({ count: 3, replaced: 6, monthly: 1_000_000, totalBefore: 6_000_000, total: 3_000_000 });
 
-    const wrongSum = await replaceSchedule(accountant, studentId, [{ dueDate: '2026-10-01', amount: 1_000_000 }]);
-    expect(wrongSum.status).toBe(422);
-    expect(wrongSum.body.errors[0].field).toBe('installments');
+    const beforeStart = await replaceSchedule(accountant, studentId, [{ dueDate: '2026-09-01', amount: 1_000_000 }]);
+    expect(beforeStart.status).toBe(422);
+    expect(beforeStart.body.errors[0]).toMatchObject({ field: 'installments', message: expect.stringContaining('dan boshlanadi') });
     const unordered = await replaceSchedule(accountant, studentId, [
       { dueDate: '2026-11-01', amount: 3_000_000 },
       { dueDate: '2026-10-01', amount: 3_000_000 },
@@ -157,19 +168,26 @@ describe.skipIf(!hasTestDatabase)('To‘lov jadvali (integratsion)', () => {
     expect((await getSchedule(accountant, studentId)).body.data.installments).toHaveLength(3);
 
     const manual = await replaceSchedule(accountant, studentId, [
-      { dueDate: '2026-10-01', amount: 3_000_000, note: 'Birinchi yarmi' },
-      { dueDate: '2026-11-01', amount: 3_000_000 },
+      { dueDate: `${PREVIOUS}-01`, amount: 3_000_000, note: 'Birinchi yarmi' },
+      { dueDate: `${CURRENT}-01`, amount: 3_000_000 },
     ]);
     expect(manual.status).toBe(200);
     expect(manual.body.data.installments[0]).toMatchObject({ sequence: 1, note: 'Birinchi yarmi' });
+    expect(manual.body.data).toMatchObject({ contractTotal: 6_000_000, scheduledTotal: 6_000_000, mismatch: false });
     expect(await prisma.auditLog.count({ where: { action: 'payment_schedule.updated', entityId: studentId } })).toBe(1);
 
+    // Oylik to'lov o'zgardi: joriy oy yangi summaga o'tadi, o'tgan oy (qarz) o'zgarmaydi; shartnoma jami — jadvaldan
     const priceChanged = await request(app)
       .put(`/api/students/${studentId}`)
       .set(bearer(owner))
-      .send({ ...STUDENT, courseId: course.id, contractPrice: 7_000_000 });
+      .send({ ...STUDENT, courseId: course.id, contractPrice: 1_500_000 });
     expect(priceChanged.status).toBe(200);
-    expect((await getSchedule(accountant, studentId)).body.data).toMatchObject({ mismatch: true, contractTotal: 7_000_000, scheduledTotal: 6_000_000 });
+    const repriced = (await getSchedule(accountant, studentId)).body.data;
+    expect(repriced.installments.map((item: { dueDate: string; amount: number }) => [item.dueDate.slice(0, 7), item.amount])).toEqual([
+      [PREVIOUS, 3_000_000],
+      [CURRENT, 1_500_000],
+    ]);
+    expect(repriced).toMatchObject({ mismatch: false, contractTotal: 4_500_000, scheduledTotal: 4_500_000 });
   });
 
   it('ruxsatlar: ko‘rish qarzdorlik/to‘lov ruxsati bilan, tuzish faqat to‘lov qabul qiluvchiga', async () => {

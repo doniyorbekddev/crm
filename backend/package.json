@@ -41,6 +41,8 @@
     "telegram:check:prod": "node dist/cli/telegramCheck.js",
     "staff:auto-cleanup": "tsx src/cli/staffAutoCleanup.ts",
     "staff:auto-cleanup:prod": "node dist/cli/staffAutoCleanup.js",
+    "billing:monthly-fee": "tsx src/cli/monthlyFeeMigration.ts",
+    "billing:monthly-fee:prod": "node dist/cli/monthlyFeeMigration.js",
     "telegram:load": "tsx scripts/telegramLoad.ts",
     "docs:permissions": "tsx scripts/permissionsDoc.ts"
   },

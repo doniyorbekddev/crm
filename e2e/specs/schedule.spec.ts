@@ -66,7 +66,7 @@ test('buxgalter muddati o‘tgan to‘lovni qarzdorlikda topadi, profilda jadval
 
   await page.getByRole('button', { name: 'Qayta tuzish' }).click();
   const dialog = page.getByRole('dialog', { name: 'Jadvalni qayta tuzish' });
-  await dialog.getByLabel('Qismlar soni').fill('4');
+  await dialog.getByLabel('Necha oy').fill('4');
   await dialog.getByLabel('Birinchi to‘lov sanasi').fill(day(0));
   await dialog.getByRole('button', { name: 'Tuzish' }).click();
   await expect(dialog).toBeHidden();

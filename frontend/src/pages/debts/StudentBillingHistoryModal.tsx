@@ -332,7 +332,7 @@ function CancelChargesModal({ studentId, months, onClose }: { studentId: string;
             />
           ))
         )}
-        {amount > 0 && <Alert tone="warning">Shartnoma summasi {formatMoney(amount)} ga kamayadi. Amal auditga yoziladi.</Alert>}
+        {amount > 0 && <Alert tone="warning">{`Shartnoma jami summasi ${formatMoney(amount)} ga kamayadi (oylik to‘lov o‘zgarmaydi). Amal auditga yoziladi.`}</Alert>}
         <FormField label="Sabab" htmlFor="cancel-charges-reason" required hint="Kamida 5 belgi">
           <Textarea id="cancel-charges-reason" rows={2} value={reason} onChange={(event) => setReason(event.target.value)} />
         </FormField>

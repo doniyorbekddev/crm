@@ -49,7 +49,7 @@ const courseFormSchema = z
   })
   .refine((values) => Number(values.discountAmount || 0) <= Number(values.price || 0), {
     path: ['discountAmount'],
-    message: 'Chegirma kurs narxidan katta bo‘lmasligi kerak',
+    message: 'Chegirma oylik narxdan katta bo‘lmasligi kerak',
   });
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
@@ -219,7 +219,7 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
           </Select>
         </FormField>
 
-        <FormField label="Kurs narxi (so‘m)" htmlFor="course-price" error={errors.price?.message} required>
+        <FormField label="Oylik narx (so‘m)" htmlFor="course-price" error={errors.price?.message} required>
           <MoneyController control={control} name="price" id="course-price" invalid={Boolean(errors.price)} />
         </FormField>
         <FormField label="Chegirma (so‘m)" htmlFor="course-discount" error={errors.discountAmount?.message}>
@@ -227,8 +227,8 @@ export function CourseFormModal({ course, onClose, onSaved }: CourseFormModalPro
         </FormField>
 
         <div className="rounded-control bg-surface-muted px-4 py-3 sm:col-span-2">
-          <p className="text-caption text-fg-muted">Yakuniy narx (shartnomaga shu narx yoziladi)</p>
-          <p className="mt-1 text-lg font-semibold text-fg">{formatMoney(finalPrice)}</p>
+          <p className="text-caption text-fg-muted">Yakuniy oylik narx (o‘quvchiga har oy shu summa yoziladi)</p>
+          <p className="mt-1 text-lg font-semibold text-fg">{`${formatMoney(finalPrice)} / oy`}</p>
         </div>
 
         <div className="sm:col-span-2">

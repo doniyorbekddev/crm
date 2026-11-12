@@ -22,6 +22,7 @@ function month(key: string): ScheduleMonth {
 /** To'lov kuni — har oyning 15-sanasi; oktyabr to'lanmagan; bugun 11-noyabr */
 const SCHEDULE: PaymentSchedule = {
   studentId: 's1',
+  monthlyFee: 600_000,
   contractTotal: 2_400_000,
   paid: 0,
   scheduledTotal: 2_400_000,

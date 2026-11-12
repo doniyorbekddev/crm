@@ -124,7 +124,7 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: ConvertLeadModa
         </Alert>
       )}
       <Alert tone="info" className="mb-4">
-        Lead “Sotildi” holatiga o‘tadi va shartnoma summasi bo‘yicha qarzdorlik yozuvi ochiladi.
+        Lead “Sotildi” holatiga o‘tadi; to‘lov jadvali har oyga oylik to‘lov bilan tuziladi.
       </Alert>
       <form id="convert-lead-form" onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
         <FormField label="Kurs" htmlFor="convert-course" error={errors.courseId?.message} required>
@@ -162,15 +162,15 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: ConvertLeadModa
           <Input id="convert-contractNumber" placeholder="SH-2026-001" invalid={Boolean(errors.contractNumber)} {...register('contractNumber')} />
         </FormField>
         <FormField
-          label="Shartnoma narxi (so‘m)"
+          label="Oylik to‘lov (so‘m)"
           htmlFor="convert-contractPrice"
           error={errors.contractPrice?.message}
           hint={
             contractPrice
               ? formatMoney(Number(contractPrice))
               : selectedCourse
-                ? `Bo‘sh qoldirilsa kurs narxi olinadi: ${formatMoney(selectedCourse.finalPrice)}`
-                : 'Bo‘sh qoldirilsa kurs narxi olinadi'
+                ? `Bo‘sh qoldirilsa kursning oylik narxi olinadi: ${formatMoney(selectedCourse.finalPrice)}`
+                : 'Bo‘sh qoldirilsa kursning oylik narxi olinadi'
           }
         >
           <MoneyController control={control} name="contractPrice" id="convert-contractPrice" invalid={Boolean(errors.contractPrice)} />

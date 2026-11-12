@@ -9,7 +9,7 @@ export const paymentScheduleService = {
     return response.data.data;
   },
 
-  /** Shartnoma summasidan oylik teng qismlar — mavjud jadval almashtiriladi */
+  /** Har oyga to'liq oylik to'lov (`count` oy) — mavjud jadval almashtiriladi */
   async generate(studentId: string, payload: GenerateSchedulePayload): Promise<MessageResult<PaymentSchedule>> {
     const response = await api.post<ApiSuccessResponse<PaymentSchedule>>(`/students/${studentId}/payment-schedule/generate`, payload);
     return { data: response.data.data, message: response.data.message };

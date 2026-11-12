@@ -39,6 +39,9 @@ export interface ScheduleMonth {
 
 export interface PaymentSchedule {
   studentId: string;
+  /** Oylik to'lov — har oy shu summa */
+  monthlyFee: number;
+  /** Shartnoma jami summasi (jadvaldagi oylar yig'indisi) */
   contractTotal: number;
   paid: number;
   scheduledTotal: number;

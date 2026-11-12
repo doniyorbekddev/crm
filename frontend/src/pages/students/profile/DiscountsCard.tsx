@@ -21,7 +21,7 @@ import { PERMISSIONS } from '@/utils/permissionKeys';
 type Mode = 'rule' | 'promo' | 'custom';
 
 /**
- * O'quvchining chegirmalari: shartnoma narxi qanday shakllangani va kim bergani.
+ * O'quvchining chegirmalari: oylik to'lov qanday shakllangani va kim bergani.
  * Chegirma o'chirilmaydi — bekor qilinadi, shunda summa shartnomaga qaytadi.
  */
 export function DiscountsCard({ studentId }: { studentId: string }) {
@@ -188,7 +188,7 @@ export function DiscountsCard({ studentId }: { studentId: string }) {
         <Modal
           open
           title="Chegirma berish"
-          description="Chegirma shartnoma summasini kamaytiradi va qarzdorlik qayta hisoblanadi."
+          description="Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi."
           onClose={() => setOpen(false)}
           closeDisabled={grant.isPending}
           footer={

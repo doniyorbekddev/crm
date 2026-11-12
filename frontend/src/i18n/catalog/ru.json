@@ -5860,7 +5860,23 @@
 "Muddati kelgan qarz yo‘q.": "Просроченного долга нет.",
 "Oyni belgilang — summa o‘zi to‘ladi. Belgilanmasa, to‘lov eng eski qarzdan yopiladi.": "Отметьте месяц — сумма заполнится сама. Если не отмечать, оплата закроет самый старый долг.",
 "Qaysi oy uchun qarz": "Долг по месяцам",
-"Summani oylarga o‘zim bo‘laman": "Распределить сумму по месяцам вручную"
+"Summani oylarga o‘zim bo‘laman": "Распределить сумму по месяцам вручную",
+"Bo‘sh qoldirilsa kursning oylik narxi olinadi": "Если пусто — берётся месячная цена курса",
+"Har oyga oylik to‘lov yoziladi — necha oy va to‘lov kunini belgilang": "Каждый месяц начисляется месячная оплата — укажите число месяцев и день оплаты",
+"Lead “Sotildi” holatiga o‘tadi; to‘lov jadvali har oyga oylik to‘lov bilan tuziladi.": "Лид перейдёт в статус «Продан»; график оплат составляется с месячной оплатой на каждый месяц.",
+"Necha oy": "Сколько месяцев",
+"Oylik narx (so‘m)": "Месячная цена (сум)",
+"Oylik narx, chegirma va davomiyligi": "Месячная цена, скидка и длительность",
+"Oylik to‘lov": "Месячная оплата",
+"Oylik to‘lov (so‘m)": "Месячная оплата (сум)",
+"Oylik to‘lov nol — to‘lov jadvali tuzilmaydi": "Месячная оплата равна нулю — график не составляется",
+"Taklif qilgan o‘quvchiga chegirma qoidasidagi bonus chegirma sifatida beriladi va oylik to‘lovi joriy oydan kamayadi.": "Пригласившему ученику бонус из правила скидки даётся как скидка, и его месячная оплата уменьшается с текущего месяца.",
+"Tanlangan oylar uchun yangi qism yo‘q (oktyabr 2026 dan oldingi yoki yopilgan oylar)": "Для выбранных месяцев нет новых платежей (месяцы до октября 2026 или закрытые)",
+"Yakuniy oylik narx (o‘quvchiga har oy shu summa yoziladi)": "Итоговая месячная цена (эта сумма начисляется ученику каждый месяц)",
+"Shartnoma jami:": "Итого по договору:",
+"Shu kun — har oyning to‘lov kuni": "Этот день — день оплаты каждого месяца",
+"Chegirma oylik narxdan katta bo‘lmasligi kerak": "Скидка не должна превышать месячную цену",
+"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "Скидка уменьшает месячную оплату с текущего месяца, задолженность пересчитывается."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -6591,6 +6607,18 @@
 "Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "За месяц ушли учеников: {0} — проверьте причины",
 "{0} uchun to‘lash": "Оплатить за {0}",
 "Keyingi oylar ({0}) — oldindan to‘lov": "Следующие месяцы ({0}) — предоплата",
-"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "Сумма превышает остаток отмеченных месяцев на {0} — отметьте ещё месяц или уменьшите сумму"
+"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "Сумма превышает остаток отмеченных месяцев на {0} — отметьте ещё месяц или уменьшите сумму",
+"1 dan {0} gacha": "от 1 до {0}",
+"Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Oylik to‘lov va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "Эта группа относится к курсу «{0}» — курс ученика тоже изменится. Месячная оплата и платежи не меняются; при необходимости обновите цену через «Редактировать».",
+"Bo‘sh qoldirilsa kursning oylik narxi olinadi: {0}": "Если пусто — берётся месячная цена курса: {0}",
+"Har oy {0}, shartnoma jami {1}. Oktabr 2026 dan oldingi oylar qo‘shilmaydi.": "Каждый месяц {0}, итого по договору {1}. Месяцы до октября 2026 не добавляются.",
+"Har oy odatda oylik to‘lov ({0}). Shartnoma jami — qismlar yig‘indisi.": "Обычно каждый месяц — месячная оплата ({0}). Итог договора — сумма платежей.",
+"Jadval yig‘indisi ({0} so‘m) to‘langan summadan ({1} so‘m) kam bo‘lmasin": "Сумма графика ({0} сум) не должна быть меньше оплаченной ({1} сум)",
+"Kurs o‘zgaradi: «{0}» → «{1}». Oylik to‘lov avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Курс меняется: «{0}» → «{1}». Месячная оплата не меняется автоматически — при необходимости обновите ниже. Принятые платежи остаются в своей группе.",
+"Oylik to‘lov: {0} — har oyga to‘liq, bo‘linmaydi": "Месячная оплата: {0} — полностью за каждый месяц, без деления",
+"To‘langan summadan {0} kam — jadval to‘lovlarni sig‘dirmaydi": "На {0} меньше оплаченного — график не вмещает платежи",
+"To‘lov hisobi {0} dan boshlanadi — undan oldingi oyga qism qo‘shilmaydi": "Учёт оплат начинается с {0} — платежи за более ранние месяцы не добавляются",
+"Shartnoma jami summasi {0} ga kamayadi (oylik to‘lov o‘zgarmaydi). Amal auditga yoziladi.": "Итог договора уменьшится на {0} (месячная оплата не меняется). Действие записывается в аудит.",
+"Shartnoma jami: {0} · to‘langan: {1}": "Итого по договору: {0} · оплачено: {1}"
 }
 }

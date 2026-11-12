@@ -49,7 +49,7 @@ const META_LABELS: Record<string, string> = {
   leadNumber: 'Lead raqami',
   studentId: 'O‘quvchi',
   courseId: 'Kurs',
-  contractPrice: 'Shartnoma narxi',
+  contractPrice: 'Oylik to‘lov',
   priceFrom: 'Narx (oldin)',
   priceTo: 'Narx (keyin)',
   familyId: 'Sessiya oilasi',

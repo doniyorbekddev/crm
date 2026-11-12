@@ -85,7 +85,7 @@ export default function CoursesPage() {
     <>
       <PageHeader
         title="Kurslar"
-        description="Kurs narxi, chegirma va davomiyligi"
+        description="Oylik narx, chegirma va davomiyligi"
         actions={
           canManage ? (
             <Button leftIcon={<Plus className="size-4" aria-hidden />} onClick={() => setDialog({ type: 'create' })}>
@@ -179,7 +179,7 @@ export default function CoursesPage() {
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-h2 text-fg tabular-nums">{formatMoney(course.finalPrice)}</p>
+                  <p className="text-h2 text-fg tabular-nums">{`${formatMoney(course.finalPrice)} / oy`}</p>
                   {course.discountAmount > 0 && (
                     <p className="text-caption text-fg-muted">
                       <span className="line-through">{formatMoney(course.price)}</span>

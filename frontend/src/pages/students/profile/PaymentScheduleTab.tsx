@@ -91,7 +91,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile label="Shartnoma" value={formatMoney(schedule.contractTotal)} hint={`To‘langan: ${formatMoney(schedule.paid)}`} />
+        <Tile label="Oylik to‘lov" value={formatMoney(schedule.monthlyFee)} hint={`Shartnoma jami: ${formatMoney(schedule.contractTotal)} · to‘langan: ${formatMoney(schedule.paid)}`} />
         <Tile label="Bugungacha reja" value={formatMoney(schedule.dueToDate)} hint="jadval bo‘yicha to‘lanishi kerak" />
         <Tile
           label="Muddati o‘tgan"
@@ -147,7 +147,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
           <EmptyState
             icon={CalendarClock}
             title="To‘lov jadvali tuzilmagan"
-            description={canManage ? 'Shartnoma summasini oylik qismlarga bo‘lib, muddatlarni belgilang' : 'Jadvalni buxgalter tuzadi'}
+            description={canManage ? 'Har oyga oylik to‘lov yoziladi — necha oy va to‘lov kunini belgilang' : 'Jadvalni buxgalter tuzadi'}
           />
         ) : (
           <DataTable
@@ -223,7 +223,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
       {dialog === 'generate' && (
         <GenerateScheduleModal
           studentId={studentId}
-          contractTotal={schedule.contractTotal}
+          monthlyFee={schedule.monthlyFee}
           defaultCount={schedule.installments.length || 6}
           defaultDate={schedule.installments[0]?.dueDate ?? startDate}
           replacing={hasSchedule}
@@ -239,7 +239,7 @@ export function PaymentScheduleTab({ studentId, startDate }: { studentId: string
 
 interface GenerateScheduleModalProps {
   studentId: string;
-  contractTotal: number;
+  monthlyFee: number;
   defaultCount: number;
   defaultDate: string;
   replacing: boolean;
@@ -247,14 +247,13 @@ interface GenerateScheduleModalProps {
   onSaved: (schedule: PaymentSchedule) => void;
 }
 
-function GenerateScheduleModal({ studentId, contractTotal, defaultCount, defaultDate, replacing, onClose, onSaved }: GenerateScheduleModalProps) {
+function GenerateScheduleModal({ studentId, monthlyFee, defaultCount, defaultDate, replacing, onClose, onSaved }: GenerateScheduleModalProps) {
   const [count, setCount] = useState(String(defaultCount));
   const [firstDueDate, setFirstDueDate] = useState(defaultDate);
   const [error, setError] = useState<string | null>(null);
 
   const parsedCount = Number(count);
   const valid = Number.isInteger(parsedCount) && parsedCount >= 1 && parsedCount <= MAX_INSTALLMENTS && DATE_PATTERN.test(firstDueDate);
-  const perInstallment = valid ? Math.floor(contractTotal / parsedCount / 1000) * 1000 : 0;
 
   const save = useMutation({
     mutationFn: () => paymentScheduleService.generate(studentId, { count: parsedCount, firstDueDate }),
@@ -269,7 +268,7 @@ function GenerateScheduleModal({ studentId, contractTotal, defaultCount, default
     <Modal
       open
       title={replacing ? 'Jadvalni qayta tuzish' : 'To‘lov jadvali tuzish'}
-      description={`Shartnoma summasi: ${formatMoney(contractTotal)}`}
+      description={`Oylik to‘lov: ${formatMoney(monthlyFee)} — har oyga to‘liq, bo‘linmaydi`}
       onClose={onClose}
       closeDisabled={save.isPending}
       footer={
@@ -301,16 +300,16 @@ function GenerateScheduleModal({ studentId, contractTotal, defaultCount, default
         </Alert>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Qismlar soni" htmlFor="schedule-count" hint={`Oylik, 1 dan ${MAX_INSTALLMENTS} gacha`} required>
+        <FormField label="Necha oy" htmlFor="schedule-count" hint={`1 dan ${MAX_INSTALLMENTS} gacha`} required>
           <Input id="schedule-count" inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value.replace(/\D/g, ''))} />
         </FormField>
-        <FormField label="Birinchi to‘lov sanasi" htmlFor="schedule-first-date" required>
+        <FormField label="Birinchi to‘lov sanasi" htmlFor="schedule-first-date" hint="Shu kun — har oyning to‘lov kuni" required>
           <Input id="schedule-first-date" type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} />
         </FormField>
       </div>
-      {valid && perInstallment > 0 && (
+      {valid && monthlyFee > 0 && (
         <p className="mt-3 text-body text-fg-muted">
-          Har oy taxminan {formatMoney(perInstallment)} — yuvarlashdan qolgan farq oxirgi qismga qo‘shiladi.
+          {`Har oy ${formatMoney(monthlyFee)}, shartnoma jami ${formatMoney(monthlyFee * parsedCount)}. Oktabr 2026 dan oldingi oylar qo‘shilmaydi.`}
         </p>
       )}
     </Modal>
@@ -342,10 +341,11 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
   const [error, setError] = useState<string | null>(null);
 
   const total = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-  const difference = schedule.contractTotal - keptTotal - total;
+  // Shartnoma jami summasi jadvaldan olinadi — u faqat to'langan summadan kam bo'lmasin
+  const shortOfPaid = schedule.paid - keptTotal - total;
   const ordered = rows.every((row, index) => index === 0 || (rows[index - 1]?.dueDate ?? '') <= row.dueDate);
   const complete = rows.length > 0 && rows.every((row) => DATE_PATTERN.test(row.dueDate) && Number(row.amount) >= 1000);
-  const canSave = complete && ordered && difference === 0 && rows.length <= MAX_INSTALLMENTS;
+  const canSave = complete && ordered && shortOfPaid <= 0 && rows.length <= MAX_INSTALLMENTS;
 
   const update = (key: string, patch: Partial<EditableRow>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
@@ -357,7 +357,7 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
       {
         key: `new-${nextKey}`,
         dueDate: last && DATE_PATTERN.test(last.dueDate) ? addMonthsClamped(last.dueDate, 1) : schedule.installments[0]?.dueDate ?? '',
-        amount: difference > 0 ? String(difference) : '',
+        amount: schedule.monthlyFee > 0 ? String(schedule.monthlyFee) : '',
         note: '',
       },
     ]);
@@ -384,11 +384,7 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
     <Modal
       open
       title="To‘lov jadvalini tahrirlash"
-      description={
-        keptTotal > 0
-          ? `Yopilgan oylardan tashqari qismlar yig‘indisi ${formatMoney(schedule.contractTotal - keptTotal)} bo‘lishi kerak`
-          : `Qismlar yig‘indisi shartnoma summasiga (${formatMoney(schedule.contractTotal)}) teng bo‘lishi kerak`
-      }
+      description={`Har oy odatda oylik to‘lov (${formatMoney(schedule.monthlyFee)}). Shartnoma jami — qismlar yig‘indisi.`}
       onClose={onClose}
       closeDisabled={save.isPending}
       footer={
@@ -468,9 +464,8 @@ function EditScheduleModal({ studentId, schedule, onClose, onSaved }: EditSchedu
           Qism qo‘shish
         </Button>
         <div className="text-right text-body">
-          <p className="text-fg">Jami: {formatMoney(total)}</p>
-          {difference > 0 && <p className="text-warning">Yana {formatMoney(difference)} taqsimlash kerak</p>}
-          {difference < 0 && <p className="text-danger">Shartnomadan {formatMoney(-difference)} ortiq</p>}
+          <p className="text-fg">{`Shartnoma jami: ${formatMoney(total + keptTotal)}`}</p>
+          {shortOfPaid > 0 && <p className="text-danger">{`To‘langan summadan ${formatMoney(shortOfPaid)} kam — jadval to‘lovlarni sig‘dirmaydi`}</p>}
           {!ordered && <p className="text-danger">Muddatlar o‘sib boruvchi tartibda bo‘lsin</p>}
         </div>
       </div>

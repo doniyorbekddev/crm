@@ -8,6 +8,7 @@ import { PERMISSIONS } from '../config/permissions.js';
 import { auditService } from './audit.service.js';
 import { permissionService } from './permission.service.js';
 import { assertContractUnchanged, lockStudentContract } from './debtLock.js';
+import { applyMonthlyFee } from './paymentSchedule.service.js';
 
 /**
  * Chegirma dvigateli — qoida asosida ishlaydigan chegirmalar.
@@ -343,21 +344,12 @@ async function loadStudentForDiscount(studentId: string) {
   return student;
 }
 
-function debtStatusOf(total: number, paid: number): 'UNPAID' | 'PARTIAL' | 'PAID' {
-  if (paid <= 0) return 'UNPAID';
-  return paid >= total ? 'PAID' : 'PARTIAL';
-}
-
-/** Shartnoma narxi o'zgargach qarzdorlikni moslaydi (to'langan summa tegilmaydi) */
-async function syncDebt(tx: Prisma.TransactionClient, studentId: string, contractPrice: number, paid: number): Promise<void> {
-  await tx.debt.updateMany({
-    where: { studentId },
-    data: {
-      totalAmount: contractPrice,
-      remainingAmount: Math.max(contractPrice - paid, 0),
-      status: debtStatusOf(contractPrice, paid),
-    },
-  });
+/**
+ * Oylik to'lov (`contractPrice`) o'zgargach: joriy va kelgusi oylar yangi summaga o'tadi, shartnoma jami summasi va
+ * qarz jadvaldan qayta hisoblanadi (to'langan summa tegilmaydi, o'tgan oylar o'zgarmaydi)
+ */
+async function syncDebt(tx: Prisma.TransactionClient, studentId: string, contractPrice: number): Promise<void> {
+  await applyMonthlyFee(tx, studentId, contractPrice);
 }
 
 export const discountService = {
@@ -627,7 +619,6 @@ export const discountService = {
     // Parallel to'lov yoki ikkinchi chegirma bilan poyga bo'lmasligi uchun: avval qulf, keyin qayta tekshiruv
     const locked = await lockStudentContract(tx, studentId);
     assertContractUnchanged(locked, expected);
-    const paid = locked.debt?.paidAmount ?? 0;
     if (resolved.promoCodeId) {
       // Limit shartli yangilanishda tekshiriladi — ikki so'rov bir vaqtda oxirgi o'rinni egallay olmaydi
       const claimed = await tx.$executeRaw`
@@ -656,7 +647,7 @@ export const discountService = {
       where: { id: studentId },
       data: { contractPrice: newContractPrice, discountTotal: { increment: amount } },
     });
-    await syncDebt(tx, studentId, newContractPrice, paid);
+    await syncDebt(tx, studentId, newContractPrice);
     await auditService.recordInTransaction(tx, {
       userId: by.approvedById ?? by.grantedById,
       action: 'discount.granted',
@@ -697,12 +688,11 @@ export const discountService = {
       });
       if (revoked.count === 0) throw AppError.conflict('Bu chegirma allaqachon bekor qilingan');
       const newContractPrice = locked.contractPrice + amount;
-      const paid = locked.debt?.paidAmount ?? 0;
       await tx.student.update({
         where: { id: discount.studentId },
         data: { contractPrice: newContractPrice, discountTotal: { decrement: amount } },
       });
-      await syncDebt(tx, discount.studentId, newContractPrice, paid);
+      await syncDebt(tx, discount.studentId, newContractPrice);
       if (discount.promoCodeId) {
         // Kod qayta ishlatilishi mumkin bo'lsin — limit haqiqiy qo'llanishlarni hisoblaydi
         await tx.promoCode.updateMany({ where: { id: discount.promoCodeId, usedCount: { gt: 0 } }, data: { usedCount: { decrement: 1 } } });
@@ -761,7 +751,7 @@ export const discountService = {
       where: { id: params.studentId },
       data: { contractPrice: newContractPrice, discountTotal: { increment: params.amount } },
     });
-    await syncDebt(tx, params.studentId, newContractPrice, locked.debt?.paidAmount ?? 0);
+    await syncDebt(tx, params.studentId, newContractPrice);
     return created.id;
   },
 };

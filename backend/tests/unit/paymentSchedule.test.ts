@@ -1,13 +1,44 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BILLING_START_MONTH,
   MAX_INSTALLMENTS,
   addMonthsClamped,
   allocateSchedule,
+  buildFixedMonthlyPlan,
   buildMonthlyPlan,
   isValidDateOnly,
 } from '../../src/utils/paymentSchedule.js';
 
 const row = (sequence: number, dueDate: string, amount: number) => ({ id: `i${sequence}`, sequence, dueDate, amount, note: null });
+
+describe('Oylik to‘lov jadvali: har oyga to‘liq summa', () => {
+  it('oylik to‘lov bo‘linmaydi — har oy to‘liq summa, to‘lov kuni har oy takrorlanadi', () => {
+    expect(buildFixedMonthlyPlan(550_000, 3, '2026-10-05')).toEqual([
+      { sequence: 1, dueDate: '2026-10-05', amount: 550_000 },
+      { sequence: 2, dueDate: '2026-11-05', amount: 550_000 },
+      { sequence: 3, dueDate: '2026-12-05', amount: 550_000 },
+    ]);
+    // Oy oxiri: 31 → fevralda 28
+    expect(buildFixedMonthlyPlan(100_000, 5, '2026-10-31').map((item) => item.dueDate)).toEqual(['2026-10-31', '2026-11-30', '2026-12-31', '2027-01-31', '2027-02-28']);
+  });
+
+  it('to‘lov hisobi boshlanishidan (2026-10) oldingi oylar qo‘shilmaydi — jadval qisqaradi, siljimaydi', () => {
+    expect(BILLING_START_MONTH).toBe('2026-10');
+    const plan = buildFixedMonthlyPlan(345_000, 6, '2026-07-15');
+    expect(plan.map((item) => [item.sequence, item.dueDate, item.amount])).toEqual([
+      [1, '2026-10-15', 345_000],
+      [2, '2026-11-15', 345_000],
+      [3, '2026-12-15', 345_000],
+    ]);
+    expect(buildFixedMonthlyPlan(345_000, 2, '2026-07-15')).toEqual([]);
+  });
+
+  it('nol oylik — jadval yo‘q; oylar soni chegaralanadi', () => {
+    expect(buildFixedMonthlyPlan(0, 6, '2026-10-01')).toEqual([]);
+    expect(buildFixedMonthlyPlan(100_000, 100, '2026-10-01')).toHaveLength(MAX_INSTALLMENTS);
+    expect(buildFixedMonthlyPlan(100_000, 0, '2026-10-01')).toHaveLength(1);
+  });
+});
 
 describe('To‘lov jadvali: reja tuzish', () => {
   it('shartnomani oylik teng qismlarga bo‘ladi', () => {

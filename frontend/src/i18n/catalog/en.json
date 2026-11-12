@@ -5825,7 +5825,23 @@
 "Muddati kelgan qarz yo‘q.": "No overdue debt.",
 "Oyni belgilang — summa o‘zi to‘ladi. Belgilanmasa, to‘lov eng eski qarzdan yopiladi.": "Tick a month and the amount fills in automatically. If none is ticked, the payment covers the oldest debt first.",
 "Qaysi oy uchun qarz": "Debt by month",
-"Summani oylarga o‘zim bo‘laman": "Split the amount across months manually"
+"Summani oylarga o‘zim bo‘laman": "Split the amount across months manually",
+"Bo‘sh qoldirilsa kursning oylik narxi olinadi": "If empty, the course monthly price is used",
+"Har oyga oylik to‘lov yoziladi — necha oy va to‘lov kunini belgilang": "The monthly fee is charged every month — set the number of months and the payment day",
+"Lead “Sotildi” holatiga o‘tadi; to‘lov jadvali har oyga oylik to‘lov bilan tuziladi.": "The lead moves to “Won”; the payment schedule charges the monthly fee for every month.",
+"Necha oy": "Number of months",
+"Oylik narx (so‘m)": "Monthly price (UZS)",
+"Oylik narx, chegirma va davomiyligi": "Monthly price, discount and duration",
+"Oylik to‘lov": "Monthly fee",
+"Oylik to‘lov (so‘m)": "Monthly fee (UZS)",
+"Oylik to‘lov nol — to‘lov jadvali tuzilmaydi": "The monthly fee is zero — no schedule is created",
+"Taklif qilgan o‘quvchiga chegirma qoidasidagi bonus chegirma sifatida beriladi va oylik to‘lovi joriy oydan kamayadi.": "The referring student gets the discount rule bonus as a discount, and their monthly fee drops from the current month.",
+"Tanlangan oylar uchun yangi qism yo‘q (oktyabr 2026 dan oldingi yoki yopilgan oylar)": "No new charges for the selected months (before October 2026 or closed months)",
+"Yakuniy oylik narx (o‘quvchiga har oy shu summa yoziladi)": "Final monthly price (charged to the student every month)",
+"Shartnoma jami:": "Contract total:",
+"Shu kun — har oyning to‘lov kuni": "This day is the payment day of every month",
+"Chegirma oylik narxdan katta bo‘lmasligi kerak": "The discount must not exceed the monthly price",
+"Chegirma oylik to‘lovni joriy oydan kamaytiradi, qarzdorlik qayta hisoblanadi.": "The discount lowers the monthly fee from the current month; the debt is recalculated."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -6555,6 +6571,18 @@
 "Shu oy {0} ta o‘quvchi ketdi — sabablarini tekshiring": "{0} students left this month — check the reasons",
 "{0} uchun to‘lash": "Pay for {0}",
 "Keyingi oylar ({0}) — oldindan to‘lov": "Later months ({0}) — prepayment",
-"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "The amount exceeds the ticked months’ balance by {0} — tick another month or lower the amount"
+"Summa belgilangan oylar qoldig‘idan {0} ortiq — yana oy belgilang yoki summani kamaytiring": "The amount exceeds the ticked months’ balance by {0} — tick another month or lower the amount",
+"1 dan {0} gacha": "from 1 to {0}",
+"Bu guruh «{0}» kursiga tegishli — o‘quvchining kursi ham o‘zgaradi. Oylik to‘lov va to‘lovlar o‘zgarmaydi; kerak bo‘lsa narxni «Tahrirlash» orqali yangilang.": "This group belongs to the «{0}» course — the student's course changes too. The monthly fee and payments stay the same; update the price via «Edit» if needed.",
+"Bo‘sh qoldirilsa kursning oylik narxi olinadi: {0}": "If empty, the course monthly price is used: {0}",
+"Har oy {0}, shartnoma jami {1}. Oktabr 2026 dan oldingi oylar qo‘shilmaydi.": "{0} every month, contract total {1}. Months before October 2026 are not added.",
+"Har oy odatda oylik to‘lov ({0}). Shartnoma jami — qismlar yig‘indisi.": "Each month is usually the monthly fee ({0}). The contract total is the sum of the charges.",
+"Jadval yig‘indisi ({0} so‘m) to‘langan summadan ({1} so‘m) kam bo‘lmasin": "The schedule total ({0} UZS) must not be less than the amount paid ({1} UZS)",
+"Kurs o‘zgaradi: «{0}» → «{1}». Oylik to‘lov avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.": "Course changes: «{0}» → «{1}». The monthly fee does not change automatically — update it below if needed. Received payments stay in their group.",
+"Oylik to‘lov: {0} — har oyga to‘liq, bo‘linmaydi": "Monthly fee: {0} — charged in full every month, not split",
+"To‘langan summadan {0} kam — jadval to‘lovlarni sig‘dirmaydi": "{0} less than paid — the schedule cannot hold the payments",
+"To‘lov hisobi {0} dan boshlanadi — undan oldingi oyga qism qo‘shilmaydi": "Billing starts in {0} — no charges are added for earlier months",
+"Shartnoma jami summasi {0} ga kamayadi (oylik to‘lov o‘zgarmaydi). Amal auditga yoziladi.": "The contract total decreases by {0} (the monthly fee stays the same). The action is audited.",
+"Shartnoma jami: {0} · to‘langan: {1}": "Contract total: {0} · paid: {1}"
 }
 }

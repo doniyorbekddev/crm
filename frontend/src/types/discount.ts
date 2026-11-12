@@ -109,7 +109,7 @@ export interface StudentDiscount {
 
 export interface StudentDiscountSummary {
   studentId: string;
-  /** Chegirmasiz shartnoma narxi */
+  /** Chegirmasiz oylik to'lov */
   basePrice: number;
   discountTotal: number;
   contractPrice: number;

@@ -88,6 +88,24 @@ export function buildMonthlyPlan(total: number, count: number, firstDueDate: str
 }
 
 /**
+ * To'lov hisobi shu oydan boshlanadi: undan oldingi oylar jadvalga qo'shilmaydi (CRM 2026-yil oktyabrdan yuritiladi,
+ * oldingi oylar tizimdan tashqarida hal qilingan).
+ */
+export const BILLING_START_MONTH = '2026-10';
+
+/**
+ * Oylik to'lov jadvali: har oyga **to'liq oylik to'lov** (bo'linmaydi, kunlik hisob yo'q). `count` oy — `firstDueDate`
+ * dan boshlab; {@link BILLING_START_MONTH} dan oldingi oylar tashlanadi (jadval qisqaradi, siljimaydi).
+ */
+export function buildFixedMonthlyPlan(monthly: number, count: number, firstDueDate: string, startMonth: string = BILLING_START_MONTH): PlannedInstallment[] {
+  if (monthly <= 0) return [];
+  const safeCount = Math.min(Math.max(Math.trunc(count), 1), MAX_INSTALLMENTS);
+  return Array.from({ length: safeCount }, (_, index) => addMonthsClamped(firstDueDate, index))
+    .filter((dueDate) => dueDate.slice(0, 7) >= startMonth)
+    .map((dueDate, index) => ({ sequence: index + 1, dueDate, amount: monthly }));
+}
+
+/**
  * To‘langan summani qismlarga taqsimlaydi va har bir qism holatini aniqlaydi. `explicitByMonth` — oyga aniq
  * biriktirilgan sof summa ("2026-10" → so'm); bo'lmasa hammasi muddat tartibida.
  */

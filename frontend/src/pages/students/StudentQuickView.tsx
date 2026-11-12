@@ -62,7 +62,7 @@ export function StudentQuickView({ student, showAttendance, onClose }: { student
         </Field>
         <Field label="Kurs">{student.course.name}</Field>
         <Field label="Guruh">{student.group?.name ?? 'Guruhsiz'}</Field>
-        <Field label="Shartnoma narxi">{formatMoney(student.contractPrice)}</Field>
+        <Field label="Oylik to‘lov">{formatMoney(student.contractPrice)}</Field>
         <Field label="Qarz">
           <span className={remaining > 0 ? 'font-medium text-danger' : undefined}>{student.debt ? formatMoney(remaining) : '—'}</span>
         </Field>

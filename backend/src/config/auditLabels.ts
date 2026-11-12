@@ -201,6 +201,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'attendance_session.deleted': 'Dars seansi o‘chirildi',
   'payment_schedule.generated': 'To‘lov jadvali tuzildi',
   'payment_schedule.updated': 'To‘lov jadvali o‘zgartirildi',
+  'billing.monthly_fee_migrated': 'Oylik to‘lov modeliga o‘tkazildi',
   'student.group_changed': 'O‘quvchi guruhi almashtirildi',
 };
 
@@ -272,6 +273,7 @@ export const AUDIT_CRITICAL_ACTIONS: readonly string[] = [
   'income.voided',
   'expense.voided',
 
+  'billing.monthly_fee_migrated',
   'discount.granted',
   'discount.revoked',
   'referral.rewarded',

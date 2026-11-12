@@ -128,7 +128,7 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
   const selectedCourse = lookupsQuery.data?.courses.find((course) => course.id === courseId);
   // Guruh faqat tanlangan kursga tegishli bo‘lishi mumkin
   const groupCourseOf = (id: string) => lookupsQuery.data?.groups.find((group) => group.id === id)?.courseId;
-  // Tahrirlashda kurs o'zgarsa — ogohlantirish (shartnoma narxi avtomatik o'zgarmaydi)
+  // Tahrirlashda kurs o'zgarsa — ogohlantirish (oylik to'lov avtomatik o'zgarmaydi)
   const courseChanged = Boolean(student && courseId && courseId !== student.course.id);
 
   const save = useMutation({
@@ -259,7 +259,7 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
         </FormField>
         {courseChanged && (
           <Alert tone="warning" className="sm:col-span-2">
-            {`Kurs o‘zgaradi: «${student!.course.name}» → «${courseNameOf(lookupsQuery.data, courseId)}». Shartnoma narxi avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.`}
+            {`Kurs o‘zgaradi: «${student!.course.name}» → «${courseNameOf(lookupsQuery.data, courseId)}». Oylik to‘lov avtomatik o‘zgarmaydi — kerak bo‘lsa pastda yangilang. Qabul qilingan to‘lovlar o‘z guruhida qoladi.`}
           </Alert>
         )}
 
@@ -267,15 +267,15 @@ export function StudentFormModal({ student, onClose, onSaved }: StudentFormModal
           <Input id="student-contractNumber" placeholder="SH-2026-001" invalid={Boolean(errors.contractNumber)} {...register('contractNumber')} />
         </FormField>
         <FormField
-          label="Shartnoma narxi (so‘m)"
+          label="Oylik to‘lov (so‘m)"
           htmlFor="student-contractPrice"
           error={errors.contractPrice?.message}
           hint={
             contractPrice
               ? formatMoney(Number(contractPrice))
               : selectedCourse
-                ? `Bo‘sh qoldirilsa kurs narxi olinadi: ${formatMoney(selectedCourse.finalPrice)}`
-                : 'Bo‘sh qoldirilsa kurs narxi olinadi'
+                ? `Bo‘sh qoldirilsa kursning oylik narxi olinadi: ${formatMoney(selectedCourse.finalPrice)}`
+                : 'Bo‘sh qoldirilsa kursning oylik narxi olinadi'
           }
         >
           <MoneyController control={control} name="contractPrice" id="student-contractPrice" invalid={Boolean(errors.contractPrice)} />

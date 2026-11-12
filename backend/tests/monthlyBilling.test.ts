@@ -27,12 +27,13 @@ const N = shift(1);
 async function setup() {
   const { token: owner } = await createUserWithToken(app, { role: 'OWNER', email: 'owner@billing.uz' });
   const { token: accountant } = await createUserWithToken(app, { role: 'ACCOUNTANT', email: 'accountant@billing.uz' });
-  const course = await prisma.course.create({ data: { name: 'Frontend', durationMonths: 3, price: 1_800_000, finalPrice: 1_800_000 } });
+  // Kurs narxi — oylik to'lov: 3 oy × 600 000 = shartnoma jami 1 800 000
+  const course = await prisma.course.create({ data: { name: 'Frontend', durationMonths: 3, price: 600_000, finalPrice: 600_000 } });
   return { owner, accountant, course };
 }
 
 let phone = 0;
-async function enroll(token: string, courseId: string, firstName: string, contractPrice = 1_800_000) {
+async function enroll(token: string, courseId: string, firstName: string, contractPrice = 600_000) {
   phone += 1;
   const response = await request(app)
     .post('/api/students')
@@ -254,8 +255,9 @@ describe.skipIf(!hasTestDatabase)('Oylik moliyaviy davrlar va tarixiy qarzdorlik
     expect(done.body.data.months.find((item: { key: string }) => item.key === N)).toMatchObject({ amount: 0, cancelledAmount: 600_000, status: 'CANCELLED' });
     const debt = await prisma.debt.findUniqueOrThrow({ where: { studentId: student } });
     expect([debt.totalAmount.toNumber(), debt.paidAmount.toNumber(), debt.remainingAmount.toNumber()]).toEqual([1_200_000, 600_000, 600_000]);
-    expect((await prisma.student.findUniqueOrThrow({ where: { id: student } })).contractPrice.toNumber()).toBe(1_200_000);
-    expect((await prisma.auditLog.findFirstOrThrow({ where: { action: 'payment_schedule.cancelled' } })).metadata).toMatchObject({ amount: 600_000, contractBefore: 1_800_000, contractAfter: 1_200_000 });
+    // Oylik to'lov o'zgarmaydi — faqat shartnoma jami summasi bekor qilingan oysiz qayta hisoblanadi
+    expect((await prisma.student.findUniqueOrThrow({ where: { id: student } })).contractPrice.toNumber()).toBe(600_000);
+    expect((await prisma.auditLog.findFirstOrThrow({ where: { action: 'payment_schedule.cancelled' } })).metadata).toMatchObject({ amount: 600_000, monthly: 600_000, contractTotalAfter: 1_200_000 });
     expect((await monthly(accountant, N, { status: 'CANCELLED' })).body.data.items).toHaveLength(1);
 
     // Qayta tuzish bekor qilingan qismni o'chirmaydi; biriktirilgan oy summasidan kam bo'lib qolsa — rad

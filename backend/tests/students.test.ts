@@ -2,6 +2,8 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/database.js';
+import { businessDateString } from '../src/utils/dates.js';
+import { addMonthsClamped } from '../src/utils/paymentSchedule.js';
 import { bearer, createUserWithToken } from './helpers/auth.js';
 import { hasTestDatabase, resetDatabase, seedRolesAndPermissions } from './helpers/db.js';
 import { createCourse, createGroup, createLead, createSource } from './helpers/fixtures.js';
@@ -45,7 +47,8 @@ describe.skipIf(!hasTestDatabase)('Students API (integratsion)', () => {
       startDate: '2026-10-01',
       course: { name: 'Frontend' },
       group: null,
-      debt: { total: 2_500_000, paid: 0, remaining: 2_500_000, status: 'UNPAID' },
+      // Kurs narxi — oylik to'lov: 6 oy × 2 500 000 = shartnoma jami 15 000 000
+      debt: { total: 15_000_000, paid: 0, remaining: 15_000_000, status: 'UNPAID' },
     });
     expect(created.body.data.code).toMatch(/^ST-\d{6}$/);
   });
@@ -95,26 +98,32 @@ describe.skipIf(!hasTestDatabase)('Students API (integratsion)', () => {
     expect(wrongCourse.body.errors[0].message).toContain('kursga tegishli emas');
   });
 
-  it('shartnoma narxi o‘zgarsa qarzdorlik qayta hisoblanadi, to‘langan summa saqlanadi', async () => {
+  it('oylik to‘lov o‘zgarsa joriy oydan qo‘llanadi, qarzdorlik qayta hisoblanadi, to‘langan summa saqlanadi', async () => {
     const course = await createCourse();
     const { token } = await createUserWithToken(app, { role: 'ADMIN' });
+    // O'tgan oydan boshlagan, 6 oylik kurs, oyiga 1 000 000 — shartnoma jami 6 000 000
+    const current = businessDateString(new Date()).slice(0, 7);
+    const startDate = `${addMonthsClamped(`${current}-01`, -1).slice(0, 7)}-01`;
     const created = await request(app)
       .post('/api/students')
       .set(bearer(token))
-      .send(studentPayload(course.id, { contractPrice: 1_000_000 }));
+      .send(studentPayload(course.id, { contractPrice: 1_000_000, startDate }));
+    expect(created.body.data.debt).toMatchObject({ total: 6_000_000, remaining: 6_000_000, status: 'UNPAID' });
     const studentId = created.body.data.id as string;
     await prisma.debt.update({
       where: { studentId },
-      data: { paidAmount: 400_000, remainingAmount: 600_000, status: 'PARTIAL' },
+      data: { paidAmount: 400_000, remainingAmount: 5_600_000, status: 'PARTIAL' },
     });
 
     const updated = await request(app)
       .put(`/api/students/${studentId}`)
       .set(bearer(token))
-      .send(studentPayload(course.id, { contractPrice: 1_500_000 }));
+      .send(studentPayload(course.id, { contractPrice: 1_500_000, startDate }));
 
+    // O'tgan oy 1 000 000 qoladi, joriy va keyingi 5 oy — 1 500 000: jami 8 500 000
     expect(updated.status).toBe(200);
-    expect(updated.body.data.debt).toMatchObject({ total: 1_500_000, paid: 400_000, remaining: 1_100_000, status: 'PARTIAL' });
+    expect(updated.body.data.contractPrice).toBe(1_500_000);
+    expect(updated.body.data.debt).toMatchObject({ total: 8_500_000, paid: 400_000, remaining: 8_100_000, status: 'PARTIAL' });
   });
 
   it('holatni o‘zgartiradi va soft delete qiladi; summary sonlarni qaytaradi', async () => {
@@ -232,7 +241,8 @@ describe.skipIf(!hasTestDatabase)('Students API (integratsion)', () => {
       startDate: '2026-10-05',
       parentPhone: '+998901234567',
       group: { name: group.name },
-      debt: { total: 2_000_000, remaining: 2_000_000, status: 'UNPAID' },
+      // Kurs narxi — oylik: 3 oy × 2 000 000
+      debt: { total: 6_000_000, remaining: 6_000_000, status: 'UNPAID' },
     });
 
     const updatedLead = await prisma.lead.findUniqueOrThrow({ where: { id: lead.id } });

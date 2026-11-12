@@ -167,9 +167,10 @@ describe.skipIf(!hasTestDatabase)('Bir o‘quvchi — bir nechta fan guruhi (int
     const debts = await request(app).get('/api/debts').set(bearer(admin));
     const rows = debts.body.data.filter((row: { studentId: string }) => row.studentId === id);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ total: 1_000_000, paid: 400_000, remaining: 600_000 });
+    // Oylik 1 000 000 × 6 oy (kurs davomiyligi) = shartnoma jami 6 000 000 — guruhlar soniga ko'paymaydi
+    expect(rows[0]).toMatchObject({ total: 6_000_000, paid: 400_000, remaining: 5_600_000 });
     const summary = await request(app).get('/api/debts/summary').set(bearer(admin));
-    expect(summary.body.data.totalRemaining).toBe(600_000);
+    expect(summary.body.data.totalRemaining).toBe(5_600_000);
   });
 
   it('o‘quvchi kabineti: ikkala fan darslari bitta profil ostida, guruh nomi bilan', async () => {

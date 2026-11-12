@@ -246,7 +246,7 @@ export default function ReferralsPage() {
         <ConfirmDialog
           open
           title="Bonus berilsinmi?"
-          description="Taklif qilgan o‘quvchiga chegirma qoidasidagi bonus chegirma sifatida beriladi va shartnoma summasi kamayadi."
+          description="Taklif qilgan o‘quvchiga chegirma qoidasidagi bonus chegirma sifatida beriladi va oylik to‘lovi joriy oydan kamayadi."
           confirmLabel="Berish"
           loading={reward.isPending}
           onConfirm={() => reward.mutate()}
