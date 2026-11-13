@@ -5,6 +5,7 @@ import { logger } from '../utils/logger.js';
 import { moneyUz } from '../utils/money.js';
 import { reportJobFailure, reportJobSuccess } from '../services/observability.js';
 import { withJobLease } from './jobLease.js';
+import { dueDebtTotals } from '../services/billingLedger.service.js';
 
 /** Har 30 daqiqada tekshiriladi, lekin bildirishnoma kuniga bir marta yuboriladi (dedupeKey orqali) */
 const INTERVAL_MS = 30 * 60_000;
@@ -18,13 +19,9 @@ function businessDateString(value: Date): string {
  * (buxgalter, admin) kuniga bitta umumiy bildirishnoma yuboriladi.
  */
 export async function sendDailyDebtSummary(now: Date): Promise<number> {
-  const aggregate = await prisma.debt.aggregate({
-    where: { student: { deletedAt: null, status: { in: ['ACTIVE', 'FROZEN'] } }, remainingAmount: { gt: 0 } },
-    _sum: { remainingAmount: true },
-    _count: { _all: true },
-  });
-
-  const debtors = aggregate._count._all;
+  // Qarz — to'lov kuni kelgan, to'lanmagan oylar (shartnomaning kelgusi oylari emas)
+  const due = await dueDebtTotals(businessDateString(now), null);
+  const debtors = due.debtors;
   if (debtors === 0) return 0;
 
   const users = await prisma.user.findMany({
@@ -38,7 +35,7 @@ export async function sendDailyDebtSummary(now: Date): Promise<number> {
   if (users.length === 0) return 0;
 
   const date = businessDateString(now);
-  const total = aggregate._sum.remainingAmount?.toNumber() ?? 0;
+  const total = due.total;
   const result = await prisma.notification.createMany({
     data: users.map((user) => ({
       userId: user.id,

@@ -67,6 +67,8 @@ export interface PaymentScheduleDto {
 /** Qarzdorlar ro‘yxati va alertlar uchun jadval ko‘rsatkichlari (bazada hisoblanadi) */
 export interface StudentDueStats {
   overdueAmount: number;
+  /** To'lov kuni o'tgan oylar summasi (to'langan-to'lanmaganidan qat'i nazar) — qarz ulushi uchun maxraj */
+  chargedAmount: number;
   /** Eng eski to‘lanmagan qismning kechikishi (kun) */
   overdueDays: number;
   /** Bugun yoki keyin keladigan eng yaqin to‘lanmagan muddat */
@@ -315,11 +317,12 @@ export async function scheduleDueStats(now: Date = new Date(), studentIds?: stri
   const filter = useFilter ? Prisma.sql`AND i."studentId" IN (${Prisma.join(studentIds)})` : Prisma.empty;
 
   const rows = await prisma.$queryRaw<
-    Array<{ studentId: string; overdueAmount: unknown; firstUnpaidDue: string | null; nextDueDate: string | null; upcomingAmount: unknown }>
+    Array<{ studentId: string; overdueAmount: unknown; chargedAmount: unknown; firstUnpaidDue: string | null; nextDueDate: string | null; upcomingAmount: unknown }>
   >`
     WITH allocated AS (${installmentPositionsSql(filter)})
     SELECT a."studentId",
       COALESCE(SUM(a."remaining") FILTER (WHERE a."dueDate" < ${today}::date), 0) AS "overdueAmount",
+      COALESCE(SUM(a."amount") FILTER (WHERE a."dueDate" < ${today}::date), 0) AS "chargedAmount",
       to_char(MIN(a."dueDate") FILTER (WHERE a."remaining" > 0), 'YYYY-MM-DD') AS "firstUnpaidDue",
       to_char(MIN(a."dueDate") FILTER (WHERE a."remaining" > 0 AND a."dueDate" >= ${today}::date), 'YYYY-MM-DD') AS "nextDueDate",
       COALESCE(SUM(a."remaining") FILTER (WHERE a."dueDate" >= ${today}::date AND a."dueDate" <= ${weekEnd}::date), 0) AS "upcomingAmount"
@@ -334,6 +337,7 @@ export async function scheduleDueStats(now: Date = new Date(), studentIds?: stri
     const overdueAmount = Number(row.overdueAmount ?? 0);
     result.set(row.studentId, {
       overdueAmount,
+      chargedAmount: Number(row.chargedAmount ?? 0),
       overdueDays: overdueAmount > 0 && row.firstUnpaidDue ? Math.max(daysBetween(row.firstUnpaidDue, today), 0) : 0,
       nextDueDate: row.nextDueDate,
       upcomingAmount: Number(row.upcomingAmount ?? 0),

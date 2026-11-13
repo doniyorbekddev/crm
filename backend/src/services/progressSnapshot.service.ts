@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { businessMonthRange } from '../utils/dates.js';
+import { scheduleDueStats } from './paymentSchedule.service.js';
 
 /**
  * Oylik progress snapshoti (`student_progress_snapshots`, TZ 3.0 §26): o'quvchi har oy qayerda
@@ -50,7 +51,9 @@ async function writeBatch(studentIds: string[], year: number, month: number): Pr
     rows.filter((row) => row.studentId === studentId && (!statuses || statuses.includes(row.status))).reduce((sum, row) => sum + row._count._all, 0);
 
   const profileBy = new Map(profiles.map((row) => [row.studentId, row]));
-  const debtBy = new Map(debts.map((row) => [row.studentId, row.remainingAmount]));
+  // Qarz — to'lov kuni o'tgan, to'lanmagan oylar; jadvali yo'q o'quvchida — shartnoma qoldig'i
+  const dueStats = await scheduleDueStats(new Date(), studentIds);
+  const debtBy = new Map(debts.map((row) => [row.studentId, dueStats.get(row.studentId)?.overdueAmount ?? row.remainingAmount.toNumber()]));
   const examBy = new Map(exams.map((row) => [row.studentId, row._avg.percentage]));
   const masteryBy = new Map(mastery.map((row) => [row.studentId, row._avg.score]));
   const masteredBy = new Map(masteredCounts.map((row) => [row.studentId, row._count._all]));

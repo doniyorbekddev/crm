@@ -5,6 +5,7 @@ import type { AlertSeverity, TransactionType } from '../generated/prisma/client.
 import { addDays, businessDateString, startOfBusinessDay } from '../utils/dates.js';
 import { getAlertSettings } from './alert.service.js';
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
+import { dueDebtTotals } from './billingLedger.service.js';
 
 /**
  * Rahbar uchun kunlik xulosa: kechagi tushum, xarajat, yangi o‘quvchilar, davomat, sotuv,
@@ -115,11 +116,8 @@ export const digestService = {
     const attendanceMarks = marks.reduce((sum, row) => sum + row._count._all, 0);
     const attended = marks.filter((row) => row.status === 'PRESENT' || row.status === 'LATE').reduce((sum, row) => sum + row._count._all, 0);
 
-    const debt = await prisma.debt.aggregate({
-      where: { remainingAmount: { gt: 0 }, student: { deletedAt: null } },
-      _sum: { remainingAmount: true },
-      _count: { _all: true },
-    });
+    // Qarz — hozirgi holat: to'lov kuni kelgan, to'lanmagan oylar (shartnomaning kelgusi oylari emas)
+    const debt = await dueDebtTotals(businessDateString(now), null);
 
     const openAlerts = await prisma.alert.count({ where: { resolvedAt: null } });
     const criticalAlerts = await prisma.alert.count({ where: { resolvedAt: null, severity: 'CRITICAL' } });
@@ -150,8 +148,8 @@ export const digestService = {
       wonLeads,
       attendanceRate: attendanceMarks === 0 ? null : Math.round((attended / attendanceMarks) * 100),
       attendanceMarks,
-      totalDebt: debt._sum.remainingAmount?.toNumber() ?? 0,
-      debtors: debt._count._all,
+      totalDebt: debt.total,
+      debtors: debt.debtors,
       openAlerts,
       criticalAlerts,
       importantAlerts,

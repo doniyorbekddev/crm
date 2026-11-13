@@ -107,7 +107,13 @@ export async function showDebtors(context: BotContext, scope: CommandScope): Pro
   if (!actor) return { action: OWNER_ACTIONS.debts };
   if (!(await requirePermission(context, actor, PERMISSIONS.DEBT_VIEW))) return { action: OWNER_ACTIONS.debts };
 
-  const { items, total } = await debtService.list({ page: 1, limit: LIST_LIMIT, range: 'all', sortBy: 'remaining', due: 'all' } as unknown as DebtListQuery, branchFilter(await getBranchAccess(actor)));
+  // Qarzdor — to'lov kuni o'tgan, to'lanmagan oyi bor o'quvchi; eng katta kechikkan summa birinchi
+  // (jadvali yo'q eski shartnomada — shartnoma qoldig'i)
+  const page = await debtService.list({ page: 1, limit: 1000, range: 'all', sortBy: 'remaining', due: 'all' } as unknown as DebtListQuery, branchFilter(await getBranchAccess(actor)));
+  const amountOf = (debt: (typeof page.items)[number]) => (debt.schedule ? debt.schedule.overdueAmount : debt.remaining);
+  const debtors = page.items.filter((debt) => amountOf(debt) > 0).sort((a, b) => amountOf(b) - amountOf(a));
+  const total = debtors.length;
+  const items = debtors.slice(0, LIST_LIMIT);
   if (items.length === 0) {
     await context.render('✅ Qarzdor o‘quvchi yo‘q.', [menuRow()]);
     return { action: OWNER_ACTIONS.debts };
@@ -116,7 +122,7 @@ export async function showDebtors(context: BotContext, scope: CommandScope): Pro
   const lines = [`<b>⚠️ Qarzdorlar</b> · ${total} ta (eng kattalari)`, ''];
   for (const debt of items) {
     const overdue = debt.schedule && debt.schedule.overdueAmount > 0 ? ` · ⏰ ${debt.schedule.overdueDays} kun kechikkan` : '';
-    lines.push(`• <b>${escapeHtml(debt.firstName)} ${escapeHtml(debt.lastName)}</b> — ${moneyUz(debt.remaining)}${overdue}`);
+    lines.push(`• <b>${escapeHtml(debt.firstName)} ${escapeHtml(debt.lastName)}</b> — ${moneyUz(amountOf(debt))}${overdue}`);
     lines.push(`   ${escapeHtml(debt.group?.name ?? debt.course.name)} · ${escapeHtml(debt.phone ?? (debt.parentPhone ? `ota-ona: ${debt.parentPhone}` : '—'))}`);
   }
   await context.render(lines.join('\n'), [[{ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) }, ...menuRow()]]);
@@ -140,7 +146,7 @@ export async function showAtRisk(context: BotContext, scope: CommandScope): Prom
   for (const student of students) {
     const mark = student.riskLevel ? (RISK_MARK[student.riskLevel] ?? '') : '';
     lines.push(`${mark} <b>${escapeHtml(student.firstName)} ${escapeHtml(student.lastName)}</b> · sog‘lomlik ${student.healthScore ?? '—'}/100`);
-    lines.push(`   ${escapeHtml(student.group?.name ?? student.course.name)}${student.debt && student.debt.remaining > 0 ? ` · qarz ${moneyUz(student.debt.remaining)}` : ''}`);
+    lines.push(`   ${escapeHtml(student.group?.name ?? student.course.name)}${student.debt && student.debt.due > 0 ? ` · qarz ${moneyUz(student.debt.due)}` : ''}`);
   }
   lines.push('', 'Sabablar va tafsilot — CRM’dagi o‘quvchi profilida.');
   await context.render(lines.join('\n'), [[{ text: '📊 Ko‘rsatkichlar', data: callback(OWNER_ACTIONS.dashboard) }, ...menuRow()]]);

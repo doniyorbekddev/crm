@@ -19,6 +19,7 @@ import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { tableToCsv } from '../utils/tableExport.js';
 import type { ExportTable } from '../utils/tableExport.js';
 import { refundRows, refundTotal, refundsBy } from './revenue.js';
+import { scheduleDueStats } from './paymentSchedule.service.js';
 
 export type ReportColumnType = 'text' | 'number' | 'money' | 'percent' | 'date';
 
@@ -380,7 +381,7 @@ async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCH
     // Qarz o'quvchi orqali kursga bog'lanadi — bitta so'rovda olib, shu yerda jamlanadi
     prisma.debt.findMany({
       where: { student: { courseId: { in: ids }, deletedAt: null, ...inBranch(scope) } },
-      select: { remainingAmount: true, student: { select: { courseId: true } } },
+      select: { remainingAmount: true, student: { select: { id: true, courseId: true } } },
     }),
   ]);
 
@@ -405,8 +406,11 @@ async function coursesReport(query: ReportQuery, scope: BranchScope = ALL_BRANCH
       studentsByCourse.set(course.id, countOf(students, course.id));
       activeByCourse.set(course.id, countOf(active, course.id));
     }
+    // Qarz — to'lov kuni o'tgan, to'lanmagan oylar (shartnomaning kelgusi oylari emas)
+    const dueStats = await scheduleDueStats(new Date(), debts.map((debt) => debt.student.id));
     for (const debt of debts) {
-      debtByCourse.set(debt.student.courseId, (debtByCourse.get(debt.student.courseId) ?? 0) + debt.remainingAmount.toNumber());
+      const due = dueStats.get(debt.student.id)?.overdueAmount ?? debt.remainingAmount.toNumber();
+      debtByCourse.set(debt.student.courseId, (debtByCourse.get(debt.student.courseId) ?? 0) + due);
     }
   }
 
@@ -616,6 +620,7 @@ async function debtsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES
       status: true,
       student: {
         select: {
+          id: true,
           number: true,
           firstName: true,
           lastName: true,
@@ -629,7 +634,10 @@ async function debtsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES
     },
   });
 
-  const rows = debts.map((debt) => ({
+  // Qarz — to'lov kuni o'tgan, to'lanmagan oylar; "Shartnoma qoldig'i" — kelgusi oylar bilan
+  const dueStats = await scheduleDueStats(new Date(), debts.map((debt) => debt.student.id));
+  const rows = debts
+    .map((debt) => ({
     code: formatStudentNumber(debt.student.number),
     student: `${debt.student.firstName} ${debt.student.lastName}`,
     phone: debt.student.phone,
@@ -640,9 +648,11 @@ async function debtsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES
     total: debt.totalAmount.toNumber(),
     paid: debt.paidAmount.toNumber(),
     remaining: debt.remainingAmount.toNumber(),
-  }));
+    due: dueStats.get(debt.student.id)?.overdueAmount ?? debt.remainingAmount.toNumber(),
+  }))
+    .sort((a, b) => b.due - a.due || b.remaining - a.remaining);
 
-  const debtors = rows.filter((row) => row.remaining > 0).length;
+  const debtors = rows.filter((row) => row.due > 0).length;
 
   return {
     columns: [
@@ -655,12 +665,13 @@ async function debtsReport(query: ReportQuery, scope: BranchScope = ALL_BRANCHES
       { key: 'studentStatus', label: 'Holat', type: 'text' },
       { key: 'total', label: 'Shartnoma', type: 'money' },
       { key: 'paid', label: 'To‘langan', type: 'money' },
-      { key: 'remaining', label: 'Qolgan', type: 'money' },
+      { key: 'remaining', label: 'Shartnoma qoldig‘i', type: 'money' },
+      { key: 'due', label: 'Qarz', type: 'money' },
     ],
     rows,
     kpis: [
       { label: 'Qarzdorlar', value: debtors, type: 'number' },
-      { label: 'Umumiy qarz', value: rows.reduce((sum, row) => sum + row.remaining, 0), type: 'money' },
+      { label: 'Umumiy qarz', value: rows.reduce((sum, row) => sum + row.due, 0), type: 'money' },
       { label: 'To‘langan', value: rows.reduce((sum, row) => sum + row.paid, 0), type: 'money' },
       { label: 'Shartnomalar', value: rows.reduce((sum, row) => sum + row.total, 0), type: 'money' },
     ],

@@ -335,10 +335,13 @@ const highDebtRule: Rule = async (now, settings) => {
     },
   });
 
+  // Qarz — to'lov kuni o'tgan, to'lanmagan oylar; ulush — o'tgan oylar summasiga nisbatan (kelgusi oylar qarz emas)
+  const dueStats = await scheduleDueStats(now, debts.map((debt) => debt.student.id));
   return debts.flatMap((debt) => {
-    const total = debt.totalAmount.toNumber();
-    const remaining = debt.remainingAmount.toNumber();
-    if (total <= 0 || remaining / total < share) return [];
+    const stats = dueStats.get(debt.student.id);
+    const total = stats ? stats.chargedAmount : debt.totalAmount.toNumber();
+    const remaining = stats ? stats.overdueAmount : debt.remainingAmount.toNumber();
+    if (total <= 0 || remaining <= 0 || remaining / total < share) return [];
     const nothingPaid = debt.paidAmount.toNumber() <= 0;
     const name = `${debt.student.firstName} ${debt.student.lastName}`;
     return [
@@ -346,7 +349,7 @@ const highDebtRule: Rule = async (now, settings) => {
         type: 'HIGH_DEBT' as const,
         severity: nothingPaid ? ('CRITICAL' as const) : ('WARNING' as const),
         title: `Katta qarz: ${name}`,
-        message: `${formatStudentNumber(debt.student.number)} — qolgan qarz ${money(remaining)} (shartnomaning ${Math.round((remaining / total) * 100)}%)${nothingPaid ? ', hali bitta ham to‘lov qilinmagan' : ''}.`,
+        message: `${formatStudentNumber(debt.student.number)} — qarz ${money(remaining)} (to‘lov kuni o‘tgan oylarning ${Math.round((remaining / total) * 100)}%)${nothingPaid ? ', hali bitta ham to‘lov qilinmagan' : ''}.`,
         entityType: 'student',
         entityId: debt.student.id,
         dedupeKey: `high-debt:${debt.student.id}`,

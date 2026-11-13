@@ -73,13 +73,14 @@ describe.skipIf(!hasTestDatabase)('To‘lov xulosasi (integratsion)', () => {
       expected: 14_000_000,
       collected: 8_000_000,
       remaining: 6_000_000,
-      overdue: 500_000,
+      // Qarz: c — jadval bo'yicha muddati o'tgan 500 000; b — jadvali yo'q eski shartnoma, qarz = qoldiq 4 500 000
+      overdue: 5_000_000,
       debtors: 2,
       monthCollected: 8_000_000,
       collectedPercent: 57.1,
     });
     const byName = Object.fromEntries(data.courses.map((row: { courseName: string }) => [row.courseName, row]));
-    expect(byName.Frontend).toMatchObject({ students: 2, expected: 12_000_000, collected: 7_500_000, remaining: 4_500_000, debtors: 1, collectedPercent: 62.5 });
+    expect(byName.Frontend).toMatchObject({ students: 2, expected: 12_000_000, collected: 7_500_000, remaining: 4_500_000, overdue: 4_500_000, debtors: 1, collectedPercent: 62.5 });
     expect(byName['Ingliz tili']).toMatchObject({ students: 2, withoutContract: 1, expected: 2_000_000, collected: 500_000, remaining: 1_500_000, overdue: 500_000, collectedPercent: 25 });
     // Eng katta shartnoma summasi birinchi
     expect(data.courses[0].courseName).toBe('Frontend');

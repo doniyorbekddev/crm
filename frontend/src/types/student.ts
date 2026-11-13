@@ -8,7 +8,12 @@ export type DebtStatus = 'UNPAID' | 'PARTIAL' | 'PAID';
 export interface StudentDebt {
   total: number;
   paid: number;
+  /** Shartnoma (barcha oylar) qoldig'i */
   remaining: number;
+  /** Qarz: to'lov kuni o'tgan, to'lanmagan oylar (kelgusi oylar qarz emas) */
+  due: number;
+  /** Eng eski to'lanmagan oy necha kun kechikkan */
+  overdueDays: number;
   status: DebtStatus;
 }
 

@@ -31,7 +31,7 @@ function rateTone(rate: number): StatTone {
 
 export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfile; onOpenCalendar: () => void }) {
   const { attendance, homework, exams, student } = profile;
-  const debt = student.debt?.remaining ?? 0;
+  const debt = student.debt?.due ?? 0;
 
   return (
     <div className="space-y-4">
@@ -81,7 +81,12 @@ export function OverviewTab({ profile, onOpenCalendar }: { profile: StudentProfi
           icon={Wallet}
           title="Qarzdorlik"
           value={formatMoney(debt)}
-          {...(student.debt ? { description: `Shartnoma: ${formatMoney(student.debt.total)}` } : {})}
+          {...(student.debt
+            ? {
+                description:
+                  debt > 0 ? `${student.debt.overdueDays} kun kechikdi · Shartnoma qoldig‘i: ${formatMoney(student.debt.remaining)}` : `Shartnoma qoldig‘i: ${formatMoney(student.debt.remaining)}`,
+              }
+            : {})}
           tone={debt > 0 ? 'danger' : 'success'}
         />
       </div>

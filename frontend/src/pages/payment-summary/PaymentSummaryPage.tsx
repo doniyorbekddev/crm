@@ -145,8 +145,8 @@ export default function PaymentSummaryPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard title="Jami yig‘ilishi kerak" value={formatMoney(totals.expected)} description={`${formatNumber(totals.students - totals.withoutContract)} ta shartnoma bo‘yicha`} icon={Target} tone="primary" />
           <StatCard title="Yig‘ilgan" value={formatMoney(totals.collected)} description={`Yig‘ilish: ${percentOf(totals)}`} icon={Wallet} tone="success" valueTone="success" />
-          <StatCard title="Qolgan (qarz)" value={formatMoney(totals.remaining)} description={`${formatNumber(totals.debtors)} ta qarzdor o‘quvchi`} icon={HandCoins} tone="danger" valueTone={totals.remaining > 0 ? 'danger' : 'default'} to="/debts" />
-          <StatCard title="Muddati o‘tgan" value={formatMoney(totals.overdue)} description="To‘lov jadvali bo‘yicha o‘tib ketgan qism" icon={AlertTriangle} tone="warning" valueTone={totals.overdue > 0 ? 'warning' : 'default'} to="/debts" />
+          <StatCard title="Shartnoma qoldig‘i" value={formatMoney(totals.remaining)} description="Kelgusi oylar ham kiradi — qarz emas" icon={HandCoins} tone="primary" to="/debts" />
+          <StatCard title="Qarz (muddati o‘tgan)" value={formatMoney(totals.overdue)} description={`${formatNumber(totals.debtors)} ta qarzdor o‘quvchi`} icon={AlertTriangle} tone="danger" valueTone={totals.overdue > 0 ? 'danger' : 'default'} to="/debts" />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard size="sm" title="O‘quvchilar" value={formatNumber(totals.students)} description={`Faol: ${formatNumber(totals.activeStudents)}`} icon={Users} />
@@ -207,8 +207,8 @@ export default function PaymentSummaryPage() {
                     <TH className="text-right">O‘quvchilar</TH>
                     <TH className="text-right">Yig‘ilishi kerak</TH>
                     <TH className="text-right">Yig‘ilgan</TH>
-                    <TH className="text-right">Qolgan</TH>
-                    <TH className="text-right">Muddati o‘tgan</TH>
+                    <TH className="text-right">Shartnoma qoldig‘i</TH>
+                    <TH className="text-right">Qarz (muddati o‘tgan)</TH>
                     <TH className="min-w-40">Yig‘ilish</TH>
                     <TH className="text-right">Shu oy</TH>
                   </tr>
@@ -232,11 +232,11 @@ export default function PaymentSummaryPage() {
                       </TD>
                       <TD className="whitespace-nowrap text-right tabular-nums">{formatMoney(row.expected)}</TD>
                       <TD className="whitespace-nowrap text-right tabular-nums text-success">{formatMoney(row.collected)}</TD>
-                      <TD className={cn('whitespace-nowrap text-right tabular-nums', row.remaining > 0 ? 'text-danger' : 'text-fg-muted')}>
-                        {formatMoney(row.remaining)}
+                      <TD className="whitespace-nowrap text-right tabular-nums text-fg-muted">{formatMoney(row.remaining)}</TD>
+                      <TD className={cn('whitespace-nowrap text-right tabular-nums', row.overdue > 0 ? 'text-danger' : 'text-fg-muted')}>
+                        {formatMoney(row.overdue)}
                         {row.debtors > 0 && <span className="block text-caption text-fg-subtle">{formatNumber(row.debtors)} ta qarzdor</span>}
                       </TD>
-                      <TD className={cn('whitespace-nowrap text-right tabular-nums', row.overdue > 0 ? 'text-warning' : 'text-fg-muted')}>{formatMoney(row.overdue)}</TD>
                       <TD>
                         <div className="flex items-center gap-2">
                           <CollectionBar totals={row} className="flex-1" />

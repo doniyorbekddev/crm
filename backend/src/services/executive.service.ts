@@ -14,6 +14,7 @@ import { ALL_BRANCHES, type BranchScope, inBranch, viaGroup, viaUser } from './b
 import { OPERATING_LEDGER_WHERE } from './ledger.js';
 import { activeStudentsAt, droppedBetween, lostLeadsBetween, newStudentsBetween } from './history.service.js';
 import { debtForMonth } from './monthSnapshot.service.js';
+import { dueDebtTotals } from './billingLedger.service.js';
 import { refundTotal } from './revenue.js';
 
 /**
@@ -379,13 +380,8 @@ async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetric
   const past = period.end.getTime() <= now.getTime();
   const activeStudents = past ? await activeStudentsAt(period.end, scope) : await prisma.student.count({ where: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } });
   const historicalDebt = past ? await debtForMonth(period.year, period.month, period.end, scope) : null;
-  const debt = historicalDebt
-    ? { _sum: { remainingAmount: null }, _count: { _all: historicalDebt.debtors } }
-    : await prisma.debt.aggregate({
-        where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } },
-        _sum: { remainingAmount: true },
-        _count: { _all: true },
-      });
+  // Joriy davr qarzi — to'lov kuni kelgan, to'lanmagan oylar (shartnomaning kelgusi oylari emas)
+  const debt = historicalDebt ?? (await dueDebtTotals(businessDateString(now), scope.branchId));
   const salary = await prisma.teacherSalaryPeriod.aggregate({
     where: { OR: monthsBetween(period.start, period.end), ...salaryPeriodInBranch(scope) },
     _sum: { totalAmount: true, paidAmount: true },
@@ -397,9 +393,9 @@ async function monthBlock(period: ResolvedPeriod, metrics: ExecutivePeriodMetric
     month: period.month,
     label: period.label,
     activeStudents,
-    totalDebt: historicalDebt ? historicalDebt.total : (debt._sum.remainingAmount?.toNumber() ?? 0),
+    totalDebt: debt.total,
     debtSource: historicalDebt ? historicalDebt.source : 'LIVE',
-    debtors: debt._count._all,
+    debtors: debt.debtors,
     salaryAccrued: salary._sum.totalAmount?.toNumber() ?? 0,
     salaryPaid: salary._sum.paidAmount?.toNumber() ?? 0,
   };
@@ -438,7 +434,7 @@ async function attentionBlock(now: Date, scope: BranchScope): Promise<ExecutiveS
   const dayStart = startOfBusinessDay(now);
   const sessionDay = dateOnlyUtc(businessDateString(now));
 
-  const debtors = await prisma.debt.count({ where: { student: { deletedAt: null, ...inBranch(scope) }, remainingAmount: { gt: 0 } } });
+  const { debtors } = await dueDebtTotals(businessDateString(now), scope.branchId);
   const unmarkedLessons = await prisma.attendanceSession.count({
     where: { date: { gte: sessionDay, lt: addDays(sessionDay, 1) }, status: { not: 'CANCELLED' }, attendances: { none: {} }, ...viaGroup(scope) },
   });
@@ -477,11 +473,7 @@ function scale(value: number, bad: number, good: number): number {
  */
 /** `pastDebtors` — tugagan davr oxiridagi qarzdorlar (snapshot yoki tiklangan); joriy davrda `null` — hozirgi holat */
 async function healthBlock(metrics: ExecutivePeriodMetricsDto, activeStudents: number, scope: BranchScope, pastDebtors: number | null): Promise<ExecutiveHealthDto> {
-  const debtors =
-    pastDebtors ??
-    (await prisma.debt.count({
-      where: { remainingAmount: { gt: 0 }, student: { deletedAt: null, status: 'ACTIVE', ...inBranch(scope) } },
-    }));
+  const debtors = pastDebtors ?? (await dueDebtTotals(businessDateString(new Date()), scope.branchId)).debtors;
   const debtShare = percentOf(debtors, activeStudents);
   const retentionBase = activeStudents + metrics.droppedStudents;
   const dropRate = percentOf(metrics.droppedStudents, retentionBase);

@@ -177,7 +177,7 @@ export function installmentPositionsSql(filter: Prisma.Sql): Prisma.Sql {
         SUM(ap."amount" - ap."epaid") OVER (PARTITION BY ap."studentId" ORDER BY ap."dueDate", ap."sequence") AS "ccum"
       FROM applied ap
     )
-    SELECT c."studentId", c."dueDate",
+    SELECT c."studentId", c."dueDate", c."amount",
       c."cap" - LEAST(c."cap", GREATEST(pl."pool" - (c."ccum" - c."cap"), 0)) AS "remaining"
     FROM capacity c
     JOIN pool pl ON pl."studentId" = c."studentId"
@@ -186,15 +186,27 @@ export function installmentPositionsSql(filter: Prisma.Sql): Prisma.Sql {
 
 /**
  * Muddati kelgan (bugun yoki oldin), to'lanmagan oy majburiyatlari yig'indisi va qarzdorlar soni — "qarz" ning
- * qarzdorlik sahifasidagi ma'nosi (qaror 1). `branchId` — filial doirasi.
+ * qarzdorlik sahifasidagi ma'nosi (qaror 1). Jadvali yo'q eski shartnomada — shartnoma qoldig'i. `branchId` — filial doirasi.
  */
 export async function dueDebtTotals(today: string, branchId: string | null): Promise<{ total: number; debtors: number }> {
   const filter = branchId ? Prisma.sql`AND s."branchId" = ${branchId}` : Prisma.empty;
   const [row] = await prisma.$queryRaw<Array<{ total: unknown; debtors: unknown }>>`
-    WITH positions AS (${installmentPositionsSql(filter)})
-    SELECT COALESCE(SUM(p."remaining") FILTER (WHERE p."dueDate" <= ${today}::date AND p."remaining" > 0), 0) AS "total",
-      COUNT(DISTINCT p."studentId") FILTER (WHERE p."dueDate" <= ${today}::date AND p."remaining" > 0) AS "debtors"
-    FROM positions p
+    WITH positions AS (${installmentPositionsSql(filter)}),
+    scheduled AS (
+      SELECT COALESCE(SUM(p."remaining") FILTER (WHERE p."dueDate" <= ${today}::date AND p."remaining" > 0), 0) AS "total",
+        COUNT(DISTINCT p."studentId") FILTER (WHERE p."dueDate" <= ${today}::date AND p."remaining" > 0) AS "debtors"
+      FROM positions p
+    ),
+    -- Jadvali umuman yo'q (eski) shartnoma: qarz = shartnoma qoldig'i (o'quvchi kartasidagi qoida bilan bir xil)
+    unscheduled AS (
+      SELECT COALESCE(SUM(d."remainingAmount"), 0) AS "total", COUNT(*) AS "debtors"
+      FROM "debts" d
+      JOIN "students" s ON s."id" = d."studentId" AND s."deletedAt" IS NULL
+      WHERE d."remainingAmount" > 0 ${filter}
+        AND NOT EXISTS (SELECT 1 FROM "payment_installments" i WHERE i."studentId" = d."studentId")
+    )
+    SELECT scheduled."total" + unscheduled."total" AS "total", scheduled."debtors" + unscheduled."debtors" AS "debtors"
+    FROM scheduled, unscheduled
   `;
   return { total: Number(row?.total ?? 0), debtors: Number(row?.debtors ?? 0) };
 }

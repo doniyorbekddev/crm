@@ -5881,7 +5881,10 @@
 "Oylik to‘lov modeliga o‘tkazildi": "Переведён на модель месячной оплаты",
 "To‘lov hisobi 2026-yil oktyabrdan boshlanadi": "Учёт оплат начинается с октября 2026 года",
 "Muzlatishdan chiqarilganda bugundan keyingi oylar uchun to‘lov yana yoziladi. Muzlatilgan davrdagi oylar yozilmaydi.": "После разморозки оплата снова начисляется за месяцы начиная с сегодняшнего дня. Месяцы заморозки не начисляются.",
-"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Временно приостановлен — не отображается в журнале посещаемости. За неоплаченные месяцы начиная с сегодняшнего дня оплата не начисляется."
+"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Временно приостановлен — не отображается в журнале посещаемости. За неоплаченные месяцы начиная с сегодняшнего дня оплата не начисляется.",
+"Kelgusi oylar ham kiradi — qarz emas": "Включая будущие месяцы — это не долг",
+"Qarz (muddati o‘tgan)": "Долг (просрочено)",
+"Summa shartnoma qoldig‘idan ko‘p — server bunday to‘lovni qabul qilmaydi.": "Сумма больше остатка по договору — сервер не примет такой платёж."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "«{0}» будет удалён. Экзамен с внесёнными результатами удалить нельзя — отмените его.",
@@ -6624,6 +6627,9 @@
 "To‘langan summadan {0} kam — jadval to‘lovlarni sig‘dirmaydi": "На {0} меньше оплаченного — график не вмещает платежи",
 "To‘lov hisobi {0} dan boshlanadi — undan oldingi oyga qism qo‘shilmaydi": "Учёт оплат начинается с {0} — платежи за более ранние месяцы не добавляются",
 "Shartnoma jami summasi {0} ga kamayadi (oylik to‘lov o‘zgarmaydi). Amal auditga yoziladi.": "Итог договора уменьшится на {0} (месячная оплата не меняется). Действие записывается в аудит.",
-"Shartnoma jami: {0} · to‘langan: {1}": "Итого по договору: {0} · оплачено: {1}"
+"Shartnoma jami: {0} · to‘langan: {1}": "Итого по договору: {0} · оплачено: {1}",
+"{0} — qarz {1} (to‘lov kuni o‘tgan oylarning {2}%){3}.": "{0} — долг {1} ({2}% месяцев с прошедшим сроком оплаты){3}.",
+"{0} kun kechikdi · Shartnoma qoldig‘i: {1}": "Просрочено на {0} дн. · Остаток по договору: {1}",
+"Shartnoma qoldig‘i: {0}": "Остаток по договору: {0}"
 }
 }

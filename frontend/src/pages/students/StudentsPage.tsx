@@ -27,8 +27,6 @@ import type { RiskLevel, StudentItem, StudentListParams, StudentStatus, StudentS
 import { formatDate, formatMoney, formatPhone } from '@/utils/format';
 import { PERMISSIONS } from '@/utils/permissionKeys';
 import {
-  DEBT_STATUS_LABELS,
-  DEBT_STATUS_TONES,
   RISK_LEVEL_LABELS,
   RISK_LEVEL_ORDER,
   RISK_LEVEL_TONES,
@@ -200,10 +198,13 @@ export default function StudentsPage() {
         <>
           {student.debt ? (
             <>
-              <p className={cn('font-medium', student.debt.remaining > 0 ? 'text-danger' : 'text-fg')}>
-                {formatMoney(student.debt.remaining)}
-              </p>
-              <Badge tone={DEBT_STATUS_TONES[student.debt.status]}>{DEBT_STATUS_LABELS[student.debt.status]}</Badge>
+              {/* Qarz — faqat to'lov kuni o'tgan oylar; kelgusi oylar shartnoma qoldig'i, qarz emas */}
+              <p className={cn('font-medium', student.debt.due > 0 ? 'text-danger' : 'text-fg')}>{formatMoney(student.debt.due)}</p>
+              {student.debt.due > 0 ? (
+                <Badge tone="danger">{`${student.debt.overdueDays} kun kechikdi`}</Badge>
+              ) : (
+                <Badge tone="success">Qarzi yo‘q</Badge>
+              )}
             </>
           ) : (
             <span className="text-fg-muted">—</span>

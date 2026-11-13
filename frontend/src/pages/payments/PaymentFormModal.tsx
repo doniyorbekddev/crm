@@ -225,8 +225,8 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
                         {item.code} · {formatPhone(item.phone)} · {item.course.name}
                       </span>
                     </span>
-                    <span className={cn('shrink-0 text-label', (item.debt?.remaining ?? 0) > 0 ? 'text-danger' : 'text-fg-muted')}>
-                      {formatMoney(item.debt?.remaining ?? 0)}
+                    <span className={cn('shrink-0 text-label', (item.debt?.due ?? 0) > 0 ? 'text-danger' : 'text-fg-muted')}>
+                      {formatMoney(item.debt?.due ?? 0)}
                     </span>
                   </button>
                 </li>
@@ -247,8 +247,9 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
               </p>
             </div>
             <div className="text-right">
-              <p className="text-caption text-fg-muted">Qolgan qarz</p>
-              <p className="font-semibold text-fg">{formatMoney(remaining)}</p>
+              <p className="text-caption text-fg-muted">Qarz</p>
+              <p className={cn('font-semibold', (selected.debt?.due ?? 0) > 0 ? 'text-danger' : 'text-fg')}>{formatMoney(selected.debt?.due ?? 0)}</p>
+              <p className="text-caption text-fg-muted">{`Shartnoma qoldig‘i: ${formatMoney(remaining)}`}</p>
             </div>
             {!student && (
               <Button
@@ -313,7 +314,7 @@ export function PaymentFormModal({ student, onClose, onSaved }: PaymentFormModal
             disabled={save.isPending}
           />
 
-          {afterPayment < 0 && <Alert tone="warning">Summa qolgan qarzdan ko‘p — server bunday to‘lovni qabul qilmaydi.</Alert>}
+          {afterPayment < 0 && <Alert tone="warning">Summa shartnoma qoldig‘idan ko‘p — server bunday to‘lovni qabul qilmaydi.</Alert>}
         </form>
       )}
     </Modal>

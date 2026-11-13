@@ -27,7 +27,8 @@ import { EXPORT_ROW_LIMIT, exportSubtitle, sumColumns } from '../utils/tableExpo
 import type { ExportColumn, ExportTable } from '../utils/tableExport.js';
 import { STUDENT_STATUS_LABELS } from '../config/studentLabels.js';
 import { businessDateString } from '../utils/dates.js';
-import { applyMonthlyFee, createDefaultSchedule, freezeCharges, unfreezeCharges } from './paymentSchedule.service.js';
+import { applyMonthlyFee, createDefaultSchedule, freezeCharges, scheduleDueStats, unfreezeCharges } from './paymentSchedule.service.js';
+import type { StudentDueStats } from './paymentSchedule.service.js';
 import { referralService } from './referral.service.js';
 import { groupChangeSelect, recordGroupChange, toGroupChangeDtos } from './studentGroupHistory.js';
 import type { GroupChangeDto } from './studentGroupHistory.js';
@@ -149,14 +150,21 @@ export interface StudentDto {
     /** Shu guruh o'qituvchisiga oylik to'lovdan ulush (%), 0 — hammasi asosiy guruh o'qituvchisiga */
     commissionShare: number;
   }>;
-  debt: { total: number; paid: number; remaining: number; status: DebtStatus } | null;
+  /**
+   * `total`/`remaining` — shartnoma (barcha oylar) bo'yicha; `due` — qarz: to'lov kuni o'tgan, to'lanmagan oylar
+   * (kelgusi oylar qarz emas). `overdueDays` — eng eski to'lanmagan oy necha kun kechikkan.
+   */
+  debt: { total: number; paid: number; remaining: number; due: number; overdueDays: number; status: DebtStatus } | null;
 }
 
 function toDateOnly(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-export function toStudentDto(student: StudentRecord): StudentDto {
+/**
+ * `stats` — `scheduleDueStats` natijasi. Jadvali yo'q o'quvchida (qatori yo'q) qarz = shartnoma qoldig'i.
+ */
+export function toStudentDto(student: StudentRecord, stats?: ReadonlyMap<string, StudentDueStats>): StudentDto {
   return {
     id: student.id,
     number: student.number,
@@ -202,10 +210,22 @@ export function toStudentDto(student: StudentRecord): StudentDto {
           total: student.debt.totalAmount.toNumber(),
           paid: student.debt.paidAmount.toNumber(),
           remaining: student.debt.remainingAmount.toNumber(),
+          due: stats?.get(student.id)?.overdueAmount ?? student.debt.remainingAmount.toNumber(),
+          overdueDays: stats?.get(student.id)?.overdueDays ?? 0,
           status: student.debt.status,
         }
       : null,
   };
+}
+
+/** DTO lar qarz (muddati o'tgan oylar) bilan — bitta so'rovda */
+async function toStudentDtos(records: StudentRecord[]): Promise<StudentDto[]> {
+  const stats = await scheduleDueStats(new Date(), records.map((record) => record.id));
+  return records.map((record) => toStudentDto(record, stats));
+}
+
+async function toStudentDtoWithDue(record: StudentRecord): Promise<StudentDto> {
+  return (await toStudentDtos([record]))[0]!;
 }
 
 export type StudentStatusSummary = Record<StudentStatus | 'ALL', number>;
@@ -365,7 +385,7 @@ export const studentService = {
       ...toSkipTake(query.page, query.limit),
     });
     const total = await prisma.student.count({ where });
-    return { items: items.map(toStudentDto), total };
+    return { items: await toStudentDtos(items), total };
   },
 
   /** Filtrga mos o‘quvchilar — eksport uchun (sahifalashsiz, EXPORT_ROW_LIMIT gacha) */
@@ -393,7 +413,7 @@ export const studentService = {
       { key: 'paid', label: 'To‘langan', type: 'money' },
       { key: 'remaining', label: 'Qarz', type: 'money' },
     ];
-    const rows = records.map(toStudentDto).map((student) => ({
+    const rows = (await toStudentDtos(records)).map((student) => ({
       code: student.code,
       name: `${student.firstName} ${student.lastName}`,
       phone: student.phone,
@@ -404,7 +424,8 @@ export const studentService = {
       startDate: student.startDate,
       contractPrice: student.contractPrice,
       paid: student.debt?.paid ?? 0,
-      remaining: student.debt?.remaining ?? 0,
+      // Qarz — to'lov kuni o'tgan, to'lanmagan oylar (kelgusi oylar emas)
+      remaining: student.debt?.due ?? 0,
     }));
     return { title: 'O‘quvchilar', subtitle: exportSubtitle(rows.length, total), columns, rows, totals: sumColumns(columns, rows) };
   },
@@ -427,7 +448,7 @@ export const studentService = {
 
   async getById(actor: AuthUser, id: string): Promise<StudentDto> {
     const access = await getStudentAccess(actor);
-    return toStudentDto(await findVisibleStudent(access, id));
+    return toStudentDtoWithDue(await findVisibleStudent(access, id));
   },
 
   async create(actor: AuthUser, input: CreateStudentInput, client: ClientInfo): Promise<StudentDto> {
@@ -482,7 +503,7 @@ export const studentService = {
       return tx.student.findUniqueOrThrow({ where: { id: student.id }, select: studentSelect });
     });
 
-    return toStudentDto(created);
+    return toStudentDtoWithDue(created);
   },
 
   async update(actor: AuthUser, id: string, input: UpdateStudentInput, client: ClientInfo): Promise<StudentDto> {
@@ -549,7 +570,7 @@ export const studentService = {
       return record;
     });
 
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id: updated.id }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id: updated.id }, select: studentSelect }));
   },
 
   /** Holat tarixi: kim, qachon, nimadan nimaga va nima sababdan o‘zgartirgan */
@@ -592,7 +613,7 @@ export const studentService = {
       orderBy: [{ healthScore: 'asc' }, { riskUpdatedAt: 'desc' }],
       take: query.limit,
     });
-    return rows.map(toStudentDto);
+    return toStudentDtos(rows);
   },
 
   async groupHistory(actor: AuthUser, id: string): Promise<GroupChangeDto[]> {
@@ -704,7 +725,7 @@ export const studentService = {
       });
     });
 
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 
   /**
@@ -752,7 +773,7 @@ export const studentService = {
       }
       throw error;
     }
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 
   /**
@@ -790,7 +811,7 @@ export const studentService = {
         ...client,
       });
     });
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 
   /** Qo'shimcha guruhdan chiqarish: a'zolik yopiladi (tarix saqlanadi), boshqa guruhlar va profil o'zgarmaydi */
@@ -824,14 +845,14 @@ export const studentService = {
         ...client,
       });
     });
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id }, select: studentSelect }));
   },
 
   async setStatus(actor: AuthUser, id: string, input: UpdateStudentStatusInput, client: ClientInfo): Promise<StudentDto> {
     const access = await getStudentAccess(actor);
     const student = await findVisibleStudent(access, id);
     if (student.status === input.status) {
-      return toStudentDto(student);
+      return toStudentDtoWithDue(student);
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -868,7 +889,7 @@ export const studentService = {
       return record.status === 'FROZEN' || student.status === 'FROZEN' ? tx.student.findUniqueOrThrow({ where: { id }, select: studentSelect }) : record;
     });
 
-    return toStudentDto(updated);
+    return toStudentDtoWithDue(updated);
   },
 
   /** Soft delete — to‘lovlar va davomat tarixi saqlanib qoladi, guruhdagi o‘rni bo‘shaydi. */
@@ -1008,6 +1029,6 @@ export const studentService = {
       return student.id;
     });
 
-    return toStudentDto(await prisma.student.findUniqueOrThrow({ where: { id: studentId }, select: studentSelect }));
+    return toStudentDtoWithDue(await prisma.student.findUniqueOrThrow({ where: { id: studentId }, select: studentSelect }));
   },
 };

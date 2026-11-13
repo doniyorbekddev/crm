@@ -5846,7 +5846,10 @@
 "Oylik to‘lov modeliga o‘tkazildi": "Moved to the monthly fee model",
 "To‘lov hisobi 2026-yil oktyabrdan boshlanadi": "Billing starts in October 2026",
 "Muzlatishdan chiqarilganda bugundan keyingi oylar uchun to‘lov yana yoziladi. Muzlatilgan davrdagi oylar yozilmaydi.": "After unfreezing, charges resume for months from today. Months during the freeze are not charged.",
-"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Temporarily paused — not shown in the attendance journal. Unpaid months from today on are not charged."
+"Vaqtincha to‘xtatilgan — davomat jurnalida ko‘rinmaydi. Bugundan keyingi to‘lanmagan oylar uchun to‘lov yozilmaydi.": "Temporarily paused — not shown in the attendance journal. Unpaid months from today on are not charged.",
+"Kelgusi oylar ham kiradi — qarz emas": "Includes future months — not a debt",
+"Qarz (muddati o‘tgan)": "Debt (overdue)",
+"Summa shartnoma qoldig‘idan ko‘p — server bunday to‘lovni qabul qilmaydi.": "The amount exceeds the contract balance — the server will not accept this payment."
 },
 "patterns": {
 "\"{0}\" o‘chiriladi. Natijasi kiritilgan imtihonni o‘chirib bo‘lmaydi — uni bekor qiling.": "\"{0}\" will be deleted. An exam with entered results cannot be deleted — cancel it instead.",
@@ -6588,6 +6591,9 @@
 "To‘langan summadan {0} kam — jadval to‘lovlarni sig‘dirmaydi": "{0} less than paid — the schedule cannot hold the payments",
 "To‘lov hisobi {0} dan boshlanadi — undan oldingi oyga qism qo‘shilmaydi": "Billing starts in {0} — no charges are added for earlier months",
 "Shartnoma jami summasi {0} ga kamayadi (oylik to‘lov o‘zgarmaydi). Amal auditga yoziladi.": "The contract total decreases by {0} (the monthly fee stays the same). The action is audited.",
-"Shartnoma jami: {0} · to‘langan: {1}": "Contract total: {0} · paid: {1}"
+"Shartnoma jami: {0} · to‘langan: {1}": "Contract total: {0} · paid: {1}",
+"{0} — qarz {1} (to‘lov kuni o‘tgan oylarning {2}%){3}.": "{0} — debt {1} ({2}% of months past their due date){3}.",
+"{0} kun kechikdi · Shartnoma qoldig‘i: {1}": "{0} days overdue · Contract balance: {1}",
+"Shartnoma qoldig‘i: {0}": "Contract balance: {0}"
 }
 }

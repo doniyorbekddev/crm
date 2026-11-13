@@ -67,6 +67,15 @@ export const orgOverviewService = {
     const executive = has(PERMISSIONS.ANALYTICS_VIEW) ? await executiveService.summary({}, scope) : null;
     // Qarz — qarzdorlik sahifasi bilan bir xil ma'noda: muddati kelgan, to'lanmagan oy majburiyatlari
     const due = executive ? await dueDebtTotals(today, scope.branchId) : null;
+    // Shartnoma qoldig'i — kelgusi oylar ham kiradi (qarz emas), alohida ko'rsatiladi
+    const contractRemaining = executive
+      ? ((
+          await prisma.debt.aggregate({
+            where: { student: { deletedAt: null, ...(scope.branchId ? { branchId: scope.branchId } : {}) } },
+            _sum: { remainingAmount: true },
+          })
+        )._sum.remainingAmount?.toNumber() ?? 0)
+      : 0;
 
     const [attendance, team, tasks, kpi, marketing, expenses, complaints, assets, approvals] = await Promise.all([
       safe(has(PERMISSIONS.STAFF_ATTENDANCE_VIEW), async () => {
@@ -196,7 +205,7 @@ export const orgOverviewService = {
         : null,
       sales: executive ? { newLeads: executive.month.newLeads, wonLeads: executive.month.wonLeads, conversionRate: executive.month.conversionRate } : null,
       marketing,
-      payments: executive ? { revenue: executive.month.revenue, totalDebt: executive.kpi.totalDebt, dueDebt: due?.total ?? 0, dueDebtors: due?.debtors ?? 0 } : null,
+      payments: executive ? { revenue: executive.month.revenue, totalDebt: contractRemaining, dueDebt: due?.total ?? 0, dueDebtors: due?.debtors ?? 0 } : null,
       payroll:
         executive && has(PERMISSIONS.SALARY_VIEW)
           ? { accrued: executive.month.salaryAccrued, paid: executive.month.salaryPaid, remaining: Math.max(executive.month.salaryAccrued - executive.month.salaryPaid, 0) }

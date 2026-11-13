@@ -19,7 +19,8 @@ import type {
 import { auditService } from './audit.service.js';
 import { OPERATING_LEDGER_SQL, OPERATING_LEDGER_WHERE, balanceDelta, recordTransaction, voidTransaction } from './ledger.js';
 import { assertFinancialPeriodOpen } from './financialPeriod.service.js';
-import { ALL_BRANCHES, branchSql, inBranch, viaStudent, type BranchScope } from './branchScope.js';
+import { ALL_BRANCHES, branchSql, inBranch, type BranchScope } from './branchScope.js';
+import { dueDebtTotals } from './billingLedger.service.js';
 
 /** Maosh xarajatlari shu kategoriya nomi bilan yoziladi */
 const SALARY_CATEGORY = 'O‘qituvchi maoshi';
@@ -563,7 +564,8 @@ export const financeService = {
 
     const studentPayments = (incomeByCategory.find((row) => row.name === 'O‘quvchi to‘lovi')?.total ?? 0) - refunds;
     const accounts = await prisma.financialAccount.aggregate({ where: { isActive: true, ...inBranch(scope) }, _sum: { balance: true } });
-    const debt = await prisma.debt.aggregate({ where: viaStudent(scope), _sum: { remainingAmount: true } });
+    // Qarz — to'lov kuni kelgan, to'lanmagan oylar (shartnomaning kelgusi oylari emas)
+    const debt = await dueDebtTotals(businessDateString(new Date()), scope.branchId);
 
     return {
       from,
@@ -579,7 +581,7 @@ export const financeService = {
       refunds,
       otherIncome: Math.max(income - studentPayments, 0),
       totalBalance: accounts._sum.balance?.toNumber() ?? 0,
-      totalDebt: debt._sum.remainingAmount?.toNumber() ?? 0,
+      totalDebt: debt.total,
       incomeByCategory,
       expenseByCategory,
     };
@@ -751,7 +753,7 @@ export const financeService = {
       where: { status: { in: ['CALCULATED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_PAID'] }, remainingAmount: { gt: 0 }, ...salaryPeriodInBranch(scope) },
       _sum: { remainingAmount: true },
     });
-    const debts = await prisma.debt.aggregate({ where: { remainingAmount: { gt: 0 }, ...viaStudent(scope) }, _sum: { remainingAmount: true } });
+    const debts = await dueDebtTotals(businessDateString(new Date()), scope.branchId);
     const currentBalance = accounts.filter((account) => account.isActive).reduce((sum, account) => sum + account.balance.toNumber(), 0);
     const upcomingExpenses = upcoming._sum.amount?.toNumber() ?? 0;
     const unpaidSalaries = salaries._sum.remainingAmount?.toNumber() ?? 0;
@@ -773,7 +775,7 @@ export const financeService = {
         upcomingExpenses,
         upcomingExpenseCount: upcoming._count._all,
         unpaidSalaries,
-        receivables: debts._sum.remainingAmount?.toNumber() ?? 0,
+        receivables: debts.total,
         projectedBalance: currentBalance - upcomingExpenses - unpaidSalaries,
       },
     };

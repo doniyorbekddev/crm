@@ -133,8 +133,10 @@ export const paymentSummaryService = {
         target.expected += student.debt.totalAmount.toNumber();
         target.collected += student.debt.paidAmount.toNumber();
         target.remaining += remaining;
-        if (remaining > 0) target.debtors += 1;
-        target.overdue += due.get(student.id)?.overdueAmount ?? 0;
+        // Qarzdor — to'lov kuni o'tgan, to'lanmagan oyi bor (jadvali yo'q eski yozuvda — shartnoma qoldig'i)
+        const overdue = due.get(student.id)?.overdueAmount ?? remaining;
+        if (overdue > 0) target.debtors += 1;
+        target.overdue += overdue;
       }
     }
     for (const payment of monthPayments) {
@@ -164,7 +166,7 @@ export const paymentSummaryService = {
         { key: 'activeStudents', label: 'Faol', type: 'number' },
         { key: 'expected', label: 'Yig‘ilishi kerak', type: 'money' },
         { key: 'collected', label: 'Yig‘ilgan', type: 'money' },
-        { key: 'remaining', label: 'Qolgan (qarz)', type: 'money' },
+        { key: 'remaining', label: 'Shartnoma qoldig‘i', type: 'money' },
         { key: 'overdue', label: 'Muddati o‘tgan', type: 'money' },
         { key: 'debtors', label: 'Qarzdorlar', type: 'number' },
         { key: 'collectedPercent', label: 'Yig‘ilish %', type: 'percent' },

@@ -144,7 +144,8 @@ describe.skipIf(!hasTestDatabase)('Oylik moliyaviy davrlar va tarixiy qarzdorlik
       debtAtPeriodEnd: 600_000,
     });
     const snapshot = await prisma.studentMonthSnapshot.findFirstOrThrow({ where: { studentId: aziz, year, month } });
-    expect(snapshot.debtAmount.toNumber()).toBe(1_800_000);
+    // Oy oxiridagi qarz — shu oygacha yozilgan oylar (P); kelgusi oylar (C, N) qarz emas — oylik hisobot bilan bir xil
+    expect(snapshot.debtAmount.toNumber()).toBe(600_000);
 
     // Tarix: qaysi to'lov qaysi oyni qachon yopgani
     const after = (await history(accountant, aziz)).body.data;

@@ -20,7 +20,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
  * davomat — ruxsat bo'lsa. Amallar — to'liq profilda.
  */
 export function StudentQuickView({ student, showAttendance, onClose }: { student: StudentItem; showAttendance: boolean; onClose: () => void }) {
-  const remaining = student.debt?.remaining ?? 0;
+  const due = student.debt?.due ?? 0;
   return (
     <Drawer
       open
@@ -64,7 +64,7 @@ export function StudentQuickView({ student, showAttendance, onClose }: { student
         <Field label="Guruh">{student.group?.name ?? 'Guruhsiz'}</Field>
         <Field label="Oylik to‘lov">{formatMoney(student.contractPrice)}</Field>
         <Field label="Qarz">
-          <span className={remaining > 0 ? 'font-medium text-danger' : undefined}>{student.debt ? formatMoney(remaining) : '—'}</span>
+          <span className={due > 0 ? 'font-medium text-danger' : undefined}>{student.debt ? formatMoney(due) : '—'}</span>
         </Field>
         <Field label="O‘qish boshlangan">{formatDate(student.startDate)}</Field>
         <Field label="Kabinet">{student.hasPortalAccount ? 'Ochilgan' : 'Ochilmagan'}</Field>

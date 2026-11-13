@@ -9,7 +9,7 @@ import type { ClientInfo } from '../utils/requestContext.js';
 import { auditService } from './audit.service.js';
 import { inBranch } from './branchScope.js';
 import type { BranchScope } from './branchScope.js';
-import { debtAt } from './history.service.js';
+import { chargedContractSql, debtAt } from './history.service.js';
 
 /**
  * Oy oxiri snapshotlari (tarixiy ma'lumot, 7-bosqich): har o'quvchining oy oxiridagi holati, asosiy guruhi va
@@ -57,12 +57,7 @@ export async function studentPositionsAt(at: Date): Promise<StudentPositionRow[]
                ORDER BY g."changedAt" ASC LIMIT 1)
         ELSE s."groupId"
       END AS "groupId",
-      CASE WHEN d."id" IS NULL THEN 0 ELSE
-        d."totalAmount"
-          + COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd WHERE sd."studentId" = s."id" AND sd."revokedAt" IS NULL), 0)
-          - COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd
-                       WHERE sd."studentId" = s."id" AND sd."createdAt" <= ${at} AND (sd."revokedAt" IS NULL OR sd."revokedAt" > ${at})), 0)
-      END AS "contract",
+      CASE WHEN d."id" IS NULL THEN 0 ELSE ${chargedContractSql(at)} END AS "contract",
       COALESCE((SELECT SUM(p."amount") FROM "payments" p
                  WHERE p."studentId" = s."id" AND p."paidAt" <= ${at} AND (p."deletedAt" IS NULL OR p."deletedAt" > ${at})), 0)
         - COALESCE((SELECT SUM(r."amount") FROM "payment_refunds" r JOIN "payments" p ON p."id" = r."paymentId"

@@ -123,17 +123,30 @@ export async function lostLeadsBetween(start: Date, end: Date, scope: BranchScop
  * chegirma qo'shiladi, keyin bekor qilingani ayiriladi); to'lov — o'sha paytgacha to'langan va o'sha paytda bekor
  * qilinmagan. Shartnoma narxining qo'lda tahrirlari tarixda saqlanmaydi — shuning uchun natija "taxminiy".
  */
+/**
+ * `at` paytigacha **yozilgan** shartnoma summasi (oylik to'lov modeli, 2026-11): jadvali bor o'quvchida — muddati
+ * `at` sanasidan oldin kelgan, o'sha paytda bekor qilinmagan oylar (kelgusi oylar qarz emas). Jadvali yo'q eski
+ * yozuvda — shartnoma summasi (o'sha paytdagi chegirmalar bilan). `s` — students, `d` — debts taxalluslari.
+ */
+export function chargedContractSql(at: Date): Prisma.Sql {
+  return Prisma.sql`CASE WHEN EXISTS (SELECT 1 FROM "payment_installments" i WHERE i."studentId" = s."id")
+          THEN COALESCE((SELECT SUM(i."amount") FROM "payment_installments" i
+                          WHERE i."studentId" = s."id" AND i."dueDate" < ${dateColumn(at)}
+                            AND (i."cancelledAt" IS NULL OR i."cancelledAt" > ${at})), 0)
+          ELSE d."totalAmount"
+            + COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd WHERE sd."studentId" = s."id" AND sd."revokedAt" IS NULL), 0)
+            - COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd
+                         WHERE sd."studentId" = s."id" AND sd."createdAt" <= ${at} AND (sd."revokedAt" IS NULL OR sd."revokedAt" > ${at})), 0)
+        END`;
+}
+
 export async function debtAt(at: Date, scope: BranchScope): Promise<{ total: number; debtors: number }> {
   const rows = await prisma.$queryRaw<Array<{ total: Prisma.Decimal | null; debtors: bigint }>>`
     SELECT COALESCE(SUM(GREATEST(x."contract" - x."paid", 0)), 0) AS "total",
            COUNT(*) FILTER (WHERE x."contract" - x."paid" > 0) AS "debtors"
     FROM (
       SELECT s."id",
-        d."totalAmount"
-          + COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd WHERE sd."studentId" = s."id" AND sd."revokedAt" IS NULL), 0)
-          - COALESCE((SELECT SUM(sd."amount") FROM "student_discounts" sd
-                       WHERE sd."studentId" = s."id" AND sd."createdAt" <= ${at} AND (sd."revokedAt" IS NULL OR sd."revokedAt" > ${at})), 0)
-          AS "contract",
+        ${chargedContractSql(at)} AS "contract",
         COALESCE((SELECT SUM(p."amount") FROM "payments" p
                    WHERE p."studentId" = s."id" AND p."paidAt" <= ${at} AND (p."deletedAt" IS NULL OR p."deletedAt" > ${at})), 0)
           - COALESCE((SELECT SUM(r."amount") FROM "payment_refunds" r JOIN "payments" p ON p."id" = r."paymentId"
