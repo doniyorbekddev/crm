@@ -17,6 +17,7 @@ import type {
 } from '../validators/user.validator.js';
 import { auditService } from './audit.service.js';
 import { getBranchAccess, resolveBranchId } from './branchAccess.js';
+import { ensureTeacherProfile } from './teacherProvision.js';
 
 const userSelect = {
   id: true,
@@ -215,6 +216,8 @@ export const userService = {
         metadata: { email: created.email, role: role.key },
         ...client,
       });
+      // O'qituvchi profilisiz TEACHER davomat (QR), maosh va guruhlarda ko'rinmaydi
+      if (role.key === ROLE_KEYS.TEACHER) await ensureTeacherProfile(tx, { userId: created.id, actorId: actor.id, client, reason: 'user.created' });
       return toUserDto(created);
     });
   },
@@ -254,6 +257,7 @@ export const userService = {
           ...client,
         });
       }
+      if (roleChanged && roleKey === ROLE_KEYS.TEACHER) await ensureTeacherProfile(tx, { userId: id, actorId: actor.id, client, reason: 'user.role_changed' });
       return toUserDto(updated);
     });
   },
@@ -264,8 +268,11 @@ export const userService = {
     assertCanManage(actor, target);
 
     let roleId = target.role.id;
+    let roleKey = target.role.key;
     if (input.roleId && input.roleId !== target.role.id) {
-      roleId = (await resolveAssignableRole(actor, input.roleId)).id;
+      const role = await resolveAssignableRole(actor, input.roleId);
+      roleId = role.id;
+      roleKey = role.key;
     }
     if (input.status === target.status && roleId === target.role.id) {
       return toUserDto(target);
@@ -294,6 +301,7 @@ export const userService = {
         metadata: { from: target.status, to: input.status, role: updated.role.key },
         ...client,
       });
+      if (roleId !== target.role.id && roleKey === ROLE_KEYS.TEACHER) await ensureTeacherProfile(tx, { userId: id, actorId: actor.id, client, reason: action });
       return toUserDto(updated);
     });
   },
