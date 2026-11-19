@@ -78,7 +78,7 @@ export const orgOverviewService = {
     const today = businessDateString(now);
     const [currentYear, currentMonth] = today.split('-').map(Number) as [number, number];
     if (requested && requested.year * 12 + requested.month > currentYear * 12 + currentMonth) {
-      throw AppError.badRequest('Kelajak oy uchun panel ko‘rsatilmaydi');
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'period', message: 'Kelajak oy uchun panel ko‘rsatilmaydi' }]);
     }
     // Tanlangan oy joriy oyga teng bo'lsa — oddiy (bugungacha) panel
     const isCurrent = !requested || (requested.year === currentYear && requested.month === currentMonth);

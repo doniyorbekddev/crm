@@ -84,7 +84,7 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(none.summary).toEqual([]);
   });
 
-  it('tarix: ?period= bilan tugagan oy — oylik bloklar o‘sha oy uchun, shartnoma qoldig‘i yo‘q; kelajak oy va noto‘g‘ri format — 400', async () => {
+  it('tarix: ?period= bilan tugagan oy — oylik bloklar o‘sha oy uchun, shartnoma qoldig‘i yo‘q; kelajak oy va noto‘g‘ri format — 422', async () => {
     const { token: owner } = await createUserWithToken(app, { role: 'OWNER' });
     const now = new Date();
     const previous = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 15));
@@ -108,8 +108,10 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
 
     const future = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1));
     const futureKey = `${future.getUTCFullYear()}-${String(future.getUTCMonth() + 1).padStart(2, '0')}`;
-    expect((await request(app).get(`/api/org/overview?period=${futureKey}`).set(bearer(owner))).status).toBe(400);
-    expect((await request(app).get('/api/org/overview?period=2026-13').set(bearer(owner))).status).toBe(400);
+    const futureResponse = await request(app).get(`/api/org/overview?period=${futureKey}`).set(bearer(owner));
+    expect(futureResponse.status).toBe(422);
+    expect(futureResponse.body.errors[0].field).toBe('period');
+    expect((await request(app).get('/api/org/overview?period=2026-13').set(bearer(owner))).status).toBe(422);
   });
 
   it('kunlik xulosa: jamoa qatori (ishga kelganlar, muddati o‘tgan vazifa, murojaat, tasdiq kutayotganlar)', async () => {
