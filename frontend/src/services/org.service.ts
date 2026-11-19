@@ -46,7 +46,8 @@ async function get<T>(url: string, params?: Record<string, unknown>): Promise<T>
 
 export const orgService = {
   structure: () => get<OrgStructure>('/org/structure'),
-  overview: () => get<OrgOverview>('/org/overview'),
+  /** Tashkilot paneli; `period` ("2026-10") — tugagan oy, berilmasa — joriy oy */
+  overview: (period?: string) => get<OrgOverview>('/org/overview', period ? { period } : undefined),
   /** Umumiy kalendar: "2026-11" */
   calendar: (month: string) => get<CalendarMonth>('/org/calendar', { month }),
   /** Faol xodim hisoblari — rahbar va mas'ul tanlash uchun */

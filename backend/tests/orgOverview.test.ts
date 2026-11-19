@@ -60,7 +60,8 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(full.tasks).toMatchObject({ open: 1, review: 1, overdue: 1, overdueItems: [{ title: 'Kechikkan' }] });
     expect(full.complaints).toMatchObject({ open: 2, critical: 1, overdue: 1 });
     expect(full.assets).toMatchObject({ count: 1, value: 5_000_000, underRepair: 1 });
-    expect(full.payments).toMatchObject({ totalDebt: 1_200_000, dueDebt: 400_000, dueDebtors: 1 });
+    expect(full.payments).toMatchObject({ totalDebt: 1_200_000, dueDebt: 400_000, dueDebtors: 1, debtSource: 'LIVE' });
+    expect(full.period).toMatchObject({ isCurrent: true });
     // Boshqaruv xulosasi: salbiylar oldin, har biri manba ko'rsatkichi va havola bilan
     const keys = (full.summary as Array<{ key: string }>).map((item) => item.key);
     expect(keys.slice(0, 3)).toEqual(['complaints_critical', 'tasks_overdue', 'due_debt']);
@@ -78,9 +79,37 @@ describe.skipIf(!hasTestDatabase)('ORG · 4-bosqich', () => {
     expect(limited.complaints).toMatchObject({ open: 1 });
 
     const none = (await request(app).get('/api/org/overview').set(bearer(teacher))).body.data;
-    expect(Object.entries(none).filter(([key, value]) => key !== 'date' && key !== 'summary' && value !== null)).toEqual([]);
+    expect(Object.entries(none).filter(([key, value]) => key !== 'date' && key !== 'period' && key !== 'summary' && value !== null)).toEqual([]);
     // Ruxsati yo'q — xulosa ham bo'sh (bloklardan yig'iladi)
     expect(none.summary).toEqual([]);
+  });
+
+  it('tarix: ?period= bilan tugagan oy — oylik bloklar o‘sha oy uchun, shartnoma qoldig‘i yo‘q; kelajak oy va noto‘g‘ri format — 400', async () => {
+    const { token: owner } = await createUserWithToken(app, { role: 'OWNER' });
+    const now = new Date();
+    const previous = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 15));
+    const key = `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, '0')}`;
+    // O'sha oyda bajarilgan vazifa "o'sha oy bajarildi" ga tushadi, joriy oydagisi — tushmaydi
+    const { user } = await createUserWithToken(app, { role: 'TEACHER' });
+    await prisma.task.createMany({
+      data: [
+        { title: 'Eski', assigneeId: user.id, createdById: user.id, status: 'DONE', completedAt: previous },
+        { title: 'Yangi', assigneeId: user.id, createdById: user.id, status: 'DONE', completedAt: now },
+      ],
+    });
+
+    const past = await request(app).get(`/api/org/overview?period=${key}`).set(bearer(owner));
+    expect(past.status).toBe(200);
+    expect(past.body.data.period).toEqual({ year: previous.getUTCFullYear(), month: previous.getUTCMonth() + 1, isCurrent: false });
+    expect(past.body.data.payments.totalDebt).toBeNull();
+    expect(['SNAPSHOT', 'ESTIMATED']).toContain(past.body.data.payments.debtSource);
+    expect(past.body.data.tasks.doneThisMonth).toBe(1);
+    expect(past.body.data.kpi.month).toBe(key);
+
+    const future = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1));
+    const futureKey = `${future.getUTCFullYear()}-${String(future.getUTCMonth() + 1).padStart(2, '0')}`;
+    expect((await request(app).get(`/api/org/overview?period=${futureKey}`).set(bearer(owner))).status).toBe(400);
+    expect((await request(app).get('/api/org/overview?period=2026-13').set(bearer(owner))).status).toBe(400);
   });
 
   it('kunlik xulosa: jamoa qatori (ishga kelganlar, muddati o‘tgan vazifa, murojaat, tasdiq kutayotganlar)', async () => {
