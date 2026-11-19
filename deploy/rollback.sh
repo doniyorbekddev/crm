@@ -52,6 +52,8 @@ say "Qaytish: ${CURRENT:0:8} → ${TARGET:0:8}"
 git log --oneline -1 "$TARGET"
 
 git reset --hard "$TARGET"
+# /api/health dagi `version` qaytarilgan commitni ko'rsatsin
+export APP_VERSION="$(git rev-parse --short=8 HEAD)" APP_BUILT_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 dc build
 dc up -d --no-build --remove-orphans
 

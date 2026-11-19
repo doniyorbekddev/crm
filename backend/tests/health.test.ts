@@ -31,6 +31,9 @@ describe('GET /api/health', () => {
       data: { status: 'ok', service: 'crm-backend', database: 'up' },
     });
     expect(response.headers['x-request-id']).toBeTruthy();
+    // Serverda qaysi commit ishlayotgani: testda APP_VERSION berilmagan — `dev`
+    expect(response.body.data.version).toBe('dev');
+    expect(response.body.data).toHaveProperty('builtAt', null);
   });
 
   it('baza ishlamasa 503 va degraded holat qaytaradi', async () => {
