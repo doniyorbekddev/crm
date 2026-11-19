@@ -151,8 +151,16 @@ Guruhdan chiqqan o'quvchining o'tgan kun belgisini qayta belgilash avvalgidek ta
 - Moliyaviy oylar: "Qulflangan" holati, Qulflash / Qulfni ochish (sabab bilan), "Oy oxiri" snapshot oynasi.
 - Davomat: yopilgan oyda saqlashda server sabab so'rasa — sabab oynasi.
 
-### Qolganlar (keyingi bosqich)
-- Bosh sahifa (`/dashboard/summary`) — "bugun" paneli, oy tanlovi yo'q; o'tgan oy ko'rsatkichlari Direktor panelida.
-- Tashkilot paneli, xodimlar davomati, moliya va marketing sahifalarini umumiy davr tanlagichiga ulash.
-- Guruh o'qituvchisi almashinuvi tarixi saqlanmaydi — tarixiy hisobotlarda hozirgi o'qituvchi ishlatiladi.
-- Shartnoma narxining qo'lda tahrirlari tarixda yo'q — shu sabab snapshotsiz oylar qarzi "taxminiy".
+### Qolganlar — holati (2026-11-19 da qayta tekshirildi)
+- ✅ **Tashkilot paneli** — oy tanlagichi (`/org/overview?period=YYYY-MM`). Oylik bloklar (KPI, akademik, sotuv,
+  marketing, to'lov, maosh, xarajat, "bajarilgan vazifalar") tanlangan oy uchun, qarz — Direktor paneli bilan bir xil
+  manbadan (oy oxiri snapshoti yoki taxminiy). Davomat, jamoa, ochiq vazifa, murojaat, aktiv va tasdiqlar — hozirgi holat
+  (tarixi saqlanmaydi), sahifada izoh bor. Shartnoma qoldig'i o'tgan oyda ko'rsatilmaydi.
+- ✅ **Moliya, qarzdorlar, maoshlar, umumiy kalendar** — davr tanlagichiga allaqachon ulangan; **xodimlar davomati** —
+  o'zining oylik ko'rinishi bor.
+- ✅ **Guruh o'qituvchisi almashinuvi** — `group_teacher_history` (migratsiya `20261119090000_group_teacher_history`):
+  guruh sahifasida "Tarix" bo'limi, `groupTeacherAt()` yordamchisi. Tarix migratsiya kunidan boshlanadi (oldingi
+  almashinuvlar hech qayerda saqlanmagan). Hisobotlarni shu yordamchiga o'tkazish — keyingi qadam.
+- ✅ **Shartnoma narxi tahriri** — audit jurnalida `student.updated` yozuvida oldin/keyin (`contractPrice`) bor.
+  Snapshotsiz oylar (oktyabr) qarzi baribir "taxminiy" — u oylar uchun oy oxiri holati saqlanmagan.
+- ⏳ **Bosh sahifa** (`/dashboard/summary`) — ataylab "bugun" paneli; o'tgan oylar Direktor va Tashkilot panelida.
