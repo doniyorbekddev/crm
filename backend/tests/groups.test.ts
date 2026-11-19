@@ -113,6 +113,44 @@ describe.skipIf(!hasTestDatabase)('Groups API (integratsion)', () => {
     expect(foreignDetail.status).toBe(404);
   });
 
+  it('o‘qituvchi almashinuvi tarixda saqlanadi: eski davr yopiladi, yangisi ochiladi; o‘zgarmasa yozuv qo‘shilmaydi', async () => {
+    const course = await createCourse();
+    const { user: first, token: firstToken } = await createUserWithToken(app, { role: 'TEACHER' });
+    const { user: second } = await createUserWithToken(app, { role: 'TEACHER' });
+    const { user: admin, token: adminToken } = await createUserWithToken(app, { role: 'ADMIN' });
+
+    const created = await request(app).post('/api/groups').set(bearer(adminToken)).send(groupPayload(course.id, { teacherId: first.id }));
+    const id = created.body.data.id as string;
+    // Faqat sig'im o'zgardi — o'qituvchi o'sha, tarixga yozuv qo'shilmaydi
+    await request(app).put(`/api/groups/${id}`).set(bearer(adminToken)).send(groupPayload(course.id, { teacherId: first.id, capacity: 14 }));
+    expect(await prisma.groupTeacherHistory.count({ where: { groupId: id } })).toBe(1);
+
+    const changed = await request(app).put(`/api/groups/${id}`).set(bearer(adminToken)).send(groupPayload(course.id, { teacherId: second.id }));
+    expect(changed.status).toBe(200);
+
+    const history = await request(app).get(`/api/groups/${id}/teacher-history`).set(bearer(adminToken));
+    expect(history.status).toBe(200);
+    expect(history.body.data).toHaveLength(2);
+    // Yangisi birinchi: ochiq davr — hozirgi o'qituvchi; eskisi yopilgan va o'zgartirgan xodim yozilgan
+    expect(history.body.data[0]).toMatchObject({ teacher: { id: second.id }, endedAt: null, changedBy: { id: admin.id } });
+    expect(history.body.data[1].teacher.id).toBe(first.id);
+    expect(history.body.data[1].endedAt).not.toBeNull();
+    // Ochiq yozuv har doim guruhdagi o'qituvchi bilan bir xil
+    const open = await prisma.groupTeacherHistory.findMany({ where: { groupId: id, endedAt: null } });
+    expect(open.map((row) => row.teacherId)).toEqual([second.id]);
+
+    // Audit: kimdan kimga
+    const audit = await prisma.auditLog.findFirst({ where: { entityId: id, action: 'group.updated' }, orderBy: { createdAt: 'desc' } });
+    expect(audit?.metadata).toMatchObject({ teacherFrom: first.id, teacherTo: second.id });
+
+    // O'qituvchini olib tashlash — ochiq davr yopiladi, yangi yozuv yo'q
+    await request(app).put(`/api/groups/${id}`).set(bearer(adminToken)).send(groupPayload(course.id, { teacherId: undefined }));
+    expect(await prisma.groupTeacherHistory.count({ where: { groupId: id, endedAt: null } })).toBe(0);
+
+    // Endi guruh boshqa o'qituvchiniki emas — sobiq o'qituvchi uni (va tarixini) ko'rmaydi
+    expect((await request(app).get(`/api/groups/${id}/teacher-history`).set(bearer(firstToken))).status).toBe(404);
+  });
+
   it('o‘quvchilar soni sig‘imdan katta bo‘lishiga yo‘l qo‘ymaydi va to‘la guruhni o‘chirmaydi', async () => {
     const course = await createCourse();
     const { token } = await createUserWithToken(app, { role: 'ADMIN' });
