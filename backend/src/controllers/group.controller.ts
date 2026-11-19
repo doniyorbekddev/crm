@@ -17,6 +17,11 @@ export const groupController = {
     sendSuccess(res, await groupService.getById(requireAuthUser(req), id));
   },
 
+  async teacherHistory(req: Request, res: Response): Promise<void> {
+    const { id } = idParamSchema.parse(req.params);
+    sendSuccess(res, await groupService.teacherHistory(requireAuthUser(req), id));
+  },
+
   async create(req: Request, res: Response): Promise<void> {
     const input = createGroupSchema.parse(req.body);
     sendCreated(res, await groupService.create(requireAuthUser(req), input, getClientInfo(req)), 'Guruh yaratildi');

@@ -51,6 +51,10 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        # /api/health dagi `version` — deploy/deploy.sh eksport qiladi
+        APP_VERSION: ${APP_VERSION:-unknown}
+        APP_BUILT_AT: ${APP_BUILT_AT:-}
     restart: unless-stopped
     environment:
       NODE_ENV: production

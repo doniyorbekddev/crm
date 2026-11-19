@@ -9,9 +9,17 @@ export interface HealthStatus {
   service: string;
   environment: string;
   database: 'up' | 'down';
+  /** Serverda ishlayotgan kod commiti (deploy.sh build paytida beradi; lokalda — `dev`) */
+  version: string;
+  /** Image yig'ilgan vaqt (UTC, ISO) — noma'lum bo'lsa null */
+  builtAt: string | null;
   uptimeSeconds: number;
   timestamp: string;
 }
+
+// Build paytida Dockerfile ENV orqali beriladi — jarayon davomida o'zgarmaydi
+const APP_VERSION = process.env.APP_VERSION?.trim() || 'dev';
+const APP_BUILT_AT = process.env.APP_BUILT_AT?.trim() || null;
 
 /** Load balancer / monitoring uchun: baza ishlamasa 503 qaytaradi. */
 export async function getHealth(_req: Request, res: Response): Promise<void> {
@@ -22,6 +30,8 @@ export async function getHealth(_req: Request, res: Response): Promise<void> {
     service: 'crm-backend',
     environment: env.NODE_ENV,
     database: databaseUp ? 'up' : 'down',
+    version: APP_VERSION,
+    builtAt: APP_BUILT_AT,
     uptimeSeconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
   };

@@ -66,5 +66,12 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+# Qaysi commit ishlayotgani /api/health da ko'rinadi (deploy.sh beradi; qo'lda build'da — unknown).
+# Ataylab oxirida: qiymat har deployda o'zgaradi, yuqoridagi qatlamlar (npm ci) keshdan olinadi.
+ARG APP_VERSION=unknown
+ARG APP_BUILT_AT=
+ENV APP_VERSION=$APP_VERSION
+ENV APP_BUILT_AT=$APP_BUILT_AT
+
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/server.js"]

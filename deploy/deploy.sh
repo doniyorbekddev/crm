@@ -56,6 +56,14 @@ fi
 
 dc() { docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"; }
 
+# /api/health da qaysi commit ishlayotgani ko'rinsin: build oldidan joriy HEAD eksport qilinadi
+# (docker-compose.prod.yml → backend build args → Dockerfile ENV)
+set_build_version() {
+  APP_VERSION="$(git rev-parse --short=8 HEAD)"
+  APP_BUILT_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  export APP_VERSION APP_BUILT_AT
+}
+
 # Sog'liq tekshiruvi uchun port (secretlar env'ga yuklanmaydi — faqat shu qiymat olinadi)
 HTTP_PORT="$(sed -n 's/^HTTP_PORT=//p' "$ENV_FILE" | tail -1)"
 HEALTH_URL="http://127.0.0.1:${HTTP_PORT:-8080}/api/health"
@@ -92,6 +100,7 @@ git log --oneline -1 "$TARGET" || true
 
 git checkout "$BRANCH" >/dev/null 2>&1 || git checkout -B "$BRANCH" >/dev/null 2>&1
 git reset --hard "$TARGET"
+set_build_version
 
 # --- 2. Image'larni yig'ish (ilova hali ishlab turadi) ------------------
 say "Image'lar yig'ilmoqda..."
@@ -149,6 +158,7 @@ printf '%s\t%s\t%s\n' "$(date '+%F %T')" "$TARGET" "health-failed" >> "$STATE_DI
 
 warn "Oldingi versiyaga qaytilmoqda: ${PREVIOUS:0:8}"
 git reset --hard "$PREVIOUS"
+set_build_version
 dc build && dc up -d --no-build --remove-orphans
 
 if wait_healthy; then

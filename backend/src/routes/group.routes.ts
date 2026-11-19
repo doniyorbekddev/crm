@@ -13,6 +13,8 @@ groupRouter.use(authenticate);
 
 groupRouter.get('/', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.list);
 groupRouter.get('/:id', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.getById);
+/** O'qituvchi almashinuvi tarixi (kim qaysi davrda dars bergan) */
+groupRouter.get('/:id/teacher-history', requirePermission(PERMISSIONS.GROUP_VIEW), groupController.teacherHistory);
 groupRouter.get('/:id/mastery', requirePermission(PERMISSIONS.GROUP_VIEW), masteryController.group);
 groupRouter.get('/:id/attendance', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.getSheet);
 groupRouter.get('/:id/attendance/month', requirePermission(PERMISSIONS.ATTENDANCE_VIEW), attendanceController.month);

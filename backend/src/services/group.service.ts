@@ -7,6 +7,8 @@ import { splitSearchTerms, toSkipTake } from '../utils/pagination.js';
 import type { ClientInfo } from '../utils/requestContext.js';
 import type { CreateGroupInput, GroupListQuery, UpdateGroupInput } from '../validators/group.validator.js';
 import { auditService } from './audit.service.js';
+import { groupTeacherHistory, recordGroupTeacherChange } from './groupTeacherHistory.js';
+import type { GroupTeacherPeriodDto } from './groupTeacherHistory.js';
 import { scheduleConflictService } from './scheduleConflict.service.js';
 import type { ScheduleConflict } from './scheduleConflict.service.js';
 import { branchFilter, getBranchAccess, resolveBranchId } from './branchAccess.js';
@@ -205,6 +207,13 @@ export const groupService = {
     return toGroupDto(await findVisibleGroup(access, id));
   },
 
+  /** Guruh o'qituvchilari tarixi — guruhni ko'ra oladigan har kim (o'qituvchi — faqat o'z guruhi) */
+  async teacherHistory(actor: AuthUser, id: string): Promise<GroupTeacherPeriodDto[]> {
+    const access = await getGroupAccess(actor);
+    await findVisibleGroup(access, id);
+    return groupTeacherHistory(id);
+  },
+
   async create(actor: AuthUser, input: CreateGroupInput, client: ClientInfo): Promise<GroupDto> {
     await assertNameAvailable(input.name);
     await assertReferences(input.courseId, input.teacherId);
@@ -242,6 +251,8 @@ export const groupService = {
         },
         select: groupSelect,
       });
+      // O'qituvchi tarixi guruh bilan bir tranzaksiyada boshlanadi
+      await recordGroupTeacherChange(tx, { groupId: group.id, fromTeacherId: null, toTeacherId: group.teacher?.id ?? null, changedById: actor.id });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'group.created',
@@ -303,12 +314,16 @@ export const groupService = {
         },
         select: groupSelect,
       });
+      const fromTeacherId = group.teacher?.id ?? null;
+      const toTeacherId = record.teacher?.id ?? null;
+      // O'qituvchi almashsa — tarixda eski davr yopiladi, yangisi ochiladi (o'tgan oy hisobotlari uchun)
+      const teacherChanged = await recordGroupTeacherChange(tx, { groupId: id, fromTeacherId, toTeacherId, changedById: actor.id });
       await auditService.recordInTransaction(tx, {
         userId: actor.id,
         action: 'group.updated',
         entityType: 'group',
         entityId: id,
-        metadata: { statusFrom: group.status, statusTo: record.status },
+        metadata: { statusFrom: group.status, statusTo: record.status, ...(teacherChanged ? { teacherFrom: fromTeacherId, teacherTo: toTeacherId } : {}) },
         ...client,
       });
       return record;

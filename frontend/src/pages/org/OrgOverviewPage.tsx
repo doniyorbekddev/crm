@@ -4,11 +4,13 @@ import { AlertTriangle, Banknote, Boxes, CheckCircle2, Info, BriefcaseBusiness, 
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
+import { ReportingPeriodPicker, periodLabel } from '@/components/ReportingPeriodPicker';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { periodKey, useReportingPeriod } from '@/hooks/useReportingPeriod';
 import { orgService } from '@/services/org.service';
 import type { ManagementInsight } from '@/types/org';
 import { formatDateTime, formatMoney } from '@/utils/format';
@@ -19,21 +21,41 @@ import { formatDateTime, formatMoney } from '@/utils/format';
  * qarorini kutayotganlar. Har blok foydalanuvchi ruxsatiga qarab ko‘rinadi.
  */
 export default function OrgOverviewPage() {
-  const query = useQuery({ queryKey: ['org', 'overview'], queryFn: orgService.overview, refetchInterval: 120_000 });
+  // Oy tanlovi URL da (`?period=2026-10`): tugagan oy — oy oxiridagi holat, joriy oy — bugungacha
+  const { period, isCurrent } = useReportingPeriod();
+  const key = isCurrent ? undefined : periodKey(period);
+  const query = useQuery({
+    queryKey: ['org', 'overview', key ?? 'current'],
+    queryFn: () => orgService.overview(key),
+    // Tugagan oy raqamlari o'zgarmaydi — faqat joriy oy avtomatik yangilanadi
+    refetchInterval: isCurrent ? 120_000 : false,
+  });
   const data = query.data;
+  const monthTitle = isCurrent ? 'shu oy' : periodLabel(period);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Tashkilot paneli" description="Markaz holati bitta oynada: jamoa, ish, natija va pul" />
+      <PageHeader title="Tashkilot paneli" description="Markaz holati bitta oynada: jamoa, ish, natija va pul" actions={<ReportingPeriodPicker />} />
       {query.isPending ? (
         <Skeleton className="h-64" />
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : data ? (
-        Object.entries(data).every(([key, value]) => key === 'date' || key === 'summary' || value === null) ? (
+        Object.entries(data).every(([field, value]) => field === 'date' || field === 'period' || field === 'summary' || value === null) ? (
           <EmptyState icon={ShieldCheck} title="Ko‘rsatkich yo‘q" description="Sizga panel bloklari uchun ruxsat berilmagan" />
         ) : (
           <>
+          {!data.period.isCurrent && (
+            <Card>
+              <CardContent className="flex flex-wrap items-start gap-2 p-4 text-caption text-fg-muted">
+                <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>
+                  <strong className="text-fg">{periodLabel(period)}</strong> uchun: KPI, akademik, sotuv, marketing, to‘lov, maosh va xarajat — o‘sha oy
+                  (oy oxiridagi holat). Davomat, jamoa, ochiq vazifalar, murojaatlar, aktivlar va tasdiqlar — <strong className="text-fg">hozirgi</strong> holat.
+                </span>
+              </CardContent>
+            </Card>
+          )}
           {data.summary.length > 0 && <ManagementSummaryCard items={data.summary} />}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {data.approvals && (
@@ -73,7 +95,7 @@ export default function OrgOverviewPage() {
                 <Metric label="Jarayonda" value={data.tasks.inProgress} />
                 <Metric label="Tekshiruvda" value={data.tasks.review} />
                 <Metric label="Muddati o‘tgan" value={data.tasks.overdue} tone={data.tasks.overdue ? 'danger' : undefined} />
-                <Metric label="Shu oy bajarildi" value={data.tasks.doneThisMonth} />
+                <Metric label={isCurrent ? 'Shu oy bajarildi' : `${periodLabel(period)} bajarildi`} value={data.tasks.doneThisMonth} />
                 {data.tasks.overdueItems.length > 0 && (
                   <ul className="col-span-2 space-y-1 text-caption text-fg-muted">
                     {data.tasks.overdueItems.map((item) => (
@@ -96,19 +118,19 @@ export default function OrgOverviewPage() {
               <Widget icon={GraduationCap} title="Akademik ko‘rsatkichlar" link="/analytics">
                 <Metric label="Faol o‘quvchi" value={data.academic.activeStudents} />
                 <Metric label="Faol guruh" value={data.academic.activeGroups} />
-                <Metric label="Davomat (oy)" value={`${data.academic.attendanceRate}%`} />
+                <Metric label={isCurrent ? 'Davomat (oy)' : `Davomat (${periodLabel(period)})`} value={`${data.academic.attendanceRate}%`} />
                 <Metric label="Yangi / ketgan" value={`${data.academic.newStudents} / ${data.academic.droppedStudents}`} tone={data.academic.droppedStudents > data.academic.newStudents ? 'warning' : undefined} />
               </Widget>
             )}
             {data.sales && (
-              <Widget icon={TrendingUp} title="Sotuv (shu oy)" link="/leads">
+              <Widget icon={TrendingUp} title={`Sotuv (${monthTitle})`} link="/leads">
                 <Metric label="Yangi lead" value={data.sales.newLeads} />
                 <Metric label="Sotildi" value={data.sales.wonLeads} />
                 <Metric label="Konversiya" value={`${data.sales.conversionRate}%`} />
               </Widget>
             )}
             {data.marketing && (
-              <Widget icon={Megaphone} title="Marketing (shu oy)" link="/analytics">
+              <Widget icon={Megaphone} title={`Marketing (${monthTitle})`} link="/analytics">
                 <Metric label="Reklama xarajati" value={formatMoney(data.marketing.spend)} />
                 <Metric label="Leadlar" value={data.marketing.leads} />
                 <Metric label="CPL" value={data.marketing.costPerLead !== null ? formatMoney(data.marketing.costPerLead) : '—'} />
@@ -118,24 +140,27 @@ export default function OrgOverviewPage() {
             )}
             {data.payments && (
               <Widget icon={Wallet} title="To‘lovlar va qarzdorlik" link="/debts">
-                <Metric label="Shu oy tushum" value={formatMoney(data.payments.revenue)} />
+                <Metric label={isCurrent ? 'Shu oy tushum' : `Tushum (${periodLabel(period)})`} value={formatMoney(data.payments.revenue)} />
                 <Metric
-                  label={`Muddati kelgan qarz · ${data.payments.dueDebtors} ta`}
+                  label={`${isCurrent ? 'Muddati kelgan qarz' : 'Qarz (oy oxiri)'} · ${data.payments.dueDebtors} ta`}
                   value={formatMoney(data.payments.dueDebt)}
                   tone={data.payments.dueDebt ? 'warning' : undefined}
                 />
-                <Metric label="Shartnoma qoldig‘i" value={formatMoney(data.payments.totalDebt)} />
+                {data.payments.totalDebt !== null && <Metric label="Shartnoma qoldig‘i" value={formatMoney(data.payments.totalDebt)} />}
+                {data.payments.debtSource === 'ESTIMATED' && (
+                  <p className="col-span-2 text-caption text-fg-subtle">Qarz taxminiy: bu oy uchun oy oxiri snapshoti yo‘q, mavjud yozuvlardan tiklangan.</p>
+                )}
               </Widget>
             )}
             {data.payroll && (
-              <Widget icon={Banknote} title="Maosh (shu oy)" link="/payroll">
+              <Widget icon={Banknote} title={`Maosh (${monthTitle})`} link="/payroll">
                 <Metric label="Hisoblangan" value={formatMoney(data.payroll.accrued)} />
                 <Metric label="To‘langan" value={formatMoney(data.payroll.paid)} />
                 <Metric label="Qolgan" value={formatMoney(data.payroll.remaining)} />
               </Widget>
             )}
             {data.expenses && (
-              <Widget icon={PiggyBank} title="Xarajatlar (shu oy)" link="/expenses">
+              <Widget icon={PiggyBank} title={`Xarajatlar (${monthTitle})`} link="/expenses">
                 <Metric label="Jami" value={formatMoney(data.expenses.total)} />
                 <Metric label="Tasdiq kutmoqda" value={data.expenses.pendingApprovals} tone={data.expenses.pendingApprovals ? 'warning' : undefined} />
                 {data.expenses.overLimit.length > 0 && <p className="col-span-2 text-caption text-danger">Limitdan oshgan: {data.expenses.overLimit.map((row) => `${row.name} (${formatMoney(row.spent)} / ${formatMoney(row.limit)})`).join(', ')}</p>}
@@ -160,7 +185,7 @@ export default function OrgOverviewPage() {
             <Card className="md:col-span-2 xl:col-span-3">
               <CardContent className="flex flex-wrap items-center gap-2 p-4 text-caption text-fg-subtle">
                 <BriefcaseBusiness className="size-4" aria-hidden />
-                Moliya, sotuv va akademik raqamlar “Direktor paneli” bilan bir xil hisoblanadi. Panel har 2 daqiqada yangilanadi.
+                Moliya, sotuv va akademik raqamlar “Direktor paneli” bilan bir xil hisoblanadi. {isCurrent ? 'Panel har 2 daqiqada yangilanadi.' : 'Tanlangan oy raqamlari o‘zgarmaydi.'}
               </CardContent>
             </Card>
           </div>

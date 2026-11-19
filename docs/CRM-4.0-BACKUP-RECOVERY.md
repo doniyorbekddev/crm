@@ -31,6 +31,10 @@ Kunlik cron qatori (`deploy/setup-server.sh`):
 >
 > Bunday kunlik nusxani yangi `restore-db.sh` **rad etadi** (§5-C ga qarang). Cron qatorini `backup-db.sh` ga almashtirish —
 > alohida tasdiqlanadigan server qadami ([BACKUP-SCRIPT-AUDIT.md](organization-management/BACKUP-SCRIPT-AUDIT.md) §7).
+>
+> **Tuzatish (2026-11-19):** serverda repo papkasida `DRY_RUN=1 ./deploy/fix-backup-cron.sh` (nima o'zgarishini ko'rsatadi),
+> keyin `./deploy/fix-backup-cron.sh` — eski qatorni `backup-db.sh` ga almashtiradi, haftalik `verify-backup.sh` ni qo'shadi,
+> eski crontab nusxasini `backups/crontab-*.bak` ga saqlaydi va darhol zaxira olib, tiklab tekshiradi.
 > `setup-server.sh` eski qatorni ham taniydi va ikkinchi cron qo'shmaydi.
 
 Zaxiraga **kirmaydi:** `.env.production` (maxfiy kalitlar), Nginx/sertifikat sozlamalari, `code-runner` serveri.

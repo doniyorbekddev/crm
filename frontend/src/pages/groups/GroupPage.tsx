@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, Layers, Lock, NotebookTabs, Pencil, Send, Target, UserRound, UsersRound } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Bot, CalendarCheck, Clock, DoorOpen, FileCheck, History, Layers, Lock, NotebookTabs, Pencil, Send, Target, UserRound, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -27,9 +27,10 @@ import { GroupFormModal } from './GroupFormModal';
 import { GroupMasteryMatrix } from './GroupMasteryMatrix';
 import { GroupMasteryModal } from './GroupMasteryModal';
 import { GroupStudentsTable } from './GroupStudentsTable';
+import { GroupTeacherHistoryCard } from './GroupTeacherHistoryCard';
 
 type Dialog = 'edit' | 'mastery' | 'ai' | 'telegram' | null;
-type TabKey = 'students' | 'attendance' | 'homework' | 'exams' | 'progress';
+type TabKey = 'students' | 'attendance' | 'homework' | 'exams' | 'progress' | 'history';
 
 const BACK = { to: '/groups', label: 'Guruhlar' };
 /** O'quvchilar ko'rsatkichlari (`/teaching/groups/:id`) shu ruxsatlardan biri bilan ochiladi — backend bilan bir xil */
@@ -97,6 +98,7 @@ export default function GroupPage() {
     ...(canViewHomework ? [{ value: 'homework' as const, label: 'Uy vazifalari', icon: BookOpenCheck }] : []),
     ...(canViewExams ? [{ value: 'exams' as const, label: 'Imtihonlar', icon: FileCheck }] : []),
     { value: 'progress', label: 'O‘zlashtirish', icon: Target },
+    { value: 'history', label: 'Tarix', icon: History },
   ];
 
   const meta: ProfileMetaItem[] = [
@@ -208,6 +210,9 @@ export default function GroupPage() {
               <GroupMasteryMatrix groupId={group.id} />
             </CardContent>
           </Card>
+        </TabPanel>
+        <TabPanel value="history">
+          <GroupTeacherHistoryCard groupId={group.id} />
         </TabPanel>
       </Tabs>
 

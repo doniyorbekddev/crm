@@ -66,8 +66,13 @@ const itemParams = z.object({ id: z.string().trim().min(1).max(50), itemId: z.st
 const versionParams = z.object({ id: z.string().trim().min(1).max(50), version: z.coerce.number().int().min(1) });
 
 // ---------------------------------------------------------------- CEO paneli (har blok o'z ruxsati bilan — servisda)
+// `?period=2026-10` — tugagan oy (oy oxiridagi holat); berilmasa — joriy oy
 orgRouter.get('/overview', staff, async (req, res) => {
-  sendSuccess(res, await orgOverviewService.get(requireAuthUser(req)));
+  const { period } = z
+    .object({ period: z.string().regex(/^(20\d{2})-(0[1-9]|1[0-2])$/, 'Oy noto‘g‘ri (format: 2026-11)').optional() })
+    .parse(req.query);
+  const [year, month] = period ? (period.split('-').map(Number) as [number, number]) : [];
+  sendSuccess(res, await orgOverviewService.get(requireAuthUser(req), new Date(), year && month ? { year, month } : undefined));
 });
 
 // ---------------------------------------------------------------- umumiy kalendar (har bir xodim; sabablar — rahbarga)

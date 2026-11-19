@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { MessageResult } from '@/services/auth.service';
 import type { ApiSuccessResponse, Paginated } from '@/types/api';
-import type { GroupFormLookups, GroupItem, GroupListParams, GroupPayload } from '@/types/group';
+import type { GroupFormLookups, GroupItem, GroupListParams, GroupPayload, GroupTeacherPeriod } from '@/types/group';
 import type { GroupTelegramInvites } from '@/types/onboarding';
 
 export const groupsService = {
@@ -18,6 +18,12 @@ export const groupsService = {
   /** Chop etiladigan Telegram taklifnomalari (14 kunlik bir martalik kodlar yaratadi) */
   async telegramInvites(id: string): Promise<GroupTelegramInvites> {
     const response = await api.post<ApiSuccessResponse<GroupTelegramInvites>>(`/groups/${id}/telegram-invites`);
+    return response.data.data;
+  },
+
+  /** O'qituvchi almashinuvi tarixi (yangisi birinchi) */
+  async teacherHistory(id: string): Promise<GroupTeacherPeriod[]> {
+    const response = await api.get<ApiSuccessResponse<GroupTeacherPeriod[]>>(`/groups/${id}/teacher-history`);
     return response.data.data;
   },
 

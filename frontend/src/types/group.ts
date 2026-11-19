@@ -56,3 +56,13 @@ export interface GroupFormLookups {
   courses: Array<{ id: string; name: string }>;
   teachers: Array<{ id: string; firstName: string; lastName: string; roleName: string }>;
 }
+
+/** Guruh o'qituvchisi davri (`GET /groups/:id/teacher-history`) */
+export interface GroupTeacherPeriod {
+  id: string;
+  teacher: { id: string; firstName: string; lastName: string } | null;
+  startedAt: string;
+  /** Bo'sh — hozirgi o'qituvchi */
+  endedAt: string | null;
+  changedBy: { id: string; firstName: string; lastName: string } | null;
+}

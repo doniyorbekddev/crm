@@ -390,6 +390,8 @@ export interface Promotion {
 // ---------------------------------------------------------------- CEO paneli
 export interface OrgOverview {
   date: string;
+  /** Oylik bloklar qaysi oy uchun; `isCurrent: false` — tugagan oy (oy oxiridagi holat) */
+  period: { year: number; month: number; isCurrent: boolean };
   attendance: { expected: number; working: number; onTime: number; late: number; notArrived: number; absent: number; excused: number; review: number; lateNames: string[] } | null;
   team: { employees: number; teachers: number; onLeave: number; onProbation: number; withoutAccount: number; vacancies: number } | null;
   tasks: { open: number; inProgress: number; review: number; overdue: number; doneThisMonth: number; overdueItems: Array<{ id: string; title: string; assignee: string; dueAt: string }> } | null;
@@ -397,8 +399,8 @@ export interface OrgOverview {
   academic: { activeStudents: number; activeGroups: number; attendanceRate: number; newStudents: number; droppedStudents: number } | null;
   sales: { newLeads: number; wonLeads: number; conversionRate: number } | null;
   marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
-  /** `dueDebt` — muddati kelgan qarz; `totalDebt` — shartnoma qoldig'i */
-  payments: { revenue: number; totalDebt: number; dueDebt: number; dueDebtors: number } | null;
+  /** `dueDebt` — muddati kelgan qarz; `totalDebt` — shartnoma qoldig'i (tugagan oyda `null`); `debtSource` — qarz manbasi */
+  payments: { revenue: number; totalDebt: number | null; dueDebt: number; dueDebtors: number; debtSource: 'LIVE' | 'SNAPSHOT' | 'ESTIMATED' } | null;
   /** Boshqaruv xulosasi — bloklardan qoida bo'yicha, har fikr manba ko'rsatkichi bilan */
   summary: ManagementInsight[];
   payroll: { accrued: number; paid: number; remaining: number } | null;

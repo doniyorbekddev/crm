@@ -13,6 +13,7 @@ import { evaluateEmployeeKpi } from '../kpi.service.js';
 import { permissionService } from '../permission.service.js';
 import { staffAttendanceAdminService } from '../staffAttendance/admin.service.js';
 import { ACTIVE_TASK_STATUSES, WORKING_TASK_STATUSES } from '../task.service.js';
+import { AppError } from '../../utils/AppError.js';
 import { HELD_ASSET_STATUSES } from './assets.service.js';
 import { orgCatalogService } from './catalog.service.js';
 import { fullName } from './common.js';
@@ -26,8 +27,20 @@ import { orgStructureService } from './structure.service.js';
  * analitika hisoblaridan olinadi — bir xil ta'rif, ikki xil raqam chiqmaydi.
  */
 
+/** Panel davri: tanlanmasa — joriy oy (bugungacha) */
+export interface OrgOverviewPeriod {
+  year: number;
+  month: number;
+}
+
 export interface OrgOverviewDto {
   date: string;
+  /**
+   * Oylik bloklar (KPI, akademik, sotuv, marketing, to'lov, maosh, xarajat, "shu oy bajarildi") qaysi oy uchun.
+   * `isCurrent: false` — tugagan oy: raqamlar oy oxiridagi holat; bugungi davomat, jamoa, ochiq vazifa, murojaat,
+   * aktiv va tasdiqlar esa har doim **hozirgi** holat (ularning tarixi saqlanmaydi).
+   */
+  period: { year: number; month: number; isCurrent: boolean };
   attendance: { expected: number; working: number; onTime: number; late: number; notArrived: number; absent: number; excused: number; review: number; lateNames: string[] } | null;
   team: { employees: number; teachers: number; onLeave: number; onProbation: number; withoutAccount: number; vacancies: number } | null;
   tasks: { open: number; inProgress: number; review: number; overdue: number; doneThisMonth: number; overdueItems: Array<{ id: string; title: string; assignee: string; dueAt: string }> } | null;
@@ -35,8 +48,11 @@ export interface OrgOverviewDto {
   academic: { activeStudents: number; activeGroups: number; attendanceRate: number; newStudents: number; droppedStudents: number } | null;
   sales: { newLeads: number; wonLeads: number; conversionRate: number } | null;
   marketing: { spend: number; leads: number; costPerLead: number | null; cac: number | null; roi: number | null } | null;
-  /** `dueDebt` — muddati kelgan, to'lanmagan oy majburiyatlari (qarz); `totalDebt` — shartnoma qoldig'i */
-  payments: { revenue: number; totalDebt: number; dueDebt: number; dueDebtors: number } | null;
+  /**
+   * `dueDebt` — muddati kelgan, to'lanmagan oy majburiyatlari (qarz); `totalDebt` — shartnoma qoldig'i (tugagan oy
+   * uchun `null`: tarixi saqlanmaydi). `debtSource` — qarz manbasi: LIVE (hozir), SNAPSHOT (oy oxiri), ESTIMATED (taxminiy).
+   */
+  payments: { revenue: number; totalDebt: number | null; dueDebt: number; dueDebtors: number; debtSource: 'LIVE' | 'SNAPSHOT' | 'ESTIMATED' } | null;
   payroll: { accrued: number; paid: number; remaining: number } | null;
   expenses: { total: number; pendingApprovals: number; overLimit: Array<{ name: string; spent: number; limit: number }> } | null;
   complaints: { open: number; newCount: number; overdue: number; escalated: number; critical: number } | null;
@@ -53,29 +69,43 @@ async function safe<T>(enabled: boolean, load: () => Promise<T>): Promise<T | nu
 }
 
 export const orgOverviewService = {
-  async get(actor: AuthUser, now: Date = new Date()): Promise<OrgOverviewDto> {
+  async get(actor: AuthUser, now: Date = new Date(), requested?: OrgOverviewPeriod): Promise<OrgOverviewDto> {
     const can = await permissionService.getRolePermissions(actor.roleId);
     const has = (key: string) => can.has(key);
     const access = await getBranchAccess(actor);
     const branch = branchFilter(access);
     const scope = await branchScopeOf(actor);
     const today = businessDateString(now);
-    const [year, month] = today.split('-').map(Number) as [number, number];
+    const [currentYear, currentMonth] = today.split('-').map(Number) as [number, number];
+    if (requested && requested.year * 12 + requested.month > currentYear * 12 + currentMonth) {
+      throw AppError.unprocessable('Kiritilgan ma’lumotlar noto‘g‘ri', [{ field: 'period', message: 'Kelajak oy uchun panel ko‘rsatilmaydi' }]);
+    }
+    // Tanlangan oy joriy oyga teng bo'lsa — oddiy (bugungacha) panel
+    const isCurrent = !requested || (requested.year === currentYear && requested.month === currentMonth);
+    const year = isCurrent ? currentYear : requested.year;
+    const month = isCurrent ? currentMonth : requested.month;
     const { start: monthStart, end: monthEnd } = businessMonthRange(year, month);
-    const monthFrom = `${today.slice(0, 8)}01`;
-    // Direktor paneli bir marta yuklanadi — moliya, sotuv va akademik bloklar uchun
-    const executive = has(PERMISSIONS.ANALYTICS_VIEW) ? await executiveService.summary({}, scope) : null;
-    // Qarz — qarzdorlik sahifasi bilan bir xil ma'noda: muddati kelgan, to'lanmagan oy majburiyatlari
-    const due = executive ? await dueDebtTotals(today, scope.branchId) : null;
-    // Shartnoma qoldig'i — kelgusi oylar ham kiradi (qarz emas), alohida ko'rsatiladi
-    const contractRemaining = executive
+    const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`;
+    // Joriy oy — bugungacha; tugagan oy — oxirgi kunigacha
+    const monthTo = isCurrent ? today : businessDateString(new Date(monthEnd.getTime() - 1));
+    // Direktor paneli bir marta yuklanadi — moliya, sotuv va akademik bloklar uchun (tanlangan oy bilan)
+    const executive = has(PERMISSIONS.ANALYTICS_VIEW) ? await executiveService.summary(isCurrent ? {} : { year, month }, scope) : null;
+    // Qarz — qarzdorlik sahifasi bilan bir xil ma'noda: muddati kelgan, to'lanmagan oy majburiyatlari.
+    // Tugagan oy — direktor paneli bilan bir xil: oy oxiri snapshoti yoki taxminiy tiklangan qiymat.
+    const due = executive
+      ? isCurrent
+        ? { ...(await dueDebtTotals(today, scope.branchId)), source: 'LIVE' as const }
+        : { total: executive.month.totalDebt, debtors: executive.month.debtors, source: executive.month.debtSource }
+      : null;
+    // Shartnoma qoldig'i — kelgusi oylar ham kiradi (qarz emas), alohida ko'rsatiladi; tarixi yo'q — faqat joriy oyda
+    const contractRemaining = executive && isCurrent
       ? ((
           await prisma.debt.aggregate({
             where: { student: { deletedAt: null, ...(scope.branchId ? { branchId: scope.branchId } : {}) } },
             _sum: { remainingAmount: true },
           })
         )._sum.remainingAmount?.toNumber() ?? 0)
-      : 0;
+      : null;
 
     const [attendance, team, tasks, kpi, marketing, expenses, complaints, assets, approvals] = await Promise.all([
       safe(has(PERMISSIONS.STAFF_ATTENDANCE_VIEW), async () => {
@@ -119,11 +149,12 @@ export const orgOverviewService = {
           overdueItems: items.map((item) => ({ id: item.id, title: item.title, assignee: fullName(item.assignee), dueAt: item.dueAt!.toISOString() })),
         };
       }),
-      // KPI — o'tgan oy (joriy oy hali tugamagan); faqat maosh ko'rish huquqi bilan (KPI bonusga bog'liq)
+      // KPI — joriy oyda o'tgan oy (joriy oy hali tugamagan), tugagan oy tanlansa — o'sha oy;
+      // faqat maosh ko'rish huquqi bilan (KPI bonusga bog'liq)
       safe(has(PERMISSIONS.SALARY_VIEW) && has(PERMISSIONS.EMPLOYEE_VIEW), async () => {
-        const previous = new Date(Date.UTC(year, month - 2, 1));
-        const kpiYear = previous.getUTCFullYear();
-        const kpiMonth = previous.getUTCMonth() + 1;
+        const kpiDate = isCurrent ? new Date(Date.UTC(year, month - 2, 1)) : new Date(Date.UTC(year, month - 1, 1));
+        const kpiYear = kpiDate.getUTCFullYear();
+        const kpiMonth = kpiDate.getUTCMonth() + 1;
         const employees = await prisma.employee.findMany({
           where: { ...branch, status: { in: ['ACTIVE', 'ON_LEAVE'] } },
           select: { id: true, firstName: true, lastName: true, userId: true, branchId: true, position: true, kpiBonusPool: true },
@@ -141,7 +172,7 @@ export const orgOverviewService = {
         };
       }),
       safe(has(PERMISSIONS.ANALYTICS_VIEW), async () => {
-        const [unit, sources] = await Promise.all([analyticsService.unitEconomics({ from: monthFrom, to: today }, scope), analyticsService.sources({ from: monthFrom, to: today }, scope)]);
+        const [unit, sources] = await Promise.all([analyticsService.unitEconomics({ from: monthFrom, to: monthTo }, scope), analyticsService.sources({ from: monthFrom, to: monthTo }, scope)]);
         return { spend: unit.marketingSpend, leads: unit.leads, costPerLead: unit.costPerLead, cac: unit.cac, roi: sources.totals.roi };
       }),
       safe(has(PERMISSIONS.EXPENSE_VIEW), async () => {
@@ -190,22 +221,35 @@ export const orgOverviewService = {
 
     const dto: Omit<OrgOverviewDto, 'summary'> = {
       date: today,
+      period: { year, month, isCurrent },
       attendance,
       team,
       tasks,
       kpi,
       academic: executive
-        ? {
-            activeStudents: executive.kpi.activeStudents,
-            activeGroups: executive.kpi.activeGroups,
-            attendanceRate: executive.kpi.attendanceRate,
-            newStudents: executive.kpi.newStudents,
-            droppedStudents: executive.kpi.droppedStudents,
-          }
+        ? isCurrent
+          ? {
+              activeStudents: executive.kpi.activeStudents,
+              activeGroups: executive.kpi.activeGroups,
+              attendanceRate: executive.kpi.attendanceRate,
+              newStudents: executive.kpi.newStudents,
+              droppedStudents: executive.kpi.droppedStudents,
+            }
+          : {
+              // Tugagan oy: faol o'quvchilar — oy oxiridagi holat, davomat/yangi/ketgan — o'sha oy ichida.
+              // Faol guruhlar sonining tarixi saqlanmaydi — hozirgi qiymat.
+              activeStudents: executive.month.activeStudents,
+              activeGroups: executive.kpi.activeGroups,
+              attendanceRate: executive.month.attendanceRate,
+              newStudents: executive.month.newStudents,
+              droppedStudents: executive.month.droppedStudents,
+            }
         : null,
       sales: executive ? { newLeads: executive.month.newLeads, wonLeads: executive.month.wonLeads, conversionRate: executive.month.conversionRate } : null,
       marketing,
-      payments: executive ? { revenue: executive.month.revenue, totalDebt: contractRemaining, dueDebt: due?.total ?? 0, dueDebtors: due?.debtors ?? 0 } : null,
+      payments: executive
+        ? { revenue: executive.month.revenue, totalDebt: contractRemaining, dueDebt: due?.total ?? 0, dueDebtors: due?.debtors ?? 0, debtSource: due?.source ?? 'LIVE' }
+        : null,
       payroll:
         executive && has(PERMISSIONS.SALARY_VIEW)
           ? { accrued: executive.month.salaryAccrued, paid: executive.month.salaryPaid, remaining: Math.max(executive.month.salaryAccrued - executive.month.salaryPaid, 0) }

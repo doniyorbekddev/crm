@@ -291,6 +291,8 @@ model User {
   createdFollowUps     FollowUp[]            @relation("FollowUpCreator")
   taughtCourses        Course[]
   taughtGroups         Group[]
+  groupTeacherHistory  GroupTeacherHistory[] @relation("GroupTeacherHistoryTeacher")
+  groupTeacherChanges  GroupTeacherHistory[] @relation("GroupTeacherHistoryChangedBy")
   createdStudents      Student[]
   managedPayments      Payment[]             @relation("PaymentManager")
   acceptedPayments     Payment[]             @relation("PaymentAccountant")
@@ -1056,6 +1058,7 @@ model Group {
   feedback             Feedback[]
   changesFrom          StudentGroupChange[]     @relation("GroupChangeFrom")
   changesTo            StudentGroupChange[]     @relation("GroupChangeTo")
+  teacherHistory       GroupTeacherHistory[]
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
@@ -1065,6 +1068,28 @@ model Group {
   @@index([status])
   @@index([roomId])
   @@map("groups")
+}
+
+/// Guruh o'qituvchisi tarixi: kim qaysi davrda dars bergan. Joriy o'qituvchi — `endedAt` bo'sh qator
+/// (`groups.teacherId` bilan bir xil). O'tgan oy hisobotlari shu jadvaldan o'sha davr o'qituvchisini oladi.
+/// Faqat qo'shiladi va yopiladi — o'chirilmaydi (guruh o'chirilsa birga ketadi).
+model GroupTeacherHistory {
+  id          String    @id @default(cuid())
+  groupId     String
+  /// Bo'sh — shu davrda guruhga o'qituvchi biriktirilmagan
+  teacherId   String?
+  startedAt   DateTime
+  endedAt     DateTime?
+  changedById String?
+  createdAt   DateTime  @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher   User? @relation("GroupTeacherHistoryTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  changedBy User? @relation("GroupTeacherHistoryChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([groupId, startedAt])
+  @@index([teacherId, startedAt])
+  @@map("group_teacher_history")
 }
 
 model Student {
