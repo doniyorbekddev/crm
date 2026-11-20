@@ -27,7 +27,7 @@ say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 
 [ -f .env.production ] || { warn ".env.production topilmadi — skript repo papkasida (serverda) ishga tushirilishi kerak"; exit 1; }
-[ -x scripts/backup-db.sh ] || chmod +x scripts/backup-db.sh scripts/verify-backup.sh
+# Skriptlar git'da bajariladigan bo'lmasligi mumkin — har doim bash orqali chaqiriladi (cron qatorlari kabi)
 
 mkdir -p backups
 chmod 700 backups
@@ -64,10 +64,10 @@ fi
 [ "${DRY_RUN:-}" = "1" ] && exit 0
 
 say "Hozir yangi zaxira olinmoqda..."
-./scripts/backup-db.sh
+/usr/bin/bash ./scripts/backup-db.sh
 
 say "Zaxira tiklab tekshirilmoqda (vaqtinchalik bazada)..."
-if ./scripts/verify-backup.sh; then
+if /usr/bin/bash ./scripts/verify-backup.sh; then
   say "Tayyor: zaxira olinadi va tiklanadi. Oxirgi nusxalar:"
   ls -lt backups/crm-*.sql.gz | head -3
 else
