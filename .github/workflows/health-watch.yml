@@ -1,0 +1,149 @@
+name: Health watch
+
+# Kuniga 4 marta (Toshkent vaqti bilan 02:00, 08:00, 14:00, 20:00) productionni tekshiradi:
+#  - sayt va baza ishlayaptimi (/api/health)
+#  - main dagi oxirgi CI / Deploy muvaffaqiyatlimi
+#  - IT Leads botlari serveri ishlayaptimi
+# Muammo bo'lsa: main dagi (CI dan o'tgan) oxirgi commitni qayta deploy qiladi (deploy.sh ichida rollback bor),
+# hal bo'lmasa GitHub issue ochadi. Kodni o'zi O'ZGARTIRMAYDI va yangi commit deploy qilmaydi —
+# xatoni tuzatish odam (yoki AI agent) tomonidan PR orqali, ko'rib chiqilgandan keyin.
+on:
+  schedule:
+    - cron: '0 21,3,9,15 * * *' # UTC; Toshkent = UTC+5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+concurrency:
+  group: health-watch
+  cancel-in-progress: false
+
+env:
+  SITE: https://it-academycrm.uz
+  BOTS: https://185-196-219-20.sslip.io
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  watch:
+    name: Production tekshiruvi
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Tekshiruv
+        id: probe
+        run: |
+          set -uo pipefail
+          command -v jq >/dev/null || { echo "jq topilmadi (runner muammosi, sayt emas)"; exit 1; }
+
+          site_ok() {
+            local body
+            body=$(curl -fsS -m 20 "$SITE/api/health" 2>/dev/null) || return 1
+            echo "$body" | jq -e '.data.status == "ok" and .data.database == "up"' >/dev/null 2>&1
+          }
+          # 3 urinish, orasida 30 soniya (vaqtinchalik uzilishni xato deb hisoblamaslik uchun)
+          site_ok_retry() {
+            for i in 1 2 3; do site_ok && return 0; [ "$i" -lt 3 ] && sleep 30; done
+            return 1
+          }
+
+          problems=""
+          note() { problems="${problems}- $1"$'\n'; }
+
+          # 1) Asosiy CRM
+          SITE_FAIL=0
+          if site_ok_retry; then
+            version=$(curl -fsS -m 20 "$SITE/api/health" | jq -r '.data.version // "?"')
+            echo "CRM ok, version $version"
+          else
+            SITE_FAIL=1
+            note "Asosiy CRM ($SITE) javob bermayapti yoki baza 'up' emas"
+          fi
+
+          # 2) IT Leads (botlar serveri) — qayta deploy qilinmaydi, faqat xabar beriladi
+          if ! curl -fsS -m 20 "$BOTS/health" | jq -e '.status == "ok"' >/dev/null 2>&1; then
+            sleep 30
+            curl -fsS -m 20 "$BOTS/health" | jq -e '.status == "ok"' >/dev/null 2>&1 \
+              || note "IT Leads botlari serveri ($BOTS/health) javob bermayapti"
+          fi
+
+          # 3) main dagi oxirgi CI va Deploy
+          for wf in "CI" "Deploy (production)"; do
+            last=$(gh run list --workflow "$wf" --branch main --limit 1 --json conclusion,status,url --jq '.[0] | "\(.status)/\(.conclusion)/\(.url)"' 2>/dev/null || true)
+            case "$last" in
+              completed/failure/*|completed/cancelled/*|completed/timed_out/*) note "main dagi oxirgi '$wf' muvaffaqiyatsiz: ${last}" ;;
+            esac
+          done
+
+          echo "site_fail=$SITE_FAIL" >> "$GITHUB_OUTPUT"
+          { echo 'problems<<EOF'; printf '%s' "$problems"; echo 'EOF'; } >> "$GITHUB_OUTPUT"
+
+      - name: Sayt ishlamasa — main dagi oxirgi (CI dan o'tgan) commitni qayta deploy qilish
+        id: redeploy
+        if: steps.probe.outputs.site_fail == '1'
+        run: |
+          set -uo pipefail
+          # oxirgi soatda allaqachon deploy ishga tushgan bo'lsa, ustiga yangisini boshlamaymiz
+          recent=$(gh run list --workflow "Deploy (production)" --limit 1 --json createdAt,status --jq '.[0] | select(.status != "completed" or ((.createdAt | fromdateiso8601) > (now - 3600))) | .createdAt' 2>/dev/null || true)
+          if [ -n "$recent" ]; then
+            echo "Oxirgi soatda deploy bo'lgan ($recent) — qayta deploy qilinmaydi"
+            echo "attempted=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sha=$(gh api "repos/$GH_REPO/commits/main" --jq .sha)
+          echo "Qayta deploy: $sha"
+          gh workflow run "deploy-production.yml" -f sha="$sha"
+          echo "attempted=1" >> "$GITHUB_OUTPUT"
+          sleep 480 # deploy + health check
+
+      - name: Qayta tekshiruv
+        id: recheck
+        if: steps.redeploy.outputs.attempted == '1'
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS -m 20 "$SITE/api/health" | jq -e '.data.status == "ok" and .data.database == "up"' >/dev/null 2>&1; then
+              echo "recovered=1" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            sleep 30
+          done
+          echo "recovered=0" >> "$GITHUB_OUTPUT"
+
+      - name: Hisobot (issue ochish yoki yopish)
+        if: always()
+        env:
+          PROBLEMS: ${{ steps.probe.outputs.problems }}
+          SITE_FAIL: ${{ steps.probe.outputs.site_fail }}
+          ATTEMPTED: ${{ steps.redeploy.outputs.attempted }}
+          RECOVERED: ${{ steps.recheck.outputs.recovered }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          gh label create health-alert --color d73a4a --description "Production health watch" 2>/dev/null || true
+          existing=$(gh issue list --label health-alert --state open --limit 1 --json number --jq '.[0].number // empty')
+
+          # sayt tiklandi bo'lsa — faqat sayt muammosi yo'q va boshqa muammo ham yo'q bo'lsa issue yopiladi
+          if [ -z "$PROBLEMS" ] || { [ "$SITE_FAIL" = "1" ] && [ "$RECOVERED" = "1" ] && [ "$(printf '%s' "$PROBLEMS" | wc -l)" -le 1 ]; }; then
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --body "Tekshiruv o'tdi, muammo yo'q ($RUN_URL). Issue yopildi."
+              gh issue close "$existing"
+            fi
+            echo "Hammasi joyida"
+            exit 0
+          fi
+
+          body="Production tekshiruvida muammo topildi ($(date -u '+%Y-%m-%d %H:%M UTC')):"$'\n\n'"$PROBLEMS"$'\n'
+          if [ "$ATTEMPTED" = "1" ]; then
+            if [ "$RECOVERED" = "1" ]; then body="${body}"$'\n'"Avto-qayta deploy ishladi, sayt tiklandi."; else body="${body}"$'\n'"Avto-qayta deploy urinildi, lekin sayt tiklanmadi — qo'lda tekshirish kerak."; fi
+          fi
+          body="${body}"$'\n\n'"Tekshiruv: $RUN_URL"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --label health-alert --title "Production health alert" --body "$body"
+          fi
+          # sayt hali ham ishlamayotgan bo'lsa job qizil bo'lsin (GitHub ham xabar yuboradi)
+          if [ "$SITE_FAIL" = "1" ] && [ "$RECOVERED" != "1" ]; then exit 1; fi
