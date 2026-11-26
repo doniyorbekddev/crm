@@ -70,7 +70,7 @@ export function buildAcademyTiles(kpi: ExecutiveKpi, overview: AcademyOverview):
       to: null,
       ...(telegram.failed > 0 ? { tone: 'warning' as const } : {}),
     },
-    { key: 'ai', label: 'AI', value: formatNumber(ai.analyses), hint: `${ai.mode === 'LLM' ? 'Claude' : 'qoidalar rejimi'} · qaror kutmoqda ${formatNumber(ai.awaitingDecision)}`, to: '/assistant' },
+    { key: 'ai', label: 'AI', value: formatNumber(ai.analyses), hint: `${ai.mode === 'LLM' ? 'AI' : 'qoidalar rejimi'} · qaror kutmoqda ${formatNumber(ai.awaitingDecision)}`, to: '/assistant' },
   ];
 }
 

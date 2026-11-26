@@ -151,6 +151,9 @@ const envSchema = z
     ANTHROPIC_API_KEY: optionalString,
     AI_MODEL: z.string().trim().min(3).default('claude-sonnet-5'),
     AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(25_000),
+    /** Bepul muqobil: Claude kaliti bo'lmasa Groq ishlatiladi (daqiqalik limit bor) */
+    GROQ_API_KEY: optionalString,
+    GROQ_MODEL: z.string().trim().min(3).default('openai/gpt-oss-120b'),
     // --- Kuzatuv (TZ 3.0 §68) ---
     /** `/metrics` (Prometheus) uchun Bearer token; bo'sh — endpoint o'chiq (404) */
     // Qisqa token taxmin qilinishi mumkin — /metrics ichki holatni (navbat, xatolar) ochadi
