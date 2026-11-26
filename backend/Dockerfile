@@ -22,7 +22,9 @@ COPY backend/prisma.config.ts ./backend/
 RUN npm ci --workspace @crm/backend --include-workspace-root
 
 COPY backend ./backend
-RUN npm run build --workspace @crm/backend
+# tsc standart heap chegarasiga (~1 GB) sig'maydi (2026-11-26 deploy "heap out of memory" bilan yiqildi).
+# Faqat build uchun; server 2 GB RAM + 2 GB swap. Ishlab turgan ilovaga ta'sir qilmaydi.
+RUN NODE_OPTIONS=--max-old-space-size=1536 npm run build --workspace @crm/backend
 
 # ---------------------------------------------------------------------
 # Migratsiyalar uchun (compose’dagi `migrate` servisi shu bosqichni ishlatadi)
