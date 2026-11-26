@@ -4,8 +4,9 @@ import { logger } from '../../utils/logger.js';
 import { metrics } from '../../utils/metrics.js';
 
 /**
- * Til modeli qatlami (Claude API). **Ixtiyoriy**: `ANTHROPIC_API_KEY` bo'lmasa `llmAvailable()`
- * false va barcha AI akademik funksiyalar qoidalar rejimida ishlaydi (TZ: graceful fallback).
+ * Til modeli qatlami. **Ixtiyoriy**: `ANTHROPIC_API_KEY` (Claude) yoki `GROQ_API_KEY` (bepul tarif) bo'lmasa
+ * `llmAvailable()` false va barcha AI funksiyalar qoidalar rejimida ishlaydi (TZ: graceful fallback).
+ * Ikkala kalit ham bo'lsa Claude ishlatiladi.
  *
  * Xavfsizlik (§58–60):
  *  - model ma'lumot bazasiga tegmaydi — faqat chaqiruvchi yig'gan, kerakli maydonlar yuboriladi;
@@ -66,6 +67,50 @@ async function anthropicClient(request: LlmRequest): Promise<LlmResponse> {
   }
 }
 
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+/** `gpt-oss` modellarining yashirin mulohazasi ham javob tokenlaridan sarflanadi — shuning uchun zaxira */
+const GROQ_REASONING_ROOM = 800;
+
+/** Groq (OpenAI-uslubidagi API). Xato bo'lsa (jumladan limit — 429) throw qiladi: chaqiruvchi qoidalar natijasiga o'tadi. */
+export async function groqClient(request: LlmRequest): Promise<LlmResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
+  const reasoning = /gpt-oss/i.test(env.GROQ_MODEL);
+  try {
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
+      body: JSON.stringify({
+        model: env.GROQ_MODEL,
+        max_completion_tokens: (request.maxTokens ?? 1200) + (reasoning ? GROQ_REASONING_ROOM : 0),
+        temperature: 0.3,
+        ...(reasoning ? { reasoning_effort: 'low' } : {}),
+        messages: [
+          { role: 'system', content: request.system },
+          { role: 'user', content: request.prompt },
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`Groq API ${response.status}`);
+    const body = (await response.json()) as {
+      model?: string;
+      choices?: Array<{ message?: { content?: string | null } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    return { text: body.choices?.[0]?.message?.content ?? '', model: body.model ?? env.GROQ_MODEL, inputTokens: body.usage?.prompt_tokens ?? null, outputTokens: body.usage?.completion_tokens ?? null };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Qaysi kalit berilganiga qarab mijoz tanlanadi (Claude ustuvor); kalit yo'q — `null` (qoidalar rejimi). */
+export function pickClient(keys: { anthropic?: string | undefined; groq?: string | undefined }): LlmClient | null {
+  if (keys.anthropic) return anthropicClient;
+  if (keys.groq) return groqClient;
+  return null;
+}
+
 let override: LlmClient | null | undefined;
 
 /** Testlar uchun: soxta klient (`null` — "ulanmagan" holati), `undefined` — standart */
@@ -76,8 +121,8 @@ export function setLlmClient(client: LlmClient | null | undefined): void {
 function activeClient(): LlmClient | null {
   if (override !== undefined) return override;
   // Testlarda haqiqiy API hech qachon chaqirilmaydi
-  if (isTest || !env.ANTHROPIC_API_KEY) return null;
-  return anthropicClient;
+  if (isTest) return null;
+  return pickClient({ anthropic: env.ANTHROPIC_API_KEY, groq: env.GROQ_API_KEY });
 }
 
 export function llmAvailable(): boolean {
