@@ -205,17 +205,20 @@ export async function syncContractTotal(tx: Tx, studentId: string): Promise<numb
 export async function applyMonthlyFee(tx: Tx, studentId: string, monthly: number, now: Date = new Date()): Promise<void> {
   const current = currentBusinessMonth(now);
   const fromKey = periodKeyOf(current.year, current.month);
-  const [rows, closed] = await Promise.all([
-    tx.paymentInstallment.findMany({ where: { studentId, cancelledAt: null }, select: { id: true, dueDate: true, amount: true } }),
-    closedMonthKeys(tx),
-  ]);
+  // Ketma-ket: tranzaksiya mijozida parallel so'rov navbatga tushadi
+  const rows = await tx.paymentInstallment.findMany({ where: { studentId, cancelledAt: null }, select: { id: true, dueDate: true, amount: true } });
+  const closed = await closedMonthKeys(tx);
+  const allocated = await explicitByMonth(tx, studentId);
   const byMonth = new Map<string, typeof rows>();
   for (const row of rows) {
     const key = monthOfDate(row.dueDate.toISOString().slice(0, 10));
     byMonth.set(key, [...(byMonth.get(key) ?? []), row]);
   }
+  // Shu oyga yangi summadan ko'p to'lov biriktirilgan bo'lsa (masalan, oy eski narxda to'liq to'langan, keyin
+  // chegirma berildi) — oy eski narxida qoladi, yangi narx keyingi oylardan boshlanadi
   const ids = [...byMonth]
     .filter(([key, list]) => key >= fromKey && !closed.has(key) && list.length === 1 && list[0]!.amount.toNumber() !== monthly)
+    .filter(([key]) => (allocated.get(key) ?? 0) <= monthly)
     .map(([, list]) => list[0]!.id);
   if (ids.length > 0 && monthly > 0) {
     await tx.paymentInstallment.updateMany({ where: { id: { in: ids } }, data: { amount: monthly } });

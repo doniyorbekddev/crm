@@ -104,10 +104,17 @@ function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
 }
 
 /** Istalgan xatolikdan foydalanuvchiga ko‘rsatiladigan tushunarli xabar oladi. */
+/** Server validatsiya xatosining umumiy matni (`errorHandler.ts`) */
+const GENERIC_VALIDATION_MESSAGE = 'Kiritilgan ma’lumotlar noto‘g‘ri';
+
 export function getErrorMessage(error: unknown, fallback = 'Kutilmagan xatolik yuz berdi'): string {
   if (axios.isAxiosError(error)) {
     if (isApiErrorResponse(error.response?.data)) {
-      return error.response.data.message;
+      const { message, errors } = error.response.data;
+      // Umumiy "noto'g'ri" xabari o'rniga aniq sabab (forma maydoni bo'lmagan joyda toast'da sabab ko'rinsin)
+      const detail = Array.isArray(errors) ? errors.find((item) => typeof item?.message === 'string' && item.message.length > 0) : undefined;
+      if (detail && message === GENERIC_VALIDATION_MESSAGE) return detail.message;
+      return message;
     }
     if (error.code === 'ECONNABORTED') {
       return 'Server javob bermadi. Internet aloqasini tekshirib, qayta urinib ko‘ring.';
